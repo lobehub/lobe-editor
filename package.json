@@ -1,0 +1,32 @@
+{
+  "name": "editor",
+  "version": "1.0.0",
+  "description": "A frontend project using Lexical for editor development with a playground and Vitest for testing.",
+  "main": "src/index.js",
+  "scripts": {
+    "postinstall": "patch-package",
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest",
+    "playground": "vite"
+  },
+  "dependencies": {
+    "@lexical/dragon": "^0.33.1",
+    "@lexical/history": "^0.33.1",
+    "@lexical/rich-text": "^0.33.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "eventemitter3": "^5.0.1",
+    "lexical": "^0.33.1",
+    "lodash": "^4.17.21",
+    "patch-package": "^8.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.20",
+    "typescript": "^5.8.3",
+    "vite": "^4.0.0",
+    "vitest": "^0.34.0"
+  }
+}

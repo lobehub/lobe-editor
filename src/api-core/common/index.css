@@ -1,0 +1,28 @@
+
+.editor_indent {
+  --lexical-indent-base-value: 40px;
+}
+.editor_textBold {
+  font-weight: bold;
+}
+.editor_paragraph mark {
+  background-color: unset;
+}
+.editor_textHighlight {
+  background: rgba(255, 212, 0, 0.14);
+  border-bottom: 2px solid rgba(255, 212, 0, 0.3);
+}
+.editor_textItalic {
+  font-style: italic;
+}
+.editor_textUnderline {
+  text-decoration: underline;
+}
+
+.editor_textStrikethrough {
+  text-decoration: line-through;
+}
+
+.editor_textUnderlineStrikethrough {
+  text-decoration: underline line-through;
+}

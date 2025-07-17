@@ -1,0 +1,47 @@
+import { LexicalEditor } from "lexical/LexicalEditor";
+import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text';
+import { registerDragonSupport } from '@lexical/dragon';
+import { createEmptyHistoryState, registerHistory } from '@lexical/history';
+import { IEditorCore, IEditorPlugin } from "..";
+import JSONDataSource from "./json-data-source";
+
+import './index.css';
+
+export default class CommonPlugin implements IEditorPlugin {
+    name = "CommonPlugin";
+
+    constructor(protected ApiCore: IEditorCore) {
+        // Register the JSON data source
+        ApiCore.registerDataSource(new JSONDataSource("json"));
+        // Register common nodes and themes
+        ApiCore.registerNodes([HeadingNode, QuoteNode]);
+        ApiCore.registerThemes({
+            text: {
+                bold: 'editor_textBold',
+                capitalize: 'editor_textCapitalize',
+                code: 'editor_textCode',
+                highlight: 'editor_textHighlight',
+                italic: 'editor_textItalic',
+                lowercase: 'editor_textLowercase',
+                strikethrough: 'editor_textStrikethrough',
+                subscript: 'editor_textSubscript',
+                superscript: 'editor_textSuperscript',
+                underline: 'editor_textUnderline',
+                underlineStrikethrough: 'editor_textUnderlineStrikethrough',
+                uppercase: 'editor_textUppercase',
+            },
+        });
+    }
+
+    onRegister(editor: LexicalEditor): Array<() => void> {
+        return [
+            registerRichText(editor),
+            registerDragonSupport(editor),
+            registerHistory(editor, createEmptyHistoryState(), 300),
+        ];
+    }
+
+    onDestroy(): void {
+        // Cleanup logic
+    }
+}
