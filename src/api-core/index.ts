@@ -13,7 +13,9 @@ export interface IEditor {
     setRootElement(dom: HTMLElement): void;
     setDocument(type: string, content: any): void;
     getDocument(type: string): DataSource | undefined;
-    registerPlugin(plugin: new (core: ApiCore) => IEditorPlugin): void;
+    registerPlugin(plugin: new (core: ApiCore) => IEditorPlugin): IEditor;
+    registerPlugins(...plugins: Array<new (core: ApiCore) => IEditorPlugin>): IEditor;
+    destroy(): void;
 }
 
 /**
@@ -39,18 +41,13 @@ function createEmptyEditorState() {
     return new EditorState(new Map(), null);
 }
 
-
-export default class ApiCore extends EventEmitter {
+export class ApiCore extends EventEmitter {
     private dataTypeMap: Map<string, DataSource>;
     private plugins: IEditorPlugin[];
     private nodes: Array<LexicalNodeConfig> = [];
     private themes: Record<string, any> = {}; // 用于存储主题配置
 
     public editor?: LexicalEditor;
-
-    static createEditor(): IEditor {
-        return new ApiCore();
-    }
 
     constructor() {
         super();
@@ -126,15 +123,32 @@ export default class ApiCore extends EventEmitter {
         this.themes = merge(this.themes, themes);
     }
 
-    registerPlugin(plugin: new (core: ApiCore) => Plugin) {
+    registerPlugin(plugin: new (core: ApiCore) => IEditorPlugin) {
         const instance = new plugin(this);
         if (this.plugins.some(p => p.name === instance.name)) {
             throw new Error(`Plugin with name "${instance.name}" is already registered.`);
         }
         this.plugins.push(instance);
+        return this;
+    }
+
+    registerPlugins(...plugins: Array<new (core: ApiCore) => IEditorPlugin>) {
+        plugins.forEach(plugin => {
+            this.registerPlugin(plugin);
+        });
+        return this;
     }
 
     registerNodes(nodes: Array<LexicalNodeConfig>) {
         this.nodes.push(...nodes);
+    }
+}
+
+/**
+ * Editor class to create an instance of the editor
+ */
+export default class Editor {
+    static createEditor(): IEditor {
+        return new ApiCore();
     }
 }

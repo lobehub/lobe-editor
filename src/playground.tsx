@@ -134,6 +134,12 @@ const App = () => {
           window.__engine = editor;
           console.log('Editor loaded:', editor);
         }}
+        style={{
+          border: '1px solid #ccc',
+          padding: '10px',
+          borderRadius: '4px',
+          backgroundColor: '#fff',
+        }}
       />
     </div>
   );

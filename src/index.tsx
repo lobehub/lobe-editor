@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import ApiCore, { IEditor } from './api-core';
+import Editor, { IEditor } from './api-core';
 import CommonPlugin from './api-core/common';
 
 
@@ -7,6 +7,8 @@ export interface ILexicalEditorProps {
   type: string;
   content: any;
   onLoad?: (editor: IEditor) => void;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export const LexicalEditor: React.FC<ILexicalEditorProps> = (props) => {
@@ -15,8 +17,8 @@ export const LexicalEditor: React.FC<ILexicalEditorProps> = (props) => {
 
   useEffect(() => {
     if (editorContainerRef.current) {
-      const editor = ApiCore.createEditor();
-      editor.registerPlugin(CommonPlugin);
+      const editor = Editor.createEditor();
+      editor.registerPlugins(CommonPlugin);
       editorRef.current = editor;
 
       editor.setRootElement(editorContainerRef.current);
@@ -26,11 +28,16 @@ export const LexicalEditor: React.FC<ILexicalEditorProps> = (props) => {
 
       return () => {
         if (editorRef.current) {
-          (editorRef.current as any).destroy();
+          editorRef.current.destroy();
         }
       };
     }
   }, []);
 
-  return <div ref={editorContainerRef} contentEditable style={{ border: '1px solid #ccc', padding: '10px' }} />;
+  return <div
+    ref={editorContainerRef}
+    contentEditable
+    className={props.className}
+    style={props.style}
+  />;
 };
