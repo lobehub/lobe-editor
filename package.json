@@ -19,14 +19,15 @@
     "eventemitter3": "^5.0.1",
     "lexical": "^0.33.1",
     "lodash": "^4.17.21",
-    "patch-package": "^8.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
+    "patch-package": "^8.0.0",
     "typescript": "^5.8.3",
     "vite": "^4.0.0",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^0.34.0"
   }
 }

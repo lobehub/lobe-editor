@@ -1,51 +1,17 @@
-import { createEditor, LexicalEditor, LexicalNodeConfig, EditorState } from "lexical";
-import { EventEmitter } from "eventemitter3";
+import EventEmitter from "eventemitter3";
 import { mergeRegister } from '@lexical/utils';
-import merge from 'lodash/merge';
+import { IEditorKernel, IEditorPlugin, IServiceID } from "./types";
 import DataSource from "./data-source";
+import { createEditor, LexicalEditor, LexicalNodeConfig } from "lexical";
+import { createEmptyEditorState, noop } from "./utils";
+import merge from "lodash/merge";
 
-const noop = () => { };
-
-/**
- * 对外提供的 api
- */
-export interface IEditor {
-    setRootElement(dom: HTMLElement): void;
-    setDocument(type: string, content: any): void;
-    getDocument(type: string): DataSource | undefined;
-    registerPlugin(plugin: new (core: ApiCore) => IEditorPlugin): IEditor;
-    registerPlugins(...plugins: Array<new (core: ApiCore) => IEditorPlugin>): IEditor;
-    destroy(): void;
-}
-
-/**
- * 提供给插件的 api
- */
-export interface IEditorCore extends IEditor {
-    registerDataSource(dataSource: DataSource): void;
-    registerNodes(nodes: Array<LexicalNodeConfig>): void;
-    registerThemes(themes: Record<string, any>): void;
-}
-
-/**
- * 插件接口
- */
-export interface IEditorPlugin {
-    name: string; // 插件名称，必须唯一
-    onInit?(apiCore: IEditorCore): void;
-    onRegister?(editor: LexicalEditor): Array<() => void>;
-    onDestroy?(): void;
-}
-
-function createEmptyEditorState() {
-    return new EditorState(new Map(), null);
-}
-
-export class ApiCore extends EventEmitter {
+export class Kernel extends EventEmitter implements IEditorKernel {
     private dataTypeMap: Map<string, DataSource>;
     private plugins: IEditorPlugin[];
     private nodes: Array<LexicalNodeConfig> = [];
     private themes: Record<string, any> = {}; // 用于存储主题配置
+    private serviceMap: Map<string, any> = new Map();
 
     public editor?: LexicalEditor;
 
@@ -123,7 +89,7 @@ export class ApiCore extends EventEmitter {
         this.themes = merge(this.themes, themes);
     }
 
-    registerPlugin(plugin: new (core: ApiCore) => IEditorPlugin) {
+    registerPlugin(plugin: new (core: Kernel) => IEditorPlugin) {
         const instance = new plugin(this);
         if (this.plugins.some(p => p.name === instance.name)) {
             throw new Error(`Plugin with name "${instance.name}" is already registered.`);
@@ -132,7 +98,7 @@ export class ApiCore extends EventEmitter {
         return this;
     }
 
-    registerPlugins(...plugins: Array<new (core: ApiCore) => IEditorPlugin>) {
+    registerPlugins(...plugins: Array<new (core: Kernel) => IEditorPlugin>) {
         plugins.forEach(plugin => {
             this.registerPlugin(plugin);
         });
@@ -142,13 +108,23 @@ export class ApiCore extends EventEmitter {
     registerNodes(nodes: Array<LexicalNodeConfig>) {
         this.nodes.push(...nodes);
     }
-}
 
-/**
- * Editor class to create an instance of the editor
- */
-export default class Editor {
-    static createEditor(): IEditor {
-        return new ApiCore();
+    registerService<T>(serviceId: IServiceID<T>, service: T): void {
+        if (this.serviceMap.has(serviceId.__serviceId)) {
+            throw new Error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
+        }
+        this.serviceMap.set(serviceId.__serviceId, service);
+    }
+
+    /**
+     * 获取服务
+     * @param serviceId 服务ID
+     */
+    requireService<T>(serviceId: IServiceID<T>): T | null {
+        const service = this.serviceMap.get(serviceId.__serviceId);
+        if (!service) {
+            return null;
+        }
+        return service as T;
     }
 }

@@ -1,5 +1,5 @@
 import { EditorState, LexicalEditor, RootNode } from "lexical";
-import DataSource from "../data-source";
+import { DataSource } from "@/editor-kernel";
 
 export function createEmptyEditorState(): EditorState {
     return new EditorState(new Map([['root', new RootNode()]]));

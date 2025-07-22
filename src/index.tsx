@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import Editor, { IEditor } from './api-core';
-import CommonPlugin from './api-core/common';
-
+import Editor, { IEditor } from './editor-kernel';
+import { CommonPlugin } from './plugins/common';
+import { SlashPlugin } from './plugins/slash';
 
 export interface ILexicalEditorProps {
   type: string;
@@ -18,7 +18,7 @@ export const LexicalEditor: React.FC<ILexicalEditorProps> = (props) => {
   useEffect(() => {
     if (editorContainerRef.current) {
       const editor = Editor.createEditor();
-      editor.registerPlugins(CommonPlugin);
+      editor.registerPlugins(CommonPlugin, SlashPlugin);
       editorRef.current = editor;
 
       editor.setRootElement(editorContainerRef.current);

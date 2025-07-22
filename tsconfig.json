@@ -11,7 +11,10 @@
     "rootDir": "./src",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src", "playground"],
   "exclude": ["node_modules"]

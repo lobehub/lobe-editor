@@ -2,20 +2,20 @@ import { LexicalEditor } from "lexical/LexicalEditor";
 import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text';
 import { registerDragonSupport } from '@lexical/dragon';
 import { createEmptyHistoryState, registerHistory } from '@lexical/history';
-import { IEditorCore, IEditorPlugin } from "..";
-import JSONDataSource from "./json-data-source";
+import { IEditorKernel, IEditorPlugin } from "@/editor-kernel";
+import JSONDataSource from "../data-source/json-data-source";
 
 import './index.css';
 
 export default class CommonPlugin implements IEditorPlugin {
     name = "CommonPlugin";
 
-    constructor(protected ApiCore: IEditorCore) {
+    constructor(protected kernel: IEditorKernel) {
         // Register the JSON data source
-        ApiCore.registerDataSource(new JSONDataSource("json"));
+        kernel.registerDataSource(new JSONDataSource("json"));
         // Register common nodes and themes
-        ApiCore.registerNodes([HeadingNode, QuoteNode]);
-        ApiCore.registerThemes({
+        kernel.registerNodes([HeadingNode, QuoteNode]);
+        kernel.registerThemes({
             text: {
                 bold: 'editor_textBold',
                 capitalize: 'editor_textCapitalize',
