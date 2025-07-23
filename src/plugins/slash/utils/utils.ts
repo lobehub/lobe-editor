@@ -50,14 +50,14 @@ export function tryToPositionRange(
   const startOffset = leadOffset;
   const endOffset = domSelection.anchorOffset;
 
-  if (anchorNode == null || endOffset == null) {
+  if (anchorNode === null || endOffset === null) {
     return false;
   }
 
   try {
     range.setStart(anchorNode, startOffset);
     range.setEnd(anchorNode, endOffset);
-  } catch (error) {
+  } catch {
     return false;
   }
 

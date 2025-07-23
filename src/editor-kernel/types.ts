@@ -14,13 +14,13 @@ export type IServiceID<Service> = {
  * 对外提供的 api
  */
 export interface IEditor {
-    setRootElement(dom: HTMLElement): void;
-    setDocument(type: string, content: any): void;
+    destroy(): void;
     getDocument(type: string): DataSource | undefined;
     registerPlugin<T>(plugin: IEditorPluginConstructor<T>, config?: T): IEditor;
     registerPlugins(plugins: Array<IPlugin>): IEditor;
     requireService<T>(serviceId: IServiceID<T>): T | null;
-    destroy(): void;
+    setDocument(type: string, content: any): void;
+    setRootElement(dom: HTMLElement): void;
 }
 
 /**
@@ -29,8 +29,8 @@ export interface IEditor {
 export interface IEditorKernel extends IEditor {
     registerDataSource(dataSource: DataSource): void;
     registerNodes(nodes: Array<LexicalNodeConfig>): void;
-    registerThemes(themes: Record<string, any>): void;
     registerService<T>(serviceId: IServiceID<T>, service: T): void;
+    registerThemes(themes: Record<string, any>): void;
 }
 
 /**
@@ -38,8 +38,8 @@ export interface IEditorKernel extends IEditor {
  */
 export interface IEditorPlugin<IConfig> {
     config?: IConfig;
-    onRegister?(editor: LexicalEditor): Array<() => void>;
     onDestroy?(): void;
+    onRegister?(editor: LexicalEditor): Array<() => void>;
 }
 
 export interface IEditorPluginConstructor<IConfig> {

@@ -8,6 +8,7 @@ import JSONDataSource from "../data-source/json-data-source";
 import './index.css';
 import { IEditorPluginConstructor } from "@/editor-kernel/types";
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CommonPluginOptions { }
 
 export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> =

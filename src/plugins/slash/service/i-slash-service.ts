@@ -1,13 +1,18 @@
+/* eslint-disable no-redeclare */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { genServiceId, type IEditorKernel, type IServiceID } from "@/editor-kernel";
 
 export interface SlashOptions {
-    trigger: string; // 触发符号
+    // 触发符号
     items: Array<{
-        label: string; // 显示的标签
-        value: string; // 实际的值
-        icon?: string; // 可选的图标
-    } | React.ComponentType>;
-};
+        // 实际的值
+        icon?: string; 
+        label: string; 
+        // 显示的标签
+        value: string; // 可选的图标
+    }>; 
+    trigger: string;
+}
 
 export interface ISlashService {
     registerSlash(options: SlashOptions): void;

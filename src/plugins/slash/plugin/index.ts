@@ -15,7 +15,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> =
 
         private service: SlashService | null = null;
 
-        constructor(kernel: IEditorKernel, config?: SlashPluginOptions) {
+        constructor(kernel: IEditorKernel) {
             super();
             this.service = new SlashService(kernel);
             kernel.registerService(ISlashService, this.service);
@@ -67,6 +67,5 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> =
             })]
         }
 
-        onDestroy(): void {
-        }
+        onDestroy(): void {}
     };

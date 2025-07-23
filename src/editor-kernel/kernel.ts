@@ -39,19 +39,19 @@ export class Kernel extends EventEmitter implements IEditorKernel {
         }
         const editor = this.editor = createEditor({
             nodes: this.nodes,
-            theme: this.themes,
             onError: (error: Error) => {
                 this.emit('error', error);
             },
+            theme: this.themes,
         });
         this.editor.setRootElement(dom);
 
         /**
          * Merge plugin registration
          */
-        mergeRegister(...this.pluginsInstances.map(plugin => {
+        mergeRegister(...this.pluginsInstances.flatMap(plugin => {
             return plugin.onRegister?.(editor) || noop;
-        }).flat());
+        }));
     }
 
     setDocument(type: string, content: any) {

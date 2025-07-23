@@ -6,7 +6,6 @@ const App = () => {
     <div>
       <h1>Lexical Editor Playground</h1>
       <LexicalEditor
-        type="json"
         content={{
           "root": {
             "children": [
@@ -25,9 +24,9 @@ const App = () => {
                 "direction": "ltr",
                 "format": "",
                 "indent": 0,
+                "tag": "h1",
                 "type": "heading",
-                "version": 1,
-                "tag": "h1"
+                "version": 1
               },
               {
                 "children": [
@@ -116,10 +115,10 @@ const App = () => {
                 "direction": "ltr",
                 "format": "",
                 "indent": 0,
-                "type": "paragraph",
-                "version": 1,
                 "textFormat": 0,
-                "textStyle": ""
+                "textStyle": "",
+                "type": "paragraph",
+                "version": 1
               }
             ],
             "direction": "ltr",
@@ -135,11 +134,12 @@ const App = () => {
           console.log('Editor loaded:', editor);
         }}
         style={{
-          border: '1px solid #ccc',
-          padding: '10px',
-          borderRadius: '4px',
           backgroundColor: '#fff',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          padding: '10px',
         }}
+        type="json"
       />
     </div>
   );

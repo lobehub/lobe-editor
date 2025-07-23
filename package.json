@@ -23,7 +23,14 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@lobehub/lint": "^1.26.2",
     "@types/lodash": "^4.17.20",
+    "@types/mdast": "^4.0.4",
+    "@types/unist": "^3.0.3",
+    "commitlint": "^19.8.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
     "patch-package": "^8.0.0",
     "typescript": "^5.8.3",
     "vite": "^4.0.0",
