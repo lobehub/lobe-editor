@@ -1,1 +1,1 @@
-export { default as CommonPlugin } from './plugin/index';
+export { CommonPlugin, type CommonPluginOptions } from './plugin/index';

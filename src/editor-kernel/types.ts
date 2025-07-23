@@ -17,8 +17,9 @@ export interface IEditor {
     setRootElement(dom: HTMLElement): void;
     setDocument(type: string, content: any): void;
     getDocument(type: string): DataSource | undefined;
-    registerPlugin(plugin: new (core: IEditorKernel) => IEditorPlugin): IEditor;
-    registerPlugins(...plugins: Array<new (core: IEditorKernel) => IEditorPlugin>): IEditor;
+    registerPlugin<T>(plugin: IEditorPluginConstructor<T>, config?: T): IEditor;
+    registerPlugins(plugins: Array<IPlugin>): IEditor;
+    requireService<T>(serviceId: IServiceID<T>): T | null;
     destroy(): void;
 }
 
@@ -30,15 +31,20 @@ export interface IEditorKernel extends IEditor {
     registerNodes(nodes: Array<LexicalNodeConfig>): void;
     registerThemes(themes: Record<string, any>): void;
     registerService<T>(serviceId: IServiceID<T>, service: T): void;
-    requireService<T>(serviceId: IServiceID<T>): T | null;
 }
 
 /**
  * 插件接口
  */
-export interface IEditorPlugin {
-    name: string; // 插件名称，必须唯一
-    onInit?(kernel: IEditorKernel): void;
+export interface IEditorPlugin<IConfig> {
+    config?: IConfig;
     onRegister?(editor: LexicalEditor): Array<() => void>;
     onDestroy?(): void;
 }
+
+export interface IEditorPluginConstructor<IConfig> {
+    readonly pluginName: string; // 插件名称，必须唯一
+    new(kernel: IEditorKernel, config?: IConfig): IEditorPlugin<IConfig>;
+}
+
+export type IPlugin<T = any> = IEditorPluginConstructor<T> | [IEditorPluginConstructor<T>, T?];

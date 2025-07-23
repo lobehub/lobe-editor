@@ -1,6 +1,6 @@
 import EventEmitter from "eventemitter3";
 import { mergeRegister } from '@lexical/utils';
-import { IEditorKernel, IEditorPlugin, IServiceID } from "./types";
+import { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IPlugin, IServiceID } from "./types";
 import DataSource from "./data-source";
 import { createEditor, LexicalEditor, LexicalNodeConfig } from "lexical";
 import { createEmptyEditorState, noop } from "./utils";
@@ -8,7 +8,8 @@ import merge from "lodash/merge";
 
 export class Kernel extends EventEmitter implements IEditorKernel {
     private dataTypeMap: Map<string, DataSource>;
-    private plugins: IEditorPlugin[];
+    private plugins: Array<IEditorPluginConstructor<any> & { __config: any }> = [];
+    private pluginsInstances: Array<IEditorPlugin<any>> = [];
     private nodes: Array<LexicalNodeConfig> = [];
     private themes: Record<string, any> = {}; // 用于存储主题配置
     private serviceMap: Map<string, any> = new Map();
@@ -18,25 +19,23 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     constructor() {
         super();
         this.dataTypeMap = new Map<string, DataSource>();
-        this.plugins = [];
     }
 
     destroy() {
         this.editor?.setEditorState(createEmptyEditorState());
         this.dataTypeMap.clear();
-        this.plugins.forEach(plugin => {
+        this.pluginsInstances.forEach(plugin => {
             if (plugin.onDestroy) {
                 plugin.onDestroy();
             }
         });
-        this.plugins = [];
+        this.pluginsInstances = [];
     }
 
     setRootElement(dom: HTMLElement) {
         for (const plugin of this.plugins) {
-            if (plugin.onInit) {
-                plugin.onInit(this);
-            }
+            const instance = new plugin(this, plugin.__config);
+            this.pluginsInstances.push(instance);
         }
         const editor = this.editor = createEditor({
             nodes: this.nodes,
@@ -50,7 +49,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
         /**
          * Merge plugin registration
          */
-        mergeRegister(...this.plugins.map(plugin => {
+        mergeRegister(...this.pluginsInstances.map(plugin => {
             return plugin.onRegister?.(editor) || noop;
         }).flat());
     }
@@ -89,19 +88,26 @@ export class Kernel extends EventEmitter implements IEditorKernel {
         this.themes = merge(this.themes, themes);
     }
 
-    registerPlugin(plugin: new (core: Kernel) => IEditorPlugin) {
-        const instance = new plugin(this);
-        if (this.plugins.some(p => p.name === instance.name)) {
-            throw new Error(`Plugin with name "${instance.name}" is already registered.`);
+    registerPlugin<T>(plugin: IEditorPluginConstructor<T>, config?: T): IEditor {
+        const instance = plugin;
+        if (this.plugins.some(p => p.pluginName === instance.pluginName)) {
+            throw new Error(`Plugin with pluginName "${instance.pluginName}" is already registered.`);
         }
+        // @ts-expect-error not error
+        instance.__config = config || {};
+        // @ts-expect-error not error
         this.plugins.push(instance);
         return this;
     }
 
-    registerPlugins(...plugins: Array<new (core: Kernel) => IEditorPlugin>) {
-        plugins.forEach(plugin => {
-            this.registerPlugin(plugin);
-        });
+    registerPlugins(plugins: Array<IPlugin>): IEditor {
+        for (const plugin of plugins) {
+            if (Array.isArray(plugin)) {
+                this.registerPlugin(plugin[0], plugin[1]);
+            } else {
+                this.registerPlugin(plugin);
+            }
+        }
         return this;
     }
 

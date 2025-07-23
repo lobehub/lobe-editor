@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import Editor, { IEditor } from './editor-kernel';
 import { CommonPlugin } from './plugins/common';
-import { SlashPlugin } from './plugins/slash';
+import { ISlashService, SlashPlugin } from './plugins/slash';
 
 export interface ILexicalEditorProps {
   type: string;
@@ -18,11 +18,24 @@ export const LexicalEditor: React.FC<ILexicalEditorProps> = (props) => {
   useEffect(() => {
     if (editorContainerRef.current) {
       const editor = Editor.createEditor();
-      editor.registerPlugins(CommonPlugin, SlashPlugin);
+      editor
+        .registerPlugin(CommonPlugin)
+        .registerPlugin(SlashPlugin, {
+          name: 'slash'
+        });
       editorRef.current = editor;
 
       editor.setRootElement(editorContainerRef.current);
       editor.setDocument(props.type, props.content);
+
+      editor.requireService(ISlashService)?.registerSlash({
+        trigger: '/',
+        items: [
+          { label: 'Option 1', value: 'option1' },
+          { label: 'Option 2', value: 'option2' },
+          { label: 'Option 3', value: 'option3' }
+        ]
+      })
 
       props.onLoad?.(editor);
 
