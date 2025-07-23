@@ -6,10 +6,6 @@ export function createEmptyEditorState(): EditorState {
 }
 
 export default class JSONDataSource extends DataSource {
-    constructor(dataType: string) {
-        super(dataType);
-    }
-
     read(editor: LexicalEditor, data: any) {
         editor.setEditorState(editor.parseEditorState(data));
     }
