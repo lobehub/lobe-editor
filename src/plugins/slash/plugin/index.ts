@@ -1,33 +1,45 @@
 import { $getSelection, $isRangeSelection, LexicalEditor } from "lexical";
 import type { IEditorKernel, IEditorPlugin } from "@/editor-kernel";
 import { getQueryTextForSearch, tryToPositionRange } from "../utils/utils";
-import { ISlashService, SlashService } from "../service/i-slash-service";
-import EventEmitter from "eventemitter3";
+import { ISlashService, SlashOptions, SlashService } from "../service/i-slash-service";
 import { IEditorPluginConstructor } from "@/editor-kernel/types";
+import { KernelPlugin } from "@/editor-kernel/plugin";
 
 export interface SlashPluginOptions {
-    name: string;
+    slashOptions?: SlashOptions[];
+    triggerClose: () => void;
+    triggerOpen: (ctx: {
+        getRect: () => DOMRect; items: Array<any>; match?: {
+            leadOffset: number;
+            matchingString: string;
+            replaceableString: string;
+        } | null
+    }) => void;
 }
 
 export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> =
-    class extends EventEmitter implements IEditorPlugin<SlashPluginOptions> {
+    class extends KernelPlugin implements IEditorPlugin<SlashPluginOptions> {
         static readonly pluginName = 'slash'
 
         private service: SlashService | null = null;
 
-        constructor(kernel: IEditorKernel) {
+        constructor(kernel: IEditorKernel, public config?: SlashPluginOptions) {
             super();
             this.service = new SlashService(kernel);
             kernel.registerService(ISlashService, this.service);
+            if (config?.slashOptions) {
+                config.slashOptions.forEach(option => {
+                    this.service?.registerSlash(option);
+                });
+            }
         }
 
-        onRegister(editor: LexicalEditor): Array<() => void> {
-            return [editor.registerUpdateListener(() => {
-                console.trace('SlashPlugin: Editor updated');
+        onInit(editor: LexicalEditor): void {
+            this.register(editor.registerUpdateListener(() => {
                 editor.getEditorState().read(() => {
                     if (!editor.isEditable()) {
                         // 触发关闭
-                        this.emit('close');
+                        this.config?.triggerClose();
                         return;
                     }
 
@@ -43,29 +55,36 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> =
                         range === null
                     ) {
                         // 触发关闭
-                        this.emit('close');
+                        this.config?.triggerClose();
                         return;
                     }
 
                     const slashOptions = this.service?.getSlashOptions(text[0]);
+                    const triggerFn = this.service?.getSlashTriggerFn(text[0]);
+                    const fuse = this.service?.getSlashFuse(text[0]);
                     if (!slashOptions) {
                         // 触发关闭
-                        this.emit('close');
+                        this.config?.triggerClose();
                         return;
                     }
 
                     const isRangePositioned = tryToPositionRange(0, range, editorWindow);
-                    if (isRangePositioned !== null) {
-                        this.emit('open', {
+                    const match = triggerFn?.(text);
+                    const finalItems = fuse && match && match.matchingString.length > 0 ? fuse.search(match.matchingString).map(result => result.item) : slashOptions.items;
+                    if (isRangePositioned !== null && finalItems.length > 0) {
+                        this.config?.triggerOpen({
                             getRect: () => range.getBoundingClientRect(),
-                            items: slashOptions.items,
+                            items: finalItems,
+                            match,
                         });
                         return;
                     }
-                    this.emit('close');
+                    this.config?.triggerClose();
                 });
-            })]
+            }));
         }
 
-        onDestroy(): void {}
+        destroy(): void {
+            super.destroy();
+        }
     };

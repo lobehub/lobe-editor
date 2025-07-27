@@ -10,3 +10,16 @@ export const noop = () => {};
 export function createEmptyEditorState() {
     return new EditorState(new Map(), null);
 }
+
+export function assert(
+    cond?: boolean,
+    message?: string,
+): asserts cond {
+    if (cond) {
+        return;
+    }
+
+    throw new Error(
+        message,
+    );
+}

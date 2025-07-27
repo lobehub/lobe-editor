@@ -2,20 +2,23 @@ import { LexicalEditor } from "lexical/LexicalEditor";
 import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text';
 import { registerDragonSupport } from '@lexical/dragon';
 import { createEmptyHistoryState, registerHistory } from '@lexical/history';
+import { selectionAlwaysOnDisplay } from '@lexical/utils';
 import { IEditorKernel, IEditorPlugin } from "@/editor-kernel";
 import JSONDataSource from "../data-source/json-data-source";
+import { IEditorPluginConstructor } from "@/editor-kernel/types";
+import { KernelPlugin } from "@/editor-kernel/plugin";
 
 import './index.css';
-import { IEditorPluginConstructor } from "@/editor-kernel/types";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CommonPluginOptions { }
 
 export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> =
-    class implements IEditorPlugin<CommonPluginOptions> {
+    class extends KernelPlugin implements IEditorPlugin<CommonPluginOptions> {
         static pluginName = "CommonPlugin";
 
         constructor(protected kernel: IEditorKernel) {
+            super();
             // Register the JSON data source
             kernel.registerDataSource(new JSONDataSource("json"));
             // Register common nodes and themes
@@ -36,17 +39,20 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> =
                     uppercase: 'editor_textUppercase',
                 },
             });
+
         }
 
-        onRegister(editor: LexicalEditor): Array<() => void> {
-            return [
+        onInit(editor: LexicalEditor): void {
+            this.registerClears(
                 registerRichText(editor),
                 registerDragonSupport(editor),
                 registerHistory(editor, createEmptyHistoryState(), 300),
-            ];
+                selectionAlwaysOnDisplay(editor),
+            )
         }
 
-        onDestroy(): void {
+        destroy(): void {
             // Cleanup logic
+            super.destroy();
         }
     };

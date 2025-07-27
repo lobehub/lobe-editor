@@ -9,6 +9,10 @@ export type IServiceID<Service> = {
     __serviceType?: Service;
 };
 
+export interface IKernelEventMap {
+    error: (error: Error) => void;
+    initialized: (editor: LexicalEditor) => void;
+}
 
 /**
  * 对外提供的 api
@@ -16,11 +20,16 @@ export type IServiceID<Service> = {
 export interface IEditor {
     destroy(): void;
     getDocument(type: string): DataSource | undefined;
+    getLexicalEditor(): LexicalEditor | null;
+    getRootElement(): HTMLElement | null;
+    off<T extends keyof IKernelEventMap>(event: T, listener: IKernelEventMap[T]): this;
+    on<T extends keyof IKernelEventMap>(event: T, listener: IKernelEventMap[T]): this;
+    once<T extends keyof IKernelEventMap>(event: T, listener: IKernelEventMap[T]): this;
     registerPlugin<T>(plugin: IEditorPluginConstructor<T>, config?: T): IEditor;
     registerPlugins(plugins: Array<IPlugin>): IEditor;
     requireService<T>(serviceId: IServiceID<T>): T | null;
     setDocument(type: string, content: any): void;
-    setRootElement(dom: HTMLElement): void;
+    setRootElement(dom: HTMLElement): LexicalEditor;
 }
 
 /**
@@ -38,8 +47,8 @@ export interface IEditorKernel extends IEditor {
  */
 export interface IEditorPlugin<IConfig> {
     config?: IConfig;
-    onDestroy?(): void;
-    onRegister?(editor: LexicalEditor): Array<() => void>;
+    destroy(): void;
+    onInit?(editor: LexicalEditor): void;
 }
 
 export interface IEditorPluginConstructor<IConfig> {
