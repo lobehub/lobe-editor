@@ -3,6 +3,7 @@ import { ReactEditor } from './editor-kernel/react/react-editor';
 import { ReactEditorContent, ReactPlainText } from './plugins/common';
 import { ReactSlashOption, ReactSlashPlugin } from './plugins/slash';
 import { ReactImagePlugin } from './plugins/image';
+import { ReactCodeblockPlugin } from './plugins/codeblock';
 
 const App = () => {
   return (
@@ -20,6 +21,7 @@ const App = () => {
           }]} trigger="@" />
         </ReactSlashPlugin>
         <ReactImagePlugin />
+        <ReactCodeblockPlugin />
         <ReactPlainText style={{
           backgroundColor: '#fff',
           border: '1px solid #ccc',

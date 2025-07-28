@@ -7,15 +7,24 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "declaration": true, // 生成 .d.ts 文件
+    "declarationDir": "./dist", // 类型声明文件输出目录
+    "emitDeclarationOnly": true, // 仅生成类型声明文件
     "outDir": "./dist",
     "rootDir": "./src",
     "allowImportingTsExtensions": true,
-    "noEmit": true,
+    "noEmit": false,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["src", "playground"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src",
+  ],
+  "exclude": [
+    "node_modules", "dist"
+  ]
 }

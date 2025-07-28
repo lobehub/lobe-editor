@@ -1,16 +1,19 @@
 {
-  "name": "editor",
-  "version": "1.0.0",
+  "name": "@lobehub/editor",
+  "version": "1.0.0-dev.1",
   "description": "A frontend project using Lexical for editor development with a playground and Vitest for testing.",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.es.js",
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "patch-package && node scripts/patch-lexical-package-json.js",
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && tsc",
     "test": "vitest",
     "playground": "vite"
   },
   "dependencies": {
+    "@lexical/code": "^0.33.1",
     "@lexical/dragon": "^0.33.1",
     "@lexical/history": "^0.33.1",
     "@lexical/rich-text": "^0.33.1",
@@ -35,9 +38,15 @@
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "less": "^4.4.0",
     "patch-package": "^8.0.0",
+    "rollup-plugin-dts": "^6.2.1",
     "typescript": "^5.8.3",
     "vite": "^4.0.0",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^0.34.0"
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
 }

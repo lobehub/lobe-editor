@@ -1,6 +1,6 @@
 import { LexicalEditor } from 'lexical';
 import { useLexicalComposerContext } from './react-context';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 
 export function useLexicalEditor(handleEditor: (lexicalEditor: LexicalEditor) => (() => void) | void, deps: any[] = []) {
     const [editor] = useLexicalComposerContext();

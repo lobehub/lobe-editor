@@ -16,19 +16,6 @@ export const ReactEditor: React.FC<IReactEditorProps> = (props) => {
         return [editor, theme] as LexicalComposerContextWithEditor;
     }, []);
 
-    // useEffect(() => {
-
-    // }, []);
-
-    // useLayoutEffect(() => {
-    //     const isEditable = initialConfig.editable;
-    //     const [editor] = composerContext;
-    //     editor.setEditable(isEditable !== undefined ? isEditable : true);
-
-    //     // We only do this for init
-    //     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // }, []);
-
     return (
         <LexicalComposerContext.Provider value={composerContext}>
             {props.children}
