@@ -1,5 +1,5 @@
 import { LexicalEditor } from "lexical/LexicalEditor";
-import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text';
+import { $createQuoteNode, $isQuoteNode, HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text';
 import { registerDragonSupport } from '@lexical/dragon';
 import { createEmptyHistoryState, registerHistory } from '@lexical/history';
 import { selectionAlwaysOnDisplay } from '@lexical/utils';
@@ -9,6 +9,8 @@ import { IEditorPluginConstructor } from "@/editor-kernel/types";
 import { KernelPlugin } from "@/editor-kernel/plugin";
 
 import './index.css';
+import { IMarkdownShortCutService } from "@/plugins/markdown";
+import { $createLineBreakNode } from "lexical";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CommonPluginOptions { }
@@ -24,6 +26,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> =
             // Register common nodes and themes
             kernel.registerNodes([HeadingNode, QuoteNode]);
             kernel.registerThemes({
+                quote: 'editor_quote',
                 text: {
                     bold: 'editor_textBold',
                     capitalize: 'editor_textCapitalize',
@@ -39,7 +42,30 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> =
                     uppercase: 'editor_textUppercase',
                 },
             });
+            kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+                regExp: /^>\s/,
+                replace: (parentNode, children, _match, isImport) => {
+                    if (isImport) {
+                        const previousNode = parentNode.getPreviousSibling();
+                        if ($isQuoteNode(previousNode)) {
+                            previousNode.splice(previousNode.getChildrenSize(), 0, [
+                                $createLineBreakNode(),
+                                ...children,
+                            ]);
+                            parentNode.remove();
+                            return;
+                        }
+                    }
 
+                    const node = $createQuoteNode();
+                    node.append(...children);
+                    parentNode.replace(node);
+                    if (!isImport) {
+                        node.select(0, 0);
+                    }
+                },
+                type: 'element',
+            });
         }
 
         onInit(editor: LexicalEditor): void {

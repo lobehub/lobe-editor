@@ -4,6 +4,8 @@ import { ReactEditorContent, ReactPlainText } from './plugins/common';
 import { ReactSlashOption, ReactSlashPlugin } from './plugins/slash';
 import { ReactImagePlugin } from './plugins/image';
 import { ReactCodeblockPlugin } from './plugins/codeblock';
+import { ReactHRPlugin } from './plugins/hr';
+import { ReactListPlugin } from './plugins/list';
 
 const App = () => {
   return (
@@ -22,6 +24,8 @@ const App = () => {
         </ReactSlashPlugin>
         <ReactImagePlugin />
         <ReactCodeblockPlugin />
+        <ReactHRPlugin />
+        <ReactListPlugin />
         <ReactPlainText style={{
           backgroundColor: '#fff',
           border: '1px solid #ccc',

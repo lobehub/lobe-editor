@@ -1,7 +1,7 @@
 import EventEmitter from "eventemitter3";
 import { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IPlugin, IServiceID } from "./types";
 import DataSource from "./data-source";
-import { createEditor, LexicalEditor, LexicalNodeConfig } from "lexical";
+import { createEditor, DecoratorNode, LexicalEditor, LexicalNodeConfig } from "lexical";
 import { createEmptyEditorState } from "./utils";
 import merge from "lodash/merge";
 
@@ -11,6 +11,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     private pluginsInstances: Array<IEditorPlugin<any>> = [];
     private nodes: Array<LexicalNodeConfig> = [];
     private themes: Record<string, any> = {}; // 用于存储主题配置
+    private decorators: Record<string, (_node: DecoratorNode<any>, _editor: LexicalEditor) => any> = {};
     private serviceMap: Map<string, any> = new Map();
 
     private editor?: LexicalEditor;
@@ -45,6 +46,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
             this.pluginsInstances.push(instance);
         }
         const editor = this.editor = createEditor({
+            decorators: this.decorators,
             nodes: this.nodes,
             onError: (error: Error) => {
                 this.emit('error', error);
@@ -80,6 +82,11 @@ export class Kernel extends EventEmitter implements IEditorKernel {
             throw new Error(`Editor is not initialized.`);
         }
         return datasource.write(this.editor);
+    }
+
+    registerDecorator(name: string, decorator: (_node: DecoratorNode<any>, _editor: LexicalEditor) => any) {
+        this.decorators[name] = decorator;
+        return this;
     }
 
     /**

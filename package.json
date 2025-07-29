@@ -16,6 +16,7 @@
     "@lexical/code": "^0.33.1",
     "@lexical/dragon": "^0.33.1",
     "@lexical/history": "^0.33.1",
+    "@lexical/list": "^0.33.1",
     "@lexical/rich-text": "^0.33.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",

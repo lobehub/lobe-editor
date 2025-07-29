@@ -26,3 +26,13 @@
 .editor_textUnderlineStrikethrough {
   text-decoration: underline line-through;
 }
+
+.editor_quote {
+  margin: 0 0 10px 20px;
+  font-size: 15px;
+  color: #65676b;
+  border-left-color: #ced0d4;
+  border-left-width: 4px;
+  border-left-style: solid;
+  padding-left: 16px;
+}

@@ -1,4 +1,4 @@
-import type { LexicalEditor, LexicalNodeConfig } from "lexical";
+import type { DecoratorNode, LexicalEditor, LexicalNodeConfig } from "lexical";
 import type DataSource from "./data-source";
 
 /**
@@ -37,6 +37,7 @@ export interface IEditor {
  */
 export interface IEditorKernel extends IEditor {
     registerDataSource(dataSource: DataSource): void;
+    registerDecorator(name: string, decorator: (_node: DecoratorNode<any>, _editor: LexicalEditor) => any): void;
     registerNodes(nodes: Array<LexicalNodeConfig>): void;
     registerService<T>(serviceId: IServiceID<T>, service: T): void;
     registerThemes(themes: Record<string, any>): void;
