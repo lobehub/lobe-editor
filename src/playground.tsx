@@ -6,6 +6,7 @@ import { ReactImagePlugin } from './plugins/image';
 import { ReactCodeblockPlugin } from './plugins/codeblock';
 import { ReactHRPlugin } from './plugins/hr';
 import { ReactListPlugin } from './plugins/list';
+import { ReactLinkPlugin } from './plugins/link/react';
 
 const App = () => {
   return (
@@ -26,6 +27,7 @@ const App = () => {
         <ReactCodeblockPlugin />
         <ReactHRPlugin />
         <ReactListPlugin />
+        <ReactLinkPlugin />
         <ReactPlainText style={{
           backgroundColor: '#fff',
           border: '1px solid #ccc',
