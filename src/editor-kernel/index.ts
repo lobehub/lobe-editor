@@ -15,3 +15,5 @@ const Editor = {
 };
 
 export default Editor;
+
+export { HOVER_COMMAND } from "./event";

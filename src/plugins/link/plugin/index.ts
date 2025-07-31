@@ -2,8 +2,8 @@ import { IEditorPlugin } from "@/editor-kernel";
 import { KernelPlugin } from "@/editor-kernel/plugin";
 import { IEditorKernel, IEditorPluginConstructor } from "@/editor-kernel/types";
 import { IMarkdownShortCutService } from "@/plugins/markdown";
-import { $createLinkNode, AutoLinkNode, LinkNode } from "@lexical/link";
 import { $createTextNode } from "lexical";
+import { $createLinkNode, LinkNode, AutoLinkNode } from "../node/LinkNode";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface LinkPluginOptions {

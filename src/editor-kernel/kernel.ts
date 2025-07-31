@@ -3,6 +3,7 @@ import { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IPlugi
 import DataSource from "./data-source";
 import { createEditor, DecoratorNode, LexicalEditor, LexicalNodeConfig } from "lexical";
 import { createEmptyEditorState } from "./utils";
+import { registerEvent } from './event';
 import merge from "lodash/merge";
 
 export class Kernel extends EventEmitter implements IEditorKernel {
@@ -54,6 +55,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
             theme: this.themes,
         });
         this.editor.setRootElement(dom);
+        registerEvent(editor, dom);
 
         this.pluginsInstances.forEach(plugin => {
             plugin.onInit?.(editor);
