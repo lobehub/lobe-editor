@@ -20,6 +20,8 @@
     "@lexical/link": "^0.33.1",
     "@lexical/list": "^0.33.1",
     "@lexical/rich-text": "^0.33.1",
+    "@lexical/selection": "^0.33.1",
+    "@lexical/utils": "^0.33.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "eventemitter3": "^5.0.1",

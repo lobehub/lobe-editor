@@ -62,6 +62,7 @@ const SUPPORTED_URL_PROTOCOLS = new Set([
 
 export const HOVER_LINK_COMMAND = createCommand<{
     event: MouseEvent;
+    linkNode: LinkNode;
 }>('HOVER_LINK_COMMAND');
 export const HOVER_OUT_LINK_COMMAND = createCommand<{
     event: MouseEvent;
@@ -114,6 +115,7 @@ export class LinkNode extends ElementNode {
                 event.target.classList.add('hover');
                 editor.dispatchCommand(HOVER_LINK_COMMAND, {
                     event: event as MouseEvent,
+                    linkNode: this,
                 });
             }
         });
@@ -566,6 +568,8 @@ export function $toggleLink(
     const rel = attributes.rel === undefined ? 'noreferrer' : attributes.rel;
     const selection = $getSelection();
 
+    console.info('toggleLink', url);
+
     if (
         selection === null ||
         (!$isRangeSelection(selection) && !$isNodeSelection(selection))
@@ -582,6 +586,7 @@ export function $toggleLink(
         // Handle all selected nodes
         nodes.forEach((node) => {
             if (url === null) {
+                console.info('--------???', url);
                 // Remove link
                 const linkParent = $findMatchingParent(
                     node,
@@ -623,6 +628,7 @@ export function $toggleLink(
     const nodes = selection.extract();
 
     if (url === null) {
+        console.info('--------???', url);
         // Remove LinkNodes
         nodes.forEach((node) => {
             const parentLink = $findMatchingParent(
