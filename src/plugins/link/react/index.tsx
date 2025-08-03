@@ -1,15 +1,17 @@
 import { useLexicalComposerContext } from "@/editor-kernel/react/react-context";
-import React, { useLayoutEffect, useRef } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import { LinkPlugin } from "../plugin";
 import { isModifierMatch, COMMAND_PRIORITY_EDITOR, COMMAND_PRIORITY_LOW, COMMAND_PRIORITY_NORMAL, KEY_DOWN_COMMAND, $getSelection, $isRangeSelection } from 'lexical';
 import { MarkdownPlugin } from "@/plugins/markdown";
-import { $isLinkNode, $toggleLink, HOVER_LINK_COMMAND, HOVER_OUT_LINK_COMMAND, LinkAttributes, TOGGLE_LINK_COMMAND } from "../node/LinkNode";
+import { $isLinkNode, $toggleLink, HOVER_LINK_COMMAND, HOVER_OUT_LINK_COMMAND, LinkAttributes, LinkNode, TOGGLE_LINK_COMMAND } from "../node/LinkNode";
 import { useLexicalEditor } from "@/editor-kernel/react";
 import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 
 import './index.less';
 import { CONTROL_OR_META } from "@/common/sys";
 import { getSelectedNode, sanitizeUrl } from "../utils";
+import { EDIT_LINK_COMMAND, LinkEdit } from "./edit";
+import { Toolbar } from "./toolbar";
 
 export interface ReactLinkPluginProps {
     attributes?: LinkAttributes;
@@ -22,9 +24,11 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({
     attributes,
 }) => {
     const [editor] = useLexicalComposerContext();
+    const [linkNode, setLinkNode] = useState<LinkNode | null>(null);
     const state = useRef<{ isLink: boolean }>({ isLink: false });
-    // const [hoveredLink, setHoveredLink] = useState<LinkNode | null>(null);
     const divRef = React.useRef<HTMLDivElement>(null);
+    const LinkRef = React.useRef<HTMLDivElement>(null);
+    const clearTimerRef = React.useRef<number>(-1);
 
     useLayoutEffect(() => {
         console.info('ReactLinkPlugin: Initializing Codeblock Plugin');
@@ -50,6 +54,18 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({
                     const parent = node.getParent();
                     const isLink = $isLinkNode(parent) || $isLinkNode(node);
                     state.current.isLink = isLink;
+                    if (isLink) {
+                        const linkNode = $isLinkNode(parent) ? (parent as LinkNode) : (node as LinkNode);
+                        editor.dispatchCommand(EDIT_LINK_COMMAND, {
+                            linkNode,
+                            linkNodeDOM: editor.getElementByKey(linkNode.getKey()),
+                        });
+                    } else {
+                        editor.dispatchCommand(EDIT_LINK_COMMAND, {
+                            linkNode: null,
+                            linkNodeDOM: null,
+                        });
+                    }
                 });
             } else {
                 state.current.isLink = false;
@@ -107,19 +123,20 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({
                 if (!payload.event.target || divRef.current === null) {
                     return false;
                 }
+                setLinkNode(payload.linkNode);
                 computePosition(payload.event.target as HTMLElement, divRef.current, {
                     middleware: [
                         offset(5),
                         flip(),
                         shift(),
                     ],
-                    placement: 'top',
+                    placement: 'top-start',
                 }).then(({ x, y }) => {
                     if (!payload.event.target || divRef.current === null) {
                         return false;
                     }
-                    const url = editor.read(() => payload.linkNode.getURL());
-                    divRef.current.innerHTML = url || '';
+                    LinkRef.current = payload.event.target as HTMLDivElement;
+                    // const url = editor.read(() => payload.linkNode.getURL());
                     divRef.current.style.left = `${x}px`;
                     divRef.current.style.top = `${y}px`;
                 });
@@ -130,11 +147,13 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({
         editor.registerCommand(
             HOVER_OUT_LINK_COMMAND,
             () => {
-                console.info('Hover link command cleared');
-                if (divRef.current) {
-                    divRef.current.style.left = '-9999px';
-                    divRef.current.style.top = '-9999px';
-                }
+                clearTimeout(clearTimerRef.current);
+                clearTimerRef.current = setTimeout(() => {
+                    if (divRef.current) {
+                        divRef.current.style.left = '-9999px';
+                        divRef.current.style.top = '-9999px';
+                    }
+                }, 300);
                 return true;
             },
             COMMAND_PRIORITY_NORMAL,
@@ -142,7 +161,14 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({
     }, []);
 
 
-    return <div className="editor_linkPlugin" ref={divRef}>
-        1231
-    </div>;
+    return <>
+        <div className="editor_linkPlugin"
+            onMouseEnter={() => {
+                clearTimeout(clearTimerRef.current);
+            }}
+            ref={divRef}>
+            <Toolbar editor={editor.getLexicalEditor()!} linkNode={linkNode}/>
+        </div>
+        <LinkEdit />
+    </>;
 }
