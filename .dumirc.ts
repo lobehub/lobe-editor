@@ -1,14 +1,17 @@
 import { defineConfig } from 'dumi';
 import { SiteThemeConfig } from 'dumi-theme-lobehub';
 import { INavItem } from 'dumi/dist/client/theme-api/types';
+import { resolve } from 'node:path';
 
 import { description, homepage, name } from './package.json';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const isWin = process.platform === 'win32';
 
+export const packages = ['react'];
+
 const nav: INavItem[] = [
-  { link: '/components/playground', title: 'Components' },
+  { link: '/components/editor', title: 'Components' },
   { link: 'https://ui.lobehub.com', mode: 'override', title: 'UI' },
   { link: 'https://icon.lobehub.com', mode: 'override', title: 'Icons' },
   { link: '/changelog', title: 'Changelog' },
@@ -23,7 +26,7 @@ const themeConfig: SiteThemeConfig = {
       text: 'GitHub',
     },
     {
-      link: '/components/playground',
+      link: '/components/editor',
       text: 'Get Started',
       type: 'primary',
     },
@@ -67,7 +70,11 @@ const themeConfig: SiteThemeConfig = {
   title: 'Lobe Editor',
 };
 
+const alias: Record<string, string> = {};
+for (const pkg of packages) alias[`@lobehub/editor/${pkg}`] = resolve(__dirname, `./src/${pkg}`);
+
 export default defineConfig({
+  alias,
   apiParser: isProduction ? {} : false,
   base: '/',
   define: {
@@ -81,11 +88,10 @@ export default defineConfig({
   mfsu: isWin ? undefined : {},
   npmClient: 'pnpm',
   publicPath: '/',
-  resolve: isProduction
-    ? {
-        entryFile: './src/index.ts',
-      }
-    : undefined,
+  resolve: {
+    atomDirs: packages.map((pkg) => ({ dir: `src/${pkg}`, type: 'component' })),
+    entryFile: isProduction ? './src/index.ts' : undefined,
+  },
   sitemap: {
     hostname: 'https://editor.lobehub.com',
   },

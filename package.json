@@ -23,7 +23,8 @@
     "es"
   ],
   "scripts": {
-    "build": "father build",
+    "build": "father build && npm run build:packages",
+    "build:packages": "tsx ./scripts/build.ts",
     "build:watch": "father dev",
     "ci": "npm run lint:circular && npm run lint && npm run type-check",
     "clean": "rm -r es lib dist coverage .dumi/tmp .eslintcache node_modules/.cache",

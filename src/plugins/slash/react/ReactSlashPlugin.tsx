@@ -1,7 +1,7 @@
 import { COMMAND_PRIORITY_LOW } from 'lexical';
 import type { FC, ReactElement } from 'react';
 import { Children, useCallback, useLayoutEffect, useState } from 'react';
-import ReactDOM from 'react-dom';
+import { createPortal } from 'react-dom';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
@@ -16,8 +16,8 @@ import {
 } from './ReactMenu';
 
 export interface ReactSlashOptionProps {
-  items: SlashOptions['items'];
-  trigger: SlashOptions['trigger'];
+  items?: SlashOptions['items'];
+  trigger?: SlashOptions['trigger'];
 }
 
 export class MyMenuOption extends MenuOption {
@@ -36,7 +36,9 @@ export const ReactSlashOption: FC<ReactSlashOptionProps> = () => {
 
 export interface ReactSlashPluginProps {
   anchorClassName?: string;
-  children?: ReactElement<ReactSlashOptionProps> | ReactElement<ReactSlashOptionProps>[];
+  children?:
+    | (ReactElement<ReactSlashOptionProps> | undefined)
+    | (ReactElement<ReactSlashOptionProps> | undefined)[];
   menuRenderFn: MenuRenderFn<MyMenuOption>;
 }
 
@@ -96,7 +98,7 @@ export const ReactSlashPlugin = (props: ReactSlashPluginProps) => {
 ReactSlashPlugin.defaultProps = {
   menuRenderFn: ((anchorElementRef, { selectOptionAndCleanUp, setHighlightedIndex, options }) =>
     anchorElementRef.current && options.length
-      ? ReactDOM.createPortal(
+      ? createPortal(
           <div className="typeahead-popover component-picker-menu">
             <ul>
               {options.map((option, i: number) => (

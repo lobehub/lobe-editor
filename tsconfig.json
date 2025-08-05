@@ -17,9 +17,11 @@
       "@@/*": [".dumi/tmp/*"],
       "@/*": ["src/*"],
       "@lobehub/editor": ["src"],
-      "@lobehub/editor/*": ["src/*"]
+      "@lobehub/editor/*": ["src/*"],
+      "@lobehub/editor/react": ["src/react"],
+      "@lobehub/editor/react/*": ["src/react/*"]
     }
   },
-  "exclude": ["node_modules", "dist"],
+  "exclude": ["react.d.ts"],
   "include": ["src", "docs", "tests", ".dumirc.ts", ".fatherrc.ts"]
 }

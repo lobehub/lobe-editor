@@ -1,1 +1,1 @@
-export { default } from '../src/Playground/demos/index';
+export { default } from '@/react/Editor/demos/index';
