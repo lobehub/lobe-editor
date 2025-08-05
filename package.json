@@ -1,16 +1,68 @@
 {
   "name": "@lobehub/editor",
   "version": "1.0.0-dev.1",
-  "description": "A frontend project using Lexical for editor development with a playground and Vitest for testing.",
+  "description": "A powerful and extensible rich text editor built on Meta's Lexical framework, providing a modern editing experience with React integration.",
+  "homepage": "https://github.com/lobehub/lobe-editor",
+  "bugs": {
+    "url": "https://github.com/lobehub/lobe-editor/issues/new/choose"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lobehub/lobe-editor.git"
+  },
+  "license": "MIT",
+  "author": "LobeHub <i@lobehub.com>",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "module": "dist/index.es.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "postinstall": "patch-package && node scripts/patch-lexical-package-json.js",
-    "dev": "vite",
     "build": "vite build && tsc",
+    "ci": "npm run lint:circular && npm run lint && npm run type-check",
+    "dev": "vite",
+    "postinstall": "patch-package && node scripts/patch-lexical-package-json.js",
+    "lint": "eslint \"{src,tests}/**/*.{js,jsx,ts,tsx}\" --fix",
+    "lint:circular": "dpdm src/**/*.{ts,tsx}  --warning false  --tree false  --exit-code circular:1  -T true",
+    "lint:md": "remark . --quiet --frail --output",
+    "lint:style": "stylelint \"{src,tests}/**/*.{js,jsx,ts,tsx,less}\" --fix",
+    "prepack": "clean-package",
+    "postpack": "clean-package restore",
+    "playground": "vite",
+    "prepare": "husky",
+    "prepublishOnly": "npm run build",
+    "release": "semantic-release",
     "test": "vitest",
-    "playground": "vite"
+    "test:coverage": "vitest run --coverage  --passWithNoTests",
+    "test:watch": "vitest --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "lint-staged": {
+    "*.{md,mdc}": [
+      "remark --silent --output --",
+      "prettier --write --no-error-on-unmatched-pattern"
+    ],
+    "*.json": [
+      "prettier --write --no-error-on-unmatched-pattern"
+    ],
+    "*.{js,jsx}": [
+      "prettier --write",
+      "stylelint --fix",
+      "eslint --fix"
+    ],
+    "*.{mjs,cjs}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{ts,tsx}": [
+      "prettier --parser=typescript --write",
+      "stylelint --fix",
+      "eslint --fix"
+    ],
+    "*.less": [
+      "stylelint --fix"
+    ]
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.3",
@@ -40,20 +92,29 @@
     "@types/lodash": "^4.17.20",
     "@types/mdast": "^4.0.4",
     "@types/unist": "^3.0.3",
-    "commitlint": "^19.8.1",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "@vitest/coverage-v8": "^3.0.9",
+    "clean-package": "^2.2.0",
+    "dpdm": "^3.14.0",
+    "eslint": "^8.57.1",
+    "husky": "^9.1.7",
     "less": "^4.4.0",
+    "lint-staged": "^16.1.2",
     "patch-package": "^8.0.0",
+    "prettier": "^3.5.3",
+    "remark": "^15.0.1",
+    "remark-cli": "^12.0.1",
     "rollup-plugin-dts": "^6.2.1",
+    "semantic-release": "^21.1.2",
+    "stylelint": "^15.11.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vite": "^4.0.0",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^0.34.0"
+    "vitest": "^3.2.4"
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ]
+  "packageManager": "pnpm@10.11.0",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
 }

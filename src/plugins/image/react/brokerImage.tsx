@@ -1,15 +1,15 @@
-import React, { JSX } from "react";
-import brokenImage from "./image-broken.svg";
+import { JSX } from 'react';
+
+import { imageBroken } from './style.ts';
 
 export function BrokenImage(): JSX.Element {
   return (
     <img
       alt="Broken image"
       draggable="false"
-      src={brokenImage}
+      src={imageBroken}
       style={{
-        height: 200,
-        opacity: 0.2,
+        height: 'auto',
         width: 200,
       }}
     />

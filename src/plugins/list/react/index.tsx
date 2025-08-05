@@ -1,21 +1,22 @@
-import { useLexicalComposerContext } from "@/editor-kernel/react/react-context";
-import React, { useLayoutEffect } from "react";
-import { ListPlugin } from "../plugin";
+import type { FC } from 'react';
+import { useLayoutEffect } from 'react';
 
+import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
+
+import { ListPlugin } from '../plugin';
 import './index.less';
 
 export interface ReactListPluginProps {
-    className?: string;
+  className?: string;
 }
 
-export const ReactListPlugin: React.FC<ReactListPluginProps> = () => {
-    const [editor] = useLexicalComposerContext();
+export const ReactListPlugin: FC<ReactListPluginProps> = () => {
+  const [editor] = useLexicalComposerContext();
 
-    useLayoutEffect(() => {
-        console.info('ReactListPlugin: Initializing List Plugin');
-        editor.registerPlugin(ListPlugin);
-    }, []);
+  useLayoutEffect(() => {
+    console.info('ReactListPlugin: Initializing List Plugin');
+    editor.registerPlugin(ListPlugin);
+  }, []);
 
-
-    return null;
-}
+  return null;
+};

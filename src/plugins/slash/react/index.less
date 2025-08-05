@@ -1,20 +1,25 @@
 .editor_linkToolbar {
     display: flex;
-    background: #fff;
+    gap: 2px;
+
+    padding: 4px;
     border: 1px solid #e1e5e9;
     border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    padding: 4px;
-    gap: 2px;
+
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 10%);
     
     &_item {
+        cursor: pointer;
+
         display: flex;
         align-items: center;
         justify-content: center;
+
         width: 28px;
         height: 28px;
         border-radius: 4px;
-        cursor: pointer;
+
         transition: background-color 0.2s;
         
         &:hover {

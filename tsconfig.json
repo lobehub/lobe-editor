@@ -2,29 +2,24 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true, // 生成 .d.ts 文件
-    "declarationDir": "./dist", // 类型声明文件输出目录
-    "emitDeclarationOnly": true, // 仅生成类型声明文件
+    "declaration": true,
+    "declarationDir": "./dist",
+    "emitDeclarationOnly": true,
     "outDir": "./dist",
     "rootDir": "./src",
+    "baseUrl": ".",
     "allowImportingTsExtensions": true,
     "noEmit": false,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["src/*"]
     }
   },
-  "include": [
-    "src",
-  ],
-  "exclude": [
-    "node_modules", "dist"
-  ]
+  "exclude": ["node_modules", "dist"],
+  "include": ["src"]
 }

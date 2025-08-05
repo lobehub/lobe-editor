@@ -1,24 +1,23 @@
-import { CAN_USE_DOM } from '@/common/canUseDOM';
 import type { LexicalEditor, NodeKey } from 'lexical';
-import React, { JSX, useLayoutEffect, Suspense, useEffect, useMemo, useState } from 'react';
+import type { ComponentClass, FC } from 'react';
+import { JSX, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
+
+import { CAN_USE_DOM } from '@/common/canUseDOM';
+
 import { IEditor } from '../types';
 
 // This workaround is no longer necessary in React 19,
 // but we currently support React >=17.x
 // https://github.com/facebook/react/pull/26395
-const useLayoutEffectImpl: typeof useLayoutEffect = CAN_USE_DOM
-  ? useLayoutEffect
-  : useEffect;
+const useLayoutEffectImpl: typeof useLayoutEffect = CAN_USE_DOM ? useLayoutEffect : useEffect;
 
 type ErrorBoundaryProps = {
   children: JSX.Element;
   onError: (error: Error) => void;
 };
 
-export type ErrorBoundaryType =
-  | React.ComponentClass<ErrorBoundaryProps>
-  | React.FC<ErrorBoundaryProps>;
+export type ErrorBoundaryType = ComponentClass<ErrorBoundaryProps> | FC<ErrorBoundaryProps>;
 
 export function useDecorators(
   editor: IEditor,
@@ -32,11 +31,13 @@ export function useDecorators(
   useLayoutEffectImpl(() => {
     let clears: Array<() => void> = [];
     const handleInit = (editor: LexicalEditor) => {
-      clears.push(editor.registerDecoratorListener<JSX.Element>((nextDecorators) => {
-        flushSync(() => {
-          setDecorators(nextDecorators);
-        });
-      }));
+      clears.push(
+        editor.registerDecoratorListener<JSX.Element>((nextDecorators) => {
+          flushSync(() => {
+            setDecorators(nextDecorators);
+          });
+        }),
+      );
     };
 
     editor.on('initialized', handleInit);
@@ -44,7 +45,7 @@ export function useDecorators(
       editor.off('initialized', handleInit);
     });
     return () => {
-      clears.forEach(clear => clear());
+      clears.forEach((clear) => clear());
     };
   }, [editor]);
 
@@ -59,7 +60,7 @@ export function useDecorators(
           <Suspense fallback={null}>{decorators[nodeKey]}</Suspense>
         </ErrorBoundary>
       );
-      const element =  editor.getLexicalEditor()?.getElementByKey(nodeKey);
+      const element = editor.getLexicalEditor()?.getElementByKey(nodeKey);
 
       if (element !== null && element !== undefined) {
         decoratedPortals.push(createPortal(reactDecorator, element, nodeKey));

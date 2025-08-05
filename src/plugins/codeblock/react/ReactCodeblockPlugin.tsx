@@ -1,21 +1,23 @@
-import { useLexicalComposerContext } from "@/editor-kernel/react/react-context";
-import React, { useLayoutEffect } from "react";
-import { CodeblockPlugin } from "../plugin";
-import { MarkdownPlugin } from "@/plugins/markdown";
+import type { FC } from 'react';
+import { useLayoutEffect } from 'react';
+
+import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
+import { MarkdownPlugin } from '@/plugins/markdown';
+
+import { CodeblockPlugin } from '../plugin';
 
 export interface ReactCodeblockPluginProps {
-    className?: string;
+  className?: string;
 }
 
-export const ReactCodeblockPlugin: React.FC<ReactCodeblockPluginProps> = () => {
-    const [editor] = useLexicalComposerContext();
+export const ReactCodeblockPlugin: FC<ReactCodeblockPluginProps> = () => {
+  const [editor] = useLexicalComposerContext();
 
-    useLayoutEffect(() => {
-        console.info('ReactCodeblockPlugin: Initializing Codeblock Plugin');
-        editor.registerPlugin(MarkdownPlugin);
-        editor.registerPlugin(CodeblockPlugin);
-    }, []);
+  useLayoutEffect(() => {
+    console.info('ReactCodeblockPlugin: Initializing Codeblock Plugin');
+    editor.registerPlugin(MarkdownPlugin);
+    editor.registerPlugin(CodeblockPlugin);
+  }, []);
 
-
-    return null;
-}
+  return null;
+};
