@@ -1,7 +1,7 @@
 ---
 nav: Components
 group: Data Entry
-title: Playground
+title: Editor
 ---
 
 ## Default

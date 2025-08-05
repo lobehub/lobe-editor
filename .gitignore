@@ -141,3 +141,6 @@ temp/
 
 # Clean package temporary files
 .clean-package-temp/
+
+./react.d.ts
+./react.js
