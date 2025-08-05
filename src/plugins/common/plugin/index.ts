@@ -2,7 +2,6 @@ import { LexicalEditor } from "lexical/LexicalEditor";
 import { $createHeadingNode, $createQuoteNode, $isQuoteNode, HeadingNode, HeadingTagType, QuoteNode, registerRichText } from '@lexical/rich-text';
 import { registerDragonSupport } from '@lexical/dragon';
 import { createEmptyHistoryState, registerHistory } from '@lexical/history';
-import { selectionAlwaysOnDisplay } from '@lexical/utils';
 import { IEditorKernel, IEditorPlugin } from "@/editor-kernel";
 import JSONDataSource from "../data-source/json-data-source";
 import { IEditorPluginConstructor } from "@/editor-kernel/types";
@@ -124,7 +123,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> =
                 registerRichText(editor),
                 registerDragonSupport(editor),
                 registerHistory(editor, createEmptyHistoryState(), 300),
-                selectionAlwaysOnDisplay(editor),
             )
         }
 
