@@ -310,7 +310,6 @@ $ bun dev
 - `pnpm run lint` - Lint and fix code
 - `pnpm run type-check` - Type check TypeScript code
 - `pnpm run ci` - Run all CI checks
-- `pnpm run playground` - Start the playground demo
 
 ### Project Structure
 

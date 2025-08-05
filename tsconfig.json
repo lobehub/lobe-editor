@@ -1,25 +1,25 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationDir": "./dist",
-    "emitDeclarationOnly": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
     "baseUrl": ".",
-    "allowImportingTsExtensions": true,
-    "noEmit": false,
+    "declaration": true,
+    "downlevelIteration": true,
+    "esModuleInterop": true,
     "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es6",
+    "types": ["vitest/globals"],
     "paths": {
-      "@/*": ["src/*"]
+      "@@/*": [".dumi/tmp/*"],
+      "@/*": ["src/*"],
+      "@lobehub/editor": ["src"],
+      "@lobehub/editor/*": ["src/*"]
     }
   },
   "exclude": ["node_modules", "dist"],
-  "include": ["src"]
+  "include": ["src", "docs", "tests", ".dumirc.ts", ".fatherrc.ts"]
 }
