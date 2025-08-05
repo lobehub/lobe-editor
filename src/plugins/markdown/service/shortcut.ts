@@ -61,6 +61,7 @@ export type ElementTransformer = {
          */
         isImport: boolean,
     ) => boolean | void;
+    trigger?: 'enter';
     type: 'element';
 };
 
@@ -75,11 +76,12 @@ export interface IMarkdownShortCutService {
 
 export const IMarkdownShortCutService: IServiceID<IMarkdownShortCutService> = genServiceId<IMarkdownShortCutService>('MarkdownShortCutService');
 
-function runElementTransformers(
+function testElementTransformers(
     parentNode: ElementNode,
     anchorNode: TextNode,
     anchorOffset: number,
     elementTransformers: ReadonlyArray<ElementTransformer>,
+    fromTrigger?: 'enter'
 ): boolean {
     const grandParentNode = parentNode.getParent();
 
@@ -98,17 +100,60 @@ function runElementTransformers(
     // TODO:
     // Can have a quick check if caret is close enough to the beginning of the string (e.g. offset less than 10-20)
     // since otherwise it won't be a markdown shortcut, but tables are exception
-    if (textContent[anchorOffset - 1] !== ' ') {
+    if (fromTrigger !== 'enter' && textContent[anchorOffset - 1] !== ' ') {
         return false;
     }
 
-    for (const { regExp, replace } of elementTransformers) {
+    for (const { regExp, trigger } of elementTransformers) {
+        const match = textContent.match(regExp);
+
+        if (fromTrigger === trigger &&
+            match &&
+            match[0].length ===
+            (fromTrigger === 'enter' || match[0].endsWith(' ') ? anchorOffset : anchorOffset - 1)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function runElementTransformers(
+    parentNode: ElementNode,
+    anchorNode: TextNode,
+    anchorOffset: number,
+    elementTransformers: ReadonlyArray<ElementTransformer>,
+    fromTrigger?: 'enter'
+): boolean {
+    const grandParentNode = parentNode.getParent();
+
+    if (
+        !$isRootOrShadowRoot(grandParentNode) ||
+        parentNode.getFirstChild() !== anchorNode
+    ) {
+        return false;
+    }
+
+    const textContent = anchorNode.getTextContent();
+
+    // Checking for anchorOffset position to prevent any checks for cases when caret is too far
+    // from a line start to be a part of block-level markdown trigger.
+    //
+    // TODO:
+    // Can have a quick check if caret is close enough to the beginning of the string (e.g. offset less than 10-20)
+    // since otherwise it won't be a markdown shortcut, but tables are exception
+    if (fromTrigger !== 'enter' && textContent[anchorOffset - 1] !== ' ') {
+        return false;
+    }
+
+    for (const { regExp, replace, trigger } of elementTransformers) {
         const match = textContent.match(regExp);
 
         if (
+            fromTrigger === trigger &&
             match &&
             match[0].length ===
-            (match[0].endsWith(' ') ? anchorOffset : anchorOffset - 1)
+            (fromTrigger === 'enter' || match[0].endsWith(' ') ? anchorOffset : anchorOffset - 1)
         ) {
             const nextSiblings = anchorNode.getNextSiblings();
             const [leadingNode, remainderNode] = anchorNode.splitText(anchorOffset);
@@ -384,16 +429,38 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
         }
     }
 
-    runTransformers(parentNode: ElementNode, anchorNode: TextNode, anchorOffset: number): void {
+    testTransformers(
+        parentNode: ElementNode,
+        anchorNode: TextNode,
+        anchorOffset: number,
+        trigger?: 'enter'
+    ): boolean {
+        if (
+            testElementTransformers(
+                parentNode,
+                anchorNode,
+                anchorOffset,
+                this.elementTransformers,
+                trigger
+            )
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    runTransformers(parentNode: ElementNode, anchorNode: TextNode, anchorOffset: number, trigger?: 'enter'): boolean {
         if (
             runElementTransformers(
                 parentNode,
                 anchorNode,
                 anchorOffset,
-                this.elementTransformers
+                this.elementTransformers,
+                trigger
             )
         ) {
-            return;
+            return true;
         }
 
         if (
@@ -403,13 +470,17 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
                 this.textMatchTransformersByTrigger
             )
         ) {
-            return;
+            return true;
         }
 
-        $runTextFormatTransformers(
+        if ($runTextFormatTransformers(
             anchorNode,
             anchorOffset,
             this.textFormatTransformersByTrigger
-        );
+        )) {
+            return true;
+        }
+
+        return false;
     }
 }

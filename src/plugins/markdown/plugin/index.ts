@@ -1,6 +1,6 @@
 import { KernelPlugin } from "@/editor-kernel/plugin";
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from "@/editor-kernel/types";
-import { $getSelection, $isRangeSelection, $isTextNode, COLLABORATION_TAG, HISTORIC_TAG, LexicalEditor } from "lexical";
+import { $getNodeByKey, $getSelection, $isRangeSelection, $isTextNode, COLLABORATION_TAG, COMMAND_PRIORITY_CRITICAL, HISTORIC_TAG, KEY_ENTER_COMMAND, LexicalEditor } from "lexical";
 import { canContainTransformableMarkdown } from "../utils";
 import { $isCodeNode } from "@lexical/code";
 import { IMarkdownShortCutService, MarkdownShortCutService } from "../service/shortcut";
@@ -74,5 +74,62 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> =
                     });
                 }
             ));
+            this.register(editor.registerCommand(
+                KEY_ENTER_COMMAND,
+                (payload) => {
+                    const ret = editor.read(() => {
+                        const selection = $getSelection();
+
+                        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+                            return false;
+                        }
+
+                        const anchorKey = selection.anchor.key;
+
+                        const anchorNode = $getNodeByKey(anchorKey);
+
+                        console.info('Enter key command triggered for node:', anchorNode);
+
+                        if (!anchorNode) return false;
+
+                        console.info('Enter key command +++triggered for node:', {
+                            anchorNode,
+                            offset: selection.anchor.offset,
+                        });
+
+                        return {
+                            anchorNode,
+                            offset: selection.anchor.offset,
+                        };
+                    });
+
+                    if (!ret) return false;
+
+                    const { anchorNode, offset } = ret;
+
+                    if (!canContainTransformableMarkdown(anchorNode)) {
+                        return false;
+                    }
+
+                    const parentNode = anchorNode.getParent();
+
+                    if (parentNode === null || $isCodeNode(parentNode)) {
+                        return false;
+                    }
+
+                    if (this.service.testTransformers(parentNode, anchorNode, offset, 'enter')) {
+                        queueMicrotask(() => {
+                            editor.update(() => {
+                                this.service.runTransformers(parentNode, anchorNode, offset, 'enter');
+                            });
+                        });
+                        payload?.stopPropagation();
+                        payload?.stopImmediatePropagation();
+                        payload?.preventDefault();
+                    }
+                    return true;
+                },
+                COMMAND_PRIORITY_CRITICAL,
+            ))
         }
     }

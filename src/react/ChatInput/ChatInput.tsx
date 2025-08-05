@@ -14,7 +14,7 @@ import Editor from '../Editor';
 import { useStyles } from './style';
 import type { ChatInputProps } from './type';
 
-const ChatInput = memo<ChatInputProps>(({ mentionOption, slashOption, plugins = [], content }) => {
+const ChatInput = memo<ChatInputProps>(({ className, mentionOption, slashOption, plugins = [], content }) => {
   const { styles } = useStyles();
 
   const memoPlugins = useMemo(
@@ -41,6 +41,7 @@ const ChatInput = memo<ChatInputProps>(({ mentionOption, slashOption, plugins = 
     >
       <Typography fontSize={14} headerMultiple={0.25} marginMultiple={1}>
         <Editor
+          className={className}
           content={content}
           mentionOption={mentionOption}
           plugins={memoPlugins}

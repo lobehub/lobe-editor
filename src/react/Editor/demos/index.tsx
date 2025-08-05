@@ -14,6 +14,7 @@ export default () => {
   return (
     <Typography>
       <Editor
+        className='ignore-markdown-style'
         content={content}
         mentionOption={{
           items: [

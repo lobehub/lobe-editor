@@ -8,6 +8,7 @@ export default () => {
     <Flexbox height={600} padding={24}>
       <div style={{ flex: 1 }} />
       <ChatInput
+        className='ignore-markdown-style'
         content={content}
         mentionOption={{
           items: [
