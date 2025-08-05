@@ -39,7 +39,6 @@
     "lint:style": "stylelint \"{src,tests}/**/*.{js,jsx,ts,tsx,less}\" --fix",
     "prepack": "clean-package",
     "postpack": "clean-package restore",
-    "playground": "vite",
     "prepare": "husky && npm run setup",
     "prepublishOnly": "npm run build",
     "prettier": "prettier -c --write --no-error-on-unmatched-pattern \"**/**\"",
