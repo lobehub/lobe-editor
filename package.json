@@ -90,6 +90,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "antd": "^5.23.0",
+    "antd-style": "^3.7.1",
     "eventemitter3": "^5.0.1",
     "fuse.js": "^7.1.0",
     "lexical": "^0.33.1",
@@ -97,7 +98,8 @@
     "lucide-react": "^0.536.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-error-boundary": "^6.0.0"
+    "react-error-boundary": "^6.0.0",
+    "react-layout-kit": "^2.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

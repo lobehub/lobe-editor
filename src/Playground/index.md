@@ -6,4 +6,4 @@ title: Playground
 
 ## Default
 
-<code src="./demos/index.tsx" nopadding></code>
+<code src="./demos/index.tsx" nopadding iframe></code>

@@ -1,7 +1,6 @@
 import { defineConfig } from 'dumi';
-import type { SiteThemeConfig } from 'dumi-theme-lobehub';
-import type { INavItem } from 'dumi/dist/client/theme-api/types';
-import { resolve } from 'node:path';
+import { SiteThemeConfig } from 'dumi-theme-lobehub';
+import { INavItem } from 'dumi/dist/client/theme-api/types';
 
 import { description, homepage, name } from './package.json';
 
@@ -10,6 +9,8 @@ const isWin = process.platform === 'win32';
 
 const nav: INavItem[] = [
   { link: '/components/playground', title: 'Components' },
+  { link: 'https://ui.lobehub.com', mode: 'override', title: 'UI' },
+  { link: 'https://icon.lobehub.com', mode: 'override', title: 'Icons' },
   { link: '/changelog', title: 'Changelog' },
 ];
 
@@ -40,7 +41,19 @@ const themeConfig: SiteThemeConfig = {
     sourceUrl: `{github}/tree/master/src/{atomId}/index.tsx`,
   },
   description,
+  giscus: {
+    category: 'Q&A',
+    categoryId: 'DIC_kwDOLNrpbc4Cin_G',
+    repo: 'lobehub/lobe-charts',
+    repoId: 'R_kgDOLNrpbQ',
+  },
   lastUpdated: true,
+  metadata: {
+    openGraph: {
+      image:
+        'https://repository-images.githubusercontent.com/752544109/5bb43f23-aed9-44b0-b08e-91776eadfe1c',
+    },
+  },
   name: 'Editor',
   nav,
   prefersColor: {
@@ -55,9 +68,6 @@ const themeConfig: SiteThemeConfig = {
 };
 
 export default defineConfig({
-  alias: {
-    '@lobehub/editor': resolve(__dirname, './src'),
-  },
   apiParser: isProduction ? {} : false,
   base: '/',
   define: {
@@ -68,14 +78,14 @@ export default defineConfig({
   favicons: ['https://lobehub.com/favicon.ico'],
   jsMinifier: 'swc',
   locales: [{ id: 'en-US', name: 'English' }],
-  mako: isWin || isProduction ? false : {},
   mfsu: isWin ? undefined : {},
   npmClient: 'pnpm',
   publicPath: '/',
-  resolve: {
-    atomDirs: [{ dir: 'src', type: 'component' }],
-    entryFile: isProduction ? './src/index.ts' : undefined,
-  },
+  resolve: isProduction
+    ? {
+        entryFile: './src/index.ts',
+      }
+    : undefined,
   sitemap: {
     hostname: 'https://editor.lobehub.com',
   },
