@@ -1,5 +1,5 @@
 import { LexicalEditor } from "lexical/LexicalEditor";
-import { $createQuoteNode, $isQuoteNode, HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text';
+import { $createHeadingNode, $createQuoteNode, $isQuoteNode, HeadingNode, HeadingTagType, QuoteNode, registerRichText } from '@lexical/rich-text';
 import { registerDragonSupport } from '@lexical/dragon';
 import { createEmptyHistoryState, registerHistory } from '@lexical/history';
 import { selectionAlwaysOnDisplay } from '@lexical/utils';
@@ -11,6 +11,7 @@ import { KernelPlugin } from "@/editor-kernel/plugin";
 import './index.css';
 import { IMarkdownShortCutService } from "@/plugins/markdown";
 import { $createLineBreakNode } from "lexical";
+import { createBlockNode } from "../utils";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CommonPluginOptions { }
@@ -42,7 +43,15 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> =
                     uppercase: 'editor_textUppercase',
                 },
             });
-            kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+            this.registerMarkdown(kernel);
+        }
+
+        registerMarkdown(kernel: IEditorKernel) {
+            const markdownService = kernel.requireService(IMarkdownShortCutService);
+            if (!markdownService) {
+                return;
+            }
+            markdownService.registerMarkdownShortCut({
                 regExp: /^>\s/,
                 replace: (parentNode, children, _match, isImport) => {
                     if (isImport) {
@@ -66,6 +75,48 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> =
                 },
                 type: 'element',
             });
+            markdownService.registerMarkdownShortCut({
+                regExp: /^(#{1,6})\s/,
+                replace: createBlockNode((match) => {
+                    const tag = ('h' + match[1].length) as HeadingTagType;
+                    return $createHeadingNode(tag);
+                }),
+                type: 'element',
+            });
+            markdownService.registerMarkdownShortCuts([
+                {
+                    format: ['bold'],
+                    tag: '**',
+                    type: 'text-format',
+                },
+                {
+                    format: ['bold'],
+                    intraword: false,
+                    tag: '__',
+                    type: 'text-format',
+                },
+                {
+                    format: ['code'],
+                    tag: '`',
+                    type: 'text-format',
+                },
+                {
+                    format: ['strikethrough'],
+                    tag: '~~',
+                    type: 'text-format',
+                },
+                {
+                    format: ['italic'],
+                    tag: '*',
+                    type: 'text-format',
+                },
+                {
+                    format: ['italic'],
+                    intraword: false,
+                    tag: '_',
+                    type: 'text-format',
+                }
+            ]);
         }
 
         onInit(editor: LexicalEditor): void {

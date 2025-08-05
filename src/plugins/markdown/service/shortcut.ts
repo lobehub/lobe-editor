@@ -72,6 +72,7 @@ export type Transformer =
 
 export interface IMarkdownShortCutService {
     registerMarkdownShortCut(transformer: Transformer): void;
+    registerMarkdownShortCuts(transformers: Transformer[]): void;
 }
 
 export const IMarkdownShortCutService: IServiceID<IMarkdownShortCutService> = genServiceId<IMarkdownShortCutService>('MarkdownShortCutService');
@@ -426,6 +427,12 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
             default: {
                 throw new Error(`Unknown transformer type: ${transformer}`);
             }
+        }
+    }
+
+    registerMarkdownShortCuts(transformers: Transformer[]): void {
+        for (const transformer of transformers) {
+            this.registerMarkdownShortCut(transformer);
         }
     }
 
