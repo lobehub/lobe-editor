@@ -117,6 +117,7 @@
     "eslint": "^8.57.1",
     "father": "4.5.2",
     "husky": "^9.1.7",
+    "jsdom": "^26.1.0",
     "less": "^4.4.0",
     "lint-staged": "^16.1.2",
     "patch-package": "^8.0.0",
