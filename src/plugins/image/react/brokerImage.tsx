@@ -1,6 +1,6 @@
 import { JSX } from 'react';
 
-import { imageBroken } from './style.ts';
+import { imageBroken } from './style';
 
 export function BrokenImage(): JSX.Element {
   return (
