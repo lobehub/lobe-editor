@@ -1,6 +1,6 @@
 /* eslint-disable no-redeclare */
 /* eslint-disable @typescript-eslint/no-redeclare */
-import { genServiceId, type IEditorKernel, type IServiceID } from "@/editor-kernel";
+import { genServiceId, IEditor, type IEditorKernel, type IServiceID } from "@/editor-kernel";
 import { getBasicTypeaheadTriggerMatch } from "../utils/utils";
 import Fuse from "fuse.js";
 
@@ -11,6 +11,7 @@ export interface SlashOptions {
         // 可选的图标
         icon?: string;
         label: string;
+        onSelect?: (editor: IEditor, matchingString: string) => void;
         // 显示的标签
         value: string;
     }>;

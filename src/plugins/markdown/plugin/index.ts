@@ -126,8 +126,9 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> =
                         payload?.stopPropagation();
                         payload?.stopImmediatePropagation();
                         payload?.preventDefault();
+                        return true;
                     }
-                    return true;
+                    return false;
                 },
                 COMMAND_PRIORITY_CRITICAL,
             ))

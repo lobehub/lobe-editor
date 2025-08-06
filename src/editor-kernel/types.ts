@@ -1,4 +1,4 @@
-import type { DecoratorNode, LexicalEditor, LexicalNodeConfig } from "lexical";
+import type { CommandPayloadType, DecoratorNode, LexicalCommand, LexicalEditor, LexicalNodeConfig } from "lexical";
 import type DataSource from "./data-source";
 
 /**
@@ -19,6 +19,10 @@ export interface IKernelEventMap {
  */
 export interface IEditor {
     destroy(): void;
+    dispatchCommand<TCommand extends LexicalCommand<unknown>>(
+        type: TCommand,
+        payload: CommandPayloadType<TCommand>,
+    ): boolean,
     getDocument(type: string): DataSource | undefined;
     getLexicalEditor(): LexicalEditor | null;
     getRootElement(): HTMLElement | null;

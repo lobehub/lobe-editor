@@ -1,4 +1,4 @@
-import { COMMAND_PRIORITY_LOW } from 'lexical';
+import { COMMAND_PRIORITY_NORMAL } from 'lexical';
 import type { FC, ReactElement } from 'react';
 import { Children, useCallback, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -15,6 +15,8 @@ import {
   useMenuAnchorRef,
 } from './ReactMenu';
 
+import './index.less';
+
 export interface ReactSlashOptionProps {
   items?: SlashOptions['items'];
   trigger?: SlashOptions['trigger'];
@@ -25,6 +27,7 @@ export class MyMenuOption extends MenuOption {
     public label: string,
     public value: string,
     public icon?: string,
+    public onSelect?: SlashOptions['items'][0]['onSelect'],
   ) {
     super(value);
   }
@@ -37,8 +40,8 @@ export const ReactSlashOption: FC<ReactSlashOptionProps> = () => {
 export interface ReactSlashPluginProps {
   anchorClassName?: string;
   children?:
-    | (ReactElement<ReactSlashOptionProps> | undefined)
-    | (ReactElement<ReactSlashOptionProps> | undefined)[];
+  | (ReactElement<ReactSlashOptionProps> | undefined)
+  | (ReactElement<ReactSlashOptionProps> | undefined)[];
   menuRenderFn: MenuRenderFn<MyMenuOption>;
 }
 
@@ -67,7 +70,7 @@ export const ReactSlashPlugin = (props: ReactSlashPluginProps) => {
         setResolution(ctx);
         setOptions(
           ctx.items.map((item) => {
-            return new MyMenuOption(item.label, item.value, item.icon);
+            return new MyMenuOption(item.label, item.value, item.icon, item.onSelect);
           }),
         );
       },
@@ -82,11 +85,13 @@ export const ReactSlashPlugin = (props: ReactSlashPluginProps) => {
     <LexicalMenu
       anchorElementRef={anchorElementRef}
       close={closeTypeahead}
-      commandPriority={COMMAND_PRIORITY_LOW}
+      commandPriority={COMMAND_PRIORITY_NORMAL}
       editor={editor.getLexicalEditor()!}
       menuRenderFn={props.menuRenderFn ?? ReactSlashPlugin.defaultProps.menuRenderFn}
-      onSelectOption={(option) => {
-        console.log('Selected option:', option);
+      onSelectOption={(option, nodeToRemove, closeMenu, matchingString) => {
+        nodeToRemove?.remove();
+        option.onSelect?.(editor, matchingString);
+        closeMenu();
       }}
       options={options}
       resolution={resolution}
@@ -96,28 +101,29 @@ export const ReactSlashPlugin = (props: ReactSlashPluginProps) => {
 };
 
 ReactSlashPlugin.defaultProps = {
-  menuRenderFn: ((anchorElementRef, { selectOptionAndCleanUp, setHighlightedIndex, options }) =>
+  menuRenderFn: ((anchorElementRef, { selectOptionAndCleanUp, setHighlightedIndex, options, selectedIndex }) =>
     anchorElementRef.current && options.length
       ? createPortal(
-          <div className="typeahead-popover component-picker-menu">
-            <ul>
-              {options.map((option, i: number) => (
-                <div
-                  key={option.key}
-                  onClick={() => {
-                    setHighlightedIndex(i);
-                    selectOptionAndCleanUp(option);
-                  }}
-                  onMouseEnter={() => {
-                    setHighlightedIndex(i);
-                  }}
-                >
-                  {option.label}
-                </div>
-              ))}
-            </ul>
-          </div>,
-          anchorElementRef.current,
-        )
+        <div className="typeahead-popover component-picker-menu">
+          <ul>
+            {options.map((option, i: number) => (
+              <li
+                className={selectedIndex === i ? 'selected' : ''}
+                key={option.key}
+                onClick={() => {
+                  setHighlightedIndex(i);
+                  selectOptionAndCleanUp(option);
+                }}
+                onMouseEnter={() => {
+                  setHighlightedIndex(i);
+                }}
+              >
+                {option.label}
+              </li>
+            ))}
+          </ul>
+        </div>,
+        anchorElementRef.current,
+      )
       : null) as MenuRenderFn<MyMenuOption>,
 };

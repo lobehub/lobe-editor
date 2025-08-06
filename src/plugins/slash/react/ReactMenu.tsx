@@ -1,7 +1,7 @@
 import { useLexicalComposerContext } from "@/editor-kernel/react/react-context";
 import { JSX, ReactPortal, RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getScrollParent, scrollIntoViewIfNeeded } from "../utils/utils";
-import {mergeRegister} from '@lexical/utils';
+import { mergeRegister } from '@lexical/utils';
 import { CAN_USE_DOM } from "@/common/canUseDOM";
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, CommandListenerPriority, createCommand, KEY_ARROW_DOWN_COMMAND, KEY_ARROW_UP_COMMAND, KEY_ENTER_COMMAND, KEY_ESCAPE_COMMAND, KEY_TAB_COMMAND, LexicalCommand, LexicalEditor, TextNode } from "lexical";
 
@@ -115,14 +115,13 @@ export function useMenuAnchorRef(
 
     const menuEle = containerDiv.firstChild as HTMLElement;
     if (rootElement !== null && resolution !== null) {
-      const {left, top, width, height} = resolution.getRect();
+      const { left, top, width, height } = resolution.getRect();
       const anchorHeight = anchorElementRef.current.offsetHeight; // use to position under anchor
-      containerDiv.style.top = `${
-        top +
+      containerDiv.style.top = `${top +
         anchorHeight +
         3 +
         (shouldIncludePageYOffset__EXPERIMENTAL ? window.pageYOffset : 0)
-      }px`;
+        }px`;
       containerDiv.style.left = `${left + window.pageXOffset}px`;
       containerDiv.style.height = `${height}px`;
       containerDiv.style.width = `${width}px`;
@@ -135,21 +134,19 @@ export function useMenuAnchorRef(
         const rootElementRect = rootElement.getBoundingClientRect();
 
         if (left + menuWidth > rootElementRect.right) {
-          containerDiv.style.left = `${
-            rootElementRect.right - menuWidth + window.pageXOffset
-          }px`;
+          containerDiv.style.left = `${rootElementRect.right - menuWidth + window.pageXOffset
+            }px`;
         }
         if (
           (top + menuHeight > window.innerHeight ||
             top + menuHeight > rootElementRect.bottom) &&
           top - rootElementRect.top > menuHeight + height
         ) {
-          containerDiv.style.top = `${
-            top -
+          containerDiv.style.top = `${top -
             menuHeight -
             height +
             (shouldIncludePageYOffset__EXPERIMENTAL ? window.pageYOffset : 0)
-          }px`;
+            }px`;
         }
       }
 
@@ -189,8 +186,8 @@ export function useMenuAnchorRef(
   const onVisibilityChange = useCallback(
     (isInView: boolean) => {
       if (resolution !== null && !isInView) {
-          setResolution(null);
-        }
+        setResolution(null);
+      }
     },
     [resolution, setResolution],
   );
@@ -279,12 +276,12 @@ export class MenuOption {
 
   constructor(key: string) {
     this.key = key;
-    this.ref = {current: null};
+    this.ref = { current: null };
     this.setRefElement = this.setRefElement.bind(this);
   }
 
   setRefElement(element: HTMLElement | null) {
-    this.ref = {current: element};
+    this.ref = { current: element };
   }
 }
 
@@ -396,7 +393,7 @@ export function LexicalMenu<TOption extends MenuOption>({
     return mergeRegister(
       editor.registerCommand(
         SCROLL_TYPEAHEAD_OPTION_INTO_VIEW_COMMAND,
-        ({option}) => {
+        ({ option }) => {
           if (option.ref && option.ref.current) {
             scrollIntoViewIfNeeded(option.ref.current);
             return true;
@@ -420,8 +417,8 @@ export function LexicalMenu<TOption extends MenuOption>({
               selectedIndex === null
                 ? 0
                 : selectedIndex !== options.length - 1
-                ? selectedIndex + 1
-                : 0;
+                  ? selectedIndex + 1
+                  : 0;
             updateSelectedIndex(newSelectedIndex);
             const option = options[newSelectedIndex];
             if (option.ref && option.ref.current) {
@@ -449,8 +446,8 @@ export function LexicalMenu<TOption extends MenuOption>({
               selectedIndex === null
                 ? options.length - 1
                 : selectedIndex !== 0
-                ? selectedIndex - 1
-                : options.length - 1;
+                  ? selectedIndex - 1
+                  : options.length - 1;
             updateSelectedIndex(newSelectedIndex);
             const option = options[newSelectedIndex];
             if (option.ref && option.ref.current) {
@@ -502,6 +499,7 @@ export function LexicalMenu<TOption extends MenuOption>({
           ) {
             return false;
           }
+
           if (event !== null) {
             event.preventDefault();
             event.stopImmediatePropagation();

@@ -1,0 +1,41 @@
+.editor_table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    overflow-y: scroll;
+    overflow-x: scroll;
+    table-layout: fixed;
+    width: fit-content;
+    margin-top: 25px;
+    margin-bottom: 30px;
+}
+
+.editor_table_cell {
+    border: 1px solid #bbb;
+    width: 75px;
+    vertical-align: top;
+    text-align: start;
+    padding: 6px 8px;
+    position: relative;
+    outline: none;
+    overflow: auto;
+}
+
+.editor_table_cell_header {
+    font-weight: normal;
+}
+
+.editor_table_cell_selected {
+    caret-color: transparent;
+
+    &::after {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: 0;
+        background-color: highlight;
+        mix-blend-mode: multiply;
+        content: "";
+        pointer-events: none;
+    }
+}

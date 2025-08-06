@@ -1,7 +1,7 @@
 import EventEmitter from "eventemitter3";
 import { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IPlugin, IServiceID } from "./types";
 import DataSource from "./data-source";
-import { createEditor, DecoratorNode, LexicalEditor, LexicalNodeConfig } from "lexical";
+import { CommandPayloadType, createEditor, DecoratorNode, LexicalCommand, LexicalEditor, LexicalNodeConfig } from "lexical";
 import { createEmptyEditorState } from "./utils";
 import { registerEvent } from './event';
 import merge from "lodash/merge";
@@ -151,5 +151,15 @@ export class Kernel extends EventEmitter implements IEditorKernel {
             return null;
         }
         return service as T;
+    }
+
+    dispatchCommand<TCommand extends LexicalCommand<unknown>>(
+        type: TCommand,
+        payload: CommandPayloadType<TCommand>,
+    ): boolean {
+        if (!this.editor) {
+            throw new Error("Editor is not initialized.");
+        }
+        return this.editor.dispatchCommand(type, payload);
     }
 }

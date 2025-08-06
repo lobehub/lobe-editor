@@ -124,7 +124,7 @@ export const PUNCTUATION =
 export function getBasicTypeaheadTriggerMatch(
   trigger: string,
   {
-    minLength = 1,
+    minLength = 0,
     maxLength = 75,
     punctuation = PUNCTUATION,
     allowWhitespace = false,
@@ -151,6 +151,7 @@ export function getBasicTypeaheadTriggerMatch(
           ')$',
       );
       const match = TypeaheadTriggerRegex.exec(text);
+
       if (match !== null) {
         const maybeLeadingWhitespace = match[1];
         const matchingString = match[3];

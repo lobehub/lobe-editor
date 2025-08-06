@@ -4,6 +4,8 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
+  ReactTablePlugin,
+  INSERT_TABLE_COMMAND,
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
 import { Typography } from '@lobehub/ui';
@@ -31,12 +33,16 @@ export default () => {
           ReactImagePlugin,
           ReactCodeblockPlugin,
           ReactHRPlugin,
+          ReactTablePlugin,
         ]}
         slashOption={{
           items: [
             {
-              label: 'Help',
-              value: 'help',
+              label: 'Table',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' });
+              },
+              value: 'table',
             },
           ],
           trigger: '/',
