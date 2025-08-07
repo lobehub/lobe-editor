@@ -1,5 +1,5 @@
 import { $getNodeByKey, EditorState, LexicalEditor, LexicalNode, NodeKey } from "lexical";
-import { IServiceID } from "./types";
+import { IEditorKernel, IServiceID } from "./types";
 
 // DOM
 export const DOM_ELEMENT_TYPE = 1;
@@ -94,4 +94,9 @@ export function $getNearestNodeFromDOMNode(
     dom = getParentElement(dom);
   }
   return null;
+}
+
+export function getKernelFromEditor(editor: LexicalEditor): IEditorKernel {
+  // @ts-expect-error __kernel is injected into the lexical editor instance
+  return editor._createEditorArgs?.__kernel || editor._kernel;
 }

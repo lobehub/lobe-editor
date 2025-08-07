@@ -2,7 +2,7 @@ import { KernelPlugin } from "@/editor-kernel/plugin";
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from "@/editor-kernel/types";
 import { JSX } from "react";
 import { $createImageNode, ImageNode } from "../node/image-node";
-import { IUploadService } from "@/plugins/upload";
+import { IUploadService, UPLOAD_PRIORITY_HIGH } from "@/plugins/upload";
 import { $createParagraphNode, $insertNodes, $isRootOrShadowRoot, LexicalEditor } from "lexical";
 import { $wrapNodeInElement } from "@lexical/utils"
 
@@ -58,8 +58,8 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> =
                         });
                     });
                 });
-                return null;
-            });
+                return true;
+            }, UPLOAD_PRIORITY_HIGH);
 
             this.register(editor.registerUpdateListener((payload) => {
                 console.trace('ImagePlugin update:', payload);

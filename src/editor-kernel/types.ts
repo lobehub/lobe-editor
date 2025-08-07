@@ -40,6 +40,7 @@ export interface IEditor {
  * 提供给插件的 api
  */
 export interface IEditorKernel extends IEditor {
+    getDecorator(name: string): ((_node: DecoratorNode<any>, _editor: LexicalEditor) => any) | undefined;
     registerDataSource(dataSource: DataSource): void;
     registerDecorator(name: string, decorator: (_node: DecoratorNode<any>, _editor: LexicalEditor) => any): void;
     registerNodes(nodes: Array<LexicalNodeConfig>): void;

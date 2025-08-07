@@ -47,7 +47,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
             this.pluginsInstances.push(instance);
         }
         const editor = this.editor = createEditor({
-            decorators: this.decorators,
+            // @ts-expect-error 注入到 lexical 的 editor 实例中
+            __kernel: this,
             nodes: this.nodes,
             onError: (error: Error) => {
                 this.emit('error', error);
@@ -89,6 +90,10 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     registerDecorator(name: string, decorator: (_node: DecoratorNode<any>, _editor: LexicalEditor) => any) {
         this.decorators[name] = decorator;
         return this;
+    }
+
+    getDecorator(name: string): ((_node: DecoratorNode<any>, _editor: LexicalEditor) => any) | undefined {
+        return this.decorators[name];
     }
 
     /**

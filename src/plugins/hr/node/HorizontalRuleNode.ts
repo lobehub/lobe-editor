@@ -5,14 +5,14 @@ import {
     DOMConversionMap, 
     DOMConversionOutput, 
     DOMExportOutput, 
-    EditorConfig, 
-    IConfig, 
+    EditorConfig,
     LexicalEditor, 
     SerializedLexicalNode 
 } from "lexical";
 import {
   addClassNamesToElement,
 } from '@lexical/utils';
+import { getKernelFromEditor } from "@/index";
 
 export type SerializedHorizontalRuleNode = SerializedLexicalNode;
 
@@ -62,8 +62,8 @@ export class HorizontalRuleNode extends DecoratorNode<any> {
     return false;
   }
 
-  decorate(editor: LexicalEditor, config: EditorConfig): any {
-    return (config as IConfig).decorators?.horizontalrule?.(this, editor) || null;
+  decorate(editor: LexicalEditor): any {
+    return getKernelFromEditor(editor)?.getDecorator('horizontalrule')?.(this, editor) || null;
   }
 }
 

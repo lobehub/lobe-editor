@@ -1,26 +1,47 @@
 import { genServiceId, IServiceID } from "@/editor-kernel";
-import { LexicalNode } from "lexical";
+
+export const UPLOAD_PRIORITY_LOW = 2;
+export const UPLOAD_PRIORITY_MEDIUM = 1;
+export const UPLOAD_PRIORITY_HIGH = 0;
+
+export type UPLOAD_PRIORITY = typeof UPLOAD_PRIORITY_LOW | typeof UPLOAD_PRIORITY_MEDIUM | typeof UPLOAD_PRIORITY_HIGH;
 
 export interface IUploadService {
-    registerUpload(handler: (file: File, from: string) => Promise<LexicalNode | null>): void;
-    uploadFile(file: File, from: string): Promise<LexicalNode>;
+    registerUpload(handler: (file: File, from: string) => Promise<boolean | null>, priority?: UPLOAD_PRIORITY): void;
+    uploadFile(file: File, from: string): Promise<boolean>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare, no-redeclare
 export const IUploadService: IServiceID<IUploadService> = genServiceId<IUploadService>('UploadService');
 
 export class UploadService implements IUploadService {
-    private uploadHandlers: Array<(file: File, from: string) => Promise<LexicalNode>> = [];
+    private uploadHandlers: [
+        // eslint-disable-next-line unused-imports/no-unused-vars
+        Array<(file: File, from: string) => Promise<boolean>>,
+        // eslint-disable-next-line unused-imports/no-unused-vars
+        Array<(file: File, from: string) => Promise<boolean>>,
+        // eslint-disable-next-line unused-imports/no-unused-vars
+        Array<(file: File, from: string) => Promise<boolean>>
+    ] = [
+            [],
+            [],
+            []
+        ];
 
-    registerUpload(handler: (file: File, from: string) => Promise<LexicalNode>): void {
-        this.uploadHandlers.push(handler);
+    registerUpload(handler: (file: File, from: string) => Promise<boolean>, priority = UPLOAD_PRIORITY_LOW): void {
+        this.uploadHandlers[priority].push(handler);
     }
 
-    uploadFile(file: File, from: string): Promise<LexicalNode> {
-        for (const handler of this.uploadHandlers) {
-            const result = handler(file, from);
-            if (result) {
-                return result;
+    uploadFile(file: File, from: string): Promise<boolean> {
+        for (const uploadHandlers of this.uploadHandlers) {
+            if (uploadHandlers.length === 0) {
+                continue; // Skip empty handler arrays
+            }
+            for (const handler of uploadHandlers) {
+                const result = handler(file, from);
+                if (result) {
+                    return result;
+                }
             }
         }
         return Promise.reject(new Error("No upload handler registered for this file type: " + file.type));
