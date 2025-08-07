@@ -94,6 +94,7 @@
     "antd": "^5.25.0",
     "antd-style": "^3.7.1",
     "eventemitter3": "^5.0.1",
+    "framer-motion": "^12.23.12",
     "fuse.js": "^7.1.0",
     "lexical": "^0.33.1",
     "lodash": "^4.17.21",
@@ -101,7 +102,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-error-boundary": "^6.0.0",
-    "react-layout-kit": "^2.0.0"
+    "react-layout-kit": "^2.0.0",
+    "use-merge-value": "^1.2.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

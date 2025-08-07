@@ -1,7 +1,7 @@
-import { CSSProperties, FC, ReactNode } from 'react';
+import type { CSSProperties, FC, ReactNode } from 'react';
 
-import { IReactEditorContent } from '@/plugins/common/react/ReactPlainText';
-import { ReactSlashOptionProps } from '@/plugins/slash/react/ReactSlashPlugin';
+import type { IReactEditorContent } from '@/plugins/common/react/ReactPlainText';
+import type { ReactSlashOptionProps } from '@/plugins/slash/react/ReactSlashPlugin';
 
 export type EditorPlugin = FC<any> | [FC<any>, Record<string, any>];
 

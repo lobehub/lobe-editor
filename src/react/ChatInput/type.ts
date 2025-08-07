@@ -1,10 +1,9 @@
-import { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
-import type { EditorProps } from '../Editor/type';
-
-export interface ChatInputProps
-  extends Pick<EditorProps, 'plugins' | 'content' | 'mentionOption' | 'slashOption'> {
+export interface ChatInputProps {
+  actions?: ReactNode;
+  children?: ReactNode;
   className?: string;
-  placeholder?: string;
+  maxHeight?: string | number;
   style?: CSSProperties;
 }

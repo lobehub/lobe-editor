@@ -1,34 +1,137 @@
-import { ChatInput } from '@lobehub/editor/react';
+import {
+  ReactCodeblockPlugin,
+  ReactHRPlugin,
+  ReactImagePlugin,
+  ReactLinkPlugin,
+  ReactListPlugin,
+} from '@lobehub/editor';
+import { ChatInput, ChatInputActions, ChatInputActionsProps } from '@lobehub/editor/react';
+import Editor from '@lobehub/editor/react/Editor';
+import { Typography } from '@lobehub/ui';
+import { ChatActionsBar, ChatList, TokenTag } from '@lobehub/ui/chat';
+import { Popover } from 'antd';
+import { useTheme } from 'antd-style';
+import {
+  GlobeIcon,
+  LibraryBigIcon,
+  Mic,
+  PaperclipIcon,
+  SlidersHorizontalIcon,
+  TimerOff,
+} from 'lucide-react';
 import { Flexbox } from 'react-layout-kit';
 
-import { content } from './data';
+import { chatMessages, content } from './data';
+
+const items: ChatInputActionsProps['items'] = [
+  {
+    icon: GlobeIcon,
+    key: 'search',
+    wrapper: (node, key) => {
+      return (
+        <Popover arrow={false} content={'Test Popover'} key={key}>
+          {node}
+        </Popover>
+      );
+    },
+  },
+  {
+    icon: PaperclipIcon,
+    key: 'file',
+    label: 'File',
+  },
+  {
+    icon: LibraryBigIcon,
+    key: 'library',
+    label: 'Library',
+  },
+  {
+    type: 'divider',
+  },
+  {
+    icon: SlidersHorizontalIcon,
+    key: 'options',
+    label: 'Options',
+  },
+  {
+    disabled: true,
+    icon: TimerOff,
+    key: 'history',
+    label: 'History',
+  },
+  {
+    icon: Mic,
+    key: 'voice',
+    label: 'Voice',
+  },
+  {
+    children: <TokenTag maxValue={2048} value={1024} />,
+    key: 'token',
+  },
+];
 
 export default () => {
+  const theme = useTheme();
+
   return (
-    <Flexbox height={600} padding={24}>
-      <div style={{ flex: 1 }} />
-      <ChatInput
-        className='ignore-markdown-style'
-        content={content}
-        mentionOption={{
-          items: [
-            {
-              label: 'XX',
-              value: 'XX',
-            },
-          ],
-          trigger: '@',
+    <Flexbox
+      height={599}
+      style={{
+        background: theme.colorBgContainerSecondary,
+        overflow: 'hidden',
+      }}
+    >
+      <Flexbox
+        flex={1}
+        style={{
+          overflowY: 'auto',
         }}
-        slashOption={{
-          items: [
-            {
-              label: 'Help',
-              value: 'help',
-            },
-          ],
-          trigger: '/',
-        }}
-      />
+      >
+        <ChatList
+          data={chatMessages}
+          renderActions={{
+            default: ChatActionsBar,
+          }}
+          renderMessages={{
+            default: ({ id, editableContent }) => <div id={id}>{editableContent}</div>,
+          }}
+          style={{ width: '100%' }}
+        />
+      </Flexbox>
+      <Flexbox paddingBlock={'0 8px'} paddingInline={8}>
+        <ChatInput actions={<ChatInputActions items={items} />}>
+          <Typography fontSize={14} headerMultiple={0.25} marginMultiple={1}>
+            <Editor
+              content={content}
+              mentionOption={{
+                items: [
+                  {
+                    label: 'XX',
+                    value: 'XX',
+                  },
+                ],
+                trigger: '@',
+              }}
+              plugins={[
+                ReactListPlugin,
+                ReactLinkPlugin,
+                ReactImagePlugin,
+                ReactCodeblockPlugin,
+                ReactHRPlugin,
+              ]}
+              slashOption={{
+                items: [
+                  {
+                    label: 'Help',
+                    value: 'help',
+                  },
+                ],
+                trigger: '/',
+              }}
+            />
+          </Typography>
+        </ChatInput>
+      </Flexbox>
     </Flexbox>
   );
 };
