@@ -5,3 +5,4 @@ export {
   type ChatInputActionsProps,
 } from './ChatInputActions';
 export { default as Editor, type EditorProps } from './Editor';
+export { default as SendButton, type SendButtonProps } from './SendButton';

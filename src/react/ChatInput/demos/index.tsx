@@ -5,7 +5,12 @@ import {
   ReactLinkPlugin,
   ReactListPlugin,
 } from '@lobehub/editor';
-import { ChatInput, ChatInputActions, ChatInputActionsProps } from '@lobehub/editor/react';
+import {
+  ChatInput,
+  ChatInputActions,
+  ChatInputActionsProps,
+  SendButton,
+} from '@lobehub/editor/react';
 import Editor from '@lobehub/editor/react/Editor';
 import { Typography } from '@lobehub/ui';
 import { ChatActionsBar, ChatList, TokenTag } from '@lobehub/ui/chat';
@@ -49,20 +54,25 @@ const items: ChatInputActionsProps['items'] = [
     type: 'divider',
   },
   {
-    icon: SlidersHorizontalIcon,
-    key: 'options',
-    label: 'Options',
-  },
-  {
-    disabled: true,
-    icon: TimerOff,
-    key: 'history',
-    label: 'History',
-  },
-  {
-    icon: Mic,
-    key: 'voice',
-    label: 'Voice',
+    children: [
+      {
+        icon: SlidersHorizontalIcon,
+        key: 'options',
+        label: 'Options',
+      },
+      {
+        disabled: true,
+        icon: TimerOff,
+        key: 'history',
+        label: 'History',
+      },
+      {
+        icon: Mic,
+        key: 'voice',
+        label: 'Voice',
+      },
+    ],
+    type: 'collapse',
   },
   {
     children: <TokenTag maxValue={2048} value={1024} />,
@@ -99,7 +109,30 @@ export default () => {
         />
       </Flexbox>
       <Flexbox paddingBlock={'0 8px'} paddingInline={8}>
-        <ChatInput actions={<ChatInputActions items={items} />}>
+        <ChatInput
+          actions={
+            <>
+              <ChatInputActions items={items} />
+
+              <SendButton
+                menu={{
+                  items: [
+                    {
+                      key: 'send',
+                      label: 'Send',
+                      onClick: () => {
+                        console.log('Send clicked');
+                      },
+                    },
+                  ],
+                }}
+                style={{
+                  margin: 4,
+                }}
+              />
+            </>
+          }
+        >
           <Typography fontSize={14} headerMultiple={0.25} marginMultiple={1}>
             <Editor
               content={content}

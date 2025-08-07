@@ -17,7 +17,7 @@ export const useStyles = createStyles(({ css, token, isDarkMode }) => ({
     flex: 1;
 
     width: 100%;
-    padding-block: 8px;
-    padding-inline: 16px;
+    padding-block: 8px 0;
+    padding-inline: 12px;
   `,
 }));
