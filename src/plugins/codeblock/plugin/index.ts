@@ -1,7 +1,8 @@
 import { KernelPlugin } from "@/editor-kernel/plugin";
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from "@/editor-kernel/types";
 import { IMarkdownShortCutService } from "@/plugins/markdown";
-import { CodeNode, CodeHighlightNode, $createCodeNode, registerCodeHighlighting } from "@lexical/code";
+import { CodeNode, CodeHighlightNode, $createCodeNode } from "@lexical/code";
+import { registerCodeHighlighting } from "@lexical/code-shiki";
 import { LexicalEditor } from "lexical";
 import { getCodeLanguageByInput } from "../utils/language";
 
