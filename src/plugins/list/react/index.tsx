@@ -1,9 +1,9 @@
 import type { FC } from 'react';
 import { useLayoutEffect } from 'react';
-
+import { ListPlugin } from '../plugin';
+import { MarkdownPlugin } from '@/plugins/markdown';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
-import { ListPlugin } from '../plugin';
 import './index.less';
 
 export interface ReactListPluginProps {
@@ -14,7 +14,8 @@ export const ReactListPlugin: FC<ReactListPluginProps> = () => {
   const [editor] = useLexicalComposerContext();
 
   useLayoutEffect(() => {
-    console.info('ReactListPlugin: Initializing List Plugin');
+    // 优先注册依赖插件
+    editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(ListPlugin);
   }, []);
 
