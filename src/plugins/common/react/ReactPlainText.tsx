@@ -1,14 +1,17 @@
 import type { CSSProperties, FC, ReactElement } from 'react';
-import { Children, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { Children, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { LexicalErrorBoundary } from '@/editor-kernel/react/LexicalErrorBoundary';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { useDecorators } from '@/editor-kernel/react/useDecorators';
 
 import { CommonPlugin } from '../plugin';
+import { Placeholder } from './Placeholder';
+import './index.less';
 
 export interface IReactEditorContent {
   content: any;
+  placeholder?: React.ReactNode;
   type: string;
 }
 
@@ -27,21 +30,21 @@ export const ReactPlainText: FC<ReactPlainTextProps> = (props) => {
   const [editor] = useLexicalComposerContext();
   const decorators = useDecorators(editor, LexicalErrorBoundary);
 
+  const {
+    props: { type, content, placeholder },
+  } = Children.only(props.children);
+
   useLayoutEffect(() => {
     editor.registerPlugin(CommonPlugin);
-    console.info('ReactPlainText: Plugin registered');
   }, []);
 
   useEffect(() => {
-    console.info('ReactPlainText: Layout effect triggered');
     const container = editorContainerRef.current;
     if (container) {
       // Initialize the editor
       editor.setRootElement(container);
     }
-    const {
-      props: { type, content },
-    } = Children.only(props.children);
+
     editor.setDocument(type, content);
   }, []);
 
@@ -53,6 +56,7 @@ export const ReactPlainText: FC<ReactPlainTextProps> = (props) => {
         ref={editorContainerRef}
         style={props.style}
       />
+      <Placeholder style={props.style}>{placeholder}</Placeholder>
       {decorators}
     </>
   );

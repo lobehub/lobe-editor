@@ -9,7 +9,16 @@ import { ReactSlashOption, ReactSlashPlugin } from '@/plugins/slash';
 import { EditorProps } from './type';
 
 const Editor = memo<EditorProps>(
-  ({ content, style, className, plugins = [], slashOption = {}, mentionOption = {}, children }) => {
+  ({
+    content,
+    style,
+    className,
+    placeholder,
+    plugins = [],
+    slashOption = {},
+    mentionOption = {},
+    children,
+  }) => {
     const enableSlash = Boolean(slashOption?.items && slashOption.items.length > 0);
     const enableMention = Boolean(mentionOption?.items && mentionOption.items.length > 0);
     return (
@@ -36,7 +45,7 @@ const Editor = memo<EditorProps>(
             outline: 'none',
           }}
         >
-          <ReactEditorContent content={content} type="json" />
+          <ReactEditorContent content={content} placeholder={placeholder} type="json" />
         </ReactPlainText>
       </ReactEditor>
     );

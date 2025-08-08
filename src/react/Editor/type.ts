@@ -10,6 +10,7 @@ export interface EditorProps {
   className?: string;
   content?: IReactEditorContent['content'];
   mentionOption?: Partial<ReactSlashOptionProps>;
+  placeholder?: ReactNode;
   plugins?: EditorPlugin[];
   slashOption?: Partial<ReactSlashOptionProps>;
   style?: CSSProperties;

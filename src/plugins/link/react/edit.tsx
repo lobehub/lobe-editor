@@ -1,4 +1,5 @@
 import { computePosition, flip, offset, shift } from '@floating-ui/dom';
+import { mergeRegister } from '@lexical/utils';
 import { Input } from '@lobehub/ui';
 import { COMMAND_PRIORITY_EDITOR, KEY_ESCAPE_COMMAND, createCommand } from 'lexical';
 import type { ChangeEvent, FC } from 'react';
@@ -34,36 +35,38 @@ export const LinkEdit: FC = () => {
   }, [linkDom]);
 
   useLexicalEditor((editor) => {
-    editor.registerCommand(
-      EDIT_LINK_COMMAND,
-      (payload) => {
-        if (!payload.linkNode || !payload.linkNodeDOM) {
-          setLinkDom(null);
-          setLinkUrl('');
+    return mergeRegister(
+      editor.registerCommand(
+        EDIT_LINK_COMMAND,
+        (payload) => {
+          if (!payload.linkNode || !payload.linkNodeDOM) {
+            setLinkDom(null);
+            setLinkUrl('');
+            if (divRef.current) {
+              divRef.current.style.left = '-9999px';
+              divRef.current.style.top = '-9999px';
+            }
+            return false;
+          }
+          setLinkUrl(payload.linkNode.getURL());
+          setLinkDom(payload.linkNodeDOM);
+          return true;
+        },
+        COMMAND_PRIORITY_EDITOR,
+      ),
+      editor.registerCommand(
+        KEY_ESCAPE_COMMAND,
+        () => {
           if (divRef.current) {
             divRef.current.style.left = '-9999px';
             divRef.current.style.top = '-9999px';
           }
-          return false;
-        }
-        setLinkUrl(payload.linkNode.getURL());
-        setLinkDom(payload.linkNodeDOM);
-        return true;
-      },
-      COMMAND_PRIORITY_EDITOR,
-    );
-    editor.registerCommand(
-      KEY_ESCAPE_COMMAND,
-      () => {
-        if (divRef.current) {
-          divRef.current.style.left = '-9999px';
-          divRef.current.style.top = '-9999px';
-        }
-        setLinkUrl('');
-        setLinkDom(null);
-        return true;
-      },
-      COMMAND_PRIORITY_EDITOR,
+          setLinkUrl('');
+          setLinkDom(null);
+          return true;
+        },
+        COMMAND_PRIORITY_EDITOR,
+      ),
     );
   }, []);
 

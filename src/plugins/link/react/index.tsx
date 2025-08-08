@@ -1,4 +1,5 @@
 import { computePosition, flip, offset, shift } from '@floating-ui/dom';
+import { mergeRegister } from '@lexical/utils';
 import {
   $getSelection,
   $isRangeSelection,
@@ -56,115 +57,117 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({ validateUrl, a
   }, []);
 
   useLexicalEditor((editor) => {
-    editor.registerUpdateListener(() => {
-      const selection = editor.read(() => $getSelection());
-      if (!selection) return;
-      if ($isRangeSelection(selection)) {
-        // Update links
-        editor.read(() => {
-          const node = getSelectedNode(selection);
-          const parent = node.getParent();
-          const isLink = $isLinkNode(parent) || $isLinkNode(node);
-          state.current.isLink = isLink;
-          if (isLink) {
-            const linkNode = $isLinkNode(parent) ? (parent as LinkNode) : (node as LinkNode);
-            editor.dispatchCommand(EDIT_LINK_COMMAND, {
-              linkNode,
-              linkNodeDOM: editor.getElementByKey(linkNode.getKey()),
-            });
+    return mergeRegister(
+      editor.registerUpdateListener(() => {
+        const selection = editor.read(() => $getSelection());
+        if (!selection) return;
+        if ($isRangeSelection(selection)) {
+          // Update links
+          editor.read(() => {
+            const node = getSelectedNode(selection);
+            const parent = node.getParent();
+            const isLink = $isLinkNode(parent) || $isLinkNode(node);
+            state.current.isLink = isLink;
+            if (isLink) {
+              const linkNode = $isLinkNode(parent) ? (parent as LinkNode) : (node as LinkNode);
+              editor.dispatchCommand(EDIT_LINK_COMMAND, {
+                linkNode,
+                linkNodeDOM: editor.getElementByKey(linkNode.getKey()),
+              });
+            } else {
+              editor.dispatchCommand(EDIT_LINK_COMMAND, {
+                linkNode: null,
+                linkNodeDOM: null,
+              });
+            }
+          });
+        } else {
+          state.current.isLink = false;
+        }
+        console.info('Editor update listener triggered');
+        if (divRef.current) {
+          divRef.current.style.left = '-9999px';
+          divRef.current.style.top = '-9999px';
+        }
+      }),
+      editor.registerCommand(
+        TOGGLE_LINK_COMMAND,
+        (payload) => {
+          if (payload === null) {
+            $toggleLink(payload);
+            return true;
+          } else if (typeof payload === 'string') {
+            if (validateUrl === undefined || validateUrl(payload)) {
+              $toggleLink(payload, attributes);
+              return true;
+            }
+            return false;
           } else {
-            editor.dispatchCommand(EDIT_LINK_COMMAND, {
-              linkNode: null,
-              linkNodeDOM: null,
+            const { url, target, rel, title } = payload;
+            $toggleLink(url, {
+              ...attributes,
+              rel,
+              target,
+              title,
             });
+            return true;
           }
-        });
-      } else {
-        state.current.isLink = false;
-      }
-      console.info('Editor update listener triggered');
-      if (divRef.current) {
-        divRef.current.style.left = '-9999px';
-        divRef.current.style.top = '-9999px';
-      }
-    });
-    editor.registerCommand(
-      TOGGLE_LINK_COMMAND,
-      (payload) => {
-        if (payload === null) {
-          $toggleLink(payload);
-          return true;
-        } else if (typeof payload === 'string') {
-          if (validateUrl === undefined || validateUrl(payload)) {
-            $toggleLink(payload, attributes);
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+      editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        (e) => {
+          // ctrl + k / cmd + k
+          if (isModifierMatch(e, CONTROL_OR_META) && 'KeyK' === e.code) {
+            const isLink = state.current.isLink;
+            e.preventDefault();
+            e.stopPropagation();
+            editor.dispatchCommand(TOGGLE_LINK_COMMAND, isLink ? null : sanitizeUrl('https://'));
             return true;
           }
           return false;
-        } else {
-          const { url, target, rel, title } = payload;
-          $toggleLink(url, {
-            ...attributes,
-            rel,
-            target,
-            title,
-          });
-          return true;
-        }
-      },
-      COMMAND_PRIORITY_LOW,
-    );
-    editor.registerCommand(
-      KEY_DOWN_COMMAND,
-      (e) => {
-        // ctrl + k / cmd + k
-        if (isModifierMatch(e, CONTROL_OR_META) && 'KeyK' === e.code) {
-          const isLink = state.current.isLink;
-          e.preventDefault();
-          e.stopPropagation();
-          editor.dispatchCommand(TOGGLE_LINK_COMMAND, isLink ? null : sanitizeUrl('https://'));
-          return true;
-        }
-        return false;
-      },
-      COMMAND_PRIORITY_EDITOR,
-    );
-    editor.registerCommand(
-      HOVER_LINK_COMMAND,
-      (payload) => {
-        console.info('Hover link command triggered:', payload);
-        if (!payload.event.target || divRef.current === null) {
-          return false;
-        }
-        setLinkNode(payload.linkNode);
-        computePosition(payload.event.target as HTMLElement, divRef.current, {
-          middleware: [offset(5), flip(), shift()],
-          placement: 'top-start',
-        }).then(({ x, y }) => {
+        },
+        COMMAND_PRIORITY_EDITOR,
+      ),
+      editor.registerCommand(
+        HOVER_LINK_COMMAND,
+        (payload) => {
+          console.info('Hover link command triggered:', payload);
           if (!payload.event.target || divRef.current === null) {
             return false;
           }
-          LinkRef.current = payload.event.target as HTMLDivElement;
-          // const url = editor.read(() => payload.linkNode.getURL());
-          divRef.current.style.left = `${x}px`;
-          divRef.current.style.top = `${y}px`;
-        });
-        return false;
-      },
-      COMMAND_PRIORITY_NORMAL,
-    );
-    editor.registerCommand(
-      HOVER_OUT_LINK_COMMAND,
-      () => {
-        clearTimeout(clearTimerRef.current);
-        clearTimerRef.current = setTimeout(() => {
-          if (divRef.current) {
-            divRef.current.style.left = '-9999px';
-            divRef.current.style.top = '-9999px';
-          }
-        }, 300);
-        return true;
-      },
-      COMMAND_PRIORITY_NORMAL,
+          setLinkNode(payload.linkNode);
+          computePosition(payload.event.target as HTMLElement, divRef.current, {
+            middleware: [offset(5), flip(), shift()],
+            placement: 'top-start',
+          }).then(({ x, y }) => {
+            if (!payload.event.target || divRef.current === null) {
+              return false;
+            }
+            LinkRef.current = payload.event.target as HTMLDivElement;
+            // const url = editor.read(() => payload.linkNode.getURL());
+            divRef.current.style.left = `${x}px`;
+            divRef.current.style.top = `${y}px`;
+          });
+          return false;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+      editor.registerCommand(
+        HOVER_OUT_LINK_COMMAND,
+        () => {
+          clearTimeout(clearTimerRef.current);
+          clearTimerRef.current = setTimeout(() => {
+            if (divRef.current) {
+              divRef.current.style.left = '-9999px';
+              divRef.current.style.top = '-9999px';
+            }
+          }, 300);
+          return true;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
     );
   }, []);
 

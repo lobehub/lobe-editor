@@ -22,7 +22,7 @@ export const Image = (props: { className?: string; node: ImageNode }) => {
   }, [isSelected, node]);
 
   useLexicalEditor((editor) => {
-    editor.registerCommand(
+    return editor.registerCommand(
       SELECTION_CHANGE_COMMAND,
       (_, activeEditor) => {
         console.info('Active editor:', activeEditor);
