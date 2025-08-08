@@ -22,6 +22,7 @@ import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
 import { createBlockNode } from '../utils';
 import './index.css';
+import { registerHeaderBackspace } from './register';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CommonPluginOptions {}
@@ -141,6 +142,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerRichText(editor),
       registerDragonSupport(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
+      registerHeaderBackspace(editor),
     );
   }
 
