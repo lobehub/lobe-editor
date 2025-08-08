@@ -10,10 +10,10 @@ import {
 import { ElementTransformer } from '@/plugins/markdown/service/shortcut';
 
 export const createBlockNode = (
-  createNode: (match: Array<string>) => ElementNode,
+  createNode: (match: Array<string>, parentNode: ElementNode) => ElementNode,
 ): ElementTransformer['replace'] => {
   return (parentNode, children, match, isImport) => {
-    const node = createNode(match);
+    const node = createNode(match, parentNode);
     node.append(...children);
     parentNode.replace(node);
     if (!isImport) {

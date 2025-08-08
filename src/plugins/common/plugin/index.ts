@@ -3,13 +3,14 @@ import { createEmptyHistoryState, registerHistory } from '@lexical/history';
 import {
   $createHeadingNode,
   $createQuoteNode,
+  $isHeadingNode,
   $isQuoteNode,
   HeadingNode,
   HeadingTagType,
   QuoteNode,
   registerRichText,
 } from '@lexical/rich-text';
-import { $createLineBreakNode } from 'lexical';
+import { $createLineBreakNode, $createParagraphNode } from 'lexical';
 import { LexicalEditor } from 'lexical/LexicalEditor';
 
 import { IEditorKernel, IEditorPlugin } from '@/editor-kernel';
@@ -90,8 +91,11 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     });
     markdownService.registerMarkdownShortCut({
       regExp: /^(#{1,6})\s/,
-      replace: createBlockNode((match) => {
+      replace: createBlockNode((match, parentNode) => {
         const tag = ('h' + match[1].length) as HeadingTagType;
+        if ($isHeadingNode(parentNode) && parentNode.getTag() === tag) {
+          return $createParagraphNode();
+        }
         return $createHeadingNode(tag);
       }),
       type: 'element',
