@@ -1,10 +1,10 @@
 /**
  * 支持通过 react children 进行配置
  */
-import type { FC } from 'react';
-import { ReactNode, useMemo } from 'react';
+import type { FC, Ref } from 'react';
+import { ReactNode, useEffect, useMemo } from 'react';
 
-import Editor from '../';
+import Editor, { IEditor } from '../';
 import {
   LexicalComposerContext,
   LexicalComposerContextWithEditor,
@@ -13,14 +13,30 @@ import {
 
 export interface IReactEditorProps {
   children?: ReactNode | undefined;
+  editorRef?: Ref<IEditor>;
 }
 
-export const ReactEditor: FC<IReactEditorProps> = (props) => {
+function updateRef<T>(ref: Ref<T> | undefined, value: T) {
+  if (typeof ref === 'function') {
+    ref(value);
+  } else if (ref) {
+    ref.current = value;
+  }
+}
+
+export const ReactEditor: FC<IReactEditorProps> = ({ editorRef, children }) => {
   const composerContext = useMemo(() => {
     const editor = Editor.createEditor();
+    updateRef(editorRef, editor);
     const theme = createLexicalComposerContext(null, null);
     return [editor, theme] as LexicalComposerContextWithEditor;
   }, []);
 
-  return <LexicalComposerContext value={composerContext}>{props.children}</LexicalComposerContext>;
+  useEffect(() => {
+    return () => {
+      updateRef(editorRef, undefined);
+    };
+  }, [editorRef]);
+
+  return <LexicalComposerContext value={composerContext}>{children}</LexicalComposerContext>;
 };

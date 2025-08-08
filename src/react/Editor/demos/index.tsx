@@ -1,4 +1,5 @@
 import {
+  IEditor,
   INSERT_TABLE_COMMAND,
   ReactCodeblockPlugin,
   ReactHRPlugin,
@@ -9,6 +10,7 @@ import {
 } from '@lobehub/editor';
 import { Editor, withProps } from '@lobehub/editor/react';
 import { Typography } from '@lobehub/ui';
+import { useRef } from 'react';
 
 import { INSERT_FILE_COMMAND, ReactFilePlugin } from '@/plugins/file';
 
@@ -38,11 +40,14 @@ function openFileSelector(handleFiles: (files: FileList) => void) {
 }
 
 export default () => {
+  const editorRef = useRef<IEditor | null>(null);
+
   return (
     <Typography>
       <Editor
         className="ignore-markdown-style"
         content={content}
+        editorRef={editorRef}
         mentionOption={{
           items: [
             {
@@ -93,10 +98,10 @@ export default () => {
             },
             {
               label: 'SetTextContent',
-              onSelect: (editor) => {
-                editor.setDocument('text', '123\n123');
+              onSelect: () => {
+                editorRef.current?.setDocument('text', '123\n123');
                 queueMicrotask(() => {
-                  editor.focus();
+                  editorRef.current?.focus();
                 });
               },
               value: 'set-text-content',

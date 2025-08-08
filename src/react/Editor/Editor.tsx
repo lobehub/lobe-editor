@@ -13,6 +13,7 @@ const Editor = memo<EditorProps>(
     content,
     style,
     className,
+    editorRef,
     placeholder,
     plugins = [],
     slashOption = {},
@@ -22,7 +23,7 @@ const Editor = memo<EditorProps>(
     const enableSlash = Boolean(slashOption?.items && slashOption.items.length > 0);
     const enableMention = Boolean(mentionOption?.items && mentionOption.items.length > 0);
     return (
-      <ReactEditor>
+      <ReactEditor editorRef={editorRef}>
         {plugins.map((plugin, index) => {
           const withNoProps = typeof plugin === 'function';
           if (withNoProps) return createElement(plugin, { key: index });
