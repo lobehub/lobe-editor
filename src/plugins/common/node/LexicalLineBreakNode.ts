@@ -5,8 +5,16 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-
-import { $applyNodeReplacement, DecoratorNode, DOMConversionMap, DOMConversionOutput, isBlockDomNode, isDOMTextNode, LexicalNode, SerializedLexicalNode } from "lexical";
+import {
+  $applyNodeReplacement,
+  DOMConversionMap,
+  DOMConversionOutput,
+  DecoratorNode,
+  LexicalNode,
+  SerializedLexicalNode,
+  isBlockDomNode,
+  isDOMTextNode,
+} from 'lexical';
 
 export type SerializedLineBreakNode = SerializedLexicalNode;
 
@@ -27,7 +35,6 @@ export class LineBreakNode extends LexicalNodeImpl {
   }
 
   createDOM(): HTMLElement {
-    console.info('Creating LineBreakNode DOM element');
     return document.createElement('br');
   }
 
@@ -55,9 +62,7 @@ export class LineBreakNode extends LexicalNodeImpl {
     };
   }
 
-  static importJSON(
-    serializedLineBreakNode: SerializedLineBreakNode,
-  ): LineBreakNode {
+  static importJSON(serializedLineBreakNode: SerializedLineBreakNode): LineBreakNode {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return $createLineBreakNode().updateFromJSON(serializedLineBreakNode);
   }
@@ -65,16 +70,14 @@ export class LineBreakNode extends LexicalNodeImpl {
 
 function $convertLineBreakElement(): DOMConversionOutput {
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  return {node: $createLineBreakNode()};
+  return { node: $createLineBreakNode() };
 }
 
 export function $createLineBreakNode(): LineBreakNode {
   return $applyNodeReplacement(new LineBreakNode());
 }
 
-export function $isLineBreakNode(
-  node: LexicalNode | null | undefined,
-): node is LineBreakNode {
+export function $isLineBreakNode(node: LexicalNode | null | undefined): node is LineBreakNode {
   return node instanceof LineBreakNode;
 }
 

@@ -75,7 +75,6 @@ export const LinkEdit: FC = () => {
       <Input
         onChange={(e: ChangeEvent<HTMLInputElement>) => {
           // Handle link URL change
-          console.log('Link URL changed:', e.target.value);
           setLinkUrl(e.target.value);
         }}
         placeholder="Enter link URL"

@@ -1,5 +1,5 @@
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
@@ -13,19 +13,19 @@ export const Image = (props: { className?: string; node: ImageNode }) => {
   const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
   // const [isNodeSelect] = useState(false);
 
-  useEffect(() => {
-    if (isSelected) {
-      console.log('Image selected:', node.getKey());
-    } else {
-      console.log('Image deselected:', node.getKey());
-    }
-  }, [isSelected, node]);
+  // useEffect(() => {
+  //   if (isSelected) {
+  //     console.log('Image selected:', node.getKey());
+  //   } else {
+  //     console.log('Image deselected:', node.getKey());
+  //   }
+  // }, [isSelected, node]);
 
   useLexicalEditor((editor) => {
     return editor.registerCommand(
       SELECTION_CHANGE_COMMAND,
-      (_, activeEditor) => {
-        console.info('Active editor:', activeEditor);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      (_, _activeEditor) => {
         return false;
       },
       COMMAND_PRIORITY_LOW,

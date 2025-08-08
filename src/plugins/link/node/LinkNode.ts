@@ -504,8 +504,6 @@ export function $toggleLink(url: null | string, attributes: LinkAttributes = {})
   const rel = attributes.rel === undefined ? 'noreferrer' : attributes.rel;
   const selection = $getSelection();
 
-  console.info('toggleLink', url);
-
   if (selection === null || (!$isRangeSelection(selection) && !$isNodeSelection(selection))) {
     return;
   }
@@ -519,7 +517,6 @@ export function $toggleLink(url: null | string, attributes: LinkAttributes = {})
     // Handle all selected nodes
     nodes.forEach((node) => {
       if (url === null) {
-        console.info('--------???', url);
         // Remove link
         const linkParent = $findMatchingParent(
           node,
@@ -559,7 +556,6 @@ export function $toggleLink(url: null | string, attributes: LinkAttributes = {})
   const nodes = selection.extract();
 
   if (url === null) {
-    console.info('--------???', url);
     // Remove LinkNodes
     nodes.forEach((node) => {
       const parentLink = $findMatchingParent(

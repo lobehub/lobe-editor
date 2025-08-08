@@ -17,7 +17,6 @@ export default class TextDataSource extends DataSource {
       INodeHelper.appendChild(rootNode, paragraph);
     });
 
-    console.info(rootNode, editor.parseEditorState({ root: rootNode } as any));
     editor.setEditorState(editor.parseEditorState({ root: rootNode } as any));
   }
 

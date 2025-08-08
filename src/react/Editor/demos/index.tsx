@@ -57,6 +57,10 @@ export default () => {
           ],
           trigger: '@',
         }}
+        onChange={(editor) => {
+          console.log('Editor content changed:', editor.getDocument('text'));
+          console.log('Editor content changed:', editor.getDocument('json'));
+        }}
         placeholder={<div>记你想记</div>}
         plugins={[
           ReactListPlugin,

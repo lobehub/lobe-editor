@@ -47,7 +47,6 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({ validateUrl, a
   const clearTimerRef = React.useRef<ReturnType<typeof setTimeout> | number>(-1);
 
   useLayoutEffect(() => {
-    console.info('ReactLinkPlugin: Initializing Codeblock Plugin');
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(LinkPlugin, {
       decorator() {
@@ -84,7 +83,6 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({ validateUrl, a
         } else {
           state.current.isLink = false;
         }
-        console.info('Editor update listener triggered');
         if (divRef.current) {
           divRef.current.style.left = '-9999px';
           divRef.current.style.top = '-9999px';
@@ -133,7 +131,6 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({ validateUrl, a
       editor.registerCommand(
         HOVER_LINK_COMMAND,
         (payload) => {
-          console.info('Hover link command triggered:', payload);
           if (!payload.event.target || divRef.current === null) {
             return false;
           }

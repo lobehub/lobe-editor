@@ -1,7 +1,13 @@
-import { ElementTransformer } from "@/plugins/markdown/service/shortcut";
-import { $createListItemNode, $createListNode, $isListNode, ListType } from "@lexical/list";
-import { $createRangeSelection, $isBlockElementNode, $normalizeSelection__EXPERIMENTAL, RangeSelection } from "lexical";
-import { $filter, $getNearestBlockElementAncestorOrThrow } from "@lexical/utils";
+import { $createListItemNode, $createListNode, $isListNode, ListType } from '@lexical/list';
+import { $filter, $getNearestBlockElementAncestorOrThrow } from '@lexical/utils';
+import {
+  $createRangeSelection,
+  $isBlockElementNode,
+  $normalizeSelection__EXPERIMENTAL,
+  RangeSelection,
+} from 'lexical';
+
+import { ElementTransformer } from '@/plugins/markdown/service/shortcut';
 
 // Amount of spaces that define indentation level
 // TODO: should be an option
@@ -26,12 +32,9 @@ function getIndent(whitespaces: string): number {
 
 export const listReplace = (listType: ListType): ElementTransformer['replace'] => {
   return (parentNode, children, match, isImport) => {
-    console.info('listReplace: match', match);
     const previousNode = parentNode.getPreviousSibling();
     const nextNode = parentNode.getNextSibling();
-    const listItem = $createListItemNode(
-      listType === 'check' ? match[3] === 'x' : undefined,
-    );
+    const listItem = $createListItemNode(listType === 'check' ? match[3] === 'x' : undefined);
     if ($isListNode(nextNode) && nextNode.getListType() === listType) {
       const firstChild = nextNode.getFirstChild();
       if (firstChild !== null) {
@@ -41,17 +44,11 @@ export const listReplace = (listType: ListType): ElementTransformer['replace'] =
         nextNode.append(listItem);
       }
       parentNode.remove();
-    } else if (
-      $isListNode(previousNode) &&
-      previousNode.getListType() === listType
-    ) {
+    } else if ($isListNode(previousNode) && previousNode.getListType() === listType) {
       previousNode.append(listItem);
       parentNode.remove();
     } else {
-      const list = $createListNode(
-        listType,
-        listType === 'number' ? Number(match[2]) : undefined,
-      );
+      const list = $createListNode(listType, listType === 'number' ? Number(match[2]) : undefined);
       list.append(listItem);
       parentNode.replace(list);
     }

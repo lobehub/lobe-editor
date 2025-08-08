@@ -12,6 +12,7 @@ export interface EditorProps {
   content?: IReactEditorContent['content'];
   editorRef?: Ref<IEditor>;
   mentionOption?: Partial<ReactSlashOptionProps>;
+  onChange?: (editor: IEditor) => void;
   placeholder?: ReactNode;
   plugins?: EditorPlugin[];
   slashOption?: Partial<ReactSlashOptionProps>;

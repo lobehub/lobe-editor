@@ -15,7 +15,6 @@ export const ReactHRPlugin: FC<ReactHRPluginProps> = () => {
   const [editor] = useLexicalComposerContext();
 
   useLayoutEffect(() => {
-    console.info('ReactHRPlugin: Initializing Codeblock Plugin');
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(HRPlugin, {
       decorator() {

@@ -15,7 +15,6 @@ export const ReactImagePlugin: FC<ReactImagePluginProps> = (props) => {
   const [editor] = useLexicalComposerContext();
 
   useLayoutEffect(() => {
-    console.info('ReactImagePlugin: Initializing Image Plugin');
     editor.registerPlugin(UploadPlugin);
     editor.registerPlugin(ImagePlugin, {
       handleUpload(file) {

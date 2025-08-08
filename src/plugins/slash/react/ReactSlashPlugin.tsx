@@ -14,7 +14,6 @@ import {
   MenuResolution,
   useMenuAnchorRef,
 } from './ReactMenu';
-
 import './index.less';
 
 export interface ReactSlashOptionProps {
@@ -40,8 +39,8 @@ export const ReactSlashOption: FC<ReactSlashOptionProps> = () => {
 export interface ReactSlashPluginProps {
   anchorClassName?: string;
   children?:
-  | (ReactElement<ReactSlashOptionProps> | undefined)
-  | (ReactElement<ReactSlashOptionProps> | undefined)[];
+    | (ReactElement<ReactSlashOptionProps> | undefined)
+    | (ReactElement<ReactSlashOptionProps> | undefined)[];
   menuRenderFn: MenuRenderFn<MyMenuOption>;
 }
 
@@ -52,7 +51,6 @@ export const ReactSlashPlugin = (props: ReactSlashPluginProps) => {
   const anchorElementRef = useMenuAnchorRef(resolution, setResolution, props.anchorClassName);
 
   useLayoutEffect(() => {
-    console.info('ReactSlashPlugin: Initializing Slash Plugin');
     const options =
       Children.map(props.children, (child) => {
         if (!child) return null;
@@ -62,11 +60,9 @@ export const ReactSlashPlugin = (props: ReactSlashPluginProps) => {
     editor.registerPlugin(SlashPlugin, {
       slashOptions: options,
       triggerClose: () => {
-        console.log('Slash menu closed');
         setResolution(null);
       },
       triggerOpen: (ctx) => {
-        console.log('Slash menu opened', ctx);
         setResolution(ctx);
         setOptions(
           ctx.items.map((item) => {
@@ -101,29 +97,32 @@ export const ReactSlashPlugin = (props: ReactSlashPluginProps) => {
 };
 
 ReactSlashPlugin.defaultProps = {
-  menuRenderFn: ((anchorElementRef, { selectOptionAndCleanUp, setHighlightedIndex, options, selectedIndex }) =>
+  menuRenderFn: ((
+    anchorElementRef,
+    { selectOptionAndCleanUp, setHighlightedIndex, options, selectedIndex },
+  ) =>
     anchorElementRef.current && options.length
       ? createPortal(
-        <div className="typeahead-popover component-picker-menu">
-          <ul>
-            {options.map((option, i: number) => (
-              <li
-                className={selectedIndex === i ? 'selected' : ''}
-                key={option.key}
-                onClick={() => {
-                  setHighlightedIndex(i);
-                  selectOptionAndCleanUp(option);
-                }}
-                onMouseEnter={() => {
-                  setHighlightedIndex(i);
-                }}
-              >
-                {option.label}
-              </li>
-            ))}
-          </ul>
-        </div>,
-        anchorElementRef.current,
-      )
+          <div className="typeahead-popover component-picker-menu">
+            <ul>
+              {options.map((option, i: number) => (
+                <li
+                  className={selectedIndex === i ? 'selected' : ''}
+                  key={option.key}
+                  onClick={() => {
+                    setHighlightedIndex(i);
+                    selectOptionAndCleanUp(option);
+                  }}
+                  onMouseEnter={() => {
+                    setHighlightedIndex(i);
+                  }}
+                >
+                  {option.label}
+                </li>
+              ))}
+            </ul>
+          </div>,
+          anchorElementRef.current,
+        )
       : null) as MenuRenderFn<MyMenuOption>,
 };

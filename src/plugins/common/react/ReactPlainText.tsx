@@ -1,6 +1,7 @@
 import type { CSSProperties, FC, ReactElement } from 'react';
 import React, { Children, useEffect, useLayoutEffect, useRef } from 'react';
 
+import { IEditor } from '@/editor-kernel';
 import { LexicalErrorBoundary } from '@/editor-kernel/react/LexicalErrorBoundary';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { useDecorators } from '@/editor-kernel/react/useDecorators';
@@ -22,6 +23,7 @@ export const ReactEditorContent: FC<IReactEditorContent> = () => {
 export interface ReactPlainTextProps {
   children: ReactElement<IReactEditorContent>;
   className?: string;
+  onChange?: (editor: IEditor) => void;
   style?: CSSProperties;
 }
 
@@ -46,6 +48,10 @@ export const ReactPlainText: FC<ReactPlainTextProps> = (props) => {
     }
 
     editor.setDocument(type, content);
+
+    return editor.getLexicalEditor()?.registerUpdateListener(() => {
+      props.onChange?.(editor);
+    });
   }, []);
 
   return (

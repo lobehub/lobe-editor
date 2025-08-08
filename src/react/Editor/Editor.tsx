@@ -14,6 +14,7 @@ const Editor = memo<EditorProps>(
     style,
     className,
     editorRef,
+    onChange,
     placeholder,
     plugins = [],
     slashOption = {},
@@ -41,6 +42,7 @@ const Editor = memo<EditorProps>(
         {children}
         <ReactPlainText
           className={className}
+          onChange={onChange}
           style={{
             ...style,
             outline: 'none',
