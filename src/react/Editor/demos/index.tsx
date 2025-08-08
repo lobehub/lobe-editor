@@ -91,6 +91,16 @@ export default () => {
               },
               value: 'file',
             },
+            {
+              label: 'SetTextContent',
+              onSelect: (editor) => {
+                editor.setDocument('text', '123\n123');
+                queueMicrotask(() => {
+                  editor.focus();
+                });
+              },
+              value: 'set-text-content',
+            },
           ],
           trigger: '/',
         }}

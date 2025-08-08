@@ -1,138 +1,139 @@
-import { BaseImageNode, ImagePayload, SerializedImageNode } from "./basie-image-node";
-import { $applyNodeReplacement, DOMConversionMap, DOMConversionOutput } from "lexical";
+import { $applyNodeReplacement, DOMConversionMap, DOMConversionOutput } from 'lexical';
+
+import { BaseImageNode, ImagePayload, SerializedImageNode } from './basie-image-node';
 
 export class ImageNode extends BaseImageNode {
-    private static _decorate: (node: ImageNode) => any | null = () => null;
+  private static _decorate: (node: ImageNode) => any | null = () => null;
 
-    static setDecorate(decorate: (node: ImageNode) => any): void {
-        ImageNode._decorate = decorate;
-    }
+  static setDecorate(decorate: (node: ImageNode) => any): void {
+    ImageNode._decorate = decorate;
+  }
 
-    static getType(): string {
-        return 'image';
-    }
+  static getType(): string {
+    return 'image';
+  }
 
-    private __loading = true;
-    private __status: 'uploaded' | 'loading' | 'error' = 'uploaded';
-    private __message: string | null = null;
+  private __loading = true;
+  private __status: 'uploaded' | 'loading' | 'error' = 'uploaded';
+  private __message: string | null = null;
+  private __extra: Record<string, unknown> | null = null;
 
-    public get isLoading(): boolean {
-        return this.__loading;
-    }
+  public get isLoading(): boolean {
+    return this.__loading;
+  }
 
-    public get status(): 'uploaded' | 'loading' | 'error' {
-        return this.__status;
-    }
+  public get status(): 'uploaded' | 'loading' | 'error' {
+    return this.__status;
+  }
 
-    public get message(): string | null {
-        return this.__message;
-    }
+  public get message(): string | null {
+    return this.__message;
+  }
 
-    public get src(): string {
-        return this.__src;
-    }
+  public get src(): string {
+    return this.__src;
+  }
 
-    public get altText(): string {
-        return this.__altText;
-    }
+  public get altText(): string {
+    return this.__altText;
+  }
 
-    public get maxWidth(): number {
-        return this.__maxWidth;
-    }
+  public get maxWidth(): number {
+    return this.__maxWidth;
+  }
 
-    public get width(): number | string {
-        return this.__width;
-    }
+  public get width(): number | string {
+    return this.__width;
+  }
 
-    public setUploaded(url: string): void {
-        const writable = this.getWritable();
-        writable.__loading = false;
-        writable.__src = url;
-        writable.__status = 'uploaded';
-    }
+  public setUploaded(url: string): void {
+    const writable = this.getWritable();
+    writable.__loading = false;
+    writable.__src = url;
+    writable.__status = 'uploaded';
+  }
 
-    public setError(message: string): void {
-        const writable = this.getWritable();
-        writable.__loading = false;
-        writable.__status = 'error';
-        writable.__message = message;
-    }
+  public setError(message: string): void {
+    const writable = this.getWritable();
+    writable.__loading = false;
+    writable.__status = 'error';
+    writable.__message = message;
+  }
 
-    static clone(node: ImageNode): ImageNode {
-        return new ImageNode(
-            node.__src,
-            node.__altText,
-            node.__maxWidth,
-            node.__width,
-            node.__height,
-            node.__showCaption,
-            node.__caption,
-            node.__captionsEnabled,
-            node.__key,
-        );
-    }
+  static clone(node: ImageNode): ImageNode {
+    return new ImageNode(
+      node.__src,
+      node.__altText,
+      node.__maxWidth,
+      node.__width,
+      node.__height,
+      node.__showCaption,
+      node.__caption,
+      node.__captionsEnabled,
+      node.__key,
+    );
+  }
 
-    static importJSON(serializedNode: SerializedImageNode): ImageNode {
-        const { altText, height, width, maxWidth, src, showCaption } = serializedNode;
+  static importJSON(serializedNode: SerializedImageNode): ImageNode {
+    const { altText, height, width, maxWidth, src, showCaption } = serializedNode;
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    return $createImageNode({
+      altText,
+      height,
+      maxWidth,
+      showCaption,
+      src,
+      width,
+    }).updateFromJSON(serializedNode);
+  }
+
+  static importDOM(): DOMConversionMap | null {
+    return {
+      img: () => ({
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        return $createImageNode({
-            altText,
-            height,
-            maxWidth,
-            showCaption,
-            src,
-            width,
-        }).updateFromJSON(serializedNode);
-    }
+        conversion: $convertImageElement,
+        priority: 0,
+      }),
+    };
+  }
 
-    static importDOM(): DOMConversionMap | null {
-        return {
-            img: () => ({
-                // eslint-disable-next-line @typescript-eslint/no-use-before-define
-                conversion: $convertImageElement,
-                priority: 0,
-            }),
-        };
-    }
-
-    decorate(): any {
-        return ImageNode._decorate(this)!;
-    }
+  decorate(): any {
+    return ImageNode._decorate(this)!;
+  }
 }
 
 export function $createImageNode({
-    altText,
-    height,
-    maxWidth = 500,
-    captionsEnabled,
-    src,
-    width,
-    showCaption,
-    caption,
-    key,
+  altText,
+  height,
+  maxWidth = 500,
+  captionsEnabled,
+  src,
+  width,
+  showCaption,
+  caption,
+  key,
 }: ImagePayload): ImageNode {
-    return $applyNodeReplacement(
-        new ImageNode(
-            src,
-            altText,
-            maxWidth,
-            width,
-            height,
-            showCaption,
-            caption,
-            captionsEnabled,
-            key,
-        ),
-    );
+  return $applyNodeReplacement(
+    new ImageNode(
+      src,
+      altText,
+      maxWidth,
+      width,
+      height,
+      showCaption,
+      caption,
+      captionsEnabled,
+      key,
+    ),
+  );
 }
 
-
 function $convertImageElement(domNode: Node): null | DOMConversionOutput {
-    const img = domNode as HTMLImageElement;
-    if (img.src.startsWith('file:///')) {
-        return null;
-    }
-    const { alt: altText, src, width, height } = img;
-    const node = $createImageNode({ altText, height, src, width });
-    return { node };
+  const img = domNode as HTMLImageElement;
+  if (img.src.startsWith('file:///')) {
+    return null;
+  }
+  const { alt: altText, src, width, height } = img;
+  const node = $createImageNode({ altText, height, src, width });
+  return { node };
 }

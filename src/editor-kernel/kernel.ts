@@ -1,170 +1,201 @@
-import EventEmitter from "eventemitter3";
-import { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IPlugin, IServiceID } from "./types";
-import DataSource from "./data-source";
-import { CommandPayloadType, createEditor, DecoratorNode, LexicalCommand, LexicalEditor, LexicalNodeConfig } from "lexical";
-import { createEmptyEditorState } from "./utils";
+import EventEmitter from 'eventemitter3';
+import {
+  CommandPayloadType,
+  DecoratorNode,
+  LexicalCommand,
+  LexicalEditor,
+  LexicalNodeConfig,
+  createEditor,
+} from 'lexical';
+import merge from 'lodash/merge';
+
+import DataSource from './data-source';
 import { registerEvent } from './event';
-import merge from "lodash/merge";
+import {
+  IEditor,
+  IEditorKernel,
+  IEditorPlugin,
+  IEditorPluginConstructor,
+  IPlugin,
+  IServiceID,
+} from './types';
+import { createEmptyEditorState } from './utils';
 
 export class Kernel extends EventEmitter implements IEditorKernel {
-    private dataTypeMap: Map<string, DataSource>;
-    private plugins: Array<IEditorPluginConstructor<any> & { __config: any }> = [];
-    private pluginsInstances: Array<IEditorPlugin<any>> = [];
-    private nodes: Array<LexicalNodeConfig> = [];
-    private themes: Record<string, any> = {}; // 用于存储主题配置
-    private decorators: Record<string, (_node: DecoratorNode<any>, _editor: LexicalEditor) => any> = {};
-    private serviceMap: Map<string, any> = new Map();
+  private dataTypeMap: Map<string, DataSource>;
+  private plugins: Array<IEditorPluginConstructor<any> & { __config: any }> = [];
+  private pluginsInstances: Array<IEditorPlugin<any>> = [];
+  private nodes: Array<LexicalNodeConfig> = [];
+  private themes: Record<string, any> = {}; // 用于存储主题配置
+  private decorators: Record<string, (_node: DecoratorNode<any>, _editor: LexicalEditor) => any> =
+    {};
+  private serviceMap: Map<string, any> = new Map();
 
-    private editor?: LexicalEditor;
+  private editor?: LexicalEditor;
 
-    constructor() {
-        super();
-        this.dataTypeMap = new Map<string, DataSource>();
+  constructor() {
+    super();
+    this.dataTypeMap = new Map<string, DataSource>();
+  }
+
+  getLexicalEditor(): LexicalEditor | null {
+    return this.editor || null;
+  }
+
+  destroy() {
+    this.editor?.setEditorState(createEmptyEditorState());
+    this.dataTypeMap.clear();
+    this.pluginsInstances.forEach((plugin) => {
+      if (plugin.destroy) {
+        plugin.destroy();
+      }
+    });
+    this.pluginsInstances = [];
+  }
+
+  getRootElement(): HTMLElement | null {
+    return this.editor?.getRootElement() || null;
+  }
+
+  setRootElement(dom: HTMLElement) {
+    for (const plugin of this.plugins) {
+      const instance = new plugin(this, plugin.__config);
+      this.pluginsInstances.push(instance);
     }
+    const editor = (this.editor = createEditor({
+      // @ts-expect-error 注入到 lexical 的 editor 实例中
+      __kernel: this,
+      nodes: this.nodes,
+      onError: (error: Error) => {
+        this.emit('error', error);
+      },
+      theme: this.themes,
+    }));
+    this.editor.setRootElement(dom);
+    registerEvent(editor, dom);
 
-    getLexicalEditor(): LexicalEditor | null {
-        return this.editor || null;
+    this.pluginsInstances.forEach((plugin) => {
+      plugin.onInit?.(editor);
+    });
+    this.emit('initialized', editor);
+    return this.editor;
+  }
+
+  setDocument(type: string, content: any) {
+    const datasource = this.dataTypeMap.get(type);
+    if (!datasource) {
+      throw new Error(`DataSource for type "${type}" is not registered.`);
     }
-
-    destroy() {
-        this.editor?.setEditorState(createEmptyEditorState());
-        this.dataTypeMap.clear();
-        this.pluginsInstances.forEach(plugin => {
-            if (plugin.destroy) {
-                plugin.destroy();
-            }
-        });
-        this.pluginsInstances = [];
+    if (!this.editor) {
+      throw new Error(`Editor is not initialized.`);
     }
+    datasource.read(this.editor, content);
+  }
 
-    getRootElement(): HTMLElement | null {
-        return this.editor?.getRootElement() || null;
+  focus() {
+    this.editor?.focus();
+  }
+
+  blur(): void {
+    this.editor?.blur();
+  }
+
+  getDocument(type: string): DataSource | undefined {
+    const datasource = this.dataTypeMap.get(type);
+    if (!datasource) {
+      throw new Error(`DataSource for type "${type}" is not registered.`);
     }
-
-    setRootElement(dom: HTMLElement) {
-        for (const plugin of this.plugins) {
-            const instance = new plugin(this, plugin.__config);
-            this.pluginsInstances.push(instance);
-        }
-        const editor = this.editor = createEditor({
-            // @ts-expect-error 注入到 lexical 的 editor 实例中
-            __kernel: this,
-            nodes: this.nodes,
-            onError: (error: Error) => {
-                this.emit('error', error);
-            },
-            theme: this.themes,
-        });
-        this.editor.setRootElement(dom);
-        registerEvent(editor, dom);
-
-        this.pluginsInstances.forEach(plugin => {
-            plugin.onInit?.(editor);
-        });
-        this.emit('initialized', editor);
-        return this.editor;
+    if (!this.editor) {
+      throw new Error(`Editor is not initialized.`);
     }
+    return datasource.write(this.editor);
+  }
 
-    setDocument(type: string, content: any) {
-        const datasource = this.dataTypeMap.get(type);
-        if (!datasource) {
-            throw new Error(`DataSource for type "${type}" is not registered.`);
-        }
-        if (!this.editor) {
-            throw new Error(`Editor is not initialized.`);
-        }
-        return datasource.read(this.editor, content);
-    }
+  registerDecorator(
+    name: string,
+    decorator: (_node: DecoratorNode<any>, _editor: LexicalEditor) => any,
+  ) {
+    this.decorators[name] = decorator;
+    return this;
+  }
 
-    getDocument(type: string): DataSource | undefined {
-        const datasource = this.dataTypeMap.get(type);
-        if (!datasource) {
-            throw new Error(`DataSource for type "${type}" is not registered.`);
-        }
-        if (!this.editor) {
-            throw new Error(`Editor is not initialized.`);
-        }
-        return datasource.write(this.editor);
-    }
+  getDecorator(
+    name: string,
+  ): ((_node: DecoratorNode<any>, _editor: LexicalEditor) => any) | undefined {
+    return this.decorators[name];
+  }
 
-    registerDecorator(name: string, decorator: (_node: DecoratorNode<any>, _editor: LexicalEditor) => any) {
-        this.decorators[name] = decorator;
-        return this;
-    }
+  /**
+   * 支持注册目标数据源
+   * @param dataSource 数据源
+   */
+  registerDataSource(dataSource: DataSource) {
+    this.dataTypeMap.set(dataSource.type, dataSource);
+  }
 
-    getDecorator(name: string): ((_node: DecoratorNode<any>, _editor: LexicalEditor) => any) | undefined {
-        return this.decorators[name];
-    }
+  registerThemes(themes: Record<string, any>) {
+    this.themes = merge(this.themes, themes);
+  }
 
-    /**
-     * 支持注册目标数据源
-     * @param dataSource 数据源
-     */
-    registerDataSource(dataSource: DataSource) {
-        this.dataTypeMap.set(dataSource.type, dataSource);
+  registerPlugin<T>(plugin: IEditorPluginConstructor<T>, config?: T): IEditor {
+    const findPlugin = this.plugins.find((p) => p.pluginName === plugin.pluginName);
+    if (findPlugin) {
+      // 同名但是插件不同则报错
+      if (findPlugin !== plugin) {
+        throw new Error(
+          `Plugin with name "${plugin.pluginName}" is already registered with a different implementation.`,
+        );
+      }
+      return this; // 如果插件已存在，则不重复注册
     }
+    // @ts-expect-error not error
+    plugin.__config = config || {};
+    // @ts-expect-error not error
+    this.plugins.push(plugin);
+    return this;
+  }
 
-    registerThemes(themes: Record<string, any>) {
-        this.themes = merge(this.themes, themes);
+  registerPlugins(plugins: Array<IPlugin>): IEditor {
+    for (const plugin of plugins) {
+      if (Array.isArray(plugin)) {
+        this.registerPlugin(plugin[0], plugin[1]);
+      } else {
+        this.registerPlugin(plugin);
+      }
     }
+    return this;
+  }
 
-    registerPlugin<T>(plugin: IEditorPluginConstructor<T>, config?: T): IEditor {
-        const findPlugin = this.plugins.find(p => p.pluginName === plugin.pluginName);
-        if (findPlugin) {
-            // 同名但是插件不同则报错
-            if (findPlugin !== plugin) {
-                throw new Error(`Plugin with name "${plugin.pluginName}" is already registered with a different implementation.`);
-            }
-            return this; // 如果插件已存在，则不重复注册
-        }
-        // @ts-expect-error not error
-        plugin.__config = config || {};
-        // @ts-expect-error not error
-        this.plugins.push(plugin);
-        return this;
-    }
+  registerNodes(nodes: Array<LexicalNodeConfig>) {
+    this.nodes.push(...nodes);
+  }
 
-    registerPlugins(plugins: Array<IPlugin>): IEditor {
-        for (const plugin of plugins) {
-            if (Array.isArray(plugin)) {
-                this.registerPlugin(plugin[0], plugin[1]);
-            } else {
-                this.registerPlugin(plugin);
-            }
-        }
-        return this;
+  registerService<T>(serviceId: IServiceID<T>, service: T): void {
+    if (this.serviceMap.has(serviceId.__serviceId)) {
+      throw new Error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
     }
+    this.serviceMap.set(serviceId.__serviceId, service);
+  }
 
-    registerNodes(nodes: Array<LexicalNodeConfig>) {
-        this.nodes.push(...nodes);
+  /**
+   * 获取服务
+   * @param serviceId 服务ID
+   */
+  requireService<T>(serviceId: IServiceID<T>): T | null {
+    const service = this.serviceMap.get(serviceId.__serviceId);
+    if (!service) {
+      return null;
     }
+    return service as T;
+  }
 
-    registerService<T>(serviceId: IServiceID<T>, service: T): void {
-        if (this.serviceMap.has(serviceId.__serviceId)) {
-            throw new Error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
-        }
-        this.serviceMap.set(serviceId.__serviceId, service);
+  dispatchCommand<TCommand extends LexicalCommand<unknown>>(
+    type: TCommand,
+    payload: CommandPayloadType<TCommand>,
+  ): boolean {
+    if (!this.editor) {
+      throw new Error('Editor is not initialized.');
     }
-
-    /**
-     * 获取服务
-     * @param serviceId 服务ID
-     */
-    requireService<T>(serviceId: IServiceID<T>): T | null {
-        const service = this.serviceMap.get(serviceId.__serviceId);
-        if (!service) {
-            return null;
-        }
-        return service as T;
-    }
-
-    dispatchCommand<TCommand extends LexicalCommand<unknown>>(
-        type: TCommand,
-        payload: CommandPayloadType<TCommand>,
-    ): boolean {
-        if (!this.editor) {
-            throw new Error("Editor is not initialized.");
-        }
-        return this.editor.dispatchCommand(type, payload);
-    }
+    return this.editor.dispatchCommand(type, payload);
+  }
 }
