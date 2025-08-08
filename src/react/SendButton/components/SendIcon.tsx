@@ -8,6 +8,7 @@ const SendIcon = memo<{
 }>(({ size = '1em', style }) => {
   return (
     <svg
+      className={'anticon'}
       fill="currentColor"
       fillRule="evenodd"
       height={size}

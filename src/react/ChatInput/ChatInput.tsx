@@ -20,9 +20,7 @@ const ChatInput = memo<ChatInputProps>(
         width={'100%'}
       >
         <div className={styles.editor}>{children}</div>
-        <Flexbox align={'center'} horizontal justify={'space-between'} padding={4}>
-          {actions}
-        </Flexbox>
+        {actions}
       </Flexbox>
     );
   },

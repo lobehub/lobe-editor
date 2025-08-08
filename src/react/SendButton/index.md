@@ -6,4 +6,4 @@ title: SendButton
 
 ## Default
 
-<code src="./demos/index.tsx"></code>
+<code src="./demos/index.tsx" nopadding center></code>

@@ -7,6 +7,7 @@ import {
 } from '@lobehub/editor';
 import {
   ChatInput,
+  ChatInputActionBar,
   ChatInputActions,
   ChatInputActionsProps,
   SendButton,
@@ -75,6 +76,7 @@ const items: ChatInputActionsProps['items'] = [
     type: 'collapse',
   },
   {
+    alwaysDisplay: true,
     children: <TokenTag maxValue={2048} value={1024} />,
     key: 'token',
   },
@@ -111,26 +113,24 @@ export default () => {
       <Flexbox paddingBlock={'0 8px'} paddingInline={8}>
         <ChatInput
           actions={
-            <>
-              <ChatInputActions items={items} />
-
-              <SendButton
-                menu={{
-                  items: [
-                    {
-                      key: 'send',
-                      label: 'Send',
-                      onClick: () => {
-                        console.log('Send clicked');
+            <ChatInputActionBar
+              left={<ChatInputActions items={items} />}
+              right={
+                <SendButton
+                  menu={{
+                    items: [
+                      {
+                        key: 'send',
+                        label: 'Send',
+                        onClick: () => {
+                          console.log('Send clicked');
+                        },
                       },
-                    },
-                  ],
-                }}
-                style={{
-                  margin: 4,
-                }}
-              />
-            </>
+                    ],
+                  }}
+                />
+              }
+            />
           }
         >
           <Typography fontSize={14} headerMultiple={0.25} marginMultiple={1}>

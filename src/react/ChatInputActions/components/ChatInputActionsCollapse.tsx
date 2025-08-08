@@ -1,8 +1,9 @@
 'use client';
 
 import { ActionIcon } from '@lobehub/ui';
+import { Popover } from 'antd';
 import { motion } from 'framer-motion';
-import { CircleChevronLeftIcon, CircleChevronRightIcon } from 'lucide-react';
+import { CircleChevronLeftIcon, CircleChevronRightIcon, CircleChevronUpIcon } from 'lucide-react';
 import { memo } from 'react';
 import { Flexbox } from 'react-layout-kit';
 import useMergeState from 'use-merge-value';
@@ -10,12 +11,39 @@ import useMergeState from 'use-merge-value';
 import type { ChatInputActionsCollapseProps } from '../type';
 
 const ChatInputActionsCollapse = memo<ChatInputActionsCollapseProps>(
-  ({ children, expand, defaultExpand = true, onChange, gap }) => {
+  ({ children, expand, defaultExpand = true, onChange, gap, mode }) => {
     const [expanded, setExpaned] = useMergeState(defaultExpand, {
       defaultValue: defaultExpand,
       onChange,
       value: expand,
     });
+
+    if (mode === 'popup') {
+      return (
+        <Popover
+          arrow={false}
+          content={
+            <Flexbox align={'center'} gap={gap} horizontal>
+              {children}
+            </Flexbox>
+          }
+          styles={{
+            body: {
+              padding: 4,
+            },
+          }}
+        >
+          <ActionIcon
+            icon={CircleChevronUpIcon}
+            size={{
+              blockSize: 36,
+              size: 20,
+            }}
+          />
+        </Popover>
+      );
+    }
+
     return (
       <Flexbox align={'center'} flex={'none'} gap={gap} horizontal>
         <motion.div

@@ -37,4 +37,11 @@ export const useStyles = createStyles(({ css, token, prefixCls }, size: number) 
       border-end-end-radius: ${size / 2}px;
     }
   `,
+  loadingButton: css`
+    &.${prefixCls}-btn {
+      flex: none;
+      height: ${size}px;
+      padding-inline: 0 !important;
+    }
+  `,
 }));

@@ -1,27 +1,68 @@
 'use client';
 
-import { Icon } from '@lobehub/ui';
-import { Button, Dropdown } from 'antd';
+import { Button, Icon } from '@lobehub/ui';
+import { Dropdown } from 'antd';
 import { ChevronDownIcon } from 'lucide-react';
 import { memo } from 'react';
 
 import SendIcon from './components/SendIcon';
+import StopIcon from './components/StopIcon';
 import { useStyles } from './style';
 import type { SendButtonProps } from './type';
 
 const SendButton = memo<SendButtonProps>(
-  ({ type = 'primary', menu, className, style, loading, size = 32, shape, ...rest }) => {
+  ({
+    type = 'primary',
+    menu,
+    className,
+    style,
+    loading,
+    generating,
+    size = 32,
+    shape,
+    ...rest
+  }) => {
     const { cx, styles } = useStyles(size);
+
+    if (generating)
+      return (
+        <Button
+          className={cx(styles.loadingButton, className)}
+          shape={shape}
+          style={{
+            ...style,
+            width: menu ? size * 2 : size,
+          }}
+          {...rest}
+        >
+          <StopIcon size={size * 0.75} />
+        </Button>
+      );
+
+    if (loading)
+      return (
+        <Button
+          className={cx(styles.loadingButton, className)}
+          disabled
+          loading={loading}
+          shape={shape}
+          style={{
+            ...style,
+            width: menu ? size * 2 : size,
+          }}
+          type={type}
+          {...rest}
+        />
+      );
 
     if (!menu)
       return (
         <Button
           className={cx(styles.button, className)}
           icon={<SendIcon />}
-          loading={loading}
           shape={shape}
           style={style}
-          type={loading ? 'default' : type}
+          type={type}
           {...rest}
         />
       );
@@ -34,11 +75,10 @@ const SendButton = memo<SendButtonProps>(
           className,
         )}
         icon={<Icon icon={ChevronDownIcon} />}
-        loading={loading}
         menu={menu}
         placement={'topRight'}
         style={style}
-        type={loading ? 'default' : type}
+        type={type}
         {...rest}
       >
         {!loading && <SendIcon />}

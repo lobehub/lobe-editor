@@ -1,18 +1,17 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
-import { 
-    $applyNodeReplacement, 
-    DecoratorNode, 
-    DOMConversionMap, 
-    DOMConversionOutput, 
-    DOMExportOutput, 
-    EditorConfig,
-    LexicalEditor, 
-    SerializedLexicalNode 
-} from "lexical";
+import { addClassNamesToElement } from '@lexical/utils';
 import {
-  addClassNamesToElement,
-} from '@lexical/utils';
-import { getKernelFromEditor } from "@/index";
+  $applyNodeReplacement,
+  DOMConversionMap,
+  DOMConversionOutput,
+  DOMExportOutput,
+  DecoratorNode,
+  EditorConfig,
+  LexicalEditor,
+  SerializedLexicalNode,
+} from 'lexical';
+
+import { getKernelFromEditor } from '@/editor-kernel/utils';
 
 export type SerializedHorizontalRuleNode = SerializedLexicalNode;
 
@@ -25,9 +24,7 @@ export class HorizontalRuleNode extends DecoratorNode<any> {
     return new HorizontalRuleNode(node.__key);
   }
 
-  static importJSON(
-    serializedNode: SerializedHorizontalRuleNode,
-  ): HorizontalRuleNode {
+  static importJSON(serializedNode: SerializedHorizontalRuleNode): HorizontalRuleNode {
     return $createHorizontalRuleNode().updateFromJSON(serializedNode);
   }
 
@@ -41,7 +38,7 @@ export class HorizontalRuleNode extends DecoratorNode<any> {
   }
 
   exportDOM(): DOMExportOutput {
-    return {element: document.createElement('hr')};
+    return { element: document.createElement('hr') };
   }
 
   createDOM(config: EditorConfig): HTMLElement {
@@ -72,5 +69,5 @@ export function $createHorizontalRuleNode(): HorizontalRuleNode {
 }
 
 function $convertHorizontalRuleElement(): DOMConversionOutput {
-  return {node: $createHorizontalRuleNode()};
+  return { node: $createHorizontalRuleNode() };
 }

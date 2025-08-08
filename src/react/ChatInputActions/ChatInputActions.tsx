@@ -1,28 +1,85 @@
 'use client';
 
 import { ActionIcon } from '@lobehub/ui';
+import { useSize } from 'ahooks';
 import { Divider } from 'antd';
-import { ReactNode, memo, useCallback } from 'react';
+import { ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Flexbox } from 'react-layout-kit';
 
 import ChatInputActionsCollapse from './components/ChatInputActionsCollapse';
 import { useStyles } from './style';
-import type { ActionItem, ChatInputActionsProps, DividerItem } from './type';
+import type { ActionItem, ChatInputActionsProps, CollapseItem, DividerItem } from './type';
 
 const ChatInputActions = memo<ChatInputActionsProps>(
-  ({ gap = 2, disabled, actionIconProps, items = [], onActionClick, className, ...rest }) => {
+  ({ gap = 2, disabled, items = [], onActionClick, className, ...rest }) => {
     const { cx, styles } = useStyles();
+    const [maxCount, setMaxCount] = useState(items.length);
+    const [collapsed, setCollapsed] = useState(false);
+    const ref = useRef(null);
+    const size = useSize(ref);
+
+    const flatItems = useMemo(
+      () =>
+        items
+          .flatMap((item) => {
+            if (item.type === 'collapse' && item.children) {
+              return item.children;
+            }
+            return item;
+          })
+          .filter((item) => item.type !== 'divider'),
+      [items],
+    );
+
+    useEffect(() => {
+      if (!size?.width) return;
+      const length = flatItems.length + 1;
+      console.log(size?.width);
+      const calcMaxCount = Math.floor(size.width / 48);
+      setMaxCount(calcMaxCount);
+      console.log(calcMaxCount < length);
+      if (calcMaxCount < length) {
+        setCollapsed(true);
+      } else {
+        setCollapsed(false);
+      }
+    }, [size, flatItems.length]);
+
+    const calcItem = useMemo(() => {
+      if (!collapsed) return items;
+      const alwaysDisplayItems = items.filter((item: any) => item.alwaysDisplay);
+      const normalItems = items.filter(
+        (item: any) => item.type !== 'collapse' && !item.alwaysDisplay,
+      );
+      const collapseItems: CollapseItem = (items.find(
+        (item) => item.type === 'collapse' && item.children,
+      ) as CollapseItem) || {
+        children: [],
+        type: 'collapse',
+      };
+      const sliceCount = maxCount - alwaysDisplayItems.length - 1;
+      return [
+        ...normalItems.slice(0, sliceCount),
+        {
+          ...collapseItems,
+          children: [
+            ...normalItems.filter((item) => item.type !== 'divider').slice(sliceCount),
+            ...collapseItems.children,
+          ],
+        },
+        ...alwaysDisplayItems,
+      ].filter(Boolean);
+    }, [collapsed, items, flatItems, maxCount]);
 
     const mapActions = useCallback(
       (item: ActionItem | DividerItem, i: number) => {
         if (item.type === 'divider') {
-          const size = actionIconProps?.size;
           return (
             <Divider
               className={styles.divider}
               key={i}
               style={{
-                height: (size && typeof size === 'object' ? size.size : size) || 20,
+                height: 20,
               }}
               type={'vertical'}
             />
@@ -34,6 +91,7 @@ const ChatInputActions = memo<ChatInputActionsProps>(
         const node: ReactNode = item.children || (
           <ActionIcon
             danger={danger}
+            disabled={disabled || loading || itemRest?.disabled}
             icon={icon}
             key={key}
             loading={loading}
@@ -50,11 +108,8 @@ const ChatInputActions = memo<ChatInputActionsProps>(
               size: 20,
             }}
             title={label}
-            {...actionIconProps}
-            disabled={disabled || loading || itemRest?.disabled}
             tooltipProps={{
               placement: 'top',
-              ...actionIconProps?.tooltipProps,
             }}
           />
         );
@@ -62,7 +117,7 @@ const ChatInputActions = memo<ChatInputActionsProps>(
         if (!wrapper) return node;
         return wrapper(node, String(key));
       },
-      [actionIconProps, disabled, onActionClick, styles.divider],
+      [disabled, onActionClick, styles.divider],
     );
 
     return (
@@ -72,20 +127,21 @@ const ChatInputActions = memo<ChatInputActionsProps>(
         flex={'none'}
         gap={gap}
         horizontal
+        ref={ref}
         {...rest}
       >
-        {items.map((item, index) => {
+        {calcItem.map((item, index) => {
           if (item.type === 'collapse') {
             return (
               <ChatInputActionsCollapse
-                actionIconProps={actionIconProps}
                 defaultExpand={item.defaultExpand}
                 expand={item.expand}
                 gap={gap}
                 key={index}
+                mode={collapsed ? 'popup' : 'default'}
                 onChange={item.onChange}
               >
-                {item.children.map((child, childIndex) => mapActions(child, childIndex))}
+                {item.children.map((child, childIndex) => mapActions(child as any, childIndex))}
               </ChatInputActionsCollapse>
             );
           }

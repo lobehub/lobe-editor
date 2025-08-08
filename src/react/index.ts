@@ -1,4 +1,5 @@
 export { default as ChatInput, type ChatInputProps } from './ChatInput';
+export { default as ChatInputActionBar, type ChatInputActionBarProps } from './ChatInputActionBar';
 export {
   type ChatInputActionEvent,
   default as ChatInputActions,

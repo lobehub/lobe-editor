@@ -1,4 +1,6 @@
 import { ChatInputActions, ChatInputActionsProps } from '@lobehub/editor/react';
+import { TokenTag } from '@lobehub/ui/chat';
+import { Popover } from 'antd';
 import {
   GlobeIcon,
   LibraryBigIcon,
@@ -12,7 +14,13 @@ const items: ChatInputActionsProps['items'] = [
   {
     icon: GlobeIcon,
     key: 'search',
-    label: 'Search',
+    wrapper: (node, key) => {
+      return (
+        <Popover arrow={false} content={'Test Popover'} key={key}>
+          {node}
+        </Popover>
+      );
+    },
   },
   {
     icon: PaperclipIcon,
@@ -47,6 +55,10 @@ const items: ChatInputActionsProps['items'] = [
       },
     ],
     type: 'collapse',
+  },
+  {
+    children: <TokenTag maxValue={2048} value={1024} />,
+    key: 'token',
   },
 ];
 

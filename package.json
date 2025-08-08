@@ -91,6 +91,7 @@
     "@lobehub/ui": "^2.0.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "ahooks": "^3.9.0",
     "antd": "^5.25.0",
     "antd-style": "^3.7.1",
     "eventemitter3": "^5.0.1",
