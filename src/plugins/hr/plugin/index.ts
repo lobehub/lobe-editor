@@ -9,6 +9,7 @@ import { $createHorizontalRuleNode, HorizontalRuleNode } from '../node/Horizonta
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HRPluginOptions {
+  className?: string;
   decorator: (node: HorizontalRuleNode, editor: LexicalEditor) => any;
 }
 
@@ -26,7 +27,7 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
     // Register the horizontal rule node
     kernel.registerNodes([HorizontalRuleNode]);
     kernel.registerThemes({
-      hr: 'editor_horizontalRule',
+      hr: config?.className || '',
     });
     kernel.registerDecorator(
       'horizontalrule',
