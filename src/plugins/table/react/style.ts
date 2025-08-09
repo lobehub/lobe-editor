@@ -1,44 +1,59 @@
-/* eslint-disable sort-keys-fix/sort-keys-fix */
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ token }) => ({
-  editor_table: {
-    overflow: 'scroll scroll',
-    tableLayout: 'fixed',
-    borderSpacing: 0,
-    borderCollapse: 'collapse',
-    width: 'fit-content',
-    marginBlock: '25px 30px',
-  },
+export const useStyles = createStyles(
+  ({ css, token }) => css`
+    overflow: scroll scroll;
+    table-layout: fixed;
+    border-spacing: 0;
+    border-collapse: collapse;
 
-  editor_table_cell: {
-    position: 'relative',
-    overflow: 'auto',
-    width: '75px',
-    paddingBlock: '6px',
-    paddingInline: '8px',
-    border: `1px solid ${token.colorBorder}`,
-    textAlign: 'start',
-    verticalAlign: 'top',
-    outline: 'none',
-  },
+    width: fit-content;
+    margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
 
-  editor_table_cell_header: {
-    fontWeight: 'normal',
-  },
+    text-align: start;
+    text-indent: initial;
+    text-wrap: pretty;
+    word-break: auto-phrase;
+    overflow-wrap: break-word;
 
-  editor_table_cell_selected: {
-    'caretColor': 'transparent',
+    background: ${token.colorFillQuaternary};
 
-    '&::after': {
-      pointerEvents: 'none',
-      content: '""',
+    code {
+      word-break: break-word;
+    }
 
-      position: 'absolute',
-      inset: 0,
+    .editor_table_cell_header {
+      font-weight: normal;
+    }
 
-      backgroundColor: 'highlight',
-      mixBlendMode: 'multiply',
-    },
-  },
-}));
+    > tr:first-of-type {
+      background: ${token.colorFillQuaternary};
+
+      .editor_table_cell_header {
+        font-weight: bold;
+      }
+    }
+
+    .editor_table_cell {
+      position: relative;
+
+      overflow: auto;
+
+      width: 75px;
+      padding-block: 6px;
+      padding-inline: 8px;
+      border: 1px solid ${token.colorFillSecondary};
+
+      text-align: start;
+      vertical-align: top;
+
+      outline: none;
+    }
+
+    .editor_table_cell_selected {
+      color: #000;
+      background-color: ${token.yellow};
+      caret-color: transparent;
+    }
+  `,
+);

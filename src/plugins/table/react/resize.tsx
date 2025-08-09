@@ -64,6 +64,7 @@ const getCellNodeHeight = (
 };
 
 export const TableCellResize = ({ editor }: ReactTableResizeHandleProps) => {
+  const { cx, styles, theme } = useStyles();
   const targetRef = useRef<HTMLElement | null>(null);
   const resizerRef = useRef<HTMLDivElement | null>(null);
   // eslint-disable-next-line no-undef
@@ -77,8 +78,6 @@ export const TableCellResize = ({ editor }: ReactTableResizeHandleProps) => {
   const [draggingDirection, updateDraggingDirection] = useState<PointerDraggingDirection | null>(
     null,
   );
-
-  const { styles } = useStyles();
 
   const resetState = useCallback(() => {
     updateActiveCell(null);
@@ -395,7 +394,7 @@ export const TableCellResize = ({ editor }: ReactTableResizeHandleProps) => {
           styles[draggingDirection].height = `${tableRect.height}px`;
         }
 
-        styles[draggingDirection].backgroundColor = '#adf';
+        styles[draggingDirection].backgroundColor = theme.colorPrimary;
         styles[draggingDirection].mixBlendMode = 'unset';
       }
 
@@ -417,12 +416,12 @@ export const TableCellResize = ({ editor }: ReactTableResizeHandleProps) => {
       {activeCell && (
         <>
           <div
-            className={styles.resizer}
+            className={cx(styles, 'TableCellResizer__resizer', 'TableCellResizer__ui')}
             onPointerDown={toggleResize('right')}
             style={resizerStyles.right || undefined}
           />
           <div
-            className={styles.resizer}
+            className={cx(styles, 'TableCellResizer__resizer', 'TableCellResizer__ui')}
             onPointerDown={toggleResize('bottom')}
             style={resizerStyles.bottom || undefined}
           />

@@ -9,6 +9,7 @@ import {
   registerTableSelectionObserver,
 } from '@lexical/table';
 import { $insertNodeToNearestRoot } from '@lexical/utils';
+import { cx } from 'antd-style';
 import {
   $getPreviousSelection,
   $getSelection,
@@ -25,13 +26,9 @@ import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 
 import { INSERT_TABLE_COMMAND } from '../command';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TablePluginOptions {
-  theme?: {
-    table?: string;
-    tableCell?: string;
-    tableCellHeader?: string;
-    tableCellSelected?: string;
-  };
+  className?: string;
 }
 
 export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
@@ -47,9 +44,12 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     super();
     // Register the horizontal rule node
     kernel.registerNodes([TableNode, TableRowNode, TableCellNode]);
-    if (options?.theme) {
-      kernel.registerThemes(options?.theme);
-    }
+    kernel.registerThemes({
+      table: cx(options?.className, 'editor_table'),
+      tableCell: 'editor_table_cell',
+      tableCellHeader: 'editor_table_cell_header',
+      tableCellSelected: 'editor_table_cell_selected',
+    });
   }
 
   onInit(editor: LexicalEditor): void {
