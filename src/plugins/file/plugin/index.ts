@@ -20,6 +20,9 @@ import { registerFileNodeSelectionObserver } from '../utils';
 export interface FilePluginOptions {
   decorator: (node: FileNode, editor: LexicalEditor) => any;
   handleUpload: (file: File) => Promise<{ url: string }>;
+  theme?: {
+    file?: string;
+  };
 }
 
 export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
@@ -35,9 +38,9 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
     super();
     // Register the file node
     kernel.registerNodes([FileNode]);
-    kernel.registerThemes({
-      file: 'editor_file',
-    });
+    if (config?.theme) {
+      kernel.registerThemes(config?.theme);
+    }
     kernel.registerDecorator('file', (node: DecoratorNode<any>, editor: LexicalEditor) => {
       return config?.decorator ? config.decorator(node as FileNode, editor) : null;
     });

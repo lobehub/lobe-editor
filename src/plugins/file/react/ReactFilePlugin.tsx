@@ -6,15 +6,19 @@ import { UploadPlugin } from '@/plugins/upload';
 
 import { FilePlugin } from '../plugin';
 import { ReactFile } from './ReactFile';
-import './index.less';
+import { useStyles } from './style';
 
 export interface ReactFilePluginProps {
   className?: string;
   handleUpload: (file: File) => Promise<{ url: string }>;
+  theme?: {
+    file?: string;
+  };
 }
 
 export const ReactFilePlugin: FC<ReactFilePluginProps> = (props) => {
   const [editor] = useLexicalComposerContext();
+  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(UploadPlugin);
@@ -28,6 +32,7 @@ export const ReactFilePlugin: FC<ReactFilePluginProps> = (props) => {
         }
         throw new Error('No upload handler provided');
       },
+      theme: props.theme || { file: styles.editor_file },
     });
   }, [editor]);
 

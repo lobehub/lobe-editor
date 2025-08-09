@@ -8,8 +8,11 @@ import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { registerLinkCommand } from '../command';
 import { $createLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface LinkPluginOptions {}
+export interface LinkPluginOptions {
+  theme?: {
+    link?: string;
+  };
+}
 
 export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
   extends KernelPlugin
@@ -17,15 +20,16 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
 {
   static pluginName = 'LinkPlugin';
 
-  constructor(protected kernel: IEditorKernel) {
+  constructor(
+    protected kernel: IEditorKernel,
+    config?: LinkPluginOptions,
+  ) {
     super();
     // Register the link nodes
     kernel.registerNodes([LinkNode, AutoLinkNode]);
-    // Register themes for link nodes
-    kernel.registerThemes({
-      // Define themes for link nodes here
-      link: 'editor_link',
-    });
+    if (config?.theme) {
+      kernel.registerThemes(config.theme);
+    }
 
     kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
       regExp: /\[([^[]+)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)$/,

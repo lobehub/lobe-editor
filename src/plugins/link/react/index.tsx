@@ -29,26 +29,36 @@ import {
 import { LinkPlugin } from '../plugin';
 import { getSelectedNode, sanitizeUrl } from '../utils';
 import { EDIT_LINK_COMMAND, LinkEdit } from './edit';
-import './index.less';
+import { useStyles } from './style';
 import { Toolbar } from './toolbar';
 
 export interface ReactLinkPluginProps {
   attributes?: LinkAttributes;
   className?: string;
+  theme?: {
+    link?: string;
+  };
   validateUrl?: (url: string) => boolean;
 }
 
-export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({ validateUrl, attributes }) => {
+export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({
+  theme,
+  validateUrl,
+  attributes,
+}) => {
   const [editor] = useLexicalComposerContext();
   const [linkNode, setLinkNode] = useState<LinkNode | null>(null);
   const state = useRef<{ isLink: boolean }>({ isLink: false });
   const divRef = React.useRef<HTMLDivElement>(null);
   const LinkRef = React.useRef<HTMLDivElement>(null);
   const clearTimerRef = React.useRef<ReturnType<typeof setTimeout> | number>(-1);
+  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
-    editor.registerPlugin(LinkPlugin);
+    editor.registerPlugin(LinkPlugin, {
+      theme: theme || { link: styles.link },
+    });
   }, []);
 
   useLexicalEditor((editor) => {
@@ -167,7 +177,7 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({ validateUrl, a
   return (
     <>
       <div
-        className="editor_linkPlugin"
+        className={styles.editor_linkPlugin}
         onMouseEnter={() => {
           clearTimeout(clearTimerRef.current);
         }}

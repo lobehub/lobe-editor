@@ -29,7 +29,7 @@ import React, {
   useState,
 } from 'react';
 
-import './resize.less';
+import { useStyles } from './resize.style';
 
 export interface ReactTableResizeHandleProps {
   editor: LexicalEditor;
@@ -77,6 +77,8 @@ export const TableCellResize = ({ editor }: ReactTableResizeHandleProps) => {
   const [draggingDirection, updateDraggingDirection] = useState<PointerDraggingDirection | null>(
     null,
   );
+
+  const { styles } = useStyles();
 
   const resetState = useCallback(() => {
     updateActiveCell(null);
@@ -415,12 +417,12 @@ export const TableCellResize = ({ editor }: ReactTableResizeHandleProps) => {
       {activeCell && (
         <>
           <div
-            className="TableCellResizer__resizer TableCellResizer__ui"
+            className={styles.resizer}
             onPointerDown={toggleResize('right')}
             style={resizerStyles.right || undefined}
           />
           <div
-            className="TableCellResizer__resizer TableCellResizer__ui"
+            className={styles.resizer}
             onPointerDown={toggleResize('bottom')}
             style={resizerStyles.bottom || undefined}
           />

@@ -25,12 +25,13 @@ import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 
 import { INSERT_TABLE_COMMAND } from '../command';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TablePluginOptions {
-  className?: string;
-  tableCellClassName?: string;
-  tableCellHeaderClassName?: string;
-  tableCellSelectedClassName?: string;
+  theme?: {
+    table?: string;
+    tableCell?: string;
+    tableCellHeader?: string;
+    tableCellSelected?: string;
+  };
 }
 
 export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
@@ -46,12 +47,9 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     super();
     // Register the horizontal rule node
     kernel.registerNodes([TableNode, TableRowNode, TableCellNode]);
-    kernel.registerThemes({
-      table: options?.className || 'editor_table',
-      tableCell: options?.tableCellClassName || 'editor_table_cell',
-      tableCellHeader: options?.tableCellHeaderClassName || 'editor_table_cell_header',
-      tableCellSelected: options?.tableCellSelectedClassName || 'editor_table_cell_selected',
-    });
+    if (options?.theme) {
+      kernel.registerThemes(options?.theme);
+    }
   }
 
   onInit(editor: LexicalEditor): void {

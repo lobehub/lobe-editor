@@ -7,12 +7,13 @@ import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/editor
 import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
 
 import { $createImageNode, ImageNode } from '../node/image-node';
-import './index.less';
 
 export interface ImagePluginOptions {
-  // Custom render function for images
   handleUpload: (file: File) => Promise<{ url: string }>;
-  renderImage: (node: ImageNode) => JSX.Element | null; // Optional custom upload handler
+  renderImage: (node: ImageNode) => JSX.Element | null;
+  theme?: {
+    image?: string;
+  };
 }
 
 function isImageFile(file: File): boolean {
@@ -32,9 +33,9 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     super();
     kernel.registerNodes([ImageNode]);
     ImageNode.setDecorate(config!.renderImage);
-    kernel.registerThemes({
-      image: 'editor_image',
-    });
+    if (config?.theme) {
+      kernel.registerThemes(config.theme);
+    }
   }
 
   onInit(editor: LexicalEditor): void {

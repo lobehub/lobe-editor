@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
 
 import { LinkNode } from '../node/LinkNode';
+import { useStyles } from './style';
 
 export const EDIT_LINK_COMMAND = createCommand<{
   linkNode: LinkNode | null;
@@ -28,6 +29,7 @@ export const LinkEdit: FC = () => {
   const [linkUrl, setLinkUrl] = useState('');
   const [linkDom, setLinkDom] = useState<HTMLElement | null>(null);
   const [editor] = useLexicalComposerContext();
+  const { styles } = useStyles();
 
   useEffect(() => {
     if (!linkDom || !divRef.current) {
@@ -127,7 +129,7 @@ export const LinkEdit: FC = () => {
   }, []);
 
   return (
-    <div className="editor_linkEdit" ref={divRef}>
+    <div className={styles.editor_linkEdit} ref={divRef}>
       <Input
         onChange={(e: ChangeEvent<HTMLInputElement>) => {
           // Handle link URL change
