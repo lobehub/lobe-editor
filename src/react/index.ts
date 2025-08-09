@@ -5,5 +5,5 @@ export {
   default as ChatInputActions,
   type ChatInputActionsProps,
 } from './ChatInputActions';
-export { default as Editor, type EditorProps, withProps } from './Editor';
+export { default as Editor, type EditorProps, useEditor, withProps } from './Editor';
 export { default as SendButton, type SendButtonProps } from './SendButton';

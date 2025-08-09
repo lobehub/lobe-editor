@@ -1,9 +1,11 @@
 ---
 nav: Components
-group: Data Entry
+group:
+  title: Playground
+  order: -1
 title: Editor
 ---
 
 ## Default
 
-<code src="./demos/index.tsx" nopadding iframe></code>
+<code src="./demos/index.tsx" nopadding></code>

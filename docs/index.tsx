@@ -33,11 +33,9 @@ export default () => {
       gap={48}
       style={{ maxWidth: 960, overflow: 'hidden', position: 'relative', width: '100%' }}
     >
-      <Center>
-        <Block variant={'outlined'}>
-          <Editor />
-        </Block>
-      </Center>
+      <Block variant={'outlined'} width={'100%'}>
+        <Editor />
+      </Block>
       <Features items={items} />
     </Center>
   );

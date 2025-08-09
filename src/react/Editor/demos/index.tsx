@@ -8,44 +8,37 @@ import {
   ReactListPlugin,
   ReactTablePlugin,
 } from '@lobehub/editor';
-import { Editor, withProps } from '@lobehub/editor/react';
-import { Typography } from '@lobehub/ui';
-import { useRef } from 'react';
+import { Editor } from '@lobehub/editor/react';
+import { useEffect, useState } from 'react';
 
 import { INSERT_FILE_COMMAND, ReactFilePlugin } from '@/plugins/file';
 
+import Container from './Container';
+import { openFileSelector } from './actions';
 import { content } from './data';
 
-function openFileSelector(handleFiles: (files: FileList) => void) {
-  // 创建一个隐藏的 input 元素
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '*/*'; // 接受所有文件类型
-  input.multiple = false; // 是否允许多选
+export default () => {
+  const editorRef = Editor.useEditor();
+  const [json, setJson] = useState('');
+  const [text, setText] = useState('');
 
-  // 监听文件选择事件
-  // eslint-disable-next-line unicorn/prefer-add-event-listener
-  input.onchange = (event) => {
-    // @ts-expect-error not error
-    const files = event.target?.files;
-    if (files && files.length > 0) {
-      console.log('Selected files:', files);
-      // 处理选中的文件
-      handleFiles(files);
-    }
+  const handleChange = (editor: IEditor) => {
+    const textContent = editor.getDocument('text') as unknown as string;
+    const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
+    setText(textContent || '');
+    setJson(JSON.stringify(jsonContent || {}, null, 2));
+    console.log('Editor content changed:', editor.getDocument('text'));
+    console.log('Editor content changed:', editor.getDocument('json'));
   };
 
-  // 触发文件选择器
-  input.click();
-}
-
-export default () => {
-  const editorRef = useRef<IEditor | null>(null);
+  useEffect(() => {
+    if (!editorRef.current) return;
+    handleChange(editorRef.current);
+  }, []);
 
   return (
-    <Typography>
+    <Container json={json} text={text}>
       <Editor
-        className="ignore-markdown-style"
         content={content}
         editorRef={editorRef}
         mentionOption={{
@@ -55,13 +48,9 @@ export default () => {
               value: 'XX',
             },
           ],
-          trigger: '@',
         }}
-        onChange={(editor) => {
-          console.log('Editor content changed:', editor.getDocument('text'));
-          console.log('Editor content changed:', editor.getDocument('json'));
-        }}
-        placeholder={<div>记你想记</div>}
+        onChange={handleChange}
+        placeholder={'Type something...'}
         plugins={[
           ReactListPlugin,
           ReactLinkPlugin,
@@ -69,7 +58,7 @@ export default () => {
           ReactCodeblockPlugin,
           ReactHRPlugin,
           ReactTablePlugin,
-          withProps(ReactFilePlugin, {
+          Editor.withProps(ReactFilePlugin, {
             handleUpload: async (file) => {
               console.log('Files uploaded:', file);
               return new Promise((resolve) => {
@@ -102,21 +91,17 @@ export default () => {
             },
             {
               label: 'SetTextContent',
-              onSelect: () => {
-                editorRef.current?.setDocument('text', '123\n123');
+              onSelect: (editor) => {
+                editor.setDocument('text', '123\n123');
                 queueMicrotask(() => {
-                  editorRef.current?.focus();
+                  editor.focus();
                 });
               },
               value: 'set-text-content',
             },
           ],
-          trigger: '/',
-        }}
-        style={{
-          padding: 24,
         }}
       />
-    </Typography>
+    </Container>
   );
 };
