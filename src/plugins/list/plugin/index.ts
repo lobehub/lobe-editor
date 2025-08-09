@@ -4,6 +4,7 @@ import {
   registerList,
   registerListStrictIndentTransform,
 } from '@lexical/list';
+import { cx } from 'antd-style';
 import {
   $getSelection,
   $isRangeSelection,
@@ -28,7 +29,9 @@ const UNORDERED_LIST_REGEX = /^(\s*)[*+-]\s/;
 const CHECK_LIST_REGEX = /^(\s*)(?:-\s)?\s?(\[(\s|x)?])\s/i;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ListPluginOptions {}
+export interface ListPluginOptions {
+  className?: string;
+}
 
 export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
   extends KernelPlugin
@@ -36,7 +39,10 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
 {
   static pluginName = 'ListPlugin';
 
-  constructor(protected kernel: IEditorKernel) {
+  constructor(
+    protected kernel: IEditorKernel,
+    config?: ListPluginOptions,
+  ) {
     super();
     // Register the list nodes
     kernel.registerNodes([ListNode, ListItemNode]);
@@ -48,7 +54,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
         nested: {
           listitem: 'editor_listItemNested',
         },
-        ol: 'editor_listOrdered',
+        ol: cx(config?.className, 'editor_listOrdered'),
         olDepth: [
           'editor_listOrdered dp1',
           'editor_listOrdered dp2',
@@ -56,7 +62,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
           'editor_listOrdered dp4',
           'editor_listOrdered dp5',
         ],
-        ul: 'editor_listUnordered',
+        ul: cx(config?.className, 'editor_listUnordered'),
       },
     });
 

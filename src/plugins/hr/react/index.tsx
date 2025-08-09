@@ -18,7 +18,7 @@ export const ReactHRPlugin: FC<ReactHRPluginProps> = () => {
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(HRPlugin, {
-      className: styles.horizontalRule,
+      className: styles,
       decorator() {
         return null;
       },

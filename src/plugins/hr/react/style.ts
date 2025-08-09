@@ -1,7 +1,7 @@
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css, token }) => ({
-  horizontalRule: css`
+export const useStyles = createStyles(
+  ({ css, token }) => css`
     width: 100%;
     margin-block: calc(var(--lobe-markdown-margin-multiple) * 1.5em);
     border-color: ${token.colorBorder};
@@ -11,4 +11,4 @@ export const useStyles = createStyles(({ css, token }) => ({
     border-inline-start: none;
     border-inline-end: none;
   `,
-}));
+);
