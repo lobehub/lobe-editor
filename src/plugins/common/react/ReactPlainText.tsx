@@ -84,7 +84,7 @@ export const ReactPlainText: FC<ReactPlainTextProps> = ({
   return (
     <>
       <div
-        className={cx(styles.root, className)}
+        className={cx(styles.root, styles.variant, className)}
         contentEditable
         ref={editorContainerRef}
         style={style}

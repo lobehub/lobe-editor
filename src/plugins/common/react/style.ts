@@ -3,15 +3,15 @@ import { createStyles } from 'antd-style';
 
 export const useStyles = createStyles(
   (
-    { token, css },
+    { cx, token, css },
     {
       fontSize = 16,
       headerMultiple = 1,
       marginMultiple = 2,
       lineHeight = 1.8,
     }: { fontSize?: number; headerMultiple?: number; lineHeight?: number; marginMultiple?: number },
-  ) => ({
-    root: css`
+  ) => {
+    const __root = css`
       --lobe-markdown-font-size: ${fontSize}px;
       --lobe-markdown-header-multiple: ${headerMultiple};
       --lobe-markdown-margin-multiple: ${marginMultiple};
@@ -27,6 +27,104 @@ export const useStyles = createStyles(
       font-size: var(--lobe-markdown-font-size);
       line-height: var(--lobe-markdown-line-height);
       word-break: break-word;
-    `,
-  }),
+    `;
+
+    const header = css`
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        margin-block: max(
+          calc(var(--lobe-markdown-header-multiple) * var(--lobe-markdown-margin-multiple) * 0.4em),
+          var(--lobe-markdown-font-size)
+        );
+        font-weight: bold;
+        line-height: 1.25;
+      }
+
+      h1 {
+        font-size: calc(
+          var(--lobe-markdown-font-size) * (1 + 1.5 * var(--lobe-markdown-header-multiple))
+        );
+      }
+
+      h2 {
+        font-size: calc(
+          var(--lobe-markdown-font-size) * (1 + var(--lobe-markdown-header-multiple))
+        );
+      }
+
+      h3 {
+        font-size: calc(
+          var(--lobe-markdown-font-size) * (1 + 0.5 * var(--lobe-markdown-header-multiple))
+        );
+      }
+
+      h4 {
+        font-size: calc(
+          var(--lobe-markdown-font-size) * (1 + 0.25 * var(--lobe-markdown-header-multiple))
+        );
+      }
+
+      h5,
+      h6 {
+        font-size: calc(var(--lobe-markdown-font-size) * 1);
+      }
+    `;
+
+    const p = css`
+      p {
+        margin-block: 4px;
+        line-height: var(--lobe-markdown-line-height);
+        letter-spacing: 0.02em;
+
+        &:not(:first-child) {
+          margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+        }
+
+        &:not(:last-child) {
+          margin-block-end: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+        }
+      }
+    `;
+
+    const blockquote = css`
+      .editor_quote {
+        margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+        margin-inline: 0;
+        padding-block: 0;
+        padding-inline: 1em;
+        border-inline-start: solid 4px ${token.colorBorder};
+
+        color: ${token.colorTextSecondary};
+      }
+    `;
+
+    const code = css`
+      .editor_code {
+        display: inline;
+
+        margin-inline: 0.25em;
+        padding-block: 0.2em;
+        padding-inline: 0.4em;
+        border: 1px solid var(--lobe-markdown-border-color);
+        border-radius: 0.25em;
+
+        font-family: ${token.fontFamilyCode};
+        font-size: 0.875em;
+        line-height: 1;
+        word-break: break-word;
+        white-space: break-spaces;
+
+        background: ${token.colorFillSecondary};
+      }
+    `;
+
+    return {
+      root: __root,
+      variant: cx(header, p, blockquote, code),
+    };
+  },
 );

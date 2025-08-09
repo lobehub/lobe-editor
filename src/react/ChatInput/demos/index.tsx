@@ -13,7 +13,6 @@ import {
   SendButton,
 } from '@lobehub/editor/react';
 import Editor from '@lobehub/editor/react/Editor';
-import { Typography } from '@lobehub/ui';
 import { ChatActionsBar, ChatList, TokenTag } from '@lobehub/ui/chat';
 import { Popover } from 'antd';
 import { useTheme } from 'antd-style';
@@ -133,36 +132,35 @@ export default () => {
             />
           }
         >
-          <Typography fontSize={14} headerMultiple={0.25} marginMultiple={1}>
-            <Editor
-              content={content}
-              mentionOption={{
-                items: [
-                  {
-                    label: 'XX',
-                    value: 'XX',
-                  },
-                ],
-                trigger: '@',
-              }}
-              plugins={[
-                ReactListPlugin,
-                ReactLinkPlugin,
-                ReactImagePlugin,
-                ReactCodeblockPlugin,
-                ReactHRPlugin,
-              ]}
-              slashOption={{
-                items: [
-                  {
-                    label: 'Help',
-                    value: 'help',
-                  },
-                ],
-                trigger: '/',
-              }}
-            />
-          </Typography>
+          <Editor
+            content={content}
+            mentionOption={{
+              items: [
+                {
+                  label: 'XX',
+                  value: 'XX',
+                },
+              ],
+              trigger: '@',
+            }}
+            plugins={[
+              ReactListPlugin,
+              ReactLinkPlugin,
+              ReactImagePlugin,
+              ReactCodeblockPlugin,
+              ReactHRPlugin,
+            ]}
+            slashOption={{
+              items: [
+                {
+                  label: 'Help',
+                  value: 'help',
+                },
+              ],
+              trigger: '/',
+            }}
+            variant={'chat'}
+          />
         </ChatInput>
       </Flexbox>
     </Flexbox>
