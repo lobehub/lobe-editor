@@ -7,6 +7,7 @@ import {
   $setSelection,
 } from 'lexical';
 import { useCallback, useEffect, useState } from 'react';
+
 import { useLexicalComposerContext } from './react-context';
 
 /**
@@ -53,9 +54,7 @@ export function useLexicalNodeSelection(
   const lexicalEditor = editor.getLexicalEditor();
 
   // State to track whether the node is currently selected.
-  const [isSelected, setIsSelected] = useState(() =>
-    isNodeSelected(lexicalEditor, key),
-  );
+  const [isSelected, setIsSelected] = useState(() => isNodeSelected(lexicalEditor, key));
 
   useEffect(() => {
     let isMounted = true;
@@ -91,7 +90,8 @@ export function useLexicalNodeSelection(
           }
         }
       });
-    }, [lexicalEditor, key],
+    },
+    [lexicalEditor, key],
   );
 
   const clearSelected = useCallback(() => {

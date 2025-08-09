@@ -1,4 +1,4 @@
-import { $isTextNode, LexicalNode, TextNode } from "lexical";
+import { $isTextNode, LexicalNode, TextNode } from 'lexical';
 
 /**
  * Returns true if the node can contain transformable markdown.
@@ -6,10 +6,8 @@ import { $isTextNode, LexicalNode, TextNode } from "lexical";
  * For example, `code **bold**` should not be transformed to
  * <code>code <strong>bold</strong></code>.
  */
-export function canContainTransformableMarkdown(
-    node: LexicalNode | undefined,
-): node is TextNode {
-    return $isTextNode(node) && !node.hasFormat('code');
+export function canContainTransformableMarkdown(node: LexicalNode | undefined): node is TextNode {
+  return $isTextNode(node) && !node.hasFormat('code');
 }
 
 export function isEqualSubString(
@@ -31,11 +29,7 @@ export function isEqualSubString(
 // eslint-disable-next-line unicorn/better-regex
 export const PUNCTUATION_OR_SPACE = /[!-/:-@[-`{-~\s]/;
 
-export function getOpenTagStartIndex(
-  string: string,
-  maxIndex: number,
-  tag: string,
-): number {
+export function getOpenTagStartIndex(string: string, maxIndex: number, tag: string): number {
   const tagLength = tag.length;
 
   for (let i = maxIndex; i >= tagLength; i--) {
@@ -74,4 +68,3 @@ export function indexBy<T>(
 
   return index;
 }
-

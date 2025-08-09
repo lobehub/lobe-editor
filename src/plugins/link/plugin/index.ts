@@ -1,46 +1,45 @@
-import { IEditorPlugin } from "@/editor-kernel";
-import { KernelPlugin } from "@/editor-kernel/plugin";
-import { IEditorKernel, IEditorPluginConstructor } from "@/editor-kernel/types";
-import { IMarkdownShortCutService } from "@/plugins/markdown";
-import { $createTextNode } from "lexical";
-import { $createLinkNode, LinkNode, AutoLinkNode } from "../node/LinkNode";
+import { $createTextNode } from 'lexical';
+
+import { IEditorPlugin } from '@/editor-kernel';
+import { KernelPlugin } from '@/editor-kernel/plugin';
+import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
+import { IMarkdownShortCutService } from '@/plugins/markdown';
+
+import { $createLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface LinkPluginOptions {
-}
+export interface LinkPluginOptions {}
 
-export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> =
-    class extends KernelPlugin implements IEditorPlugin<LinkPluginOptions> {
-        static pluginName = "LinkPlugin";
+export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
+  extends KernelPlugin
+  implements IEditorPlugin<LinkPluginOptions>
+{
+  static pluginName = 'LinkPlugin';
 
-        constructor(protected kernel: IEditorKernel) {
-            super();
-            // Register the link nodes
-            kernel.registerNodes([
-                LinkNode,
-                AutoLinkNode,
-            ]);
-            // Register themes for link nodes
-            kernel.registerThemes({
-                // Define themes for link nodes here
-                link: 'editor_link',
-            });
+  constructor(protected kernel: IEditorKernel) {
+    super();
+    // Register the link nodes
+    kernel.registerNodes([LinkNode, AutoLinkNode]);
+    // Register themes for link nodes
+    kernel.registerThemes({
+      // Define themes for link nodes here
+      link: 'editor_link',
+    });
 
-            kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
-                regExp:
-                    /\[([^[]+)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)$/,
-                replace: (textNode, match) => {
-                    const [, linkText, linkUrl, linkTitle] = match;
-                    const linkNode = $createLinkNode(linkUrl, { title: linkTitle });
-                    const linkTextNode = $createTextNode(linkText);
-                    linkTextNode.setFormat(textNode.getFormat());
-                    linkNode.append(linkTextNode);
-                    textNode.replace(linkNode);
+    kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+      regExp: /\[([^[]+)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)$/,
+      replace: (textNode, match) => {
+        const [, linkText, linkUrl, linkTitle] = match;
+        const linkNode = $createLinkNode(linkUrl, { title: linkTitle });
+        const linkTextNode = $createTextNode(linkText);
+        linkTextNode.setFormat(textNode.getFormat());
+        linkNode.append(linkTextNode);
+        textNode.replace(linkNode);
 
-                    return linkTextNode;
-                },
-                trigger: ')',
-                type: 'text-match',
-            });
-        }
-    }
+        return linkTextNode;
+      },
+      trigger: ')',
+      type: 'text-match',
+    });
+  }
+};

@@ -1,4 +1,18 @@
-import { createEditor, DecoratorNode, DOMExportOutput, EditorConfig, LexicalEditor, LexicalUpdateJSON, NodeKey, ParagraphNode, RootNode, SerializedEditor, SerializedLexicalNode, Spread, TextNode } from "lexical";
+import {
+  DOMExportOutput,
+  DecoratorNode,
+  EditorConfig,
+  LexicalEditor,
+  LexicalUpdateJSON,
+  NodeKey,
+  ParagraphNode,
+  RootNode,
+  SerializedEditor,
+  SerializedLexicalNode,
+  Spread,
+  TextNode,
+  createEditor,
+} from 'lexical';
 
 export interface ImagePayload {
   altText: string;
@@ -53,14 +67,7 @@ export class BaseImageNode extends DecoratorNode<any> {
   static importJSON(serializedNode: SerializedImageNode): BaseImageNode {
     const { altText, height, width, maxWidth, src, showCaption } = serializedNode;
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return new BaseImageNode(
-      src,
-      altText,
-      maxWidth,
-      width,
-      height,
-      showCaption,
-    );
+    return new BaseImageNode(src, altText, maxWidth, width, height, showCaption);
   }
 
   static getType(): string {
@@ -107,13 +114,10 @@ export class BaseImageNode extends DecoratorNode<any> {
     this.__height = height || 'inherit';
     this.__showCaption = showCaption || false;
     this.__caption =
-      caption || createEditor({
+      caption ||
+      createEditor({
         namespace: 'Playground/ImageNodeCaption',
-        nodes: [
-          RootNode,
-          TextNode,
-          ParagraphNode,
-        ],
+        nodes: [RootNode, TextNode, ParagraphNode],
       });
     this.__captionsEnabled = captionsEnabled || captionsEnabled === undefined;
   }
@@ -131,10 +135,7 @@ export class BaseImageNode extends DecoratorNode<any> {
     };
   }
 
-  setWidthAndHeight(
-    width: 'inherit' | number,
-    height: 'inherit' | number,
-  ): void {
+  setWidthAndHeight(width: 'inherit' | number, height: 'inherit' | number): void {
     const writable = this.getWritable();
     writable.__width = width;
     writable.__height = height;
@@ -169,4 +170,3 @@ export class BaseImageNode extends DecoratorNode<any> {
     return this.__altText;
   }
 }
-

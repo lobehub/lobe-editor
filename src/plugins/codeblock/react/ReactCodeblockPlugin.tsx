@@ -5,7 +5,6 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { MarkdownPlugin } from '@/plugins/markdown';
 
 import { CodeblockPlugin, CodeblockPluginOptions } from '../plugin';
-
 import './style.less';
 
 export interface ReactCodeblockPluginProps extends CodeblockPluginOptions {

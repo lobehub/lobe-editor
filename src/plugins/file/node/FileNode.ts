@@ -1,20 +1,19 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
+import { addClassNamesToElement } from '@lexical/utils';
 import {
   $applyNodeReplacement,
-  DecoratorNode,
   DOMConversionMap,
   DOMConversionOutput,
   DOMExportOutput,
+  DecoratorNode,
   EditorConfig,
   LexicalEditor,
   LexicalUpdateJSON,
   SerializedLexicalNode,
-  Spread
-} from "lexical";
-import {
-  addClassNamesToElement,
-} from '@lexical/utils';
-import { getKernelFromEditor } from "@/editor-kernel/utils";
+  Spread,
+} from 'lexical';
+
+import { getKernelFromEditor } from '@/editor-kernel/utils';
 
 export type SerializedFileNode = Spread<
   {
@@ -28,7 +27,6 @@ export type SerializedFileNode = Spread<
 >;
 
 export class FileNode extends DecoratorNode<any> {
-
   static getType(): string {
     return 'file';
   }
@@ -40,19 +38,17 @@ export class FileNode extends DecoratorNode<any> {
       node.__size,
       node.__status,
       node.__message,
-      node.__key
+      node.__key,
     );
   }
 
-  static importJSON(
-    serializedNode: SerializedFileNode,
-  ): FileNode {
+  static importJSON(serializedNode: SerializedFileNode): FileNode {
     return new FileNode(
       serializedNode.name,
       serializedNode.fileUrl,
       serializedNode.size,
       serializedNode.status,
-      serializedNode.message
+      serializedNode.message,
     );
   }
 
@@ -97,7 +93,8 @@ export class FileNode extends DecoratorNode<any> {
     size?: number,
     status?: 'pending' | 'uploaded' | 'error',
     message?: string,
-    key?: string) {
+    key?: string,
+  ) {
     super(key);
     this.__name = name;
     this.__fileUrl = fileUrl;
@@ -159,7 +156,13 @@ export class FileNode extends DecoratorNode<any> {
   }
 }
 
-export function $createFileNode(name: string = 'unknown', fileUrl?: string, size?: number, status?: 'pending' | 'uploaded' | 'error', message?: string): FileNode {
+export function $createFileNode(
+  name: string = 'unknown',
+  fileUrl?: string,
+  size?: number,
+  status?: 'pending' | 'uploaded' | 'error',
+  message?: string,
+): FileNode {
   return $applyNodeReplacement(new FileNode(name, fileUrl, size, status, message));
 }
 

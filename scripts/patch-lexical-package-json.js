@@ -10,8 +10,8 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 // 修改 package.json 的内容
 const expt = packageJson.exports['.'];
 Object.keys(expt).forEach((key) => {
-    const obj = expt[key];
-    obj.production = obj.development; // 将 development 指向 production
+  const obj = expt[key];
+  obj.production = obj.development; // 将 development 指向 production
 });
 
 // 写回修改后的 package.json

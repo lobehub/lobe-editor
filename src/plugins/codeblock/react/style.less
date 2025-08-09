@@ -1,44 +1,54 @@
 .editor-code {
-  background-color: rgb(240, 242, 245);
-  font-family: Menlo, Consolas, Monaco, monospace;
-  display: block;
-  padding: 8px 8px 8px 52px;
-  line-height: 1.53;
-  font-size: 13px;
-  margin: 0;
-  margin-top: 8px;
-  margin-bottom: 8px;
-  tab-size: 2;
+  position: relative;
+
   /* white-space: pre; */
   overflow-x: auto;
-  position: relative;
+  display: block;
+
+  margin: 0;
+  margin-block: 8px;
+  padding-block: 8px;
+  padding-inline: 52px 8px;
+
+  font-family: Menlo, Consolas, Monaco, monospace;
+  font-size: 13px;
+  line-height: 1.53;
+  tab-size: 2;
+
+  background-color: rgb(240, 242, 245);
 }
 
-.editor-code:before {
+.editor-code::before {
   content: attr(data-gutter);
+
   position: absolute;
-  background-color: #eee;
-  left: 0;
-  top: 0;
-  border-right: 1px solid #ccc;
-  padding: 8px;
-  color: #777;
-  white-space: pre-wrap;
-  text-align: right;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+
   min-width: 25px;
+  padding: 8px;
+  border-inline-end: 1px solid #ccc;
+
+  color: #777;
+  text-align: end;
+  white-space: pre-wrap;
+
+  background-color: #eee;
 }
 
-.editor-code:after {
+.editor-code::after {
   content: attr(data-highlight-language);
-  top: 0;
-  right: 3px;
-  padding: 3px;
-  font-size: 10px;
-  text-transform: uppercase;
-  position: absolute;
-  color: rgba(0, 0, 0, 0.5);
-}
 
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 3px;
+
+  padding: 3px;
+
+  font-size: 10px;
+  color: rgba(0, 0, 0, 50%);
+  text-transform: uppercase;
+}
 
 .editor-tokenComment {
   color: slategray;

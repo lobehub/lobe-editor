@@ -1,10 +1,16 @@
-import { $getSelection, $isRangeSelection, getDOMSelection, LexicalEditor, RangeSelection } from "lexical";
+import {
+  $getSelection,
+  $isRangeSelection,
+  LexicalEditor,
+  RangeSelection,
+  getDOMSelection,
+} from 'lexical';
 
 /**
  * Get the text content of the editor up to the anchor point of the selection.
  * 获取选区的锚点之前的文本内容
  * @param selection Selection object from Lexical editor
- * @returns 
+ * @returns
  */
 export function getTextUpToAnchor(selection: RangeSelection): string | null {
   const anchor = selection.anchor;
@@ -20,10 +26,10 @@ export function getTextUpToAnchor(selection: RangeSelection): string | null {
 }
 
 /**
- * 
+ *
  * @param editor Lexical editor instance
  * 获取编辑器中选区锚点之前的文本内容
- * @returns 
+ * @returns
  */
 export function getQueryTextForSearch(editor: LexicalEditor): string | null {
   let text = null;
@@ -71,24 +77,16 @@ export function getScrollParent(
 ): HTMLElement | HTMLBodyElement {
   let style = getComputedStyle(element);
   const excludeStaticParent = style.position === 'absolute';
-  const overflowRegex = includeHidden
-    ? /(auto|scroll|hidden)/
-    : /(auto|scroll)/;
+  const overflowRegex = includeHidden ? /(auto|scroll|hidden)/ : /(auto|scroll)/;
   if (style.position === 'fixed') {
     return document.body;
   }
-  for (
-    let parent: HTMLElement | null = element;
-    (parent = parent.parentElement);
-
-  ) {
+  for (let parent: HTMLElement | null = element; (parent = parent.parentElement); ) {
     style = getComputedStyle(parent);
     if (excludeStaticParent && style.position === 'static') {
       continue;
     }
-    if (
-      overflowRegex.test(style.overflow + style.overflowY + style.overflowX)
-    ) {
+    if (overflowRegex.test(style.overflow + style.overflowY + style.overflowX)) {
       return parent;
     }
   }
@@ -115,11 +113,10 @@ export const scrollIntoViewIfNeeded = (target: HTMLElement) => {
     });
   }
 
-  target.scrollIntoView({block: 'nearest'});
+  target.scrollIntoView({ block: 'nearest' });
 };
 
-export const PUNCTUATION =
-  '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
+export const PUNCTUATION = '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
 
 export function getBasicTypeaheadTriggerMatch(
   trigger: string,
@@ -136,33 +133,24 @@ export function getBasicTypeaheadTriggerMatch(
   },
 ) {
   return (text: string) => {
-      const validCharsSuffix = allowWhitespace ? '' : '\\s';
-      const validChars = '[^' + trigger + punctuation + validCharsSuffix + ']';
-      const TypeaheadTriggerRegex = new RegExp(
-        '(^|\\s|\\()(' +
-          '[' +
-          trigger +
-          ']' +
-          '((?:' +
-          validChars +
-          '){0,' +
-          maxLength +
-          '})' +
-          ')$',
-      );
-      const match = TypeaheadTriggerRegex.exec(text);
+    const validCharsSuffix = allowWhitespace ? '' : '\\s';
+    const validChars = '[^' + trigger + punctuation + validCharsSuffix + ']';
+    const TypeaheadTriggerRegex = new RegExp(
+      '(^|\\s|\\()(' + '[' + trigger + ']' + '((?:' + validChars + '){0,' + maxLength + '})' + ')$',
+    );
+    const match = TypeaheadTriggerRegex.exec(text);
 
-      if (match !== null) {
-        const maybeLeadingWhitespace = match[1];
-        const matchingString = match[3];
-        if (matchingString.length >= minLength) {
-          return {
-            leadOffset: match.index + maybeLeadingWhitespace.length,
-            matchingString,
-            replaceableString: match[2],
-          };
-        }
+    if (match !== null) {
+      const maybeLeadingWhitespace = match[1];
+      const matchingString = match[3];
+      if (matchingString.length >= minLength) {
+        return {
+          leadOffset: match.index + maybeLeadingWhitespace.length,
+          matchingString,
+          replaceableString: match[2],
+        };
       }
-      return null;
-    };
+    }
+    return null;
+  };
 }

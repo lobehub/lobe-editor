@@ -1,46 +1,46 @@
 .editor_listOrdered {
-    margin: 0;
-    padding: 0;
+  margin: 0;
+  padding: 0;
+  list-style-position: outside;
+
+  &.dp1 {
     list-style-position: outside;
+  }
 
-    &.dp1 {
-        list-style-position: outside;
-    }
+  &.dp2 {
+    list-style-type: upper-alpha;
+  }
 
-    &.dp2 {
-        list-style-type: upper-alpha;
-    }
+  &.dp3 {
+    list-style-type: lower-alpha;
+  }
 
-    &.dp3 {
-        list-style-type: lower-alpha;
-    }
-
-    &.dp4 {
-        list-style-type: upper-roman;
-    }
+  &.dp4 {
+    list-style-type: upper-roman;
+  }
 }
 
 .editor_listUnordered {
-    list-style-type: disc;
+  list-style-type: disc;
 }
 
 .editor_listItem {
-    margin-block: 0;
-    margin-inline: 32px;
+  margin-block: 0;
+  margin-inline: 32px;
 
+  font-family: var(--listitem-marker-font-family);
+  font-size: var(--listitem-marker-font-size);
+
+  background-color: var(--listitem-marker-background-color);
+
+  &::marker {
     font-family: var(--listitem-marker-font-family);
     font-size: var(--listitem-marker-font-size);
-
+    color: var(--listitem-marker-color);
     background-color: var(--listitem-marker-background-color);
-
-    &::marker{
-        font-family: var(--listitem-marker-font-family);
-        font-size: var(--listitem-marker-font-size);
-        color: var(--listitem-marker-color);
-        background-color: var(--listitem-marker-background-color);
-    }
+  }
 }
 
 .editor_listItemNested {
-    list-style-type: none;
+  list-style-type: none;
 }

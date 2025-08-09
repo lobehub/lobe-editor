@@ -1,9 +1,10 @@
 import type { FC } from 'react';
 import { useLayoutEffect } from 'react';
-import { ListPlugin } from '../plugin';
-import { MarkdownPlugin } from '@/plugins/markdown';
-import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
+import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
+import { MarkdownPlugin } from '@/plugins/markdown';
+
+import { ListPlugin } from '../plugin';
 import './index.less';
 
 export interface ReactListPluginProps {
