@@ -19,6 +19,8 @@ const Editor = memo<EditorProps>(
     plugins = [],
     slashOption = {},
     mentionOption = {},
+    variant,
+    theme,
     children,
   }) => {
     const enableSlash = Boolean(slashOption?.items && slashOption.items.length > 0);
@@ -32,6 +34,8 @@ const Editor = memo<EditorProps>(
             ...style,
             outline: 'none',
           }}
+          theme={theme}
+          variant={variant}
         >
           <ReactEditorContent content={content} placeholder={placeholder} type="json" />
         </ReactPlainText>
