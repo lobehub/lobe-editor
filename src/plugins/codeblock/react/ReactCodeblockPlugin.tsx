@@ -9,14 +9,16 @@ import './style.less';
 
 export interface ReactCodeblockPluginProps extends CodeblockPluginOptions {
   className?: string;
+  shikiTheme?: string;
 }
 
-export const ReactCodeblockPlugin: FC<ReactCodeblockPluginProps> = ({ theme }) => {
+export const ReactCodeblockPlugin: FC<ReactCodeblockPluginProps> = ({ theme, shikiTheme }) => {
   const [editor] = useLexicalComposerContext();
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(CodeblockPlugin, {
+      shikiTheme,
       theme,
     });
   }, []);

@@ -56,7 +56,7 @@ export default () => {
           ReactListPlugin,
           ReactLinkPlugin,
           ReactImagePlugin,
-          ReactCodeblockPlugin,
+          Editor.withProps(ReactCodeblockPlugin, { shikiTheme: 'dark-plus' }),
           ReactHRPlugin,
           ReactTablePlugin,
           Editor.withProps(ReactFilePlugin, {
