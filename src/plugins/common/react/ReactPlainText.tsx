@@ -6,9 +6,9 @@ import { LexicalErrorBoundary } from '@/editor-kernel/react/LexicalErrorBoundary
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { useDecorators } from '@/editor-kernel/react/useDecorators';
 
-import { CommonPlugin } from '../plugin';
+import { CommonPlugin, CommonPluginOptions } from '../plugin';
 import { Placeholder } from './Placeholder';
-import './index.less';
+import { useStyles } from './style';
 
 export interface IReactEditorContent {
   content: any;
@@ -25,19 +25,23 @@ export interface ReactPlainTextProps {
   className?: string;
   onChange?: (editor: IEditor) => void;
   style?: CSSProperties;
+  theme?: CommonPluginOptions['theme'];
 }
 
 export const ReactPlainText: FC<ReactPlainTextProps> = (props) => {
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const [editor] = useLexicalComposerContext();
   const decorators = useDecorators(editor, LexicalErrorBoundary);
+  const { styles } = useStyles();
 
   const {
     props: { type, content, placeholder },
   } = Children.only(props.children);
 
   useLayoutEffect(() => {
-    editor.registerPlugin(CommonPlugin);
+    editor.registerPlugin(CommonPlugin, {
+      theme: props.theme ? { ...styles, ...props.theme } : styles,
+    });
   }, []);
 
   useEffect(() => {

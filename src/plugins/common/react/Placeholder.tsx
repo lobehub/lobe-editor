@@ -5,6 +5,7 @@ import { CSSProperties, ReactNode, useState } from 'react';
 import { useLexicalEditor } from '@/editor-kernel/react';
 
 import { $canShowPlaceholderCurry } from '../utils';
+import { useStyles } from './Placeholder.style';
 
 export interface IPlaceholder {
   children: ReactNode;
@@ -21,6 +22,7 @@ function canShowPlaceholderFromCurrentEditorState(editor: LexicalEditor): boolea
 
 export const Placeholder = ({ children, style }: IPlaceholder) => {
   const [canShowPlaceholder, setCanShowPlaceholder] = useState(() => false);
+  const { styles } = useStyles();
 
   useLexicalEditor((editor) => {
     setCanShowPlaceholder(() => canShowPlaceholderFromCurrentEditorState(editor));
@@ -44,7 +46,7 @@ export const Placeholder = ({ children, style }: IPlaceholder) => {
   }
 
   return (
-    <div className="editor_placeholder" style={style}>
+    <div className={styles.placeholder} style={style}>
       {children}
     </div>
   );

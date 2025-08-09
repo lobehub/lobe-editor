@@ -21,11 +21,22 @@ import { IMarkdownShortCutService } from '@/plugins/markdown';
 import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
 import { createBlockNode } from '../utils';
-import './index.css';
 import { registerHeaderBackspace } from './register';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface CommonPluginOptions {}
+export interface CommonPluginOptions {
+  theme?: {
+    quote?: string;
+    textBold?: string;
+    textCode?: string;
+    textHighlight?: string;
+    textItalic?: string;
+    textStrikethrough?: string;
+    textSubscript?: string;
+    textSuperscript?: string;
+    textUnderline?: string;
+    textUnderlineStrikethrough?: string;
+  };
+}
 
 export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   extends KernelPlugin
@@ -33,7 +44,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 {
   static pluginName = 'CommonPlugin';
 
-  constructor(protected kernel: IEditorKernel) {
+  constructor(
+    protected kernel: IEditorKernel,
+    public config: CommonPluginOptions = {},
+  ) {
     super();
     // Register the JSON data source
     kernel.registerDataSource(new JSONDataSource('json'));
@@ -41,23 +55,22 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     kernel.registerDataSource(new TextDataSource('text'));
     // Register common nodes and themes
     kernel.registerNodes([HeadingNode, QuoteNode]);
-    kernel.registerThemes({
-      quote: 'editor_quote',
-      text: {
-        bold: 'editor_textBold',
-        capitalize: 'editor_textCapitalize',
-        code: 'editor_textCode',
-        highlight: 'editor_textHighlight',
-        italic: 'editor_textItalic',
-        lowercase: 'editor_textLowercase',
-        strikethrough: 'editor_textStrikethrough',
-        subscript: 'editor_textSubscript',
-        superscript: 'editor_textSuperscript',
-        underline: 'editor_textUnderline',
-        underlineStrikethrough: 'editor_textUnderlineStrikethrough',
-        uppercase: 'editor_textUppercase',
-      },
-    });
+    if (config?.theme) {
+      kernel.registerThemes({
+        quote: config.theme.quote,
+        text: {
+          bold: config.theme.textBold,
+          code: config.theme.textCode,
+          highlight: config.theme.textHighlight,
+          italic: config.theme.textItalic,
+          strikethrough: config.theme.textStrikethrough,
+          subscript: config.theme.textSubscript,
+          superscript: config.theme.textSuperscript,
+          underline: config.theme.textUnderline,
+          underlineStrikethrough: config.theme.textUnderlineStrikethrough,
+        },
+      });
+    }
     this.registerMarkdown(kernel);
   }
 
