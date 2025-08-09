@@ -14,6 +14,7 @@ import {
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/editor-kernel/types';
 
+import MarkdownDataSource from '../data-source/markdown-data-source';
 import { IMarkdownShortCutService, MarkdownShortCutService } from '../service/shortcut';
 import { canContainTransformableMarkdown } from '../utils';
 
@@ -30,6 +31,8 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
   constructor(protected kernel: IEditorKernel) {
     super();
     kernel.registerService(IMarkdownShortCutService, this.service);
+    // @todo 待实现
+    kernel.registerDataSource(new MarkdownDataSource('markdown', this.service));
   }
 
   onInit(editor: LexicalEditor): void {

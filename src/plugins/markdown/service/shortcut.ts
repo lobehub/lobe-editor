@@ -81,9 +81,35 @@ export type ElementTransformer = {
 
 export type Transformer = ElementTransformer | TextFormatTransformer | TextMatchTransformer;
 
+export interface IMarkdownWriterContext {
+  // Define the context properties needed for the markdown writer
+  /**
+   * 直接输出
+   * @param line
+   * @returns
+   */
+  appendLine: (line: string) => void;
+  /**
+   * 对子元素进行包裹
+   * @param before
+   * @param after
+   * @returns
+   */
+  wrap: (before: string, after: string) => string;
+}
+
 export interface IMarkdownShortCutService {
   registerMarkdownShortCut(transformer: Transformer): void;
   registerMarkdownShortCuts(transformers: Transformer[]): void;
+  /**
+   * 注册 Markdown 输出器
+   * @param type Lexical Node type
+   * @param writer
+   */
+  registerMarkdownWriter(
+    type: string,
+    writer: (ctx: IMarkdownWriterContext, node: LexicalNode) => void,
+  ): void;
 }
 
 export const IMarkdownShortCutService: IServiceID<IMarkdownShortCutService> =
@@ -375,6 +401,11 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
   private textFormatTransformers: Array<TextFormatTransformer> = [];
   private textMatchTransformers: Array<TextMatchTransformer> = [];
 
+  private _markdownWriters: Record<
+    string,
+    (ctx: IMarkdownWriterContext, node: LexicalNode) => void
+  > = {};
+
   private _textFormatTransformersByTrigger: Readonly<
     Record<string, ReadonlyArray<TextFormatTransformer>>
   > | null = null;
@@ -480,5 +511,15 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
     }
 
     return false;
+  }
+
+  registerMarkdownWriter(
+    type: string,
+    writer: (ctx: IMarkdownWriterContext, node: LexicalNode) => void,
+  ): void {
+    if (!this._markdownWriters[type]) {
+      this._markdownWriters[type] = writer;
+    }
+    throw new Error(`Markdown writer for type "${type}" is already registered.`);
   }
 }
