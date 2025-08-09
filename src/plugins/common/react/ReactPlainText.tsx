@@ -9,6 +9,7 @@ import { useDecorators } from '@/editor-kernel/react/useDecorators';
 import { CommonPlugin, CommonPluginOptions } from '../plugin';
 import { Placeholder } from './Placeholder';
 import { useStyles } from './style';
+import { useThemeStyles } from './theme.style';
 
 export interface IReactEditorContent {
   content: any;
@@ -25,22 +26,44 @@ export interface ReactPlainTextProps {
   className?: string;
   onChange?: (editor: IEditor) => void;
   style?: CSSProperties;
-  theme?: CommonPluginOptions['theme'];
+  theme?: CommonPluginOptions['theme'] & {
+    fontSize?: number;
+    headerMultiple?: number;
+    lineHeight?: number;
+    marginMultiple?: number;
+  };
+  variant?: 'default' | 'chat';
 }
 
-export const ReactPlainText: FC<ReactPlainTextProps> = (props) => {
+export const ReactPlainText: FC<ReactPlainTextProps> = ({
+  style,
+  children,
+  theme = {},
+  onChange,
+  className,
+  variant,
+}) => {
+  const isChat = variant === 'chat';
+  const {
+    fontSize = isChat ? 14 : 16,
+    headerMultiple = isChat ? 1 : 0.25,
+    lineHeight = isChat ? 1.8 : 1.6,
+    marginMultiple = isChat ? 1 : 2,
+    ...restTheme
+  } = theme;
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const [editor] = useLexicalComposerContext();
   const decorators = useDecorators(editor, LexicalErrorBoundary);
-  const { styles } = useStyles();
+  const { styles: themeStyles } = useThemeStyles();
+  const { cx, styles } = useStyles({ fontSize, headerMultiple, lineHeight, marginMultiple });
 
   const {
     props: { type, content, placeholder },
-  } = Children.only(props.children);
+  } = Children.only(children);
 
   useLayoutEffect(() => {
     editor.registerPlugin(CommonPlugin, {
-      theme: props.theme ? { ...styles, ...props.theme } : styles,
+      theme: restTheme ? { ...themeStyles, ...restTheme } : themeStyles,
     });
   }, []);
 
@@ -54,19 +77,19 @@ export const ReactPlainText: FC<ReactPlainTextProps> = (props) => {
     editor.setDocument(type, content);
 
     return editor.getLexicalEditor()?.registerUpdateListener(() => {
-      props.onChange?.(editor);
+      onChange?.(editor);
     });
   }, []);
 
   return (
     <>
       <div
-        className={props.className}
+        className={cx(styles.root, className)}
         contentEditable
         ref={editorContainerRef}
-        style={props.style}
+        style={style}
       />
-      <Placeholder style={props.style}>{placeholder}</Placeholder>
+      <Placeholder style={style}>{placeholder}</Placeholder>
       {decorators}
     </>
   );

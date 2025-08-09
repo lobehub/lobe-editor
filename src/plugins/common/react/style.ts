@@ -1,70 +1,32 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix */
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(() => ({
-  indent: {
-    '--lexical-indent-base-value': '40px',
-  },
-  textBold: {
-    fontWeight: 'bold',
-  },
-  textItalic: {
-    fontStyle: 'italic',
-  },
-  textUnderline: {
-    textDecoration: 'underline',
-  },
-  textStrikethrough: {
-    textDecoration: 'line-through',
-  },
-  textUnderlineStrikethrough: {
-    textDecoration: 'underline line-through',
-  },
-  quote: {
-    margin: '0 0 10px 20px',
-    fontSize: '15px',
-    color: '#65676b',
-    borderLeftColor: '#ced0d4',
-    borderLeftWidth: '4px',
-    borderLeftStyle: 'solid',
-    paddingLeft: '16px',
-  },
-}));
+export const useStyles = createStyles(
+  (
+    { token, css },
+    {
+      fontSize = 16,
+      headerMultiple = 1,
+      marginMultiple = 2,
+      lineHeight = 1.8,
+    }: { fontSize?: number; headerMultiple?: number; lineHeight?: number; marginMultiple?: number },
+  ) => ({
+    root: css`
+      --lobe-markdown-font-size: ${fontSize}px;
+      --lobe-markdown-header-multiple: ${headerMultiple};
+      --lobe-markdown-margin-multiple: ${marginMultiple};
+      --lobe-markdown-line-height: ${lineHeight};
+      --lobe-markdown-border-radius: ${token.borderRadiusLG};
+      --lobe-markdown-border-color: ${token.colorFillQuaternary};
 
-// .editor_indent {
-//   --lexical-indent-base-value: 40px;
-// }
-// .editor_textBold {
-//   font-weight: bold;
-// }
-// .editor_paragraph mark {
-//   background-color: unset;
-// }
-// .editor_textHighlight {
-//   background: rgba(255, 212, 0, 0.14);
-//   border-bottom: 2px solid rgba(255, 212, 0, 0.3);
-// }
-// .editor_textItalic {
-//   font-style: italic;
-// }
-// .editor_textUnderline {
-//   text-decoration: underline;
-// }
+      position: relative;
 
-// .editor_textStrikethrough {
-//   text-decoration: line-through;
-// }
+      width: 100%;
+      max-width: 100%;
 
-// .editor_textUnderlineStrikethrough {
-//   text-decoration: underline line-through;
-// }
-
-// .editor_quote {
-//   margin: 0 0 10px 20px;
-//   font-size: 15px;
-//   color: #65676b;
-//   border-left-color: #ced0d4;
-//   border-left-width: 4px;
-//   border-left-style: solid;
-//   padding-left: 16px;
-// }
+      font-size: var(--lobe-markdown-font-size);
+      line-height: var(--lobe-markdown-line-height);
+      word-break: break-word;
+    `,
+  }),
+);

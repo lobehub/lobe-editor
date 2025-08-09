@@ -2,21 +2,13 @@ import { createStyles } from 'antd-style';
 
 export const useStyles = createStyles(({ css, token }) => ({
   horizontalRule: css`
-    margin-block: ${token.margin}px;
-    margin-inline: 0;
-    padding: 2px;
-    border: none;
-
-    &::after {
-      content: '';
-
-      display: block;
-
-      height: 2px;
-
-      line-height: 2px;
-
-      background-color: ${token.colorBorder};
-    }
+    width: 100%;
+    margin-block: calc(var(--lobe-markdown-margin-multiple) * 1.5em);
+    border-color: ${token.colorBorder};
+    border-style: dashed;
+    border-width: 1px;
+    border-block-start: none;
+    border-inline-start: none;
+    border-inline-end: none;
   `,
 }));
