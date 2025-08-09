@@ -5,7 +5,7 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { MarkdownPlugin } from '@/plugins/markdown';
 
 import { CodeblockPlugin, CodeblockPluginOptions } from '../plugin';
-import './style.less';
+import { useStyles } from './style';
 
 export interface ReactCodeblockPluginProps extends CodeblockPluginOptions {
   className?: string;
@@ -14,12 +14,15 @@ export interface ReactCodeblockPluginProps extends CodeblockPluginOptions {
 
 export const ReactCodeblockPlugin: FC<ReactCodeblockPluginProps> = ({ theme, shikiTheme }) => {
   const [editor] = useLexicalComposerContext();
+  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(CodeblockPlugin, {
       shikiTheme,
-      theme,
+      theme: theme || {
+        code: styles.editorCode,
+      },
     });
   }, []);
 
