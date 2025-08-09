@@ -1,5 +1,6 @@
 import {
   IEditor,
+  INSERT_LINK_COMMAND,
   INSERT_TABLE_COMMAND,
   ReactCodeblockPlugin,
   ReactHRPlugin,
@@ -98,6 +99,16 @@ export default () => {
                 });
               },
               value: 'set-text-content',
+            },
+            {
+              label: 'InsertLink',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_LINK_COMMAND, { url: 'https://example.com' });
+                queueMicrotask(() => {
+                  editor.focus();
+                });
+              },
+              value: 'insert-link',
             },
           ],
         }}

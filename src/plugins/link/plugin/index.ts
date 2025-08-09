@@ -1,10 +1,11 @@
-import { $createTextNode } from 'lexical';
+import { $createTextNode, LexicalEditor } from 'lexical';
 
 import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 
+import { registerLinkCommand } from '../command';
 import { $createLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -41,5 +42,9 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
       trigger: ')',
       type: 'text-match',
     });
+  }
+
+  onInit(editor: LexicalEditor): void {
+    this.register(registerLinkCommand(editor));
   }
 };

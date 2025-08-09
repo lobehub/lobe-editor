@@ -1,11 +1,18 @@
 import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { mergeRegister } from '@lexical/utils';
 import { Input } from '@lobehub/ui';
-import { COMMAND_PRIORITY_EDITOR, KEY_ESCAPE_COMMAND, createCommand } from 'lexical';
-import type { ChangeEvent, FC } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import type { InputRef } from 'antd';
+import {
+  COMMAND_PRIORITY_EDITOR,
+  COMMAND_PRIORITY_NORMAL,
+  KEY_ESCAPE_COMMAND,
+  KEY_TAB_COMMAND,
+  createCommand,
+} from 'lexical';
+import type { ChangeEvent, FC, KeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useLexicalEditor } from '@/editor-kernel/react';
+import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
 
 import { LinkNode } from '../node/LinkNode';
 
@@ -16,8 +23,11 @@ export const EDIT_LINK_COMMAND = createCommand<{
 
 export const LinkEdit: FC = () => {
   const divRef = useRef<HTMLDivElement>(null);
+  const linkNodeRef = useRef<LinkNode | null>(null);
+  const linkInputRef = useRef<InputRef | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkDom, setLinkDom] = useState<HTMLElement | null>(null);
+  const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
     if (!linkDom || !divRef.current) {
@@ -34,6 +44,37 @@ export const LinkEdit: FC = () => {
     });
   }, [linkDom]);
 
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      const lexicalEditor = editor.getLexicalEditor();
+      if (!linkNodeRef.current || !linkInputRef.current || !lexicalEditor) {
+        return;
+      }
+
+      const linkNode = linkNodeRef.current;
+      const input = linkInputRef.current;
+      const inputDOM = input.nativeElement as HTMLInputElement;
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const currentURL = lexicalEditor.read(() => linkNode.getURL());
+        if (currentURL !== inputDOM.value) {
+          lexicalEditor.update(() => {
+            linkNode.setURL(inputDOM.value);
+            lexicalEditor.focus();
+          });
+        } else {
+          lexicalEditor.focus();
+        }
+        return;
+      } else if (event.key === 'Escape' || event.key === 'Tab') {
+        event.preventDefault();
+        lexicalEditor.focus();
+        return;
+      }
+    },
+    [linkNodeRef, linkInputRef],
+  );
+
   useLexicalEditor((editor) => {
     return mergeRegister(
       editor.registerCommand(
@@ -48,6 +89,7 @@ export const LinkEdit: FC = () => {
             }
             return false;
           }
+          linkNodeRef.current = payload.linkNode;
           setLinkUrl(payload.linkNode.getURL());
           setLinkDom(payload.linkNodeDOM);
           return true;
@@ -61,11 +103,25 @@ export const LinkEdit: FC = () => {
             divRef.current.style.left = '-9999px';
             divRef.current.style.top = '-9999px';
           }
+          linkNodeRef.current = null;
           setLinkUrl('');
           setLinkDom(null);
           return true;
         },
         COMMAND_PRIORITY_EDITOR,
+      ),
+      editor.registerCommand(
+        KEY_TAB_COMMAND,
+        (payload) => {
+          if (linkNodeRef.current && linkInputRef.current) {
+            payload.stopImmediatePropagation();
+            payload.preventDefault();
+            linkInputRef.current.focus();
+            return true;
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_NORMAL,
       ),
     );
   }, []);
@@ -77,7 +133,9 @@ export const LinkEdit: FC = () => {
           // Handle link URL change
           setLinkUrl(e.target.value);
         }}
+        onKeyDown={handleKeyDown}
         placeholder="Enter link URL"
+        ref={linkInputRef}
         style={{ width: '100%' }}
         value={linkUrl}
       />

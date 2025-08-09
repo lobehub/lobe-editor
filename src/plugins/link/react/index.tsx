@@ -48,11 +48,7 @@ export const ReactLinkPlugin: React.FC<ReactLinkPluginProps> = ({ validateUrl, a
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
-    editor.registerPlugin(LinkPlugin, {
-      decorator() {
-        return <hr className="editor_horizontalRule" />;
-      },
-    });
+    editor.registerPlugin(LinkPlugin);
   }, []);
 
   useLexicalEditor((editor) => {
