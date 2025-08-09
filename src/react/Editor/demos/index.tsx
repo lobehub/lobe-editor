@@ -10,6 +10,8 @@ import {
   ReactTablePlugin,
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
+import { Icon } from '@lobehub/ui';
+import * as LucideIcon from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { INSERT_FILE_COMMAND, ReactFilePlugin } from '@/plugins/file';
@@ -45,7 +47,12 @@ export default () => {
         mentionOption={{
           items: [
             {
-              label: 'XX',
+              label: (
+                <div>
+                  <Icon icon={LucideIcon.NotebookIcon} />
+                  123123
+                </div>
+              ),
               value: 'XX',
             },
           ],

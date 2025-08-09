@@ -25,6 +25,16 @@ const Editor = memo<EditorProps>(
     const enableMention = Boolean(mentionOption?.items && mentionOption.items.length > 0);
     return (
       <ReactEditor editorRef={editorRef}>
+        <ReactPlainText
+          className={className}
+          onChange={onChange}
+          style={{
+            ...style,
+            outline: 'none',
+          }}
+        >
+          <ReactEditorContent content={content} placeholder={placeholder} type="json" />
+        </ReactPlainText>
         {plugins.map((plugin, index) => {
           const withNoProps = typeof plugin === 'function';
           if (withNoProps) return createElement(plugin, { key: index });
@@ -40,16 +50,6 @@ const Editor = memo<EditorProps>(
           </ReactSlashPlugin>
         )}
         {children}
-        <ReactPlainText
-          className={className}
-          onChange={onChange}
-          style={{
-            ...style,
-            outline: 'none',
-          }}
-        >
-          <ReactEditorContent content={content} placeholder={placeholder} type="json" />
-        </ReactPlainText>
       </ReactEditor>
     );
   },

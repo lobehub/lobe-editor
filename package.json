@@ -79,6 +79,7 @@
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.3",
+    "@floating-ui/react": "^0.27.15",
     "@lexical/code": "^0.34.0",
     "@lexical/code-shiki": "^0.34.0",
     "@lexical/dragon": "^0.34.0",

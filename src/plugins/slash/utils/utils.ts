@@ -3,6 +3,7 @@ import {
   $isRangeSelection,
   LexicalEditor,
   RangeSelection,
+  TextNode,
   getDOMSelection,
 } from 'lexical';
 
@@ -153,4 +154,57 @@ export function getBasicTypeaheadTriggerMatch(
     }
     return null;
   };
+}
+
+/**
+ * Walk backwards along user input and forward through entity title to try
+ * and replace more of the user's text with entity.
+ */
+function getFullMatchOffset(documentText: string, entryText: string, offset: number): number {
+  let triggerOffset = offset;
+  for (let i = triggerOffset; i <= entryText.length; i++) {
+    if (documentText.slice(-i) === entryText.slice(0, Math.max(0, i))) {
+      triggerOffset = i;
+    }
+  }
+  return triggerOffset;
+}
+
+/**
+ * Split Lexical TextNode and return a new TextNode only containing matched text.
+ * Common use cases include: removing the node, replacing with a new node.
+ */
+export function $splitNodeContainingQuery(match: {
+  leadOffset: number;
+  matchingString: string;
+  replaceableString: string;
+}): TextNode | null {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+    return null;
+  }
+  const anchor = selection.anchor;
+  if (anchor.type !== 'text') {
+    return null;
+  }
+  const anchorNode = anchor.getNode();
+  if (!anchorNode.isSimpleText()) {
+    return null;
+  }
+  const selectionOffset = anchor.offset;
+  const textContent = anchorNode.getTextContent().slice(0, selectionOffset);
+  const characterOffset = match.replaceableString.length;
+  const queryOffset = getFullMatchOffset(textContent, match.matchingString, characterOffset);
+  const startOffset = selectionOffset - queryOffset;
+  if (startOffset < 0) {
+    return null;
+  }
+  let newNode;
+  if (startOffset === 0) {
+    [newNode] = anchorNode.splitText(selectionOffset);
+  } else {
+    [, newNode] = anchorNode.splitText(startOffset, selectionOffset);
+  }
+
+  return newNode;
 }

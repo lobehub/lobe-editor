@@ -4,21 +4,29 @@ import type { IEditorKernel, IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorPluginConstructor } from '@/editor-kernel/types';
 
-import { ISlashService, SlashOptions, SlashService } from '../service/i-slash-service';
+import {
+  ISlashOption,
+  ISlashService,
+  SlashOptions,
+  SlashService,
+} from '../service/i-slash-service';
 import { getQueryTextForSearch, tryToPositionRange } from '../utils/utils';
+
+export interface ITriggerContext {
+  getRect: () => DOMRect;
+  items: Array<ISlashOption>;
+  match?: {
+    leadOffset: number;
+    matchingString: string;
+    replaceableString: string;
+  } | null;
+  trigger: SlashOptions['trigger'];
+}
 
 export interface SlashPluginOptions {
   slashOptions?: SlashOptions[];
   triggerClose: () => void;
-  triggerOpen: (ctx: {
-    getRect: () => DOMRect;
-    items: Array<any>;
-    match?: {
-      leadOffset: number;
-      matchingString: string;
-      replaceableString: string;
-    } | null;
-  }) => void;
+  triggerOpen: (ctx: ITriggerContext) => void;
 }
 
 export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
@@ -89,6 +97,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
               getRect: () => range.getBoundingClientRect(),
               items: finalItems,
               match,
+              trigger: slashOptions.trigger,
             });
             return;
           }

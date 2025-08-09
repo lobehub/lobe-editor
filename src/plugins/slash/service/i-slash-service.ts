@@ -6,17 +6,17 @@ import { IEditor, type IEditorKernel, type IServiceID, genServiceId } from '@/ed
 
 import { getBasicTypeaheadTriggerMatch } from '../utils/utils';
 
+export interface ISlashOption {
+  icon?: string;
+  label: string | unknown;
+  onSelect?: (editor: IEditor, matchingString: string) => void;
+  value: string;
+}
+
 export interface SlashOptions {
   allowWhitespace?: boolean;
   // 触发符号
-  items: Array<{
-    // 可选的图标
-    icon?: string;
-    label: string;
-    onSelect?: (editor: IEditor, matchingString: string) => void;
-    // 显示的标签
-    value: string;
-  }>;
+  items: Array<ISlashOption>;
   maxLength?: number;
   minLength?: number;
   punctuation?: string;
