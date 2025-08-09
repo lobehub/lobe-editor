@@ -15,7 +15,7 @@ import { INSERT_FILE_COMMAND, ReactFilePlugin } from '@/plugins/file';
 
 import Container from './Container';
 import { openFileSelector } from './actions';
-import { content } from './data';
+import content from './data.json';
 
 export default () => {
   const editorRef = Editor.useEditor();
