@@ -4,10 +4,16 @@ import {
   $getSelection,
   $isRangeSelection,
   $isTextNode,
+  COMMAND_PRIORITY_EDITOR,
   COMMAND_PRIORITY_NORMAL,
+  FORMAT_TEXT_COMMAND,
   KEY_BACKSPACE_COMMAND,
+  KEY_DOWN_COMMAND,
   LexicalEditor,
+  isModifierMatch,
 } from 'lexical';
+
+import { CONTROL_OR_META, CONTROL_OR_META_AND_SHIFT } from '@/common/sys';
 
 export function registerHeaderBackspace(editor: LexicalEditor) {
   return editor.registerCommand(
@@ -57,5 +63,30 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
       return false;
     },
     COMMAND_PRIORITY_NORMAL,
+  );
+}
+
+export function registerRichKeydown(editor: LexicalEditor) {
+  return editor.registerCommand(
+    KEY_DOWN_COMMAND,
+    (payload) => {
+      // ctrl + shift + x
+      if (isModifierMatch(payload, CONTROL_OR_META_AND_SHIFT) && payload.code === 'KeyX') {
+        // Handle the custom key combination
+        payload.stopImmediatePropagation();
+        payload.preventDefault();
+        editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
+        return true;
+      }
+      // ctrl + e
+      if (isModifierMatch(payload, CONTROL_OR_META) && payload.code === 'KeyE') {
+        payload.stopImmediatePropagation();
+        payload.preventDefault();
+        editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code');
+        return true;
+      }
+      return false;
+    },
+    COMMAND_PRIORITY_EDITOR,
   );
 }

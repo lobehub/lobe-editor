@@ -21,7 +21,7 @@ import { IMarkdownShortCutService } from '@/plugins/markdown';
 import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
 import { createBlockNode } from '../utils';
-import { registerHeaderBackspace } from './register';
+import { registerHeaderBackspace, registerRichKeydown } from './register';
 
 export interface CommonPluginOptions {
   theme?: {
@@ -156,6 +156,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerDragonSupport(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
       registerHeaderBackspace(editor),
+      registerRichKeydown(editor),
     );
   }
 
