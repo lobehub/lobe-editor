@@ -1,8 +1,8 @@
 import { Collapse, Highlighter } from '@lobehub/ui';
 import { PropsWithChildren, memo } from 'react';
 
-const Container = memo<PropsWithChildren<{ json: string; text: string }>>(
-  ({ children, json, text }) => {
+const Container = memo<PropsWithChildren<{ json: string; markdown: string }>>(
+  ({ children, json, markdown }) => {
     return (
       <Collapse
         activeKey={['editor', 'text', 'json']}
@@ -15,8 +15,8 @@ const Container = memo<PropsWithChildren<{ json: string; text: string }>>(
           },
           {
             children: (
-              <Highlighter language={'text'} style={{ fontSize: 12 }} variant={'borderless'}>
-                {text}
+              <Highlighter language={'markdown'} style={{ fontSize: 12 }} variant={'borderless'}>
+                {markdown}
               </Highlighter>
             ),
             key: 'text',

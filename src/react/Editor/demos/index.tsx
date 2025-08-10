@@ -26,12 +26,12 @@ import content from './data.json';
 export default () => {
   const editorRef = Editor.useEditor();
   const [json, setJson] = useState('');
-  const [text, setText] = useState('');
+  const [markdown, setMarkdown] = useState('');
 
   const handleChange = (editor: IEditor) => {
-    const textContent = editor.getDocument('text') as unknown as string;
+    const markdownContent = editor.getDocument('markdown') as unknown as string;
     const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
-    setText(textContent || '');
+    setMarkdown(markdownContent || '');
     setJson(JSON.stringify(jsonContent || {}, null, 2));
   };
 
@@ -41,7 +41,7 @@ export default () => {
   }, []);
 
   return (
-    <Container json={json} text={text}>
+    <Container json={json} markdown={markdown}>
       <Editor
         content={content}
         editorRef={editorRef}
