@@ -1,4 +1,6 @@
 import {
+  $createListNode,
+  $isListItemNode,
   ListItemNode,
   ListNode,
   registerList,
@@ -6,11 +8,16 @@ import {
 } from '@lexical/list';
 import { cx } from 'antd-style';
 import {
+  $createParagraphNode,
   $getSelection,
   $isRangeSelection,
+  $isRootNode,
+  $isTextNode,
   COMMAND_PRIORITY_EDITOR,
+  COMMAND_PRIORITY_LOW,
   INDENT_CONTENT_COMMAND,
   INSERT_TAB_COMMAND,
+  KEY_BACKSPACE_COMMAND,
   KEY_TAB_COMMAND,
   LexicalCommand,
   LexicalEditor,
@@ -88,7 +95,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
   onInit(editor: LexicalEditor): void {
     this.register(registerList(editor));
     this.register(registerListStrictIndentTransform(editor));
-    this.register(
+    this.registerClears(
       editor.registerCommand<KeyboardEvent>(
         KEY_TAB_COMMAND,
         (event) => {
@@ -105,6 +112,60 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
           return editor.dispatchCommand(command, undefined);
         },
         COMMAND_PRIORITY_EDITOR,
+      ),
+      editor.registerCommand<KeyboardEvent>(
+        KEY_BACKSPACE_COMMAND,
+        (event) => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+            return false;
+          }
+          const anchor = selection.anchor;
+          if (anchor.offset !== 0) {
+            return false;
+          }
+          const anchorNode = anchor.getNode();
+          let listItemNode: ListItemNode | undefined;
+          if ($isTextNode(anchorNode)) {
+            // 非最前面的文本节点不处理
+            if (anchorNode.getPreviousSibling()) {
+              return false;
+            }
+            const parent = anchorNode.getParentOrThrow();
+            if (!$isListItemNode(parent)) {
+              return false;
+            }
+            listItemNode = parent;
+          }
+          if (!listItemNode || !$isRootNode(listItemNode.getParent()?.getParent())) {
+            return false;
+          }
+          const listNode = listItemNode.getParentOrThrow() as ListNode;
+          console.info(listNode, listItemNode);
+          editor.update(() => {
+            let newlistNode: ListNode | undefined;
+            let next = listItemNode.getNextSibling();
+            if (next) {
+              newlistNode = $createListNode(listNode.getListType(), listItemNode.getValue());
+            }
+            while (next && newlistNode) {
+              next.remove();
+              newlistNode.append(next);
+              next = next.getNextSibling();
+            }
+            const p = listItemNode.replace($createParagraphNode(), true);
+            p.remove();
+            listNode.insertAfter(p);
+            if (newlistNode) {
+              p.insertAfter(newlistNode);
+            }
+            p.select(0, 0);
+          });
+          event.stopImmediatePropagation();
+          event.preventDefault();
+          return true;
+        },
+        COMMAND_PRIORITY_LOW,
       ),
     );
   }
