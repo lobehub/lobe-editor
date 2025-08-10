@@ -10,10 +10,11 @@ import {
 import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
+import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IUploadService } from '@/plugins/upload';
 
 import { registerFileCommand } from '../command';
-import { $createFileNode, FileNode } from '../node/FileNode';
+import { $createFileNode, $isFileNode, FileNode } from '../node/FileNode';
 import { registerFileNodeSelectionObserver } from '../utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -41,9 +42,25 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
     if (config?.theme) {
       kernel.registerThemes(config?.theme);
     }
-    kernel.registerDecorator('file', (node: DecoratorNode<any>, editor: LexicalEditor) => {
-      return config?.decorator ? config.decorator(node as FileNode, editor) : null;
-    });
+    kernel.registerDecorator(
+      FileNode.getType(),
+      (node: DecoratorNode<any>, editor: LexicalEditor) => {
+        return config?.decorator ? config.decorator(node as FileNode, editor) : null;
+      },
+    );
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(FileNode.getType(), (ctx, node) => {
+        if ($isFileNode(node)) {
+          if (node.status === 'pending') {
+            ctx.appendLine(`Uploading ${node.name}...`);
+          } else if (node.status === 'error') {
+            ctx.appendLine(`Failed to upload ${node.name}: ${node.message}`);
+          } else {
+            ctx.appendLine(`[${node.name}](${node.fileUrl})`);
+          }
+        }
+      });
   }
 
   onInit(editor: LexicalEditor): void {

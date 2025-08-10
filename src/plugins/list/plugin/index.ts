@@ -1,11 +1,13 @@
 import {
   $createListNode,
   $isListItemNode,
+  $isListNode,
   ListItemNode,
   ListNode,
   registerList,
   registerListStrictIndentTransform,
 } from '@lexical/list';
+import { $getNearestNodeOfType } from '@lexical/utils';
 import { cx } from 'antd-style';
 import {
   $createParagraphNode,
@@ -90,6 +92,56 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
       replace: listReplace('check'),
       type: 'element',
     });
+
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(ListNode.getType(), (ctx, node) => {
+        if ($isListNode(node)) {
+          ctx.wrap('', '\n');
+        }
+      });
+
+    const getLevel = (node: ListNode | null): number => {
+      if (!node) return 0;
+      if ($isRootNode(node.getParent())) {
+        return 0;
+      }
+      const parent = node.getParent();
+      if (!parent) {
+        return 0;
+      }
+      return getLevel($getNearestNodeOfType(parent, ListNode)) + 1;
+    };
+
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(ListItemNode.getType(), (ctx, node) => {
+        const parent = node.getParent();
+        if ($isListItemNode(node) && $isListNode(parent)) {
+          if ($isListNode(node.getFirstChild())) {
+            return;
+          }
+          const level = getLevel(parent);
+          const prefix = '    '.repeat(level);
+          switch (parent.getListType()) {
+            case 'bullet': {
+              ctx.wrap(prefix + '- ', '\n');
+              break;
+            }
+            case 'number': {
+              ctx.wrap(`${prefix}${node.getValue()}. `, '\n');
+              break;
+            }
+            case 'check': {
+              ctx.wrap(`${prefix}[${node.getChecked() ? 'x' : ' '}] `, '\n');
+              break;
+            }
+            default: {
+              break;
+            }
+          }
+        }
+      });
   }
 
   onInit(editor: LexicalEditor): void {

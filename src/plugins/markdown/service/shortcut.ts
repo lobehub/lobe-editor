@@ -89,13 +89,14 @@ export interface IMarkdownWriterContext {
    * @returns
    */
   appendLine: (line: string) => void;
+
   /**
    * 对子元素进行包裹
    * @param before
    * @param after
    * @returns
    */
-  wrap: (before: string, after: string) => string;
+  wrap: (before: string, after: string) => void;
 }
 
 export interface IMarkdownShortCutService {
@@ -406,6 +407,10 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
     (ctx: IMarkdownWriterContext, node: LexicalNode) => void
   > = {};
 
+  get markdownWriters() {
+    return this._markdownWriters;
+  }
+
   private _textFormatTransformersByTrigger: Readonly<
     Record<string, ReadonlyArray<TextFormatTransformer>>
   > | null = null;
@@ -519,6 +524,7 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
   ): void {
     if (!this._markdownWriters[type]) {
       this._markdownWriters[type] = writer;
+      return;
     }
     throw new Error(`Markdown writer for type "${type}" is already registered.`);
   }

@@ -1,4 +1,10 @@
-import { $createCodeNode, CodeHighlightNode, CodeNode } from '@lexical/code';
+import {
+  $createCodeNode,
+  $isCodeHighlightNode,
+  $isCodeNode,
+  CodeHighlightNode,
+  CodeNode,
+} from '@lexical/code';
 import { ShikiTokenizer, registerCodeHighlighting } from '@lexical/code-shiki';
 import { LexicalEditor } from 'lexical';
 
@@ -45,6 +51,27 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
       trigger: 'enter',
       type: 'element',
     });
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(CodeNode.getType(), (ctx, node) => {
+        if ($isCodeNode(node)) {
+          ctx.wrap('```' + (node.getLanguage() || '') + '\n', '\n```');
+        }
+      });
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(CodeHighlightNode.getType(), (ctx, node) => {
+        if ($isCodeHighlightNode(node)) {
+          ctx.appendLine(node.getTextContent());
+        }
+      });
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter('linebreak', (ctx, node) => {
+        if ($isCodeNode(node.getParent())) {
+          ctx.appendLine('\n');
+        }
+      });
   }
 
   onInit(editor: LexicalEditor): void {

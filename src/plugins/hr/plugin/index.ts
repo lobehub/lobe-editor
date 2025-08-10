@@ -6,7 +6,11 @@ import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 
 import { registerHorizontalRuleCommand } from '../command';
-import { $createHorizontalRuleNode, HorizontalRuleNode } from '../node/HorizontalRuleNode';
+import {
+  $createHorizontalRuleNode,
+  $isHorizontalRuleNode,
+  HorizontalRuleNode,
+} from '../node/HorizontalRuleNode';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HRPluginOptions {
@@ -52,6 +56,13 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
       },
       type: 'element',
     });
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(HorizontalRuleNode.getType(), (ctx, node) => {
+        if ($isHorizontalRuleNode(node)) {
+          ctx.appendLine('---\n\n');
+        }
+      });
   }
 
   onInit(editor: LexicalEditor): void {

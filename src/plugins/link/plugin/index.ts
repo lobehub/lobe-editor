@@ -6,7 +6,7 @@ import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 
 import { registerLinkCommand } from '../command';
-import { $createLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
+import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
 
 export interface LinkPluginOptions {
   theme?: {
@@ -46,6 +46,14 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
       trigger: ')',
       type: 'text-match',
     });
+
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(LinkNode.getType(), (ctx, node) => {
+        if ($isLinkNode(node)) {
+          ctx.wrap('[', `](${node.getURL()})`);
+        }
+      });
   }
 
   onInit(editor: LexicalEditor): void {

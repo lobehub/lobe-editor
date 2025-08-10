@@ -8,6 +8,7 @@ import {
   DecoratorNode,
   EditorConfig,
   LexicalEditor,
+  LexicalNode,
   SerializedLexicalNode,
 } from 'lexical';
 
@@ -70,4 +71,8 @@ export function $createHorizontalRuleNode(): HorizontalRuleNode {
 
 function $convertHorizontalRuleElement(): DOMConversionOutput {
   return { node: $createHorizontalRuleNode() };
+}
+
+export function $isHorizontalRuleNode(node: LexicalNode): node is HorizontalRuleNode {
+  return node.getType() === HorizontalRuleNode.getType();
 }

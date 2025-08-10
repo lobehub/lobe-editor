@@ -10,7 +10,7 @@ import {
   QuoteNode,
   registerRichText,
 } from '@lexical/rich-text';
-import { $createLineBreakNode, $createParagraphNode } from 'lexical';
+import { $createLineBreakNode, $createParagraphNode, $isTextNode } from 'lexical';
 import { LexicalEditor } from 'lexical/LexicalEditor';
 
 import { IEditorKernel, IEditorPlugin } from '@/editor-kernel';
@@ -83,7 +83,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     markdownService.registerMarkdownShortCut({
       regExp: /^>\s/,
       replace: (parentNode, children, _match, isImport) => {
-        console.info('----------------------------->', parentNode);
         if (isImport) {
           const previousNode = parentNode.getPreviousSibling();
           if ($isQuoteNode(previousNode)) {
@@ -150,6 +149,91 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         type: 'text-format',
       },
     ]);
+
+    markdownService.registerMarkdownWriter('paragraph', (ctx) => {
+      ctx.wrap('', '\n\n');
+    });
+    markdownService.registerMarkdownWriter('quote', (ctx, node) => {
+      if ($isQuoteNode(node)) {
+        ctx.wrap('> ', '\n\n');
+      }
+    });
+    markdownService.registerMarkdownWriter('heading', (ctx, node) => {
+      if ($isHeadingNode(node)) {
+        switch (node.getTag()) {
+          case 'h1': {
+            ctx.wrap('# ', '\n');
+            break;
+          }
+          case 'h2': {
+            ctx.wrap('## ', '\n');
+            break;
+          }
+          case 'h3': {
+            ctx.wrap('### ', '\n');
+            break;
+          }
+          case 'h4': {
+            ctx.wrap('#### ', '\n');
+            break;
+          }
+          case 'h5': {
+            ctx.wrap('##### ', '\n');
+            break;
+          }
+          case 'h6': {
+            ctx.wrap('###### ', '\n');
+            break;
+          }
+          default: {
+            ctx.wrap('', '\n\n');
+            break;
+          }
+        }
+      }
+    });
+    markdownService.registerMarkdownWriter('text', (ctx, node) => {
+      if (!$isTextNode(node)) {
+        return;
+      }
+      const isBold = node.hasFormat('bold');
+      const isItalic = node.hasFormat('italic');
+      const isUnderline = node.hasFormat('underline');
+      const isStrikethrough = node.hasFormat('strikethrough');
+      const isCode = node.hasFormat('code');
+
+      if (isCode) {
+        ctx.appendLine('`');
+      }
+      if (isBold) {
+        ctx.appendLine('**');
+      }
+      if (isStrikethrough) {
+        ctx.appendLine('~~');
+      }
+      if (isItalic) {
+        ctx.appendLine('_');
+      }
+      if (isUnderline) {
+        ctx.appendLine('<u>');
+      }
+      ctx.appendLine(node.getTextContent());
+      if (isUnderline) {
+        ctx.appendLine('</u>');
+      }
+      if (isItalic) {
+        ctx.appendLine('_');
+      }
+      if (isStrikethrough) {
+        ctx.appendLine('~~');
+      }
+      if (isBold) {
+        ctx.appendLine('**');
+      }
+      if (isCode) {
+        ctx.appendLine('`');
+      }
+    });
   }
 
   onInit(editor: LexicalEditor): void {

@@ -8,6 +8,7 @@ import {
   DecoratorNode,
   EditorConfig,
   LexicalEditor,
+  LexicalNode,
   LexicalUpdateJSON,
   SerializedLexicalNode,
   Spread,
@@ -168,4 +169,8 @@ export function $createFileNode(
 
 function $convertFileElement(): DOMConversionOutput {
   return { node: $createFileNode() };
+}
+
+export function $isFileNode(node: LexicalNode): node is FileNode {
+  return node.getType() === FileNode.getType();
 }

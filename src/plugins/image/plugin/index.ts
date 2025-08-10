@@ -3,10 +3,11 @@ import { JSX } from 'react';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/editor-kernel/types';
+import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
 
 import { INSERT_IMAGE_COMMAND, registerImageCommand } from '../command';
-import { ImageNode } from '../node/image-node';
+import { $isImageNode, ImageNode } from '../node/image-node';
 
 export interface ImagePluginOptions {
   handleUpload: (file: File) => Promise<{ url: string }>;
@@ -32,6 +33,14 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     if (config?.theme) {
       kernel.registerThemes(config.theme);
     }
+
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(ImageNode.getType(), (ctx, node) => {
+        if ($isImageNode(node)) {
+          ctx.appendLine(`![${node.altText}](${node.src})`);
+        }
+      });
   }
 
   onInit(editor: LexicalEditor): void {

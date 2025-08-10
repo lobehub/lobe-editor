@@ -1,4 +1,4 @@
-import { $applyNodeReplacement, DOMConversionMap, DOMConversionOutput } from 'lexical';
+import { $applyNodeReplacement, DOMConversionMap, DOMConversionOutput, LexicalNode } from 'lexical';
 
 import { BaseImageNode, ImagePayload, SerializedImageNode } from './basie-image-node';
 
@@ -136,4 +136,8 @@ function $convertImageElement(domNode: Node): null | DOMConversionOutput {
   const { alt: altText, src, width, height } = img;
   const node = $createImageNode({ altText, height, src, width });
   return { node };
+}
+
+export function $isImageNode(node: LexicalNode): node is ImageNode {
+  return node.getType() === ImageNode.getType();
 }
