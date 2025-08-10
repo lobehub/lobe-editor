@@ -42,11 +42,5 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     }, UPLOAD_PRIORITY_HIGH);
 
     this.register(registerImageCommand(editor, this.config!.handleUpload));
-
-    this.register(
-      editor.registerUpdateListener((payload) => {
-        console.trace('ImagePlugin update:', payload);
-      }),
-    );
   }
 };
