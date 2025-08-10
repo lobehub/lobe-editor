@@ -6,7 +6,7 @@ import {
   CodeNode,
 } from '@lexical/code';
 import { ShikiTokenizer, registerCodeHighlighting } from '@lexical/code-shiki';
-import { LexicalEditor } from 'lexical';
+import { LexicalEditor, TabNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/editor-kernel/types';
@@ -55,8 +55,13 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
       .requireService(IMarkdownShortCutService)
       ?.registerMarkdownWriter(CodeNode.getType(), (ctx, node) => {
         if ($isCodeNode(node)) {
-          ctx.wrap('```' + (node.getLanguage() || '') + '\n', '\n```');
+          ctx.wrap('```' + (node.getLanguage() || '') + '\n', '\n```\n');
         }
+      });
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(TabNode.getType(), (ctx) => {
+        ctx.appendLine('  ');
       });
     kernel
       .requireService(IMarkdownShortCutService)
