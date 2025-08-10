@@ -1,13 +1,13 @@
 import { IMarkdownWriterContext } from '../service/shortcut';
 
 export class MarkdownWriterContext implements IMarkdownWriterContext {
-  private lines: string[] = [];
   private before = '';
   private after = '';
-  private children: MarkdownWriterContext[] = [];
+  private children: Array<MarkdownWriterContext | string> = [];
+  private processor?: (before: string, content: string, after: string) => string;
 
   appendLine(line: string): void {
-    this.lines.push(line);
+    this.children.push(line);
   }
 
   newChild(): MarkdownWriterContext {
@@ -21,12 +21,19 @@ export class MarkdownWriterContext implements IMarkdownWriterContext {
     this.after = after;
   }
 
+  addProcessor(processor: (before: string, content: string, after: string) => string): void {
+    this.processor = processor;
+  }
+
   toString(): string {
-    return (
-      this.before +
-      this.lines.join('') +
-      this.children.map((child) => child.toString()).join('') +
-      this.after
-    );
+    const content =
+      this.before + this.children.map((child) => child.toString()).join('') + this.after;
+    return this.processor
+      ? this.processor(
+          this.before,
+          this.children.map((child) => child.toString()).join(''),
+          this.after,
+        )
+      : content;
   }
 }

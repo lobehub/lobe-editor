@@ -82,6 +82,12 @@ export type ElementTransformer = {
 export type Transformer = ElementTransformer | TextFormatTransformer | TextMatchTransformer;
 
 export interface IMarkdownWriterContext {
+  /**
+   * 添加处理器
+   * @param processor
+   */
+  addProcessor(processor: (before: string, content: string, after: string) => string): void;
+
   // Define the context properties needed for the markdown writer
   /**
    * 直接输出

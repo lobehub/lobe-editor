@@ -1,6 +1,7 @@
 import {
   $createTableNodeWithDimensions,
   $findTableNode,
+  $isTableNode,
   TableCellNode,
   TableNode,
   TableRowNode,
@@ -23,6 +24,7 @@ import {
 import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
+import { IMarkdownShortCutService } from '@/plugins/markdown';
 
 import { INSERT_TABLE_COMMAND } from '../command';
 
@@ -30,6 +32,10 @@ import { INSERT_TABLE_COMMAND } from '../command';
 export interface TablePluginOptions {
   className?: string;
 }
+
+const tableCellProcessor = (before: string, content: string, after: string) => {
+  return before + content.replace(/\n+$/, '').replace(/\n+/, '<br />') + after;
+};
 
 export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   extends KernelPlugin
@@ -50,6 +56,44 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       tableCellHeader: 'editor_table_cell_header',
       tableCellSelected: 'editor_table_cell_selected',
     });
+
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(TableNode.getType(), (ctx) => {
+        ctx.wrap('', '\n');
+      });
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(TableRowNode.getType(), (ctx, node) => {
+        const parent = node.getParent();
+        if (!$isTableNode(parent)) {
+          return;
+        }
+        if (!node.getPreviousSibling()) {
+          ctx.wrap(
+            '',
+            `\n${parent
+              .getColWidths()
+              ?.map(() => {
+                return '|:--';
+              })
+              .join('')}|\n`,
+          );
+        } else {
+          ctx.wrap('', '\n');
+        }
+      });
+
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(TableCellNode.getType(), (ctx, node) => {
+        ctx.addProcessor(tableCellProcessor);
+        if (!node.getNextSibling()) {
+          ctx.wrap('|', '|');
+        } else {
+          ctx.wrap('|', '');
+        }
+      });
   }
 
   onInit(editor: LexicalEditor): void {
