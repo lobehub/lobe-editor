@@ -1,4 +1,5 @@
-import { COMMAND_PRIORITY_HIGH, DROP_COMMAND, LexicalEditor, PASTE_COMMAND } from 'lexical';
+import { DRAG_DROP_PASTE } from '@lexical/rich-text';
+import { COMMAND_PRIORITY_HIGH, DROP_COMMAND, LexicalEditor } from 'lexical';
 
 import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
@@ -48,21 +49,17 @@ export const UploadPlugin: IEditorPluginConstructor<UploadPluginOptions> = class
     );
     this.register(
       editor.registerCommand(
-        PASTE_COMMAND,
-        (event) => {
-          if (!('clipboardData' in event)) return false; // Ensure clipboardData is available
-          const clipboardData = event.clipboardData;
-          if (clipboardData?.types.length === 1 && clipboardData.types.includes('Files')) {
-            const file = clipboardData.files[0];
+        DRAG_DROP_PASTE,
+        (files) => {
+          for (const file of files) {
             const uploadService = this.kernel.requireService(IUploadService);
             if (uploadService) {
-              uploadService.uploadFile(file, 'paste').catch((error) => {
+              uploadService.uploadFile(file, 'drag-drop-paste').catch((error) => {
                 console.error('Upload failed:', error);
               });
             }
-            return true; // Prevent further handling of the paste event
           }
-          return false; // Prevent further handling of the paste event
+          return true;
         },
         COMMAND_PRIORITY_HIGH,
       ),
