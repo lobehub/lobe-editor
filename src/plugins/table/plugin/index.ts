@@ -1,6 +1,4 @@
 import {
-  $createTableNodeWithDimensions,
-  $findTableNode,
   $isTableNode,
   TableCellNode,
   TableNode,
@@ -10,24 +8,15 @@ import {
   registerTableSelectionObserver,
   setScrollableTablesActive,
 } from '@lexical/table';
-import { $insertNodeToNearestRoot } from '@lexical/utils';
 import { cx } from 'antd-style';
-import {
-  $getPreviousSelection,
-  $getSelection,
-  $isElementNode,
-  $isRangeSelection,
-  $isTextNode,
-  COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
-} from 'lexical';
+import { LexicalEditor } from 'lexical';
 
 import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 
-import { INSERT_TABLE_COMMAND } from '../command';
+import { registerTableCommand } from '../command';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TablePluginOptions {
@@ -35,7 +24,7 @@ export interface TablePluginOptions {
 }
 
 const tableCellProcessor = (before: string, content: string, after: string) => {
-  return before + content.replace(/\n+$/, '').replace(/\n+/, '<br />') + after;
+  return before + content.replace(/\n+$/, '').replaceAll(/\n+/g, '<br />') + after;
 };
 
 export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
@@ -103,43 +92,6 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     this.register(registerTablePlugin(editor));
     this.register(registerTableSelectionObserver(editor));
     this.register(registerTableCellUnmergeTransform(editor));
-    this.register(
-      editor.registerCommand(
-        INSERT_TABLE_COMMAND,
-        ({ rows, columns, includeHeaders }) => {
-          const selection = $getSelection() || $getPreviousSelection();
-          if (!selection || !$isRangeSelection(selection)) {
-            return false;
-          }
-
-          // Prevent nested tables by checking if we're already inside a table
-          if ($findTableNode(selection.anchor.getNode())) {
-            return false;
-          }
-
-          const anchorNode = selection.anchor.getNode();
-
-          const tableNode = $createTableNodeWithDimensions(
-            Number(rows),
-            Number(columns),
-            includeHeaders,
-          );
-
-          if ($isElementNode(anchorNode) && anchorNode.isEmpty()) {
-            anchorNode.replace(tableNode);
-          } else {
-            $insertNodeToNearestRoot(tableNode);
-          }
-
-          const firstDescendant = tableNode.getFirstDescendant();
-          if ($isTextNode(firstDescendant)) {
-            firstDescendant.select();
-          }
-
-          return true;
-        },
-        COMMAND_PRIORITY_EDITOR,
-      ),
-    );
+    this.register(registerTableCommand(editor));
   }
 };

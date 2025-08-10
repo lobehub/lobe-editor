@@ -12,6 +12,7 @@ import {
   getTableElement,
 } from '@lexical/table';
 import { calculateZoomLevel, mergeRegister } from '@lexical/utils';
+import EventEmitter from 'eventemitter3';
 import {
   $getNearestNodeFromDOMNode,
   LexicalEditor,
@@ -33,6 +34,7 @@ import { useStyles } from './resize.style';
 
 export interface ReactTableResizeHandleProps {
   editor: LexicalEditor;
+  eventEmitter: EventEmitter;
 }
 
 type PointerPosition = {
@@ -63,7 +65,7 @@ const getCellNodeHeight = (
   return domCellNode?.clientHeight;
 };
 
-export const TableCellResize = ({ editor }: ReactTableResizeHandleProps) => {
+export const TableCellResize = ({ editor, eventEmitter }: ReactTableResizeHandleProps) => {
   const { cx, styles, theme } = useStyles();
   const targetRef = useRef<HTMLElement | null>(null);
   const resizerRef = useRef<HTMLDivElement | null>(null);
@@ -253,6 +255,10 @@ export const TableCellResize = ({ editor }: ReactTableResizeHandleProps) => {
 
           const newHeight = Math.max(height + heightChange, MIN_ROW_HEIGHT);
           tableRow.setHeight(newHeight);
+          eventEmitter.emit('table:resize', {
+            heightChange,
+            newHeight,
+          });
         },
         { tag: SKIP_SCROLL_INTO_VIEW_TAG },
       );
@@ -291,6 +297,11 @@ export const TableCellResize = ({ editor }: ReactTableResizeHandleProps) => {
           const newWidth = Math.max(width + widthChange, MIN_COLUMN_WIDTH);
           newColWidths[columnIndex] = newWidth;
           tableNode.setColWidths(newColWidths);
+          requestAnimationFrame(() => {
+            eventEmitter.emit('table:resize', {
+              newColWidths,
+            });
+          });
         },
         { tag: SKIP_SCROLL_INTO_VIEW_TAG },
       );
@@ -431,6 +442,9 @@ export const TableCellResize = ({ editor }: ReactTableResizeHandleProps) => {
   );
 };
 
-export const TableCellResizeMemo = ({ editor }: ReactTableResizeHandleProps) => {
-  return useMemo(() => <TableCellResize editor={editor} />, [editor]);
+export const TableCellResizeMemo = ({ editor, eventEmitter }: ReactTableResizeHandleProps) => {
+  return useMemo(
+    () => <TableCellResize editor={editor} eventEmitter={eventEmitter} />,
+    [editor, eventEmitter],
+  );
 };
