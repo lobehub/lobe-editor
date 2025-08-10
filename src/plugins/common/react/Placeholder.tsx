@@ -22,6 +22,7 @@ function canShowPlaceholderFromCurrentEditorState(editor: LexicalEditor): boolea
 
 export const Placeholder = ({ children, style }: IPlaceholder) => {
   const [canShowPlaceholder, setCanShowPlaceholder] = useState(() => false);
+  const [top, setTop] = useState(-25);
   const { styles } = useStyles();
 
   useLexicalEditor((editor) => {
@@ -29,8 +30,15 @@ export const Placeholder = ({ children, style }: IPlaceholder) => {
     function resetCanShowPlaceholder() {
       const currentCanShowPlaceholder = canShowPlaceholderFromCurrentEditorState(editor);
       setCanShowPlaceholder(currentCanShowPlaceholder);
+      const root = editor.getRootElement();
+      requestAnimationFrame(() => {
+        if (root) {
+          setTop(root.firstElementChild?.getBoundingClientRect().height || 0);
+        }
+      });
     }
     resetCanShowPlaceholder();
+
     return mergeRegister(
       editor.registerUpdateListener(() => {
         resetCanShowPlaceholder();
@@ -46,8 +54,14 @@ export const Placeholder = ({ children, style }: IPlaceholder) => {
   }
 
   return (
-    <div className={styles.placeholder} style={style}>
-      {children}
+    <div
+      className={styles.placeholder}
+      style={{
+        ...style,
+        marginTop: -top,
+      }}
+    >
+      <div className={styles.placeholderContainer}>{children}</div>
     </div>
   );
 };

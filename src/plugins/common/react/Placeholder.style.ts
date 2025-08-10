@@ -4,8 +4,14 @@ import { createStyles } from 'antd-style';
 export const useStyles = createStyles(({ token }) => ({
   placeholder: {
     userSelect: 'none',
-    position: 'absolute',
+    pointerEvents: 'none',
     insetBlockStart: 0,
     color: token.colorTextSecondary,
+    marginBlock: '4px',
+    fontSize: 'var(--lobe-markdown-font-size)',
+    lineHeight: 'var(--lobe-markdown-line-height)',
+  },
+  placeholderContainer: {
+    transform: 'translateY(-2px)',
   },
 }));
