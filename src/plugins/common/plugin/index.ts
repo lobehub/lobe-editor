@@ -83,6 +83,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     markdownService.registerMarkdownShortCut({
       regExp: /^>\s/,
       replace: (parentNode, children, _match, isImport) => {
+        console.info('----------------------------->', parentNode);
         if (isImport) {
           const previousNode = parentNode.getPreviousSibling();
           if ($isQuoteNode(previousNode)) {

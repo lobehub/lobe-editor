@@ -9,7 +9,7 @@ import {
   createCommand,
 } from 'lexical';
 
-export const INSERT_QUOTE_COMMAND = createCommand<void>('INSERT_QUOTE_COMMAND');
+export const INSERT_QUOTE_COMMAND = createCommand<unknown>('INSERT_QUOTE_COMMAND');
 export const INSERT_HEADING_COMMAND = createCommand<{ tag: HeadingTagType }>(
   'INSERT_HEADING_COMMAND',
 );

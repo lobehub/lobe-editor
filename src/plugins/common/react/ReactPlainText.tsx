@@ -5,6 +5,7 @@ import { IEditor } from '@/editor-kernel';
 import { LexicalErrorBoundary } from '@/editor-kernel/react/LexicalErrorBoundary';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { useDecorators } from '@/editor-kernel/react/useDecorators';
+import { MarkdownPlugin } from '@/plugins/markdown';
 
 import { CommonPlugin, CommonPluginOptions } from '../plugin';
 import { Placeholder } from './Placeholder';
@@ -62,6 +63,7 @@ export const ReactPlainText: FC<ReactPlainTextProps> = ({
   } = Children.only(children);
 
   useLayoutEffect(() => {
+    editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(CommonPlugin, {
       theme: restTheme ? { ...themeStyles, ...restTheme } : themeStyles,
     });

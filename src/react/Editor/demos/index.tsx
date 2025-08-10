@@ -1,6 +1,9 @@
 import {
   IEditor,
+  INSERT_HEADING_COMMAND,
+  INSERT_HORIZONTAL_RULE_COMMAND,
   INSERT_LINK_COMMAND,
+  INSERT_QUOTE_COMMAND,
   INSERT_TABLE_COMMAND,
   ReactCodeblockPlugin,
   ReactHRPlugin,
@@ -30,8 +33,6 @@ export default () => {
     const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
     setText(textContent || '');
     setJson(JSON.stringify(jsonContent || {}, null, 2));
-    console.log('Editor content changed:', editor.getDocument('text'));
-    console.log('Editor content changed:', editor.getDocument('json'));
   };
 
   useEffect(() => {
@@ -116,6 +117,34 @@ export default () => {
                 });
               },
               value: 'insert-link',
+            },
+            {
+              label: 'Quote',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_QUOTE_COMMAND, {});
+              },
+              value: 'quote',
+            },
+            {
+              label: 'H1',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
+              },
+              value: 'h1',
+            },
+            {
+              label: 'H2',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
+              },
+              value: 'h2',
+            },
+            {
+              label: 'HR',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, {});
+              },
+              value: 'hr',
             },
           ],
         }}

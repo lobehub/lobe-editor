@@ -2,7 +2,9 @@ import { $insertNodes, COMMAND_PRIORITY_EDITOR, LexicalEditor, createCommand } f
 
 import { $createHorizontalRuleNode } from '../node/HorizontalRuleNode';
 
-export const INSERT_HORIZONTAL_RULE_COMMAND = createCommand<void>('INSERT_HORIZONTAL_RULE_COMMAND');
+export const INSERT_HORIZONTAL_RULE_COMMAND = createCommand<unknown>(
+  'INSERT_HORIZONTAL_RULE_COMMAND',
+);
 
 export function registerHorizontalRuleCommand(editor: LexicalEditor) {
   return editor.registerCommand(
