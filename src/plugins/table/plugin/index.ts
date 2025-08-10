@@ -8,6 +8,7 @@ import {
   registerTableCellUnmergeTransform,
   registerTablePlugin,
   registerTableSelectionObserver,
+  setScrollableTablesActive,
 } from '@lexical/table';
 import { $insertNodeToNearestRoot } from '@lexical/utils';
 import { cx } from 'antd-style';
@@ -51,10 +52,11 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     // Register the horizontal rule node
     kernel.registerNodes([TableNode, TableRowNode, TableCellNode]);
     kernel.registerThemes({
-      table: cx(options?.className, 'editor_table'),
+      table: 'editor_table',
       tableCell: 'editor_table_cell',
       tableCellHeader: 'editor_table_cell_header',
       tableCellSelected: 'editor_table_cell_selected',
+      tableScrollableWrapper: cx(options?.className, 'editor_table_scrollable_wrapper'),
     });
 
     kernel
@@ -97,6 +99,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    setScrollableTablesActive(editor, true);
     this.register(registerTablePlugin(editor));
     this.register(registerTableSelectionObserver(editor));
     this.register(registerTableCellUnmergeTransform(editor));

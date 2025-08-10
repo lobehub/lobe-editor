@@ -2,21 +2,27 @@ import { createStyles } from 'antd-style';
 
 export const useStyles = createStyles(
   ({ css, token }) => css`
-    overflow: scroll scroll;
-    table-layout: fixed;
-    border-spacing: 0;
-    border-collapse: collapse;
+    overflow-x: auto;
+    margin-block: 0 30px;
+    margin-inline: 0 25px;
 
-    width: fit-content;
-    margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+    .editor_table {
+      overflow: scroll scroll;
+      table-layout: fixed;
+      border-spacing: 0;
+      border-collapse: collapse;
 
-    text-align: start;
-    text-indent: initial;
-    text-wrap: pretty;
-    word-break: auto-phrase;
-    overflow-wrap: break-word;
+      width: fit-content;
+      margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
 
-    background: ${token.colorFillQuaternary};
+      text-align: start;
+      text-indent: initial;
+      text-wrap: pretty;
+      word-break: auto-phrase;
+      overflow-wrap: break-word;
+
+      background: ${token.colorFillQuaternary};
+    }
 
     code {
       word-break: break-word;
