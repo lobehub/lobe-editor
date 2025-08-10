@@ -18,6 +18,7 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 
+import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
 import { createBlockNode } from '../utils';
@@ -157,6 +158,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerHistory(editor, createEmptyHistoryState(), 300),
       registerHeaderBackspace(editor),
       registerRichKeydown(editor),
+      registerCommands(editor),
     );
   }
 
