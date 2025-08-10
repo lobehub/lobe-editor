@@ -5,6 +5,7 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 
+import { registerHorizontalRuleCommand } from '../command';
 import { $createHorizontalRuleNode, HorizontalRuleNode } from '../node/HorizontalRuleNode';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -51,5 +52,9 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
       },
       type: 'element',
     });
+  }
+
+  onInit(editor: LexicalEditor): void {
+    this.register(registerHorizontalRuleCommand(editor));
   }
 };
