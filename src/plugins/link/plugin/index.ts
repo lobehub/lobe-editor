@@ -1,14 +1,15 @@
-import { $createTextNode, LexicalEditor } from 'lexical';
+import { $createTextNode, COMMAND_PRIORITY_NORMAL, LexicalEditor, PASTE_COMMAND } from 'lexical';
 
 import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 
-import { registerLinkCommand } from '../command';
+import { INSERT_LINK_COMMAND, registerLinkCommand } from '../command';
 import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
 
 export interface LinkPluginOptions {
+  linkRegex?: RegExp;
   theme?: {
     link?: string;
   };
@@ -19,6 +20,7 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
   implements IEditorPlugin<LinkPluginOptions>
 {
   static pluginName = 'LinkPlugin';
+  protected linkRegex = /^https?:\/\/\S+$/;
 
   constructor(
     protected kernel: IEditorKernel,
@@ -31,8 +33,12 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
       kernel.registerThemes(config.theme);
     }
 
+    if (config?.linkRegex) {
+      this.linkRegex = config.linkRegex;
+    }
+
     kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
-      regExp: /\[([^[]+)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)$/,
+      regExp: /\[([^[]+)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)\s?$/,
       replace: (textNode, match) => {
         const [, linkText, linkUrl, linkTitle] = match;
         const linkNode = $createLinkNode(linkUrl, { title: linkTitle });
@@ -58,5 +64,29 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     this.register(registerLinkCommand(editor));
+    this.register(
+      editor.registerCommand(
+        PASTE_COMMAND,
+        (payload: ClipboardEvent) => {
+          const { clipboardData } = payload;
+          if (
+            clipboardData &&
+            clipboardData.types &&
+            clipboardData.types.length === 1 &&
+            clipboardData.types[0] === 'text/plain'
+          ) {
+            const data = clipboardData.getData('text/plain').trim();
+            if (this.linkRegex.test(data)) {
+              payload.stopImmediatePropagation();
+              payload.preventDefault();
+              editor.dispatchCommand(INSERT_LINK_COMMAND, { url: data });
+              return true;
+            }
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+    );
   }
 };
