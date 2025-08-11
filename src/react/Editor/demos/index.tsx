@@ -76,6 +76,12 @@ export default () => {
                 }, 1000);
               });
             },
+            /**
+             * 自定义 file markdown 输出
+             */
+            markdownWriter: (file) => {
+              return `\n<file>${file.fileUrl}</file>\n`;
+            },
           }),
         ]}
         slashOption={{

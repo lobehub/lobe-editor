@@ -21,6 +21,7 @@ import { registerFileNodeSelectionObserver } from '../utils';
 export interface FilePluginOptions {
   decorator: (node: FileNode, editor: LexicalEditor) => any;
   handleUpload: (file: File) => Promise<{ url: string }>;
+  markdownWriter?: (file: FileNode) => string;
   theme?: {
     file?: string;
   };
@@ -52,6 +53,10 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
       .requireService(IMarkdownShortCutService)
       ?.registerMarkdownWriter(FileNode.getType(), (ctx, node) => {
         if ($isFileNode(node)) {
+          if (config?.markdownWriter) {
+            ctx.appendLine(config.markdownWriter(node));
+            return;
+          }
           if (node.status === 'pending') {
             ctx.appendLine(`Uploading ${node.name}...`);
           } else if (node.status === 'error') {
