@@ -7,6 +7,7 @@ export * from './plugins/hr';
 export * from './plugins/image';
 export * from './plugins/link';
 export * from './plugins/list';
+export * from './plugins/mention';
 export * from './plugins/slash';
 export * from './plugins/table';
 export * from './plugins/upload';

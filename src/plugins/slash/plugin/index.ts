@@ -14,7 +14,15 @@ import { getQueryTextForSearch, tryToPositionRange } from '../utils/utils';
 
 export interface ITriggerContext {
   getRect: () => DOMRect;
-  items: Array<ISlashOption>;
+  items:
+    | Array<ISlashOption>
+    | ((
+        search: {
+          leadOffset: number;
+          matchingString: string;
+          replaceableString: string;
+        } | null,
+      ) => Promise<Array<ISlashOption>>);
   match?: {
     leadOffset: number;
     matchingString: string;

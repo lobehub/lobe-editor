@@ -16,7 +16,15 @@ export interface ISlashOption {
 export interface SlashOptions {
   allowWhitespace?: boolean;
   // 触发符号
-  items: Array<ISlashOption>;
+  items:
+    | Array<ISlashOption>
+    | ((
+        search: {
+          leadOffset: number;
+          matchingString: string;
+          replaceableString: string;
+        } | null,
+      ) => Promise<Array<ISlashOption>>);
   maxLength?: number;
   minLength?: number;
   punctuation?: string;
@@ -32,7 +40,7 @@ export const ISlashService: IServiceID<ISlashService> = genServiceId<ISlashServi
 export class SlashService implements ISlashService {
   private triggerMap: Map<string, SlashOptions> = new Map();
   private triggerFnMap: Map<string, ReturnType<typeof getBasicTypeaheadTriggerMatch>> = new Map();
-  private triggerFuseMap: Map<string, Fuse<SlashOptions['items']['0']>> = new Map();
+  private triggerFuseMap: Map<string, Fuse<ISlashOption>> = new Map();
 
   constructor(private kernel: IEditorKernel) {}
   // 这里可以添加具体的服务方法
@@ -52,12 +60,14 @@ export class SlashService implements ISlashService {
       }),
     );
 
-    this.triggerFuseMap.set(
-      options.trigger,
-      new Fuse(options.items, {
-        keys: ['label', 'value'],
-      }),
-    );
+    if (Array.isArray(options.items)) {
+      this.triggerFuseMap.set(
+        options.trigger,
+        new Fuse(options.items, {
+          keys: ['label', 'value'],
+        }),
+      );
+    }
   }
 
   getSlashOptions(trigger: string): SlashOptions | undefined {
@@ -68,7 +78,7 @@ export class SlashService implements ISlashService {
     return this.triggerFnMap.get(trigger);
   }
 
-  getSlashFuse(trigger: string): Fuse<SlashOptions['items']['0']> | undefined {
+  getSlashFuse(trigger: string): Fuse<ISlashOption> | undefined {
     return this.triggerFuseMap.get(trigger);
   }
 }

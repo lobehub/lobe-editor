@@ -48,20 +48,25 @@ export default () => {
         content={content}
         editorRef={editorRef}
         mentionOption={{
-          items: [
-            {
-              label: (
-                <div>
-                  <Icon icon={LucideIcon.NotebookIcon} />
-                  123123
-                </div>
-              ),
-              onSelect: (editor) => {
-                editor.dispatchCommand(INSERT_MENTION_COMMAND, { extra: { id: 1 }, label: 'XX' });
+          items: async (search) => {
+            await new Promise((resolve) => {
+              setTimeout(() => resolve(true), 1000);
+            });
+            return [
+              {
+                label: (
+                  <div>
+                    <Icon icon={LucideIcon.NotebookIcon} />
+                    {search?.matchingString} - {search?.replaceableString}
+                  </div>
+                ),
+                onSelect: (editor) => {
+                  editor.dispatchCommand(INSERT_MENTION_COMMAND, { extra: { id: 1 }, label: 'XX' });
+                },
+                value: 'XX',
               },
-              value: 'XX',
-            },
-          ],
+            ];
+          },
         }}
         onChange={handleChange}
         placeholder={'Type something...'}

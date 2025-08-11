@@ -56,6 +56,10 @@ export interface MenuRenderProps {
    */
   highlightedIndex: number | null;
   /**
+   * 加载状态
+   */
+  loading?: boolean;
+  /**
    * 当前搜索到的选项
    */
   options: Array<ISlashOption>;
@@ -86,6 +90,7 @@ export const ReactSlashPlugin = ({
 }: ReactSlashPluginProps) => {
   const [editor] = useLexicalComposerContext();
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
   const [resolution, setResolution] = useState<ITriggerContext | null>(null);
   const [options, setOptions] = useState<Array<ISlashOption>>([]);
@@ -135,7 +140,15 @@ export const ReactSlashPlugin = ({
       },
       triggerOpen: (ctx) => {
         setResolution(ctx);
-        setOptions(ctx.items);
+        if (Array.isArray(ctx.items)) {
+          setOptions(ctx.items);
+        } else {
+          setLoading(true);
+          ctx
+            .items(ctx.match || null)
+            .then(setOptions)
+            .finally(() => setLoading(false));
+        }
         setHighlightedIndex(0);
         refs.setPositionReference({
           getBoundingClientRect: () => {
@@ -267,6 +280,7 @@ export const ReactSlashPlugin = ({
     return (
       <CustomRender
         highlightedIndex={highlightedIndex}
+        loading={loading}
         options={options}
         selectOptionAndCleanUp={selectOptionAndCleanUp}
         setHighlightedIndex={setHighlightedIndex}
@@ -280,6 +294,7 @@ export const ReactSlashPlugin = ({
         {CustomRender ? (
           <CustomRender
             highlightedIndex={highlightedIndex}
+            loading={loading}
             options={options}
             selectOptionAndCleanUp={selectOptionAndCleanUp}
             setHighlightedIndex={setHighlightedIndex}
@@ -287,6 +302,7 @@ export const ReactSlashPlugin = ({
         ) : (
           <MenuComp
             highlightedIndex={highlightedIndex}
+            loading={loading}
             options={options}
             selectOptionAndCleanUp={selectOptionAndCleanUp}
             setHighlightedIndex={setHighlightedIndex}

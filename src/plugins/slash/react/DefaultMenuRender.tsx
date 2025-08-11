@@ -29,6 +29,7 @@ export const DefaultMenuRender = ({
   selectOptionAndCleanUp,
   setHighlightedIndex,
   options,
+  loading,
   highlightedIndex,
 }: MenuRenderProps) => {
   const ref = useRef<HTMLUListElement>(null);
@@ -50,23 +51,27 @@ export const DefaultMenuRender = ({
 
   return (
     <div className={styles.typeaheadPopover}>
-      <ul ref={ref}>
-        {options.map((option, i: number) => (
-          <li
-            className={highlightedIndex === i ? 'selected' : ''}
-            key={option.value}
-            onClick={() => {
-              setHighlightedIndex(i);
-              selectOptionAndCleanUp(option);
-            }}
-            onMouseEnter={() => {
-              setHighlightedIndex(i);
-            }}
-          >
-            {option.label as ReactNode}
-          </li>
-        ))}
-      </ul>
+      {loading ? (
+        <div>Loading...</div>
+      ) : (
+        <ul ref={ref}>
+          {options.map((option, i: number) => (
+            <li
+              className={highlightedIndex === i ? 'selected' : ''}
+              key={option.value}
+              onClick={() => {
+                setHighlightedIndex(i);
+                selectOptionAndCleanUp(option);
+              }}
+              onMouseEnter={() => {
+                setHighlightedIndex(i);
+              }}
+            >
+              {option.label as ReactNode}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };
