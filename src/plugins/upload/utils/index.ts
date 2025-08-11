@@ -5,8 +5,8 @@ export function getDragSelection(event: DragEvent): Range | null | undefined {
   const domSelection = getDOMSelectionFromTarget(event.target);
   if (document.caretRangeFromPoint) {
     range = document.caretRangeFromPoint(event.clientX, event.clientY);
-  } else if (event.rangeParent && domSelection !== null) {
     // @ts-expect-error not error
+  } else if (event.rangeParent && domSelection !== null) {
     // @ts-expect-error not error
     domSelection.collapse(event.rangeParent, event.rangeOffset || 0);
     range = domSelection.getRangeAt(0);
