@@ -1,8 +1,10 @@
 import { $wrapNodeInElement } from '@lexical/utils';
 import {
   $createParagraphNode,
+  $createRangeSelection,
   $insertNodes,
   $isRootOrShadowRoot,
+  $setSelection,
   COMMAND_PRIORITY_EDITOR,
   LexicalEditor,
   createCommand,
@@ -10,7 +12,9 @@ import {
 
 import { $createImageNode } from '../node/image-node';
 
-export const INSERT_IMAGE_COMMAND = createCommand<{ file: File }>('INSERT_IMAGE_COMMAND');
+export const INSERT_IMAGE_COMMAND = createCommand<{ file: File; range?: Range | null }>(
+  'INSERT_IMAGE_COMMAND',
+);
 
 function isImageFile(file: File): boolean {
   return file.type.startsWith('image/');
@@ -23,12 +27,19 @@ export function registerImageCommand(
   return editor.registerCommand(
     INSERT_IMAGE_COMMAND,
     (payload) => {
-      const { file } = payload;
+      const { file, range } = payload;
       if (!isImageFile(file)) {
         return false; // Not an image file
       }
       const placeholderURL = URL.createObjectURL(file); // Create a local URL for the image
       editor.update(() => {
+        if (range) {
+          const rangeSelection = $createRangeSelection();
+          if (range !== null && range !== undefined) {
+            rangeSelection.applyDOMRange(range);
+          }
+          $setSelection(rangeSelection);
+        }
         const imageNode = $createImageNode({
           altText: file.name,
           src: placeholderURL,

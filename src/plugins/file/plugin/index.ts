@@ -1,8 +1,10 @@
 import { $wrapNodeInElement } from '@lexical/utils';
 import {
   $createParagraphNode,
+  $createRangeSelection,
   $insertNodes,
   $isRootOrShadowRoot,
+  $setSelection,
   DecoratorNode,
   LexicalEditor,
 } from 'lexical';
@@ -70,28 +72,37 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     // Register the upload handler if provided
-    this.kernel.requireService(IUploadService)?.registerUpload(async (file: File) => {
-      editor.update(() => {
-        const fileNode = $createFileNode(file.name);
-        $insertNodes([fileNode]); // Insert a zero-width space to ensure the image is not the last child
-        if ($isRootOrShadowRoot(fileNode.getParentOrThrow())) {
-          $wrapNodeInElement(fileNode, $createParagraphNode).selectEnd();
-        }
-        this.config!.handleUpload(file)
-          .then((url) => {
-            editor.update(() => {
-              fileNode.setUploaded(url.url);
+    this.kernel
+      .requireService(IUploadService)
+      ?.registerUpload(async (file: File, from: string, range: Range | null | undefined) => {
+        editor.update(() => {
+          if (range) {
+            const rangeSelection = $createRangeSelection();
+            if (range !== null && range !== undefined) {
+              rangeSelection.applyDOMRange(range);
+            }
+            $setSelection(rangeSelection);
+          }
+          const fileNode = $createFileNode(file.name);
+          $insertNodes([fileNode]); // Insert a zero-width space to ensure the image is not the last child
+          if ($isRootOrShadowRoot(fileNode.getParentOrThrow())) {
+            $wrapNodeInElement(fileNode, $createParagraphNode).selectEnd();
+          }
+          this.config!.handleUpload(file)
+            .then((url) => {
+              editor.update(() => {
+                fileNode.setUploaded(url.url);
+              });
+            })
+            .catch((error) => {
+              console.error('File upload failed:', error);
+              editor.update(() => {
+                fileNode.setError('File upload failed : ' + error.message);
+              });
             });
-          })
-          .catch((error) => {
-            console.error('File upload failed:', error);
-            editor.update(() => {
-              fileNode.setError('File upload failed : ' + error.message);
-            });
-          });
+        });
+        return null;
       });
-      return null;
-    });
 
     this.register(registerFileCommand(editor, this.config!.handleUpload));
     this.register(registerFileNodeSelectionObserver(editor));

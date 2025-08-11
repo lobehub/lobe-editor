@@ -11,10 +11,10 @@ export type UPLOAD_PRIORITY =
 
 export interface IUploadService {
   registerUpload(
-    handler: (file: File, from: string) => Promise<boolean | null>,
+    handler: (file: File, from: string, range: Range | null | undefined) => Promise<boolean | null>,
     priority?: UPLOAD_PRIORITY,
   ): void;
-  uploadFile(file: File, from: string): Promise<boolean>;
+  uploadFile(file: File, from: string, range: Range | null | undefined): Promise<boolean>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare, no-redeclare
@@ -24,34 +24,32 @@ export const IUploadService: IServiceID<IUploadService> =
 export class UploadService implements IUploadService {
   private uploadHandlers: [
     // eslint-disable-next-line unused-imports/no-unused-vars
-    Array<(file: File, from: string) => Promise<boolean>>,
+    Array<(file: File, from: string, range: Range | null | undefined) => Promise<boolean>>,
     // eslint-disable-next-line unused-imports/no-unused-vars
-    Array<(file: File, from: string) => Promise<boolean>>,
+    Array<(file: File, from: string, range: Range | null | undefined) => Promise<boolean>>,
     // eslint-disable-next-line unused-imports/no-unused-vars
-    Array<(file: File, from: string) => Promise<boolean>>,
+    Array<(file: File, from: string, range: Range | null | undefined) => Promise<boolean>>,
   ] = [[], [], []];
 
   registerUpload(
-    handler: (file: File, from: string) => Promise<boolean>,
+    handler: (file: File, from: string, range: Range | null | undefined) => Promise<boolean>,
     priority = UPLOAD_PRIORITY_LOW,
   ): void {
     this.uploadHandlers[priority].push(handler);
   }
 
-  uploadFile(file: File, from: string): Promise<boolean> {
+  async uploadFile(file: File, from: string, range: Range | null | undefined): Promise<boolean> {
     for (const uploadHandlers of this.uploadHandlers) {
       if (uploadHandlers.length === 0) {
         continue; // Skip empty handler arrays
       }
       for (const handler of uploadHandlers) {
-        const result = handler(file, from);
+        const result = await handler(file, from, range);
         if (result) {
           return result;
         }
       }
     }
-    return Promise.reject(
-      new Error('No upload handler registered for this file type: ' + file.type),
-    );
+    throw new Error('No upload handler registered for this file type: ' + file.type);
   }
 }

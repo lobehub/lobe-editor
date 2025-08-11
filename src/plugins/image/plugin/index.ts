@@ -45,10 +45,11 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     // Register the upload handler if provided
-    this.kernel.requireService(IUploadService)?.registerUpload(async (file: File) => {
-      editor.dispatchCommand(INSERT_IMAGE_COMMAND, { file });
-      return true;
-    }, UPLOAD_PRIORITY_HIGH);
+    this.kernel
+      .requireService(IUploadService)
+      ?.registerUpload(async (file: File, from: string, range?: Range | null) => {
+        return editor.dispatchCommand(INSERT_IMAGE_COMMAND, { file, range });
+      }, UPLOAD_PRIORITY_HIGH);
 
     this.register(registerImageCommand(editor, this.config!.handleUpload));
   }

@@ -6,6 +6,7 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 
 import { IUploadService, UploadService } from '../service/i-upload-service';
+import { getDragSelection } from '../utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface UploadPluginOptions {
@@ -34,10 +35,12 @@ export const UploadPlugin: IEditorPluginConstructor<UploadPluginOptions> = class
         (event) => {
           const dataTransfer = event.dataTransfer;
           if (dataTransfer && dataTransfer.files.length > 0) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
             const file = dataTransfer.files[0];
             const uploadService = this.kernel.requireService(IUploadService);
             if (uploadService) {
-              uploadService.uploadFile(file, 'drop').catch((error) => {
+              uploadService.uploadFile(file, 'drop', getDragSelection(event)).catch((error) => {
                 console.error('Upload failed:', error);
               });
             }
@@ -54,7 +57,7 @@ export const UploadPlugin: IEditorPluginConstructor<UploadPluginOptions> = class
           for (const file of files) {
             const uploadService = this.kernel.requireService(IUploadService);
             if (uploadService) {
-              uploadService.uploadFile(file, 'drag-drop-paste').catch((error) => {
+              uploadService.uploadFile(file, 'drag-drop-paste', null).catch((error) => {
                 console.error('Upload failed:', error);
               });
             }
