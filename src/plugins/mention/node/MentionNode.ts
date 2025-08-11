@@ -39,10 +39,15 @@ export class MentionNode extends DecoratorNode<any> {
 
   static importDOM(): DOMConversionMap | null {
     return {
-      span: () => ({
-        conversion: $convertMentionElement,
-        priority: 0,
-      }),
+      span: (node) => {
+        if (node.classList.contains('mention')) {
+          return {
+            conversion: $convertMentionElement,
+            priority: 0,
+          };
+        }
+        return null;
+      },
     };
   }
 

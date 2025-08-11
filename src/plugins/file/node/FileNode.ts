@@ -55,10 +55,15 @@ export class FileNode extends DecoratorNode<any> {
 
   static importDOM(): DOMConversionMap | null {
     return {
-      span: () => ({
-        conversion: $convertFileElement,
-        priority: 0,
-      }),
+      span: (node) => {
+        if (node.classList.contains('file')) {
+          return {
+            conversion: $convertFileElement,
+            priority: 0,
+          };
+        }
+        return null;
+      },
     };
   }
 
