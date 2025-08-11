@@ -41,7 +41,7 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
       },
     );
     kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
-      regExp: /^(---|\*\*\*|___)\s?$/,
+      regExp: /^(---|\*\*\*|___)$/,
       replace: (parentNode, _1, _2, isImport) => {
         const line = $createHorizontalRuleNode();
 
@@ -54,6 +54,7 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
 
         line.selectNext();
       },
+      trigger: 'enter',
       type: 'element',
     });
     kernel
