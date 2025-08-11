@@ -3,6 +3,7 @@ import {
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
   INSERT_LINK_COMMAND,
+  INSERT_MENTION_COMMAND,
   INSERT_QUOTE_COMMAND,
   INSERT_TABLE_COMMAND,
   ReactCodeblockPlugin,
@@ -10,6 +11,7 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
+  ReactMentionPlugin,
   ReactTablePlugin,
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
@@ -54,6 +56,9 @@ export default () => {
                   123123
                 </div>
               ),
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_MENTION_COMMAND, { extra: { id: 1 }, label: 'XX' });
+              },
               value: 'XX',
             },
           ],
@@ -67,6 +72,14 @@ export default () => {
           Editor.withProps(ReactCodeblockPlugin, { shikiTheme: 'dark-plus' }),
           ReactHRPlugin,
           ReactTablePlugin,
+          Editor.withProps(ReactMentionPlugin, {
+            /**
+             * 自定义 mention markdown 输出
+             */
+            markdownWriter: (mention) => {
+              return `\n<mention>${mention.label}[${mention.extra.id}]</mention>\n`;
+            },
+          }),
           Editor.withProps(ReactFilePlugin, {
             handleUpload: async (file) => {
               console.log('Files uploaded:', file);
