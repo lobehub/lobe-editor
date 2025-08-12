@@ -69,6 +69,7 @@ export default () => {
               },
             ];
           },
+          maxLength: 6,
         }}
         onChange={handleChange}
         placeholder={'Type something...'}

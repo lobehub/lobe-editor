@@ -37,6 +37,11 @@ export interface ReactSlashOptionProps {
    */
   items?: SlashOptions['items'];
   /**
+   * 搜索的最大长度
+   * 默认为 75
+   */
+  maxLength?: number;
+  /**
    * 自定义渲染组件
    */
   renderComp?: FC<MenuRenderProps>;

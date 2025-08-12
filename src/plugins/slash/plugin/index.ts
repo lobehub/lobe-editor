@@ -23,6 +23,7 @@ export interface ITriggerContext {
           replaceableString: string;
         } | null,
       ) => Promise<Array<ISlashOption>>);
+  lastIndex: number;
   match?: {
     leadOffset: number;
     matchingString: string;
@@ -44,6 +45,8 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
   static readonly pluginName = 'slash';
 
   private service: SlashService | null = null;
+  private currentSlashTrigger: string | null = null;
+  private currentSlashTriggerIndex = -1;
 
   constructor(
     kernel: IEditorKernel,
@@ -59,13 +62,19 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
     }
   }
 
+  private triggerClose() {
+    this.config?.triggerClose();
+    this.currentSlashTrigger = null;
+    this.currentSlashTriggerIndex = -1;
+  }
+
   onInit(editor: LexicalEditor): void {
     this.register(
       editor.registerUpdateListener(() => {
         editor.getEditorState().read(() => {
           if (!editor.isEditable()) {
             // 触发关闭
-            this.config?.triggerClose();
+            this.triggerClose();
             return;
           }
 
@@ -77,39 +86,55 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
           if (
             !$isRangeSelection(selection) ||
             !selection.isCollapsed() ||
+            // code 里面不触发
+            selection.hasFormat('code') ||
             text === null ||
-            range === null
+            range === null ||
+            (this.currentSlashTrigger === null && text.length > 1 && text.at(-2) !== ' ')
           ) {
-            // 触发关闭
-            this.config?.triggerClose();
+            this.triggerClose();
             return;
           }
 
-          const slashOptions = this.service?.getSlashOptions(text[0]);
-          const triggerFn = this.service?.getSlashTriggerFn(text[0]);
-          const fuse = this.service?.getSlashFuse(text[0]);
-          if (!slashOptions) {
-            // 触发关闭
-            this.config?.triggerClose();
+          let triggerText = this.currentSlashTrigger;
+          if (triggerText === null) {
+            triggerText = text.slice(-1);
+            this.currentSlashTriggerIndex = text.length - 1;
+          }
+          const lastIndex = text.lastIndexOf(triggerText);
+          if (lastIndex < this.currentSlashTriggerIndex) {
+            this.triggerClose();
+            return;
+          }
+          const slashOptions = this.service?.getSlashOptions(triggerText);
+          const maxLength = slashOptions?.maxLength || 75;
+
+          // 超过最大长度
+          if (text.length - lastIndex > maxLength || !slashOptions) {
+            this.triggerClose();
             return;
           }
 
+          const triggerFn = this.service?.getSlashTriggerFn(triggerText);
+          const fuse = this.service?.getSlashFuse(triggerText);
           const isRangePositioned = tryToPositionRange(0, range, editorWindow);
-          const match = triggerFn?.(text);
+          const match = triggerFn?.(text.slice(this.currentSlashTriggerIndex));
           const finalItems =
             fuse && match && match.matchingString.length > 0
               ? fuse.search(match.matchingString).map((result) => result.item)
               : slashOptions.items;
           if (isRangePositioned !== null && finalItems.length > 0) {
+            this.currentSlashTrigger = triggerText;
             this.config?.triggerOpen({
               getRect: () => range.getBoundingClientRect(),
               items: finalItems,
+              lastIndex,
               match,
               trigger: slashOptions.trigger,
             });
             return;
           }
-          this.config?.triggerClose();
+          this.triggerClose();
         });
       }),
     );
