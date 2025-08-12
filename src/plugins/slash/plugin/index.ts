@@ -117,7 +117,11 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
 
           const triggerFn = this.service?.getSlashTriggerFn(triggerText);
           const fuse = this.service?.getSlashFuse(triggerText);
-          const isRangePositioned = tryToPositionRange(0, range, editorWindow);
+          const isRangePositioned = tryToPositionRange(
+            this.currentSlashTriggerIndex,
+            range,
+            editorWindow,
+          );
           const match = triggerFn?.(text.slice(this.currentSlashTriggerIndex));
           const finalItems =
             fuse && match && match.matchingString.length > 0
