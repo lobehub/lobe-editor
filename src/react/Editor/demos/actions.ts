@@ -1,8 +1,8 @@
-export function openFileSelector(handleFiles: (files: FileList) => void) {
+export function openFileSelector(handleFiles: (files: FileList) => void, accept = '*/*') {
   // 创建一个隐藏的 input 元素
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '*/*'; // 接受所有文件类型
+  input.accept = accept; // 接受所有文件类型
   input.multiple = false; // 是否允许多选
 
   // 监听文件选择事件
