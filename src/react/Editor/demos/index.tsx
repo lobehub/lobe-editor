@@ -13,9 +13,12 @@ import {
   ReactListPlugin,
   ReactMentionPlugin,
   ReactTablePlugin,
+  UPDATE_CODEBLOCK_THEME,
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
 import { Icon } from '@lobehub/ui';
+import { usePrefersColor } from 'dumi';
+import { debounce } from 'lodash';
 import * as LucideIcon from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -30,18 +33,28 @@ export default () => {
   const editorRef = Editor.useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
+  const [color] = usePrefersColor();
 
-  const handleChange = (editor: IEditor) => {
+  const isDark = color === 'dark';
+
+  const handleChange = debounce((editor: IEditor) => {
     const markdownContent = editor.getDocument('markdown') as unknown as string;
     const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
     setMarkdown(markdownContent || '');
     setJson(JSON.stringify(jsonContent || {}, null, 2));
-  };
+  }, 300);
 
   useEffect(() => {
     if (!editorRef.current) return;
     handleChange(editorRef.current);
   }, []);
+
+  useEffect(() => {
+    const isDark = color === 'dark';
+    editorRef.current?.dispatchCommand(UPDATE_CODEBLOCK_THEME, {
+      theme: isDark ? 'dark-plus' : 'light-plus',
+    });
+  }, [color]);
 
   return (
     <Container json={json} markdown={markdown}>
@@ -77,7 +90,9 @@ export default () => {
           ReactListPlugin,
           ReactLinkPlugin,
           ReactImagePlugin,
-          Editor.withProps(ReactCodeblockPlugin, { shikiTheme: 'dark-plus' }),
+          Editor.withProps(ReactCodeblockPlugin, {
+            shikiTheme: isDark ? 'dark-plus' : 'light-plus',
+          }),
           ReactHRPlugin,
           ReactTablePlugin,
           Editor.withProps(ReactMentionPlugin, {

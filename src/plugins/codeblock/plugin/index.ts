@@ -5,13 +5,14 @@ import {
   CodeHighlightNode,
   CodeNode,
 } from '@lexical/code';
-import { ShikiTokenizer, registerCodeHighlighting } from '@lexical/code-shiki';
+import { registerCodeHighlighting } from '@lexical/code-shiki';
 import { LexicalEditor, TabNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 
+import { CustomShikiTokenizer, registerCodeCommand } from '../command';
 import { getCodeLanguageByInput } from '../utils/language';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -39,10 +40,17 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
       code: config.theme?.code || 'editor-code',
     });
 
+    if (this.config?.shikiTheme) {
+      CustomShikiTokenizer.defaultTheme = this.config?.shikiTheme;
+    }
+
     kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
       regExp: /^(```|···)(.+)?$/,
       replace: (parentNode, _, match) => {
-        const code = $createCodeNode(getCodeLanguageByInput(match[2]));
+        const code = $createCodeNode(
+          getCodeLanguageByInput(match[2]),
+          CustomShikiTokenizer.defaultTheme,
+        );
 
         parentNode.replace(code);
 
@@ -81,14 +89,10 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
 
   onInit(editor: LexicalEditor): void {
     if (this.config?.shikiTheme) {
-      const CustomShikiTokenizer = {
-        $tokenize: ShikiTokenizer.$tokenize,
-        defaultLanguage: ShikiTokenizer.defaultLanguage,
-        defaultTheme: this.config.shikiTheme,
-      };
       this.register(registerCodeHighlighting(editor, CustomShikiTokenizer));
     } else {
       this.register(registerCodeHighlighting(editor));
     }
+    this.register(registerCodeCommand(editor));
   }
 };

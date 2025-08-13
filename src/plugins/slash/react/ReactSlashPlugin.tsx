@@ -26,6 +26,7 @@ import { ITriggerContext, SlashPlugin } from '../plugin/index';
 import { ISlashOption, SlashOptions } from '../service/i-slash-service';
 import { $splitNodeContainingQuery } from '../utils/utils';
 import { DefaultMenuRender } from './DefaultMenuRender';
+import { setCancelablePromise } from './utils';
 
 export interface ReactSlashOptionProps {
   /**
@@ -99,6 +100,11 @@ export const ReactSlashPlugin = ({
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
   const [resolution, setResolution] = useState<ITriggerContext | null>(null);
   const [options, setOptions] = useState<Array<ISlashOption>>([]);
+  const cancelRef = useRef<{
+    cancel: () => void;
+  }>({
+    cancel: () => {},
+  });
   const triggerMapRef = useRef<Map<string, ReactSlashOptionProps>>(new Map());
 
   const { refs, floatingStyles, context } = useFloating<HTMLElement>({
@@ -142,17 +148,28 @@ export const ReactSlashPlugin = ({
       triggerClose: () => {
         setResolution(null);
         context.onOpenChange(false);
+        cancelRef.current.cancel();
       },
       triggerOpen: (ctx) => {
         setResolution(ctx);
+        cancelRef.current.cancel();
         if (Array.isArray(ctx.items)) {
           setOptions(ctx.items);
         } else {
           setLoading(true);
-          ctx
-            .items(ctx.match || null)
-            .then(setOptions)
-            .finally(() => setLoading(false));
+          const pr = setCancelablePromise((resolve, reject) => {
+            ctx
+              // @ts-expect-error not error
+              .items(ctx.match || null)
+              .then(resolve, reject)
+              .finally(() => setLoading(false));
+          });
+          // @ts-expect-error not error
+          pr.promise.then(setOptions);
+          cancelRef.current.cancel = () => {
+            pr.cancel();
+            setLoading(false);
+          };
         }
         setHighlightedIndex(0);
         refs.setPositionReference({

@@ -9,20 +9,14 @@ const scrollIntoViewIfNeeded = (container: HTMLElement, target: HTMLElement) => 
   }
 
   const typeaheadRect = container.getBoundingClientRect();
-
-  if (typeaheadRect.top + typeaheadRect.height > window.innerHeight) {
-    container.scrollIntoView({
-      block: 'center',
-    });
+  const targetRect = target.getBoundingClientRect();
+  if (
+    targetRect.top > typeaheadRect.bottom ||
+    targetRect.top < typeaheadRect.top ||
+    targetRect.bottom > typeaheadRect.bottom
+  ) {
+    target.scrollIntoView({ block: 'nearest' });
   }
-
-  if (typeaheadRect.top < 0) {
-    container.scrollIntoView({
-      block: 'center',
-    });
-  }
-
-  target.scrollIntoView({ block: 'nearest' });
 };
 
 export const DefaultMenuRender = ({
