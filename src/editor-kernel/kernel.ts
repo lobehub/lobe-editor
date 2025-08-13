@@ -198,4 +198,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     }
     return this.editor.dispatchCommand(type, payload);
   }
+
+  getTheme() {
+    return this.themes;
+  }
 }

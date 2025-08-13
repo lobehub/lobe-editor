@@ -9,9 +9,10 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
 import { TablePlugin } from '../plugin';
 import { $updateDOMForSelection } from '../utils';
+import TableActionMenuPlugin from './TableActionMenuPlugin';
+import TableHoverActionsPlugin from './TableHoverActionsPlugin';
 import { TableCellResizeMemo } from './resize';
 import { useStyles } from './style';
-import { TableOperator } from './table-operator';
 
 export interface ReactTablePluginProps {
   className?: string;
@@ -55,7 +56,8 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = () => {
     lexicalEditor && (
       <>
         <TableCellResizeMemo editor={lexicalEditor} eventEmitter={eventEmitter} />
-        <TableOperator editor={lexicalEditor} eventEmitter={eventEmitter} />
+        <TableActionMenuPlugin editor={lexicalEditor} />
+        <TableHoverActionsPlugin editor={lexicalEditor} />
       </>
     )
   );

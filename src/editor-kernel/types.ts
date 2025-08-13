@@ -67,6 +67,10 @@ export interface IEditor {
    */
   getRootElement(): HTMLElement | null;
   /**
+   * 获取编辑器主题
+   */
+  getTheme(): Record<string, string | Record<string, string>>;
+  /**
    * 取消编辑器事件监听
    * @param event
    * @param listener
@@ -97,6 +101,7 @@ export interface IEditor {
    * @param serviceId
    */
   requireService<T>(serviceId: IServiceID<T>): T | null;
+
   /**
    * 设置编辑器内容，type 为内容类型，content 为内容数据
    * @param type

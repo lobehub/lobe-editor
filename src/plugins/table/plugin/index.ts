@@ -1,7 +1,6 @@
 import {
   $isTableNode,
   TableCellNode,
-  TableNode,
   TableRowNode,
   registerTableCellUnmergeTransform,
   registerTablePlugin,
@@ -17,6 +16,7 @@ import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 
 import { registerTableCommand } from '../command';
+import { TableNode, patchTableNode } from '../node';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TablePluginOptions {
@@ -38,6 +38,9 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     options?: TablePluginOptions,
   ) {
     super();
+    patchTableNode();
+
+    console.dir(TableNode);
     // Register the horizontal rule node
     kernel.registerNodes([TableNode, TableRowNode, TableCellNode]);
     kernel.registerThemes({

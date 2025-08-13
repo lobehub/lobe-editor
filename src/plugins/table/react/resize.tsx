@@ -29,6 +29,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useStyles } from './resize.style';
 
@@ -444,7 +445,8 @@ export const TableCellResize = ({ editor, eventEmitter }: ReactTableResizeHandle
 
 export const TableCellResizeMemo = ({ editor, eventEmitter }: ReactTableResizeHandleProps) => {
   return useMemo(
-    () => <TableCellResize editor={editor} eventEmitter={eventEmitter} />,
+    () =>
+      createPortal(<TableCellResize editor={editor} eventEmitter={eventEmitter} />, document.body),
     [editor, eventEmitter],
   );
 };
