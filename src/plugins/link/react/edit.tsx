@@ -140,6 +140,7 @@ export const LinkEdit: FC = () => {
         ref={linkInputRef}
         style={{ width: '100%' }}
         value={linkUrl}
+        variant={'borderless'}
       />
     </div>
   );

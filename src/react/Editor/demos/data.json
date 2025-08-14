@@ -140,7 +140,38 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Check out the code on our GitHub repository.",
+                "text": "Check out the code on our ",
+                "type": "text",
+                "version": 1
+              },
+              {
+                "children": [
+                  {
+                    "detail": 0,
+                    "format": 0,
+                    "mode": "normal",
+                    "style": "",
+                    "text": "GitHub repository",
+                    "type": "text",
+                    "version": 1
+                  }
+                ],
+                "direction": "ltr",
+                "format": "",
+                "indent": 0,
+                "type": "link",
+                "version": 1,
+                "rel": null,
+                "target": null,
+                "title": "https://github.com/lobehub/lobe-editor",
+                "url": "https://github.com/lobehub/lobe-editor"
+              },
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": ".",
                 "type": "text",
                 "version": 1
               }
@@ -159,7 +190,38 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Playground code can be found here.",
+                "text": "Playground code",
+                "type": "text",
+                "version": 1
+              },
+              {
+                "children": [
+                  {
+                    "detail": 0,
+                    "format": 0,
+                    "mode": "normal",
+                    "style": "",
+                    "text": "Playground code",
+                    "type": "text",
+                    "version": 1
+                  }
+                ],
+                "direction": "ltr",
+                "format": "",
+                "indent": 0,
+                "type": "link",
+                "version": 1,
+                "rel": null,
+                "target": null,
+                "title": "https://github.com/lobehub/lobe-editor/tree/dev/src/react/Editor/demos",
+                "url": "https://github.com/lobehub/lobe-editor/tree/dev/src/react/Editor/demos"
+              },
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": " can be found here.",
                 "type": "text",
                 "version": 1
               }
@@ -178,7 +240,38 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Join our Discord Server and chat with the team.",
+                "text": "Join our ",
+                "type": "text",
+                "version": 1
+              },
+              {
+                "children": [
+                  {
+                    "detail": 0,
+                    "format": 0,
+                    "mode": "normal",
+                    "style": "",
+                    "text": "Discover Server",
+                    "type": "text",
+                    "version": 1
+                  }
+                ],
+                "direction": "ltr",
+                "format": "",
+                "indent": 0,
+                "type": "link",
+                "version": 1,
+                "rel": null,
+                "target": null,
+                "title": "https://discord.gg/AYFPHvv2jT",
+                "url": "https://discord.gg/AYFPHvv2jT"
+              },
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": " and chat with the team.",
                 "type": "text",
                 "version": 1
               }
@@ -226,8 +319,8 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#569CD6",
-            "text": "const",
+            "style": "color:#0072f5",
+            "text": "import",
             "type": "code-highlight",
             "version": 1
           },
@@ -235,7 +328,43 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#E6E6E6",
+            "style": "color:#080808",
+            "text": " { ",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color:#080808",
+            "text": "Editor",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color:#080808",
+            "text": " } ",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color:#0072f5",
+            "text": "from",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color:#080808",
             "text": " ",
             "type": "code-highlight",
             "version": 1
@@ -244,8 +373,8 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#9CDCFE",
-            "text": "a",
+            "style": "color:#379d4a",
+            "text": "'@lobehub/editor'",
             "type": "code-highlight",
             "version": 1
           },
@@ -253,47 +382,20 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#E6E6E6",
-            "text": " ",
-            "type": "code-highlight",
-            "version": 1
-          },
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "color:#D4D4D4",
-            "text": "=",
-            "type": "code-highlight",
-            "version": 1
-          },
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "color:#E6E6E6",
-            "text": " ",
-            "type": "code-highlight",
-            "version": 1
-          },
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "color:#B5CEA8",
-            "text": "1",
+            "style": "color:#080808",
+            "text": ";",
             "type": "code-highlight",
             "version": 1
           }
         ],
-        "direction": "ltr",
+        "direction": null,
         "format": "",
         "indent": 0,
         "type": "code",
         "version": 1,
-        "textStyle": "color:#569CD6",
-        "language": "ts",
-        "theme": "slack-dark"
+        "textStyle": "color:#0072f5",
+        "language": "tsx",
+        "theme": "slack-ochin"
       },
       {
         "type": "horizontalrule",
@@ -626,7 +728,7 @@
             "version": 1
           }
         ],
-        "direction": null,
+        "direction": "ltr",
         "format": "",
         "indent": 0,
         "type": "table",
@@ -639,6 +741,6 @@
     "indent": 0,
     "type": "root",
     "version": 1,
-    "textStyle": "color:#569CD6"
+    "textStyle": "color:#0072f5"
   }
 }

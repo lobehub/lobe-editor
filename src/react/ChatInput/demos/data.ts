@@ -49,7 +49,7 @@ export const content: EditorProps['content'] = {
             format: 16,
             mode: 'normal',
             style: '',
-            text: 'lexical',
+            text: '@lobehub/editor',
             type: 'text',
             version: 1,
           },
