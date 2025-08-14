@@ -1,6 +1,7 @@
-import { FileTypeIcon, FileTypeIconProps } from '@lobehub/ui';
+import { MaterialFileTypeIcon } from '@lobehub/ui';
 import { CLICK_COMMAND, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
 import { useCallback, useEffect, useRef } from 'react';
+import { Center } from 'react-layout-kit';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 
@@ -37,15 +38,9 @@ export const ReactFile = (props: { className?: string; editor: LexicalEditor; no
   }
 
   return (
-    <span className={props.className} ref={spanRef}>
-      <FileTypeIcon
-        filetype={node.name.split('.').pop() as FileTypeIconProps['filetype']}
-        size={24}
-        style={{
-          verticalAlign: 'middle',
-        }}
-      />
+    <Center className={props.className} gap={'.2em'} horizontal ref={spanRef}>
+      <MaterialFileTypeIcon filename={node.name} size={18} type={'file'} variant={'raw'} />
       {node.name}
-    </span>
+    </Center>
   );
 };
