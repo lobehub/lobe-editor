@@ -47,8 +47,8 @@ export const ReactPlainText: FC<ReactPlainTextProps> = ({
   const isChat = variant === 'chat';
   const {
     fontSize = isChat ? 14 : 16,
-    headerMultiple = isChat ? 1 : 0.25,
-    lineHeight = isChat ? 1.8 : 1.6,
+    headerMultiple = isChat ? 0.25 : 1,
+    lineHeight = isChat ? 1.6 : 1.8,
     marginMultiple = isChat ? 1 : 2,
     ...restTheme
   } = theme;

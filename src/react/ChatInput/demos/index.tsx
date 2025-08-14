@@ -5,84 +5,21 @@ import {
   ReactLinkPlugin,
   ReactListPlugin,
 } from '@lobehub/editor';
-import {
-  ChatInput,
-  ChatInputActionBar,
-  ChatInputActions,
-  ChatInputActionsProps,
-  SendButton,
-} from '@lobehub/editor/react';
+import { ChatInput, useEditor } from '@lobehub/editor/react';
 import Editor from '@lobehub/editor/react/Editor';
-import { ChatActionsBar, ChatList, TokenTag } from '@lobehub/ui/chat';
-import { Popover } from 'antd';
+import { ChatActionsBar, ChatList } from '@lobehub/ui/chat';
 import { useTheme } from 'antd-style';
-import {
-  GlobeIcon,
-  LibraryBigIcon,
-  Mic,
-  PaperclipIcon,
-  SlidersHorizontalIcon,
-  TimerOff,
-} from 'lucide-react';
+import { useState } from 'react';
 import { Flexbox } from 'react-layout-kit';
 
+import ActionToolbar from './ActionToolbar';
+import TypoToolbar from './TypoToolbar';
 import { chatMessages, content } from './data';
 
-const items: ChatInputActionsProps['items'] = [
-  {
-    icon: GlobeIcon,
-    key: 'search',
-    wrapper: (node, key) => {
-      return (
-        <Popover arrow={false} content={'Test Popover'} key={key}>
-          {node}
-        </Popover>
-      );
-    },
-  },
-  {
-    icon: PaperclipIcon,
-    key: 'file',
-    label: 'File',
-  },
-  {
-    icon: LibraryBigIcon,
-    key: 'library',
-    label: 'Library',
-  },
-  {
-    type: 'divider',
-  },
-  {
-    children: [
-      {
-        icon: SlidersHorizontalIcon,
-        key: 'options',
-        label: 'Options',
-      },
-      {
-        disabled: true,
-        icon: TimerOff,
-        key: 'history',
-        label: 'History',
-      },
-      {
-        icon: Mic,
-        key: 'voice',
-        label: 'Voice',
-      },
-    ],
-    type: 'collapse',
-  },
-  {
-    alwaysDisplay: true,
-    children: <TokenTag maxValue={2048} value={1024} />,
-    key: 'token',
-  },
-];
-
 export default () => {
+  const [showTypobar, setShowTypobar] = useState(true);
   const theme = useTheme();
+  const editorRef = useEditor();
 
   return (
     <Flexbox
@@ -111,29 +48,12 @@ export default () => {
       </Flexbox>
       <Flexbox paddingBlock={'0 8px'} paddingInline={8}>
         <ChatInput
-          actions={
-            <ChatInputActionBar
-              left={<ChatInputActions items={items} />}
-              right={
-                <SendButton
-                  menu={{
-                    items: [
-                      {
-                        key: 'send',
-                        label: 'Send',
-                        onClick: () => {
-                          console.log('Send clicked');
-                        },
-                      },
-                    ],
-                  }}
-                />
-              }
-            />
-          }
+          footer={<ActionToolbar setShowTypobar={setShowTypobar} showTypobar={showTypobar} />}
+          header={<TypoToolbar editorRef={editorRef} show={showTypobar} />}
         >
           <Editor
             content={content}
+            editorRef={editorRef}
             mentionOption={{
               items: [
                 {

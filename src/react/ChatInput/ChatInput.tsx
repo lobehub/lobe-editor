@@ -7,7 +7,7 @@ import { useStyles } from './style';
 import type { ChatInputProps } from './type';
 
 const ChatInput = memo<ChatInputProps>(
-  ({ maxHeight = 'min(50vh, 640px)', className, children, actions, style }) => {
+  ({ maxHeight = 'min(50vh, 640px)', className, children, footer, header, style }) => {
     const { cx, styles } = useStyles();
 
     return (
@@ -19,8 +19,9 @@ const ChatInput = memo<ChatInputProps>(
         }}
         width={'100%'}
       >
+        {header}
         <div className={styles.editor}>{children}</div>
-        {actions}
+        {footer}
       </Flexbox>
     );
   },
