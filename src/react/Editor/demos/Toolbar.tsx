@@ -143,6 +143,33 @@ const Toolbar = memo<ToolbarProps>(({ editorRef }) => {
               toolbarState.bulletList();
             },
           },
+          {
+            type: 'divider',
+          },
+          {
+            children: [
+              {
+                key: 'javascript',
+                label: 'javascript',
+                onClick: () => {
+                  toolbarState.updateCodeblockLang('javascript');
+                },
+              },
+              {
+                icon: FileUpIcon,
+                key: 'typescript',
+                label: 'typescript',
+                onClick: () => {
+                  toolbarState.updateCodeblockLang('typescript');
+                },
+              },
+            ],
+            disabled: !toolbarState.isInCodeblock,
+            icon: FileUpIcon,
+            key: 'codeblockLang',
+            label: 'codeblockLang',
+            type: 'dropdown',
+          },
         ]}
       />
     </Block>

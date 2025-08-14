@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionIcon } from '@lobehub/ui';
+import { ActionIcon, Dropdown } from '@lobehub/ui';
 import { useSize } from 'ahooks';
 import { Divider } from 'antd';
 import { ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -144,6 +144,32 @@ const ChatInputActions = memo<ChatInputActionsProps>(
               >
                 {item.children.map((child, childIndex) => mapActions(child as any, childIndex))}
               </ChatInputActionsCollapse>
+            );
+          }
+          if (item.type === 'dropdown') {
+            return (
+              <Dropdown
+                key={item.key}
+                menu={{
+                  items: item.children,
+                }}
+              >
+                <ActionIcon
+                  active={item.active}
+                  danger={item.danger}
+                  disabled={disabled || item.loading || item?.disabled}
+                  icon={item.icon}
+                  loading={item.loading}
+                  size={{
+                    blockSize: 36,
+                    size: 20,
+                  }}
+                  title={item.label}
+                  tooltipProps={{
+                    placement: 'top',
+                  }}
+                />
+              </Dropdown>
             );
           }
           return mapActions(item, index);

@@ -101,7 +101,6 @@ export interface IEditor {
    * @param serviceId
    */
   requireService<T>(serviceId: IServiceID<T>): T | null;
-
   /**
    * 设置编辑器内容，type 为内容类型，content 为内容数据
    * @param type
@@ -114,6 +113,13 @@ export interface IEditor {
    * @param dom
    */
   setRootElement(dom: HTMLElement): LexicalEditor;
+
+  /**
+   * 更新编辑器主题
+   * @param key
+   * @param value
+   */
+  updateTheme(key: string, value: string | Record<string, string>): void;
 }
 
 /**

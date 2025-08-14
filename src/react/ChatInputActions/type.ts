@@ -23,7 +23,12 @@ export type CollapseItem = {
   type: 'collapse';
 };
 
-export type ChatInputActionItem = ActionItem | DividerItem | CollapseItem;
+export type DropdownItem = Omit<ActionItem, 'children' | 'type'> & {
+  children: MenuItemType[];
+  type: 'dropdown';
+};
+
+export type ChatInputActionItem = ActionItem | DividerItem | CollapseItem | DropdownItem;
 
 export interface ChatInputActionsProps extends Omit<FlexboxProps, 'children'> {
   disabled?: boolean;

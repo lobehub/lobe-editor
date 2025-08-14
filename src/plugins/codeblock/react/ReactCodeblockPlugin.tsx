@@ -75,6 +75,7 @@ export const ReactCodeblockPlugin: FC<ReactCodeblockPluginProps> = ({ theme, shi
           node.classList.add(styles.container);
         });
     }
+    editor.updateTheme('code', styles.container);
   }, [styles, isDarkMode, prevStyles]);
 
   return null;

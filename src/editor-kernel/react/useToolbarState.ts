@@ -1,4 +1,4 @@
-import { $createCodeNode } from '@lexical/code';
+import { $createCodeNode, $isCodeNode } from '@lexical/code';
 import {
   $isListNode,
   INSERT_ORDERED_LIST_COMMAND,
@@ -29,6 +29,7 @@ import {
 } from 'lexical';
 import { RefObject, useCallback, useEffect, useState } from 'react';
 
+import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@/plugins/link/node/LinkNode';
 import { sanitizeUrl } from '@/plugins/link/utils';
 
@@ -85,6 +86,7 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
   const [isStrikethrough, setIsStrikethrough] = useState(false);
   const [isCode, setIsCode] = useState(false);
   const [isLink, setIsLink] = useState(false);
+  const [isInCodeblock, setIsInCodeblok] = useState(false);
   const [blockType, setBlockType] = useState<string | null>(null);
 
   const $handleHeadingNode = useCallback(
@@ -108,13 +110,16 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
       setIsCode(selection.hasFormat('code'));
 
       const anchorNode = selection.anchor.getNode();
+      const focusNode = selection.focus.getNode();
       const element = $findTopLevelElement(anchorNode);
+      const focusElement = $findTopLevelElement(focusNode);
       const elementKey = element.getKey();
       const elementDOM = editorRef.current?.getLexicalEditor()?.getElementByKey(elementKey);
 
       const node = getSelectedNode(selection);
       const parent = node.getParent();
       setIsLink($isLinkNode(parent) || $isLinkNode(node));
+      setIsInCodeblok($isCodeNode(element) && $isCodeNode(focusElement));
 
       if (elementDOM !== null) {
         if ($isListNode(element)) {
@@ -202,8 +207,17 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
     }
   }, [blockType]);
 
+  const updateCodeblockLang = useCallback(
+    (lang: string) => {
+      if (!isInCodeblock) {
+        return;
+      }
+      editorRef.current?.dispatchCommand(UPDATE_CODEBLOCK_LANG, { lang });
+    },
+    [editorRef.current, isInCodeblock],
+  );
+
   const insertLink = useCallback(() => {
-    console.info('------------------>', isLink);
     if (!isLink) {
       setIsLink(true);
       editorRef.current
@@ -275,6 +289,7 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
     insertLink,
     isBold,
     isCode,
+    isInCodeblock,
     isItalic,
     isStrikethrough,
     isUnderline,
@@ -284,5 +299,6 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
     strikethrough,
     underline,
     undo,
+    updateCodeblockLang,
   };
 }

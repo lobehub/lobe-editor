@@ -202,4 +202,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   getTheme() {
     return this.themes;
   }
+
+  updateTheme(key: string, value: string | Record<string, string>): void {
+    this.themes[key] = value;
+  }
 }
