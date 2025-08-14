@@ -13,7 +13,7 @@ import { IMarkdownShortCutService } from '@/plugins/markdown';
 
 import { CustomShikiTokenizer, registerCodeCommand } from '../command';
 import { getCodeLanguageByInput } from '../utils/language';
-import { registerCodeHighlighting } from './CodeHighlighterShiki';
+import { registerCodeHighlighting, toCodeTheme } from './CodeHighlighterShiki';
 import { AllColorReplacements } from './FacadeShiki';
 
 /**
@@ -52,9 +52,14 @@ import { AllColorReplacements } from './FacadeShiki';
  */
 export interface CodeblockPluginOptions {
   /** Color replacements configuration for customizing theme colors */
-  colorReplacements?: AllColorReplacements;
+  colorReplacements?: { current?: AllColorReplacements };
   /** Shiki theme name to use for syntax highlighting */
-  shikiTheme?: string;
+  shikiTheme?:
+    | string
+    | {
+        dark: string;
+        light: string;
+      };
   /** Custom CSS theme configuration */
   theme?: {
     code?: string;
@@ -91,7 +96,7 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
       replace: (parentNode, _, match) => {
         const code = $createCodeNode(
           getCodeLanguageByInput(match[2]),
-          CustomShikiTokenizer.defaultTheme,
+          toCodeTheme(CustomShikiTokenizer),
         );
 
         parentNode.replace(code);

@@ -69,9 +69,14 @@ import invariant from './invariant';
 
 export interface Tokenizer {
   $tokenize(codeNode: CodeNode, language?: string): LexicalNode[];
-  defaultColorReplacements?: AllColorReplacements;
+  defaultColorReplacements?: { current?: AllColorReplacements };
   defaultLanguage: string;
-  defaultTheme: string;
+  defaultTheme:
+    | string
+    | {
+        dark: string;
+        light: string;
+      };
 }
 
 const DEFAULT_CODE_THEME = 'slack-ochin';
@@ -88,6 +93,13 @@ export const ShikiTokenizer: Tokenizer = {
   defaultLanguage: DEFAULT_CODE_LANGUAGE,
   defaultTheme: DEFAULT_CODE_THEME,
 };
+
+export function toCodeTheme(tokenizer: Tokenizer) {
+  if (typeof tokenizer.defaultTheme === 'string') {
+    return tokenizer.defaultTheme;
+  }
+  return tokenizer.defaultTheme.light + ' ' + tokenizer.defaultTheme.dark;
+}
 
 function $textNodeTransform(node: TextNode, editor: LexicalEditor, tokenizer: Tokenizer): void {
   // Since CodeNode has flat children structure we only need to check
@@ -149,7 +161,7 @@ function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tok
 
   let theme = node.getTheme();
   if (!theme) {
-    theme = tokenizer.defaultTheme;
+    theme = toCodeTheme(tokenizer);
     node.setTheme(theme);
   }
 

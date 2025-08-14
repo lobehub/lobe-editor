@@ -1,7 +1,20 @@
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css, token, stylish }) => ({
+export const useStyles = createStyles(({ css, token, stylish, isDarkMode }) => ({
   container: css`
+    --color-yellow: ${token.yellow};
+    --color-error: ${token.colorError};
+    --color-gray: ${token.gray};
+    --color-purple: ${token.purple10};
+    --color-info: ${token.colorInfo};
+    --color-success: ${token.colorSuccess};
+    --color-warning: ${token.colorWarning};
+    --color-text: ${token.colorText};
+    --color-geekblue: ${token.geekblue};
+    --color-purple10: ${token.purple10};
+    --color-warning-text-active: ${token.colorWarningTextActive};
+    --color-yellow11: ${token.yellow11};
+
     position: relative;
 
     overflow: hidden;
@@ -45,6 +58,10 @@ export const useStyles = createStyles(({ css, token, stylish }) => ({
       opacity: 0;
 
       ${stylish.blur}
+    }
+
+    span {
+      color: var(${isDarkMode ? '--shiki-dark' : '--shiki-light'});
     }
 
     &:hover {

@@ -319,7 +319,7 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#0072f5",
+            "style": "--shiki-dark:var(--color-info);--shiki-light:var(--color-info)",
             "text": "import",
             "type": "code-highlight",
             "version": 1
@@ -328,7 +328,7 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#080808",
+            "style": "--shiki-dark:var(--color-text);--shiki-light:var(--color-text)",
             "text": " { ",
             "type": "code-highlight",
             "version": 1
@@ -337,7 +337,7 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#080808",
+            "style": "--shiki-dark:var(--color-text);--shiki-light:var(--color-text)",
             "text": "Editor",
             "type": "code-highlight",
             "version": 1
@@ -346,7 +346,7 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#080808",
+            "style": "--shiki-dark:var(--color-text);--shiki-light:var(--color-text)",
             "text": " } ",
             "type": "code-highlight",
             "version": 1
@@ -355,7 +355,7 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#0072f5",
+            "style": "--shiki-dark:var(--color-info);--shiki-light:var(--color-info)",
             "text": "from",
             "type": "code-highlight",
             "version": 1
@@ -364,7 +364,7 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#080808",
+            "style": "--shiki-dark:var(--color-text);--shiki-light:var(--color-text)",
             "text": " ",
             "type": "code-highlight",
             "version": 1
@@ -373,7 +373,7 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#379d4a",
+            "style": "--shiki-dark:var(--color-success);--shiki-light:var(--color-success)",
             "text": "'@lobehub/editor'",
             "type": "code-highlight",
             "version": 1
@@ -382,20 +382,20 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "color:#080808",
+            "style": "--shiki-dark:var(--color-text);--shiki-light:var(--color-text)",
             "text": ";",
             "type": "code-highlight",
             "version": 1
           }
         ],
-        "direction": null,
+        "direction": "ltr",
         "format": "",
         "indent": 0,
         "type": "code",
         "version": 1,
-        "textStyle": "color:#0072f5",
+        "textStyle": "--shiki-dark:var(--color-info);--shiki-light:var(--color-info)",
         "language": "tsx",
-        "theme": "slack-ochin"
+        "theme": "slack-ochin slack-dark"
       },
       {
         "type": "horizontalrule",
@@ -728,7 +728,7 @@
             "version": 1
           }
         ],
-        "direction": "ltr",
+        "direction": null,
         "format": "",
         "indent": 0,
         "type": "table",
@@ -740,7 +740,6 @@
     "format": "",
     "indent": 0,
     "type": "root",
-    "version": 1,
-    "textStyle": "color:#0072f5"
+    "version": 1
   }
 }

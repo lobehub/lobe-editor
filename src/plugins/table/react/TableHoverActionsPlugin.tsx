@@ -119,7 +119,6 @@ function TableHoverActionsContainer({
 
   const debouncedOnMouseMove = useDebounce(
     (event: MouseEvent) => {
-      console.info('------------------->', event);
       const { isOutside, tableDOMNode } = getMouseInfo(event, iEditor);
 
       if (isOutside) {

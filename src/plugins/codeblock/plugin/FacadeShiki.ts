@@ -9,7 +9,6 @@ import type { CodeNode } from '@lexical/code';
 import { $createCodeHighlightNode, $isCodeNode } from '@lexical/code';
 import {
   createHighlighterCoreSync,
-  getTokenStyleObject,
   isSpecialLang,
   isSpecialTheme,
   stringifyTokenStyle,
@@ -156,7 +155,7 @@ export function loadCodeLanguage(language: string, editor?: LexicalEditor, codeN
   }
 }
 
-export function isCodeThemeLoaded(theme: string) {
+function _isCodeThemeLoaded(theme: string) {
   const themeId = theme;
 
   // handle shiki special theme ['none']
@@ -167,7 +166,12 @@ export function isCodeThemeLoaded(theme: string) {
   return shiki.getLoadedThemes().includes(themeId);
 }
 
-export async function loadCodeTheme(theme: string, editor?: LexicalEditor, codeNodeKey?: NodeKey) {
+export function isCodeThemeLoaded(theme: string) {
+  const themes = theme.split(' ');
+  return themes.every((t) => _isCodeThemeLoaded(t));
+}
+
+async function _loadCodeTheme(theme: string, editor?: LexicalEditor, codeNodeKey?: NodeKey) {
   if (!isCodeThemeLoaded(theme)) {
     const themeInfo = bundledThemesInfo.find((info) => info.id === theme);
     if (themeInfo) {
@@ -183,6 +187,11 @@ export async function loadCodeTheme(theme: string, editor?: LexicalEditor, codeN
       });
     }
   }
+}
+
+export async function loadCodeTheme(theme: string, editor?: LexicalEditor, codeNodeKey?: NodeKey) {
+  const themes = theme.split(' ');
+  await Promise.all(themes.map((t) => _loadCodeTheme(t, editor, codeNodeKey)));
 }
 
 export function getCodeLanguageOptions(): [string, string][] {
@@ -203,7 +212,22 @@ export function normalizeCodeLanguage(language: string): string {
   return language;
 }
 
-function mapTokensToLexicalStructure(tokens: ThemedToken[][], diff: boolean): LexicalNode[] {
+function getTokenStyleObject(token: ThemedToken): string {
+  let style = '';
+  if (token.color) {
+    style += `color: ${token.color};`;
+  }
+  if (token.bgColor) {
+    style += `background-color: ${token.bgColor};`;
+  }
+  return style;
+}
+
+function mapTokensToLexicalStructure(
+  tokens: ThemedToken[][],
+  diff: boolean,
+  colorReplacements?: AllColorReplacements,
+): LexicalNode[] {
   const nodes: LexicalNode[] = [];
 
   tokens.forEach((line, idx) => {
@@ -231,6 +255,22 @@ function mapTokensToLexicalStructure(tokens: ThemedToken[][], diff: boolean): Le
         }
         if (part !== '') {
           const node = $createCodeHighlightNode(part);
+          if (token.htmlStyle?.['--shiki-light'] && colorReplacements?.['light']) {
+            const newColor = (colorReplacements['light'] as any)[
+              token.htmlStyle['--shiki-light'].toLowerCase()
+            ];
+            if (newColor) {
+              token.htmlStyle['--shiki-light'] = newColor;
+            }
+          }
+          if (token.htmlStyle?.['--shiki-dark'] && colorReplacements?.['dark']) {
+            const newColor = (colorReplacements['dark'] as any)[
+              token.htmlStyle['--shiki-dark'].toLowerCase()
+            ];
+            if (newColor) {
+              token.htmlStyle['--shiki-dark'] = newColor;
+            }
+          }
           const style = stringifyTokenStyle(token.htmlStyle || getTokenStyleObject(token));
           node.setStyle(style);
           nodes.push(node);
@@ -245,37 +285,58 @@ function mapTokensToLexicalStructure(tokens: ThemedToken[][], diff: boolean): Le
 export function $getHighlightNodes(
   codeNode: CodeNode,
   language: string,
-  colorReplacements?: AllColorReplacements,
+  colorReplacements?: { current?: AllColorReplacements },
 ): LexicalNode[] {
   const DIFF_LANGUAGE_REGEX = /^diff-([\w-]+)/i;
   const diffLanguageMatch = DIFF_LANGUAGE_REGEX.exec(language);
   const code: string = codeNode.getTextContent();
   const theme = codeNode.getTheme() || 'poimandres';
 
-  // Build the options for codeToTokens
-  const options: any = {
-    lang: diffLanguageMatch ? diffLanguageMatch[1] : language,
-    theme,
-  };
+  const themes = theme.split(' ');
 
-  // Add color replacements if provided
-  if (colorReplacements) {
-    options.colorReplacements = resolveColorReplacements(colorReplacements, theme);
+  // Build the options for codeToTokens
+  const options: any =
+    themes.length > 1
+      ? {
+          defaultColor: false,
+          lang: diffLanguageMatch ? diffLanguageMatch[1] : language,
+          themes: {
+            dark: themes[1],
+            light: themes[0],
+          },
+        }
+      : {
+          lang: language,
+          theme: themes[0],
+        };
+
+  const newColorReplacements: AllColorReplacements = {};
+
+  if (colorReplacements?.current && themes.length > 1) {
+    if (colorReplacements.current[themes[0]]) {
+      newColorReplacements['light'] = colorReplacements.current[themes[0]];
+    }
+    if (colorReplacements.current[themes[1]]) {
+      newColorReplacements['dark'] = colorReplacements.current[themes[1]];
+    }
+  } else if (colorReplacements?.current) {
+    options.colorReplacements = resolveColorReplacements(colorReplacements.current, themes[0]);
   }
 
   const tokensResult: TokensResult = shiki.codeToTokens(code, options);
-  const { tokens, bg, fg } = tokensResult;
-  let style = '';
-  if (bg) {
-    style += `background-color: ${bg};`;
-  }
-  if (fg) {
-    style += `color: ${fg};`;
-  }
-  if (codeNode.getStyle() !== style) {
-    codeNode.setStyle(style);
-  }
-  return mapTokensToLexicalStructure(tokens, !!diffLanguageMatch);
+
+  const { tokens } = tokensResult;
+  // let style = '';
+  // if (bg) {
+  //   style += `background-color: ${bg};`;
+  // }
+  // if (fg) {
+  //   style += `color: ${fg};`;
+  // }
+  // if (codeNode.getStyle() !== style) {
+  //   codeNode.setStyle(style);
+  // }
+  return mapTokensToLexicalStructure(tokens, !!diffLanguageMatch, newColorReplacements);
 }
 
 /**
@@ -301,7 +362,7 @@ export function $getHighlightNodesWithOptions(
   }
 
   try {
-    return $getHighlightNodes(codeNode, language, options?.colorReplacements);
+    return $getHighlightNodes(codeNode, language, { current: options?.colorReplacements });
   } finally {
     // Restore original getTheme method
     if (options?.theme) {
