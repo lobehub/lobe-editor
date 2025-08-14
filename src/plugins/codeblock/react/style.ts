@@ -1,42 +1,59 @@
-/* eslint-disable sort-keys-fix/sort-keys-fix */
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(() => ({
-  editorCode: {
-    'position': 'relative',
-    'overflowX': 'auto',
-    'display': 'block',
-    'margin': 0,
-    'marginBlock': '8px',
-    'paddingBlock': '8px',
-    'paddingInline': '52px 8px',
-    'fontSize': '13px',
-    'lineHeight': '1.53',
-    'tabSize': '2',
+export const useStyles = createStyles(({ css, token, stylish }) => ({
+  container: css`
+    position: relative;
 
-    '&:before': {
-      content: 'attr(data-gutter)',
-      position: 'absolute',
-      insetBlockStart: 0,
-      insetInlineStart: 0,
-      minWidth: '25px',
-      padding: '8px',
-      borderInlineEnd: '1px solid #ccc',
-      color: '#777',
-      textAlign: 'end',
-      whiteSpace: 'pre-wrap',
-      backgroundColor: '#eee',
-    },
+    overflow: hidden;
+    display: block;
 
-    '&:after': {
-      content: 'attr(data-highlight-language)',
-      position: 'absolute',
-      insetBlockStart: 0,
-      insetInlineEnd: '3px',
-      padding: '3px',
-      fontSize: '10px',
-      color: 'rgba(0, 0, 0, 50%)',
-      textTransform: 'uppercase',
-    },
-  },
+    width: 100%;
+    margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+    padding: 16px;
+    border-radius: calc(var(--lobe-markdown-border-radius) * 1px);
+
+    font-family: ${token.fontFamilyCode};
+    font-size: calc(var(--lobe-markdown-font-size) * 0.85);
+
+    background: ${token.colorFillTertiary} !important;
+    box-shadow: 0 0 0 1px var(--lobe-markdown-border-color) inset;
+
+    &::after {
+      border-radius: ${token.borderRadius}px;
+
+      content: attr(data-highlight-language);
+
+      padding-block: 1px;
+      padding-inline: 7px;
+
+      font-size: 12px;
+
+      display: block;
+
+      position: absolute;
+      z-index: 3;
+      inset-block-end: 8px;
+      inset-inline-end: 8px;
+
+      font-family: ${token.fontFamilyCode};
+      color: ${token.colorTextSecondary};
+
+      background: ${token.colorFillQuaternary};
+
+      transition: opacity 0.1s;
+
+      opacity: 0;
+
+      ${stylish.blur}
+    }
+
+    &:hover {
+      &::after {
+        opacity: 1;
+      }
+    }
+  `,
+  noBackground: css`
+    background: transparent !important;
+  `,
 }));

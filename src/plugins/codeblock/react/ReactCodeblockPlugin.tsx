@@ -53,7 +53,7 @@ export const ReactCodeblockPlugin: FC<ReactCodeblockPluginProps> = ({ theme, shi
       colorReplacements,
       shikiTheme: shikiTheme || (isDarkMode ? 'slack-dark' : 'slack-ochin'),
       theme: theme || {
-        code: styles.editorCode,
+        code: styles.container,
       },
     });
   }, []);
