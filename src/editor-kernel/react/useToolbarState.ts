@@ -1,20 +1,76 @@
-import { mergeRegister } from '@lexical/utils';
+import { $createCodeNode } from '@lexical/code';
 import {
+  $isListNode,
+  INSERT_ORDERED_LIST_COMMAND,
+  INSERT_UNORDERED_LIST_COMMAND,
+  ListNode,
+} from '@lexical/list';
+import { $isHeadingNode } from '@lexical/rich-text';
+import { $isAtNodeEnd, $setBlocksType } from '@lexical/selection';
+import { $findMatchingParent, $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
+import {
+  $createParagraphNode,
   $getSelection,
   $isRangeSelection,
+  $isRootOrShadowRoot,
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,
   COMMAND_PRIORITY_LOW,
+  ElementNode,
   FORMAT_TEXT_COMMAND,
   LexicalEditor,
+  LexicalNode,
   REDO_COMMAND,
+  RangeSelection,
   SELECTION_CHANGE_COMMAND,
   TextFormatType,
+  TextNode,
   UNDO_COMMAND,
 } from 'lexical';
 import { RefObject, useCallback, useEffect, useState } from 'react';
 
+import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@/plugins/link/node/LinkNode';
+import { sanitizeUrl } from '@/plugins/link/utils';
+
 import { IEditor } from '../types';
+
+function $findTopLevelElement(node: LexicalNode) {
+  let topLevelElement =
+    node.getKey() === 'root'
+      ? node
+      : $findMatchingParent(node, (e) => {
+          const parent = e.getParent();
+          return parent !== null && $isRootOrShadowRoot(parent);
+        });
+
+  if (topLevelElement === null) {
+    topLevelElement = node.getTopLevelElementOrThrow();
+  }
+  return topLevelElement;
+}
+
+const formatParagraph = (editor?: LexicalEditor | null) => {
+  editor?.update(() => {
+    const selection = $getSelection();
+    $setBlocksType(selection, () => $createParagraphNode());
+  });
+};
+
+function getSelectedNode(selection: RangeSelection): TextNode | ElementNode {
+  const anchor = selection.anchor;
+  const focus = selection.focus;
+  const anchorNode = selection.anchor.getNode();
+  const focusNode = selection.focus.getNode();
+  if (anchorNode === focusNode) {
+    return anchorNode;
+  }
+  const isBackward = selection.isBackward();
+  if (isBackward) {
+    return $isAtNodeEnd(focus) ? anchorNode : focusNode;
+  } else {
+    return $isAtNodeEnd(anchor) ? anchorNode : focusNode;
+  }
+}
 
 /**
  * 提供 toolbar 状态，和 toolbar 方法
@@ -28,6 +84,19 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
   const [isUnderline, setIsUnderline] = useState(false);
   const [isStrikethrough, setIsStrikethrough] = useState(false);
   const [isCode, setIsCode] = useState(false);
+  const [isLink, setIsLink] = useState(false);
+  const [blockType, setBlockType] = useState<string | null>(null);
+
+  const $handleHeadingNode = useCallback(
+    (selectedElement: LexicalNode) => {
+      const type = $isHeadingNode(selectedElement)
+        ? selectedElement.getTag()
+        : selectedElement.getType();
+
+      setBlockType(type);
+    },
+    [setBlockType],
+  );
 
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -37,8 +106,28 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
       setIsUnderline(selection.hasFormat('underline'));
       setIsStrikethrough(selection.hasFormat('strikethrough'));
       setIsCode(selection.hasFormat('code'));
+
+      const anchorNode = selection.anchor.getNode();
+      const element = $findTopLevelElement(anchorNode);
+      const elementKey = element.getKey();
+      const elementDOM = editorRef.current?.getLexicalEditor()?.getElementByKey(elementKey);
+
+      const node = getSelectedNode(selection);
+      const parent = node.getParent();
+      setIsLink($isLinkNode(parent) || $isLinkNode(node));
+
+      if (elementDOM !== null) {
+        if ($isListNode(element)) {
+          const parentList = $getNearestNodeOfType<ListNode>(anchorNode, ListNode);
+          const type = parentList ? parentList.getListType() : element.getListType();
+
+          setBlockType(type);
+        } else {
+          $handleHeadingNode(element);
+        }
+      }
     }
-  }, []);
+  }, [editorRef.current]);
 
   const undo = useCallback(() => {
     editorRef.current?.dispatchCommand(UNDO_COMMAND, undefined);
@@ -74,6 +163,57 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
   const code = useCallback(() => {
     formatText('code');
   }, [formatText]);
+
+  const bulletList = useCallback(() => {
+    if (blockType !== 'bullet') {
+      editorRef.current?.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+    } else {
+      formatParagraph(editorRef.current?.getLexicalEditor());
+    }
+  }, [blockType]);
+
+  const numberList = useCallback(() => {
+    if (blockType !== 'number') {
+      editorRef.current?.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+    } else {
+      formatParagraph(editorRef.current?.getLexicalEditor());
+    }
+  }, [blockType]);
+
+  const formatCodeblock = useCallback(() => {
+    if (blockType !== 'code') {
+      editorRef.current?.getLexicalEditor()?.update(() => {
+        let selection = $getSelection();
+        if (!selection) {
+          return;
+        }
+        if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+          $setBlocksType(selection, () => $createCodeNode());
+        } else {
+          const textContent = selection.getTextContent();
+          const codeNode = $createCodeNode();
+          selection.insertNodes([codeNode]);
+          selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            selection.insertRawText(textContent);
+          }
+        }
+      });
+    }
+  }, [blockType]);
+
+  const insertLink = useCallback(() => {
+    console.info('------------------>', isLink);
+    if (!isLink) {
+      setIsLink(true);
+      editorRef.current
+        ?.getLexicalEditor()
+        ?.dispatchCommand(TOGGLE_LINK_COMMAND, sanitizeUrl('https://'));
+    } else {
+      setIsLink(false);
+      editorRef.current?.getLexicalEditor()?.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+    }
+  }, [editorRef.current, isLink]);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -125,16 +265,21 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
   }, [editorRef.current]);
 
   return {
+    blockType,
     bold,
+    bulletList,
     canRedo,
     canUndo,
     code,
+    formatCodeblock,
+    insertLink,
     isBold,
     isCode,
     isItalic,
     isStrikethrough,
     isUnderline,
     italic,
+    numberList,
     redo,
     strikethrough,
     underline,

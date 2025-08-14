@@ -111,6 +111,38 @@ const Toolbar = memo<ToolbarProps>(({ editorRef }) => {
               });
             },
           },
+          {
+            icon: FileUpIcon,
+            key: 'link',
+            label: 'link',
+            onClick: () => {
+              toolbarState.insertLink();
+            },
+          },
+          {
+            icon: FileUpIcon,
+            key: 'codeblock',
+            label: 'codeblock',
+            onClick: () => {
+              toolbarState.formatCodeblock();
+            },
+          },
+          {
+            icon: FileUpIcon,
+            key: 'numberlist',
+            label: 'numberlist',
+            onClick: () => {
+              toolbarState.numberList();
+            },
+          },
+          {
+            icon: FileUpIcon,
+            key: 'bulletList',
+            label: 'bulletList',
+            onClick: () => {
+              toolbarState.bulletList();
+            },
+          },
         ]}
       />
     </Block>
