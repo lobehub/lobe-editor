@@ -1,5 +1,4 @@
 import { $isCodeNode, CodeNode } from '@lexical/code';
-import { ShikiTokenizer } from '@lexical/code-shiki';
 import {
   $getRoot,
   $isElementNode,
@@ -10,8 +9,11 @@ import {
   createCommand,
 } from 'lexical';
 
+import { ShikiTokenizer } from '../plugin/CodeHighlighterShiki';
+
 export const CustomShikiTokenizer = {
   $tokenize: ShikiTokenizer.$tokenize,
+  defaultColorReplacements: ShikiTokenizer.defaultColorReplacements,
   defaultLanguage: ShikiTokenizer.defaultLanguage,
   defaultTheme: ShikiTokenizer.defaultTheme,
 };
@@ -19,6 +21,10 @@ export const CustomShikiTokenizer = {
 export const UPDATE_CODEBLOCK_THEME = createCommand<{
   theme: string;
 }>('UPDATE_CODEBLOCK_THEME');
+
+export const UPDATE_CODEBLOCK_COLOR_REPLACEMENTS = createCommand<{
+  colorReplacements?: import('../plugin/FacadeShiki').AllColorReplacements;
+}>('UPDATE_CODEBLOCK_COLOR_REPLACEMENTS');
 
 function getAllCodeNode(rootNode: ElementNode) {
   const codeNodes: CodeNode[] = [];
@@ -37,7 +43,7 @@ function getAllCodeNode(rootNode: ElementNode) {
 }
 
 export function registerCodeCommand(editor: LexicalEditor) {
-  return editor.registerCommand(
+  const unregisterThemeCommand = editor.registerCommand(
     UPDATE_CODEBLOCK_THEME,
     (payload) => {
       CustomShikiTokenizer.defaultTheme = payload.theme;
@@ -51,4 +57,25 @@ export function registerCodeCommand(editor: LexicalEditor) {
     },
     COMMAND_PRIORITY_EDITOR, // Priority
   );
+
+  const unregisterColorReplacementsCommand = editor.registerCommand(
+    UPDATE_CODEBLOCK_COLOR_REPLACEMENTS,
+    (payload) => {
+      CustomShikiTokenizer.defaultColorReplacements = payload.colorReplacements;
+      editor.update(() => {
+        const codes = getAllCodeNode($getRoot());
+        codes.forEach((code) => {
+          // Mark the code node as dirty to trigger re-highlighting with new color replacements
+          code.markDirty();
+        });
+      });
+      return true;
+    },
+    COMMAND_PRIORITY_EDITOR, // Priority
+  );
+
+  return () => {
+    unregisterThemeCommand();
+    unregisterColorReplacementsCommand();
+  };
 }

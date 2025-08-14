@@ -13,29 +13,24 @@ import {
   ReactListPlugin,
   ReactMentionPlugin,
   ReactTablePlugin,
-  UPDATE_CODEBLOCK_THEME,
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
 import { Icon } from '@lobehub/ui';
-import { usePrefersColor } from 'dumi';
 import { debounce } from 'lodash';
-import * as LucideIcon from 'lucide-react';
+import { NotebookIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { INSERT_FILE_COMMAND, ReactFilePlugin } from '@/plugins/file';
 
 import Container from './Container';
+import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
 import content from './data.json';
-import Toolbar from './toolbar';
 
 export default () => {
   const editorRef = Editor.useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
-  const [color] = usePrefersColor();
-
-  const isDark = color === 'dark';
 
   const handleChange = debounce((editor: IEditor) => {
     const markdownContent = editor.getDocument('markdown') as unknown as string;
@@ -48,13 +43,6 @@ export default () => {
     if (!editorRef.current) return;
     handleChange(editorRef.current);
   }, []);
-
-  useEffect(() => {
-    const isDark = color === 'dark';
-    editorRef.current?.dispatchCommand(UPDATE_CODEBLOCK_THEME, {
-      theme: isDark ? 'dark-plus' : 'light-plus',
-    });
-  }, [color]);
 
   return (
     <Container json={json} markdown={markdown}>
@@ -71,7 +59,7 @@ export default () => {
               {
                 label: (
                   <div>
-                    <Icon icon={LucideIcon.NotebookIcon} />
+                    <Icon icon={NotebookIcon} />
                     {search?.matchingString} - {search?.replaceableString}
                   </div>
                 ),
@@ -90,9 +78,7 @@ export default () => {
           ReactListPlugin,
           ReactLinkPlugin,
           ReactImagePlugin,
-          Editor.withProps(ReactCodeblockPlugin, {
-            shikiTheme: isDark ? 'dark-plus' : 'light-plus',
-          }),
+          ReactCodeblockPlugin,
           ReactHRPlugin,
           ReactTablePlugin,
           Editor.withProps(ReactMentionPlugin, {

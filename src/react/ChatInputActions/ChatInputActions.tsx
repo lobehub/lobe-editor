@@ -90,6 +90,7 @@ const ChatInputActions = memo<ChatInputActionsProps>(
 
         const node: ReactNode = item.children || (
           <ActionIcon
+            active={item.active}
             danger={danger}
             disabled={disabled || loading || itemRest?.disabled}
             icon={icon}

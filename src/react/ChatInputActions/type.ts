@@ -5,6 +5,7 @@ import type { FlexboxProps } from 'react-layout-kit';
 export type ChatInputActionEvent = Pick<MenuInfo, 'key' | 'keyPath' | 'domEvent'>;
 
 export type ActionItem = MenuItemType & {
+  active?: boolean;
   alwaysDisplay?: boolean;
   children?: ReactNode;
   wrapper?: (dom: ReactNode, key: string) => ReactNode;

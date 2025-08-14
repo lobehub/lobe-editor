@@ -5,7 +5,6 @@ import {
   CodeHighlightNode,
   CodeNode,
 } from '@lexical/code';
-import { registerCodeHighlighting } from '@lexical/code-shiki';
 import { LexicalEditor, TabNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
@@ -14,10 +13,49 @@ import { IMarkdownShortCutService } from '@/plugins/markdown';
 
 import { CustomShikiTokenizer, registerCodeCommand } from '../command';
 import { getCodeLanguageByInput } from '../utils/language';
+import { registerCodeHighlighting } from './CodeHighlighterShiki';
+import { AllColorReplacements } from './FacadeShiki';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+/**
+ * Options for configuring the Codeblock plugin
+ *
+ * @example
+ * // Basic usage with theme
+ * new CodeblockPlugin(kernel, {
+ *   shikiTheme: 'dracula'
+ * })
+ *
+ * @example
+ * // With simple color replacements
+ * new CodeblockPlugin(kernel, {
+ *   shikiTheme: 'dracula',
+ *   colorReplacements: {
+ *     '#ff79c6': '#189eff',
+ *     '#f8f8f2': '#ffffff'
+ *   }
+ * })
+ *
+ * @example
+ * // With scoped color replacements for multiple themes
+ * new CodeblockPlugin(kernel, {
+ *   colorReplacements: {
+ *     'dracula': {
+ *       '#ff79c6': '#189eff',
+ *       '#f8f8f2': '#ffffff'
+ *     },
+ *     'github-light': {
+ *       '#ff79c6': '#defdef',
+ *       '#f8f8f2': '#000000'
+ *     }
+ *   }
+ * })
+ */
 export interface CodeblockPluginOptions {
+  /** Color replacements configuration for customizing theme colors */
+  colorReplacements?: AllColorReplacements;
+  /** Shiki theme name to use for syntax highlighting */
   shikiTheme?: string;
+  /** Custom CSS theme configuration */
   theme?: {
     code?: string;
   };
@@ -42,6 +80,10 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
 
     if (this.config?.shikiTheme) {
       CustomShikiTokenizer.defaultTheme = this.config?.shikiTheme;
+    }
+
+    if (this.config?.colorReplacements) {
+      CustomShikiTokenizer.defaultColorReplacements = this.config?.colorReplacements;
     }
 
     kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
