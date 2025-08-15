@@ -30,6 +30,7 @@ import {
 import { RefObject, useCallback, useEffect, useState } from 'react';
 
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
+import { $isRootTextContentEmpty } from '@/plugins/common/utils';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@/plugins/link/node/LinkNode';
 import { sanitizeUrl } from '@/plugins/link/utils';
 
@@ -87,6 +88,8 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
   const [isCode, setIsCode] = useState(false);
   const [isLink, setIsLink] = useState(false);
   const [isInCodeblock, setIsInCodeblok] = useState(false);
+  const [codeblockLang, setCodeblockLang] = useState<string | null | undefined>(null);
+  const [isEmpty, setIsEmpty] = useState(true);
   const [blockType, setBlockType] = useState<string | null>(null);
 
   const $handleHeadingNode = useCallback(
@@ -102,6 +105,11 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
 
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection();
+    const editor = editorRef.current?.getLexicalEditor();
+
+    if (editor) {
+      setIsEmpty($isRootTextContentEmpty(editor.isComposing(), false));
+    }
     if ($isRangeSelection(selection)) {
       setIsBold(selection.hasFormat('bold'));
       setIsItalic(selection.hasFormat('italic'));
@@ -119,7 +127,10 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
       const node = getSelectedNode(selection);
       const parent = node.getParent();
       setIsLink($isLinkNode(parent) || $isLinkNode(node));
-      setIsInCodeblok($isCodeNode(element) && $isCodeNode(focusElement));
+      const isCodeBlock =
+        $isCodeNode(element) && $isCodeNode(focusElement) && elementKey === focusElement.getKey();
+      setIsInCodeblok(isCodeBlock);
+      setCodeblockLang(isCodeBlock ? element.getLanguage() : '');
 
       if (elementDOM !== null) {
         if ($isListNode(element)) {
@@ -285,10 +296,12 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
     canRedo,
     canUndo,
     code,
+    codeblockLang,
     formatCodeblock,
     insertLink,
     isBold,
     isCode,
+    isEmpty,
     isInCodeblock,
     isItalic,
     isStrikethrough,
