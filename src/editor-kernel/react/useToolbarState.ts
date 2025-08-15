@@ -142,6 +142,16 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
           $handleHeadingNode(element);
         }
       }
+    } else if (!selection) {
+      setIsBold(false);
+      setIsItalic(false);
+      setIsUnderline(false);
+      setIsStrikethrough(false);
+      setIsCode(false);
+      setIsLink(false);
+      setIsInCodeblok(false);
+      setCodeblockLang(null);
+      setBlockType(null);
     }
   }, [editorRef.current]);
 
