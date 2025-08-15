@@ -12,8 +12,10 @@ export default class TextDataSource extends DataSource {
     const rootNode = INodeHelper.createRootNode();
     lines.forEach((line) => {
       const paragraph = INodeHelper.createParagraph();
-      const textNode = INodeHelper.createTextNode(line);
-      INodeHelper.appendChild(paragraph, textNode);
+      if (line) {
+        const textNode = INodeHelper.createTextNode(line);
+        INodeHelper.appendChild(paragraph, textNode);
+      }
       INodeHelper.appendChild(rootNode, paragraph);
     });
 
