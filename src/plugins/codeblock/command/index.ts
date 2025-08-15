@@ -70,10 +70,13 @@ export function registerCodeCommand(editor: LexicalEditor) {
       if (!codeNode) {
         return false;
       }
-      editor.update(() => {
-        if ($isCodeNode(codeNode)) {
-          codeNode.setLanguage(payload.lang);
-        }
+      // 需要延迟执行，因为可能选区变动导致的 transform 执行顺序混乱
+      queueMicrotask(() => {
+        editor.update(() => {
+          if ($isCodeNode(codeNode)) {
+            codeNode.setLanguage(payload.lang);
+          }
+        });
       });
       return true;
     },
