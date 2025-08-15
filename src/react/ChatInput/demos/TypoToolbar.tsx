@@ -111,6 +111,7 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editorRef }) => {
                 children: (
                   <CodeLanguageSelect
                     onSelect={(value) => toolbarState.updateCodeblockLang(value)}
+                    value={toolbarState.codeblockLang}
                   />
                 ),
                 disabled: !toolbarState.isInCodeblock,
