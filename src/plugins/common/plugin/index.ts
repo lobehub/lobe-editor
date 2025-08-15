@@ -202,6 +202,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const isStrikethrough = node.hasFormat('strikethrough');
       const isCode = node.hasFormat('code');
 
+      if (isCode || isBold || isStrikethrough || isItalic || isUnderline) {
+        ctx.appendLine(' ');
+      }
+
       if (isCode) {
         ctx.appendLine('`');
       }
@@ -232,6 +236,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       }
       if (isCode) {
         ctx.appendLine('`');
+      }
+
+      if (isCode || isBold || isStrikethrough || isItalic || isUnderline) {
+        ctx.appendLine(' ');
       }
     });
   }
