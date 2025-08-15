@@ -143,7 +143,10 @@ const Toolbar = memo<ToolbarProps>(({ editorRef }) => {
             toolbarState.isInCodeblock && {
               children: (
                 <CodeLanguageSelect
-                  onSelect={(value) => toolbarState.updateCodeblockLang(value)}
+                  onSelect={(value) => {
+                    console.log(value);
+                    toolbarState.updateCodeblockLang(value);
+                  }}
                   value={toolbarState.codeblockLang}
                 />
               ),
