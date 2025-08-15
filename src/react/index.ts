@@ -5,5 +5,6 @@ export {
   default as ChatInputActions,
   type ChatInputActionsProps,
 } from './ChatInputActions';
+export { default as CodeLanguageSelect, type CodeLanguageSelectProps } from './CodeLanguageSelect';
 export { default as Editor, type EditorProps, useEditor, withProps } from './Editor';
 export { default as SendButton, type SendButtonProps } from './SendButton';

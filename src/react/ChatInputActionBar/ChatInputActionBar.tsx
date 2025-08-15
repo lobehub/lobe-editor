@@ -24,4 +24,6 @@ const ChatInputActionBar = memo<ChatInputActionBarProps>(({ className, style, le
   );
 });
 
+ChatInputActionBar.displayName = 'ChatInputActionBar';
+
 export default ChatInputActionBar;
