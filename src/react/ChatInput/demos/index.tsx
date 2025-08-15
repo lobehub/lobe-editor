@@ -44,7 +44,9 @@ export default () => {
                   updateAt: 1_686_437_950_084,
                 },
               ]);
+
               editor.setDocument('text', '');
+              editor.focus();
             }}
             setShowTypobar={setShowTypobar}
             showTypobar={showTypobar}
