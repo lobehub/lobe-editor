@@ -1,15 +1,7 @@
 'use client';
 
-import {
-  autoUpdate,
-  flip,
-  offset,
-  size,
-  useFloating,
-  useInteractions,
-  useRole,
-} from '@floating-ui/react';
 import { mergeRegister } from '@lexical/utils';
+import { Dropdown, type MenuProps } from '@lobehub/ui';
 import {
   COMMAND_PRIORITY_NORMAL,
   KEY_ARROW_DOWN_COMMAND,
@@ -24,22 +16,19 @@ import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
 import { ITriggerContext, SlashPlugin } from '../plugin/index';
-import { ISlashOption, SlashOptions } from '../service/i-slash-service';
+import { ISlashMenuOption, ISlashOption, SlashOptions } from '../service/i-slash-service';
 import { $splitNodeContainingQuery } from '../utils/utils';
-import { DefaultMenuRender } from './components/DefaultMenuRender';
 import type { ReactSlashOptionProps, ReactSlashPluginProps } from './type';
 import { setCancelablePromise } from './utils';
 
-const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
-  MenuComp = DefaultMenuRender,
-  children,
-}) => {
+const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName }) => {
   const [editor] = useLexicalComposerContext();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   const [resolution, setResolution] = useState<ITriggerContext | null>(null);
   const [options, setOptions] = useState<Array<ISlashOption>>([]);
+  const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
   const cancelRef = useRef<{
     cancel: () => void;
   }>({
@@ -47,31 +36,11 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
   });
   const triggerMapRef = useRef<Map<string, ReactSlashOptionProps>>(new Map());
 
-  const { refs, floatingStyles, context } = useFloating<HTMLElement>({
-    middleware: [
-      offset(5),
-      flip({ padding: 10 }),
-      size({
-        apply({ rects, elements, availableHeight }) {
-          Object.assign(elements.floating.style, {
-            maxHeight: `${availableHeight}px`,
-            minWidth: `${rects.reference.width}px`,
-          });
-        },
-        padding: 10,
-      }),
-    ],
-    onOpenChange: setIsOpen,
-    open: isOpen,
-    placement: 'bottom-start',
-    whileElementsMounted: autoUpdate,
-  });
-
   const close = useCallback(() => {
     setIsOpen(false);
     setOptions([]);
     setResolution(null);
-    context.onOpenChange(false);
+    setActiveKey(null);
   }, []);
 
   useLayoutEffect(() => {
@@ -86,8 +55,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
     editor.registerPlugin(SlashPlugin, {
       slashOptions: options,
       triggerClose: () => {
-        setResolution(null);
-        context.onOpenChange(false);
+        close();
         cancelRef.current.cancel();
       },
       triggerOpen: (ctx) => {
@@ -104,26 +72,29 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
               .then(resolve, reject)
               .finally(() => setLoading(false));
           });
-          // @ts-expect-error not error
-          pr.promise.then(setOptions);
+          pr.promise.then((items) => {
+            const typedItems = items as ISlashOption[];
+            setOptions(typedItems);
+          });
           cancelRef.current.cancel = () => {
             pr.cancel();
             setLoading(false);
           };
         }
-        setHighlightedIndex(0);
-        refs.setPositionReference({
-          getBoundingClientRect: () => {
-            return ctx.getRect();
-          },
-        });
-        context.onOpenChange(true);
+        const rect = ctx.getRect();
+        setDropdownPosition({ x: rect.left, y: rect.bottom });
+        setIsOpen(true);
       },
     });
-  }, [editor]);
+  }, [editor, close]);
 
   const selectOptionAndCleanUp = useCallback(
     (option: ISlashOption) => {
+      // Don't process divider items
+      if ('type' in option && option.type === 'divider') {
+        return;
+      }
+
       const lexicalEditor = editor.getLexicalEditor();
       if (lexicalEditor && resolution) {
         lexicalEditor.update(() => {
@@ -138,24 +109,26 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
 
       close();
     },
-    [context, resolution, close],
+    [resolution, close],
   );
 
   useLexicalEditor(
     (editor) => {
+      const pureOptions = options.filter(
+        (item): item is ISlashMenuOption =>
+          !('type' in item && item.type === 'divider') && 'key' in item && Boolean(item.key),
+      );
       return mergeRegister(
         editor.registerCommand<KeyboardEvent>(
           KEY_ARROW_DOWN_COMMAND,
           (payload) => {
             const event = payload;
-            if (options !== null && options.length) {
-              const newSelectedIndex =
-                highlightedIndex === null
-                  ? 0
-                  : highlightedIndex !== options.length - 1
-                    ? highlightedIndex + 1
-                    : 0;
-              setHighlightedIndex(newSelectedIndex);
+            if (pureOptions !== null && pureOptions.length) {
+              const currentIndex = activeKey
+                ? pureOptions.findIndex((opt) => opt.key === activeKey)
+                : -1;
+              const newIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % pureOptions.length;
+              setActiveKey(String(pureOptions[newIndex].key));
               event.preventDefault();
               event.stopImmediatePropagation();
             }
@@ -167,14 +140,15 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
           KEY_ARROW_UP_COMMAND,
           (payload) => {
             const event = payload;
-            if (options !== null && options.length) {
-              const newSelectedIndex =
-                highlightedIndex === null
-                  ? options.length - 1
-                  : highlightedIndex !== 0
-                    ? highlightedIndex - 1
-                    : options.length - 1;
-              setHighlightedIndex(newSelectedIndex);
+            if (pureOptions !== null && pureOptions.length) {
+              const currentIndex = activeKey
+                ? pureOptions.findIndex((opt) => opt.key === activeKey)
+                : -1;
+              const newIndex =
+                currentIndex === -1
+                  ? pureOptions.length - 1
+                  : (currentIndex - 1 + pureOptions.length) % pureOptions.length;
+              setActiveKey(String(pureOptions[newIndex].key));
               event.preventDefault();
               event.stopImmediatePropagation();
             }
@@ -197,12 +171,18 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
           KEY_TAB_COMMAND,
           (payload) => {
             const event = payload;
-            if (options === null || highlightedIndex === null || !options[highlightedIndex]) {
+            if (options === null || activeKey === null) {
+              return false;
+            }
+            const selectedOption = options.find(
+              (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
+            );
+            if (!selectedOption) {
               return false;
             }
             event.preventDefault();
             event.stopImmediatePropagation();
-            selectOptionAndCleanUp(options[highlightedIndex]);
+            selectOptionAndCleanUp(selectedOption);
             return true;
           },
           COMMAND_PRIORITY_NORMAL,
@@ -210,7 +190,13 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
         editor.registerCommand(
           KEY_ENTER_COMMAND,
           (event: KeyboardEvent | null) => {
-            if (options === null || highlightedIndex === null || !options[highlightedIndex]) {
+            if (options === null || activeKey === null) {
+              return false;
+            }
+            const selectedOption = options.find(
+              (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
+            );
+            if (!selectedOption) {
               return false;
             }
 
@@ -218,60 +204,72 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
               event.preventDefault();
               event.stopImmediatePropagation();
             }
-            selectOptionAndCleanUp(options[highlightedIndex]);
+            selectOptionAndCleanUp(selectedOption);
             return true;
           },
           COMMAND_PRIORITY_NORMAL,
         ),
       );
     },
-    [options, highlightedIndex, setHighlightedIndex],
+    [options, activeKey, setActiveKey],
   );
 
-  const role = useRole(context);
-
-  const { getFloatingProps } = useInteractions([role]);
-
-  const { renderComp: CustomRender, disableFloating } =
-    triggerMapRef.current.get(resolution?.trigger || '') || {};
+  const { renderComp: CustomRender } = triggerMapRef.current.get(resolution?.trigger || '') || {};
 
   /**
-   * Render the custom component if it exists and floating is disabled
+   * Render the custom component if it exists
    */
-  if (isOpen && CustomRender && disableFloating) {
+  if (CustomRender) {
     return (
       <CustomRender
-        highlightedIndex={highlightedIndex}
+        activeKey={activeKey}
         loading={loading}
+        open={isOpen}
         options={options}
         selectOptionAndCleanUp={selectOptionAndCleanUp}
-        setHighlightedIndex={setHighlightedIndex}
+        setActiveKey={setActiveKey}
       />
     );
   }
 
+  const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
+    const option = options.find(
+      (item): item is ISlashMenuOption => 'key' in item && item.key === key,
+    );
+    if (option) {
+      selectOptionAndCleanUp(option);
+    }
+  };
+
   return (
-    isOpen && (
-      <div ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()}>
-        {CustomRender ? (
-          <CustomRender
-            highlightedIndex={highlightedIndex}
-            loading={loading}
-            options={options}
-            selectOptionAndCleanUp={selectOptionAndCleanUp}
-            setHighlightedIndex={setHighlightedIndex}
-          />
-        ) : (
-          <MenuComp
-            highlightedIndex={highlightedIndex}
-            loading={loading}
-            options={options}
-            selectOptionAndCleanUp={selectOptionAndCleanUp}
-            setHighlightedIndex={setHighlightedIndex}
-          />
-        )}
-      </div>
-    )
+    <div
+      style={{
+        left: dropdownPosition.x,
+        position: 'fixed',
+        top: dropdownPosition.y,
+        zIndex: 1050,
+      }}
+    >
+      <Dropdown
+        menu={{
+          // @ts-ignore
+          activeKey: activeKey,
+          items: loading
+            ? [
+                {
+                  disabled: true,
+                  key: 'loading',
+                  label: 'Loading...',
+                },
+              ]
+            : options,
+          onClick: handleMenuClick,
+        }}
+        open={isOpen}
+      >
+        <span className={anchorClassName} />
+      </Dropdown>
+    </div>
   );
 };
 

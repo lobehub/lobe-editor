@@ -57,8 +57,8 @@ export default () => {
             mentionOption={{
               items: [
                 {
+                  key: 'XX',
                   label: 'XX',
-                  value: 'XX',
                 },
               ],
               trigger: '@',
@@ -73,8 +73,8 @@ export default () => {
             slashOption={{
               items: [
                 {
+                  key: 'help',
                   label: 'Help',
-                  value: 'help',
                 },
               ],
               trigger: '/',

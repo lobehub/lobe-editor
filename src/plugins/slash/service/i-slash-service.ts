@@ -1,17 +1,21 @@
 /* eslint-disable no-redeclare */
 /* eslint-disable @typescript-eslint/no-redeclare */
+import { DropdownMenuItemType } from '@lobehub/ui';
 import Fuse from 'fuse.js';
 
 import { IEditor, type IEditorKernel, type IServiceID, genServiceId } from '@/editor-kernel';
 
 import { getBasicTypeaheadTriggerMatch } from '../utils/utils';
 
-export interface ISlashOption {
-  icon?: string;
-  label: string | unknown;
+export type ISlashDividerOption = {
+  type: 'divider';
+};
+
+export interface ISlashMenuOption extends DropdownMenuItemType {
   onSelect?: (editor: IEditor, matchingString: string) => void;
-  value: string;
 }
+
+export type ISlashOption = ISlashMenuOption | ISlashDividerOption;
 
 export interface SlashOptions {
   allowWhitespace?: boolean;
@@ -61,9 +65,13 @@ export class SlashService implements ISlashService {
     );
 
     if (Array.isArray(options.items)) {
+      // Filter out divider items for search functionality
+      const searchableItems = options.items.filter(
+        (item): item is ISlashMenuOption => !('type' in item) || item.type !== 'divider',
+      );
       this.triggerFuseMap.set(
         options.trigger,
-        new Fuse(options.items, {
+        new Fuse(searchableItems, {
           keys: ['label', 'value'],
         }),
       );

@@ -4,6 +4,7 @@ import { createElement, memo } from 'react';
 
 import { ReactEditor } from '@/editor-kernel/react/react-editor';
 import { ReactEditorContent, ReactPlainText } from '@/plugins/common';
+import { ReactMentionPlugin } from '@/plugins/mention';
 import { ReactSlashOption, ReactSlashPlugin } from '@/plugins/slash';
 
 import { EditorProps } from './type';
@@ -25,6 +26,7 @@ const Editor = memo<EditorProps>(
   }) => {
     const enableSlash = Boolean(slashOption?.items && slashOption.items.length > 0);
     const enableMention = Boolean(mentionOption?.items && mentionOption.items.length > 0);
+    const { markdownWriter, ...restMentionOption } = mentionOption;
     return (
       <ReactEditor editorRef={editorRef}>
         <ReactPlainText
@@ -47,10 +49,11 @@ const Editor = memo<EditorProps>(
             ...plugin[1],
           });
         })}
+        {enableMention && <ReactMentionPlugin markdownWriter={markdownWriter} />}
         {(enableSlash || enableMention) && (
           <ReactSlashPlugin>
             {enableSlash ? <ReactSlashOption trigger="/" {...slashOption} /> : undefined}
-            {enableMention ? <ReactSlashOption trigger="@" {...mentionOption} /> : undefined}
+            {enableMention ? <ReactSlashOption trigger="@" {...restMentionOption} /> : undefined}
           </ReactSlashPlugin>
         )}
         {children}

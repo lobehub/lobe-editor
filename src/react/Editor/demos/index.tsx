@@ -4,20 +4,24 @@ import {
   INSERT_HORIZONTAL_RULE_COMMAND,
   INSERT_LINK_COMMAND,
   INSERT_MENTION_COMMAND,
-  INSERT_QUOTE_COMMAND,
   INSERT_TABLE_COMMAND,
   ReactCodeblockPlugin,
   ReactHRPlugin,
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
-  ReactMentionPlugin,
   ReactTablePlugin,
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
-import { Icon } from '@lobehub/ui';
 import { debounce } from 'lodash';
-import { NotebookIcon } from 'lucide-react';
+import {
+  Heading1Icon,
+  Heading2Icon,
+  Heading3Icon,
+  MinusIcon,
+  NotebookIcon,
+  Table2Icon,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { INSERT_FILE_COMMAND, ReactFilePlugin } from '@/plugins/file';
@@ -57,18 +61,17 @@ export default () => {
             });
             return [
               {
-                label: (
-                  <div>
-                    <Icon icon={NotebookIcon} />
-                    {search?.matchingString} - {search?.replaceableString}
-                  </div>
-                ),
+                icon: NotebookIcon,
+                key: 'XX',
+                label: `${search?.matchingString} - ${search?.replaceableString}`,
                 onSelect: (editor) => {
                   editor.dispatchCommand(INSERT_MENTION_COMMAND, { extra: { id: 1 }, label: 'XX' });
                 },
-                value: 'XX',
               },
             ];
+          },
+          markdownWriter: (mention) => {
+            return `\n<mention>${mention.label}[${mention.extra.id}]</mention>\n`;
           },
           maxLength: 6,
         }}
@@ -81,14 +84,6 @@ export default () => {
           ReactCodeblockPlugin,
           ReactHRPlugin,
           ReactTablePlugin,
-          Editor.withProps(ReactMentionPlugin, {
-            /**
-             * 自定义 mention markdown 输出
-             */
-            markdownWriter: (mention) => {
-              return `\n<mention>${mention.label}[${mention.extra.id}]</mention>\n`;
-            },
-          }),
           Editor.withProps(ReactFilePlugin, {
             handleUpload: async (file) => {
               console.log('Files uploaded:', file);
@@ -109,13 +104,54 @@ export default () => {
         slashOption={{
           items: [
             {
+              icon: Heading1Icon,
+              key: 'h1',
+              label: 'Heading 1',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
+              },
+            },
+            {
+              icon: Heading2Icon,
+              key: 'h2',
+              label: 'Heading 2',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
+              },
+            },
+            {
+              icon: Heading3Icon,
+              key: 'h3',
+              label: 'Heading 3',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h3' });
+              },
+            },
+
+            {
+              type: 'divider',
+            },
+            {
+              icon: MinusIcon,
+              key: 'hr',
+              label: 'Hr',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, {});
+              },
+            },
+            {
+              icon: Table2Icon,
+              key: 'table',
               label: 'Table',
               onSelect: (editor) => {
                 editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' });
               },
-              value: 'table',
             },
             {
+              type: 'divider',
+            },
+            {
+              key: 'file',
               label: 'File',
               onSelect: (editor) => {
                 openFileSelector((files) => {
@@ -124,9 +160,9 @@ export default () => {
                   }
                 });
               },
-              value: 'file',
             },
             {
+              key: 'set-text-content',
               label: 'SetTextContent',
               onSelect: (editor) => {
                 editor.setDocument('text', '123\n123');
@@ -134,9 +170,9 @@ export default () => {
                   editor.focus();
                 });
               },
-              value: 'set-text-content',
             },
             {
+              key: 'insert-link',
               label: 'InsertLink',
               onSelect: (editor) => {
                 editor.dispatchCommand(INSERT_LINK_COMMAND, { url: 'https://example.com' });
@@ -144,35 +180,6 @@ export default () => {
                   editor.focus();
                 });
               },
-              value: 'insert-link',
-            },
-            {
-              label: 'Quote',
-              onSelect: (editor) => {
-                editor.dispatchCommand(INSERT_QUOTE_COMMAND, {});
-              },
-              value: 'quote',
-            },
-            {
-              label: 'H1',
-              onSelect: (editor) => {
-                editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
-              },
-              value: 'h1',
-            },
-            {
-              label: 'H2',
-              onSelect: (editor) => {
-                editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
-              },
-              value: 'h2',
-            },
-            {
-              label: 'HR',
-              onSelect: (editor) => {
-                editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, {});
-              },
-              value: 'hr',
             },
           ],
         }}

@@ -29,13 +29,14 @@ export interface ReactSlashOptionProps {
 
 export interface MenuRenderProps {
   /**
-   * 当前高亮的元素
+   * 当前激活的选项 key
    */
-  highlightedIndex: number | null;
+  activeKey: string | null;
   /**
    * 加载状态
    */
   loading?: boolean;
+  open?: boolean;
   /**
    * 当前搜索到的选项
    */
@@ -46,15 +47,14 @@ export interface MenuRenderProps {
    */
   selectOptionAndCleanUp: (option: ISlashOption) => void;
   /**
-   * 主动设置当前高亮元素
-   * @param index
+   * 主动设置当前激活的选项 key
+   * @param key
    * @returns
    */
-  setHighlightedIndex: (index: number | null) => void;
+  setActiveKey: (key: string | null) => void;
 }
 
 export interface ReactSlashPluginProps {
-  MenuComp?: FC<MenuRenderProps>;
   anchorClassName?: string;
   children?:
     | (ReactElement<ReactSlashOptionProps> | undefined)
