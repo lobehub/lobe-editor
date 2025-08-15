@@ -44,7 +44,7 @@ export default () => {
                   updateAt: 1_686_437_950_084,
                 },
               ]);
-              editor.setDocument('text', ' ');
+              editor.setDocument('text', '');
             }}
             setShowTypobar={setShowTypobar}
             showTypobar={showTypobar}
