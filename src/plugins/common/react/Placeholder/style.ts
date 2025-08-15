@@ -6,12 +6,11 @@ export const useStyles = createStyles(({ css, token }) => ({
     pointer-events: none;
     user-select: none;
 
+    position: absolute;
     inset-block-start: 0;
 
-    margin-block: 4px;
+    margin-block: 0 !important;
 
-    font-size: var(--lobe-markdown-font-size);
-    line-height: var(--lobe-markdown-line-height);
     color: ${token.colorTextDescription};
   `,
   placeholderContainer: css`

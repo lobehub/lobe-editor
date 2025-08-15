@@ -7,82 +7,83 @@ import {
 } from '@lobehub/editor';
 import { ChatInput, useEditor } from '@lobehub/editor/react';
 import Editor from '@lobehub/editor/react/Editor';
-import { ChatActionsBar, ChatList } from '@lobehub/ui/chat';
-import { useTheme } from 'antd-style';
+import type { ChatMessage } from '@lobehub/ui/chat';
 import { useState } from 'react';
-import { Flexbox } from 'react-layout-kit';
 
 import ActionToolbar from './ActionToolbar';
+import Container from './Container';
 import TypoToolbar from './TypoToolbar';
 import { chatMessages, content } from './data';
 
 export default () => {
+  const [messages, setMessages] = useState<ChatMessage[]>(chatMessages);
   const [showTypobar, setShowTypobar] = useState(true);
-  const theme = useTheme();
   const editorRef = useEditor();
 
   return (
-    <Flexbox
-      height={599}
-      style={{
-        background: theme.colorBgContainerSecondary,
-        overflow: 'hidden',
-      }}
-    >
-      <Flexbox
-        flex={1}
-        style={{
-          overflowY: 'auto',
-        }}
-      >
-        <ChatList
-          data={chatMessages}
-          renderActions={{
-            default: ChatActionsBar,
-          }}
-          renderMessages={{
-            default: ({ id, editableContent }) => <div id={id}>{editableContent}</div>,
-          }}
-          style={{ width: '100%' }}
-        />
-      </Flexbox>
-      <Flexbox paddingBlock={'0 8px'} paddingInline={8}>
-        <ChatInput
-          footer={<ActionToolbar setShowTypobar={setShowTypobar} showTypobar={showTypobar} />}
-          header={<TypoToolbar editorRef={editorRef} show={showTypobar} />}
-        >
-          <Editor
-            content={content}
-            editorRef={editorRef}
-            mentionOption={{
-              items: [
+    <Container messages={messages}>
+      <ChatInput
+        footer={
+          <ActionToolbar
+            onSend={() => {
+              const editor = editorRef.current;
+              if (!editor) return;
+
+              setMessages([
+                ...messages,
                 {
-                  key: 'XX',
-                  label: 'XX',
+                  content: editor.getDocument('markdown') as unknown as string,
+                  createAt: 1_686_437_950_084,
+                  extra: {},
+                  id: '1',
+                  meta: {
+                    avatar: 'https://avatars.githubusercontent.com/u/17870709?v=4',
+                    title: 'CanisMinor',
+                  },
+                  role: 'user',
+                  updateAt: 1_686_437_950_084,
                 },
-              ],
-              trigger: '@',
+              ]);
+              editor.setDocument('text', ' ');
             }}
-            plugins={[
-              ReactListPlugin,
-              ReactLinkPlugin,
-              ReactImagePlugin,
-              ReactCodeblockPlugin,
-              ReactHRPlugin,
-            ]}
-            slashOption={{
-              items: [
-                {
-                  key: 'help',
-                  label: 'Help',
-                },
-              ],
-              trigger: '/',
-            }}
-            variant={'chat'}
+            setShowTypobar={setShowTypobar}
+            showTypobar={showTypobar}
           />
-        </ChatInput>
-      </Flexbox>
-    </Flexbox>
+        }
+        header={<TypoToolbar editorRef={editorRef} show={showTypobar} />}
+      >
+        <Editor
+          content={content}
+          editorRef={editorRef}
+          mentionOption={{
+            items: [
+              {
+                key: 'XX',
+                label: 'XX',
+              },
+            ],
+            trigger: '@',
+          }}
+          placeholder={'Type something...'}
+          plugins={[
+            ReactListPlugin,
+            ReactLinkPlugin,
+            ReactImagePlugin,
+            ReactCodeblockPlugin,
+            ReactHRPlugin,
+          ]}
+          slashOption={{
+            items: [
+              {
+                key: 'help',
+                label: 'Help',
+              },
+            ],
+            trigger: '/',
+          }}
+          variant={'chat'}
+        />
+      </ChatInput>
+    </Container>
   );
 };

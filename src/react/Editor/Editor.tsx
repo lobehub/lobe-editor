@@ -33,8 +33,8 @@ const Editor = memo<EditorProps>(
           className={className}
           onChange={onChange}
           style={{
-            ...style,
             outline: 'none',
+            ...style,
           }}
           theme={theme}
           variant={variant}

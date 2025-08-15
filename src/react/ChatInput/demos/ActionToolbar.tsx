@@ -15,11 +15,12 @@ import { memo } from 'react';
 import { ChatInputActionBar, ChatInputActions, SendButton } from '@/react';
 
 interface ActionToolbarProps {
+  onSend?: () => void;
   setShowTypobar?: (show: boolean) => void;
   showTypobar?: boolean;
 }
 
-const ActionToolbar = memo<ActionToolbarProps>(({ showTypobar, setShowTypobar }) => {
+const ActionToolbar = memo<ActionToolbarProps>(({ showTypobar, setShowTypobar, onSend }) => {
   return (
     <ChatInputActionBar
       left={
@@ -96,6 +97,7 @@ const ActionToolbar = memo<ActionToolbarProps>(({ showTypobar, setShowTypobar })
               },
             ],
           }}
+          onClick={onSend}
         />
       }
     />

@@ -54,16 +54,11 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     }, []);
 
     return (
-      <>
-        <div
-          className={cx(styles.root, styles.variant, className)}
-          contentEditable
-          ref={editorContainerRef}
-          style={style}
-        />
+      <div className={cx(styles.root, styles.variant, className)} style={style}>
+        <div contentEditable ref={editorContainerRef} style={{ outline: 'none' }} />
         <Placeholder style={style}>{placeholder}</Placeholder>
         {decorators}
-      </>
+      </div>
     );
   },
 );
