@@ -6,6 +6,7 @@ import {
 } from '@lobehub/editor';
 import { ChatInputActions, ChatInputActionsProps, CodeLanguageSelect } from '@lobehub/editor/react';
 import { Block } from '@lobehub/ui';
+import { useTheme } from 'antd-style';
 import {
   BoldIcon,
   CodeXmlIcon,
@@ -31,9 +32,21 @@ export interface ToolbarProps {
 
 const Toolbar = memo<ToolbarProps>(({ editorRef }) => {
   const toolbarState = useToolbarState(editorRef);
+  const theme = useTheme();
 
   return (
-    <Block padding={4} shadow style={{ marginBottom: 16 }} variant={'outlined'}>
+    <Block
+      padding={4}
+      shadow
+      style={{
+        background: theme.colorBgElevated,
+        marginBottom: 16,
+        position: 'sticky',
+        top: 12,
+        zIndex: 10,
+      }}
+      variant={'outlined'}
+    >
       <ChatInputActions
         items={
           [
