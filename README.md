@@ -6,7 +6,7 @@
 
 <h1>LobeHub Editor</h1>
 
-A powerful and extensible rich text editor built on Meta's Lexical framework, providing a modern editing experience with React integration.
+A modern, extensible rich text editor built on Meta's Lexical framework with dual-architecture design, featuring both a powerful kernel and React integration. Optimized for AI applications and chat interfaces.
 
 [![][npm-release-shield]][npm-release-link]
 [![][github-releasedate-shield]][github-releasedate-link]
@@ -32,17 +32,18 @@ A powerful and extensible rich text editor built on Meta's Lexical framework, pr
 - [✨ Features](#-features)
 - [📦 Installation](#-installation)
 - [🚀 Quick Start](#-quick-start)
-  - [Basic React Editor](#basic-react-editor)
-  - [With Plugins](#with-plugins)
-  - [Editor Kernel Usage](#editor-kernel-usage)
+  - [Basic Editor](#basic-editor)
+  - [Advanced Usage with Plugins](#advanced-usage-with-plugins)
+  - [Chat Input Component](#chat-input-component)
+  - [Editor Kernel API](#editor-kernel-api)
 - [🔌 Available Plugins](#-available-plugins)
 - [📖 API Reference](#-api-reference)
   - [Editor Kernel](#editor-kernel)
-  - [React Components](#react-components)
   - [Plugin System](#plugin-system)
 - [🛠️ Development](#️-development)
+  - [Setup](#setup)
   - [Available Scripts](#available-scripts)
-  - [Project Structure](#project-structure)
+  - [Project Architecture](#project-architecture)
 - [🤝 Contributing](#-contributing)
 - [🔗 Links](#-links)
   - [More Products](#more-products)
@@ -55,14 +56,16 @@ A powerful and extensible rich text editor built on Meta's Lexical framework, pr
 
 ## ✨ Features
 
-- 🎯 **Lexical-Powered** - Built on Meta's robust Lexical framework for reliable rich text editing
-- ⚛️ **React Integration** - First-class React support with hooks and components
-- 🔌 **Plugin System** - Extensible architecture with modular plugins
-- 🎨 **Rich Content** - Support for images, code blocks, links, lists, and more
-- ⌨️ **Slash Commands** - Quick content insertion with customizable slash menu
-- 🎯 **TypeScript** - Full TypeScript support for better developer experience
-- 🧪 **Testing Ready** - Comprehensive test setup with Vitest
-- 📦 **Modern Build** - Optimized build with Vite supporting ES, UMD, and CJS formats
+- 🎯 **Dual Architecture** - Both kernel-based API and React components for maximum flexibility
+- ⚛️ **React-First** - Built for React 19+ with modern hooks and patterns
+- 🔌 **Rich Plugin Ecosystem** - 10+ built-in plugins for comprehensive content editing
+- 💬 **Chat Interface Ready** - Pre-built chat input components with mention support
+- ⌨️ **Slash Commands** - Intuitive `/` and `@` triggered menus for quick content insertion
+- 📝 **Multiple Export Formats** - JSON, Markdown, and plain text export capabilities
+- 🎨 **Customizable UI** - Antd-styled components with flexible theming
+- 🔗 **File & Media Support** - Native support for images, files, tables, and more
+- 🎯 **TypeScript Native** - Built with TypeScript for excellent developer experience
+- 📱 **Modern Build System** - Optimized with Vite, Dumi docs, and comprehensive testing
 
 ## 📦 Installation
 
@@ -90,118 +93,143 @@ $ pnpm add @lobehub/editor
 
 ## 🚀 Quick Start
 
-### Basic React Editor
+### Basic Editor
 
-```tsx
-import { ReactEditor, ReactEditorContent, ReactPlainText } from '@lobehub/editor';
-import React from 'react';
-
-function MyEditor() {
-  return (
-    <ReactEditor>
-      <ReactPlainText
-        style={{
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          padding: '10px',
-          minHeight: '200px',
-        }}
-      >
-        <ReactEditorContent
-          content={{
-            root: {
-              children: [
-                {
-                  children: [
-                    {
-                      detail: 0,
-                      format: 0,
-                      mode: 'normal',
-                      style: '',
-                      text: 'Start typing...',
-                      type: 'text',
-                      version: 1,
-                    },
-                  ],
-                  direction: 'ltr',
-                  format: '',
-                  indent: 0,
-                  type: 'paragraph',
-                  version: 1,
-                },
-              ],
-              direction: 'ltr',
-              format: '',
-              indent: 0,
-              type: 'root',
-              version: 1,
-            },
-          }}
-        />
-      </ReactPlainText>
-    </ReactEditor>
-  );
-}
-```
-
-### With Plugins
+The simplest way to get started with a fully-featured editor:
 
 ```tsx
 import {
   ReactCodeblockPlugin,
-  ReactEditor,
-  ReactEditorContent,
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
-  ReactPlainText,
-  ReactSlashOption,
-  ReactSlashPlugin,
 } from '@lobehub/editor';
-import React from 'react';
+import { Editor } from '@lobehub/editor/react';
 
-function AdvancedEditor() {
+export default function MyEditor() {
+  const editorRef = Editor.useEditor();
+
   return (
-    <ReactEditor>
-      <ReactSlashPlugin>
-        <ReactSlashOption
-          items={[
-            { label: 'Heading 1', value: 'h1' },
-            { label: 'Code Block', value: 'code' },
-            { label: 'Image', value: 'image' },
-          ]}
-          trigger="/"
-        />
-      </ReactSlashPlugin>
-      <ReactImagePlugin />
-      <ReactCodeblockPlugin />
-      <ReactListPlugin />
-      <ReactLinkPlugin />
-
-      <ReactPlainText>
-        <ReactEditorContent content={initialContent} />
-      </ReactPlainText>
-    </ReactEditor>
+    <Editor
+      placeholder="Start typing..."
+      editorRef={editorRef}
+      plugins={[ReactListPlugin, ReactLinkPlugin, ReactImagePlugin, ReactCodeblockPlugin]}
+      slashOption={{
+        items: [
+          {
+            key: 'h1',
+            label: 'Heading 1',
+            onSelect: (editor) => {
+              editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
+            },
+          },
+          // More slash commands...
+        ],
+      }}
+      onChange={(editor) => {
+        // Handle content changes
+        const markdown = editor.getDocument('markdown');
+        const json = editor.getDocument('json');
+      }}
+    />
   );
 }
 ```
 
-### Editor Kernel Usage
+### Advanced Usage with Plugins
 
-For more advanced use cases, you can use the editor kernel directly:
+Add more functionality with built-in plugins:
+
+```tsx
+import {
+  INSERT_FILE_COMMAND,
+  INSERT_TABLE_COMMAND,
+  ReactFilePlugin,
+  ReactHRPlugin,
+  ReactTablePlugin,
+} from '@lobehub/editor';
+import { Editor } from '@lobehub/editor/react';
+
+export default function AdvancedEditor() {
+  const editorRef = Editor.useEditor();
+
+  return (
+    <Editor
+      editorRef={editorRef}
+      plugins={[
+        ReactTablePlugin,
+        ReactHRPlugin,
+        Editor.withProps(ReactFilePlugin, {
+          handleUpload: async (file) => {
+            // Handle file upload
+            return { url: await uploadFile(file) };
+          },
+        }),
+      ]}
+      mentionOption={{
+        items: async (search) => [
+          {
+            key: 'user1',
+            label: 'John Doe',
+            onSelect: (editor) => {
+              editor.dispatchCommand(INSERT_MENTION_COMMAND, {
+                label: 'John Doe',
+                extra: { userId: 1 },
+              });
+            },
+          },
+        ],
+      }}
+    />
+  );
+}
+```
+
+### Chat Input Component
+
+Pre-built component optimized for chat interfaces:
+
+```tsx
+import { ChatInput } from '@lobehub/editor/react';
+
+export default function ChatApp() {
+  return (
+    <ChatInput
+      placeholder="Type a message..."
+      onSend={(content) => {
+        // Handle message send
+        console.log('Message:', content);
+      }}
+      enabledFeatures={['mention', 'upload', 'codeblock']}
+    />
+  );
+}
+```
+
+### Editor Kernel API
+
+For advanced use cases, access the underlying kernel directly:
 
 ```typescript
-import Editor, { IEditor } from '@lobehub/editor';
+import { IEditor, createEditor } from '@lobehub/editor';
 
 // Create editor instance
-const editor: IEditor = Editor.createEditor();
+const editor: IEditor = createEditor();
 
 // Register plugins
-editor.registerPlugin(somePlugin);
+editor.registerPlugin(SomePlugin, { config: 'value' });
 
-// Use editor methods
-const content = editor.getContent();
-editor.setContent(newContent);
+// Interact with content
+editor.setDocument('text', 'Hello world');
+const content = editor.getDocument('json');
+
+// Listen to events
+editor.on('content-changed', (newContent) => {
+  console.log('Content updated:', newContent);
+});
+
+// Execute commands
+editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
 ```
 
 <div align="right">
@@ -212,70 +240,122 @@ editor.setContent(newContent);
 
 ## 🔌 Available Plugins
 
-- **ReactSlashPlugin** - Slash command menu for quick content insertion
-- **ReactImagePlugin** - Image upload and display support
-- **ReactCodeblockPlugin** - Syntax-highlighted code blocks
-- **ReactListPlugin** - Ordered and unordered lists
-- **ReactLinkPlugin** - Link creation and editing
-- **ReactHRPlugin** - Horizontal rule dividers
+| Plugin                   | Description               | Features                                                        |
+| ------------------------ | ------------------------- | --------------------------------------------------------------- |
+| **ReactSlashPlugin**     | Slash command menu system | `/` and `@` triggered menus, customizable items, async search   |
+| **ReactMentionPlugin**   | User mention support      | `@username` mentions, custom markdown output, async user search |
+| **ReactImagePlugin**     | Image handling            | Upload, display, drag & drop, multiple formats                  |
+| **ReactCodeblockPlugin** | Code syntax highlighting  | Shiki-powered, 100+ languages, copy button                      |
+| **ReactListPlugin**      | List management           | Ordered/unordered lists, nested lists, keyboard shortcuts       |
+| **ReactLinkPlugin**      | Link management           | Auto-detection, custom link creation, URL validation            |
+| **ReactTablePlugin**     | Table support             | Insert tables, edit cells, add/remove rows/columns              |
+| **ReactHRPlugin**        | Horizontal rules          | Divider insertion, custom styling                               |
+| **ReactFilePlugin**      | File attachments          | File upload, custom upload handlers, markdown export            |
+| **ReactUploadPlugin**    | Generic upload handling   | Drag & drop, multiple file types, progress tracking             |
 
-Each plugin can be configured and customized to fit your needs.
+All plugins are:
+
+- ✅ **Fully configurable** with TypeScript-typed options
+- ✅ **Composable** - use any combination together
+- ✅ **Extensible** - create custom plugins using the same API
+- ✅ **Event-driven** - react to user interactions and content changes
 
 ## 📖 API Reference
 
+#### Utility Hooks
+
+```tsx
+// Get editor reference
+const editorRef = Editor.useEditor();
+
+// Helper for plugin configuration
+const PluginWithConfig = Editor.withProps(ReactFilePlugin, {
+  handleUpload: async (file) => ({ url: 'uploaded-url' }),
+});
+```
+
 ### Editor Kernel
 
-#### `Editor.createEditor(): IEditor`
+#### `createEditor(): IEditor`
 
-Creates a new editor instance with the core functionality.
+Create a new editor kernel instance:
+
+```typescript
+const editor = createEditor();
+```
 
 #### `IEditor` Interface
 
-- `registerPlugin(plugin: IEditorPlugin): void` - Register a plugin
-- `getContent(): any` - Get current editor content
-- `setContent(content: any): void` - Set editor content
-- `destroy(): void` - Clean up editor instance
+Core editor methods:
 
-### React Components
+```typescript
+interface IEditor {
+  // Content management
+  setDocument(type: string, content: any): void;
+  getDocument(type: string): any;
 
-#### `ReactEditor`
+  // Plugin system
+  registerPlugin<T>(plugin: Constructor<T>, config?: T): IEditor;
+  registerPlugins(plugins: Plugin[]): IEditor;
 
-The main wrapper component that provides the Lexical context.
+  // Commands
+  dispatchCommand<T>(command: LexicalCommand<T>, payload: T): boolean;
 
-```tsx
-<ReactEditor>{/* Editor plugins and content */}</ReactEditor>
-```
+  // Events
+  on<T>(event: string, listener: (data: T) => void): this;
+  off<T>(event: string, listener: (data: T) => void): this;
 
-#### `ReactPlainText`
+  // Lifecycle
+  focus(): void;
+  blur(): void;
+  destroy(): void;
 
-A text input area component.
-
-```tsx
-<ReactPlainText style={{ border: '1px solid #ccc' }}>
-  <ReactEditorContent content={content} />
-</ReactPlainText>
-```
-
-#### `ReactEditorContent`
-
-Component for setting initial content.
-
-```tsx
-<ReactEditorContent content={lexicalContentObject} />
+  // Access
+  getLexicalEditor(): LexicalEditor | null;
+  getRootElement(): HTMLElement | null;
+  requireService<T>(serviceId: ServiceID<T>): T | null;
+}
 ```
 
 ### Plugin System
 
-Plugins follow a consistent pattern and can be composed together:
+#### Creating Custom Plugins
 
-```tsx
-<ReactEditor>
-  <ReactSlashPlugin>
-    <ReactSlashOption items={menuItems} trigger="/" />
-  </ReactSlashPlugin>
-  <ReactImagePlugin />
-  <ReactCodeblockPlugin />
-</ReactEditor>
+```typescript
+import { IEditorKernel, IEditorPlugin } from '@lobehub/editor';
+
+class MyCustomPlugin implements IEditorPlugin {
+  constructor(private config: MyPluginConfig) {}
+
+  initialize(kernel: IEditorKernel) {
+    // Register nodes, commands, transforms, etc.
+    kernel.registerNode(MyCustomNode);
+    kernel.registerCommand(MY_COMMAND, this.handleCommand);
+  }
+
+  destroy() {
+    // Cleanup
+  }
+}
+```
+
+#### Available Commands
+
+Common commands you can dispatch:
+
+```typescript
+// Content insertion
+INSERT_HEADING_COMMAND; // { tag: 'h1' | 'h2' | 'h3' }
+INSERT_LINK_COMMAND; // { url: string, text?: string }
+INSERT_IMAGE_COMMAND; // { src: string, alt?: string }
+INSERT_TABLE_COMMAND; // { rows: number, columns: number }
+INSERT_MENTION_COMMAND; // { label: string, extra?: any }
+INSERT_FILE_COMMAND; // { file: File }
+INSERT_HORIZONTAL_RULE_COMMAND;
+
+// Text formatting
+FORMAT_TEXT_COMMAND; // { format: 'bold' | 'italic' | 'underline' }
+CLEAR_FORMAT_COMMAND;
 ```
 
 <div align="right">
@@ -285,6 +365,8 @@ Plugins follow a consistent pattern and can be composed together:
 </div>
 
 ## 🛠️ Development
+
+### Setup
 
 You can use Github Codespaces for online development:
 
@@ -297,44 +379,69 @@ Or clone it for local development:
 ```bash
 $ git clone https://github.com/lobehub/lobe-editor.git
 $ cd lobe-editor
-$ bun install
-$ bun dev
+$ pnpm install
+$ pnpm run dev
 ```
+
+This will start the Dumi documentation server with live playground at `http://localhost:8000`.
 
 ### Available Scripts
 
-- `pnpm run dev` - Start development server with playground
-- `pnpm run build` - Build the library for production
-- `pnpm run test` - Run tests with Vitest
-- `pnpm run test:coverage` - Run tests with coverage report
-- `pnpm run lint` - Lint and fix code
-- `pnpm run type-check` - Type check TypeScript code
-- `pnpm run ci` - Run all CI checks
+| Script               | Description                                   |
+| -------------------- | --------------------------------------------- |
+| `pnpm dev`           | Start Dumi development server with playground |
+| `pnpm build`         | Build library and generate type definitions   |
+| `pnpm test`          | Run tests with Vitest                         |
+| `pnpm test:coverage` | Run tests with coverage report                |
+| `pnpm lint`          | Lint and fix code with ESLint                 |
+| `pnpm type-check`    | Type check with TypeScript                    |
+| `pnpm ci`            | Run all CI checks (lint, type-check, test)    |
+| `pnpm docs:build`    | Build documentation for production            |
+| `pnpm release`       | Publish new version with semantic-release     |
 
-### Project Structure
+### Project Architecture
 
 ```
 lobe-editor/
 ├── src/
-│   ├── editor-kernel/        # Core editor functionality
-│   │   ├── react/           # React integration
-│   │   ├── kernel.ts        # Main editor kernel
-│   │   └── types.ts         # TypeScript definitions
-│   ├── plugins/             # Editor plugins
-│   │   ├── common/          # Basic editor functionality
-│   │   ├── slash/           # Slash command plugin
-│   │   ├── image/           # Image plugin
-│   │   ├── codeblock/       # Code block plugin
-│   │   ├── list/            # List plugin
-│   │   └── link/            # Link plugin
-│   ├── index.ts             # Main library entry point
-│   └── playground.tsx       # Development playground
-├── dist/                    # Built files (generated)
-├── playground/              # Playground HTML
-├── vite.config.js           # Build configuration
-├── vitest.config.ts         # Test configuration
-└── package.json             # Package configuration
+│   ├── editor-kernel/           # 🧠 Core editor logic
+│   │   ├── kernel.ts           # Main editor class with plugin system
+│   │   ├── data-source.ts      # Content management (JSON/Markdown/Text)
+│   │   ├── react/              # React integration layer
+│   │   └── types.ts            # TypeScript interfaces
+│   │
+│   ├── plugins/                # 🔌 Feature plugins
+│   │   ├── common/             # Base editing (PlainText, EditorContent)
+│   │   ├── slash/              # Slash commands (/, @)
+│   │   ├── mention/            # @mention system
+│   │   ├── image/              # Image upload & display
+│   │   ├── codeblock/          # Syntax highlighting
+│   │   ├── table/              # Table support
+│   │   ├── file/               # File attachments
+│   │   ├── link/               # Link management
+│   │   ├── list/               # Lists (ordered/unordered)
+│   │   ├── hr/                 # Horizontal rules
+│   │   └── upload/             # Generic upload handling
+│   │
+│   ├── react/                  # ⚛️ High-level React components
+│   │   ├── Editor/             # Main Editor component
+│   │   ├── ChatInput/          # Chat interface component
+│   │   └── ChatInputActions/   # Chat action buttons
+│   │
+│   └── index.ts                # Public API exports
+│
+├── docs/                       # 📚 Documentation source
+├── tests/                      # 🧪 Test files
+├── vitest.config.ts           # Test configuration
+└── .dumi/                      # Dumi doc build cache
 ```
+
+The architecture follows a **dual-layer design**:
+
+1. **Kernel Layer** (`editor-kernel/`) - Framework-agnostic core with plugin system
+2. **React Layer** (`react/` + `plugins/*/react/`) - React-specific implementations
+
+This allows for maximum flexibility - you can use just the kernel for custom integrations, or the React components for rapid development.
 
 <div align="right">
 
@@ -418,4 +525,3 @@ This project is [MIT](./LICENSE) licensed.
 [pr-welcome-link]: https://github.com/lobehub/lobe-editor/pulls
 [pr-welcome-shield]: https://img.shields.io/badge/%F0%9F%A4%AF%20PR%20WELCOME-%E2%86%92-ffcb47?labelColor=black&style=for-the-badge
 [profile-link]: https://github.com/lobehub
-
