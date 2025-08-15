@@ -14,14 +14,7 @@ import {
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
 import { debounce } from 'lodash';
-import {
-  Heading1Icon,
-  Heading2Icon,
-  Heading3Icon,
-  MinusIcon,
-  NotebookIcon,
-  Table2Icon,
-} from 'lucide-react';
+import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { INSERT_FILE_COMMAND, ReactFilePlugin } from '@/plugins/file';
@@ -61,7 +54,6 @@ export default () => {
             });
             return [
               {
-                icon: NotebookIcon,
                 key: 'XX',
                 label: `${search?.matchingString} - ${search?.replaceableString}`,
                 onSelect: (editor) => {

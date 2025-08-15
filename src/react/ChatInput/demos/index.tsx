@@ -1,13 +1,19 @@
 import {
+  INSERT_HEADING_COMMAND,
+  INSERT_HORIZONTAL_RULE_COMMAND,
+  INSERT_MENTION_COMMAND,
+  INSERT_TABLE_COMMAND,
   ReactCodeblockPlugin,
   ReactHRPlugin,
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
+  ReactTablePlugin,
 } from '@lobehub/editor';
 import { ChatInput, useEditor } from '@lobehub/editor/react';
 import Editor from '@lobehub/editor/react/Editor';
 import type { ChatMessage } from '@lobehub/ui/chat';
+import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
 import { useState } from 'react';
 
 import ActionToolbar from './ActionToolbar';
@@ -58,13 +64,27 @@ export default () => {
           content={content}
           editorRef={editorRef}
           mentionOption={{
-            items: [
-              {
-                key: 'XX',
-                label: 'XX',
-              },
-            ],
-            trigger: '@',
+            items: async (search) => {
+              await new Promise((resolve) => {
+                setTimeout(() => resolve(true), 1000);
+              });
+              return [
+                {
+                  key: 'XX',
+                  label: `${search?.matchingString} - ${search?.replaceableString}`,
+                  onSelect: (editor) => {
+                    editor.dispatchCommand(INSERT_MENTION_COMMAND, {
+                      extra: { id: 1 },
+                      label: 'XX',
+                    });
+                  },
+                },
+              ];
+            },
+            markdownWriter: (mention) => {
+              return `\n<mention>${mention.label}[${mention.extra.id}]</mention>\n`;
+            },
+            maxLength: 6,
           }}
           placeholder={'Type something...'}
           plugins={[
@@ -73,15 +93,55 @@ export default () => {
             ReactImagePlugin,
             ReactCodeblockPlugin,
             ReactHRPlugin,
+            ReactTablePlugin,
           ]}
           slashOption={{
             items: [
               {
-                key: 'help',
-                label: 'Help',
+                icon: Heading1Icon,
+                key: 'h1',
+                label: 'Heading 1',
+                onSelect: (editor) => {
+                  editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
+                },
+              },
+              {
+                icon: Heading2Icon,
+                key: 'h2',
+                label: 'Heading 2',
+                onSelect: (editor) => {
+                  editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
+                },
+              },
+              {
+                icon: Heading3Icon,
+                key: 'h3',
+                label: 'Heading 3',
+                onSelect: (editor) => {
+                  editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h3' });
+                },
+              },
+
+              {
+                type: 'divider',
+              },
+              {
+                icon: MinusIcon,
+                key: 'hr',
+                label: 'Hr',
+                onSelect: (editor) => {
+                  editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, {});
+                },
+              },
+              {
+                icon: Table2Icon,
+                key: 'table',
+                label: 'Table',
+                onSelect: (editor) => {
+                  editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' });
+                },
               },
             ],
-            trigger: '/',
           }}
           variant={'chat'}
         />
