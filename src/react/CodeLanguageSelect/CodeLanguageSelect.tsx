@@ -1,6 +1,6 @@
 'use client';
 
-import { MaterialFileTypeIcon, Select } from '@lobehub/ui';
+import { MaterialFileTypeIcon, Select, Text } from '@lobehub/ui';
 import { memo, useMemo } from 'react';
 import { Flexbox } from 'react-layout-kit';
 import { bundledLanguagesInfo } from 'shiki';
@@ -24,7 +24,9 @@ const CodeLanguageSelect = memo<CodeLanguageSelectProps>(({ className, ...rest }
               type={'file'}
               variant={'raw'}
             />
-            Plaintext
+            <Text ellipsis fontSize={13}>
+              Plaintext
+            </Text>
           </Flexbox>
         ),
         value: 'plaintext',
@@ -40,7 +42,9 @@ const CodeLanguageSelect = memo<CodeLanguageSelectProps>(({ className, ...rest }
               type={'file'}
               variant={'raw'}
             />
-            {item.name}
+            <Text ellipsis fontSize={13}>
+              {item.name}
+            </Text>
           </Flexbox>
         ),
         title: (item.aliases || [item.id])
