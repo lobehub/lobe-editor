@@ -22,6 +22,14 @@ export const useStyles = createStyles(
       overflow-wrap: break-word;
 
       background: ${token.colorFillQuaternary};
+
+      > tr:first-of-type {
+        background: ${token.colorFillQuaternary};
+
+        .editor_table_cell_header {
+          font-weight: bold;
+        }
+      }
     }
 
     code {
@@ -30,14 +38,6 @@ export const useStyles = createStyles(
 
     .editor_table_cell_header {
       font-weight: normal;
-    }
-
-    > tr:first-of-type {
-      background: ${token.colorFillQuaternary};
-
-      .editor_table_cell_header {
-        font-weight: bold;
-      }
     }
 
     .editor_table_cell {

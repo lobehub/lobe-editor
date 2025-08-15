@@ -740,6 +740,7 @@
     "format": "",
     "indent": 0,
     "type": "root",
-    "version": 1
+    "version": 1,
+    "textStyle": "--shiki-dark:var(--color-info);--shiki-light:var(--color-info)"
   }
 }

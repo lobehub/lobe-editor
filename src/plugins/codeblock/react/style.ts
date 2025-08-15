@@ -1,5 +1,7 @@
 import { createStyles } from 'antd-style';
 
+import { AllColorReplacements } from '@/plugins/codeblock/plugin/FacadeShiki';
+
 export const useStyles = createStyles(({ css, token, stylish, isDarkMode }) => ({
   container: css`
     --color-yellow: ${token.yellow};
@@ -34,7 +36,7 @@ export const useStyles = createStyles(({ css, token, stylish, isDarkMode }) => (
     &::after {
       border-radius: ${token.borderRadius}px;
 
-      content: attr(data-highlight-language);
+      content: attr(data-language);
 
       padding-block: 1px;
       padding-inline: 7px;
@@ -74,3 +76,29 @@ export const useStyles = createStyles(({ css, token, stylish, isDarkMode }) => (
     background: transparent !important;
   `,
 }));
+
+export const colorReplacements: AllColorReplacements = {
+  'slack-dark': {
+    '#4ec9b0': 'var(--color-yellow)',
+    '#569cd6': 'var(--color-error)',
+    '#6a9955': 'var(--color-gray)',
+    '#9cdcfe': 'var(--color-text)',
+    '#b5cea8': 'var(--color-purple10)',
+    '#c586c0': 'var(--color-info)',
+    '#ce9178': 'var(--color-success)',
+    '#dcdcaa': 'var(--color-warning)',
+    '#e6e6e6': 'var(--color-text)',
+  },
+  'slack-ochin': {
+    '#002339': 'var(--color-text)',
+    '#0444ac': 'var(--color-geekblue)',
+    '#0991b6': 'var(--color-error)',
+    '#174781': 'var(--color-purple10)',
+    '#2f86d2': 'var(--color-text)',
+    '#357b42': 'var(--color-gray)',
+    '#7b30d0': 'var(--color-info)',
+    '#7eb233': 'var(--color-warning-text-active)',
+    '#a44185': 'var(--color-success)',
+    '#dc3eb7': 'var(--color-yellow11)',
+  },
+};

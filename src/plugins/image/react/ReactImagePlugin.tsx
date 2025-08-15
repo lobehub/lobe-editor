@@ -1,3 +1,5 @@
+'use client';
+
 import type { FC } from 'react';
 import { useLayoutEffect } from 'react';
 
@@ -5,17 +7,11 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { UploadPlugin } from '@/plugins/upload';
 
 import { ImagePlugin } from '../plugin';
-import { Image } from './image';
+import Image from './components/Image';
 import { useStyles } from './style';
+import { ReactImagePluginProps } from './type';
 
-export interface ReactImagePluginProps {
-  className?: string;
-  theme?: {
-    image?: string;
-  };
-}
-
-export const ReactImagePlugin: FC<ReactImagePluginProps> = (props) => {
+const ReactImagePlugin: FC<ReactImagePluginProps> = ({ theme, className }) => {
   const [editor] = useLexicalComposerContext();
   const { styles } = useStyles();
 
@@ -30,11 +26,15 @@ export const ReactImagePlugin: FC<ReactImagePluginProps> = (props) => {
         });
       },
       renderImage: (node) => {
-        return <Image className={props.className} node={node} />;
+        return <Image className={className} node={node} />;
       },
-      theme: props.theme || styles,
+      theme: theme || styles,
     });
   }, []);
 
   return null;
 };
+
+ReactImagePlugin.displayName = 'ReactImagePlugin';
+
+export default ReactImagePlugin;

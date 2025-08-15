@@ -1,3 +1,5 @@
+'use client';
+
 import { $findTableNode, $getElementForTableNode, $isTableSelection } from '@lexical/table';
 import EventEmitter from 'eventemitter3';
 import { $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
@@ -9,9 +11,9 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
 import { TablePlugin } from '../plugin';
 import { $updateDOMForSelection } from '../utils';
-import TableActionMenuPlugin from './TableActionMenuPlugin';
-import TableHoverActionsPlugin from './TableHoverActionsPlugin';
-import { TableCellResizeMemo } from './resize';
+import TableActionMenuPlugin from './TableActionMenu';
+import TableHoverActionsPlugin from './TableHoverActions';
+import TableCellResizePlugin from './TableResize';
 import { useStyles } from './style';
 
 export interface ReactTablePluginProps {
@@ -55,7 +57,7 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = () => {
   return (
     lexicalEditor && (
       <>
-        <TableCellResizeMemo editor={lexicalEditor} eventEmitter={eventEmitter} />
+        <TableCellResizePlugin editor={lexicalEditor} eventEmitter={eventEmitter} />
         <TableActionMenuPlugin editor={lexicalEditor} />
         <TableHoverActionsPlugin editor={lexicalEditor} />
       </>

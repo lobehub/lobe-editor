@@ -12,7 +12,11 @@ import {
   FileUpIcon,
   ImageIcon,
   ItalicIcon,
+  LinkIcon,
+  ListIcon,
+  ListOrderedIcon,
   Redo2Icon,
+  SquareDashedBottomCodeIcon,
   StrikethroughIcon,
   UnderlineIcon,
   Undo2Icon,
@@ -78,11 +82,49 @@ const Toolbar = memo<ToolbarProps>(({ editorRef }) => {
             onClick: toolbarState.strikethrough,
           },
           {
+            type: 'divider',
+          },
+          {
+            icon: LinkIcon,
+            key: 'link',
+            label: 'link',
+            onClick: () => {
+              toolbarState.insertLink();
+            },
+          },
+          {
+            icon: ListIcon,
+            key: 'bulletList',
+            label: 'bulletList',
+            onClick: () => {
+              toolbarState.bulletList();
+            },
+          },
+          {
+            icon: ListOrderedIcon,
+            key: 'numberlist',
+            label: 'numberlist',
+            onClick: () => {
+              toolbarState.numberList();
+            },
+          },
+          {
+            type: 'divider',
+          },
+          {
             active: toolbarState.isCode,
             icon: CodeXmlIcon,
             key: 'code',
             label: 'Code',
             onClick: toolbarState.code,
+          },
+          {
+            icon: SquareDashedBottomCodeIcon,
+            key: 'codeblock',
+            label: 'codeblock',
+            onClick: () => {
+              toolbarState.formatCodeblock();
+            },
           },
           {
             type: 'divider',
@@ -109,38 +151,6 @@ const Toolbar = memo<ToolbarProps>(({ editorRef }) => {
                   editorRef.current?.dispatchCommand(INSERT_FILE_COMMAND, { file });
                 }
               });
-            },
-          },
-          {
-            icon: FileUpIcon,
-            key: 'link',
-            label: 'link',
-            onClick: () => {
-              toolbarState.insertLink();
-            },
-          },
-          {
-            icon: FileUpIcon,
-            key: 'codeblock',
-            label: 'codeblock',
-            onClick: () => {
-              toolbarState.formatCodeblock();
-            },
-          },
-          {
-            icon: FileUpIcon,
-            key: 'numberlist',
-            label: 'numberlist',
-            onClick: () => {
-              toolbarState.numberList();
-            },
-          },
-          {
-            icon: FileUpIcon,
-            key: 'bulletList',
-            label: 'bulletList',
-            onClick: () => {
-              toolbarState.bulletList();
             },
           },
           {

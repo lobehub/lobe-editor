@@ -16,40 +16,6 @@ import { getCodeLanguageByInput } from '../utils/language';
 import { registerCodeHighlighting, toCodeTheme } from './CodeHighlighterShiki';
 import { AllColorReplacements } from './FacadeShiki';
 
-/**
- * Options for configuring the Codeblock plugin
- *
- * @example
- * // Basic usage with theme
- * new CodeblockPlugin(kernel, {
- *   shikiTheme: 'dracula'
- * })
- *
- * @example
- * // With simple color replacements
- * new CodeblockPlugin(kernel, {
- *   shikiTheme: 'dracula',
- *   colorReplacements: {
- *     '#ff79c6': '#189eff',
- *     '#f8f8f2': '#ffffff'
- *   }
- * })
- *
- * @example
- * // With scoped color replacements for multiple themes
- * new CodeblockPlugin(kernel, {
- *   colorReplacements: {
- *     'dracula': {
- *       '#ff79c6': '#189eff',
- *       '#f8f8f2': '#ffffff'
- *     },
- *     'github-light': {
- *       '#ff79c6': '#defdef',
- *       '#f8f8f2': '#000000'
- *     }
- *   }
- * })
- */
 export interface CodeblockPluginOptions {
   /** Color replacements configuration for customizing theme colors */
   colorReplacements?: { current?: AllColorReplacements };

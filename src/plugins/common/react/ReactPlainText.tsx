@@ -1,98 +1,73 @@
-import type { CSSProperties, FC, ReactElement } from 'react';
-import React, { Children, useEffect, useLayoutEffect, useRef } from 'react';
+'use client';
 
-import { IEditor } from '@/editor-kernel';
+import { Children, memo, useEffect, useLayoutEffect, useRef } from 'react';
+
 import { LexicalErrorBoundary } from '@/editor-kernel/react/LexicalErrorBoundary';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { useDecorators } from '@/editor-kernel/react/useDecorators';
 import { MarkdownPlugin } from '@/plugins/markdown';
 
-import { CommonPlugin, CommonPluginOptions } from '../plugin';
-import { Placeholder } from './Placeholder';
-import { useStyles } from './style';
-import { useThemeStyles } from './theme.style';
+import { CommonPlugin } from '../plugin';
+import Placeholder from './Placeholder';
+import { useStyles, useThemeStyles } from './style';
+import { ReactPlainTextProps } from './type';
 
-export interface IReactEditorContent {
-  content: any;
-  placeholder?: React.ReactNode;
-  type: string;
-}
+const ReactPlainText = memo<ReactPlainTextProps>(
+  ({ style, children, theme = {}, onChange, className, variant }) => {
+    const isChat = variant === 'chat';
+    const {
+      fontSize = isChat ? 14 : 16,
+      headerMultiple = isChat ? 0.25 : 1,
+      lineHeight = isChat ? 1.6 : 1.8,
+      marginMultiple = isChat ? 1 : 2,
+      ...restTheme
+    } = theme;
+    const editorContainerRef = useRef<HTMLDivElement>(null);
+    const [editor] = useLexicalComposerContext();
+    const decorators = useDecorators(editor, LexicalErrorBoundary);
+    const { styles: themeStyles } = useThemeStyles();
+    const { cx, styles } = useStyles({ fontSize, headerMultiple, lineHeight, marginMultiple });
 
-export const ReactEditorContent: FC<IReactEditorContent> = () => {
-  return null;
-};
+    const {
+      props: { type, content, placeholder },
+    } = Children.only(children);
 
-export interface ReactPlainTextProps {
-  children: ReactElement<IReactEditorContent>;
-  className?: string;
-  onChange?: (editor: IEditor) => void;
-  style?: CSSProperties;
-  theme?: CommonPluginOptions['theme'] & {
-    fontSize?: number;
-    headerMultiple?: number;
-    lineHeight?: number;
-    marginMultiple?: number;
-  };
-  variant?: 'default' | 'chat';
-}
+    useLayoutEffect(() => {
+      editor.registerPlugin(MarkdownPlugin);
+      editor.registerPlugin(CommonPlugin, {
+        theme: restTheme ? { ...themeStyles, ...restTheme } : themeStyles,
+      });
+    }, []);
 
-export const ReactPlainText: FC<ReactPlainTextProps> = ({
-  style,
-  children,
-  theme = {},
-  onChange,
-  className,
-  variant,
-}) => {
-  const isChat = variant === 'chat';
-  const {
-    fontSize = isChat ? 14 : 16,
-    headerMultiple = isChat ? 0.25 : 1,
-    lineHeight = isChat ? 1.6 : 1.8,
-    marginMultiple = isChat ? 1 : 2,
-    ...restTheme
-  } = theme;
-  const editorContainerRef = useRef<HTMLDivElement>(null);
-  const [editor] = useLexicalComposerContext();
-  const decorators = useDecorators(editor, LexicalErrorBoundary);
-  const { styles: themeStyles } = useThemeStyles();
-  const { cx, styles } = useStyles({ fontSize, headerMultiple, lineHeight, marginMultiple });
+    useEffect(() => {
+      const container = editorContainerRef.current;
+      if (container) {
+        // Initialize the editor
+        editor.setRootElement(container);
+      }
 
-  const {
-    props: { type, content, placeholder },
-  } = Children.only(children);
+      editor.setDocument(type, content);
 
-  useLayoutEffect(() => {
-    editor.registerPlugin(MarkdownPlugin);
-    editor.registerPlugin(CommonPlugin, {
-      theme: restTheme ? { ...themeStyles, ...restTheme } : themeStyles,
-    });
-  }, []);
+      return editor.getLexicalEditor()?.registerUpdateListener(() => {
+        onChange?.(editor);
+      });
+    }, []);
 
-  useEffect(() => {
-    const container = editorContainerRef.current;
-    if (container) {
-      // Initialize the editor
-      editor.setRootElement(container);
-    }
+    return (
+      <>
+        <div
+          className={cx(styles.root, styles.variant, className)}
+          contentEditable
+          ref={editorContainerRef}
+          style={style}
+        />
+        <Placeholder style={style}>{placeholder}</Placeholder>
+        {decorators}
+      </>
+    );
+  },
+);
 
-    editor.setDocument(type, content);
+ReactPlainText.displayName = 'ReactPlainText';
 
-    return editor.getLexicalEditor()?.registerUpdateListener(() => {
-      onChange?.(editor);
-    });
-  }, []);
-
-  return (
-    <>
-      <div
-        className={cx(styles.root, styles.variant, className)}
-        contentEditable
-        ref={editorContainerRef}
-        style={style}
-      />
-      <Placeholder style={style}>{placeholder}</Placeholder>
-      {decorators}
-    </>
-  );
-};
+export default ReactPlainText;

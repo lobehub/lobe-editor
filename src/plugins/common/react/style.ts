@@ -1,5 +1,24 @@
-/* eslint-disable sort-keys-fix/sort-keys-fix */
 import { createStyles } from 'antd-style';
+
+export const useThemeStyles = createStyles(({ css }) => ({
+  quote: 'editor_quote',
+  textBold: css`
+    font-weight: bold;
+  `,
+  textCode: 'editor_code',
+  textItalic: css`
+    font-style: italic;
+  `,
+  textStrikethrough: css`
+    text-decoration: line-through;
+  `,
+  textUnderline: css`
+    text-decoration: underline;
+  `,
+  textUnderlineStrikethrough: css`
+    text-decoration: underline line-through;
+  `,
+}));
 
 export const useStyles = createStyles(
   (

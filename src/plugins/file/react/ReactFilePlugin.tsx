@@ -1,24 +1,17 @@
+'use client';
+
 import type { FC } from 'react';
 import { useLayoutEffect } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { UploadPlugin } from '@/plugins/upload';
 
-import { FileNode } from '../node/FileNode';
 import { FilePlugin } from '../plugin';
-import { ReactFile } from './ReactFile';
+import { ReactFile } from './components/ReactFile';
 import { useStyles } from './style';
+import { ReactFilePluginProps } from './type';
 
-export interface ReactFilePluginProps {
-  className?: string;
-  handleUpload: (file: File) => Promise<{ url: string }>;
-  markdownWriter?: (file: FileNode) => string;
-  theme?: {
-    file?: string;
-  };
-}
-
-export const ReactFilePlugin: FC<ReactFilePluginProps> = (props) => {
+const ReactFilePlugin: FC<ReactFilePluginProps> = (props) => {
   const [editor] = useLexicalComposerContext();
   const { styles } = useStyles();
 
@@ -41,3 +34,7 @@ export const ReactFilePlugin: FC<ReactFilePluginProps> = (props) => {
 
   return null;
 };
+
+ReactFilePlugin.displayName = 'ReactFilePlugin';
+
+export default ReactFilePlugin;

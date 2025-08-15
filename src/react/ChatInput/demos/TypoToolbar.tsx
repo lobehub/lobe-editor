@@ -1,7 +1,17 @@
 import { IEditor, useToolbarState } from '@lobehub/editor';
 import { ChatInputActionBar, ChatInputActions } from '@lobehub/editor/react';
 import { useTheme } from 'antd-style';
-import { BoldIcon, CodeXmlIcon, ItalicIcon, StrikethroughIcon, UnderlineIcon } from 'lucide-react';
+import {
+  BoldIcon,
+  CodeXmlIcon,
+  ItalicIcon,
+  LinkIcon,
+  ListIcon,
+  ListOrderedIcon,
+  SquareDashedBottomCodeIcon,
+  StrikethroughIcon,
+  UnderlineIcon,
+} from 'lucide-react';
 import { RefObject, memo } from 'react';
 
 export interface ToolbarProps {
@@ -50,11 +60,46 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editorRef }) => {
               type: 'divider',
             },
             {
+              icon: LinkIcon,
+              key: 'link',
+              label: 'link',
+              onClick: () => {
+                toolbarState.insertLink();
+              },
+            },
+            {
+              icon: ListIcon,
+              key: 'bulletList',
+              label: 'bulletList',
+              onClick: () => {
+                toolbarState.bulletList();
+              },
+            },
+            {
+              icon: ListOrderedIcon,
+              key: 'numberlist',
+              label: 'numberlist',
+              onClick: () => {
+                toolbarState.numberList();
+              },
+            },
+            {
+              type: 'divider',
+            },
+            {
               active: toolbarState.isCode,
               icon: CodeXmlIcon,
               key: 'code',
               label: 'Code',
               onClick: toolbarState.code,
+            },
+            {
+              icon: SquareDashedBottomCodeIcon,
+              key: 'codeblock',
+              label: 'codeblock',
+              onClick: () => {
+                toolbarState.formatCodeblock();
+              },
             },
           ]}
         />
