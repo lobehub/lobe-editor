@@ -43,7 +43,7 @@ export class HorizontalRuleNode extends DecoratorNode<any> {
   }
 
   createDOM(config: EditorConfig): HTMLElement {
-    const element = document.createElement('hr');
+    const element = document.createElement('div');
     addClassNamesToElement(element, config.theme.hr);
     return element;
   }
