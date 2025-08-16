@@ -193,25 +193,32 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
             return false;
           }
           const listNode = listItemNode.getParentOrThrow() as ListNode;
-          console.info(listNode, listItemNode);
-          editor.update(() => {
-            let newlistNode: ListNode | undefined;
-            let next = listItemNode.getNextSibling();
-            if (next) {
-              newlistNode = $createListNode(listNode.getListType(), listItemNode.getValue());
-            }
-            while (next && newlistNode) {
-              next.remove();
-              newlistNode.append(next);
-              next = next.getNextSibling();
-            }
-            const p = listItemNode.replace($createParagraphNode(), true);
-            p.remove();
-            listNode.insertAfter(p);
-            if (newlistNode) {
-              p.insertAfter(newlistNode);
-            }
-            p.select(0, 0);
+          queueMicrotask(() => {
+            editor.update(() => {
+              let newlistNode: ListNode | undefined;
+              const isFirst = listItemNode.getPreviousSibling() === null;
+              if (isFirst) {
+                const p = listItemNode.replace($createParagraphNode(), true);
+                p.select(0, 0);
+                return;
+              }
+              let next = listItemNode.getNextSibling();
+              if (next) {
+                newlistNode = $createListNode(listNode.getListType(), listItemNode.getValue());
+              }
+              while (next && newlistNode) {
+                next.remove();
+                newlistNode.append(next);
+                next = next.getNextSibling();
+              }
+              const p = listItemNode.replace($createParagraphNode(), true);
+              p.remove();
+              listNode.insertAfter(p);
+              if (newlistNode) {
+                p.insertAfter(newlistNode);
+              }
+              p.select(0, 0);
+            });
           });
           event.stopImmediatePropagation();
           event.preventDefault();
