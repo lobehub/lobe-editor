@@ -56,7 +56,7 @@ export const LinkEdit: FC = () => {
 
       const linkNode = linkNodeRef.current;
       const input = linkInputRef.current;
-      const inputDOM = input.nativeElement as HTMLInputElement;
+      const inputDOM = input.input as HTMLInputElement;
       if (event.key === 'Enter') {
         event.preventDefault();
         const currentURL = lexicalEditor.read(() => linkNode.getURL());
