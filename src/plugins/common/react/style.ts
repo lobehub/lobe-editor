@@ -46,6 +46,32 @@ export const useStyles = createStyles(
       font-size: var(--lobe-markdown-font-size);
       line-height: var(--lobe-markdown-line-height);
       word-break: break-word;
+
+      @keyframes cursor-blink {
+        to {
+          visibility: hidden;
+        }
+      }
+
+      [data-lexical-cursor='true'] {
+        pointer-events: none;
+        position: absolute;
+        display: block;
+
+        &::after {
+          content: '';
+
+          position: absolute;
+          inset-block-start: -2px;
+
+          display: block;
+
+          width: 20px;
+          border-block-start: 1px solid ${token.colorText};
+
+          animation: cursor-blink 1.1s steps(2, start) infinite;
+        }
+      }
     `;
 
     const header = css`
