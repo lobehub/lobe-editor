@@ -176,6 +176,7 @@ export default () => {
               },
             },
           ],
+          maxLength: 6,
         }}
       />
     </Container>
