@@ -1,6 +1,7 @@
-export interface ReactTablePluginProps {
-  className?: string;
-  i18n?: {
+import '@/editor-kernel/types';
+
+declare module '@/editor-kernel/types' {
+  interface II18nKeys {
     'table.delete': string;
     'table.deleteColumn': string;
     'table.deleteRow': string;
@@ -8,5 +9,5 @@ export interface ReactTablePluginProps {
     'table.insertColumnRight': string;
     'table.insertRowAbove': string;
     'table.insertRowBelow': string;
-  };
+  }
 }

@@ -50,6 +50,8 @@ import { JSX, ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 
+import { useI18n } from '@/editor-kernel/react/useI18n';
+
 import { useStyles } from './style';
 import {
   $canUnmerge,
@@ -75,6 +77,7 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
     const [canMergeCells, setCanMergeCells] = useState(false);
     const [canUnmergeCell, setCanUnmergeCell] = useState(false);
     const [, setBackgroundColor] = useState(() => currentCellBackgroundColor(editor) || '');
+    const __ = useI18n();
 
     useEffect(() => {
       return editor.registerMutationListener(
@@ -282,13 +285,17 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
         {
           icon: PanelTopCloseIcon,
           key: 'table-insert-row-above',
-          label: `Insert ${selectionCounts.rows === 1 ? 'row' : `${selectionCounts.rows} rows`} above`,
+          label: __(`table.insertRowAbove`, {
+            count: selectionCounts.rows,
+          }),
           onClick: () => insertTableRowAtSelection(false),
         },
         {
           icon: PanelBottomCloseIcon,
           key: 'table-insert-row-below',
-          label: `Insert ${selectionCounts.rows === 1 ? 'row' : `${selectionCounts.rows} rows`} below`,
+          label: __(`table.insertRowBelow`, {
+            count: selectionCounts.rows,
+          }),
           onClick: () => insertTableRowAtSelection(true),
         },
         { type: 'divider' as const },
@@ -297,13 +304,19 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
         {
           icon: PanelLeftCloseIcon,
           key: 'table-insert-column-before',
-          label: `Insert ${selectionCounts.columns === 1 ? 'column' : `${selectionCounts.columns} columns`} left`,
+          // label: `Insert ${selectionCounts.columns === 1 ? 'column' : `${selectionCounts.columns} columns`} left`,
+          label: __(`table.insertColumnLeft`, {
+            count: selectionCounts.columns,
+          }),
           onClick: () => insertTableColumnAtSelection(false),
         },
         {
           icon: PanelRightCloseIcon,
           key: 'table-insert-column-after',
-          label: `Insert ${selectionCounts.columns === 1 ? 'column' : `${selectionCounts.columns} columns`} right`,
+          // label: `Insert ${selectionCounts.columns === 1 ? 'column' : `${selectionCounts.columns} columns`} right`,
+          label: __(`table.insertColumnRight`, {
+            count: selectionCounts.columns,
+          }),
           onClick: () => insertTableColumnAtSelection(true),
         },
         { type: 'divider' as const },
@@ -312,20 +325,23 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
         {
           icon: TableColumnsSplitIcon,
           key: 'table-delete-columns',
-          label: 'Delete column',
+          // label: 'Delete column',
+          label: __(`table.deleteColumn`),
           onClick: () => deleteTableColumnAtSelection(),
         },
         {
           icon: TableRowsSplitIcon,
           key: 'table-delete-rows',
-          label: 'Delete row',
+          // label: 'Delete row',
+          label: __(`table.deleteRow`),
           onClick: () => deleteTableRowAtSelection(),
         },
         { type: 'divider' as const },
         {
           icon: Grid2X2XIcon,
           key: 'table-delete',
-          label: 'Delete table',
+          // label: 'Delete table',
+          label: __(`table.delete`),
           onClick: () => deleteTableAtSelection(),
         },
       ];

@@ -15,12 +15,9 @@ import TableActionMenuPlugin from './TableActionMenu';
 import TableHoverActionsPlugin from './TableHoverActions';
 import TableCellResizePlugin from './TableResize';
 import { useStyles } from './style';
+import { ReactTablePluginProps } from './type';
 
-export interface ReactTablePluginProps {
-  className?: string;
-}
-
-export const ReactTablePlugin: FC<ReactTablePluginProps> = () => {
+export const ReactTablePlugin: FC<ReactTablePluginProps> = (props) => {
   const { styles } = useStyles();
   const [editor] = useLexicalComposerContext();
   const [lexicalEditor, setLexicalEditor] = useState<LexicalEditor | null>(null);
@@ -29,6 +26,17 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = () => {
   }, []);
 
   useLayoutEffect(() => {
+    editor.registerI18n(
+      props.i18n || {
+        'table.delete': 'Delete table',
+        'table.deleteColumn': 'Delete column',
+        'table.deleteRow': 'Delete row',
+        'table.insertColumnLeft': 'Insert {count} column(s) to the left',
+        'table.insertColumnRight': 'Insert {count} column(s) to the right',
+        'table.insertRowAbove': 'Insert {count} row(s) above',
+        'table.insertRowBelow': 'Insert {count} row(s) below',
+      },
+    );
     editor.registerPlugin(TablePlugin, {
       className: styles,
     });

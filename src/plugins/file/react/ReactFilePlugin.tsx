@@ -16,6 +16,12 @@ const ReactFilePlugin: FC<ReactFilePluginProps> = (props) => {
   const { styles } = useStyles();
 
   useLayoutEffect(() => {
+    editor.registerI18n(
+      props.i18n || {
+        'file.error': 'Error: {message}',
+        'file.uploading': 'Uploading file...',
+      },
+    );
     editor.registerPlugin(UploadPlugin);
     editor.registerPlugin(FilePlugin, {
       decorator: (node, editor) => {

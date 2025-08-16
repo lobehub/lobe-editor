@@ -9,6 +9,14 @@ import type {
 import type DataSource from './data-source';
 
 /**
+ * 国际化键类型声明，插件可以通过声明合并来扩展
+ */
+export interface II18nKeys {
+  // 核心编辑器的基础键
+  _: string;
+}
+
+/**
  * 服务 ID 类型
  */
 export type IServiceID<Service> = {
@@ -89,6 +97,11 @@ export interface IEditor {
    */
   once<T extends keyof IKernelEventMap>(event: T, listener: IKernelEventMap[T]): this;
   /**
+   * 注册国际化文本
+   * @param i18n 国际化文本对象
+   */
+  registerI18n(i18n: Partial<Record<keyof II18nKeys, string>>): void;
+  /**
    * 注册编辑器插件
    */
   registerPlugin<T>(plugin: IEditorPluginConstructor<T>, config?: T): IEditor;
@@ -101,6 +114,7 @@ export interface IEditor {
    * @param serviceId
    */
   requireService<T>(serviceId: IServiceID<T>): T | null;
+
   /**
    * 设置编辑器内容，type 为内容类型，content 为内容数据
    * @param type
@@ -113,6 +127,13 @@ export interface IEditor {
    * @param dom
    */
   setRootElement(dom: HTMLElement): LexicalEditor;
+
+  /**
+   * 获取翻译文本
+   * @param key 翻译键
+   * @param params 参数替换
+   */
+  t<K extends keyof II18nKeys>(key: K, params?: Record<string, any>): string;
 
   /**
    * 更新编辑器主题

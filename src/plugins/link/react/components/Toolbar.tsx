@@ -3,6 +3,8 @@ import { LexicalEditor } from 'lexical';
 import { EditIcon, ExternalLinkIcon, UnlinkIcon } from 'lucide-react';
 import type { FC } from 'react';
 
+import { useI18n } from '@/editor-kernel/react/useI18n';
+
 import { LinkNode, TOGGLE_LINK_COMMAND } from '../../node/LinkNode';
 import { useStyles } from '../style';
 import { EDIT_LINK_COMMAND } from './LinkEdit';
@@ -12,6 +14,7 @@ export const Toolbar: FC<{ editor: LexicalEditor; linkNode: LinkNode | null }> =
   editor,
 }) => {
   const { theme } = useStyles();
+  const __ = useI18n();
 
   const handleEdit = () => {
     // 编辑链接
@@ -42,19 +45,19 @@ export const Toolbar: FC<{ editor: LexicalEditor; linkNode: LinkNode | null }> =
         {
           icon: EditIcon,
           key: 'edit',
-          label: 'Edit',
+          label: __('link.edit'),
           onClick: handleEdit,
         },
         {
           icon: ExternalLinkIcon,
           key: 'openLink',
-          label: 'Open Link',
+          label: __('link.open'),
           onClick: handleOpenLink,
         },
         {
           icon: UnlinkIcon,
           key: 'unlink',
-          label: 'Unlink',
+          label: __('link.unlink'),
           onClick: handleRemove,
         },
       ]}

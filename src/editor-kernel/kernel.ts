@@ -16,6 +16,7 @@ import {
   IEditorKernel,
   IEditorPlugin,
   IEditorPluginConstructor,
+  II18nKeys,
   IPlugin,
   IServiceID,
 } from './types';
@@ -30,6 +31,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   private decorators: Record<string, (_node: DecoratorNode<any>, _editor: LexicalEditor) => any> =
     {};
   private serviceMap: Map<string, any> = new Map();
+  private i18nMap: Record<keyof II18nKeys, string> = {} as Record<keyof II18nKeys, string>;
 
   private editor?: LexicalEditor;
 
@@ -205,5 +207,19 @@ export class Kernel extends EventEmitter implements IEditorKernel {
 
   updateTheme(key: string, value: string | Record<string, string>): void {
     this.themes[key] = value;
+  }
+
+  registerI18n(i18n: Partial<Record<keyof II18nKeys, string>>): void {
+    this.i18nMap = { ...this.i18nMap, ...i18n };
+  }
+
+  t<K extends keyof II18nKeys>(key: K, params: Record<string, any>): string {
+    let translation = this.i18nMap[key] || key;
+    if (params) {
+      Object.keys(params).forEach((param) => {
+        translation = translation.replace(`{${param}}`, params[param]);
+      });
+    }
+    return translation;
   }
 }

@@ -38,6 +38,8 @@ export default () => {
 
   useEffect(() => {
     if (!editorRef.current) return;
+    // @ts-expect-error not error：
+    window.editor = editorRef.current;
     handleChange(editorRef.current);
   }, []);
 
