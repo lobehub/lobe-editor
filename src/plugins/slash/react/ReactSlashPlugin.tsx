@@ -12,6 +12,7 @@ import {
 } from 'lexical';
 import { Children, FC, useCallback, useLayoutEffect, useRef, useState } from 'react';
 
+import { IEditor } from '@/editor-kernel';
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
@@ -63,6 +64,10 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
         cancelRef.current.cancel();
         if (Array.isArray(ctx.items)) {
           setOptions(ctx.items);
+          if (!activeKey) {
+            // @ts-ignore
+            setActiveKey(ctx.items?.[0]?.key);
+          }
         } else {
           setLoading(true);
           const pr = setCancelablePromise((resolve, reject) => {
@@ -75,6 +80,10 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
           pr.promise.then((items) => {
             const typedItems = items as ISlashOption[];
             setOptions(typedItems);
+            if (!activeKey) {
+              // @ts-ignore
+              setActiveKey(typedItems?.[0]?.key);
+            }
           });
           cancelRef.current.cancel = () => {
             pr.cancel();
@@ -86,9 +95,9 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
         setIsOpen(true);
       },
     });
-  }, [editor, close]);
+  }, [activeKey, editor, close]);
 
-  const selectOptionAndCleanUp = useCallback(
+  const onSelect = useCallback(
     (option: ISlashOption) => {
       // Don't process divider items
       if ('type' in option && option.type === 'divider') {
@@ -107,9 +116,16 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
         });
       }
 
+      const currentTriggerProps = triggerMapRef.current.get(resolution?.trigger || '');
+
+      // Call the external unified onSelect first if it exists
+      if (currentTriggerProps?.onSelect) {
+        currentTriggerProps.onSelect(editor, option as ISlashMenuOption);
+      }
+
       close();
     },
-    [resolution, close],
+    [editor, resolution, close],
   );
 
   useLexicalEditor(
@@ -182,7 +198,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
             }
             event.preventDefault();
             event.stopImmediatePropagation();
-            selectOptionAndCleanUp(selectedOption);
+            onSelect(selectedOption);
             return true;
           },
           COMMAND_PRIORITY_NORMAL,
@@ -204,7 +220,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
               event.preventDefault();
               event.stopImmediatePropagation();
             }
-            selectOptionAndCleanUp(selectedOption);
+            onSelect(selectedOption);
             return true;
           },
           COMMAND_PRIORITY_NORMAL,
@@ -216,6 +232,14 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
 
   const { renderComp: CustomRender } = triggerMapRef.current.get(resolution?.trigger || '') || {};
 
+  // Adapter for custom render component onSelect
+  const customRenderOnSelect = useCallback(
+    (editor: IEditor, option: ISlashMenuOption) => {
+      onSelect(option);
+    },
+    [onSelect],
+  );
+
   /**
    * Render the custom component if it exists
    */
@@ -224,9 +248,9 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
       <CustomRender
         activeKey={activeKey}
         loading={loading}
+        onSelect={customRenderOnSelect}
         open={isOpen}
         options={options}
-        selectOptionAndCleanUp={selectOptionAndCleanUp}
         setActiveKey={setActiveKey}
       />
     );
@@ -237,7 +261,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
       (item): item is ISlashMenuOption => 'key' in item && item.key === key,
     );
     if (option) {
-      selectOptionAndCleanUp(option);
+      onSelect(option);
     }
   };
 

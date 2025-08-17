@@ -1,13 +1,10 @@
 import type { FC, ReactElement } from 'react';
 
+import { IEditor } from '@/editor-kernel';
 import { SlashOptions } from '@/plugins/slash';
-import { ISlashOption } from '@/plugins/slash/service/i-slash-service';
+import { ISlashMenuOption, ISlashOption } from '@/plugins/slash/service/i-slash-service';
 
 export interface ReactSlashOptionProps {
-  /**
-   * 是否禁用浮动
-   */
-  disableFloating?: boolean;
   /**
    * 可以搜索的选项
    */
@@ -17,6 +14,7 @@ export interface ReactSlashOptionProps {
    * 默认为 75
    */
   maxLength?: number;
+  onSelect?: (editor: IEditor, option: ISlashMenuOption) => void;
   /**
    * 自定义渲染组件
    */
@@ -36,16 +34,16 @@ export interface MenuRenderProps {
    * 加载状态
    */
   loading?: boolean;
+  /**
+   * 主动触发选中
+   * @param option 当前选中元素
+   */
+  onSelect?: (editor: IEditor, option: ISlashMenuOption) => void;
   open?: boolean;
   /**
    * 当前搜索到的选项
    */
   options: Array<ISlashOption>;
-  /**
-   * 主动触发选中
-   * @param option 当前选中元素
-   */
-  selectOptionAndCleanUp: (option: ISlashOption) => void;
   /**
    * 主动设置当前激活的选项 key
    * @param key

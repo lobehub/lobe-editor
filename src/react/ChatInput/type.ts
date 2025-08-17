@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactNode, Ref } from 'react';
 
 export interface ChatInputProps {
   children?: ReactNode;
@@ -6,5 +6,6 @@ export interface ChatInputProps {
   footer?: ReactNode;
   header?: ReactNode;
   maxHeight?: string | number;
+  slashMenuRef?: Ref<HTMLDivElement>;
   style?: CSSProperties;
 }

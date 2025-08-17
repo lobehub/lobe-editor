@@ -7,7 +7,15 @@ import { useStyles } from './style';
 import type { ChatInputProps } from './type';
 
 const ChatInput = memo<ChatInputProps>(
-  ({ maxHeight = 'min(50vh, 640px)', className, children, footer, header, style }) => {
+  ({
+    maxHeight = 'min(50vh, 640px)',
+    className,
+    children,
+    footer,
+    header,
+    style,
+    slashMenuRef,
+  }) => {
     const { cx, styles } = useStyles();
 
     return (
@@ -19,6 +27,7 @@ const ChatInput = memo<ChatInputProps>(
         }}
         width={'100%'}
       >
+        {slashMenuRef && <div ref={slashMenuRef} />}
         {header}
         <div className={styles.editor}>{children}</div>
         {footer}

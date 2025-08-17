@@ -16,92 +16,96 @@ import { ChatInputActionBar, ChatInputActions, SendButton } from '@/react';
 
 interface ActionToolbarProps {
   onSend?: () => void;
+  sendDisabled?: boolean;
   setShowTypobar?: (show: boolean) => void;
   showTypobar?: boolean;
 }
 
-const ActionToolbar = memo<ActionToolbarProps>(({ showTypobar, setShowTypobar, onSend }) => {
-  return (
-    <ChatInputActionBar
-      left={
-        <ChatInputActions
-          items={[
-            {
-              icon: showTypobar ? RemoveFormattingIcon : TypeIcon,
-              key: 'typo',
-              onClick: () => setShowTypobar?.(!showTypobar),
-            },
-            {
-              icon: GlobeIcon,
-              key: 'search',
-              wrapper: (node, key) => {
-                return (
-                  <Popover arrow={false} content={'Test Popover'} key={key}>
-                    {node}
-                  </Popover>
-                );
+const ActionToolbar = memo<ActionToolbarProps>(
+  ({ sendDisabled, showTypobar, setShowTypobar, onSend }) => {
+    return (
+      <ChatInputActionBar
+        left={
+          <ChatInputActions
+            items={[
+              {
+                icon: showTypobar ? RemoveFormattingIcon : TypeIcon,
+                key: 'typo',
+                onClick: () => setShowTypobar?.(!showTypobar),
               },
-            },
-            {
-              icon: PaperclipIcon,
-              key: 'file',
-              label: 'File',
-            },
-            {
-              icon: LibraryBigIcon,
-              key: 'library',
-              label: 'Library',
-            },
-            {
-              type: 'divider',
-            },
-            {
-              children: [
-                {
-                  icon: SlidersHorizontalIcon,
-                  key: 'options',
-                  label: 'Options',
+              {
+                icon: GlobeIcon,
+                key: 'search',
+                wrapper: (node, key) => {
+                  return (
+                    <Popover arrow={false} content={'Test Popover'} key={key}>
+                      {node}
+                    </Popover>
+                  );
                 },
+              },
+              {
+                icon: PaperclipIcon,
+                key: 'file',
+                label: 'File',
+              },
+              {
+                icon: LibraryBigIcon,
+                key: 'library',
+                label: 'Library',
+              },
+              {
+                type: 'divider',
+              },
+              {
+                children: [
+                  {
+                    icon: SlidersHorizontalIcon,
+                    key: 'options',
+                    label: 'Options',
+                  },
+                  {
+                    disabled: true,
+                    icon: TimerOff,
+                    key: 'history',
+                    label: 'History',
+                  },
+                  {
+                    icon: Mic,
+                    key: 'voice',
+                    label: 'Voice',
+                  },
+                ],
+                type: 'collapse',
+              },
+              {
+                alwaysDisplay: true,
+                children: <TokenTag maxValue={2048} value={1024} />,
+                key: 'token',
+              },
+            ]}
+          />
+        }
+        right={
+          <SendButton
+            disabled={sendDisabled}
+            menu={{
+              items: [
                 {
-                  disabled: true,
-                  icon: TimerOff,
-                  key: 'history',
-                  label: 'History',
-                },
-                {
-                  icon: Mic,
-                  key: 'voice',
-                  label: 'Voice',
+                  key: 'send',
+                  label: 'Send',
+                  onClick: () => {
+                    console.log('Send clicked');
+                  },
                 },
               ],
-              type: 'collapse',
-            },
-            {
-              alwaysDisplay: true,
-              children: <TokenTag maxValue={2048} value={1024} />,
-              key: 'token',
-            },
-          ]}
-        />
-      }
-      right={
-        <SendButton
-          menu={{
-            items: [
-              {
-                key: 'send',
-                label: 'Send',
-                onClick: () => {
-                  console.log('Send clicked');
-                },
-              },
-            ],
-          }}
-          onClick={onSend}
-        />
-      }
-    />
-  );
-});
+            }}
+            onClick={onSend}
+          />
+        }
+      />
+    );
+  },
+);
 
 export default ActionToolbar;

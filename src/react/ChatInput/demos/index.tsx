@@ -9,12 +9,13 @@ import {
   ReactLinkPlugin,
   ReactListPlugin,
   ReactTablePlugin,
+  useToolbarState,
 } from '@lobehub/editor';
-import { ChatInput, useEditor } from '@lobehub/editor/react';
+import { ChatInput, SlashMenu, useEditor } from '@lobehub/editor/react';
 import Editor from '@lobehub/editor/react/Editor';
 import type { ChatMessage } from '@lobehub/ui/chat';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import ActionToolbar from './ActionToolbar';
 import Container from './Container';
@@ -25,7 +26,8 @@ export default () => {
   const [messages, setMessages] = useState<ChatMessage[]>(chatMessages);
   const [showTypobar, setShowTypobar] = useState(true);
   const editorRef = useEditor();
-
+  const slashMenuRef = useRef<HTMLDivElement>(null);
+  const toolbarState = useToolbarState(editorRef);
   return (
     <Container messages={messages}>
       <ChatInput
@@ -54,11 +56,13 @@ export default () => {
               editor.setDocument('text', '');
               editor.focus();
             }}
+            sendDisabled={toolbarState.isEmpty}
             setShowTypobar={setShowTypobar}
             showTypobar={showTypobar}
           />
         }
         header={<TypoToolbar editorRef={editorRef} show={showTypobar} />}
+        slashMenuRef={slashMenuRef}
       >
         <Editor
           content={content}
@@ -70,13 +74,10 @@ export default () => {
               });
               return [
                 {
-                  key: 'XX',
-                  label: `${search?.matchingString} - ${search?.replaceableString}`,
-                  onSelect: (editor) => {
-                    editor.dispatchCommand(INSERT_MENTION_COMMAND, {
-                      extra: { id: 1 },
-                      label: 'XX',
-                    });
+                  key: 'bot1',
+                  label: 'Bot',
+                  onSelect: () => {
+                    console.log(`${search?.matchingString} - ${search?.replaceableString}`);
                   },
                 },
               ];
@@ -85,6 +86,14 @@ export default () => {
               return `\n<mention>${mention.label}[${mention.extra.id}]</mention>\n`;
             },
             maxLength: 6,
+            onSelect: (editor, option) => {
+              editor.dispatchCommand(INSERT_MENTION_COMMAND, {
+                label: String(option.label || option.key),
+              });
+            },
+            renderComp: (props) => {
+              return <SlashMenu {...props} getPopupContainer={() => slashMenuRef.current} />;
+            },
           }}
           placeholder={'Type something...'}
           plugins={[
@@ -142,6 +151,10 @@ export default () => {
                 },
               },
             ],
+            maxLength: 1,
+            renderComp: (props) => {
+              return <SlashMenu {...props} getPopupContainer={() => slashMenuRef.current} />;
+            },
           }}
           variant={'chat'}
         />
