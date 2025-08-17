@@ -1,3 +1,4 @@
+import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code';
 import { $isHeadingNode } from '@lexical/rich-text';
 import { mergeRegister } from '@lexical/utils';
 import {
@@ -6,15 +7,20 @@ import {
   $getRoot,
   $getSelection,
   $isDecoratorNode,
+  $isElementNode,
+  $isLineBreakNode,
   $isNodeSelection,
   $isRangeSelection,
+  $isRootOrShadowRoot,
   $isTextNode,
   $setSelection,
+  COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_EDITOR,
   COMMAND_PRIORITY_NORMAL,
   ElementNode,
   FORMAT_TEXT_COMMAND,
   KEY_ARROW_DOWN_COMMAND,
+  KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
   KEY_DOWN_COMMAND,
@@ -47,6 +53,30 @@ function resolveElement(
   return block.getChildAtIndex(isBackward ? offset - 1 : offset);
 }
 
+function isCodeNodeLastLine(focusNode: LexicalNode) {
+  if (!$isCodeHighlightNode(focusNode)) {
+    return false;
+  }
+  const codeNode = focusNode.getParent();
+  if (!$isCodeNode(codeNode)) {
+    return false;
+  }
+  let last: LexicalNode | null | undefined = codeNode.getLastChild();
+  do {
+    if ($isLineBreakNode(last)) {
+      return false;
+    }
+    if (last === focusNode) {
+      return codeNode;
+    }
+    last = last?.getPreviousSibling();
+  } while (last !== focusNode && last);
+  if (last === focusNode) {
+    return codeNode;
+  }
+  return false;
+}
+
 export function $getAdjacentNode(focus: PointType, isBackward: boolean): null | LexicalNode {
   const focusOffset = focus.offset;
   if (focus.type === 'element') {
@@ -67,6 +97,8 @@ export function $getAdjacentNode(focus: PointType, isBackward: boolean): null | 
         );
       }
       return possibleNode;
+    } else if (!isBackward && isCodeNodeLastLine(focusNode)) {
+      return focusNode.getParent()?.getNextSibling() || null;
     }
   }
   return null;
@@ -175,6 +207,10 @@ export function registerRichKeydown(editor: LexicalEditor) {
             });
             event.preventDefault();
             return true;
+          } else if (possibleNode) {
+            possibleNode?.selectEnd();
+            event.preventDefault();
+            return true;
           }
         }
         return false;
@@ -190,7 +226,18 @@ export function registerRichKeydown(editor: LexicalEditor) {
           // back to being a range selection.
           const nodes = selection.getNodes();
           if (nodes.length > 0) {
-            nodes[0].selectNext(0, 0);
+            const node = nodes[0].getNextSibling();
+            if ($isRootOrShadowRoot(node)) {
+              const parent = node.getParent();
+              if (parent) {
+                const index = node.getIndexWithinParent();
+                parent.select(index, index);
+                event.preventDefault();
+                return true;
+              }
+            }
+            node?.selectStart();
+            // nodes[0].selectNext(0, 0);
             event.preventDefault();
             return true;
           }
@@ -208,11 +255,48 @@ export function registerRichKeydown(editor: LexicalEditor) {
             });
             event.preventDefault();
             return true;
+          } else if (possibleNode) {
+            possibleNode?.selectStart();
+            event.preventDefault();
+            return true;
           }
         }
         return false;
       },
-      COMMAND_PRIORITY_NORMAL,
+      COMMAND_PRIORITY_CRITICAL,
+    ),
+    editor.registerCommand(
+      KEY_ARROW_RIGHT_COMMAND,
+      (event) => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          const focusNode = selection.focus.getNode();
+          if (
+            $isElementNode(focusNode) &&
+            focusNode.getChildAtIndex(selection.focus.offset)?.getType() === 'table'
+          ) {
+            focusNode.getChildAtIndex(selection.focus.offset)?.selectStart();
+            event.preventDefault();
+            return true;
+          }
+        } else if ($isNodeSelection(selection)) {
+          const nodes = selection.getNodes();
+          if (nodes.length > 0) {
+            const node = nodes[0].getNextSibling();
+            if ($isRootOrShadowRoot(node)) {
+              const parent = node.getParent();
+              if (parent) {
+                const index = node.getIndexWithinParent();
+                parent.select(index, index);
+                event.preventDefault();
+                return true;
+              }
+            }
+          }
+        }
+        return false;
+      },
+      COMMAND_PRIORITY_CRITICAL,
     ),
   );
 }
