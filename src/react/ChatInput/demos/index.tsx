@@ -13,6 +13,7 @@ import {
 } from '@lobehub/editor';
 import { ChatInput, SlashMenu, useEditor } from '@lobehub/editor/react';
 import Editor from '@lobehub/editor/react/Editor';
+import { Avatar } from '@lobehub/ui';
 import type { ChatMessage } from '@lobehub/ui/chat';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -36,7 +37,6 @@ export default () => {
             onSend={() => {
               const editor = editorRef.current;
               if (!editor) return;
-
               setMessages([
                 ...messages,
                 {
@@ -68,17 +68,25 @@ export default () => {
           content={content}
           editorRef={editorRef}
           mentionOption={{
-            items: async (search) => {
+            items: async () => {
               await new Promise((resolve) => {
                 setTimeout(() => resolve(true), 1000);
               });
               return [
                 {
+                  icon: <Avatar avatar={'💻'} size={24} />,
                   key: 'bot1',
-                  label: 'Bot',
-                  onSelect: () => {
-                    console.log(`${search?.matchingString} - ${search?.replaceableString}`);
-                  },
+                  label: '前端研发专家',
+                },
+                {
+                  icon: <Avatar avatar={'🌍'} size={24} />,
+                  key: 'bot2',
+                  label: '中英文互译助手',
+                },
+                {
+                  icon: <Avatar avatar={'📖'} size={24} />,
+                  key: 'bot3',
+                  label: '学术写作增强专家',
                 },
               ];
             },
@@ -88,7 +96,7 @@ export default () => {
             maxLength: 6,
             onSelect: (editor, option) => {
               editor.dispatchCommand(INSERT_MENTION_COMMAND, {
-                label: String(option.label || option.key),
+                label: String(option.label),
               });
             },
             renderComp: (props) => {
