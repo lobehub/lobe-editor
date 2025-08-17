@@ -38,7 +38,7 @@ export interface MenuRenderProps {
    * 主动触发选中
    * @param option 当前选中元素
    */
-  onSelect?: (editor: IEditor, option: ISlashMenuOption) => void;
+  onSelect?: (option: ISlashMenuOption) => void;
   open?: boolean;
   /**
    * 当前搜索到的选项

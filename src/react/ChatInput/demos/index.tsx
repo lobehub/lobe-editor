@@ -70,10 +70,7 @@ export default () => {
           mentionOption={{
             items: async (search) => {
               console.log(search);
-              await new Promise((resolve) => {
-                setTimeout(() => resolve(true), 1000);
-              });
-              return [
+              const data = [
                 {
                   icon: <Avatar avatar={'💻'} size={24} />,
                   key: 'bot1',
@@ -90,6 +87,11 @@ export default () => {
                   label: '学术写作增强专家',
                 },
               ];
+              if (!search?.matchingString) return data;
+              return data.filter((item) => {
+                if (!item.label) return true;
+                return item.label.toLowerCase().includes(search.matchingString.toLowerCase());
+              });
             },
             markdownWriter: (mention) => {
               return `\n<mention>${mention.label}[${mention.extra.id}]</mention>\n`;

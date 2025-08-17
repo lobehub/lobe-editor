@@ -18,11 +18,13 @@ const SlashMenu = memo<SlashMenuProps>(
     activeKey,
     loading,
     maxHeight = 'min(50vh, 640px)',
+    onSelect,
   }) => {
     const { cx, styles } = useStyles();
     const parent = getPopupContainer();
     if (!parent) return;
     if (!open) return;
+    // @ts-ignore
     const node = (
       <Flexbox className={styles.root} paddingInline={8} width={'100%'}>
         <Block
@@ -49,6 +51,7 @@ const SlashMenu = memo<SlashMenuProps>(
                 : options
             }
             mode={'inline'}
+            onSelect={({ item }) => onSelect?.(item as any)}
             selectedKeys={activeKey ? [activeKey] : undefined}
           />
         </Block>

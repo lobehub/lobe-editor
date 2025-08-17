@@ -12,7 +12,6 @@ import {
 } from 'lexical';
 import { Children, FC, useCallback, useLayoutEffect, useRef, useState } from 'react';
 
-import { IEditor } from '@/editor-kernel';
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
@@ -234,7 +233,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
 
   // Adapter for custom render component onSelect
   const customRenderOnSelect = useCallback(
-    (editor: IEditor, option: ISlashMenuOption) => {
+    (option: ISlashMenuOption) => {
       onSelect(option);
     },
     [onSelect],
