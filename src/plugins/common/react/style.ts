@@ -1,6 +1,6 @@
 import { createStyles } from 'antd-style';
 
-export const useThemeStyles = createStyles(({ css }) => ({
+export const useThemeStyles = createStyles(({ css, token }) => ({
   quote: 'editor_quote',
   textBold: css`
     font-weight: bold;
@@ -10,6 +10,7 @@ export const useThemeStyles = createStyles(({ css }) => ({
     font-style: italic;
   `,
   textStrikethrough: css`
+    color: ${token.colorTextDescription};
     text-decoration: line-through;
   `,
   textUnderline: css`
