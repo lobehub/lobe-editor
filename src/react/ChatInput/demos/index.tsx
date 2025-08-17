@@ -68,7 +68,8 @@ export default () => {
           content={content}
           editorRef={editorRef}
           mentionOption={{
-            items: async () => {
+            items: async (search) => {
+              console.log(search);
               await new Promise((resolve) => {
                 setTimeout(() => resolve(true), 1000);
               });
