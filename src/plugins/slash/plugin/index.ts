@@ -78,6 +78,11 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
             return;
           }
 
+          const isComposing = editor.isComposing();
+          if (isComposing) {
+            // 正在输入中，不处理
+            return;
+          }
           const editorWindow = editor._window || window;
           const range = editorWindow.document.createRange();
           const selection = $getSelection();
