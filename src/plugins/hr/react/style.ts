@@ -13,5 +13,9 @@ export const useStyles = createStyles(
     border-block-start: none;
     border-inline-start: none;
     border-inline-end: none;
+
+    &.selected {
+      border-color: ${token.yellow};
+    }
   `,
 );

@@ -19,12 +19,12 @@ export const HRNode = ({
   className,
   editor,
 }: {
-  className: string;
+  className?: string;
   editor: LexicalEditor;
   node: HorizontalRuleNode;
 }) => {
   const [isSelected, setSelected, clearSelection] = useLexicalNodeSelection(node.getKey());
-
+  const { cx, styles } = useStyles();
   console.info('HRNode', node, 'isSelected', isSelected);
 
   useEffect(() => {
@@ -49,18 +49,17 @@ export const HRNode = ({
     );
   }, [clearSelection, editor, isSelected, node, setSelected]);
 
-  return <hr className={className} style={{ borderColor: isSelected ? 'blue' : undefined }} />;
+  return <hr className={cx(styles, isSelected && 'selected', className)} />;
 };
 
-const ReactHRPlugin: FC<ReactHRPluginProps> = () => {
+const ReactHRPlugin: FC<ReactHRPluginProps> = ({ className }) => {
   const [editor] = useLexicalComposerContext();
-  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(HRPlugin, {
       decorator(node, editor) {
-        return <HRNode className={styles} editor={editor} node={node} />;
+        return <HRNode className={className} editor={editor} node={node} />;
       },
     });
   }, []);
