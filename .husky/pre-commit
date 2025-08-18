@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 
-# npm run type-check
+# Skip type-check in CI environment
+if [ "$CI" != "true" ]; then
+  npm run type-check
+fi
 npm run lint:circular
 npx --no-install lint-staged

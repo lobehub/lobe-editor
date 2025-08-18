@@ -27,5 +27,8 @@ jobs:
       - name: Build
         run: bun run build
 
+      - name: Disable git hooks in CI
+        run: git config core.hooksPath /dev/null
+
       - name: Release
         run: bunx pkg-pr-new publish --comment=update
