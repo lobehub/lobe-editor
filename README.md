@@ -82,10 +82,6 @@ $ bun add @lobehub/editor
 ```
 
 ```bash
-$ npm install @lobehub/editor
-```
-
-```bash
 $ pnpm add @lobehub/editor
 ```
 
