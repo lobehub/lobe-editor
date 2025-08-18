@@ -2,6 +2,41 @@
 
 # Changelog
 
+## [Version 1.1.0](https://github.com/lobehub/lobe-editor/compare/v1.0.0...v1.1.0)
+
+<sup>Released on **2025-08-18**</sup>
+
+#### ✨ Features
+
+- **misc**: Bump new pkg.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix build, Fix build, Fix build.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Bump new pkg ([ddc4292](https://github.com/lobehub/lobe-editor/commit/ddc4292))
+
+#### What's fixed
+
+- **misc**: Fix build ([974a54d](https://github.com/lobehub/lobe-editor/commit/974a54d))
+- **misc**: Fix build ([58957b0](https://github.com/lobehub/lobe-editor/commit/58957b0))
+- **misc**: Fix build ([4f4e8b2](https://github.com/lobehub/lobe-editor/commit/4f4e8b2))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## Version 1.0.0
 
 <sup>Released on **2025-08-18**</sup>
