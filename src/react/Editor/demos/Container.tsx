@@ -1,12 +1,23 @@
-import { Collapse, Highlighter } from '@lobehub/ui';
+import { Collapse, CollapseProps, Highlighter } from '@lobehub/ui';
 import { type PropsWithChildren, memo } from 'react';
 
-const Container = memo<PropsWithChildren<{ json: string; markdown: string }>>(
-  ({ children, json, markdown }) => {
+interface ContainerProps extends Omit<CollapseProps, 'items'> {
+  json: string;
+  markdown: string;
+}
+
+const Container = memo<PropsWithChildren<ContainerProps>>(
+  ({
+    children,
+    json,
+    markdown,
+    collapsible = false,
+    defaultActiveKey = ['editor', 'text', 'json'],
+  }) => {
     return (
       <Collapse
-        activeKey={['editor', 'text', 'json']}
-        collapsible={false}
+        collapsible={collapsible}
+        defaultActiveKey={defaultActiveKey}
         items={[
           {
             children: children,

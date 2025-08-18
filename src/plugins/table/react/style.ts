@@ -3,7 +3,8 @@ import { createStyles } from 'antd-style';
 export const useStyles = createStyles(
   ({ css, token }) => css`
     overflow-x: auto;
-    margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+    margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em)
+      calc(var(--lobe-markdown-margin-multiple) * 0.5em + 16px);
 
     .editor_table {
       table-layout: fixed;

@@ -34,7 +34,7 @@ export default () => {
       style={{ maxWidth: 960, overflow: 'hidden', position: 'relative', width: '100%' }}
     >
       <Block variant={'outlined'} width={'100%'}>
-        <Editor />
+        <Editor collapsible={true} defaultActiveKey={['editor']} />
       </Block>
       <Features items={items} />
     </Center>

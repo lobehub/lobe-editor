@@ -13,10 +13,10 @@ import {
   ReactTablePlugin,
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
-import { Avatar } from '@lobehub/ui';
+import { Avatar, type CollapseProps } from '@lobehub/ui';
 import { debounce } from 'lodash-es';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 
 import { INSERT_FILE_COMMAND, ReactFilePlugin } from '@/plugins/file';
 
@@ -25,7 +25,7 @@ import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
 import content from './data.json';
 
-export default () => {
+const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((props) => {
   const editorRef = Editor.useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
@@ -45,7 +45,7 @@ export default () => {
   }, []);
 
   return (
-    <Container json={json} markdown={markdown}>
+    <Container json={json} markdown={markdown} {...props}>
       <Toolbar editorRef={editorRef} />
       <Editor
         content={content}
@@ -196,4 +196,6 @@ export default () => {
       />
     </Container>
   );
-};
+});
+
+export default Demo;

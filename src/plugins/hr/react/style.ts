@@ -6,7 +6,7 @@ export const useStyles = createStyles(
 
     width: 100%;
     height: 4px;
-    margin-block: calc(var(--lobe-markdown-margin-multiple) * 1.5em);
+    margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
     border-color: ${token.colorBorder};
     border-style: dashed;
     border-width: 1px;
