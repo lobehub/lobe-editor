@@ -2,7 +2,7 @@
 import { createStyles } from 'antd-style';
 
 export const useStyles = createStyles(({ css, token }) => ({
-  editor_file: css`
+  file: css`
     user-select: none;
 
     display: inline-block;

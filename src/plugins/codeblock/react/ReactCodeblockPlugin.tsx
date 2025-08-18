@@ -26,23 +26,21 @@ export const ReactCodeblockPlugin: FC<ReactCodeblockPluginProps> = ({ theme, shi
         dark: 'slack-dark',
         light: 'slack-ochin',
       },
-      theme: theme || {
-        code: styles.container,
-      },
+      theme: theme || styles,
     });
   }, []);
 
   useEffect(() => {
-    if (prevStyles?.container) {
+    if (prevStyles?.code) {
       editor
         .getRootElement()
-        ?.querySelectorAll<HTMLElement>('.' + prevStyles?.container)
+        ?.querySelectorAll<HTMLElement>('.' + prevStyles?.code)
         .forEach((node) => {
-          node.classList.remove(prevStyles.container);
-          node.classList.add(styles.container);
+          node.classList.remove(prevStyles.code);
+          node.classList.add(styles.code);
         });
     }
-    editor.updateTheme('code', styles.container);
+    editor.updateTheme('code', styles.code);
   }, [styles, isDarkMode, prevStyles]);
 
   return null;

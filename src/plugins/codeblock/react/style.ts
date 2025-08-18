@@ -3,7 +3,7 @@ import { createStyles } from 'antd-style';
 import { AllColorReplacements } from '@/plugins/codeblock/plugin/FacadeShiki';
 
 export const useStyles = createStyles(({ css, token, stylish, isDarkMode }) => ({
-  container: css`
+  code: css`
     --color-yellow: ${token.yellow};
     --color-error: ${token.colorError};
     --color-gray: ${token.gray};

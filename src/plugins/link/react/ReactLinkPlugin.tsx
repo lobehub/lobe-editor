@@ -45,7 +45,7 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({ theme, validateUrl, 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(LinkPlugin, {
-      theme: theme || { link: styles.link },
+      theme: theme || styles,
     });
   }, []);
 

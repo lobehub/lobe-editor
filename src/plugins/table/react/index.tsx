@@ -30,7 +30,7 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({ className, locale 
       editor.registerLocale(locale);
     }
     editor.registerPlugin(TablePlugin, {
-      className: cx(styles, className),
+      theme: cx(styles, className),
     });
   }, []);
 

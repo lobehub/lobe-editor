@@ -22,7 +22,7 @@ const ReactMentionPlugin: FC<ReactMentionPluginProps> = ({ className, theme, mar
         return <Mention className={className} editor={editor} node={node} />;
       },
       markdownWriter: markdownWriter,
-      theme: theme || { mention: styles.editor_mention },
+      theme: theme || styles,
     });
   }, [editor]);
 

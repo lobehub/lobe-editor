@@ -37,7 +37,7 @@ const ReactFilePlugin: FC<ReactFilePluginProps> = ({
         throw new Error('No upload handler provided');
       },
       markdownWriter: markdownWriter,
-      theme: theme || { file: styles.editor_file },
+      theme: theme || styles,
     });
   }, [editor]);
 

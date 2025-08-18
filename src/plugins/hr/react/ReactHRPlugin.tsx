@@ -19,6 +19,7 @@ const ReactHRPlugin: FC<ReactHRPluginProps> = ({ className }) => {
       decorator(node, editor) {
         return <HRNode className={className} editor={editor} node={node} />;
       },
+      theme: className,
     });
   }, []);
 

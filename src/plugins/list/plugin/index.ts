@@ -38,7 +38,7 @@ const CHECK_LIST_REGEX = /^(\s*)(?:-\s)?\s?(\[(\s|x)?])\s/i;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ListPluginOptions {
-  className?: string;
+  theme?: string;
 }
 
 export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
@@ -62,7 +62,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
         nested: {
           listitem: 'editor_listItemNested',
         },
-        ol: cx(config?.className, 'editor_listOrdered'),
+        ol: cx('editor_listOrdered', config?.theme),
         olDepth: [
           'editor_listOrdered dp1',
           'editor_listOrdered dp2',
@@ -70,7 +70,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
           'editor_listOrdered dp4',
           'editor_listOrdered dp5',
         ],
-        ul: cx(config?.className, 'editor_listUnordered'),
+        ul: cx('editor_listUnordered', config?.theme),
       },
     });
 
