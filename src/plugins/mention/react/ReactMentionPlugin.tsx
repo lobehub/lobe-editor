@@ -11,7 +11,7 @@ import Mention from './components/Mention';
 import { useStyles } from './style';
 import type { ReactMentionPluginProps } from './type';
 
-const ReactMentionPlugin: FC<ReactMentionPluginProps> = (props) => {
+const ReactMentionPlugin: FC<ReactMentionPluginProps> = ({ className, theme, markdownWriter }) => {
   const [editor] = useLexicalComposerContext();
   const { styles } = useStyles();
 
@@ -19,10 +19,10 @@ const ReactMentionPlugin: FC<ReactMentionPluginProps> = (props) => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(MentionPlugin, {
       decorator: (node, editor) => {
-        return <Mention className={props.className} editor={editor} node={node} />;
+        return <Mention className={className} editor={editor} node={node} />;
       },
-      markdownWriter: props.markdownWriter,
-      theme: props.theme || { mention: styles.editor_mention },
+      markdownWriter: markdownWriter,
+      theme: theme || { mention: styles.editor_mention },
     });
   }, [editor]);
 

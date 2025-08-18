@@ -17,8 +17,8 @@ import TableCellResizePlugin from './TableResize';
 import { useStyles } from './style';
 import { ReactTablePluginProps } from './type';
 
-export const ReactTablePlugin: FC<ReactTablePluginProps> = (props) => {
-  const { styles } = useStyles();
+export const ReactTablePlugin: FC<ReactTablePluginProps> = ({ className, locale }) => {
+  const { cx, styles } = useStyles();
   const [editor] = useLexicalComposerContext();
   const [lexicalEditor, setLexicalEditor] = useState<LexicalEditor | null>(null);
   const eventEmitter = useMemo(() => {
@@ -26,11 +26,11 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = (props) => {
   }, []);
 
   useLayoutEffect(() => {
-    if (props.locale) {
-      editor.registerLocale(props.locale);
+    if (locale) {
+      editor.registerLocale(locale);
     }
     editor.registerPlugin(TablePlugin, {
-      className: styles,
+      className: cx(styles, className),
     });
   }, []);
 

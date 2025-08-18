@@ -1,6 +1,6 @@
 import { MaterialFileTypeIcon } from '@lobehub/ui';
 import { CLICK_COMMAND, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
-import { useCallback, useEffect, useRef } from 'react';
+import { memo, useCallback, useEffect, useRef } from 'react';
 import { Center } from 'react-layout-kit';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
@@ -8,8 +8,13 @@ import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { FileNode } from '../../node/FileNode';
 
-export const ReactFile = (props: { className?: string; editor: LexicalEditor; node: FileNode }) => {
-  const { node, editor } = props;
+interface ReactFileProps {
+  className?: string;
+  editor: LexicalEditor;
+  node: FileNode;
+}
+
+const ReactFile = memo<ReactFileProps>(({ className, editor, node }) => {
   const spanRef = useRef<HTMLSpanElement>(null);
   const t = useTranslation();
   const [, setSelected, clearSelection] = useLexicalNodeSelection(node.getKey());
@@ -32,21 +37,25 @@ export const ReactFile = (props: { className?: string; editor: LexicalEditor; no
   }, [editor, node, onClick]);
 
   if (node.status === 'pending') {
-    return <div className={props.className}>{t('file.uploading')}</div>;
+    return <div className={className}>{t('file.uploading')}</div>;
   }
 
   if (node.status === 'error') {
     return (
-      <div className={props.className}>
+      <div className={className}>
         {t('file.error', { message: node.message || 'Unknown error' })}
       </div>
     );
   }
 
   return (
-    <Center className={props.className} gap={'.2em'} horizontal ref={spanRef}>
+    <Center className={className} gap={'.2em'} horizontal ref={spanRef}>
       <MaterialFileTypeIcon filename={node.name} size={18} type={'file'} variant={'raw'} />
       {node.name}
     </Center>
   );
-};
+});
+
+ReactFile.displayName = 'ReactFile';
+
+export default ReactFile;

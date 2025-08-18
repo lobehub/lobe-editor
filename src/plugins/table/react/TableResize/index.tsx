@@ -316,7 +316,9 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
           }
 
           resetState();
-          document.removeEventListener('pointerup', handler);
+          if (typeof document !== 'undefined') {
+            document.removeEventListener('pointerup', handler);
+          }
         }
       };
       return handler;
@@ -341,7 +343,9 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
         updatePointerCurrentPos(pointerStartPosRef.current);
         updateDraggingDirection(direction);
 
-        document.addEventListener('pointerup', pointerUpHandler(direction));
+        if (typeof document !== 'undefined') {
+          document.addEventListener('pointerup', pointerUpHandler(direction));
+        }
       },
     [activeCell, pointerUpHandler],
   );
@@ -351,21 +355,26 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
       const { height, width, top, left } = activeCell.elem.getBoundingClientRect();
       const zoom = calculateZoomLevel(activeCell.elem);
       const zoneWidth = 16; // Pixel width of the zone where you can drag the edge
+
+      // Default to 0 for server side
+      const scrollX = typeof window !== 'undefined' ? window.scrollX : 0;
+      const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+
       const styles: Record<string, CSSProperties> = {
         bottom: {
           backgroundColor: 'none',
           cursor: 'row-resize',
           height: `${zoneWidth}px`,
-          left: `${window.scrollX + left}px`,
-          top: `${window.scrollY + top + height - zoneWidth / 2}px`,
+          left: `${scrollX + left}px`,
+          top: `${scrollY + top + height - zoneWidth / 2}px`,
           width: `${width}px`,
         },
         right: {
           backgroundColor: 'none',
           cursor: 'col-resize',
           height: `${height}px`,
-          left: `${window.scrollX + left + width - zoneWidth / 2}px`,
-          top: `${window.scrollY + top}px`,
+          left: `${scrollX + left + width - zoneWidth / 2}px`,
+          top: `${scrollY + top}px`,
           width: `${zoneWidth}px`,
         },
       };
@@ -374,13 +383,13 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
 
       if (draggingDirection && pointerCurrentPos && tableRect) {
         if (isHeightChanging(draggingDirection)) {
-          styles[draggingDirection].left = `${window.scrollX + tableRect.left}px`;
-          styles[draggingDirection].top = `${window.scrollY + pointerCurrentPos.y / zoom}px`;
+          styles[draggingDirection].left = `${scrollX + tableRect.left}px`;
+          styles[draggingDirection].top = `${scrollY + pointerCurrentPos.y / zoom}px`;
           styles[draggingDirection].height = '3px';
           styles[draggingDirection].width = `${tableRect.width}px`;
         } else {
-          styles[draggingDirection].top = `${window.scrollY + tableRect.top}px`;
-          styles[draggingDirection].left = `${window.scrollX + pointerCurrentPos.x / zoom}px`;
+          styles[draggingDirection].top = `${scrollY + tableRect.top}px`;
+          styles[draggingDirection].left = `${scrollX + pointerCurrentPos.x / zoom}px`;
           styles[draggingDirection].width = '3px';
           styles[draggingDirection].height = `${tableRect.height}px`;
         }
@@ -398,7 +407,7 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
       right: null,
       top: null,
     };
-  }, [activeCell, draggingDirection, pointerCurrentPos]);
+  }, [activeCell, draggingDirection, pointerCurrentPos, theme.colorPrimary]);
 
   const resizerStyles = getResizers();
 
@@ -423,6 +432,11 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
 });
 
 export default memo<ReactTableResizeHandleProps>(({ editor, eventEmitter }) => {
+  // Don't render portal on server side
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
   return createPortal(
     <TableCellResize editor={editor} eventEmitter={eventEmitter} />,
     document.body,

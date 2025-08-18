@@ -83,6 +83,10 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
             return;
           }
           const editorWindow = editor._window || window;
+          // Skip on server side
+          if (editorWindow === undefined || !editorWindow.document) {
+            return;
+          }
           const range = editorWindow.document.createRange();
           const selection = $getSelection();
           const text = getQueryTextForSearch(editor);

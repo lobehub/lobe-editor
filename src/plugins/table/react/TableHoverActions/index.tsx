@@ -151,12 +151,16 @@ const TableHoverActionsContainer = memo<{
       return;
     }
 
-    document.addEventListener('mousemove', debouncedOnMouseMove);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('mousemove', debouncedOnMouseMove);
+    }
 
     return () => {
       setShownRow(false);
       setShownColumn(false);
-      document.removeEventListener('mousemove', debouncedOnMouseMove);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('mousemove', debouncedOnMouseMove);
+      }
     };
   }, [shouldListenMouseMove, debouncedOnMouseMove]);
 
@@ -246,10 +250,17 @@ const TableHoverActionsContainer = memo<{
 });
 
 export default memo(
-  ({ anchorElem = document.body, editor }: { anchorElem?: HTMLElement; editor: LexicalEditor }) => {
+  ({ anchorElem, editor }: { anchorElem?: HTMLElement; editor: LexicalEditor }) => {
+    // Don't render portal on server side
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    const targetElement = anchorElem || document.body;
+
     return createPortal(
-      <TableHoverActionsContainer anchorElem={anchorElem} editor={editor} />,
-      anchorElem,
+      <TableHoverActionsContainer anchorElem={targetElement} editor={editor} />,
+      targetElement,
     );
   },
 );

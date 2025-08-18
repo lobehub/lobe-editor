@@ -26,3 +26,4 @@ export const CONTROL_OR_META = { ctrlKey: !IS_APPLE, metaKey: IS_APPLE };
 export const CONTROL_OR_META_AND_SHIFT = { ctrlKey: !IS_APPLE, metaKey: IS_APPLE, shiftKey: true };
 
 export { IS_FIREFOX, IS_APPLE as isApple } from '@lexical/utils';
+export const isOnServerSide = typeof window === 'undefined';

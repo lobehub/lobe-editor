@@ -47,15 +47,15 @@ const themeConfig: SiteThemeConfig = {
   description,
   giscus: {
     category: 'Q&A',
-    categoryId: 'DIC_kwDOLNrpbc4Cin_G',
-    repo: 'lobehub/lobe-charts',
-    repoId: 'R_kgDOLNrpbQ',
+    categoryId: 'DIC_kwDOPM7uEc4CuTKC',
+    repo: 'lobehub/lobe-editor',
+    repoId: 'R_kgDOPM7uEQ',
   },
   lastUpdated: true,
   metadata: {
     openGraph: {
       image:
-        'https://repository-images.githubusercontent.com/752544109/5bb43f23-aed9-44b0-b08e-91776eadfe1c',
+        'https://repository-images.githubusercontent.com/1020194321/a13f7ca8-0d9b-4ac0-a6c3-3932f39e42bd',
     },
   },
   name: 'Editor',

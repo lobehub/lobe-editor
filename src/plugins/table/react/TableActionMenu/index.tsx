@@ -407,7 +407,7 @@ function TableCellActionMenuContainer({
     const menu = menuButtonRef.current;
     const selection = $getSelection();
     const nativeSelection = getDOMSelection(editor._window);
-    const activeElement = document.activeElement;
+    const activeElement = typeof document !== 'undefined' ? document.activeElement : null;
     function disable() {
       if (menu) {
         menu.classList.remove('table-cell-action-button-container--active');
@@ -558,9 +558,20 @@ export default memo<{
   anchorElem?: HTMLElement;
   cellMerge?: boolean;
   editor: LexicalEditor;
-}>(({ anchorElem = document.body, cellMerge = false, editor }) => {
+}>(({ anchorElem, cellMerge = false, editor }) => {
+  // Don't render portal on server side
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const targetElement = anchorElem || document.body;
+
   return createPortal(
-    <TableCellActionMenuContainer anchorElem={anchorElem} cellMerge={cellMerge} editor={editor} />,
-    anchorElem,
+    <TableCellActionMenuContainer
+      anchorElem={targetElement}
+      cellMerge={cellMerge}
+      editor={editor}
+    />,
+    targetElement,
   );
 });
