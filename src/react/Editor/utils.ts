@@ -1,4 +1,4 @@
-import { ComponentProps, FC } from 'react';
+import type { ComponentProps, FC } from 'react';
 
 export function withProps<T extends FC<any>>(
   plugin: T,

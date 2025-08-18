@@ -1,6 +1,5 @@
 import type { EditorThemeClasses } from 'lexical';
-import type { Context } from 'react';
-import { createContext as createReactContext, use } from 'react';
+import { type Context, createContext as createReactContext, use } from 'react';
 
 import { IEditor } from '@/types';
 

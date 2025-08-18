@@ -1,7 +1,7 @@
 'use client';
 
 import { usePrevious } from 'ahooks';
-import { FC, useEffect, useLayoutEffect, useRef } from 'react';
+import { type FC, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { MarkdownPlugin } from '@/plugins/markdown';

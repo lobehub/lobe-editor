@@ -10,8 +10,15 @@ import {
   createCommand,
 } from 'lexical';
 import { LinkIcon } from 'lucide-react';
-import type { ChangeEvent, FC, KeyboardEvent } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type ChangeEvent,
+  type FC,
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
 

@@ -1,5 +1,5 @@
 import { LexicalEditor } from 'lexical';
-import { JSX } from 'react';
+import type { JSX } from 'react';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';

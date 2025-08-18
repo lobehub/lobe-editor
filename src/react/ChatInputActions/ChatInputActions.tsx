@@ -3,7 +3,7 @@
 import { ActionIcon, Dropdown } from '@lobehub/ui';
 import { useSize } from 'ahooks';
 import { Divider } from 'antd';
-import { ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Flexbox } from 'react-layout-kit';
 
 import ChatInputActionsCollapse from './components/ChatInputActionsCollapse';

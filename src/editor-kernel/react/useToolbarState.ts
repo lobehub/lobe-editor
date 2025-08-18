@@ -27,7 +27,7 @@ import {
   TextNode,
   UNDO_COMMAND,
 } from 'lexical';
-import { RefObject, useCallback, useEffect, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useState } from 'react';
 
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';

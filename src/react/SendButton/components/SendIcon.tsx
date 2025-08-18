@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, memo } from 'react';
+import { type CSSProperties, memo } from 'react';
 
 const SendIcon = memo<{
   size?: string | number;

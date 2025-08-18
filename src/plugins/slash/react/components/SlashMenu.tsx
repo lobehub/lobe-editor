@@ -1,7 +1,7 @@
 'use client';
 
 import { Dropdown, type MenuProps } from '@lobehub/ui';
-import { FC, useCallback } from 'react';
+import { type FC, useCallback } from 'react';
 
 import { ISlashMenuOption } from '../../service/i-slash-service';
 import type { SlashMenuProps } from '../type';

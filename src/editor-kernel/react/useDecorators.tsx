@@ -1,6 +1,14 @@
 import type { LexicalEditor, NodeKey } from 'lexical';
-import type { ComponentClass, FC } from 'react';
-import { JSX, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import {
+  type ComponentClass,
+  type FC,
+  type JSX,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { createPortal, flushSync } from 'react-dom';
 
 import { CAN_USE_DOM } from '@/common/canUseDOM';

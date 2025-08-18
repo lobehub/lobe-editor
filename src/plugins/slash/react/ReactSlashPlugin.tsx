@@ -9,13 +9,13 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
 } from 'lexical';
-import { Children, FC, useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { Children, type FC, useCallback, useLayoutEffect, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
-import { ITriggerContext, SlashPlugin } from '../plugin/index';
-import { ISlashMenuOption, ISlashOption, SlashOptions } from '../service/i-slash-service';
+import { type ITriggerContext, SlashPlugin } from '../plugin/index';
+import type { ISlashMenuOption, ISlashOption, SlashOptions } from '../service/i-slash-service';
 import { $splitNodeContainingQuery } from '../utils/utils';
 import SlashMenu from './components/SlashMenu';
 import type { ReactSlashOptionProps, ReactSlashPluginProps } from './type';

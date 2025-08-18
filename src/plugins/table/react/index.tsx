@@ -3,8 +3,7 @@
 import { $findTableNode, $getElementForTableNode, $isTableSelection } from '@lexical/table';
 import EventEmitter from 'eventemitter3';
 import { $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
-import type { FC } from 'react';
-import { useLayoutEffect, useMemo, useState } from 'react';
+import { type FC, useLayoutEffect, useMemo, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';

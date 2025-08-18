@@ -1,5 +1,5 @@
 import { useTheme } from 'antd-style';
-import { CSSProperties, memo } from 'react';
+import { type CSSProperties, memo } from 'react';
 
 const StopIcon = memo<{
   size?: string | number;

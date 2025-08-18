@@ -1,5 +1,5 @@
 import { Collapse, Highlighter } from '@lobehub/ui';
-import { PropsWithChildren, memo } from 'react';
+import { type PropsWithChildren, memo } from 'react';
 
 const Container = memo<PropsWithChildren<{ json: string; markdown: string }>>(
   ({ children, json, markdown }) => {

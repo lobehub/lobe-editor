@@ -1,8 +1,7 @@
 /**
  * Support configuration through react children
  */
-import type { FC, Ref } from 'react';
-import { ReactNode, useEffect, useMemo } from 'react';
+import { type FC, type ReactNode, type Ref, useEffect, useMemo } from 'react';
 
 import type { IEditor } from '@/types';
 

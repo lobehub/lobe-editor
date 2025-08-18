@@ -11,7 +11,7 @@ import {
   KEY_DOWN_COMMAND,
   isModifierMatch,
 } from 'lexical';
-import { FC, useLayoutEffect, useRef, useState } from 'react';
+import { type FC, useLayoutEffect, useRef, useState } from 'react';
 
 import { CONTROL_OR_META } from '@/common/sys';
 import { useLexicalEditor } from '@/editor-kernel/react';

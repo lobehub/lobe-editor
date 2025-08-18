@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, createContext, use, useMemo } from 'react';
+import { type ReactNode, createContext, use, useMemo } from 'react';
 
 type LocaleType = typeof import('@/locale').default;
 

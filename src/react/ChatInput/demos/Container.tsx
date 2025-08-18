@@ -1,6 +1,6 @@
 import { ChatActionsBar, ChatList, type ChatMessage } from '@lobehub/ui/chat';
 import { useTheme } from 'antd-style';
-import { PropsWithChildren, memo, useEffect, useRef } from 'react';
+import { type PropsWithChildren, memo, useEffect, useRef } from 'react';
 import { Flexbox } from 'react-layout-kit';
 
 const Container = memo<PropsWithChildren<{ messages: ChatMessage[] }>>(({ children, messages }) => {

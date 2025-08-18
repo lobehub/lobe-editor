@@ -1,7 +1,6 @@
 'use client';
 
-import type { FC } from 'react';
-import { useLayoutEffect } from 'react';
+import { type FC, useLayoutEffect } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { UploadPlugin } from '@/plugins/upload';

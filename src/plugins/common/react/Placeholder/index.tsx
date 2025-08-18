@@ -1,6 +1,6 @@
 import { mergeRegister } from '@lexical/utils';
 import { LexicalEditor } from 'lexical';
-import { CSSProperties, ReactNode, memo, useState } from 'react';
+import { type CSSProperties, type ReactNode, memo, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 

@@ -17,7 +17,7 @@ import {
   StrikethroughIcon,
   UnderlineIcon,
 } from 'lucide-react';
-import { RefObject, memo } from 'react';
+import { type RefObject, memo } from 'react';
 
 export interface ToolbarProps {
   editorRef: RefObject<IEditor | null>;

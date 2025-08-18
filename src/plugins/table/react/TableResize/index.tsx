@@ -19,9 +19,9 @@ import {
   SKIP_SCROLL_INTO_VIEW_TAG,
   isHTMLElement,
 } from 'lexical';
-import React, {
-  CSSProperties,
-  PointerEventHandler,
+import {
+  type CSSProperties,
+  type PointerEventHandler,
   memo,
   useCallback,
   useEffect,

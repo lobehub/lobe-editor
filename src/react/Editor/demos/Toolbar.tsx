@@ -22,7 +22,7 @@ import {
   UnderlineIcon,
   Undo2Icon,
 } from 'lucide-react';
-import { RefObject, memo } from 'react';
+import { type RefObject, memo } from 'react';
 
 import { openFileSelector } from './actions';
 
