@@ -52,6 +52,32 @@ export interface MenuRenderProps {
   setActiveKey: (key: string | null) => void;
 }
 
+/**
+ * SlashMenu component props - only responsible for rendering
+ */
+export interface SlashMenuProps {
+  /** Current active option key */
+  activeKey: string | null;
+  /** Anchor element className */
+  anchorClassName?: string;
+  /** Custom render component if provided */
+  customRender?: FC<MenuRenderProps>;
+  /** Loading state */
+  loading: boolean;
+  /** Callback to set active key */
+  onActiveKeyChange: (key: string | null) => void;
+  /** Callback when menu should close */
+  onClose: () => void;
+  /** Callback when an option is selected */
+  onSelect: (option: ISlashMenuOption) => void;
+  /** Whether the menu is open */
+  open: boolean;
+  /** Available options to display */
+  options: Array<ISlashOption>;
+  /** Menu position */
+  position: { x: number; y: number };
+}
+
 export interface ReactSlashPluginProps {
   anchorClassName?: string;
   children?:

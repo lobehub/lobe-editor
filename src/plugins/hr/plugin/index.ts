@@ -13,8 +13,8 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HRPluginOptions {
-  className?: string;
   decorator: (node: HorizontalRuleNode, editor: LexicalEditor) => any;
+  theme?: string;
 }
 
 export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
@@ -31,7 +31,7 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
     // Register the horizontal rule node
     kernel.registerNodes([HorizontalRuleNode]);
     kernel.registerThemes({
-      hr: config?.className || '',
+      hr: config?.theme || '',
     });
     kernel.registerDecorator(
       'horizontalrule',

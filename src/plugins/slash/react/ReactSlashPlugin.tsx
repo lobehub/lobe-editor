@@ -1,7 +1,6 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { Dropdown, type MenuProps } from '@lobehub/ui';
 import {
   COMMAND_PRIORITY_NORMAL,
   KEY_ARROW_DOWN_COMMAND,
@@ -18,6 +17,7 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { ITriggerContext, SlashPlugin } from '../plugin/index';
 import { ISlashMenuOption, ISlashOption, SlashOptions } from '../service/i-slash-service';
 import { $splitNodeContainingQuery } from '../utils/utils';
+import SlashMenu from './components/SlashMenu';
 import type { ReactSlashOptionProps, ReactSlashPluginProps } from './type';
 import { setCancelablePromise } from './utils';
 
@@ -41,6 +41,10 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
     setOptions([]);
     setResolution(null);
     setActiveKey(null);
+  }, []);
+
+  const handleActiveKeyChange = useCallback((key: string | null) => {
+    setActiveKey(key);
   }, []);
 
   useLayoutEffect(() => {
@@ -96,10 +100,10 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
     });
   }, [activeKey, editor, close]);
 
-  const onSelect = useCallback(
-    (option: ISlashOption) => {
-      // Don't process divider items
-      if ('type' in option && option.type === 'divider') {
+  const handleMenuSelect = useCallback(
+    (option: ISlashMenuOption) => {
+      // ISlashMenuOption should not have divider type, but adding check for safety
+      if ('type' in option && (option as any).type === 'divider') {
         return;
       }
 
@@ -119,7 +123,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
 
       // Call the external unified onSelect first if it exists
       if (currentTriggerProps?.onSelect) {
-        currentTriggerProps.onSelect(editor, option as ISlashMenuOption);
+        currentTriggerProps.onSelect(editor, option);
       }
 
       close();
@@ -197,7 +201,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
             }
             event.preventDefault();
             event.stopImmediatePropagation();
-            onSelect(selectedOption);
+            handleMenuSelect(selectedOption);
             return true;
           },
           COMMAND_PRIORITY_NORMAL,
@@ -219,81 +223,32 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
               event.preventDefault();
               event.stopImmediatePropagation();
             }
-            onSelect(selectedOption);
+            handleMenuSelect(selectedOption);
             return true;
           },
           COMMAND_PRIORITY_NORMAL,
         ),
       );
     },
-    [options, activeKey, setActiveKey],
+    [options, activeKey, handleActiveKeyChange, handleMenuSelect],
   );
 
+  // Get custom render component if available
   const { renderComp: CustomRender } = triggerMapRef.current.get(resolution?.trigger || '') || {};
 
-  // Adapter for custom render component onSelect
-  const customRenderOnSelect = useCallback(
-    (option: ISlashMenuOption) => {
-      onSelect(option);
-    },
-    [onSelect],
-  );
-
-  const handleMenuClick: MenuProps['onClick'] = useCallback(
-    ({ key }: { key: string }) => {
-      const option = options.find(
-        (item): item is ISlashMenuOption => 'key' in item && item.key === key,
-      );
-      if (option) onSelect(option);
-    },
-    [options, onSelect],
-  );
-
-  /**
-   * Render the custom component if it exists
-   */
-  if (CustomRender) {
-    return (
-      <CustomRender
-        activeKey={activeKey}
-        loading={loading}
-        onSelect={customRenderOnSelect}
-        open={isOpen}
-        options={options}
-        setActiveKey={setActiveKey}
-      />
-    );
-  }
-
   return (
-    <div
-      style={{
-        left: dropdownPosition.x,
-        position: 'fixed',
-        top: dropdownPosition.y,
-        zIndex: 1050,
-      }}
-    >
-      <Dropdown
-        menu={{
-          // @ts-ignore
-          activeKey: activeKey,
-          items: loading
-            ? [
-                {
-                  disabled: true,
-                  key: 'loading',
-                  label: 'Loading...',
-                },
-              ]
-            : options,
-          onClick: handleMenuClick,
-        }}
-        open={isOpen}
-      >
-        <span className={anchorClassName} />
-      </Dropdown>
-    </div>
+    <SlashMenu
+      activeKey={activeKey}
+      anchorClassName={anchorClassName}
+      customRender={CustomRender}
+      loading={loading}
+      onActiveKeyChange={handleActiveKeyChange}
+      onClose={close}
+      onSelect={handleMenuSelect}
+      open={isOpen}
+      options={options}
+      position={dropdownPosition}
+    />
   );
 };
 

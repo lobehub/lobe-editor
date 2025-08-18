@@ -1,6 +1,11 @@
 import { getDOMSelectionFromTarget } from 'lexical';
 
 export function getDragSelection(event: DragEvent): Range | null | undefined {
+  // Return null on server side
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
   let range;
   const domSelection = getDOMSelectionFromTarget(event.target);
   if (document.caretRangeFromPoint) {

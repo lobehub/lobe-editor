@@ -17,7 +17,7 @@ const ReactListPlugin: FC<ReactListPluginProps> = () => {
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(ListPlugin, {
-      className: styles,
+      theme: styles,
     });
   }, []);
 

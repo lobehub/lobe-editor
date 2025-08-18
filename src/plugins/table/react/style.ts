@@ -3,17 +3,14 @@ import { createStyles } from 'antd-style';
 export const useStyles = createStyles(
   ({ css, token }) => css`
     overflow-x: auto;
-    margin-block: 0 30px;
-    margin-inline: 0 25px;
+    margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
 
     .editor_table {
-      overflow: scroll scroll;
       table-layout: fixed;
       border-spacing: 0;
       border-collapse: collapse;
 
       width: fit-content;
-      margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
 
       text-align: start;
       text-indent: initial;

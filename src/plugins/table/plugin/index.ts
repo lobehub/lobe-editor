@@ -19,7 +19,7 @@ import { TableNode, patchTableNode } from '../node';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TablePluginOptions {
-  className?: string;
+  theme?: string;
 }
 
 const tableCellProcessor = (before: string, content: string, after: string) => {
@@ -45,7 +45,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       tableCell: 'editor_table_cell',
       tableCellHeader: 'editor_table_cell_header',
       tableCellSelected: 'editor_table_cell_selected',
-      tableScrollableWrapper: cx(options?.className, 'editor_table_scrollable_wrapper'),
+      tableScrollableWrapper: cx('editor_table_scrollable_wrapper', options?.theme),
     });
 
     kernel

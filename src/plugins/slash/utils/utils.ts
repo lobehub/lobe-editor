@@ -76,6 +76,11 @@ export function getScrollParent(
   element: HTMLElement,
   includeHidden: boolean,
 ): HTMLElement | HTMLBodyElement {
+  // Return element itself on server side as fallback
+  if (typeof document === 'undefined') {
+    return element;
+  }
+
   let style = getComputedStyle(element);
   const excludeStaticParent = style.position === 'absolute';
   const overflowRegex = includeHidden ? /(auto|scroll|hidden)/ : /(auto|scroll)/;
@@ -95,6 +100,11 @@ export function getScrollParent(
 }
 
 export const scrollIntoViewIfNeeded = (target: HTMLElement) => {
+  // Skip on server side
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return;
+  }
+
   const typeaheadContainerNode = document.getElementById('typeahead-menu');
   if (!typeaheadContainerNode) {
     return;

@@ -1,4 +1,9 @@
 export function openFileSelector(handleFiles: (files: FileList) => void, accept = '*/*') {
+  // Skip on server side
+  if (typeof document === 'undefined') {
+    return;
+  }
+
   // Create a hidden input element
   const input = document.createElement('input');
   input.type = 'file';

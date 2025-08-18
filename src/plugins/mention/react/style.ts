@@ -2,7 +2,7 @@
 import { createStyles } from 'antd-style';
 
 export const useStyles = createStyles(({ css, token }) => ({
-  editor_mention: css`
+  mention: css`
     user-select: none;
 
     position: relative;
