@@ -1,5 +1,5 @@
 import { EditorThemeClasses, isHTMLElement } from 'lexical';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { useMemo, useRef } from 'react';
 
 import type { IEditor } from '@/types';

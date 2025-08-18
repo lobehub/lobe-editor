@@ -7,8 +7,7 @@ import {
   LexicalNodeConfig,
   createEditor,
 } from 'lexical';
-import { get, template, templateSettings } from 'lodash-es';
-import merge from 'lodash/merge';
+import { get, merge, template, templateSettings } from 'lodash-es';
 
 import defaultLocale from '@/locale';
 

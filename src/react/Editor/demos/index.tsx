@@ -14,7 +14,7 @@ import {
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
 import { Avatar } from '@lobehub/ui';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 

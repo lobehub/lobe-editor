@@ -12,14 +12,14 @@
   },
   "license": "MIT",
   "author": "LobeHub <i@lobehub.com>",
-  "sideEffects": [
-    "**/*.css"
-  ],
+  "sideEffects": false,
   "main": "es/index.js",
   "module": "es/index.js",
   "types": "es/index.d.ts",
   "files": [
-    "es"
+    "es",
+    "react.d.ts",
+    "react.js"
   ],
   "scripts": {
     "build": "father build && npm run build:packages",
@@ -89,8 +89,6 @@
     "@lobehub/ui": "^2.9.4",
     "@shikijs/core": "^3.9.2",
     "@shikijs/engine-javascript": "^3.9.2",
-    "@types/react": "^19.1.10",
-    "@types/react-dom": "^19.1.7",
     "ahooks": "^3.9.3",
     "antd": "^5.27.0",
     "antd-style": "^3.7.1",
@@ -98,12 +96,9 @@
     "framer-motion": "^12.23.12",
     "fuse.js": "^7.1.0",
     "lexical": "^0.34.0",
-    "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.536.0",
     "polished": "^4.3.1",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
     "react-error-boundary": "^6.0.0",
     "react-layout-kit": "^2.0.0",
     "shiki": "^3.9.2",
@@ -131,8 +126,11 @@
     "husky": "^9.1.7",
     "jsdom": "^26.1.0",
     "lint-staged": "^16.1.5",
+    "lodash": "^4.17.21",
     "patch-package": "^8.0.0",
     "prettier": "^3.6.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "remark": "^15.0.1",
     "remark-cli": "^12.0.1",
     "rollup-plugin-dts": "^6.2.3",
