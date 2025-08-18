@@ -34,10 +34,8 @@ const ChatInputActions = memo<ChatInputActionsProps>(
     useEffect(() => {
       if (!size?.width) return;
       const length = flatItems.length + 1;
-      console.log(size?.width);
       const calcMaxCount = Math.floor(size.width / 48);
       setMaxCount(calcMaxCount);
-      console.log(calcMaxCount < length);
       if (calcMaxCount < length) {
         setCollapsed(true);
       } else {

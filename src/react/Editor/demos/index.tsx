@@ -104,7 +104,7 @@ export default () => {
               });
             },
             /**
-             * 自定义 file markdown 输出
+             * Custom file markdown output
              */
             markdownWriter: (file) => {
               return `\n<file>${file.fileUrl}</file>\n`;

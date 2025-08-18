@@ -7,5 +7,11 @@ export {
 } from './ChatInputActions';
 export { default as CodeLanguageSelect, type CodeLanguageSelectProps } from './CodeLanguageSelect';
 export { default as Editor, type EditorProps, useEditor, withProps } from './Editor';
+export {
+  EditorProvider,
+  type EditorProviderConfig,
+  type EditorProviderProps,
+  useEditorContent,
+} from './EditorProvider';
 export { default as SendButton, type SendButtonProps } from './SendButton';
 export { default as SlashMenu, type SlashMenuProps } from './SlashMenu';

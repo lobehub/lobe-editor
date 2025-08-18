@@ -1,51 +1,51 @@
 import type { FC, ReactElement } from 'react';
 
-import { IEditor } from '@/editor-kernel';
-import { SlashOptions } from '@/plugins/slash';
-import { ISlashMenuOption, ISlashOption } from '@/plugins/slash/service/i-slash-service';
+import type { SlashOptions } from '@/plugins/slash';
+import type { ISlashMenuOption, ISlashOption } from '@/plugins/slash/service/i-slash-service';
+import type { IEditor } from '@/types';
 
 export interface ReactSlashOptionProps {
   /**
-   * 可以搜索的选项
+   * Searchable options
    */
   items?: SlashOptions['items'];
   /**
-   * 搜索的最大长度
-   * 默认为 75
+   * Maximum search length
+   * Default is 75
    */
   maxLength?: number;
   onSelect?: (editor: IEditor, option: ISlashMenuOption) => void;
   /**
-   * 自定义渲染组件
+   * Custom render component
    */
   renderComp?: FC<MenuRenderProps>;
   /**
-   * 触发字符
+   * Trigger character
    */
   trigger?: SlashOptions['trigger'];
 }
 
 export interface MenuRenderProps {
   /**
-   * 当前激活的选项 key
+   * Current active option key
    */
   activeKey: string | null;
   /**
-   * 加载状态
+   * Loading state
    */
   loading?: boolean;
   /**
-   * 主动触发选中
-   * @param option 当前选中元素
+   * Actively trigger selection
+   * @param option Currently selected element
    */
   onSelect?: (option: ISlashMenuOption) => void;
   open?: boolean;
   /**
-   * 当前搜索到的选项
+   * Currently searched options
    */
   options: Array<ISlashOption>;
   /**
-   * 主动设置当前激活的选项 key
+   * Actively set current active option key
    * @param key
    * @returns
    */

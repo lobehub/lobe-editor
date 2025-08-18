@@ -1,9 +1,8 @@
 import { DecoratorNode, LexicalEditor } from 'lexical';
 
-import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerHorizontalRuleCommand } from '../command';
 import {

@@ -16,9 +16,6 @@ const ReactImagePlugin: FC<ReactImagePluginProps> = ({ theme, className }) => {
   const { styles } = useStyles();
 
   useLayoutEffect(() => {
-    editor.registerI18n({
-      'image.broken': 'Broken image',
-    });
     editor.registerPlugin(UploadPlugin);
     editor.registerPlugin(ImagePlugin, {
       handleUpload(file) {

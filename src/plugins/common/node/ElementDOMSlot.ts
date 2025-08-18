@@ -3,7 +3,6 @@ import { LexicalPrivateDOM } from 'lexical/LexicalNode';
 
 export class MElementDOMSlot extends ElementDOMSlot {
   override setManagedLineBreak(lineBreakType: null | 'empty' | 'line-break' | 'decorator') {
-    console.info('Setting managed line break type:', lineBreakType);
     super.setManagedLineBreak(lineBreakType);
   }
 
@@ -18,7 +17,6 @@ export class MElementDOMSlot extends ElementDOMSlot {
     const element: HTMLElement & LexicalPrivateDOM = this.element;
     const before = this.before;
     const br = document.createElement('br');
-    console.info('Inserting managed line break before:', before);
     // eslint-disable-next-line unicorn/prefer-modern-dom-apis
     element.insertBefore(br, before);
     if (webkitHack) {

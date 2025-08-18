@@ -25,7 +25,6 @@ export const HRNode = ({
 }) => {
   const [isSelected, setSelected, clearSelection] = useLexicalNodeSelection(node.getKey());
   const { cx, styles } = useStyles();
-  console.info('HRNode', node, 'isSelected', isSelected);
 
   useEffect(() => {
     return mergeRegister(

@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
 
-import { IEditor } from '@/editor-kernel';
 import { CommonPluginOptions } from '@/plugins/common';
+import type { IEditor } from '@/types';
 
 export interface ReactEditorContentProps {
   content: any;

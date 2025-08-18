@@ -1,7 +1,7 @@
 import { IElementNode } from './i-element-node';
 
 /**
- * 根节点
+ * Root node
  */
 export interface IRootNode extends IElementNode {
   type: 'root';

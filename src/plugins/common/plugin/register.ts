@@ -116,7 +116,7 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
       // Handle backspace key press
       const headingNode = editor.read(() => {
         const selection = $getSelection();
-        // 非单点光标不处理
+        // Do not handle non-collapsed selection
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
           return false;
         }
@@ -126,7 +126,7 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
         }
         const anchorNode = anchor.getNode();
         if ($isTextNode(anchorNode)) {
-          // 非最前面的文本节点不处理
+          // Do not handle non-leading text nodes
           if (anchorNode.getPreviousSibling()) {
             return false;
           }

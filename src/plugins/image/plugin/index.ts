@@ -2,9 +2,9 @@ import { LexicalEditor } from 'lexical';
 import { JSX } from 'react';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
+import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { INSERT_IMAGE_COMMAND, registerImageCommand } from '../command';
 import { $isImageNode, ImageNode } from '../node/image-node';

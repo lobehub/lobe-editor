@@ -3,7 +3,8 @@
 import { DropdownMenuItemType } from '@lobehub/ui';
 import Fuse from 'fuse.js';
 
-import { IEditor, type IEditorKernel, type IServiceID, genServiceId } from '@/editor-kernel';
+import { genServiceId } from '@/editor-kernel';
+import type { IEditor, IEditorKernel, IServiceID } from '@/types';
 
 import { getBasicTypeaheadTriggerMatch } from '../utils/utils';
 
@@ -19,7 +20,7 @@ export type ISlashOption = ISlashMenuOption | ISlashDividerOption;
 
 export interface SlashOptions {
   allowWhitespace?: boolean;
-  // 触发符号
+  // Trigger symbol
   items:
     | Array<ISlashOption>
     | ((
@@ -47,7 +48,7 @@ export class SlashService implements ISlashService {
   private triggerFuseMap: Map<string, Fuse<ISlashOption>> = new Map();
 
   constructor(private kernel: IEditorKernel) {}
-  // 这里可以添加具体的服务方法
+  // Specific service methods can be added here
 
   registerSlash(options: SlashOptions): void {
     if (this.triggerMap.has(options.trigger)) {

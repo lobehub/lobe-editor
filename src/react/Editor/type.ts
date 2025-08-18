@@ -1,9 +1,9 @@
 import type { CSSProperties, FC, ReactNode, Ref } from 'react';
 
-import type { IEditor } from '@/editor-kernel';
 import type { ReactEditorContentProps, ReactPlainTextProps } from '@/plugins/common/react';
 import type { ReactMentionPluginProps } from '@/plugins/mention/react';
 import type { ReactSlashOptionProps } from '@/plugins/slash/react';
+import type { IEditor } from '@/types';
 
 export type EditorPlugin = FC<any> | [FC<any>, Record<string, any>];
 

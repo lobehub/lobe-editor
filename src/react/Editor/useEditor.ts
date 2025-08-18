@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 
-import { IEditor } from '@/editor-kernel';
+import type { IEditor } from '@/types';
 
 export const useEditor = () => {
   return useRef<IEditor | null>(null);

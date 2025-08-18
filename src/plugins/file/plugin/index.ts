@@ -9,11 +9,10 @@ import {
   LexicalEditor,
 } from 'lexical';
 
-import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IUploadService } from '@/plugins/upload';
+import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerFileCommand } from '../command';
 import { $createFileNode, $isFileNode, FileNode } from '../node/FileNode';

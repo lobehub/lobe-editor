@@ -145,7 +145,6 @@ export class FileNode extends DecoratorNode<any> {
 
   updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedFileNode>): this {
     const node = super.updateFromJSON(serializedNode);
-    console.trace('FileNode updated from JSON', node);
     return node;
   }
 

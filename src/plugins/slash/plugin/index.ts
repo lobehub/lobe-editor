@@ -1,8 +1,7 @@
 import { $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
 
-import type { IEditorKernel, IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorPluginConstructor } from '@/editor-kernel/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import {
   ISlashOption,
@@ -73,14 +72,14 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
       editor.registerUpdateListener(() => {
         editor.getEditorState().read(() => {
           if (!editor.isEditable()) {
-            // 触发关闭
+            // Trigger close
             this.triggerClose();
             return;
           }
 
           const isComposing = editor.isComposing();
           if (isComposing) {
-            // 正在输入中，不处理
+            // Currently typing, do not handle
             return;
           }
           const editorWindow = editor._window || window;
@@ -91,7 +90,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
           if (
             !$isRangeSelection(selection) ||
             !selection.isCollapsed() ||
-            // code 里面不触发
+            // Do not trigger inside code
             selection.hasFormat('code') ||
             text === null ||
             range === null ||
@@ -114,7 +113,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
           const slashOptions = this.service?.getSlashOptions(triggerText);
           const maxLength = slashOptions?.maxLength || 75;
 
-          // 超过最大长度
+          // Exceeds maximum length
           if (text.length - lastIndex > maxLength || !slashOptions) {
             this.triggerClose();
             return;

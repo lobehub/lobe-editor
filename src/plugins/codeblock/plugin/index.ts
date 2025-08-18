@@ -8,8 +8,8 @@ import {
 import { LexicalEditor, TabNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { CustomShikiTokenizer, registerCodeCommand } from '../command';
 import { getCodeLanguageByInput } from '../utils/language';

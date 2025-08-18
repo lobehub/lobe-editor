@@ -3,7 +3,7 @@ import { TextModeType } from 'lexical';
 import { INode } from './i-node';
 
 /**
- * 文本节点
+ * Text node
  */
 export interface ITextNode extends INode {
   detail: number;

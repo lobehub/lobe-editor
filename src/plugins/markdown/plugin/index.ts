@@ -12,7 +12,7 @@ import {
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/editor-kernel/types';
+import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import MarkdownDataSource from '../data-source/markdown-data-source';
 import { IMarkdownShortCutService, MarkdownShortCutService } from '../service/shortcut';
@@ -31,7 +31,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
   constructor(protected kernel: IEditorKernel) {
     super();
     kernel.registerService(IMarkdownShortCutService, this.service);
-    // @todo 待实现
+    // @todo To be implemented
     kernel.registerDataSource(new MarkdownDataSource('markdown', this.service));
   }
 

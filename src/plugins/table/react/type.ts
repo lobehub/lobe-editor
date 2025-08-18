@@ -1,12 +1,6 @@
+import type { ILocaleKeys } from '@/types';
+
 export interface ReactTablePluginProps {
   className?: string;
-  i18n?: {
-    'table.delete': string;
-    'table.deleteColumn': string;
-    'table.deleteRow': string;
-    'table.insertColumnLeft': string;
-    'table.insertColumnRight': string;
-    'table.insertRowAbove': string;
-    'table.insertRowBelow': string;
-  };
+  locale?: Partial<Record<keyof ILocaleKeys, string>>;
 }

@@ -83,21 +83,21 @@ export type Transformer = ElementTransformer | TextFormatTransformer | TextMatch
 
 export interface IMarkdownWriterContext {
   /**
-   * 添加处理器
+   * Add processor
    * @param processor
    */
   addProcessor(processor: (before: string, content: string, after: string) => string): void;
 
   // Define the context properties needed for the markdown writer
   /**
-   * 直接输出
+   * Direct output
    * @param line
    * @returns
    */
   appendLine: (line: string) => void;
 
   /**
-   * 对子元素进行包裹
+   * Wrap child elements
    * @param before
    * @param after
    * @returns
@@ -109,7 +109,7 @@ export interface IMarkdownShortCutService {
   registerMarkdownShortCut(transformer: Transformer): void;
   registerMarkdownShortCuts(transformers: Transformer[]): void;
   /**
-   * 注册 Markdown 输出器
+   * Register Markdown writer
    * @param type Lexical Node type
    * @param writer
    */

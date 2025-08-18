@@ -4,8 +4,7 @@ import { JSX, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 're
 import { createPortal, flushSync } from 'react-dom';
 
 import { CAN_USE_DOM } from '@/common/canUseDOM';
-
-import { IEditor } from '../types';
+import { IEditor } from '@/types';
 
 // This workaround is no longer necessary in React 19,
 // but we currently support React >=17.x

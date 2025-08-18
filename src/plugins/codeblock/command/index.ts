@@ -70,7 +70,7 @@ export function registerCodeCommand(editor: LexicalEditor) {
       if (!codeNode) {
         return false;
       }
-      // 需要延迟执行，因为可能选区变动导致的 transform 执行顺序混乱
+      // Need to defer execution due to possible transform execution order confusion from selection changes
       queueMicrotask(() => {
         editor.update(() => {
           if ($isCodeNode(codeNode)) {

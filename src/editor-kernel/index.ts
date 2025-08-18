@@ -1,8 +1,8 @@
+import type { IEditor } from '@/types';
+
 import { Kernel } from './kernel';
-import { IEditor } from './types';
 
 export { default as DataSource } from './data-source';
-export type { IEditor, IEditorKernel, IEditorPlugin, IServiceID } from './types';
 export * from './utils';
 
 /**

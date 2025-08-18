@@ -3,15 +3,15 @@ import { CLICK_COMMAND, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
 import { useCallback, useEffect, useRef } from 'react';
 import { Center } from 'react-layout-kit';
 
-import { useI18n } from '@/editor-kernel/react/useI18n';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
+import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { FileNode } from '../../node/FileNode';
 
 export const ReactFile = (props: { className?: string; editor: LexicalEditor; node: FileNode }) => {
   const { node, editor } = props;
   const spanRef = useRef<HTMLSpanElement>(null);
-  const __ = useI18n();
+  const t = useTranslation();
   const [, setSelected, clearSelection] = useLexicalNodeSelection(node.getKey());
 
   const onClick = useCallback(
@@ -32,11 +32,15 @@ export const ReactFile = (props: { className?: string; editor: LexicalEditor; no
   }, [editor, node, onClick]);
 
   if (node.status === 'pending') {
-    return <div className={props.className}>{__('file.uploading')}</div>;
+    return <div className={props.className}>{t('file.uploading')}</div>;
   }
 
   if (node.status === 'error') {
-    return <div className={props.className}>{__('file.error', { message: node.message })}</div>;
+    return (
+      <div className={props.className}>
+        {t('file.error', { message: node.message || 'Unknown error' })}
+      </div>
+    );
   }
 
   return (

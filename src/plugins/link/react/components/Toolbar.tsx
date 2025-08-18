@@ -3,7 +3,7 @@ import { LexicalEditor } from 'lexical';
 import { EditIcon, ExternalLinkIcon, UnlinkIcon } from 'lucide-react';
 import type { FC } from 'react';
 
-import { useI18n } from '@/editor-kernel/react/useI18n';
+import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { LinkNode, TOGGLE_LINK_COMMAND } from '../../node/LinkNode';
 import { useStyles } from '../style';
@@ -14,10 +14,10 @@ export const Toolbar: FC<{ editor: LexicalEditor; linkNode: LinkNode | null }> =
   editor,
 }) => {
   const { theme } = useStyles();
-  const __ = useI18n();
+  const t = useTranslation();
 
   const handleEdit = () => {
-    // 编辑链接
+    // Edit link
     if (linkNode) {
       editor.dispatchCommand(EDIT_LINK_COMMAND, {
         linkNode,
@@ -27,12 +27,12 @@ export const Toolbar: FC<{ editor: LexicalEditor; linkNode: LinkNode | null }> =
   };
 
   const handleRemove = () => {
-    // 移除链接
+    // Remove link
     editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
   };
 
   const handleOpenLink = () => {
-    // 在新窗口打开链接
+    // Open link in new window
     if (linkNode) {
       const url = editor.read(() => linkNode.getURL());
       window.open(url, '_blank');
@@ -45,19 +45,19 @@ export const Toolbar: FC<{ editor: LexicalEditor; linkNode: LinkNode | null }> =
         {
           icon: EditIcon,
           key: 'edit',
-          label: __('link.edit'),
+          label: t('link.edit'),
           onClick: handleEdit,
         },
         {
           icon: ExternalLinkIcon,
           key: 'openLink',
-          label: __('link.open'),
+          label: t('link.open'),
           onClick: handleOpenLink,
         },
         {
           icon: UnlinkIcon,
           key: 'unlink',
-          label: __('link.unlink'),
+          label: t('link.unlink'),
           onClick: handleRemove,
         },
       ]}

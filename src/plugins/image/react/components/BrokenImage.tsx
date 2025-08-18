@@ -1,15 +1,15 @@
 import { memo } from 'react';
 
-import { useI18n } from '@/editor-kernel/react/useI18n';
+import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { imageBroken } from '../style';
 
 const BrokenImage = memo(() => {
-  const __ = useI18n();
+  const t = useTranslation();
 
   return (
     <img
-      alt={__('image.broken')}
+      alt={t('image.broken')}
       draggable="false"
       src={imageBroken}
       style={{

@@ -7,7 +7,10 @@ import {
   LexicalNodeConfig,
   createEditor,
 } from 'lexical';
+import { get, template, templateSettings } from 'lodash-es';
 import merge from 'lodash/merge';
+
+import defaultLocale from '@/locale';
 
 import DataSource from './data-source';
 import { registerEvent } from './event';
@@ -16,22 +19,27 @@ import {
   IEditorKernel,
   IEditorPlugin,
   IEditorPluginConstructor,
-  II18nKeys,
+  ILocaleKeys,
   IPlugin,
   IServiceID,
 } from './types';
 import { createEmptyEditorState } from './utils';
+
+templateSettings.interpolate = /{{([\S\s]+?)}}/g;
 
 export class Kernel extends EventEmitter implements IEditorKernel {
   private dataTypeMap: Map<string, DataSource>;
   private plugins: Array<IEditorPluginConstructor<any> & { __config: any }> = [];
   private pluginsInstances: Array<IEditorPlugin<any>> = [];
   private nodes: Array<LexicalNodeConfig> = [];
-  private themes: Record<string, any> = {}; // 用于存储主题配置
+  private themes: Record<string, any> = {}; // Used to store theme configuration
   private decorators: Record<string, (_node: DecoratorNode<any>, _editor: LexicalEditor) => any> =
     {};
   private serviceMap: Map<string, any> = new Map();
-  private i18nMap: Record<keyof II18nKeys, string> = {} as Record<keyof II18nKeys, string>;
+  private localeMap: Record<keyof ILocaleKeys, string> = defaultLocale as unknown as Record<
+    keyof ILocaleKeys,
+    string
+  >;
 
   private editor?: LexicalEditor;
 
@@ -65,7 +73,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       this.pluginsInstances.push(instance);
     }
     const editor = (this.editor = createEditor({
-      // @ts-expect-error 注入到 lexical 的 editor 实例中
+      // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
       nodes: this.nodes,
       onError: (error: Error) => {
@@ -128,8 +136,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   /**
-   * 支持注册目标数据源
-   * @param dataSource 数据源
+   * Support registering target data source
+   * @param dataSource Data source
    */
   registerDataSource(dataSource: DataSource) {
     this.dataTypeMap.set(dataSource.type, dataSource);
@@ -142,13 +150,13 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   registerPlugin<T>(plugin: IEditorPluginConstructor<T>, config?: T): IEditor {
     const findPlugin = this.plugins.find((p) => p.pluginName === plugin.pluginName);
     if (findPlugin) {
-      // 同名但是插件不同则报错
+      // Error if same name but different plugin
       if (findPlugin !== plugin) {
         throw new Error(
           `Plugin with name "${plugin.pluginName}" is already registered with a different implementation.`,
         );
       }
-      return this; // 如果插件已存在，则不重复注册
+      return this; // If plugin already exists, don't register again
     }
     // @ts-expect-error not error
     plugin.__config = config || {};
@@ -180,8 +188,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   /**
-   * 获取服务
-   * @param serviceId 服务ID
+   * Get service
+   * @param serviceId Service ID
    */
   requireService<T>(serviceId: IServiceID<T>): T | null {
     const service = this.serviceMap.get(serviceId.__serviceId);
@@ -209,16 +217,15 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.themes[key] = value;
   }
 
-  registerI18n(i18n: Partial<Record<keyof II18nKeys, string>>): void {
-    this.i18nMap = { ...this.i18nMap, ...i18n };
+  registerLocale(locale: Partial<Record<keyof ILocaleKeys, string>>): void {
+    this.localeMap = merge(this.localeMap, locale);
   }
 
-  t<K extends keyof II18nKeys>(key: K, params: Record<string, any>): string {
-    let translation = this.i18nMap[key] || key;
+  t<K extends keyof ILocaleKeys>(key: K, params?: Record<string, any>): string {
+    let translation = get(this.localeMap, key) || key;
     if (params) {
-      Object.keys(params).forEach((param) => {
-        translation = translation.replace(`{${param}}`, params[param]);
-      });
+      const compiled = template(translation);
+      translation = compiled(params);
     }
     return translation;
   }

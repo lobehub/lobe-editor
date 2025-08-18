@@ -10,10 +10,9 @@ import {
 import { cx } from 'antd-style';
 import { LexicalEditor } from 'lexical';
 
-import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerTableCommand } from '../command';
 import { TableNode, patchTableNode } from '../node';
@@ -39,8 +38,6 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   ) {
     super();
     patchTableNode();
-
-    console.dir(TableNode);
     // Register the horizontal rule node
     kernel.registerNodes([TableNode, TableRowNode, TableCellNode]);
     kernel.registerThemes({

@@ -2,7 +2,7 @@ import { EditorThemeClasses, isHTMLElement } from 'lexical';
 import { debounce } from 'lodash';
 import { useMemo, useRef } from 'react';
 
-import { IEditor } from '@/editor-kernel';
+import type { IEditor } from '@/types';
 
 export function getThemeSelector(iEditor: IEditor, name: keyof EditorThemeClasses): string {
   const className = iEditor.getTheme()?.[name];

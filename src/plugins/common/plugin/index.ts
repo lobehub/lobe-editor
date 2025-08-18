@@ -13,10 +13,9 @@ import {
 import { $createLineBreakNode, $createParagraphNode, $isTextNode } from 'lexical';
 import { LexicalEditor } from 'lexical/LexicalEditor';
 
-import { IEditorKernel, IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';

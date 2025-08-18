@@ -6,6 +6,7 @@ import { ReactEditor } from '@/editor-kernel/react/react-editor';
 import { ReactEditorContent, ReactPlainText } from '@/plugins/common';
 import { ReactMentionPlugin } from '@/plugins/mention';
 import { ReactSlashOption, ReactSlashPlugin } from '@/plugins/slash';
+import { useEditorContent } from '@/react/EditorProvider';
 
 import { EditorProps } from './type';
 
@@ -24,11 +25,12 @@ const Editor = memo<EditorProps>(
     theme,
     children,
   }) => {
+    const { config } = useEditorContent();
     const enableSlash = Boolean(slashOption?.items && slashOption.items.length > 0);
     const enableMention = Boolean(mentionOption?.items && mentionOption.items.length > 0);
     const { markdownWriter, ...restMentionOption } = mentionOption;
     return (
-      <ReactEditor editorRef={editorRef}>
+      <ReactEditor config={config} editorRef={editorRef}>
         <ReactPlainText
           className={className}
           onChange={onChange}

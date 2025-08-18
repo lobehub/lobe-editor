@@ -1,18 +1,23 @@
 /**
- * 支持通过 react children 进行配置
+ * Support configuration through react children
  */
 import type { FC, Ref } from 'react';
 import { ReactNode, useEffect, useMemo } from 'react';
 
-import Editor, { IEditor } from '../';
+import type { IEditor } from '@/types';
+
+import Editor from '../';
 import {
   LexicalComposerContext,
   LexicalComposerContextWithEditor,
   createLexicalComposerContext,
+  useLexicalComposerContext,
 } from './react-context';
 
 export interface IReactEditorProps {
   children?: ReactNode | undefined;
+  /** Editor configuration */
+  config?: Record<string, any>;
   editorRef?: Ref<IEditor>;
 }
 
@@ -24,7 +29,20 @@ function updateRef<T>(ref: Ref<T> | undefined, value: T) {
   }
 }
 
-export const ReactEditor: FC<IReactEditorProps> = ({ editorRef, children }) => {
+// Configuration injection component
+const ConfigInjector: FC<{ config?: Record<string, any> }> = ({ config }) => {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    if (config?.locale && Object.keys(config.locale).length > 0) {
+      editor.registerLocale(config.locale);
+    }
+  }, [editor, config]);
+
+  return null;
+};
+
+export const ReactEditor: FC<IReactEditorProps> = ({ editorRef, children, config }) => {
   const composerContext = useMemo(() => {
     const editor = Editor.createEditor();
     updateRef(editorRef, editor);
@@ -38,5 +56,10 @@ export const ReactEditor: FC<IReactEditorProps> = ({ editorRef, children }) => {
     };
   }, [editorRef]);
 
-  return <LexicalComposerContext value={composerContext}>{children}</LexicalComposerContext>;
+  return (
+    <LexicalComposerContext value={composerContext}>
+      <ConfigInjector config={config} />
+      {children}
+    </LexicalComposerContext>
+  );
 };

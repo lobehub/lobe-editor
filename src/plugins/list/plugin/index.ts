@@ -26,10 +26,9 @@ import {
   OUTDENT_CONTENT_COMMAND,
 } from 'lexical';
 
-import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { $indentOverTab, listReplace } from '../utils';
 
@@ -179,7 +178,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
           const anchorNode = anchor.getNode();
           let listItemNode: ListItemNode | undefined;
           if ($isTextNode(anchorNode)) {
-            // 非最前面的文本节点不处理
+            // Do not handle non-leading text nodes
             if (anchorNode.getPreviousSibling()) {
               return false;
             }

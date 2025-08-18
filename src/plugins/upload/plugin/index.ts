@@ -1,9 +1,8 @@
 import { DRAG_DROP_PASTE } from '@lexical/rich-text';
 import { COMMAND_PRIORITY_HIGH, DROP_COMMAND, LexicalEditor } from 'lexical';
 
-import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { IUploadService, UploadService } from '../service/i-upload-service';
 import { getDragSelection } from '../utils';

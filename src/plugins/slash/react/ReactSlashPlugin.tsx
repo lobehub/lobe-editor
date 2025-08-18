@@ -58,7 +58,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
         close();
         cancelRef.current.cancel();
       },
-      triggerOpen: (ctx) => {
+      triggerOpen: (ctx: ITriggerContext) => {
         setResolution(ctx);
         cancelRef.current.cancel();
         if (Array.isArray(ctx.items)) {
@@ -71,7 +71,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
           setLoading(true);
           const pr = setCancelablePromise((resolve, reject) => {
             ctx
-              // @ts-expect-error not error
+              // @ts-ignore
               .items(ctx.match || null)
               .then(resolve, reject)
               .finally(() => setLoading(false));

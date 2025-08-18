@@ -1,9 +1,8 @@
 import { $createTextNode, COMMAND_PRIORITY_NORMAL, LexicalEditor, PASTE_COMMAND } from 'lexical';
 
-import { IEditorPlugin } from '@/editor-kernel';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPluginConstructor } from '@/editor-kernel/types';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { INSERT_LINK_COMMAND, registerLinkCommand } from '../command';
 import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';

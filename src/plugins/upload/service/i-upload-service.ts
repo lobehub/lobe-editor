@@ -1,4 +1,5 @@
-import { IServiceID, genServiceId } from '@/editor-kernel';
+import { genServiceId } from '@/editor-kernel';
+import type { IServiceID } from '@/types';
 
 export const UPLOAD_PRIORITY_LOW = 2;
 export const UPLOAD_PRIORITY_MEDIUM = 1;

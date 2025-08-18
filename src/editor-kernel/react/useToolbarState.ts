@@ -75,7 +75,7 @@ function getSelectedNode(selection: RangeSelection): TextNode | ElementNode {
 }
 
 /**
- * 提供 toolbar 状态，和 toolbar 方法
+ * Provide toolbar state and toolbar methods
  * @returns
  */
 export function useToolbarState(editorRef: RefObject<IEditor | null>) {

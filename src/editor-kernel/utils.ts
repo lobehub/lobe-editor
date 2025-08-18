@@ -1,6 +1,6 @@
 import { $getNodeByKey, EditorState, LexicalEditor, LexicalNode, NodeKey } from 'lexical';
 
-import { IEditorKernel, IServiceID } from './types';
+import type { IEditorKernel, IServiceID } from '@/types';
 
 // DOM
 export const DOM_ELEMENT_TYPE = 1;

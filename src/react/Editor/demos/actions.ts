@@ -1,22 +1,22 @@
 export function openFileSelector(handleFiles: (files: FileList) => void, accept = '*/*') {
-  // 创建一个隐藏的 input 元素
+  // Create a hidden input element
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = accept; // 接受所有文件类型
-  input.multiple = false; // 是否允许多选
+  input.accept = accept; // Accept all file types
+  input.multiple = false; // Whether to allow multiple selection
 
-  // 监听文件选择事件
+  // Listen for file selection events
   // eslint-disable-next-line unicorn/prefer-add-event-listener
   input.onchange = (event) => {
     // @ts-expect-error not error
     const files = event.target?.files;
     if (files && files.length > 0) {
       console.log('Selected files:', files);
-      // 处理选中的文件
+      // Handle selected files
       handleFiles(files);
     }
   };
 
-  // 触发文件选择器
+  // Trigger file selector
   input.click();
 }

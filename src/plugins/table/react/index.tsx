@@ -26,17 +26,9 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = (props) => {
   }, []);
 
   useLayoutEffect(() => {
-    editor.registerI18n(
-      props.i18n || {
-        'table.delete': 'Delete table',
-        'table.deleteColumn': 'Delete column',
-        'table.deleteRow': 'Delete row',
-        'table.insertColumnLeft': 'Insert {count} column(s) to the left',
-        'table.insertColumnRight': 'Insert {count} column(s) to the right',
-        'table.insertRowAbove': 'Insert {count} row(s) above',
-        'table.insertRowBelow': 'Insert {count} row(s) below',
-      },
-    );
+    if (props.locale) {
+      editor.registerLocale(props.locale);
+    }
     editor.registerPlugin(TablePlugin, {
       className: styles,
     });

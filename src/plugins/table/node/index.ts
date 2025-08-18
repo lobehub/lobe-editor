@@ -9,7 +9,6 @@ export function patchTableNode() {
     enumerable: false,
     value: function (config: EditorConfig, editor?: LexicalEditor) {
       const table = OriginalCreateDOM.call(this, config, editor);
-      console.info('------createDOM------->', table);
       const controller = document.createElement('div');
       table.append(controller);
       return table;
