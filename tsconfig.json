@@ -15,13 +15,13 @@
     "types": ["vitest/globals"],
     "paths": {
       "@@/*": [".dumi/tmp/*"],
-      "@/*": ["src/*"],
-      "@lobehub/editor": ["src"],
-      "@lobehub/editor/*": ["src/*"],
-      "@lobehub/editor/react": ["src/react"],
-      "@lobehub/editor/react/*": ["src/react/*"]
+      "@/*": ["./src/*"],
+      "@lobehub/editor": ["./src"],
+      "@lobehub/editor/*": ["./src/*"],
+      "@lobehub/editor/react": ["./src/react"],
+      "@lobehub/editor/react/*": ["./src/react/*"]
     }
   },
-  "exclude": ["react.d.ts"],
+  "exclude": ["./react.d.ts"],
   "include": ["src", "docs", "tests", ".dumirc.ts", ".fatherrc.ts"]
 }
