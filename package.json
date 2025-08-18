@@ -47,7 +47,6 @@
     "prepack": "clean-package",
     "postpack": "clean-package restore",
     "prepare": "husky && npm run setup",
-    "prepublishOnly": "npm run build",
     "prettier": "prettier -c --write --no-error-on-unmatched-pattern \"**/**\"",
     "release": "semantic-release",
     "setup": "dumi setup",
