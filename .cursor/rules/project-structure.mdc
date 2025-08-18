@@ -1,0 +1,82 @@
+---
+alwaysApply: true
+description: Core project structure and architecture guide for LobeHub Editor
+---
+
+# LobeHub Editor Project Structure
+
+## Architecture Overview
+
+LobeHub Editor follows a **dual-layer architecture**:
+
+1. **Kernel Layer** (`src/editor-kernel/`) - Framework-agnostic core
+2. **React Layer** (`src/react/` + `src/plugins/*/react/`) - React-specific implementations
+
+## Directory Structure
+
+### Core Editor Kernel
+
+- [src/editor-kernel/](mdc:src/editor-kernel/) - Core editor logic
+  - [kernel.ts](mdc:src/editor-kernel/kernel.ts) - Main editor class with plugin system
+  - [data-source.ts](mdc:src/editor-kernel/data-source.ts) - Content management (JSON/Markdown/Text)
+  - [service.ts](mdc:src/editor-kernel/service.ts) - Service container and dependency injection
+  - [plugin/](mdc:src/editor-kernel/plugin/) - Plugin base classes and interfaces
+  - [react/](mdc:src/editor-kernel/react/) - React integration layer
+  - [types.ts](mdc:src/editor-kernel/types.ts) - TypeScript interfaces
+
+### Plugin System
+
+- [src/plugins/](mdc:src/plugins/) - Feature plugins with consistent structure
+
+#### Core Plugins
+
+- [common/](mdc:src/plugins/common/) - Foundation components (ReactEditor, ReactEditorContent, ReactPlainText)
+- [markdown/](mdc:src/plugins/markdown/) - Markdown processing engine with transformers
+- [upload/](mdc:src/plugins/upload/) - File upload management with priority system
+
+#### Content Plugins
+
+- [slash/](mdc:src/plugins/slash/) - Slash commands (/, @) with fuzzy search
+- [mention/](mdc:src/plugins/mention/) - @mention system with decorators
+- [codeblock/](mdc:src/plugins/codeblock/) - Syntax highlighting with Shiki
+- [image/](mdc:src/plugins/image/) - Image handling with captions and resizing
+- [table/](mdc:src/plugins/table/) - Table support with i18n
+- [file/](mdc:src/plugins/file/) - File attachments with status tracking
+- [link/](mdc:src/plugins/link/) - Link management with validation
+- [list/](mdc:src/plugins/list/) - Lists with nesting support
+- [hr/](mdc:src/plugins/hr/) - Horizontal rules with styling
+
+### React Components
+
+- [src/react/](mdc:src/react/) - High-level React components
+  - [Editor/](mdc:src/react/Editor/) - Main Editor component
+  - [ChatInput/](mdc:src/react/ChatInput/) - Chat interface component
+  - [ChatInputActions/](mdc:src/react/ChatInputActions/) - Action buttons
+  - [ChatInputActionBar/](mdc:src/react/ChatInputActionBar/) - Action bar layout
+  - [SendButton/](mdc:src/react/SendButton/) - Send button with states
+  - [CodeLanguageSelect/](mdc:src/react/CodeLanguageSelect/) - Language selector
+
+## Plugin Structure Convention
+
+Each plugin follows this consistent structure:
+
+- `plugin/` - Core plugin logic and node definitions
+- `react/` - React components and hooks (if applicable)
+- `command/` - Editor commands and handlers
+- `service/` - Services and business logic
+- `node/` - Custom Lexical nodes
+- `utils/` - Utility functions and helpers
+- `index.md` - Comprehensive documentation
+- `index.ts` - Public API exports
+
+## Key Entry Points
+
+- [src/index.ts](mdc:src/index.ts) - Main public API exports
+- [package.json](mdc:package.json) - Project configuration and dependencies
+- [README.md](mdc:README.md) - Project overview and usage guide
+
+## Build and Development
+
+- [vitest.config.ts](mdc:vitest.config.ts) - Test configuration
+- [.dumi/](mdc:.dumi/) - Documentation build system
+- [docs/](mdc:docs/) - Documentation source files

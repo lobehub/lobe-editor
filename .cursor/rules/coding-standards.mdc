@@ -1,0 +1,230 @@
+---
+description: Coding standards and conventions for LobeHub Editor
+globs: *.ts,*.tsx,*.js,*.jsx
+---
+
+# Coding Standards
+
+## TypeScript Guidelines
+
+### Strict Type Safety
+
+- Use strict TypeScript configuration
+- Prefer explicit types over `any`
+- Use proper generics for reusable components
+- Define interfaces for all public APIs
+
+### Interface Naming
+
+- Use `I` prefix for service interfaces: `ICustomService`
+- Use descriptive names for component props: `CustomPluginProps`
+- Use `SerializedXNode` for node serialization types
+
+### Import Organization
+
+```typescript
+// External libraries first
+import { LexicalEditor, LexicalNode } from 'lexical';
+import { memo } from 'react';
+
+// Internal imports - absolute paths from @/
+import { IEditorKernel } from '@/editor-kernel';
+import { KernelPlugin } from '@/editor-kernel/plugin';
+
+// Relative imports last
+import { CustomNode } from '../node';
+import './styles.css';
+```
+
+## React Component Standards
+
+### Component Structure
+
+```typescript
+interface ComponentProps {
+  /** JSDoc description for each prop */
+  propName: PropType;
+}
+
+export const ComponentName = memo<ComponentProps>(({
+  propName,
+  ...rest
+}) => {
+  // Component logic
+  
+  return (
+    <div {...rest}>
+      {/* JSX content */}
+    </div>
+  );
+});
+
+ComponentName.displayName = 'ComponentName';
+```
+
+### Hook Usage
+
+- Use built-in React hooks appropriately
+- Create custom hooks for shared logic
+- Follow hooks rules (no conditional hooks)
+
+## Plugin Development
+
+### Service Implementation
+
+```typescript
+// Always implement interfaces
+export class ServiceName implements IServiceName {
+  private property: Type;
+  
+  constructor(private dependency: DependencyType) {
+    // Initialization
+  }
+  
+  public method(param: ParamType): ReturnType {
+    // Implementation
+  }
+}
+```
+
+### Command Implementation
+
+```typescript
+// Use proper command priorities
+export function registerCommand(editor: LexicalEditor) {
+  return editor.registerCommand(
+    COMMAND_NAME,
+    (payload) => {
+      editor.update(() => {
+        // Editor mutations inside update
+      });
+      return true; // Always return boolean
+    },
+    COMMAND_PRIORITY_HIGH,
+  );
+}
+```
+
+### Node Implementation
+
+```typescript
+// Extend appropriate base class
+export class CustomNode extends DecoratorNode<ReactElement> {
+  // Always implement required static methods
+  static getType(): string {
+    return 'custom-node-type';
+  }
+  
+  // Proper serialization
+  exportJSON(): SerializedCustomNode {
+    return {
+      ...super.exportJSON(),
+      customProperty: this.__customProperty,
+    };
+  }
+}
+```
+
+## Error Handling
+
+### Service Error Handling
+
+```typescript
+async serviceMethod(param: Type): Promise<Result> {
+  try {
+    const result = await externalOperation(param);
+    return result;
+  } catch (error) {
+    console.error('Service operation failed:', error);
+    throw new ServiceError('Operation failed', { cause: error });
+  }
+}
+```
+
+### Component Error Boundaries
+
+- Use error boundaries for critical components
+- Provide fallback UI for errors
+- Log errors appropriately
+
+## Testing Standards
+
+### Unit Tests
+
+- Test all public methods
+- Mock external dependencies
+- Use descriptive test names
+- Follow AAA pattern (Arrange, Act, Assert)
+
+### Integration Tests
+
+- Test plugin integration
+- Test service interactions
+- Test command execution
+
+## Performance Guidelines
+
+### React Performance
+
+- Use `memo` for expensive components
+- Optimize re-renders with proper dependencies
+- Use `useMemo` and `useCallback` judiciously
+
+### Editor Performance
+
+- Batch editor updates when possible
+- Avoid unnecessary node transformations
+- Use efficient selection handling
+
+## Documentation Standards
+
+### JSDoc Comments
+
+````typescript
+/**
+ * Brief description of the function/class
+ * 
+ * @param param1 - Description of parameter
+ * @param param2 - Description of parameter
+ * @returns Description of return value
+ * 
+ * @example
+ * ```typescript
+ * const result = functionName(value1, value2);
+ * ```
+ */
+export function functionName(param1: Type1, param2: Type2): ReturnType {
+  // Implementation
+}
+````
+
+### README Standards
+
+- Clear installation instructions
+- Usage examples with code
+- API documentation
+- Contributing guidelines
+
+## File Organization
+
+### Directory Structure
+
+```
+plugin-name/
+├── index.ts          # Main exports
+├── index.md          # Documentation
+├── plugin/           # Core plugin logic
+├── react/            # React components
+├── command/          # Editor commands
+├── service/          # Business logic
+├── node/             # Custom nodes
+├── utils/            # Utilities
+└── demos/            # Demo examples
+```
+
+### File Naming
+
+- Use kebab-case for directories: `plugin-name`
+- Use PascalCase for component files: `ComponentName.tsx`
+- Use camelCase for utility files: `utilityFunction.ts`
+- Use descriptive names that reflect functionality

@@ -37,6 +37,10 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
   - [Chat Input Component](#chat-input-component)
   - [Editor Kernel API](#editor-kernel-api)
 - [🔌 Available Plugins](#-available-plugins)
+  - [Core Plugins](#core-plugins)
+  - [Content Plugins](#content-plugins)
+  - [Plugin Architecture](#plugin-architecture)
+  - [Plugin Features](#plugin-features)
 - [📖 API Reference](#-api-reference)
   - [Editor Kernel](#editor-kernel)
   - [Plugin System](#plugin-system)
@@ -240,25 +244,58 @@ editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
 
 ## 🔌 Available Plugins
 
+### Core Plugins
+
+| Plugin             | Description                   | Features                                                        |
+| ------------------ | ----------------------------- | --------------------------------------------------------------- |
+| **CommonPlugin**   | Foundation editor components  | ReactEditor, ReactEditorContent, ReactPlainText, base utilities |
+| **MarkdownPlugin** | Markdown processing engine    | Shortcuts, transformers, serialization, custom writers          |
+| **UploadPlugin**   | File upload management system | Priority handlers, drag-drop, multi-source uploads              |
+
+### Content Plugins
+
 | Plugin                   | Description               | Features                                                        |
 | ------------------------ | ------------------------- | --------------------------------------------------------------- |
 | **ReactSlashPlugin**     | Slash command menu system | `/` and `@` triggered menus, customizable items, async search   |
 | **ReactMentionPlugin**   | User mention support      | `@username` mentions, custom markdown output, async user search |
-| **ReactImagePlugin**     | Image handling            | Upload, display, drag & drop, multiple formats                  |
-| **ReactCodeblockPlugin** | Code syntax highlighting  | Shiki-powered, 100+ languages, copy button                      |
+| **ReactImagePlugin**     | Image handling            | Upload, display, drag & drop, captions, resizing                |
+| **ReactCodeblockPlugin** | Code syntax highlighting  | Shiki-powered, 100+ languages, custom themes, color schemes     |
 | **ReactListPlugin**      | List management           | Ordered/unordered lists, nested lists, keyboard shortcuts       |
-| **ReactLinkPlugin**      | Link management           | Auto-detection, custom link creation, URL validation            |
-| **ReactTablePlugin**     | Table support             | Insert tables, edit cells, add/remove rows/columns              |
-| **ReactHRPlugin**        | Horizontal rules          | Divider insertion, custom styling                               |
-| **ReactFilePlugin**      | File attachments          | File upload, custom upload handlers, markdown export            |
-| **ReactUploadPlugin**    | Generic upload handling   | Drag & drop, multiple file types, progress tracking             |
+| **ReactLinkPlugin**      | Link management           | Auto-detection, validation, previews, custom styling            |
+| **ReactTablePlugin**     | Table support             | Insert tables, edit cells, add/remove rows/columns, i18n        |
+| **ReactHRPlugin**        | Horizontal rules          | Divider insertion, custom styling, markdown shortcuts           |
+| **ReactFilePlugin**      | File attachments          | File upload, status tracking, validation, drag-drop             |
 
-All plugins are:
+### Plugin Architecture
+
+All plugins follow a **dual-architecture design**:
+
+#### 🧠 **Kernel Layer** (Framework-agnostic)
+
+- **Plugin Interface**: Standardized plugin system with lifecycle management
+- **Service Container**: Centralized service registration and dependency injection
+- **Command System**: Event-driven command pattern for editor operations
+- **Node System**: Custom node types with serialization and transformation
+- **Data Sources**: Content management and format conversion (JSON, Markdown, Text)
+
+#### ⚛️ **React Layer** (React-specific)
+
+- **React Components**: High-level components for easy integration
+- **Hook Integration**: Custom hooks for editor state and functionality
+- **Event Handling**: React-friendly event system and callbacks
+- **UI Components**: Pre-built UI elements with theming support
+
+### Plugin Features
 
 - ✅ **Fully configurable** with TypeScript-typed options
 - ✅ **Composable** - use any combination together
 - ✅ **Extensible** - create custom plugins using the same API
 - ✅ **Event-driven** - react to user interactions and content changes
+- ✅ **Service-oriented** - modular architecture with dependency injection
+- ✅ **Internationalization** - Built-in i18n support where applicable
+- ✅ **Markdown integration** - Shortcuts, import/export, custom transformers
+- ✅ **Theme system** - Customizable styling and appearance
+- ✅ **Command pattern** - Programmatic control and automation
 
 ## 📖 API Reference
 
@@ -407,26 +444,92 @@ lobe-editor/
 │   ├── editor-kernel/           # 🧠 Core editor logic
 │   │   ├── kernel.ts           # Main editor class with plugin system
 │   │   ├── data-source.ts      # Content management (JSON/Markdown/Text)
+│   │   ├── service.ts          # Service container and dependency injection
+│   │   ├── plugin/             # Plugin base classes and interfaces
 │   │   ├── react/              # React integration layer
 │   │   └── types.ts            # TypeScript interfaces
 │   │
 │   ├── plugins/                # 🔌 Feature plugins
-│   │   ├── common/             # Base editing (PlainText, EditorContent)
-│   │   ├── slash/              # Slash commands (/, @)
-│   │   ├── mention/            # @mention system
-│   │   ├── image/              # Image upload & display
-│   │   ├── codeblock/          # Syntax highlighting
-│   │   ├── table/              # Table support
-│   │   ├── file/               # File attachments
-│   │   ├── link/               # Link management
-│   │   ├── list/               # Lists (ordered/unordered)
-│   │   ├── hr/                 # Horizontal rules
-│   │   └── upload/             # Generic upload handling
+│   │   ├── common/             # 🏗️ Foundation components
+│   │   │   ├── plugin/         # Base editor plugin
+│   │   │   ├── react/          # ReactEditor, ReactEditorContent, ReactPlainText
+│   │   │   ├── data-source/    # Content data sources
+│   │   │   └── utils/          # Common utilities
+│   │   │
+│   │   ├── markdown/           # 📝 Markdown processing engine
+│   │   │   ├── plugin/         # Markdown transformation plugin
+│   │   │   ├── service/        # Markdown shortcut service
+│   │   │   ├── data-source/    # Markdown serialization
+│   │   │   └── utils/          # Transformer utilities
+│   │   │
+│   │   ├── upload/             # 📤 Upload management system
+│   │   │   ├── plugin/         # Upload handling plugin
+│   │   │   ├── service/        # Upload service with priority system
+│   │   │   └── utils/          # Upload utilities
+│   │   │
+│   │   ├── slash/              # ⚡ Slash commands (/, @)
+│   │   │   ├── plugin/         # Slash detection plugin
+│   │   │   ├── react/          # ReactSlashPlugin, ReactSlashOption
+│   │   │   ├── service/        # Slash service with fuzzy search
+│   │   │   └── utils/          # Search and trigger utilities
+│   │   │
+│   │   ├── mention/            # 👤 @mention system
+│   │   │   ├── plugin/         # Mention plugin with decorators
+│   │   │   ├── react/          # ReactMentionPlugin
+│   │   │   ├── command/        # INSERT_MENTION_COMMAND
+│   │   │   └── node/           # MentionNode with serialization
+│   │   │
+│   │   ├── codeblock/          # 🎨 Syntax highlighting
+│   │   │   ├── plugin/         # Codeblock plugin with Shiki
+│   │   │   ├── react/          # ReactCodeblockPlugin
+│   │   │   ├── command/        # Language and color commands
+│   │   │   └── utils/          # Language detection
+│   │   │
+│   │   ├── image/              # 🖼️ Image upload & display
+│   │   │   ├── plugin/         # Image plugin with captions
+│   │   │   ├── react/          # ReactImagePlugin
+│   │   │   ├── command/        # INSERT_IMAGE_COMMAND
+│   │   │   └── node/           # BaseImageNode, ImageNode
+│   │   │
+│   │   ├── table/              # 📊 Table support
+│   │   │   ├── plugin/         # Table plugin with i18n
+│   │   │   ├── react/          # ReactTablePlugin
+│   │   │   ├── command/        # Table manipulation commands
+│   │   │   ├── node/           # Enhanced TableNode
+│   │   │   └── utils/          # Table operations
+│   │   │
+│   │   ├── file/               # 📎 File attachments
+│   │   │   ├── plugin/         # File plugin with status tracking
+│   │   │   ├── react/          # ReactFilePlugin
+│   │   │   ├── command/        # INSERT_FILE_COMMAND
+│   │   │   ├── node/           # FileNode with metadata
+│   │   │   └── utils/          # File operations
+│   │   │
+│   │   ├── link/               # 🔗 Link management
+│   │   │   ├── plugin/         # Link plugin with validation
+│   │   │   ├── react/          # ReactLinkPlugin
+│   │   │   ├── command/        # Link commands
+│   │   │   └── utils/          # URL validation and detection
+│   │   │
+│   │   ├── list/               # 📋 Lists (ordered/unordered)
+│   │   │   ├── plugin/         # List plugin with nesting
+│   │   │   ├── react/          # ReactListPlugin
+│   │   │   ├── command/        # List manipulation commands
+│   │   │   └── utils/          # List operations
+│   │   │
+│   │   └── hr/                 # ➖ Horizontal rules
+│   │       ├── plugin/         # HR plugin with styling
+│   │       ├── react/          # ReactHRPlugin
+│   │       ├── command/        # HR insertion commands
+│   │       └── node/           # HorizontalRuleNode
 │   │
 │   ├── react/                  # ⚛️ High-level React components
-│   │   ├── Editor/             # Main Editor component
+│   │   ├── Editor/             # Main Editor component with plugins
 │   │   ├── ChatInput/          # Chat interface component
-│   │   └── ChatInputActions/   # Chat action buttons
+│   │   ├── ChatInputActions/   # Chat action buttons
+│   │   ├── ChatInputActionBar/ # Action bar layout
+│   │   ├── SendButton/         # Send button with states
+│   │   └── CodeLanguageSelect/ # Code language selector
 │   │
 │   └── index.ts                # Public API exports
 │
@@ -440,6 +543,15 @@ The architecture follows a **dual-layer design**:
 
 1. **Kernel Layer** (`editor-kernel/`) - Framework-agnostic core with plugin system
 2. **React Layer** (`react/` + `plugins/*/react/`) - React-specific implementations
+
+Each plugin follows a consistent structure:
+
+- **`plugin/`** - Core plugin logic and node definitions
+- **`react/`** - React components and hooks (if applicable)
+- **`command/`** - Editor commands and handlers
+- **`service/`** - Services and business logic
+- **`node/`** - Custom Lexical nodes
+- **`utils/`** - Utility functions and helpers
 
 This allows for maximum flexibility - you can use just the kernel for custom integrations, or the React components for rapid development.
 

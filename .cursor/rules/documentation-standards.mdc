@@ -1,0 +1,120 @@
+---
+description: Documentation standards and formatting guidelines for LobeHub Editor
+globs: *.md
+---
+
+# Documentation Standards
+
+## Plugin Documentation Structure
+
+All plugin documentation in `src/plugins/*/index.md` follows this standard format:
+
+### Required Frontmatter
+
+```yaml
+---
+nav: Plugins
+group: [Core|Plugins] or { title: "Group Name", order: -1 }
+title: PluginName
+description: Brief description explaining purpose, key features, and capabilities
+atomId: ReactComponentName (for React components)
+---
+```
+
+### Required Sections
+
+#### 1. Introduction
+
+- Comprehensive explanation of plugin purpose and capabilities
+- Overview of architecture and key features
+- Context of how it fits in the editor ecosystem
+
+#### 2. Basic Usage (if applicable)
+
+- Demo code reference: `<code src="./demos/index.tsx"></code>`
+- Add attributes like `nopadding`, `center`, `iframe` as needed
+
+#### 3. Core Architecture
+
+Document beyond just React components:
+
+- **Plugin Systems**: Service integration, command patterns
+- **Node Architecture**: Custom node types and serialization
+- **Service Integration**: Business logic and data management
+- **Utility Functions**: Helper functions and operations
+
+#### 4. Components (if applicable)
+
+- **Component Name**: Brief description
+- **API Table**: Complete property documentation
+
+#### 5. Commands (if applicable)
+
+- Command examples with TypeScript code blocks
+- Parameter documentation
+- Usage patterns
+
+#### 6. Plugin Configuration
+
+- **PluginOptions**: Configuration interface documentation
+- **Theme Configuration**: CSS theme options
+- **Service APIs**: Interface documentation
+
+#### 7. Usage Examples
+
+- **Basic Setup**: Simple configuration
+- **Advanced Usage**: Complex scenarios
+- **Custom Implementations**: Extension patterns
+- **Integration Examples**: Real-world usage
+
+## API Documentation Format
+
+### Property Tables
+
+Use consistent table formatting:
+
+```markdown
+| Property | Description | Type | Default |
+| -------- | ----------- | ---- | ------- |
+| prop     | Description | `Type` | `default` |
+```
+
+### Code Examples
+
+- Use TypeScript for all code examples
+- Include proper imports and context
+- Show both basic and advanced usage patterns
+- Include error handling where relevant
+
+### Type Definitions
+
+- Document interfaces and types clearly
+- Show inheritance relationships
+- Include example usage
+
+## Writing Guidelines
+
+1. **Clarity**: Use clear, concise language
+2. **Completeness**: Cover all aspects of functionality
+3. **Consistency**: Follow established patterns
+4. **Technical Depth**: Go beyond surface-level descriptions
+5. **Practical Examples**: Provide actionable code samples
+
+## Component Documentation
+
+For React components in `src/react/*/index.md`:
+
+- Focus on component API and usage
+- Include comprehensive prop tables
+- Show integration patterns
+- Document event handlers and callbacks
+
+## Architecture Documentation
+
+When documenting plugin architecture:
+
+- Explain service integration
+- Document command patterns
+- Show node relationships
+- Cover serialization aspects
+- Include utility function descriptions
