@@ -2,6 +2,11 @@
   "name": "@lobehub/editor",
   "version": "1.0.0",
   "description": "A powerful and extensible rich text editor built on Meta's Lexical framework, providing a modern editing experience with React integration.",
+  "keywords": [
+    "lobehub",
+    "editor",
+    "lexical"
+  ],
   "homepage": "https://github.com/lobehub/lobe-editor",
   "bugs": {
     "url": "https://github.com/lobehub/lobe-editor/issues/new/choose"
@@ -19,7 +24,9 @@
   "files": [
     "es",
     "react.d.ts",
-    "react.js"
+    "react.js",
+    "patches",
+    "scripts/patch-lexical-package-json.js"
   ],
   "scripts": {
     "build": "father build && npm run build:packages",
@@ -133,11 +140,10 @@
     "react-dom": "^19.1.1",
     "remark": "^15.0.1",
     "remark-cli": "^12.0.1",
-    "rollup-plugin-dts": "^6.2.3",
     "semantic-release": "^21.1.2",
     "stylelint": "^15.11.0",
     "tsx": "^4.20.4",
-    "typescript": "^5.9.2",
+    "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
@@ -146,7 +152,6 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
-  "packageManager": "pnpm@10.11.0",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
