@@ -20,7 +20,7 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
 
 [Changelog](./CHANGELOG.md) · [Report Bug][github-issues-link] · [Request Feature][github-issues-link]
 
-![](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
+![](https://github.com/user-attachments/assets/98c9a810-1c7d-4c33-acd7-ae9d4c0695da)
 
 </div>
 
