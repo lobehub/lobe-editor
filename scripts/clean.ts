@@ -12,4 +12,7 @@ const clean = async (filename: string) => {
   if (dtsPath) unlinkSync(dtsPath);
 };
 
-for (const pkg of packages) clean(pkg);
+for (const pkg of packages) {
+  if (pkg === 'plugins') continue;
+  clean(pkg);
+}

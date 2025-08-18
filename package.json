@@ -13,8 +13,7 @@
   "license": "MIT",
   "author": "LobeHub <i@lobehub.com>",
   "sideEffects": [
-    "**/*.css",
-    "**/*.less"
+    "**/*.css"
   ],
   "main": "es/index.js",
   "module": "es/index.js",
@@ -72,9 +71,6 @@
       "prettier --parser=typescript --write",
       "stylelint --fix",
       "eslint --fix"
-    ],
-    "*.less": [
-      "stylelint --fix"
     ]
   },
   "dependencies": {

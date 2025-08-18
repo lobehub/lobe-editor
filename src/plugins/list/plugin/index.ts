@@ -194,6 +194,9 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
           const listNode = listItemNode.getParentOrThrow() as ListNode;
           queueMicrotask(() => {
             editor.update(() => {
+              // Add null check since listItemNode might be undefined in this closure
+              if (!listItemNode) return;
+
               let newlistNode: ListNode | undefined;
               const isFirst = listItemNode.getPreviousSibling() === null;
               if (isFirst) {

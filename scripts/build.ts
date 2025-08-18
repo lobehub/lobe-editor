@@ -11,4 +11,7 @@ const build = async (filename: string) => {
   writeFileSync(resolve(root, filename + '.d.ts'), content, 'utf8');
 };
 
-for (const pkg of packages) build(pkg);
+for (const pkg of packages) {
+  if (pkg === 'plugins') continue;
+  build(pkg);
+}
