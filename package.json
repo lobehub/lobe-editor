@@ -29,7 +29,7 @@
     "scripts/patch-lexical-package-json.js"
   ],
   "scripts": {
-    "build": "father build && npm run build:packages",
+    "build": "tsx ./scripts/clean.ts && father build && npm run build:packages",
     "build:packages": "tsx ./scripts/build.ts",
     "build:watch": "father dev",
     "ci": "npm run lint:circular && npm run lint && npm run type-check",
