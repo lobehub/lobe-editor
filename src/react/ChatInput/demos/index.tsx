@@ -96,7 +96,6 @@ export default () => {
             markdownWriter: (mention) => {
               return `\n<mention>${mention.label}[${mention.extra.id}]</mention>\n`;
             },
-            maxLength: 6,
             onSelect: (editor, option) => {
               editor.dispatchCommand(INSERT_MENTION_COMMAND, {
                 label: String(option.label),
@@ -162,7 +161,6 @@ export default () => {
                 },
               },
             ],
-            maxLength: 1,
             renderComp: (props) => {
               return <SlashMenu {...props} getPopupContainer={() => slashMenuRef.current} />;
             },

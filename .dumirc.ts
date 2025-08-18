@@ -8,10 +8,11 @@ import { description, homepage, name } from './package.json';
 const isProduction = process.env.NODE_ENV === 'production';
 const isWin = process.platform === 'win32';
 
-export const packages = ['react'];
+export const packages = ['react', 'plugins'];
 
 const nav: INavItem[] = [
-  { link: '/components/editor', title: 'Components' },
+  { link: '/components/react/editor', title: 'Components' },
+  { link: '/components/plugins/common', title: 'Plugins' },
   { link: 'https://ui.lobehub.com', mode: 'override', title: 'UI' },
   { link: 'https://icon.lobehub.com', mode: 'override', title: 'Icons' },
   { link: '/changelog', title: 'Changelog' },
@@ -26,7 +27,7 @@ const themeConfig: SiteThemeConfig = {
       text: 'GitHub',
     },
     {
-      link: '/components/editor',
+      link: '/components/react/editor',
       text: 'Get Started',
       type: 'primary',
     },
@@ -89,7 +90,7 @@ export default defineConfig({
   npmClient: 'pnpm',
   publicPath: '/',
   resolve: {
-    atomDirs: packages.map((pkg) => ({ dir: `src/${pkg}`, type: 'component' })),
+    atomDirs: packages.map((pkg) => ({ dir: `src/${pkg}`, subType: pkg, type: 'component' })),
     entryFile: isProduction ? './src/index.ts' : undefined,
   },
   sitemap: {

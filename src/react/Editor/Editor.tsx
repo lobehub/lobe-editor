@@ -32,10 +32,7 @@ const Editor = memo<EditorProps>(
         <ReactPlainText
           className={className}
           onChange={onChange}
-          style={{
-            outline: 'none',
-            ...style,
-          }}
+          style={style}
           theme={theme}
           variant={variant}
         >
@@ -52,8 +49,12 @@ const Editor = memo<EditorProps>(
         {enableMention && <ReactMentionPlugin markdownWriter={markdownWriter} />}
         {(enableSlash || enableMention) && (
           <ReactSlashPlugin>
-            {enableSlash ? <ReactSlashOption trigger="/" {...slashOption} /> : undefined}
-            {enableMention ? <ReactSlashOption trigger="@" {...restMentionOption} /> : undefined}
+            {enableSlash ? (
+              <ReactSlashOption maxLength={1} trigger="/" {...slashOption} />
+            ) : undefined}
+            {enableMention ? (
+              <ReactSlashOption maxLength={6} trigger="@" {...restMentionOption} />
+            ) : undefined}
           </ReactSlashPlugin>
         )}
         {children}
