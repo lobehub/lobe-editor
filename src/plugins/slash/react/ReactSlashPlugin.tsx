@@ -239,6 +239,16 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
     [onSelect],
   );
 
+  const handleMenuClick: MenuProps['onClick'] = useCallback(
+    ({ key }: { key: string }) => {
+      const option = options.find(
+        (item): item is ISlashMenuOption => 'key' in item && item.key === key,
+      );
+      if (option) onSelect(option);
+    },
+    [options, onSelect],
+  );
+
   /**
    * Render the custom component if it exists
    */
@@ -254,15 +264,6 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
       />
     );
   }
-
-  const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    const option = options.find(
-      (item): item is ISlashMenuOption => 'key' in item && item.key === key,
-    );
-    if (option) {
-      onSelect(option);
-    }
-  };
 
   return (
     <div

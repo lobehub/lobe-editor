@@ -1,9 +1,11 @@
 'use client';
 
-import { Block, Menu } from '@lobehub/ui';
-import { memo } from 'react';
+import { Block, Menu, type MenuProps } from '@lobehub/ui';
+import { memo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Flexbox } from 'react-layout-kit';
+
+import { ISlashMenuOption } from '@/plugins/slash/service/i-slash-service';
 
 import { useStyles } from './style';
 import type { SlashMenuProps } from './type';
@@ -22,9 +24,21 @@ const SlashMenu = memo<SlashMenuProps>(
   }) => {
     const { cx, styles } = useStyles();
     const parent = getPopupContainer();
+
+    const handleMenuClick: MenuProps['onClick'] = useCallback(
+      ({ key }: { key: string }) => {
+        if (!onSelect) return;
+        const option = options.find(
+          (item): item is ISlashMenuOption => 'key' in item && item.key === key,
+        );
+        if (option) onSelect?.(option);
+      },
+      [options, onSelect],
+    );
+
     if (!parent) return;
     if (!open) return;
-    // @ts-ignore
+
     const node = (
       <Flexbox className={styles.root} paddingInline={8} width={'100%'}>
         <Block
@@ -51,7 +65,7 @@ const SlashMenu = memo<SlashMenuProps>(
                 : options
             }
             mode={'inline'}
-            onSelect={({ item }) => onSelect?.(item as any)}
+            onClick={handleMenuClick}
             selectedKeys={activeKey ? [activeKey] : undefined}
           />
         </Block>
