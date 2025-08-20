@@ -24,9 +24,7 @@
   "files": [
     "es",
     "react.d.ts",
-    "react.js",
-    "patches",
-    "scripts/patch-lexical-package-json.js"
+    "react.js"
   ],
   "scripts": {
     "build": "npm run build:clean && father build && npm run build:packages",
@@ -40,7 +38,6 @@
     "docs:build-analyze": "ANALYZE=1 dumi build",
     "docs:dev": "dumi dev",
     "doctor": "father doctor",
-    "postinstall": "patch-package && node scripts/patch-lexical-package-json.js",
     "lint": "eslint \"{src,tests}/**/*.{js,jsx,ts,tsx}\" --fix",
     "lint:circular": "dpdm src/**/*.{ts,tsx}  --warning false  --tree false  --exit-code circular:1  -T true",
     "lint:md": "remark . --quiet --frail --output",
@@ -134,7 +131,6 @@
     "jsdom": "^26.1.0",
     "lint-staged": "^16.1.5",
     "lodash": "^4.17.21",
-    "patch-package": "^8.0.0",
     "prettier": "^3.6.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
