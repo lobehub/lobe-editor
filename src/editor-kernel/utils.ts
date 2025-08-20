@@ -15,6 +15,7 @@ export function genServiceId<T>(name: string): IServiceID<T> {
 export const noop = () => {};
 
 export function createEmptyEditorState() {
+  // @ts-ignore
   return new EditorState(new Map(), null);
 }
 

@@ -1,6 +1,7 @@
 import { ElementDOMSlot } from 'lexical';
 import { LexicalPrivateDOM } from 'lexical/LexicalNode';
 
+// @ts-ignore
 export class MElementDOMSlot extends ElementDOMSlot {
   override setManagedLineBreak(lineBreakType: null | 'empty' | 'line-break' | 'decorator') {
     super.setManagedLineBreak(lineBreakType);
