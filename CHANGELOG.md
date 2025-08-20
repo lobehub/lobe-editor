@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.0.1](https://github.com/lobehub/lobe-editor/compare/v1.0.0...v1.0.1)
+<sup>Released on **2025-08-20**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Remove unused createEmptyEditorState function (fixed.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Remove unused createEmptyEditorState function (fixed, closes [#7](https://github.com/lobehub/lobe-editor/issues/7) ([0125a36](https://github.com/lobehub/lobe-editor/commit/0125a36))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## Version&nbsp;1.0.0
 <sup>Released on **2025-08-18**</sup>
 
