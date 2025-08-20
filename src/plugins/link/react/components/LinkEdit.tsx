@@ -21,7 +21,9 @@ import {
 } from 'react';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
+import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
+import { UPDATE_LINK_TEXT_COMMAND } from '../../command';
 import { LinkNode } from '../../node/LinkNode';
 import { useStyles } from '../style';
 
@@ -34,9 +36,12 @@ export const LinkEdit: FC = () => {
   const divRef = useRef<HTMLDivElement>(null);
   const linkNodeRef = useRef<LinkNode | null>(null);
   const linkInputRef = useRef<InputRef | null>(null);
+  const linkTextInputRef = useRef<InputRef | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
   const [linkDom, setLinkDom] = useState<HTMLElement | null>(null);
   const [editor] = useLexicalComposerContext();
+  const t = useTranslation();
   const { styles, theme } = useStyles();
 
   useEffect(() => {
@@ -57,29 +62,64 @@ export const LinkEdit: FC = () => {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
       const lexicalEditor = editor.getLexicalEditor();
-      if (!linkNodeRef.current || !linkInputRef.current || !lexicalEditor) {
+      if (
+        !linkNodeRef.current ||
+        !linkInputRef.current ||
+        !linkTextInputRef.current ||
+        !lexicalEditor
+      ) {
         return;
       }
 
       const linkNode = linkNodeRef.current;
       const input = linkInputRef.current;
       const inputDOM = input.input as HTMLInputElement;
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        const currentURL = lexicalEditor.read(() => linkNode.getURL());
-        if (currentURL !== inputDOM.value) {
-          lexicalEditor.update(() => {
-            linkNode.setURL(inputDOM.value);
-            lexicalEditor.focus();
-          });
-        } else {
-          lexicalEditor.focus();
+      const textInput = linkTextInputRef.current;
+      const textInputDOM = textInput.input as HTMLInputElement;
+      switch (event.key) {
+        case 'Enter': {
+          event.preventDefault();
+          if (event.currentTarget === inputDOM) {
+            const currentURL = lexicalEditor.read(() => linkNode.getURL());
+            if (currentURL !== inputDOM.value) {
+              lexicalEditor.update(() => {
+                linkNode.setURL(inputDOM.value);
+                // lexicalEditor.focus();
+                textInputDOM.focus();
+              });
+            } else {
+              // lexicalEditor.focus();
+              textInputDOM.focus();
+            }
+          } else if (event.currentTarget === textInputDOM) {
+            const currentText = lexicalEditor.read(() => linkNode.getTextContent());
+            if (currentText !== textInputDOM.value) {
+              lexicalEditor.dispatchCommand(UPDATE_LINK_TEXT_COMMAND, {
+                key: linkNode.getKey(),
+                text: textInputDOM.value,
+              });
+              lexicalEditor.focus();
+            } else {
+              lexicalEditor.focus();
+            }
+          }
+          return;
         }
-        return;
-      } else if (event.key === 'Escape' || event.key === 'Tab') {
-        event.preventDefault();
-        lexicalEditor.focus();
-        return;
+        case 'Tab': {
+          event.preventDefault();
+          if (event.currentTarget === inputDOM) {
+            textInputDOM.focus();
+          } else {
+            lexicalEditor.focus();
+          }
+          return;
+        }
+        case 'Escape': {
+          lexicalEditor.focus();
+
+          break;
+        }
+        // No default
       }
     },
     [linkNodeRef, linkInputRef],
@@ -93,6 +133,7 @@ export const LinkEdit: FC = () => {
           if (!payload.linkNode || !payload.linkNodeDOM) {
             setLinkDom(null);
             setLinkUrl('');
+            setLinkText('');
             if (divRef.current) {
               divRef.current.style.left = '-9999px';
               divRef.current.style.top = '-9999px';
@@ -101,6 +142,7 @@ export const LinkEdit: FC = () => {
           }
           linkNodeRef.current = payload.linkNode;
           setLinkUrl(payload.linkNode.getURL());
+          setLinkText(payload.linkNode.getTextContent());
           setLinkDom(payload.linkNodeDOM);
           return true;
         },
@@ -115,6 +157,7 @@ export const LinkEdit: FC = () => {
           }
           linkNodeRef.current = null;
           setLinkUrl('');
+          setLinkText('');
           setLinkDom(null);
           return true;
         },
@@ -138,6 +181,7 @@ export const LinkEdit: FC = () => {
 
   return (
     <div className={styles.editor_linkEdit} ref={divRef}>
+      <div>{t('link.editLinkTitle')}</div>
       <Input
         onChange={(e: ChangeEvent<HTMLInputElement>) => {
           // Handle link URL change
@@ -151,6 +195,16 @@ export const LinkEdit: FC = () => {
         style={{ background: theme.colorBgElevated, maxWidth: '100%', minWidth: 240 }}
         value={linkUrl}
         variant={'outlined'}
+      />
+      <div>{t('link.editTextTitle')}</div>
+      <Input
+        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+          // Handle link text change
+          setLinkText(e.target.value);
+        }}
+        onKeyDown={handleKeyDown}
+        ref={linkTextInputRef}
+        value={linkText}
       />
     </div>
   );
