@@ -8,6 +8,8 @@ export default {
   },
   link: {
     edit: 'Edit Link',
+    editLinkTitle: 'Link',
+    editTextTitle: 'Text',
     open: 'Open Link',
     placeholder: 'Enter link URL',
     unlink: 'Unlink Link',
