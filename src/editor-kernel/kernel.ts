@@ -180,7 +180,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
 
   registerService<T>(serviceId: IServiceID<T>, service: T): void {
     if (this.serviceMap.has(serviceId.__serviceId)) {
-      throw new Error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
+      console.error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
+      return;
     }
     this.serviceMap.set(serviceId.__serviceId, service);
   }
