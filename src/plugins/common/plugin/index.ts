@@ -256,7 +256,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerDragonSupport(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
       registerHeaderBackspace(editor),
-      registerRichKeydown(editor),
+      registerRichKeydown(editor, this.kernel),
       registerCommands(editor),
     );
   }
