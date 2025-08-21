@@ -65,6 +65,7 @@ export default () => {
         slashMenuRef={slashMenuRef}
       >
         <Editor
+          autoFocus
           content={content}
           editorRef={editorRef}
           mentionOption={{
@@ -105,6 +106,11 @@ export default () => {
               return <SlashMenu {...props} getPopupContainer={() => slashMenuRef.current} />;
             },
           }}
+          onBlur={(e) => console.log('Blur', e)}
+          onCompositionEnd={(e) => console.log('Composition End', e)}
+          onCompositionStart={(e) => console.log('Composition Start', e)}
+          onFocus={(e) => console.log('Focus', e)}
+          onPressEnter={(e) => console.log('Enter', e)}
           placeholder={'Type something...'}
           plugins={[
             ReactListPlugin,

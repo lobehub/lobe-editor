@@ -13,7 +13,21 @@ import { useStyles, useThemeStyles } from './style';
 import { ReactPlainTextProps } from './type';
 
 const ReactPlainText = memo<ReactPlainTextProps>(
-  ({ style, children, theme = {}, onChange, className, variant }) => {
+  ({
+    style,
+    children,
+    theme = {},
+    onChange,
+    className,
+    variant,
+    onKeyDown,
+    onFocus,
+    onBlur,
+    autoFocus,
+    onCompositionStart,
+    onCompositionEnd,
+    onContextMenu,
+  }) => {
     const isChat = variant === 'chat';
     const {
       fontSize = isChat ? 14 : 16,
@@ -56,9 +70,25 @@ const ReactPlainText = memo<ReactPlainTextProps>(
       });
     }, [editor, type, content, onChange, isInitialized]);
 
+    useEffect(() => {
+      if (autoFocus && editorContainerRef.current) {
+        editorContainerRef.current.focus();
+      }
+    }, [autoFocus]);
+
     return (
       <div className={cx(styles.root, styles.variant, className)} style={style}>
-        <div contentEditable ref={editorContainerRef} style={{ outline: 'none' }} />
+        <div
+          contentEditable
+          onBlur={onBlur}
+          onCompositionEnd={onCompositionEnd}
+          onCompositionStart={onCompositionStart}
+          onContextMenu={onContextMenu}
+          onFocus={onFocus}
+          onKeyDown={onKeyDown}
+          ref={editorContainerRef}
+          style={{ outline: 'none' }}
+        />
         <Placeholder style={style}>{placeholder}</Placeholder>
         {decorators}
       </div>

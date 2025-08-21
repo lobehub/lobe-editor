@@ -1,4 +1,13 @@
-import type { CSSProperties, FC, ReactNode, Ref } from 'react';
+import type {
+  CSSProperties,
+  CompositionEventHandler,
+  FC,
+  FocusEventHandler,
+  KeyboardEventHandler,
+  MouseEventHandler,
+  ReactNode,
+  Ref,
+} from 'react';
 
 import type { ReactEditorContentProps, ReactPlainTextProps } from '@/plugins/common/react';
 import type { ReactMentionPluginProps } from '@/plugins/mention/react';
@@ -12,11 +21,19 @@ interface MentionOption extends Partial<ReactSlashOptionProps> {
 }
 
 export interface EditorProps extends Partial<ReactEditorContentProps> {
+  autoFocus?: boolean;
   children?: ReactNode;
   className?: string;
   editorRef?: Ref<IEditor>;
   mentionOption?: MentionOption;
+  onBlur?: FocusEventHandler<HTMLDivElement>;
   onChange?: (editor: IEditor) => void;
+  onCompositionEnd?: CompositionEventHandler<HTMLDivElement>;
+  onCompositionStart?: CompositionEventHandler<HTMLDivElement>;
+  onContextMenu?: MouseEventHandler<HTMLDivElement>;
+  onFocus?: FocusEventHandler<HTMLDivElement>;
+  onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
+  onPressEnter?: KeyboardEventHandler<HTMLDivElement>;
   plugins?: EditorPlugin[];
   slashOption?: Partial<ReactSlashOptionProps>;
   style?: CSSProperties;
