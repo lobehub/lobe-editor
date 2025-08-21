@@ -12,3 +12,29 @@ export * from './plugins/slash';
 export * from './plugins/table';
 export * from './plugins/upload';
 export type { IEditor } from './types';
+
+// Hot reload utilities
+export { Kernel } from './editor-kernel/kernel';
+
+/**
+ * Enable hot reload mode globally for all editor instances
+ * Call this in your app's entry point during development
+ */
+export function enableHotReload(): void {
+  if (typeof window !== 'undefined') {
+    const { Kernel } = require('./editor-kernel/kernel');
+    Kernel.setGlobalHotReloadMode(true);
+    console.log('[LobeHub Editor] Hot reload mode enabled globally');
+  }
+}
+
+/**
+ * Disable hot reload mode globally
+ */
+export function disableHotReload(): void {
+  if (typeof window !== 'undefined') {
+    const { Kernel } = require('./editor-kernel/kernel');
+    Kernel.setGlobalHotReloadMode(false);
+    console.log('[LobeHub Editor] Hot reload mode disabled globally');
+  }
+}

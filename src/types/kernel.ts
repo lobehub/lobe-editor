@@ -219,4 +219,9 @@ export interface IEditorPluginConstructor<IConfig> {
   new (kernel: IEditorKernel, config?: IConfig): IEditorPlugin<IConfig>;
 }
 
+export interface IKernelStatic {
+  resetGlobalHotReloadMode(): void;
+  setGlobalHotReloadMode(enabled: boolean): void;
+}
+
 export type IPlugin<T = any> = IEditorPluginConstructor<T> | [IEditorPluginConstructor<T>, T?];
