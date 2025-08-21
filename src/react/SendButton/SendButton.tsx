@@ -20,6 +20,9 @@ const SendButton = memo<SendButtonProps>(
     generating,
     size = 32,
     shape,
+    onSend,
+    onStop,
+    onClick,
     ...rest
   }) => {
     const { cx, styles } = useStyles(size);
@@ -28,6 +31,12 @@ const SendButton = memo<SendButtonProps>(
       return (
         <Button
           className={cx(styles.loadingButton, className)}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (onStop) onStop(e);
+            if (onClick) onClick(e);
+          }}
           shape={shape}
           style={{
             ...style,
@@ -60,6 +69,12 @@ const SendButton = memo<SendButtonProps>(
         <Button
           className={cx(styles.button, className)}
           icon={<SendIcon />}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (onSend) onSend(e);
+            if (onClick) onClick(e);
+          }}
           shape={shape}
           style={style}
           type={type}
@@ -76,6 +91,12 @@ const SendButton = memo<SendButtonProps>(
         )}
         icon={<Icon icon={ChevronDownIcon} />}
         menu={menu}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (onSend) onSend(e);
+          if (onClick) onClick(e);
+        }}
         placement={'topRight'}
         style={style}
         type={type}

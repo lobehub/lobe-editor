@@ -11,14 +11,12 @@ interface MentionOption extends Partial<ReactSlashOptionProps> {
   markdownWriter?: ReactMentionPluginProps['markdownWriter'];
 }
 
-export interface EditorProps {
+export interface EditorProps extends Partial<ReactEditorContentProps> {
   children?: ReactNode;
   className?: string;
-  content?: ReactEditorContentProps['content'];
   editorRef?: Ref<IEditor>;
   mentionOption?: MentionOption;
   onChange?: (editor: IEditor) => void;
-  placeholder?: ReactNode;
   plugins?: EditorPlugin[];
   slashOption?: Partial<ReactSlashOptionProps>;
   style?: CSSProperties;

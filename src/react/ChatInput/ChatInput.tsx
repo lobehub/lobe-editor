@@ -15,21 +15,29 @@ const ChatInput = memo<ChatInputProps>(
     header,
     style,
     slashMenuRef,
+    classNames,
+    fullscreen,
+    styles: customStyles,
+    ...rest
   }) => {
     const { cx, styles } = useStyles();
 
     return (
       <Flexbox
         className={cx(styles.container, className)}
+        height={fullscreen ? '100%' : undefined}
         style={{
-          maxHeight,
+          maxHeight: fullscreen ? undefined : maxHeight,
           ...style,
         }}
         width={'100%'}
+        {...rest}
       >
         {slashMenuRef && <div ref={slashMenuRef} />}
         {header}
-        <div className={styles.editor}>{children}</div>
+        <div className={cx(styles.editor, classNames?.body)} style={customStyles?.body}>
+          {children}
+        </div>
         {footer}
       </Flexbox>
     );

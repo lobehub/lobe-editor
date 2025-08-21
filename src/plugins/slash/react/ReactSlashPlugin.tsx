@@ -2,6 +2,7 @@
 
 import { mergeRegister } from '@lexical/utils';
 import {
+  COMMAND_PRIORITY_HIGH,
   COMMAND_PRIORITY_NORMAL,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
@@ -153,7 +154,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
             }
             return true;
           },
-          COMMAND_PRIORITY_NORMAL,
+          COMMAND_PRIORITY_HIGH,
         ),
         editor.registerCommand<KeyboardEvent>(
           KEY_ARROW_UP_COMMAND,
@@ -173,7 +174,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
             }
             return true;
           },
-          COMMAND_PRIORITY_NORMAL,
+          COMMAND_PRIORITY_HIGH,
         ),
         editor.registerCommand<KeyboardEvent>(
           KEY_ESCAPE_COMMAND,

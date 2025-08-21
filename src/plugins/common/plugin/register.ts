@@ -14,7 +14,6 @@ import {
   $isRootOrShadowRoot,
   $isTextNode,
   $setSelection,
-  COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_EDITOR,
   COMMAND_PRIORITY_NORMAL,
   ElementNode,
@@ -215,7 +214,7 @@ export function registerRichKeydown(editor: LexicalEditor) {
         }
         return false;
       },
-      COMMAND_PRIORITY_NORMAL,
+      COMMAND_PRIORITY_EDITOR,
     ),
     editor.registerCommand<KeyboardEvent>(
       KEY_ARROW_DOWN_COMMAND,
@@ -263,7 +262,7 @@ export function registerRichKeydown(editor: LexicalEditor) {
         }
         return false;
       },
-      COMMAND_PRIORITY_CRITICAL,
+      COMMAND_PRIORITY_EDITOR,
     ),
     editor.registerCommand(
       KEY_ARROW_RIGHT_COMMAND,
@@ -296,7 +295,7 @@ export function registerRichKeydown(editor: LexicalEditor) {
         }
         return false;
       },
-      COMMAND_PRIORITY_CRITICAL,
+      COMMAND_PRIORITY_EDITOR,
     ),
   );
 }
