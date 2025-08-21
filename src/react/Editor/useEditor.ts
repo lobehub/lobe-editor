@@ -1,7 +1,8 @@
-import { useRef } from 'react';
+import { RefObject, useRef } from 'react';
 
 import type { IEditor } from '@/types';
 
-export const useEditor = () => {
-  return useRef<IEditor | null>(null);
+export const useEditor = (editorRef?: RefObject<IEditor | null>) => {
+  const ref = useRef<IEditor | null>(null);
+  return editorRef || ref;
 };

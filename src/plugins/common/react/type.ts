@@ -1,14 +1,14 @@
 import type {
   CSSProperties,
-  CompositionEventHandler,
-  FocusEventHandler,
-  KeyboardEventHandler,
-  MouseEventHandler,
+  CompositionEvent,
+  FocusEvent,
+  KeyboardEvent,
+  MouseEvent,
   ReactElement,
   ReactNode,
 } from 'react';
 
-import { CommonPluginOptions } from '@/plugins/common';
+import type { CommonPluginOptions } from '@/plugins/common';
 import type { IEditor } from '@/types';
 
 export interface ReactEditorContentProps {
@@ -21,13 +21,17 @@ export interface ReactPlainTextProps {
   autoFocus?: boolean;
   children: ReactElement<ReactEditorContentProps>;
   className?: string;
-  onBlur?: FocusEventHandler<HTMLDivElement>;
+  onBlur?: (props: { editor: IEditor; event: FocusEvent<HTMLDivElement> }) => void;
   onChange?: (editor: IEditor) => void;
-  onCompositionEnd?: CompositionEventHandler<HTMLDivElement>;
-  onCompositionStart?: CompositionEventHandler<HTMLDivElement>;
-  onContextMenu?: MouseEventHandler<HTMLDivElement>;
-  onFocus?: FocusEventHandler<HTMLDivElement>;
-  onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
+  onCompositionEnd?: (props: { editor: IEditor; event: CompositionEvent<HTMLDivElement> }) => void;
+  onCompositionStart?: (props: {
+    editor: IEditor;
+    event: CompositionEvent<HTMLDivElement>;
+  }) => void;
+  onContextMenu?: (props: { editor: IEditor; event: MouseEvent<HTMLDivElement> }) => void;
+  onFocus?: (props: { editor: IEditor; event: FocusEvent<HTMLDivElement> }) => void;
+  onKeyDown?: (props: { editor: IEditor; event: KeyboardEvent<HTMLDivElement> }) => void;
+  onPressEnter?: (props: { editor: IEditor; event: KeyboardEvent<HTMLDivElement> }) => void;
   style?: CSSProperties;
   theme?: CommonPluginOptions['theme'] & {
     fontSize?: number;

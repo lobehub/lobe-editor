@@ -1,19 +1,14 @@
 'use client';
 
-import { isModifierMatch } from 'lexical';
-import { type KeyboardEvent, createElement, memo, useMemo } from 'react';
-import { mergeRefs } from 'react-merge-refs';
+import { createElement, memo, useMemo } from 'react';
 
-import { CONTROL_OR_META } from '@/common/sys';
 import { ReactEditor } from '@/editor-kernel/react/react-editor';
 import { ReactEditorContent, ReactPlainText } from '@/plugins/common';
 import { ReactMentionPlugin } from '@/plugins/mention';
 import { ReactSlashOption, ReactSlashPlugin } from '@/plugins/slash';
 import { useEditorContent } from '@/react/EditorProvider';
-import { IEditor } from '@/types';
 
 import { EditorProps } from './type';
-import { useEditor } from './useEditor';
 
 const Editor = memo<EditorProps>(
   ({
@@ -28,7 +23,6 @@ const Editor = memo<EditorProps>(
     mentionOption = {},
     variant,
     onKeyDown,
-    theme,
     children,
     type = 'json',
     onPressEnter,
@@ -39,7 +33,6 @@ const Editor = memo<EditorProps>(
     onCompositionEnd,
     onContextMenu,
   }) => {
-    const ref = useEditor();
     const { config } = useEditorContent();
     const enableSlash = Boolean(slashOption?.items && slashOption.items.length > 0);
     const enableMention = Boolean(mentionOption?.items && mentionOption.items.length > 0);
@@ -78,31 +71,8 @@ const Editor = memo<EditorProps>(
       );
     }, [enableSlash, enableMention, slashOption, restMentionOption]);
 
-    const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-      // Check if currently composing (e.g., typing with IME)
-      const isComposing = e.nativeEvent.isComposing;
-
-      // Handle Enter key press
-      if (e.key === 'Enter' && !isComposing) {
-        // Support for Ctrl/Cmd + Enter for forced submit
-        if (isModifierMatch(e.nativeEvent, CONTROL_OR_META) && onPressEnter) {
-          // Force submit with modifier key
-          onPressEnter(e);
-          return;
-        }
-
-        // Regular Enter key handling
-        if (onPressEnter) {
-          onPressEnter(e);
-        }
-      }
-
-      // Call the optional onKeyDown handler
-      onKeyDown?.(e);
-    };
-
     return (
-      <ReactEditor config={config} editorRef={mergeRefs<IEditor>([ref, editorRef])}>
+      <ReactEditor config={config} editorRef={editorRef}>
         {memoPlugins}
         {memoSlash}
         {memoMention}
@@ -115,9 +85,9 @@ const Editor = memo<EditorProps>(
           onCompositionStart={onCompositionStart}
           onContextMenu={onContextMenu}
           onFocus={onFocus}
-          onKeyDown={handleKeyDown}
+          onKeyDown={onKeyDown}
+          onPressEnter={onPressEnter}
           style={style}
-          theme={theme}
           variant={variant}
         >
           <ReactEditorContent content={content} placeholder={placeholder} type={type} />

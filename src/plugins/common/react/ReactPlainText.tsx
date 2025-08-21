@@ -1,6 +1,17 @@
 'use client';
 
-import { Children, memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  Children,
+  type CompositionEvent,
+  type FocusEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { LexicalErrorBoundary } from '@/editor-kernel/react/LexicalErrorBoundary';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
@@ -24,6 +35,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     onFocus,
     onBlur,
     autoFocus,
+    onPressEnter,
     onCompositionStart,
     onCompositionEnd,
     onContextMenu,
@@ -76,16 +88,49 @@ const ReactPlainText = memo<ReactPlainTextProps>(
       }
     }, [autoFocus]);
 
+    const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
+      onBlur?.({ editor, event });
+    };
+
+    const handleCompositionEnd = (event: CompositionEvent<HTMLDivElement>) => {
+      onCompositionEnd?.({ editor, event });
+    };
+
+    const handleCompositionStart = (event: CompositionEvent<HTMLDivElement>) => {
+      onCompositionStart?.({ editor, event });
+    };
+
+    const handleContextMenu = (event: MouseEvent<HTMLDivElement>) => {
+      onContextMenu?.({ editor, event });
+    };
+
+    const handleFocus = (event: FocusEvent<HTMLDivElement>) => {
+      onFocus?.({ editor, event });
+    };
+
+    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+      const isComposing = event.nativeEvent.isComposing;
+      if (
+        event.key === 'Enter' &&
+        !isComposing && // Regular Enter key handling
+        onPressEnter
+      ) {
+        onPressEnter({ editor, event });
+      }
+      // Call the optional onKeyDown handler
+      onKeyDown?.({ editor, event });
+    };
+
     return (
       <div className={cx(styles.root, styles.variant, className)} style={style}>
         <div
           contentEditable
-          onBlur={onBlur}
-          onCompositionEnd={onCompositionEnd}
-          onCompositionStart={onCompositionStart}
-          onContextMenu={onContextMenu}
-          onFocus={onFocus}
-          onKeyDown={onKeyDown}
+          onBlur={handleBlur}
+          onCompositionEnd={handleCompositionEnd}
+          onCompositionStart={handleCompositionStart}
+          onContextMenu={handleContextMenu}
+          onFocus={handleFocus}
+          onKeyDown={handleKeyDown}
           ref={editorContainerRef}
           style={{ outline: 'none' }}
         />
