@@ -33,7 +33,8 @@ const ReactFilePlugin: FC<ReactFilePluginProps> = ({
         if (handleUpload) {
           return handleUpload(file);
         }
-        throw new Error('No upload handler provided');
+        console.error('No upload handler provided');
+        return { url: '' };
       },
       markdownWriter: markdownWriter,
       theme: theme || styles,

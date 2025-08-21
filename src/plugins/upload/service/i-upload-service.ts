@@ -51,6 +51,7 @@ export class UploadService implements IUploadService {
         }
       }
     }
-    throw new Error('No upload handler registered for this file type: ' + file.type);
+    console.error('No upload handler registered for this file type: ' + file.type);
+    return false;
   }
 }

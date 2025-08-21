@@ -3,7 +3,8 @@ import EventEmitter from 'eventemitter3';
 export abstract class KernelPlugin extends EventEmitter {
   protected clears: Array<() => void> = [];
 
-  protected register(clear: () => void): void {
+  protected register(clear: (() => void) | undefined): void {
+    if (!clear) return;
     this.clears.push(clear);
   }
 

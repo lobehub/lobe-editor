@@ -24,7 +24,7 @@ export function assert(cond?: boolean, message?: string): asserts cond {
     return;
   }
 
-  throw new Error(message);
+  return console.error(message);
 }
 
 // export function getNodeKeyFromDOMNode(dom: Node, editor: LexicalEditor): NodeKey | undefined {

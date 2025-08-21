@@ -16,7 +16,8 @@ export function getDragSelection(event: DragEvent): Range | null | undefined {
     domSelection.collapse(event.rangeParent, event.rangeOffset || 0);
     range = domSelection.getRangeAt(0);
   } else {
-    throw new Error(`Cannot get the selection when dragging`);
+    console.error(`Cannot get the selection when dragging`);
+    return null;
   }
 
   return range;

@@ -711,11 +711,11 @@ function $handleMoveTo(type: LexicalCommand<KeyboardEvent>, event: KeyboardEvent
   return true;
 }
 
-export function registerCodeHighlighting(editor: LexicalEditor, tokenizer?: Tokenizer): () => void {
+export function registerCodeHighlighting(editor: LexicalEditor, tokenizer?: Tokenizer) {
   if (!editor.hasNodes([CodeNode, CodeHighlightNode])) {
-    throw new Error('CodeHighlightPlugin: CodeNode or CodeHighlightNode not registered on editor');
+    console.error('CodeHighlightPlugin: CodeNode or CodeHighlightNode not registered on editor');
+    return;
   }
-
   // eslint-disable-next-line eqeqeq
   if (tokenizer == null) {
     // eslint-disable-next-line no-param-reassign

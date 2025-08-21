@@ -461,7 +461,7 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
         break;
       }
       default: {
-        throw new Error(`Unknown transformer type: ${transformer}`);
+        return console.error(`Unknown transformer type: ${transformer}`);
       }
     }
   }
@@ -532,6 +532,6 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
       this._markdownWriters[type] = writer;
       return;
     }
-    throw new Error(`Markdown writer for type "${type}" is already registered.`);
+    return console.error(`Markdown writer for type "${type}" is already registered.`);
   }
 }

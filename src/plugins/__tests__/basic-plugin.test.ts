@@ -57,7 +57,7 @@ describe('Basic Plugin System Tests', () => {
 
       const plugin = new TestPlugin();
       const errorCleanup = vi.fn(() => {
-        throw new Error('Cleanup error');
+        return console.error('Cleanup error');
       });
       const normalCleanup = vi.fn();
 

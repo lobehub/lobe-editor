@@ -14,7 +14,7 @@ export default class MarkdownDataSource extends DataSource {
   }
 
   read() {
-    throw new Error('MarkdownDataSource not implemented yet!');
+    return console.error('MarkdownDataSource not implemented yet!');
   }
 
   write(editor: LexicalEditor): any {

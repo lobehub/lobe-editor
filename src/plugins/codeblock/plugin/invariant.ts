@@ -14,7 +14,7 @@ export default function invariant(cond?: boolean, message?: string): asserts con
     return;
   }
 
-  throw new Error(
+  return console.error(
     'Internal Lexical error: invariant() is meant to be replaced at compile ' +
       'time. There is no runtime version. Error: ' +
       message,

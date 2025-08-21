@@ -52,7 +52,7 @@ export class SlashService implements ISlashService {
 
   registerSlash(options: SlashOptions): void {
     if (this.triggerMap.has(options.trigger)) {
-      throw new Error(`Slash trigger "${options.trigger}" is already registered.`);
+      return console.error(`Slash trigger "${options.trigger}" is already registered.`);
     }
     this.triggerMap.set(options.trigger, options);
     this.triggerFnMap.set(

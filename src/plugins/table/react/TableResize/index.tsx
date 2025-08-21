@@ -130,7 +130,7 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
             () => {
               const tableCellNode = $getNearestNodeFromDOMNode(cell.elem);
               if (!tableCellNode) {
-                throw new Error('TableCellResizer: Table cell node not found.');
+                return console.error('TableCellResizer: Table cell node not found.');
               }
 
               const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
@@ -140,7 +140,7 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
               );
 
               if (!tableElement) {
-                throw new Error('TableCellResizer: Table element not found.');
+                return console.error('TableCellResizer: Table element not found.');
               }
 
               targetRef.current = target as HTMLElement;
@@ -190,14 +190,14 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
   const updateRowHeight = useCallback(
     (heightChange: number) => {
       if (!activeCell) {
-        throw new Error('TableCellResizer: Expected active cell.');
+        return console.error('TableCellResizer: Expected active cell.');
       }
 
       editor.update(
         () => {
           const tableCellNode = $getNearestNodeFromDOMNode(activeCell.elem);
           if (!$isTableCellNode(tableCellNode)) {
-            throw new Error('TableCellResizer: Table cell node not found.');
+            return console.error('TableCellResizer: Table cell node not found.');
           }
 
           const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
@@ -213,13 +213,13 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
             : baseRowIndex + tableCellNode.getRowSpan() - 1;
 
           if (tableRowIndex >= tableRows.length || tableRowIndex < 0) {
-            throw new Error('Expected table cell to be inside of table row.');
+            return console.error('Expected table cell to be inside of table row.');
           }
 
           const tableRow = tableRows[tableRowIndex];
 
           if (!$isTableRowNode(tableRow)) {
-            throw new Error('Expected table row');
+            return console.error('Expected table row');
           }
 
           let height = tableRow.getHeight();
@@ -249,20 +249,20 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
   const updateColumnWidth = useCallback(
     (widthChange: number) => {
       if (!activeCell) {
-        throw new Error('TableCellResizer: Expected active cell.');
+        return console.error('TableCellResizer: Expected active cell.');
       }
       editor.update(
         () => {
           const tableCellNode = $getNearestNodeFromDOMNode(activeCell.elem);
           if (!$isTableCellNode(tableCellNode)) {
-            throw new Error('TableCellResizer: Table cell node not found.');
+            return console.error('TableCellResizer: Table cell node not found.');
           }
 
           const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
           const [tableMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
           const columnIndex = getCellColumnIndex(tableCellNode, tableMap);
           if (columnIndex === undefined) {
-            throw new Error('TableCellResizer: Table column not found.');
+            return console.error('TableCellResizer: Table column not found.');
           }
 
           const colWidths = tableNode.getColWidths();
@@ -296,7 +296,7 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
         event.stopPropagation();
 
         if (!activeCell) {
-          throw new Error('TableCellResizer: Expected active cell.');
+          return console.error('TableCellResizer: Expected active cell.');
         }
 
         if (pointerStartPosRef.current) {
@@ -333,7 +333,7 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
         event.stopPropagation();
 
         if (!activeCell) {
-          throw new Error('TableCellResizer: Expected active cell.');
+          return console.error('TableCellResizer: Expected active cell.');
         }
 
         pointerStartPosRef.current = {

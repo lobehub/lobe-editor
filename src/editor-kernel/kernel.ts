@@ -92,10 +92,10 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   setDocument(type: string, content: any) {
     const datasource = this.dataTypeMap.get(type);
     if (!datasource) {
-      throw new Error(`DataSource for type "${type}" is not registered.`);
+      return console.error(`DataSource for type "${type}" is not registered.`);
     }
     if (!this.editor) {
-      throw new Error(`Editor is not initialized.`);
+      return console.error(`Editor is not initialized.`);
     }
     datasource.read(this.editor, content);
   }
@@ -111,10 +111,12 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   getDocument(type: string): DataSource | undefined {
     const datasource = this.dataTypeMap.get(type);
     if (!datasource) {
-      throw new Error(`DataSource for type "${type}" is not registered.`);
+      console.error(`DataSource for type "${type}" is not registered.`);
+      return;
     }
     if (!this.editor) {
-      throw new Error(`Editor is not initialized.`);
+      console.error(`Editor is not initialized.`);
+      return;
     }
     return datasource.write(this.editor);
   }
@@ -150,7 +152,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     if (findPlugin) {
       // Error if same name but different plugin
       if (findPlugin !== plugin) {
-        throw new Error(
+        console.error(
           `Plugin with name "${plugin.pluginName}" is already registered with a different implementation.`,
         );
       }
@@ -203,7 +205,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     payload: CommandPayloadType<TCommand>,
   ): boolean {
     if (!this.editor) {
-      throw new Error('Editor is not initialized.');
+      console.error('Editor is not initialized.');
+      return false;
     }
     return this.editor.dispatchCommand(type, payload);
   }

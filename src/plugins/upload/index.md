@@ -176,13 +176,13 @@ uploadService.registerUpload(async (file, from, range) => {
   // Validate file size
   const maxSize = 5 * 1024 * 1024; // 5MB
   if (file.size > maxSize) {
-    throw new Error('Image size must be under 5MB');
+    return console.error('Image size must be under 5MB');
   }
 
   // Validate image dimensions
   const dimensions = await getImageDimensions(file);
   if (dimensions.width > 4000 || dimensions.height > 4000) {
-    throw new Error('Image dimensions must be under 4000x4000px');
+    return console.error('Image dimensions must be under 4000x4000px');
   }
 
   try {

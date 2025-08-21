@@ -7,7 +7,8 @@ import type { IEditor } from '@/types';
 export function getThemeSelector(iEditor: IEditor, name: keyof EditorThemeClasses): string {
   const className = iEditor.getTheme()?.[name];
   if (typeof className !== 'string') {
-    throw new Error(`getThemeClass: required theme property ${name} not defined`);
+    console.error(`getThemeClass: required theme property ${name} not defined`);
+    return '';
   }
   return className
     .split(/\s+/g)

@@ -128,7 +128,7 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
           );
 
           if (tableElement === null) {
-            throw new Error('TableActionMenu: Expected to find tableElement in DOM');
+            return console.error('TableActionMenu: Expected to find tableElement in DOM');
           }
 
           const tableObserver = getTableObserverFromTableElement(tableElement);
@@ -460,7 +460,7 @@ function TableCellActionMenuContainer({
       const tableElement = getTableElement(tableNode, editor.getElementByKey(tableNode.getKey()));
 
       if (tableElement === null) {
-        throw new Error('TableActionMenu: Expected to find tableElement in DOM');
+        return console.error('TableActionMenu: Expected to find tableElement in DOM');
       }
 
       tableObserver = getTableObserverFromTableElement(tableElement);
@@ -468,12 +468,12 @@ function TableCellActionMenuContainer({
     } else if ($isTableSelection(selection)) {
       const anchorNode = $getTableCellNodeFromLexicalNode(selection.anchor.getNode());
       if (!$isTableCellNode(anchorNode)) {
-        throw new Error('TableSelection anchorNode must be a TableCellNode');
+        return console.error('TableSelection anchorNode must be a TableCellNode');
       }
       const tableNode = $getTableNodeFromLexicalNodeOrThrow(anchorNode);
       const tableElement = getTableElement(tableNode, editor.getElementByKey(tableNode.getKey()));
       if (tableElement === null) {
-        throw new Error('TableActionMenu: Expected to find tableElement in DOM');
+        return console.error('TableActionMenu: Expected to find tableElement in DOM');
       }
       tableObserver = getTableObserverFromTableElement(tableElement);
       tableCellParentNodeDOM = editor.getElementByKey(anchorNode.getKey());
