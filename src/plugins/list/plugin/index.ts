@@ -136,7 +136,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
               break;
             }
             case 'check': {
-              ctx.wrap(`${prefix}[${node.getChecked() ? 'x' : ' '}] `, '\n');
+              ctx.wrap(`${prefix}- [${node.getChecked() ? 'x' : ' '}] `, '\n');
               break;
             }
             default: {
