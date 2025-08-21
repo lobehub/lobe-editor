@@ -10,18 +10,18 @@ import {
 import { get, merge, template, templateSettings } from 'lodash-es';
 
 import defaultLocale from '@/locale';
-
-import DataSource from './data-source';
-import { registerEvent } from './event';
 import {
   IEditor,
   IEditorKernel,
   IEditorPlugin,
   IEditorPluginConstructor,
-  ILocaleKeys,
   IPlugin,
   IServiceID,
-} from './types';
+} from '@/types/kernel';
+import { ILocaleKeys } from '@/types/locale';
+
+import DataSource from './data-source';
+import { registerEvent } from './event';
 import { createEmptyEditorState } from './utils';
 
 templateSettings.interpolate = /{{([\S\s]+?)}}/g;
@@ -39,12 +39,15 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     keyof ILocaleKeys,
     string
   >;
+  private hotReloadMode: boolean = false;
 
   private editor?: LexicalEditor;
 
   constructor() {
     super();
     this.dataTypeMap = new Map<string, DataSource>();
+    // Enable hot reload mode in development
+    this.hotReloadMode = typeof process !== 'undefined' && process.env?.NODE_ENV === 'development';
   }
 
   getLexicalEditor(): LexicalEditor | null {
@@ -60,6 +63,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       }
     });
     this.pluginsInstances = [];
+    // Clear services to support hot reload
+    this.serviceMap.clear();
   }
 
   getRootElement(): HTMLElement | null {
@@ -151,11 +156,23 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     if (findPlugin) {
       // Error if same name but different plugin
       if (findPlugin !== plugin) {
-        throw new Error(
-          `Plugin with name "${plugin.pluginName}" is already registered with a different implementation.`,
-        );
+        if (this.hotReloadMode) {
+          console.warn(
+            `[Hot Reload] Replacing plugin "${plugin.pluginName}" with new implementation`,
+          );
+          // Remove old plugin
+          const index = this.plugins.findIndex((p) => p.pluginName === plugin.pluginName);
+          if (index !== -1) {
+            this.plugins.splice(index, 1);
+          }
+        } else {
+          throw new Error(
+            `Plugin with name "${plugin.pluginName}" is already registered with a different implementation.`,
+          );
+        }
+      } else {
+        return this; // If plugin already exists, don't register again
       }
-      return this; // If plugin already exists, don't register again
     }
     // @ts-expect-error not error
     plugin.__config = config || {};
@@ -181,9 +198,38 @@ export class Kernel extends EventEmitter implements IEditorKernel {
 
   registerService<T>(serviceId: IServiceID<T>, service: T): void {
     if (this.serviceMap.has(serviceId.__serviceId)) {
-      throw new Error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
+      if (this.hotReloadMode) {
+        // In hot reload mode, allow service override with warning
+        console.warn(`[Hot Reload] Overriding service with ID "${serviceId.__serviceId}"`);
+      } else {
+        throw new Error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
+      }
     }
     this.serviceMap.set(serviceId.__serviceId, service);
+  }
+
+  /**
+   * Register service with hot reload support - allows overriding existing services
+   * @param serviceId Service identifier
+   * @param service Service instance
+   */
+  registerServiceHotReload<T>(serviceId: IServiceID<T>, service: T): void {
+    this.serviceMap.set(serviceId.__serviceId, service);
+  }
+
+  /**
+   * Enable or disable hot reload mode
+   * @param enabled Whether to enable hot reload mode
+   */
+  setHotReloadMode(enabled: boolean): void {
+    this.hotReloadMode = enabled;
+  }
+
+  /**
+   * Check if hot reload mode is enabled
+   */
+  isHotReloadMode(): boolean {
+    return this.hotReloadMode;
   }
 
   /**

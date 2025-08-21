@@ -149,6 +149,10 @@ export interface IEditorKernel extends IEditor {
     name: string,
   ): ((_node: DecoratorNode<any>, _editor: LexicalEditor) => any) | undefined;
   /**
+   * Check if hot reload mode is enabled
+   */
+  isHotReloadMode(): boolean;
+  /**
    * Register data source for multi-format data conversion
    * @param dataSource
    */
@@ -174,10 +178,21 @@ export interface IEditorKernel extends IEditor {
    */
   registerService<T>(serviceId: IServiceID<T>, service: T): void;
   /**
+   * Register service with hot reload support - allows overriding existing services
+   * @param serviceId Service identifier
+   * @param service Service instance
+   */
+  registerServiceHotReload<T>(serviceId: IServiceID<T>, service: T): void;
+  /**
    * Register theme
    * @param themes
    */
   registerThemes(themes: Record<string, any>): void;
+  /**
+   * Enable or disable hot reload mode
+   * @param enabled Whether to enable hot reload mode
+   */
+  setHotReloadMode(enabled: boolean): void;
 }
 
 /**
