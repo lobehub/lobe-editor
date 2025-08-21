@@ -126,7 +126,9 @@ describe('Basic Kernel Tests', () => {
 
       const registerService = <T>(serviceId: { __serviceId: string }, service: T) => {
         if (serviceMap.has(serviceId.__serviceId)) {
-          throw new Error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
+          // throw new Error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
+          console.error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
+          return;
         }
         serviceMap.set(serviceId.__serviceId, service);
       };
