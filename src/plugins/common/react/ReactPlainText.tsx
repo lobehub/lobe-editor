@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, memo, useEffect, useLayoutEffect, useRef } from 'react';
+import { Children, memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { LexicalErrorBoundary } from '@/editor-kernel/react/LexicalErrorBoundary';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
@@ -27,6 +27,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     const decorators = useDecorators(editor, LexicalErrorBoundary);
     const { styles: themeStyles } = useThemeStyles();
     const { cx, styles } = useStyles({ fontSize, headerMultiple, lineHeight, marginMultiple });
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const {
       props: { type, content, placeholder },
@@ -41,17 +42,19 @@ const ReactPlainText = memo<ReactPlainTextProps>(
 
     useEffect(() => {
       const container = editorContainerRef.current;
-      if (container) {
+      if (container && !isInitialized) {
         // Initialize the editor
         editor.setRootElement(container);
-      }
 
-      editor.setDocument(type, content);
+        // Set initial document content only once
+        editor.setDocument(type, content);
+        setIsInitialized(true);
+      }
 
       return editor.getLexicalEditor()?.registerUpdateListener(() => {
         onChange?.(editor);
       });
-    }, [editor, type, content, onChange]);
+    }, [editor, type, content, onChange, isInitialized]);
 
     return (
       <div className={cx(styles.root, styles.variant, className)} style={style}>
