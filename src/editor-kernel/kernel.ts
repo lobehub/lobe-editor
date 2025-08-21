@@ -22,7 +22,6 @@ import {
   IPlugin,
   IServiceID,
 } from './types';
-import { createEmptyEditorState } from './utils';
 
 templateSettings.interpolate = /{{([\S\s]+?)}}/g;
 
@@ -52,14 +51,14 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   destroy() {
-    this.editor?.setEditorState(createEmptyEditorState());
-    this.dataTypeMap.clear();
-    this.pluginsInstances.forEach((plugin) => {
-      if (plugin.destroy) {
-        plugin.destroy();
-      }
-    });
-    this.pluginsInstances = [];
+    // this.editor?.setEditorState(createEmptyEditorState());
+    // this.dataTypeMap.clear();
+    // this.pluginsInstances.forEach((plugin) => {
+    //   if (plugin.destroy) {
+    //     plugin.destroy();
+    //   }
+    // });
+    // this.pluginsInstances = [];
   }
 
   getRootElement(): HTMLElement | null {
