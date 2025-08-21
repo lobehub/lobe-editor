@@ -1,11 +1,16 @@
 import type { CSSProperties, ReactNode, Ref } from 'react';
+import { FlexboxProps } from 'react-layout-kit';
 
-export interface ChatInputProps {
-  children?: ReactNode;
-  className?: string;
+export interface ChatInputProps extends FlexboxProps {
+  classNames?: {
+    body?: string;
+  };
   footer?: ReactNode;
+  fullscreen?: boolean;
   header?: ReactNode;
   maxHeight?: string | number;
   slashMenuRef?: Ref<HTMLDivElement>;
-  style?: CSSProperties;
+  styles?: {
+    body?: CSSProperties;
+  };
 }

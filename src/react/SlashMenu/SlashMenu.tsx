@@ -21,6 +21,9 @@ const SlashMenu = memo<SlashMenuProps>(
     loading,
     maxHeight = 'min(50vh, 640px)',
     onSelect,
+    styles: customStyles,
+    classNames,
+    menuProps,
   }) => {
     const { cx, styles } = useStyles();
     const parent = getPopupContainer();
@@ -40,19 +43,26 @@ const SlashMenu = memo<SlashMenuProps>(
     if (!open) return;
 
     const node = (
-      <Flexbox className={styles.root} paddingInline={8} width={'100%'}>
+      <Flexbox
+        className={cx(styles.root, classNames?.root)}
+        paddingInline={8}
+        style={customStyles?.root}
+        width={'100%'}
+      >
         <Block
-          className={cx(styles.container, className)}
+          className={cx(styles.container, className, classNames?.container)}
           gap={4}
           horizontal
           shadow
           style={{
             maxHeight,
             ...style,
+            ...customStyles?.container,
           }}
           variant={'outlined'}
         >
           <Menu
+            className={classNames?.menu}
             items={
               loading
                 ? [
@@ -67,6 +77,8 @@ const SlashMenu = memo<SlashMenuProps>(
             mode={'inline'}
             onClick={handleMenuClick}
             selectedKeys={activeKey ? [activeKey] : undefined}
+            style={customStyles?.menu}
+            {...menuProps}
           />
         </Block>
       </Flexbox>

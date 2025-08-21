@@ -1,8 +1,7 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { FlexboxProps } from 'react-layout-kit';
 
-export interface ChatInputActionBarProps {
-  className?: string;
+export interface ChatInputActionBarProps extends Omit<FlexboxProps, 'children'> {
   left?: ReactNode;
   right?: ReactNode;
-  style?: CSSProperties;
 }
