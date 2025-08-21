@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.0.2](https://github.com/lobehub/lobe-editor/compare/v1.0.1...v1.0.2)
+<sup>Released on **2025-08-21**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix import error and hotload (fixed.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix import error and hotload (fixed, closes [#7](https://github.com/lobehub/lobe-editor/issues/7) ([a10eea2](https://github.com/lobehub/lobe-editor/commit/a10eea2))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.0.1](https://github.com/lobehub/lobe-editor/compare/v1.0.0...v1.0.1)
 <sup>Released on **2025-08-20**</sup>
 
