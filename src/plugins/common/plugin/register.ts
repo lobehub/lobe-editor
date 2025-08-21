@@ -31,6 +31,7 @@ import {
 } from 'lexical';
 
 import { CONTROL_OR_META, CONTROL_OR_META_AND_SHIFT } from '@/common/sys';
+import { IEditor } from '@/types';
 
 function resolveElement(
   element: ElementNode,
@@ -159,9 +160,9 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
   );
 }
 
-export function registerRichKeydown(editor: LexicalEditor) {
+export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
   return mergeRegister(
-    editor.registerCommand(
+    kernel.registerHighCommand(
       KEY_DOWN_COMMAND,
       (payload) => {
         // ctrl + shift + x
@@ -183,7 +184,7 @@ export function registerRichKeydown(editor: LexicalEditor) {
       },
       COMMAND_PRIORITY_EDITOR,
     ),
-    editor.registerCommand(
+    kernel.registerHighCommand(
       KEY_ARROW_UP_COMMAND,
       (event) => {
         const selection = $getSelection();
@@ -216,7 +217,7 @@ export function registerRichKeydown(editor: LexicalEditor) {
       },
       COMMAND_PRIORITY_EDITOR,
     ),
-    editor.registerCommand<KeyboardEvent>(
+    kernel.registerHighCommand<KeyboardEvent>(
       KEY_ARROW_DOWN_COMMAND,
       (event) => {
         const selection = $getSelection();
@@ -264,7 +265,7 @@ export function registerRichKeydown(editor: LexicalEditor) {
       },
       COMMAND_PRIORITY_EDITOR,
     ),
-    editor.registerCommand(
+    kernel.registerHighCommand(
       KEY_ARROW_RIGHT_COMMAND,
       (event) => {
         const selection = $getSelection();
