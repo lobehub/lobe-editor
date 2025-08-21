@@ -10,23 +10,25 @@ import {
 import { get, merge, template, templateSettings } from 'lodash-es';
 
 import defaultLocale from '@/locale';
-
-import DataSource from './data-source';
-import { registerEvent } from './event';
 import {
   IEditor,
   IEditorKernel,
   IEditorPlugin,
   IEditorPluginConstructor,
-  ILocaleKeys,
   IPlugin,
   IServiceID,
-} from './types';
+} from '@/types/kernel';
+import { ILocaleKeys } from '@/types/locale';
+
+import DataSource from './data-source';
+import { registerEvent } from './event';
 import { createEmptyEditorState } from './utils';
 
 templateSettings.interpolate = /{{([\S\s]+?)}}/g;
 
 export class Kernel extends EventEmitter implements IEditorKernel {
+  // Global hot reload flag
+  private static globalHotReloadMode: boolean | undefined = undefined;
   private dataTypeMap: Map<string, DataSource>;
   private plugins: Array<IEditorPluginConstructor<any> & { __config: any }> = [];
   private pluginsInstances: Array<IEditorPlugin<any>> = [];
@@ -39,12 +41,69 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     keyof ILocaleKeys,
     string
   >;
+  private hotReloadMode: boolean = false;
 
   private editor?: LexicalEditor;
 
   constructor() {
     super();
     this.dataTypeMap = new Map<string, DataSource>();
+    // Enable hot reload mode in development
+    this.hotReloadMode = this.detectDevelopmentMode();
+  }
+
+  private detectDevelopmentMode(): boolean {
+    // Check global override first
+    if (Kernel.globalHotReloadMode !== undefined) {
+      return Kernel.globalHotReloadMode;
+    }
+
+    // Multiple ways to detect development mode
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
+      return true;
+    }
+
+    // Check for common development indicators
+    if (typeof window !== 'undefined') {
+      // Webpack HMR
+      if ((window as any).webpackHotUpdate) {
+        return true;
+      }
+      // Vite HMR
+      if ((window as any).__vite_plugin_react_preamble_installed__) {
+        return true;
+      }
+      // Next.js development
+      if ((window as any).__NEXT_DATA__?.buildId === 'development') {
+        return true;
+      }
+    }
+
+    // Check for localhost or development URLs
+    if (typeof window !== 'undefined' && window.location) {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local')) {
+        return true;
+      }
+    }
+
+    // Default to development mode for better DX
+    return true;
+  }
+
+  /**
+   * Globally enable or disable hot reload mode for all kernel instances
+   * @param enabled Whether to enable hot reload mode globally
+   */
+  static setGlobalHotReloadMode(enabled: boolean): void {
+    Kernel.globalHotReloadMode = enabled;
+  }
+
+  /**
+   * Reset global hot reload mode to automatic detection
+   */
+  static resetGlobalHotReloadMode(): void {
+    Kernel.globalHotReloadMode = undefined;
   }
 
   getLexicalEditor(): LexicalEditor | null {
@@ -60,6 +119,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       }
     });
     this.pluginsInstances = [];
+    // Clear services to support hot reload
+    this.serviceMap.clear();
   }
 
   getRootElement(): HTMLElement | null {
@@ -67,10 +128,21 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   setRootElement(dom: HTMLElement) {
-    for (const plugin of this.plugins) {
-      const instance = new plugin(this, plugin.__config);
-      this.pluginsInstances.push(instance);
+    // Check if editor is already initialized to prevent re-initialization
+    if (this.editor) {
+      console.warn('[Editor] Editor is already initialized, updating root element only');
+      this.editor.setRootElement(dom);
+      return this.editor;
     }
+
+    // Initialize plugins if not already done
+    if (this.pluginsInstances.length === 0) {
+      for (const plugin of this.plugins) {
+        const instance = new plugin(this, plugin.__config);
+        this.pluginsInstances.push(instance);
+      }
+    }
+
     const editor = (this.editor = createEditor({
       // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
@@ -151,11 +223,39 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     if (findPlugin) {
       // Error if same name but different plugin
       if (findPlugin !== plugin) {
-        throw new Error(
-          `Plugin with name "${plugin.pluginName}" is already registered with a different implementation.`,
-        );
+        if (this.hotReloadMode) {
+          console.warn(
+            `[Hot Reload] Replacing plugin "${plugin.pluginName}" with new implementation`,
+          );
+          // Remove old plugin
+          const index = this.plugins.findIndex((p) => p.pluginName === plugin.pluginName);
+          if (index !== -1) {
+            this.plugins.splice(index, 1);
+            // Also remove corresponding plugin instance if it exists
+            const instanceIndex = this.pluginsInstances.findIndex((instance) => {
+              return (instance.constructor as any).pluginName === plugin.pluginName;
+            });
+            if (instanceIndex !== -1) {
+              const oldInstance = this.pluginsInstances[instanceIndex];
+              if (oldInstance.destroy) {
+                oldInstance.destroy();
+              }
+              this.pluginsInstances.splice(instanceIndex, 1);
+            }
+          }
+        } else {
+          throw new Error(
+            `Plugin with name "${plugin.pluginName}" is already registered with a different implementation.`,
+          );
+        }
+      } else {
+        // Same plugin, just update config if provided
+        if (config !== undefined) {
+          // @ts-expect-error not error
+          plugin.__config = config;
+        }
+        return this; // If plugin already exists, don't register again
       }
-      return this; // If plugin already exists, don't register again
     }
     // @ts-expect-error not error
     plugin.__config = config || {};
@@ -180,10 +280,59 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   registerService<T>(serviceId: IServiceID<T>, service: T): void {
-    if (this.serviceMap.has(serviceId.__serviceId)) {
-      throw new Error(`Service with ID "${serviceId.__serviceId}" is already registered.`);
+    const serviceIdString = serviceId.__serviceId;
+
+    if (this.serviceMap.has(serviceIdString)) {
+      if (this.hotReloadMode) {
+        // In hot reload mode, allow service override with warning
+        console.warn(`[Hot Reload] Overriding service with ID "${serviceIdString}"`);
+        this.serviceMap.set(serviceIdString, service);
+        return;
+      } else {
+        // Check if it's the same service instance
+        const existingService = this.serviceMap.get(serviceIdString);
+        if (existingService === service) {
+          // Same service instance, no need to re-register
+          console.warn(
+            `[Editor] Service "${serviceIdString}" is already registered with the same instance`,
+          );
+          return;
+        }
+
+        // Different service instance in production mode
+        console.error(
+          `[Editor] Attempting to register duplicate service "${serviceIdString}". Enable hot reload mode if this is intended.`,
+        );
+        throw new Error(`Service with ID "${serviceIdString}" is already registered.`);
+      }
     }
+
+    this.serviceMap.set(serviceIdString, service);
+    console.debug(`[Editor] Registered service: ${serviceIdString}`);
+  }
+
+  /**
+   * Register service with hot reload support - allows overriding existing services
+   * @param serviceId Service identifier
+   * @param service Service instance
+   */
+  registerServiceHotReload<T>(serviceId: IServiceID<T>, service: T): void {
     this.serviceMap.set(serviceId.__serviceId, service);
+  }
+
+  /**
+   * Enable or disable hot reload mode
+   * @param enabled Whether to enable hot reload mode
+   */
+  setHotReloadMode(enabled: boolean): void {
+    this.hotReloadMode = enabled;
+  }
+
+  /**
+   * Check if hot reload mode is enabled
+   */
+  isHotReloadMode(): boolean {
+    return this.hotReloadMode;
   }
 
   /**

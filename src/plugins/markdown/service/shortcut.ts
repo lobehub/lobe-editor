@@ -15,7 +15,7 @@ import {
 } from 'lexical';
 
 import { genServiceId } from '@/editor-kernel';
-import { IServiceID } from '@/editor-kernel/types';
+import { IServiceID } from '@/types/kernel';
 
 import { PUNCTUATION_OR_SPACE, getOpenTagStartIndex, indexBy, isEqualSubString } from '../utils';
 
@@ -413,6 +413,8 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
     (ctx: IMarkdownWriterContext, node: LexicalNode) => void
   > = {};
 
+  constructor(private kernel?: import('@/types/kernel').IEditorKernel) {}
+
   get markdownWriters() {
     return this._markdownWriters;
   }
@@ -529,6 +531,11 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
     writer: (ctx: IMarkdownWriterContext, node: LexicalNode) => void,
   ): void {
     if (!this._markdownWriters[type]) {
+      this._markdownWriters[type] = writer;
+      return;
+    }
+    if (this.kernel?.isHotReloadMode()) {
+      console.warn(`[Hot Reload] Overriding markdown writer for type "${type}"`);
       this._markdownWriters[type] = writer;
       return;
     }

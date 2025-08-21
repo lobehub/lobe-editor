@@ -33,8 +33,7 @@ import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@/plugins/link/node/LinkNode';
 import { sanitizeUrl } from '@/plugins/link/utils';
-
-import { IEditor } from '../types';
+import { IEditor } from '@/types';
 
 function $findTopLevelElement(node: LexicalNode) {
   let topLevelElement =

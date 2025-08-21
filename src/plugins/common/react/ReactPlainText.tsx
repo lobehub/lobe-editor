@@ -37,7 +37,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
       editor.registerPlugin(CommonPlugin, {
         theme: restTheme ? { ...themeStyles, ...restTheme } : themeStyles,
       });
-    }, []);
+    }, [editor, restTheme, themeStyles]);
 
     useEffect(() => {
       const container = editorContainerRef.current;
@@ -51,7 +51,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
       return editor.getLexicalEditor()?.registerUpdateListener(() => {
         onChange?.(editor);
       });
-    }, []);
+    }, [editor, type, content, onChange]);
 
     return (
       <div className={cx(styles.root, styles.variant, className)} style={style}>

@@ -1,4 +1,4 @@
-import { $getNodeByKey, EditorState, LexicalEditor, LexicalNode, NodeKey } from 'lexical';
+import { $getNodeByKey, LexicalEditor, LexicalNode, NodeKey, createEditor } from 'lexical';
 
 import type { IEditorKernel, IServiceID } from '@/types';
 
@@ -15,8 +15,9 @@ export function genServiceId<T>(name: string): IServiceID<T> {
 export const noop = () => {};
 
 export function createEmptyEditorState() {
-  // @ts-ignore
-  return new EditorState(new Map(), null);
+  // Create a temporary editor to get an empty state
+  const tempEditor = createEditor();
+  return tempEditor.getEditorState();
 }
 
 export function assert(cond?: boolean, message?: string): asserts cond {
@@ -35,7 +36,7 @@ export function getNodeKeyFromDOMNode(dom: Node, editor: LexicalEditor): NodeKey
 export function $getNodeFromDOMNode(
   dom: Node,
   editor: LexicalEditor,
-  editorState?: EditorState,
+  editorState?: ReturnType<LexicalEditor['getEditorState']>,
 ): LexicalNode | null {
   const key = getNodeKeyFromDOMNode(dom, editor);
   if (key !== undefined) {
@@ -70,7 +71,7 @@ export function getParentElement(node: Node): HTMLElement | null {
 export function $getNearestNodeFromDOMNode(
   startingDOM: Node,
   editor: LexicalEditor,
-  editorState?: EditorState,
+  editorState?: ReturnType<LexicalEditor['getEditorState']>,
 ): LexicalNode | null {
   let dom: Node | null = startingDOM;
   while (dom !== null) {

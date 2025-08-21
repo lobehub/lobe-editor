@@ -26,10 +26,11 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
   implements IEditorPlugin<MarkdownPluginOptions>
 {
   static pluginName = 'MarkdownPlugin';
-  private service = new MarkdownShortCutService();
+  private service: MarkdownShortCutService;
 
   constructor(protected kernel: IEditorKernel) {
     super();
+    this.service = new MarkdownShortCutService(kernel);
     kernel.registerService(IMarkdownShortCutService, this.service);
     // @todo To be implemented
     kernel.registerDataSource(new MarkdownDataSource('markdown', this.service));
