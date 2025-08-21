@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.2.0](https://github.com/lobehub/lobe-editor/compare/v1.1.0...v1.2.0)
+<sup>Released on **2025-08-21**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Update Editor props.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Update Editor props ([096f39b](https://github.com/lobehub/lobe-editor/commit/096f39b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.1.0](https://github.com/lobehub/lobe-editor/compare/v1.0.4...v1.1.0)
 <sup>Released on **2025-08-21**</sup>
 
