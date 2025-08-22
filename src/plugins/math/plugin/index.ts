@@ -1,5 +1,4 @@
 import { $createNodeSelection, $setSelection, DecoratorNode, LexicalEditor } from 'lexical';
-
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
