@@ -20,8 +20,11 @@ import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types'
 import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
+import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { createBlockNode } from '../utils';
 import { registerHeaderBackspace, registerRichKeydown } from './register';
+
+patchBreakLine();
 
 export interface CommonPluginOptions {
   theme?: {
@@ -251,6 +254,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerHeaderBackspace(editor),
       registerRichKeydown(editor, this.kernel),
       registerCommands(editor),
+      registerBreakLineClick(editor),
     );
   }
 
