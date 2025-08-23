@@ -8,6 +8,7 @@ import {
   DecoratorNode,
   EditorConfig,
   LexicalEditor,
+  LexicalNode,
   LexicalUpdateJSON,
   SerializedLexicalNode,
   Spread,
@@ -80,7 +81,7 @@ export class MathInlineNode extends DecoratorNode<unknown> {
   exportJSON(): SerializedMathInlineNode {
     return {
       ...super.exportJSON(),
-      code: this.code,
+      code: this.__code,
     };
   }
 
@@ -181,4 +182,8 @@ export function $convertMathInlineElement(): DOMConversionOutput {
 
 export function $convertMathBlockElement(): DOMConversionOutput {
   return { node: $createMathBlockNode() };
+}
+
+export function $isMathNode(node: LexicalNode): node is MathInlineNode | MathBlockNode {
+  return node instanceof MathInlineNode || node instanceof MathBlockNode;
 }

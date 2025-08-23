@@ -150,6 +150,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     const editor = (this.editor = createEditor({
       // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
+      namespace: 'lobehub',
       nodes: this.nodes,
       onError: (error: Error) => {
         this.emit('error', error);
