@@ -29,4 +29,41 @@ export const useStyles = createStyles(({ css, token }) => ({
     }
   `,
   mathBlock: css``,
+
+  mathEditor: css`
+    position: absolute;
+    z-index: 999;
+    inset-block-start: -9999px;
+    inset-inline-start: -9999px;
+
+    padding: 5px;
+    border: ${token.colorInfoBorder};
+    border-radius: ${token.borderRadiusLG}px;
+
+    background: ${token.colorBgContainer};
+    box-shadow: ${token.boxShadow};
+
+    textarea {
+      overflow-y: auto;
+      min-width: 400px;
+      min-height: 100px;
+      max-height: 300px;
+    }
+
+    .bottom {
+      display: flex;
+      justify-content: flex-end;
+      margin-block-start: 8px;
+
+      .hotkey {
+        margin-inline-start: 8px;
+      }
+    }
+
+    .button,
+    .button:hover {
+      padding: 0;
+      background: transparent !important;
+    }
+  `,
 }));
