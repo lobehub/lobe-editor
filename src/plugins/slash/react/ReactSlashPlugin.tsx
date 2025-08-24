@@ -149,8 +149,9 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
             setActiveKey(String(pureOptions[newIndex].key));
             event.preventDefault();
             event.stopImmediatePropagation();
+            return true;
           }
-          return true;
+          return false;
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
@@ -169,8 +170,9 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
             setActiveKey(String(pureOptions[newIndex].key));
             event.preventDefault();
             event.stopImmediatePropagation();
+            return true;
           }
-          return true;
+          return false;
         },
         COMMAND_PRIORITY_CRITICAL,
       ),

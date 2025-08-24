@@ -110,13 +110,13 @@ export class MathInlineNode extends DecoratorNode<unknown> {
   }
 }
 
-export class MathBlockNode extends MathInlineNode {
+export class MathBlockNode extends DecoratorNode<unknown> {
   static getType(): string {
     return 'mathBlock';
   }
 
   static clone(node: MathBlockNode): MathBlockNode {
-    return new MathBlockNode(node.__code);
+    return new MathBlockNode(node.__code, node.__key);
   }
 
   static importJSON(serializedNode: SerializedMathInlineNode): MathBlockNode {
@@ -135,6 +135,22 @@ export class MathBlockNode extends MathInlineNode {
         return null;
       },
     };
+  }
+
+  __code: string;
+
+  constructor(code = '', key?: string) {
+    super(key);
+    this.__code = code;
+  }
+
+  get code() {
+    return this.__code;
+  }
+
+  updateCode(newCode: string) {
+    const writer = this.getWritable();
+    writer.__code = newCode;
   }
 
   exportDOM(): DOMExportOutput {

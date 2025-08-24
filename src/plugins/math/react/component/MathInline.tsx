@@ -6,12 +6,12 @@ import { FC, useEffect, useRef } from 'react';
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 
-import { MathInlineNode } from '../../node';
+import { MathBlockNode, MathInlineNode } from '../../node';
 
 export interface MathInlineProps {
   className?: string;
   editor: LexicalEditor;
-  node: MathInlineNode;
+  node: MathInlineNode | MathBlockNode;
 }
 
 export const MathInline: FC<MathInlineProps> = ({ editor, node, className }) => {
@@ -19,7 +19,7 @@ export const MathInline: FC<MathInlineProps> = ({ editor, node, className }) => 
   const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
 
   useEffect(() => {
-    if (ref.current) {
+    if (ref.current && node.code) {
       Katex.render(node.code, ref.current, {
         throwOnError: false,
       });
@@ -57,7 +57,7 @@ export const MathInline: FC<MathInlineProps> = ({ editor, node, className }) => 
 
   return (
     <span className={className} ref={ref}>
-      {node.code}
+      {node.code ? node.code : 'type your math expression'}
     </span>
   );
 };

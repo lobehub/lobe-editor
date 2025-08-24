@@ -1,15 +1,20 @@
-import { DecoratorNode, LexicalEditor } from 'lexical';
+import { $createNodeSelection, $setSelection, DecoratorNode, LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerMathCommand } from '../command';
-import { $createMathInlineNode, MathBlockNode, MathInlineNode } from '../node';
+import {
+  $createMathBlockNode,
+  $createMathInlineNode,
+  MathBlockNode,
+  MathInlineNode,
+} from '../node';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface MathPluginOptions {
-  decorator: (node: MathInlineNode, editor: LexicalEditor) => unknown;
+  decorator: (node: MathInlineNode | MathBlockNode, editor: LexicalEditor) => unknown;
   theme?: {
     mathBlock?: string;
     mathInline?: string;
@@ -60,6 +65,26 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
       },
       trigger: '$',
       type: 'text-match',
+    });
+
+    kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+      regExp: /^(\$\$)$/,
+      replace: (parentNode, _1, _2, isImport) => {
+        const node = $createMathBlockNode();
+
+        // TODO: Get rid of isImport flag
+        if (isImport || parentNode.getNextSibling()) {
+          parentNode.replace(node);
+        } else {
+          parentNode.insertBefore(node);
+        }
+
+        const sel = $createNodeSelection();
+        sel.add(node.getKey());
+        $setSelection(sel);
+      },
+      trigger: 'enter',
+      type: 'element',
     });
   }
 
