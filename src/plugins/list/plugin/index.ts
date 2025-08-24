@@ -182,7 +182,9 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
           }
           const anchorNode = anchor.getNode();
           let listItemNode: ListItemNode | undefined;
-          if ($isTextNode(anchorNode)) {
+          if ($isListItemNode(anchorNode)) {
+            listItemNode = anchorNode;
+          } else if ($isTextNode(anchorNode)) {
             // Do not handle non-leading text nodes
             if (anchorNode.getPreviousSibling()) {
               return false;
