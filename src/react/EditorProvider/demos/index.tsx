@@ -13,6 +13,8 @@ const customLocale = {
   },
   link: {
     edit: '编辑链接',
+    editLinkTitle: '链接',
+    editTextTitle: '文本',
     open: '打开链接',
     placeholder: '输入链接 URL',
     unlink: '取消链接',
