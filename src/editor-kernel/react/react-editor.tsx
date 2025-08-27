@@ -44,16 +44,16 @@ const ConfigInjector: FC<{ config?: Record<string, any> }> = ({ config }) => {
 export const ReactEditor: FC<IReactEditorProps> = ({ editorRef, children, config }) => {
   const composerContext = useMemo(() => {
     const editor = Editor.createEditor();
-    updateRef(editorRef, editor);
     const theme = createLexicalComposerContext(null, null);
     return [editor, theme] as LexicalComposerContextWithEditor;
   }, []);
 
   useEffect(() => {
+    updateRef(editorRef, composerContext[0]);
     return () => {
       updateRef(editorRef, undefined);
     };
-  }, [editorRef]);
+  }, [editorRef, composerContext]);
 
   return (
     <LexicalComposerContext value={composerContext}>
