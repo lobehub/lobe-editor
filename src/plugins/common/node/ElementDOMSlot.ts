@@ -1,16 +1,27 @@
-import { CAN_USE_DOM, mergeRegister } from '@lexical/utils';
+import { CAN_USE_DOM, IS_IOS, IS_SAFARI, mergeRegister } from '@lexical/utils';
 import {
   COMMAND_PRIORITY_HIGH,
   ElementDOMSlot,
   LexicalEditor,
+  LexicalPrivateDOM,
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
-import { LexicalPrivateDOM } from 'lexical/LexicalNode';
 
 import { $getNodeFromDOMNode } from '@/editor-kernel/utils';
 
 export function patchBreakLine() {
   // 插入一个可以容纳光标的 breakline
+
+  ElementDOMSlot.prototype.setManagedLineBreak = function (
+    lineBreakType: null | 'empty' | 'line-break' | 'decorator',
+  ) {
+    if (lineBreakType === null) {
+      this.removeManagedLineBreak();
+    } else {
+      const webkitHack = lineBreakType === 'decorator' && (IS_IOS || IS_SAFARI);
+      this.insertManagedLineBreak(webkitHack);
+    }
+  };
 
   ElementDOMSlot.prototype.insertManagedLineBreak = function (webkitHack: boolean) {
     const prevBreak = this.getManagedLineBreak();
@@ -23,6 +34,7 @@ export function patchBreakLine() {
     const element: HTMLElement & LexicalPrivateDOM = this.element;
     const before = this.before;
     const br = document.createElement('span');
+    br.style.display = 'inline-block';
     // eslint-disable-next-line unicorn/prefer-dom-node-dataset
     br.setAttribute('data-lexical-linebreak', 'true');
     br.innerHTML = '&#xFEFF;<br>';

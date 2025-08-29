@@ -73,6 +73,8 @@ const themeConfig: SiteThemeConfig = {
 
 const alias: Record<string, string> = {};
 for (const pkg of packages) alias[`@lobehub/editor/${pkg}`] = resolve(__dirname, `./src/${pkg}`);
+// 覆盖原始 lexical 框架
+alias['lexical'] = resolve(__dirname, './src/editor-kernel/override/index');
 
 export default defineConfig({
   alias,
