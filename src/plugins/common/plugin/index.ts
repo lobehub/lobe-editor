@@ -11,7 +11,7 @@ import {
   registerRichText,
 } from '@lexical/rich-text';
 import { $createLineBreakNode, $createParagraphNode, $isTextNode } from 'lexical';
-import { LexicalEditor } from 'lexical/LexicalEditor';
+import type { LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService, isPunctuationChar } from '@/plugins/markdown';

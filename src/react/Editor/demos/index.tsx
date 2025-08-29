@@ -1,5 +1,6 @@
 import {
   IEditor,
+  INSERT_CODEINLINE_COMMAND,
   INSERT_FILE_COMMAND,
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
@@ -7,6 +8,7 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  ReactCodePlugin,
   ReactCodeblockPlugin,
   ReactFilePlugin,
   ReactHRPlugin,
@@ -97,6 +99,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           ReactHRPlugin,
           ReactTablePlugin,
           ReactMathPlugin,
+          ReactCodePlugin,
           Editor.withProps(ReactFilePlugin, {
             handleUpload: async (file) => {
               console.log('Files uploaded:', file);
@@ -199,6 +202,16 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
               label: 'InsertMathInline',
               onSelect: (editor) => {
                 editor.dispatchCommand(INSERT_MATH_COMMAND, { code: 'x^2 + y^2 = z^2' });
+                queueMicrotask(() => {
+                  editor.focus();
+                });
+              },
+            },
+            {
+              key: 'insert-codeInline',
+              label: 'InsertCodeInline',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, {});
                 queueMicrotask(() => {
                   editor.focus();
                 });
