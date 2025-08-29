@@ -12,8 +12,10 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es6",
+    "typeRoots": ["./src/types", "./node_modules"],
     "types": ["vitest/globals"],
     "paths": {
+      "lexical": ["./src/editor-kernel/override"],
       "@@/*": [".dumi/tmp/*"],
       "@/*": ["./src/*"],
       "@lobehub/editor": ["./src"],
@@ -23,5 +25,5 @@
     }
   },
   "exclude": ["./react.d.ts"],
-  "include": ["src", "docs", "tests", ".dumirc.ts", ".fatherrc.ts"]
+  "include": ["src", "./src/types", "docs", "tests", ".dumirc.ts", ".fatherrc.ts"]
 }
