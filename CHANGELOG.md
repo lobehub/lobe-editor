@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.2.2](https://github.com/lobehub/lobe-editor/compare/v1.2.1...v1.2.2)
+<sup>Released on **2025-08-29**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Add collapseOffset.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Add collapseOffset ([9a76aa4](https://github.com/lobehub/lobe-editor/commit/9a76aa4))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.2.1](https://github.com/lobehub/lobe-editor/compare/v1.2.0...v1.2.1)
 <sup>Released on **2025-08-27**</sup>
 
