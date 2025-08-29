@@ -31,6 +31,7 @@ export type DropdownItem = Omit<ActionItem, 'children' | 'type'> & {
 export type ChatInputActionItem = ActionItem | DividerItem | CollapseItem | DropdownItem;
 
 export interface ChatInputActionsProps extends Omit<FlexboxProps, 'children'> {
+  collapseOffset?: number;
   disabled?: boolean;
   items?: ChatInputActionItem[];
   onActionClick?: (action: ChatInputActionEvent) => void;

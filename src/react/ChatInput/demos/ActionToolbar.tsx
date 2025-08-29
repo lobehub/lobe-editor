@@ -27,6 +27,7 @@ const ActionToolbar = memo<ActionToolbarProps>(
       <ChatInputActionBar
         left={
           <ChatInputActions
+            collapseOffset={48}
             items={[
               {
                 icon: showTypobar ? RemoveFormattingIcon : TypeIcon,

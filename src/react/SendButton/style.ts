@@ -10,6 +10,25 @@ export const useStyles = createStyles(({ css, token, prefixCls }, size: number) 
       padding-inline: 0 !important;
     }
   `,
+  disabled: css`
+    &.${prefixCls}-btn {
+      cursor: default;
+      border-color: ${token.colorBorderSecondary};
+      background: transparent;
+    }
+
+    .${prefixCls}-btn-compact-first-item {
+      cursor: default;
+      border-color: ${token.colorBorderSecondary};
+      background: transparent;
+    }
+    .${prefixCls}-dropdown-trigger {
+      cursor: default;
+      border-color: ${token.colorBorderSecondary};
+      border-inline-start-color: transparent;
+      background: transparent;
+    }
+  `,
   dropdownButton: css`
     flex: none;
     width: fit-content;

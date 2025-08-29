@@ -22,6 +22,7 @@ const SendButton = memo<SendButtonProps>(
     shape,
     onSend,
     onStop,
+    disabled,
     onClick,
     ...rest
   }) => {
@@ -67,7 +68,8 @@ const SendButton = memo<SendButtonProps>(
     if (!menu)
       return (
         <Button
-          className={cx(styles.button, className)}
+          className={cx(styles.button, disabled && styles.disabled, className)}
+          disabled={disabled}
           icon={<SendIcon />}
           onClick={(e) => {
             e.stopPropagation();
@@ -86,9 +88,11 @@ const SendButton = memo<SendButtonProps>(
       <Dropdown.Button
         className={cx(
           styles.dropdownButton,
+          disabled && styles.disabled,
           shape === 'round' && styles.dropdownButtonRound,
           className,
         )}
+        disabled={disabled}
         icon={<Icon icon={ChevronDownIcon} />}
         menu={menu}
         onClick={(e) => {
