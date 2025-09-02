@@ -5,7 +5,7 @@ import {
   CodeHighlightNode,
   CodeNode,
 } from '@lexical/code';
-import { LexicalEditor, TabNode } from 'lexical';
+import { DOMConversionOutput, LexicalEditor, TabNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
@@ -15,6 +15,31 @@ import { CustomShikiTokenizer, registerCodeCommand } from '../command';
 import { getCodeLanguageByInput } from '../utils/language';
 import { registerCodeHighlighting, toCodeTheme } from './CodeHighlighterShiki';
 import { AllColorReplacements } from './FacadeShiki';
+
+const origin = CodeNode.importDOM;
+
+const LANGUAGE_DATA_ATTRIBUTE = 'data-language';
+const MAX_LENGTH = 8000;
+
+function $convertPreElement(domNode: HTMLElement): DOMConversionOutput {
+  const language = domNode.getAttribute(LANGUAGE_DATA_ATTRIBUTE);
+  if (domNode.innerHTML.length > MAX_LENGTH) {
+    return { node: null };
+  }
+  return { node: $createCodeNode(language) };
+}
+
+CodeNode.importDOM = () => {
+  const node = origin();
+  if (node) {
+    node.pre = () => ({
+      conversion: $convertPreElement,
+      priority: 0,
+    });
+  }
+  // Custom logic for handling imported DOM
+  return node;
+};
 
 export interface CodeblockPluginOptions {
   /** Color replacements configuration for customizing theme colors */
