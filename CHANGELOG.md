@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.3.0](https://github.com/lobehub/lobe-editor/compare/v1.2.2...v1.3.0)
+<sup>Released on **2025-09-03**</sup>
+
+
+#### ✨ Features
+
+- **misc**: 获取当前是否有选区，和选区部分的内容.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: 获取当前是否有选区，和选区部分的内容, closes [#14](https://github.com/lobehub/lobe-editor/issues/14) ([71b62b9](https://github.com/lobehub/lobe-editor/commit/71b62b9))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.2.2](https://github.com/lobehub/lobe-editor/compare/v1.2.1...v1.2.2)
 <sup>Released on **2025-08-29**</sup>
 
