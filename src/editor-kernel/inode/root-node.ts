@@ -1,8 +1,6 @@
-import { IElementNode } from './i-element-node';
+import { SerializedRootNode } from 'lexical';
 
 /**
  * Root node
  */
-export interface IRootNode extends IElementNode {
-  type: 'root';
-}
+export type IRootNode = SerializedRootNode;

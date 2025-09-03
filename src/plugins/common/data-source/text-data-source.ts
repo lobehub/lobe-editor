@@ -1,6 +1,7 @@
-import { $getRoot, LexicalEditor } from 'lexical';
+import { $getRoot, $getSelection, LexicalEditor } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
+import { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 
 export default class TextDataSource extends DataSource {
@@ -22,7 +23,13 @@ export default class TextDataSource extends DataSource {
     editor.setEditorState(editor.parseEditorState({ root: rootNode } as any));
   }
 
-  write(editor: LexicalEditor): any {
+  write(editor: LexicalEditor, options?: IWriteOptions): any {
+    if (options?.selection) {
+      return editor.read(() => {
+        const selection = $getSelection();
+        return selection ? selection.getTextContent() : null;
+      });
+    }
     return editor.getEditorState().read(() => {
       return $getRoot().getTextContent();
     });

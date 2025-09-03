@@ -68,6 +68,12 @@ export interface IEditor {
    * Get document editor root node
    */
   getRootElement(): HTMLElement | null;
+
+  /**
+   * Get document editor selection content of specified type
+   * @param type
+   */
+  getSelectionDocument(type: string): unknown | null;
   /**
    * Get editor theme
    */
@@ -103,6 +109,7 @@ export interface IEditor {
    * Register multiple editor plugins
    */
   registerPlugins(plugins: Array<IPlugin>): IEditor;
+
   /**
    * Get editor Service, usually provided by plugins to extend certain functionalities
    * @param serviceId

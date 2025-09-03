@@ -2,6 +2,11 @@
 /* eslint-disable unused-imports/no-unused-vars */
 import { LexicalEditor } from 'lexical';
 
+export interface IWriteOptions {
+  // get selection data
+  selection?: boolean;
+}
+
 export default class DataSource {
   constructor(protected dataType: string) {}
 
@@ -11,7 +16,7 @@ export default class DataSource {
 
   read(editor: LexicalEditor, data: any) {}
 
-  write(editor: LexicalEditor): any {
+  write(editor: LexicalEditor, options?: IWriteOptions): any {
     return null;
   }
 }
