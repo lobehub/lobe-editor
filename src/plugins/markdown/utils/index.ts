@@ -68,3 +68,17 @@ export function indexBy<T>(
 
   return index;
 }
+
+let Punctuation = /[!"#$%&'()*+,./:;<=>?@[\\\]^_`{|}~\u00A1\u2010-\u2027-]/;
+try {
+  Punctuation = new RegExp('[\\p{Pc}|\\p{Pd}|\\p{Pe}|\\p{Pf}|\\p{Pi}|\\p{Po}|\\p{Ps}]', 'u');
+} catch {}
+
+/**
+ * Checks if a character is a punctuation character.
+ * @param char The character to check.
+ * @returns True if the character is a punctuation character, false otherwise.
+ */
+export function isPunctuationChar(char: string): boolean {
+  return Punctuation.test(char);
+}

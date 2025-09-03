@@ -14,7 +14,7 @@ import { $createLineBreakNode, $createParagraphNode, $isTextNode } from 'lexical
 import { LexicalEditor } from 'lexical/LexicalEditor';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { IMarkdownShortCutService, isPunctuationChar } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCommands } from '../command';
@@ -201,10 +201,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const isStrikethrough = node.hasFormat('strikethrough');
       const isCode = node.hasFormat('code');
 
-      if (isCode || isBold || isStrikethrough || isItalic || isUnderline) {
-        ctx.appendLine(' ');
-      }
-
       if (isCode) {
         ctx.appendLine('`');
       }
@@ -220,7 +216,16 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       if (isUnderline) {
         ctx.appendLine('<u>');
       }
-      ctx.appendLine(node.getTextContent());
+
+      const textContent = node.getTextContent();
+      const res = textContent.match(/\s+$/);
+      let tailSpace = '';
+      if (res) {
+        tailSpace = res[0];
+      }
+      const append = textContent.trimEnd();
+      const lastChar = append.at(-1);
+      ctx.appendLine(append);
       if (isUnderline) {
         ctx.appendLine('</u>');
       }
@@ -237,7 +242,9 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         ctx.appendLine('`');
       }
 
-      if (isCode || isBold || isStrikethrough || isItalic || isUnderline) {
+      if (tailSpace) {
+        ctx.appendLine(tailSpace);
+      } else if (lastChar && isPunctuationChar(lastChar)) {
         ctx.appendLine(' ');
       }
     });
