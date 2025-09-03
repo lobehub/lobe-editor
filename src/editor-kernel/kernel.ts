@@ -192,6 +192,19 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     return datasource.write(this.editor);
   }
 
+  getSelectionDocument(type: string): unknown | null {
+    const datasource = this.dataTypeMap.get(type);
+    if (!datasource) {
+      throw new Error(`DataSource for type "${type}" is not registered.`);
+    }
+    if (!this.editor) {
+      throw new Error(`Editor is not initialized.`);
+    }
+    return datasource.write(this.editor, {
+      selection: true,
+    });
+  }
+
   registerDecorator(
     name: string,
     decorator: (_node: DecoratorNode<any>, _editor: LexicalEditor) => any,

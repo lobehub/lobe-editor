@@ -1,6 +1,3 @@
-import { INode } from './i-node';
+import { SerializedElementNode } from 'lexical';
 
-export interface IElementNode extends INode {
-  children: INode[];
-  type: string;
-}
+export type IElementNode = SerializedElementNode;

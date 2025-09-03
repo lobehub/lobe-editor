@@ -1,6 +1,3 @@
-export interface INode {
-  direction: 'ltr' | 'rtl';
-  format: string;
-  indent: number;
-  version: number;
-}
+import type { SerializedLexicalNode } from 'lexical';
+
+export type INode = SerializedLexicalNode;
