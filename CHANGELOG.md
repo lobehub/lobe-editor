@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.4.1](https://github.com/lobehub/lobe-editor/compare/v1.4.0...v1.4.1)
+<sup>Released on **2025-09-04**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Update SendButton disabled.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Update SendButton disabled ([8a2661c](https://github.com/lobehub/lobe-editor/commit/8a2661c))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.4.0](https://github.com/lobehub/lobe-editor/compare/v1.3.0...v1.4.0)
 <sup>Released on **2025-09-04**</sup>
 
