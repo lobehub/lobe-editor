@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, Icon } from '@lobehub/ui';
-import { Dropdown } from 'antd';
+import { Dropdown, Space } from 'antd';
 import { ChevronDownIcon } from 'lucide-react';
 import { memo } from 'react';
 
@@ -85,29 +85,42 @@ const SendButton = memo<SendButtonProps>(
       );
 
     return (
-      <Dropdown.Button
+      <Space.Compact
         className={cx(
           styles.dropdownButton,
           disabled && styles.disabled,
           shape === 'round' && styles.dropdownButtonRound,
           className,
         )}
-        disabled={disabled}
-        icon={<Icon icon={ChevronDownIcon} />}
-        menu={menu}
-        onClick={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          if (onSend) onSend(e);
-          if (onClick) onClick(e);
-        }}
-        placement={'topRight'}
         style={style}
-        type={type}
         {...rest}
       >
-        {!loading && <SendIcon />}
-      </Dropdown.Button>
+        <Button
+          className={cx(styles.button, disabled && styles.disabled, className)}
+          disabled={disabled}
+          icon={<SendIcon />}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (onSend) onSend(e);
+            if (onClick) onClick(e);
+          }}
+          shape={shape}
+          style={style}
+          type={type}
+          {...rest}
+        />
+        <Dropdown menu={menu} placement={'topRight'} {...rest}>
+          <Button
+            className={cx(styles.button, disabled && styles.disabled, className)}
+            disabled={disabled}
+            icon={<Icon icon={ChevronDownIcon} />}
+            shape={shape}
+            style={{ cursor: 'pointer' }}
+            type={type}
+          />
+        </Dropdown>
+      </Space.Compact>
     );
   },
 );
