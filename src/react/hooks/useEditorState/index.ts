@@ -6,28 +6,23 @@ import {
   ListNode,
 } from '@lexical/list';
 import { $isHeadingNode } from '@lexical/rich-text';
-import { $isAtNodeEnd, $setBlocksType } from '@lexical/selection';
-import { $findMatchingParent, $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
+import { $setBlocksType } from '@lexical/selection';
+import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
 import {
-  $createParagraphNode,
   $getSelection,
   $isRangeSelection,
-  $isRootOrShadowRoot,
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,
   COMMAND_PRIORITY_LOW,
-  ElementNode,
   FORMAT_TEXT_COMMAND,
   LexicalEditor,
   LexicalNode,
   REDO_COMMAND,
-  RangeSelection,
   SELECTION_CHANGE_COMMAND,
   TextFormatType,
-  TextNode,
   UNDO_COMMAND,
 } from 'lexical';
-import { type RefObject, useCallback, useEffect, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
@@ -35,49 +30,68 @@ import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@/plugins/link/node/LinkNode';
 import { sanitizeUrl } from '@/plugins/link/utils';
 import { IEditor } from '@/types';
 
-function $findTopLevelElement(node: LexicalNode) {
-  let topLevelElement =
-    node.getKey() === 'root'
-      ? node
-      : $findMatchingParent(node, (e) => {
-          const parent = e.getParent();
-          return parent !== null && $isRootOrShadowRoot(parent);
-        });
+import { $findTopLevelElement, formatParagraph, getSelectedNode } from './utils';
 
-  if (topLevelElement === null) {
-    topLevelElement = node.getTopLevelElementOrThrow();
-  }
-  return topLevelElement;
-}
-
-const formatParagraph = (editor?: LexicalEditor | null) => {
-  editor?.update(() => {
-    const selection = $getSelection();
-    $setBlocksType(selection, () => $createParagraphNode());
-  });
-};
-
-function getSelectedNode(selection: RangeSelection): TextNode | ElementNode {
-  const anchor = selection.anchor;
-  const focus = selection.focus;
-  const anchorNode = selection.anchor.getNode();
-  const focusNode = selection.focus.getNode();
-  if (anchorNode === focusNode) {
-    return anchorNode;
-  }
-  const isBackward = selection.isBackward();
-  if (isBackward) {
-    return $isAtNodeEnd(focus) ? anchorNode : focusNode;
-  } else {
-    return $isAtNodeEnd(anchor) ? anchorNode : focusNode;
-  }
+/**
+ * Editor state and toolbar methods return type
+ */
+export interface EditorState {
+  /** Current block type (e.g., 'paragraph', 'h1', 'h2', 'bullet', 'number', 'code') */
+  blockType: string | null;
+  /** Toggle bold formatting */
+  bold: () => void;
+  /** Toggle bullet list */
+  bulletList: () => void;
+  /** Whether redo operation is available */
+  canRedo: boolean;
+  /** Whether undo operation is available */
+  canUndo: boolean;
+  /** Toggle code formatting */
+  code: () => void;
+  /** Current code block language */
+  codeblockLang: string | null | undefined;
+  /** Format selection as code block */
+  formatCodeblock: () => void;
+  /** Insert or toggle link */
+  insertLink: () => void;
+  /** Whether selection has bold formatting */
+  isBold: boolean;
+  /** Whether selection has code formatting */
+  isCode: boolean;
+  /** Whether editor content is empty */
+  isEmpty: boolean;
+  /** Whether cursor is inside a code block */
+  isInCodeblock: boolean;
+  /** Whether selection has italic formatting */
+  isItalic: boolean;
+  /** Whether editor has selection */
+  isSelected: boolean;
+  /** Whether selection has strikethrough formatting */
+  isStrikethrough: boolean;
+  /** Whether selection has underline formatting */
+  isUnderline: boolean;
+  /** Toggle italic formatting */
+  italic: () => void;
+  /** Toggle numbered list */
+  numberList: () => void;
+  /** Redo last operation */
+  redo: () => void;
+  /** Toggle strikethrough formatting */
+  strikethrough: () => void;
+  /** Toggle underline formatting */
+  underline: () => void;
+  /** Undo last operation */
+  undo: () => void;
+  /** Update code block language */
+  updateCodeblockLang: (lang: string) => void;
 }
 
 /**
  * Provide toolbar state and toolbar methods
- * @returns
+ * @param editorRef - Reference to the editor instance
+ * @returns Editor state and methods for toolbar functionality
  */
-export function useToolbarState(editorRef: RefObject<IEditor | null>) {
+export function useEditorState(editorRef: RefObject<IEditor | null>): EditorState {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [isBold, setIsBold] = useState(false);
@@ -89,6 +103,7 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
   const [isInCodeblock, setIsInCodeblok] = useState(false);
   const [codeblockLang, setCodeblockLang] = useState<string | null | undefined>(null);
   const [isEmpty, setIsEmpty] = useState(true);
+  const [isSelected, setIsSelected] = useState(false);
   const [blockType, setBlockType] = useState<string | null>(null);
 
   const $handleHeadingNode = useCallback(
@@ -105,11 +120,13 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection();
     const editor = editorRef.current?.getLexicalEditor();
-
+    setIsSelected(false);
     if (editor) {
       setIsEmpty($isRootTextContentEmpty(editor.isComposing(), false));
     }
+
     if ($isRangeSelection(selection)) {
+      setIsSelected(!!selection._cachedNodes);
       setIsBold(selection.hasFormat('bold'));
       setIsItalic(selection.hasFormat('italic'));
       setIsUnderline(selection.hasFormat('underline'));
@@ -124,6 +141,7 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
       const elementDOM = editorRef.current?.getLexicalEditor()?.getElementByKey(elementKey);
 
       const node = getSelectedNode(selection);
+
       const parent = node.getParent();
       setIsLink($isLinkNode(parent) || $isLinkNode(node));
       const isCodeBlock =
@@ -142,6 +160,7 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
         }
       }
     } else if (!selection) {
+      setIsSelected(false);
       setIsBold(false);
       setIsItalic(false);
       setIsUnderline(false);
@@ -298,29 +317,58 @@ export function useToolbarState(editorRef: RefObject<IEditor | null>) {
     return handleLeixcalEditor(lexicalEditor);
   }, [editorRef.current]);
 
-  return {
-    blockType,
-    bold,
-    bulletList,
-    canRedo,
-    canUndo,
-    code,
-    codeblockLang,
-    formatCodeblock,
-    insertLink,
-    isBold,
-    isCode,
-    isEmpty,
-    isInCodeblock,
-    isItalic,
-    isStrikethrough,
-    isUnderline,
-    italic,
-    numberList,
-    redo,
-    strikethrough,
-    underline,
-    undo,
-    updateCodeblockLang,
-  };
+  return useMemo(
+    () => ({
+      blockType,
+      bold,
+      bulletList,
+      canRedo,
+      canUndo,
+      code,
+      codeblockLang,
+      formatCodeblock,
+      insertLink,
+      isBold,
+      isCode,
+      isEmpty,
+      isInCodeblock,
+      isItalic,
+      isSelected,
+      isStrikethrough,
+      isUnderline,
+      italic,
+      numberList,
+      redo,
+      strikethrough,
+      underline,
+      undo,
+      updateCodeblockLang,
+    }),
+    [
+      blockType,
+      bold,
+      bulletList,
+      canRedo,
+      canUndo,
+      code,
+      codeblockLang,
+      formatCodeblock,
+      insertLink,
+      isBold,
+      isCode,
+      isEmpty,
+      isInCodeblock,
+      isItalic,
+      isSelected,
+      isStrikethrough,
+      isUnderline,
+      italic,
+      numberList,
+      redo,
+      strikethrough,
+      underline,
+      undo,
+      updateCodeblockLang,
+    ],
+  );
 }

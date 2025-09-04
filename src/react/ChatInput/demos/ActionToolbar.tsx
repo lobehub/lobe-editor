@@ -1,3 +1,4 @@
+import { ChatInputActionBar, ChatInputActions, SendButton } from '@lobehub/editor/react';
 import { TokenTag } from '@lobehub/ui/chat';
 import { Popover } from 'antd';
 import {
@@ -11,8 +12,6 @@ import {
   TypeIcon,
 } from 'lucide-react';
 import { memo } from 'react';
-
-import { ChatInputActionBar, ChatInputActions, SendButton } from '@/react';
 
 interface ActionToolbarProps {
   onSend?: () => void;

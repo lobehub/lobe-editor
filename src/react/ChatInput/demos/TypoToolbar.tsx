@@ -1,9 +1,10 @@
-import { IEditor, useToolbarState } from '@lobehub/editor';
+import { IEditor } from '@lobehub/editor';
 import {
   ChatInputActionBar,
   ChatInputActions,
   ChatInputActionsProps,
   CodeLanguageSelect,
+  useEditorState,
 } from '@lobehub/editor/react';
 import { useTheme } from 'antd-style';
 import {
@@ -25,7 +26,7 @@ export interface ToolbarProps {
 }
 
 const TypoToolbar = memo<ToolbarProps>(({ show, editorRef }) => {
-  const toolbarState = useToolbarState(editorRef);
+  const toolbarState = useEditorState(editorRef);
   const theme = useTheme();
 
   return (

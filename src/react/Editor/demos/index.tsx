@@ -1,11 +1,13 @@
 import {
   IEditor,
+  INSERT_FILE_COMMAND,
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
   INSERT_LINK_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
   ReactCodeblockPlugin,
+  ReactFilePlugin,
   ReactHRPlugin,
   ReactImagePlugin,
   ReactLinkPlugin,
@@ -17,8 +19,6 @@ import { Avatar, type CollapseProps } from '@lobehub/ui';
 import { debounce } from 'lodash-es';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
-
-import { INSERT_FILE_COMMAND, ReactFilePlugin } from '@/plugins/file';
 
 import Container from './Container';
 import Toolbar from './Toolbar';

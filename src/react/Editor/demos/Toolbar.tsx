@@ -1,10 +1,10 @@
+import { IEditor, INSERT_FILE_COMMAND, INSERT_IMAGE_COMMAND } from '@lobehub/editor';
 import {
-  IEditor,
-  INSERT_FILE_COMMAND,
-  INSERT_IMAGE_COMMAND,
-  useToolbarState,
-} from '@lobehub/editor';
-import { ChatInputActions, ChatInputActionsProps, CodeLanguageSelect } from '@lobehub/editor/react';
+  ChatInputActions,
+  ChatInputActionsProps,
+  CodeLanguageSelect,
+  useEditorState,
+} from '@lobehub/editor/react';
 import { Block } from '@lobehub/ui';
 import { useTheme } from 'antd-style';
 import {
@@ -31,7 +31,7 @@ export interface ToolbarProps {
 }
 
 const Toolbar = memo<ToolbarProps>(({ editorRef }) => {
-  const toolbarState = useToolbarState(editorRef);
+  const toolbarState = useEditorState(editorRef);
   const theme = useTheme();
 
   return (

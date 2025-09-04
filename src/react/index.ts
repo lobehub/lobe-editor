@@ -6,12 +6,14 @@ export {
   type ChatInputActionsProps,
 } from './ChatInputActions';
 export { default as CodeLanguageSelect, type CodeLanguageSelectProps } from './CodeLanguageSelect';
-export { default as Editor, type EditorProps, useEditor, withProps } from './Editor';
+export { default as Editor, type EditorProps, withProps } from './Editor';
 export {
   EditorProvider,
   type EditorProviderConfig,
   type EditorProviderProps,
   useEditorContent,
 } from './EditorProvider';
+export { useEditor } from './hooks/useEditor';
+export { type EditorState, useEditorState } from './hooks/useEditorState';
 export { default as SendButton, type SendButtonProps } from './SendButton';
 export { default as SlashMenu, type SlashMenuProps } from './SlashMenu';

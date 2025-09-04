@@ -9,10 +9,8 @@ import {
   ReactLinkPlugin,
   ReactListPlugin,
   ReactTablePlugin,
-  useToolbarState,
 } from '@lobehub/editor';
-import { ChatInput, SlashMenu, useEditor } from '@lobehub/editor/react';
-import Editor from '@lobehub/editor/react/Editor';
+import { ChatInput, Editor, SlashMenu, useEditor, useEditorState } from '@lobehub/editor/react';
 import { Avatar } from '@lobehub/ui';
 import type { ChatMessage } from '@lobehub/ui/chat';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
@@ -28,7 +26,7 @@ export default () => {
   const [showTypobar, setShowTypobar] = useState(true);
   const editorRef = useEditor();
   const slashMenuRef = useRef<HTMLDivElement>(null);
-  const toolbarState = useToolbarState(editorRef);
+  const toolbarState = useEditorState(editorRef);
   return (
     <Container messages={messages}>
       <ChatInput
