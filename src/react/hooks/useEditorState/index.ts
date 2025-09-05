@@ -95,7 +95,7 @@ export interface EditorState {
  * @param editor - Editor instance
  * @returns Editor state and methods for toolbar functionality
  */
-export function useEditorState(editor: IEditor): EditorState {
+export function useEditorState(editor?: IEditor): EditorState {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [isBold, setIsBold] = useState(false);
