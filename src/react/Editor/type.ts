@@ -1,4 +1,4 @@
-import type { CSSProperties, FC, ReactNode, RefObject } from 'react';
+import type { CSSProperties, FC, ReactNode } from 'react';
 
 import type { ReactEditorContentProps, ReactPlainTextProps } from '@/plugins/common/react';
 import type { ReactMentionPluginProps } from '@/plugins/mention/react';
@@ -17,8 +17,9 @@ export interface EditorProps
   autoFocus?: boolean;
   children?: ReactNode;
   className?: string;
-  editorRef?: RefObject<IEditor | null>;
+  editor?: IEditor;
   mentionOption?: MentionOption;
+  onInit?: (editor: IEditor) => void;
   plugins?: EditorPlugin[];
   slashOption?: Partial<ReactSlashOptionProps>;
   style?: CSSProperties;

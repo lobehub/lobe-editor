@@ -14,11 +14,11 @@ import {
   ReactListPlugin,
   ReactTablePlugin,
 } from '@lobehub/editor';
-import { Editor } from '@lobehub/editor/react';
+import { Editor, useEditor } from '@lobehub/editor/react';
 import { Avatar, type CollapseProps } from '@lobehub/ui';
 import { debounce } from 'lodash-es';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
-import { memo, useEffect, useState } from 'react';
+import { memo, useState } from 'react';
 
 import Container from './Container';
 import Toolbar from './Toolbar';
@@ -26,7 +26,7 @@ import { openFileSelector } from './actions';
 import content from './data.json';
 
 const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((props) => {
-  const editorRef = Editor.useEditor();
+  const editor = useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
 
@@ -37,19 +37,18 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
     setJson(JSON.stringify(jsonContent || {}, null, 2));
   }, 300);
 
-  useEffect(() => {
-    if (!editorRef.current) return;
+  const handleInit = (editor: IEditor) => {
     // @ts-expect-error not error：
-    window.editor = editorRef.current;
-    handleChange(editorRef.current);
-  }, []);
+    window.editor = editor;
+    handleChange(editor);
+  };
 
   return (
     <Container json={json} markdown={markdown} {...props}>
-      <Toolbar editorRef={editorRef} />
+      <Toolbar editor={editor} />
       <Editor
         content={content}
-        editorRef={editorRef}
+        editor={editor}
         mentionOption={{
           items: async (search) => {
             console.log(search);
@@ -86,6 +85,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           },
         }}
         onChange={handleChange}
+        onInit={handleInit}
         placeholder={'Type something...'}
         plugins={[
           ReactListPlugin,

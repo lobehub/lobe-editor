@@ -14,114 +14,126 @@ import {
   LinkIcon,
   ListIcon,
   ListOrderedIcon,
+  MessageSquareQuote,
   SquareDashedBottomCodeIcon,
   StrikethroughIcon,
   UnderlineIcon,
 } from 'lucide-react';
-import { type RefObject, memo } from 'react';
+import { memo, useMemo } from 'react';
 
 export interface ToolbarProps {
-  editorRef: RefObject<IEditor | null>;
+  editor: IEditor;
   show?: boolean;
 }
 
-const TypoToolbar = memo<ToolbarProps>(({ show, editorRef }) => {
-  const toolbarState = useEditorState(editorRef);
+const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
+  const editorState = useEditorState(editor);
   const theme = useTheme();
+
+  const items: ChatInputActionsProps['items'] = useMemo(
+    () =>
+      [
+        {
+          active: editorState.isBold,
+          icon: BoldIcon,
+          key: 'bold',
+          label: 'Bold',
+          onClick: editorState.bold,
+        },
+        {
+          active: editorState.isItalic,
+          icon: ItalicIcon,
+          key: 'italic',
+          label: 'Italic',
+          onClick: editorState.italic,
+        },
+        {
+          active: editorState.isUnderline,
+          icon: UnderlineIcon,
+          key: 'underline',
+          label: 'Underline',
+          onClick: editorState.underline,
+        },
+        {
+          active: editorState.isStrikethrough,
+          icon: StrikethroughIcon,
+          key: 'strikethrough',
+          label: 'Strikethrough',
+          onClick: editorState.strikethrough,
+        },
+        {
+          type: 'divider',
+        },
+
+        {
+          icon: ListIcon,
+          key: 'bulletList',
+          label: 'bulletList',
+          onClick: () => {
+            editorState.bulletList();
+          },
+        },
+        {
+          icon: ListOrderedIcon,
+          key: 'numberlist',
+          label: 'numberlist',
+          onClick: () => {
+            editorState.numberList();
+          },
+        },
+        {
+          active: editorState.isBlockquote,
+          icon: MessageSquareQuote,
+          key: 'blockquote',
+          label: 'Blockquote',
+          onClick: () => {
+            editorState.blockquote();
+          },
+        },
+        {
+          icon: LinkIcon,
+          key: 'link',
+          label: 'link',
+          onClick: () => {
+            editorState.insertLink();
+          },
+        },
+        {
+          type: 'divider',
+        },
+        {
+          active: editorState.isCode,
+          icon: CodeXmlIcon,
+          key: 'code',
+          label: 'Code',
+          onClick: editorState.code,
+        },
+        {
+          active: editorState.isCodeblock,
+          icon: SquareDashedBottomCodeIcon,
+          key: 'codeblock',
+          label: 'Codeblock',
+          onClick: () => {
+            editorState.codeblock();
+          },
+        },
+        editorState.isCodeblock && {
+          children: (
+            <CodeLanguageSelect
+              onSelect={(value) => editorState.updateCodeblockLang(value)}
+              value={editorState.codeblockLang}
+            />
+          ),
+          disabled: !editorState.isCodeblock,
+          key: 'codeblockLang',
+        },
+      ].filter(Boolean) as ChatInputActionsProps['items'],
+    [editorState],
+  );
 
   return (
     <ChatInputActionBar
-      left={
-        <ChatInputActions
-          items={
-            [
-              {
-                active: toolbarState.isBold,
-                icon: BoldIcon,
-                key: 'bold',
-                label: 'Bold',
-                onClick: toolbarState.bold,
-              },
-              {
-                active: toolbarState.isItalic,
-                icon: ItalicIcon,
-                key: 'italic',
-                label: 'Italic',
-                onClick: toolbarState.italic,
-              },
-              {
-                active: toolbarState.isUnderline,
-                icon: UnderlineIcon,
-                key: 'underline',
-                label: 'Underline',
-                onClick: toolbarState.underline,
-              },
-              {
-                active: toolbarState.isStrikethrough,
-                icon: StrikethroughIcon,
-                key: 'strikethrough',
-                label: 'Strikethrough',
-                onClick: toolbarState.strikethrough,
-              },
-              {
-                type: 'divider',
-              },
-              {
-                icon: LinkIcon,
-                key: 'link',
-                label: 'link',
-                onClick: () => {
-                  toolbarState.insertLink();
-                },
-              },
-              {
-                icon: ListIcon,
-                key: 'bulletList',
-                label: 'bulletList',
-                onClick: () => {
-                  toolbarState.bulletList();
-                },
-              },
-              {
-                icon: ListOrderedIcon,
-                key: 'numberlist',
-                label: 'numberlist',
-                onClick: () => {
-                  toolbarState.numberList();
-                },
-              },
-              {
-                type: 'divider',
-              },
-              {
-                active: toolbarState.isCode,
-                icon: CodeXmlIcon,
-                key: 'code',
-                label: 'Code',
-                onClick: toolbarState.code,
-              },
-              !toolbarState.isInCodeblock && {
-                icon: SquareDashedBottomCodeIcon,
-                key: 'codeblock',
-                label: 'Codeblock',
-                onClick: () => {
-                  toolbarState.formatCodeblock();
-                },
-              },
-              toolbarState.isInCodeblock && {
-                children: (
-                  <CodeLanguageSelect
-                    onSelect={(value) => toolbarState.updateCodeblockLang(value)}
-                    value={toolbarState.codeblockLang}
-                  />
-                ),
-                disabled: !toolbarState.isInCodeblock,
-                key: 'codeblockLang',
-              },
-            ].filter(Boolean) as ChatInputActionsProps['items']
-          }
-        />
-      }
+      left={<ChatInputActions items={items} />}
       style={{
         background: theme.colorFillQuaternary,
         borderTopLeftRadius: 8,

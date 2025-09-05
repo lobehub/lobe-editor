@@ -24,16 +24,15 @@ import { chatMessages, content } from './data';
 export default () => {
   const [messages, setMessages] = useState<ChatMessage[]>(chatMessages);
   const [showTypobar, setShowTypobar] = useState(true);
-  const editorRef = useEditor();
+  const editor = useEditor();
   const slashMenuRef = useRef<HTMLDivElement>(null);
-  const toolbarState = useEditorState(editorRef);
+  const toolbarState = useEditorState(editor);
   return (
     <Container messages={messages}>
       <ChatInput
         footer={
           <ActionToolbar
             onSend={() => {
-              const editor = editorRef.current;
               if (!editor) return;
               setMessages([
                 ...messages,
@@ -59,13 +58,13 @@ export default () => {
             showTypobar={showTypobar}
           />
         }
-        header={<TypoToolbar editorRef={editorRef} show={showTypobar} />}
+        header={<TypoToolbar editor={editor} show={showTypobar} />}
         slashMenuRef={slashMenuRef}
       >
         <Editor
           autoFocus
           content={content}
-          editorRef={editorRef}
+          editor={editor}
           mentionOption={{
             items: async (search) => {
               console.log(search);

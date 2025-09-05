@@ -99,20 +99,21 @@ The simplest way to get started with a fully-featured editor:
 
 ```tsx
 import {
+  INSERT_HEADING_COMMAND,
   ReactCodeblockPlugin,
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
 } from '@lobehub/editor';
-import { Editor } from '@lobehub/editor/react';
+import { Editor, useEditor } from '@lobehub/editor/react';
 
 export default function MyEditor() {
-  const editorRef = Editor.useEditor();
+  const editor = useEditor();
 
   return (
     <Editor
       placeholder="Start typing..."
-      editorRef={editorRef}
+      editor={editor}
       plugins={[ReactListPlugin, ReactLinkPlugin, ReactImagePlugin, ReactCodeblockPlugin]}
       slashOption={{
         items: [
@@ -143,19 +144,20 @@ Add more functionality with built-in plugins:
 ```tsx
 import {
   INSERT_FILE_COMMAND,
+  INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
   ReactFilePlugin,
   ReactHRPlugin,
   ReactTablePlugin,
 } from '@lobehub/editor';
-import { Editor } from '@lobehub/editor/react';
+import { Editor, useEditor } from '@lobehub/editor/react';
 
 export default function AdvancedEditor() {
-  const editorRef = Editor.useEditor();
+  const editor = useEditor();
 
   return (
     <Editor
-      editorRef={editorRef}
+      editor={editor}
       plugins={[
         ReactTablePlugin,
         ReactHRPlugin,
@@ -298,8 +300,8 @@ All plugins follow a **dual-architecture design**:
 #### Utility Hooks
 
 ```tsx
-// Get editor reference
-const editorRef = Editor.useEditor();
+// Get editor instance
+const editor = useEditor();
 
 // Helper for plugin configuration
 const PluginWithConfig = Editor.withProps(ReactFilePlugin, {

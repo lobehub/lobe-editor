@@ -1,7 +1,7 @@
 /**
  * Support configuration through react children
  */
-import { type FC, type ReactNode, type Ref, useEffect, useMemo } from 'react';
+import { type FC, type ReactNode, useEffect, useMemo } from 'react';
 
 import type { IEditor } from '@/types';
 
@@ -17,15 +17,10 @@ export interface IReactEditorProps {
   children?: ReactNode | undefined;
   /** Editor configuration */
   config?: Record<string, any>;
-  editorRef?: Ref<IEditor>;
-}
-
-function updateRef<T>(ref: Ref<T> | undefined, value: T) {
-  if (typeof ref === 'function') {
-    ref(value);
-  } else if (ref) {
-    ref.current = value;
-  }
+  /** Editor instance to use */
+  editor?: IEditor;
+  /** Callback called when editor is initialized */
+  onInit?: (editor: IEditor) => void;
 }
 
 // Configuration injection component
@@ -41,19 +36,26 @@ const ConfigInjector: FC<{ config?: Record<string, any> }> = ({ config }) => {
   return null;
 };
 
-export const ReactEditor: FC<IReactEditorProps> = ({ editorRef, children, config }) => {
+export const ReactEditor: FC<IReactEditorProps> = ({
+  editor: editorProp,
+  children,
+  config,
+  onInit,
+}) => {
   const composerContext = useMemo(() => {
-    const editor = Editor.createEditor();
+    const editor = editorProp || Editor.createEditor();
     const theme = createLexicalComposerContext(null, null);
     return [editor, theme] as LexicalComposerContextWithEditor;
-  }, []);
+  }, [editorProp]);
 
   useEffect(() => {
-    updateRef(editorRef, composerContext[0]);
-    return () => {
-      updateRef(editorRef, undefined);
-    };
-  }, [editorRef, composerContext]);
+    const editor = composerContext[0];
+
+    // Call onInit callback
+    if (onInit) {
+      onInit(editor);
+    }
+  }, [composerContext, onInit]);
 
   return (
     <LexicalComposerContext value={composerContext}>

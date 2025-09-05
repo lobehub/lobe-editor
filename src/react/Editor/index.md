@@ -32,29 +32,30 @@ Editor is a powerful and extensible rich text editor component designed for mode
 
 ### Editor
 
-| Property           | Description                             | Type                                      | Default  |
-| ------------------ | --------------------------------------- | ----------------------------------------- | -------- |
-| autoFocus          | Auto focus on component mount           | `boolean`                                 | -        |
-| children           | Additional content or components        | `ReactNode`                               | -        |
-| className          | Custom CSS class                        | `string`                                  | -        |
-| content            | Initial editor content                  | `ReactEditorContentProps['content']`      | -        |
-| editorRef          | Reference to the editor instance        | `Ref<IEditor>`                            | -        |
-| mentionOption      | Configuration for mention functionality | `MentionOption`                           | `{}`     |
-| onBlur             | Blur event handler                      | `FocusEventHandler<HTMLDivElement>`       | -        |
-| onChange           | Content change event handler            | `(editor: IEditor) => void`               | -        |
-| onCompositionEnd   | IME composition end event handler       | `CompositionEventHandler<HTMLDivElement>` | -        |
-| onCompositionStart | IME composition start event handler     | `CompositionEventHandler<HTMLDivElement>` | -        |
-| onContextMenu      | Context menu event handler              | `MouseEventHandler<HTMLDivElement>`       | -        |
-| onFocus            | Focus event handler                     | `FocusEventHandler<HTMLDivElement>`       | -        |
-| onKeyDown          | Key down event handler                  | `KeyboardEventHandler<HTMLDivElement>`    | -        |
-| onPressEnter       | Enter key press event handler           | `KeyboardEventHandler<HTMLDivElement>`    | -        |
-| placeholder        | Placeholder content                     | `ReactNode`                               | -        |
-| plugins            | Array of editor plugins                 | `EditorPlugin[]`                          | `[]`     |
-| slashOption        | Configuration for slash commands        | `Partial<ReactSlashOptionProps>`          | `{}`     |
-| style              | Custom inline styles                    | `CSSProperties`                           | -        |
-| theme              | Editor theme                            | `ReactPlainTextProps['theme']`            | -        |
-| type               | Content format type                     | `string`                                  | `'json'` |
-| variant            | Editor variant style                    | `ReactPlainTextProps['variant']`          | -        |
+| Property           | Description                                | Type                                      | Default  |
+| ------------------ | ------------------------------------------ | ----------------------------------------- | -------- |
+| autoFocus          | Auto focus on component mount              | `boolean`                                 | -        |
+| children           | Additional content or components           | `ReactNode`                               | -        |
+| className          | Custom CSS class                           | `string`                                  | -        |
+| content            | Initial editor content                     | `ReactEditorContentProps['content']`      | -        |
+| editor             | Editor instance to use                     | `IEditor`                                 | -        |
+| onInit             | Callback called when editor is initialized | `(editor: IEditor) => void`               | -        |
+| mentionOption      | Configuration for mention functionality    | `MentionOption`                           | `{}`     |
+| onBlur             | Blur event handler                         | `FocusEventHandler<HTMLDivElement>`       | -        |
+| onChange           | Content change event handler               | `(editor: IEditor) => void`               | -        |
+| onCompositionEnd   | IME composition end event handler          | `CompositionEventHandler<HTMLDivElement>` | -        |
+| onCompositionStart | IME composition start event handler        | `CompositionEventHandler<HTMLDivElement>` | -        |
+| onContextMenu      | Context menu event handler                 | `MouseEventHandler<HTMLDivElement>`       | -        |
+| onFocus            | Focus event handler                        | `FocusEventHandler<HTMLDivElement>`       | -        |
+| onKeyDown          | Key down event handler                     | `KeyboardEventHandler<HTMLDivElement>`    | -        |
+| onPressEnter       | Enter key press event handler              | `KeyboardEventHandler<HTMLDivElement>`    | -        |
+| placeholder        | Placeholder content                        | `ReactNode`                               | -        |
+| plugins            | Array of editor plugins                    | `EditorPlugin[]`                          | `[]`     |
+| slashOption        | Configuration for slash commands           | `Partial<ReactSlashOptionProps>`          | `{}`     |
+| style              | Custom inline styles                       | `CSSProperties`                           | -        |
+| theme              | Editor theme                               | `ReactPlainTextProps['theme']`            | -        |
+| type               | Content format type                        | `string`                                  | `'json'` |
+| variant            | Editor variant style                       | `ReactPlainTextProps['variant']`          | -        |
 
 ### EditorPlugin
 
@@ -213,9 +214,41 @@ function MyEditor() {
 }
 ```
 
-gi### Static Methods
+### Static Methods
 
 The Editor component also provides static methods:
 
-- `Editor.useEditor`: Hook for accessing editor functionality
+- `Editor.useEditor`: **@deprecated** Hook for accessing editor reference
 - `Editor.withProps`: Higher-order component for prop injection
+
+### Hooks
+
+- `useEditor()`: Hook for creating editor instance
+- `useEditorState(editor)`: Hook for accessing editor state and toolbar methods
+
+### Modern Usage Example
+
+```typescript
+import { Editor, useEditor } from '@lobehub/editor/react';
+import { ReactCodeblockPlugin } from '@lobehub/editor';
+
+function MyEditor() {
+  const editor = useEditor(); // Get editor instance directly
+
+  const handleInit = (editor: IEditor) => {
+    console.log('Editor initialized:', editor);
+  };
+
+  return (
+    <Editor
+      editor={editor}
+      onInit={handleInit}
+      placeholder="Start typing..."
+      plugins={[ReactCodeblockPlugin]}
+      onChange={(editor) => {
+        console.log('Content changed:', editor.getDocument('markdown'));
+      }}
+    />
+  );
+}
+```

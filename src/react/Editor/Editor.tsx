@@ -15,7 +15,8 @@ const Editor = memo<EditorProps>(
     content,
     style,
     className,
-    editorRef,
+    editor,
+    onInit,
     onChange,
     placeholder,
     plugins = [],
@@ -72,7 +73,7 @@ const Editor = memo<EditorProps>(
     }, [enableSlash, enableMention, slashOption, restMentionOption]);
 
     return (
-      <ReactEditor config={config} editorRef={editorRef}>
+      <ReactEditor config={config} editor={editor} onInit={onInit}>
         {memoPlugins}
         {memoSlash}
         {memoMention}

@@ -1,5 +1,7 @@
 import EventEmitter from 'eventemitter3';
 import {
+  $getSelection,
+  $isRangeSelection,
   CommandPayloadType,
   DecoratorNode,
   LexicalCommand,
@@ -10,6 +12,7 @@ import {
 import { get, merge, template, templateSettings } from 'lodash-es';
 
 import defaultLocale from '@/locale';
+import { $isRootTextContentEmpty } from '@/plugins/common/utils';
 import {
   IEditor,
   IEditorKernel,
@@ -389,5 +392,33 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       translation = compiled(params);
     }
     return translation;
+  }
+
+  get isEmpty(): boolean {
+    if (!this.editor) {
+      return true;
+    }
+
+    return this.editor.getEditorState().read(() => {
+      return $isRootTextContentEmpty(this.editor!.isComposing(), true);
+    });
+  }
+
+  get isSelected(): boolean {
+    if (!this.editor) {
+      return false;
+    }
+
+    return this.editor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        return !!selection._cachedNodes;
+      }
+      return false;
+    });
+  }
+
+  cleanDocument(): void {
+    this.setDocument('text', '');
   }
 }

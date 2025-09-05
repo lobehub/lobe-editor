@@ -40,6 +40,10 @@ export interface IEditor {
    */
   blur(): void;
   /**
+   * Clean editor content (clear all content)
+   */
+  cleanDocument(): void;
+  /**
    * Destroy editor instance
    */
   destroy(): void;
@@ -64,11 +68,11 @@ export interface IEditor {
    * Get Lexical editor instance
    */
   getLexicalEditor(): LexicalEditor | null;
+
   /**
    * Get document editor root node
    */
   getRootElement(): HTMLElement | null;
-
   /**
    * Get document editor selection content of specified type
    * @param type
@@ -78,6 +82,16 @@ export interface IEditor {
    * Get editor theme
    */
   getTheme(): Record<string, string | Record<string, string>>;
+  /**
+   * Check if editor content is empty
+   * @returns true if editor content is empty, false otherwise
+   */
+  get isEmpty(): boolean;
+  /**
+   * Check if editor has active selection
+   * @returns true if editor has selection, false otherwise
+   */
+  get isSelected(): boolean;
   /**
    * Remove editor event listener
    * @param event
@@ -105,6 +119,7 @@ export interface IEditor {
    * Register editor plugin
    */
   registerPlugin<T>(plugin: IEditorPluginConstructor<T>, config?: T): IEditor;
+
   /**
    * Register multiple editor plugins
    */

@@ -5,7 +5,7 @@ import {
   INSERT_UNORDERED_LIST_COMMAND,
   ListNode,
 } from '@lexical/list';
-import { $isHeadingNode } from '@lexical/rich-text';
+import { $createQuoteNode, $isHeadingNode, $isQuoteNode } from '@lexical/rich-text';
 import { $setBlocksType } from '@lexical/selection';
 import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
 import {
@@ -22,7 +22,7 @@ import {
   TextFormatType,
   UNDO_COMMAND,
 } from 'lexical';
-import { type RefObject, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
@@ -38,6 +38,8 @@ import { $findTopLevelElement, formatParagraph, getSelectedNode } from './utils'
 export interface EditorState {
   /** Current block type (e.g., 'paragraph', 'h1', 'h2', 'bullet', 'number', 'code') */
   blockType: string | null;
+  /** Format selection as blockquote */
+  blockquote: () => void;
   /** Toggle bold formatting */
   bold: () => void;
   /** Toggle bullet list */
@@ -48,20 +50,22 @@ export interface EditorState {
   canUndo: boolean;
   /** Toggle code formatting */
   code: () => void;
+  /** Format selection as code block */
+  codeblock: () => void;
   /** Current code block language */
   codeblockLang: string | null | undefined;
-  /** Format selection as code block */
-  formatCodeblock: () => void;
   /** Insert or toggle link */
   insertLink: () => void;
+  /** Whether cursor is inside a blockquote */
+  isBlockquote: boolean;
   /** Whether selection has bold formatting */
   isBold: boolean;
   /** Whether selection has code formatting */
   isCode: boolean;
+  /** Whether cursor is inside a code block */
+  isCodeblock: boolean;
   /** Whether editor content is empty */
   isEmpty: boolean;
-  /** Whether cursor is inside a code block */
-  isInCodeblock: boolean;
   /** Whether selection has italic formatting */
   isItalic: boolean;
   /** Whether editor has selection */
@@ -88,10 +92,10 @@ export interface EditorState {
 
 /**
  * Provide toolbar state and toolbar methods
- * @param editorRef - Reference to the editor instance
+ * @param editor - Editor instance
  * @returns Editor state and methods for toolbar functionality
  */
-export function useEditorState(editorRef: RefObject<IEditor | null>): EditorState {
+export function useEditorState(editor: IEditor): EditorState {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [isBold, setIsBold] = useState(false);
@@ -100,7 +104,8 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
   const [isStrikethrough, setIsStrikethrough] = useState(false);
   const [isCode, setIsCode] = useState(false);
   const [isLink, setIsLink] = useState(false);
-  const [isInCodeblock, setIsInCodeblok] = useState(false);
+  const [isCodeblock, setIsInCodeblok] = useState(false);
+  const [isBlockquote, setIsInBlockquote] = useState(false);
   const [codeblockLang, setCodeblockLang] = useState<string | null | undefined>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [isSelected, setIsSelected] = useState(false);
@@ -119,10 +124,10 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
 
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection();
-    const editor = editorRef.current?.getLexicalEditor();
+    const lexicalEditor = editor?.getLexicalEditor();
     setIsSelected(false);
-    if (editor) {
-      setIsEmpty($isRootTextContentEmpty(editor.isComposing(), false));
+    if (lexicalEditor) {
+      setIsEmpty($isRootTextContentEmpty(lexicalEditor.isComposing(), false));
     }
 
     if ($isRangeSelection(selection)) {
@@ -138,7 +143,7 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
       const element = $findTopLevelElement(anchorNode);
       const focusElement = $findTopLevelElement(focusNode);
       const elementKey = element.getKey();
-      const elementDOM = editorRef.current?.getLexicalEditor()?.getElementByKey(elementKey);
+      const elementDOM = editor?.getLexicalEditor()?.getElementByKey(elementKey);
 
       const node = getSelectedNode(selection);
 
@@ -148,6 +153,10 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
         $isCodeNode(element) && $isCodeNode(focusElement) && elementKey === focusElement.getKey();
       setIsInCodeblok(isCodeBlock);
       setCodeblockLang(isCodeBlock ? element.getLanguage() : '');
+
+      const isBlockquote =
+        $isQuoteNode(element) && $isQuoteNode(focusElement) && elementKey === focusElement.getKey();
+      setIsInBlockquote(isBlockquote);
 
       if (elementDOM !== null) {
         if ($isListNode(element)) {
@@ -168,24 +177,25 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
       setIsCode(false);
       setIsLink(false);
       setIsInCodeblok(false);
+      setIsInBlockquote(false);
       setCodeblockLang(null);
       setBlockType(null);
     }
-  }, [editorRef.current]);
+  }, [editor]);
 
   const undo = useCallback(() => {
-    editorRef.current?.dispatchCommand(UNDO_COMMAND, undefined);
-  }, [editorRef.current]);
+    editor?.dispatchCommand(UNDO_COMMAND, undefined);
+  }, [editor]);
 
   const redo = useCallback(() => {
-    editorRef.current?.dispatchCommand(REDO_COMMAND, undefined);
-  }, [editorRef.current]);
+    editor?.dispatchCommand(REDO_COMMAND, undefined);
+  }, [editor]);
 
   const formatText = useCallback(
     (type: TextFormatType) => {
-      editorRef.current?.dispatchCommand(FORMAT_TEXT_COMMAND, type);
+      editor?.dispatchCommand(FORMAT_TEXT_COMMAND, type);
     },
-    [editorRef.current],
+    [editor],
   );
 
   const bold = useCallback(() => {
@@ -210,23 +220,23 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
 
   const bulletList = useCallback(() => {
     if (blockType !== 'bullet') {
-      editorRef.current?.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+      editor?.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
     } else {
-      formatParagraph(editorRef.current?.getLexicalEditor());
+      formatParagraph(editor?.getLexicalEditor());
     }
-  }, [blockType]);
+  }, [blockType, editor]);
 
   const numberList = useCallback(() => {
     if (blockType !== 'number') {
-      editorRef.current?.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+      editor?.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
     } else {
-      formatParagraph(editorRef.current?.getLexicalEditor());
+      formatParagraph(editor?.getLexicalEditor());
     }
-  }, [blockType]);
+  }, [blockType, editor]);
 
-  const formatCodeblock = useCallback(() => {
+  const codeblock = useCallback(() => {
     if (blockType !== 'code') {
-      editorRef.current?.getLexicalEditor()?.update(() => {
+      editor?.getLexicalEditor()?.update(() => {
         let selection = $getSelection();
         if (!selection) {
           return;
@@ -243,44 +253,56 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
           }
         }
       });
+    } else {
+      formatParagraph(editor?.getLexicalEditor());
     }
-  }, [blockType]);
+  }, [blockType, editor]);
+
+  const blockquote = useCallback(() => {
+    if (blockType !== 'quote') {
+      editor?.getLexicalEditor()?.update(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          $setBlocksType(selection, () => $createQuoteNode());
+        }
+      });
+    } else {
+      formatParagraph(editor?.getLexicalEditor());
+    }
+  }, [blockType, editor]);
 
   const updateCodeblockLang = useCallback(
     (lang: string) => {
-      if (!isInCodeblock) {
+      if (!isCodeblock) {
         return;
       }
-      editorRef.current?.dispatchCommand(UPDATE_CODEBLOCK_LANG, { lang });
+      editor?.dispatchCommand(UPDATE_CODEBLOCK_LANG, { lang });
     },
-    [editorRef.current, isInCodeblock],
+    [editor, isCodeblock],
   );
 
   const insertLink = useCallback(() => {
     if (!isLink) {
       setIsLink(true);
-      editorRef.current
-        ?.getLexicalEditor()
-        ?.dispatchCommand(TOGGLE_LINK_COMMAND, sanitizeUrl('https://'));
+      editor?.getLexicalEditor()?.dispatchCommand(TOGGLE_LINK_COMMAND, sanitizeUrl('https://'));
     } else {
       setIsLink(false);
-      editorRef.current?.getLexicalEditor()?.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+      editor?.getLexicalEditor()?.dispatchCommand(TOGGLE_LINK_COMMAND, null);
     }
-  }, [editorRef.current, isLink]);
+  }, [editor, isLink]);
 
   useEffect(() => {
-    if (!editorRef.current) return;
-    const editor = editorRef.current;
+    if (!editor) return;
     const lexicalEditor = editor.getLexicalEditor();
     let cleanup: () => void = () => {};
-    const handleLeixcalEditor = (editor: LexicalEditor) => {
+    const handleLexicalEditor = (lexicalEditor: LexicalEditor) => {
       cleanup = mergeRegister(
-        editor.registerUpdateListener(({ editorState }) => {
+        lexicalEditor.registerUpdateListener(({ editorState }) => {
           editorState.read(() => {
             $updateToolbar();
           });
         }),
-        editor.registerCommand(
+        lexicalEditor.registerCommand(
           SELECTION_CHANGE_COMMAND,
           () => {
             $updateToolbar();
@@ -288,7 +310,7 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
           },
           COMMAND_PRIORITY_LOW,
         ),
-        editor.registerCommand(
+        lexicalEditor.registerCommand(
           CAN_UNDO_COMMAND,
           (payload) => {
             setCanUndo(payload);
@@ -296,7 +318,7 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
           },
           COMMAND_PRIORITY_LOW,
         ),
-        editor.registerCommand(
+        lexicalEditor.registerCommand(
           CAN_REDO_COMMAND,
           (payload) => {
             setCanRedo(payload);
@@ -308,30 +330,32 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
       return cleanup;
     };
     if (!lexicalEditor) {
-      editor.on('initialized', handleLeixcalEditor);
+      editor.on('initialized', handleLexicalEditor);
       return () => {
         cleanup();
-        editor.off('initialized', handleLeixcalEditor);
+        editor.off('initialized', handleLexicalEditor);
       };
     }
-    return handleLeixcalEditor(lexicalEditor);
-  }, [editorRef.current]);
+    return handleLexicalEditor(lexicalEditor);
+  }, [editor, $updateToolbar]);
 
   return useMemo(
     () => ({
       blockType,
+      blockquote,
       bold,
       bulletList,
       canRedo,
       canUndo,
       code,
+      codeblock,
       codeblockLang,
-      formatCodeblock,
       insertLink,
+      isBlockquote,
       isBold,
       isCode,
+      isCodeblock,
       isEmpty,
-      isInCodeblock,
       isItalic,
       isSelected,
       isStrikethrough,
@@ -352,12 +376,14 @@ export function useEditorState(editorRef: RefObject<IEditor | null>): EditorStat
       canUndo,
       code,
       codeblockLang,
-      formatCodeblock,
+      blockquote,
+      codeblock,
       insertLink,
       isBold,
       isCode,
       isEmpty,
-      isInCodeblock,
+      isBlockquote,
+      isCodeblock,
       isItalic,
       isSelected,
       isStrikethrough,
