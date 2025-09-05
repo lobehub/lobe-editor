@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.4.4](https://github.com/lobehub/lobe-editor/compare/v1.4.3...v1.4.4)
+<sup>Released on **2025-09-05**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix Typo.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix Typo ([c9c2f29](https://github.com/lobehub/lobe-editor/commit/c9c2f29))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.4.3](https://github.com/lobehub/lobe-editor/compare/v1.4.2...v1.4.3)
 <sup>Released on **2025-09-05**</sup>
 
