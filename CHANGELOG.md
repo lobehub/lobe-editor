@@ -2,6 +2,48 @@
 
 # Changelog
 
+### [Version&nbsp;1.4.3](https://github.com/lobehub/lobe-editor/compare/v1.4.2...v1.4.3)
+<sup>Released on **2025-09-05**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: Update hooks return instants.
+
+
+#### 💄 Styles
+
+- **misc**: Update ChatInputActions.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: Update hooks return instants ([25607f5](https://github.com/lobehub/lobe-editor/commit/25607f5))
+
+
+
+#### Styles
+
+* **misc**: Update ChatInputActions ([81608c3](https://github.com/lobehub/lobe-editor/commit/81608c3))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.4.2](https://github.com/lobehub/lobe-editor/compare/v1.4.1...v1.4.2)
 <sup>Released on **2025-09-04**</sup>
 
