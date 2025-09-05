@@ -105,8 +105,7 @@
     "react-layout-kit": "^2.0.0",
     "react-merge-refs": "^3.0.2",
     "shiki": "^3.9.2",
-    "use-merge-value": "^1.2.0",
-    "zustand": "5.0.4"
+    "use-merge-value": "^1.2.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
