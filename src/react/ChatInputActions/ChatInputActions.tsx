@@ -75,7 +75,7 @@ const ChatInputActions = memo<ChatInputActionsProps>(
           return (
             <Divider
               className={styles.divider}
-              key={i}
+              key={`divider-${i}`}
               style={{
                 height: 20,
               }}
@@ -136,7 +136,7 @@ const ChatInputActions = memo<ChatInputActionsProps>(
                 defaultExpand={item.defaultExpand}
                 expand={item.expand}
                 gap={gap}
-                key={index}
+                key={`collapse-${index}`}
                 mode={collapsed ? 'popup' : 'default'}
                 onChange={item.onChange}
               >
