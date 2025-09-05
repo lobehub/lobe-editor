@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.4.5](https://github.com/lobehub/lobe-editor/compare/v1.4.4...v1.4.5)
+<sup>Released on **2025-09-05**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Update hr magrin.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Update hr magrin ([ff932c1](https://github.com/lobehub/lobe-editor/commit/ff932c1))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.4.4](https://github.com/lobehub/lobe-editor/compare/v1.4.3...v1.4.4)
 <sup>Released on **2025-09-05**</sup>
 
