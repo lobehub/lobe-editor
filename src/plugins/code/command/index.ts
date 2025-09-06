@@ -39,7 +39,7 @@ export function registerCodeInlineCommand(editor: LexicalEditor) {
           parentNode.remove();
           return true;
         }
-        const codeNode = $createCodeNode();
+        const codeNode = $createCodeNode(selection.getTextContent());
         $insertNodes([codeNode, $createCursorNode()]);
         codeNode.select();
       });

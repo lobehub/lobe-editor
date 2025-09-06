@@ -42,6 +42,7 @@ export function registerCodeInline(editor: LexicalEditor, kernel: IEditorKernel)
       (payload) => {
         // ctrl + e
         if (isModifierMatch(payload, CONTROL_OR_META) && payload.code === 'KeyE') {
+          payload.preventDefault();
           return editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined);
         }
         return false;
