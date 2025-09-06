@@ -3,9 +3,11 @@ import {
   $createTextNode,
   $getNodeByKey,
   $getSelection,
+  $isDecoratorNode,
   $isRangeSelection,
   $setSelection,
   COMMAND_PRIORITY_HIGH,
+  DecoratorNode,
   ElementNode,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
@@ -48,7 +50,32 @@ export function $isCursorNode(node: LexicalNode | null | undefined): node is Cur
 export function registerCursorNode(editor: LexicalEditor) {
   return mergeRegister(
     editor.registerUpdateListener(({ mutatedNodes }) => {
-      console.info('cursor update', mutatedNodes);
+      editor.read(() => {
+        if (!mutatedNodes) return;
+        const needAddCursor: Array<LexicalNode> = [];
+        for (const [kClass, nodeMaps] of mutatedNodes) {
+          // eslint-disable-next-line no-prototype-builtins
+          if (DecoratorNode.prototype.isPrototypeOf(kClass.prototype)) {
+            for (const [key, mutation] of nodeMaps) {
+              const node = $getNodeByKey(key);
+              console.info('DecoratorNode mutated', node, mutation);
+              if (mutation === 'created' && node?.isInline() && node.getNextSibling() === null) {
+                needAddCursor.push(node);
+              }
+            }
+          }
+        }
+        if (needAddCursor.length > 0) {
+          editor.update(() => {
+            needAddCursor.forEach((node) => {
+              node.insertAfter($createCursorNode());
+            });
+          });
+        }
+        return false;
+      });
+    }),
+    editor.registerUpdateListener(({ mutatedNodes }) => {
       editor.read(() => {
         const cursorNodes = mutatedNodes?.get(CursorNode);
         const needRemove = new Set<CursorNode>();
@@ -59,6 +86,7 @@ export function registerCursorNode(editor: LexicalEditor) {
               const element = cursorNode?.getPreviousSibling();
               if (
                 !$isCardLikeElementNode(element) &&
+                !$isDecoratorNode(element) &&
                 !$isCardLikeElementNode(cursorNode?.getParent())
               ) {
                 needRemove.add(cursorNode as CursorNode);
@@ -73,6 +101,11 @@ export function registerCursorNode(editor: LexicalEditor) {
             });
           });
         }
+        return false;
+      });
+    }),
+    editor.registerUpdateListener(() => {
+      editor.read(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
           return false;
@@ -108,7 +141,13 @@ export function registerCursorNode(editor: LexicalEditor) {
           const parent = node.getParent();
           const parentPrev = parent?.getPreviousSibling();
           let needDispatch = false;
-          if (prev) {
+          if ($isDecoratorNode(prev)) {
+            prev.selectPrevious();
+            node.remove();
+            prev.remove();
+            event.preventDefault();
+            return true;
+          } else if (prev) {
             prev.selectEnd();
             needDispatch = true;
           } else if (parent) {
@@ -134,10 +173,20 @@ export function registerCursorNode(editor: LexicalEditor) {
       KEY_ARROW_LEFT_COMMAND,
       (event) => {
         const selection = $getSelection();
-        if (!$isRangeSelection(selection) || !event.shiftKey) {
+        if (!$isRangeSelection(selection)) {
           return false;
         }
         const focusNode = selection.focus.getNode();
+        if (!event.shiftKey) {
+          if (
+            focusNode instanceof CursorNode &&
+            !$isCardLikeElementNode(focusNode.getParent()) &&
+            !$isCardLikeElementNode(focusNode.getPreviousSibling())
+          ) {
+            focusNode.selectStart();
+          }
+          return false;
+        }
         const prev = focusNode.getPreviousSibling();
         if (selection.focus.offset === 0 && $isCursorNode(prev)) {
           try {
@@ -172,13 +221,23 @@ export function registerCursorNode(editor: LexicalEditor) {
       KEY_ARROW_RIGHT_COMMAND,
       (event) => {
         const selection = $getSelection();
-        if (!$isRangeSelection(selection) || !event.shiftKey) {
+        if (!$isRangeSelection(selection)) {
+          return false;
+        }
+        if (!event.shiftKey) {
+          const focusNode = selection.focus.getNode();
+          if (
+            focusNode instanceof CursorNode &&
+            !$isCardLikeElementNode(focusNode.getParent()) &&
+            !$isCardLikeElementNode(focusNode.getPreviousSibling())
+          ) {
+            focusNode.selectEnd();
+          }
           return false;
         }
         const { key: anchorKey, offset: anchorOffset, type: anchorType } = selection.anchor;
         const { key: focusKey, offset: focusOffset, type: focusType } = selection.focus;
         const focusNode = selection.focus.getNode();
-        console.info(focusNode, focusOffset, focusType, focusNode.getTextContentSize());
         if (
           (focusType === 'text' && focusOffset !== focusNode.getTextContentSize()) ||
           (focusType === 'element' && focusOffset !== (focusNode as ElementNode).getChildrenSize())

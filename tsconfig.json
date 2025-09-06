@@ -15,7 +15,6 @@
     "typeRoots": ["./src/types", "./node_modules"],
     "types": ["vitest/globals"],
     "paths": {
-      "lexical": ["./src/editor-kernel/override"],
       "@@/*": [".dumi/tmp/*"],
       "@/*": ["./src/*"],
       "@lobehub/editor": ["./src"],

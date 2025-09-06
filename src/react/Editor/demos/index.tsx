@@ -211,7 +211,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
               key: 'insert-codeInline',
               label: 'InsertCodeInline',
               onSelect: (editor) => {
-                editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, {});
+                editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined);
                 queueMicrotask(() => {
                   editor.focus();
                 });
