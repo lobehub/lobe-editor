@@ -3,7 +3,11 @@ import { addClassNamesToElement } from '@lexical/utils';
 import {
   $applyNodeReplacement,
   $createTextNode,
+  $getSelection,
+  $isNodeSelection,
+  $isRangeSelection,
   EditorConfig,
+  LexicalEditor,
   SerializedElementNode,
 } from 'lexical';
 
@@ -85,4 +89,31 @@ export function $createCodeNode(textContent?: string): CodeNode {
 
 export function $isCodeInlineNode(node: unknown): node is CodeNode {
   return node instanceof CodeNode;
+}
+
+export function $isSelectionInCodeInline(editor: LexicalEditor): boolean {
+  return editor.read(() => {
+    const selection = $getSelection();
+    if (!selection) {
+      return false;
+    }
+    if ($isRangeSelection(selection)) {
+      const focusNode = selection.focus.getNode();
+      const anchorNode = selection.anchor.getNode();
+      if (focusNode.getParent() !== anchorNode.getParent()) {
+        return false;
+      }
+      const parentNode = focusNode.getParent();
+      if ($isCodeInlineNode(parentNode)) {
+        return true;
+      }
+      return false;
+    } else if ($isNodeSelection(selection)) {
+      const nodes = selection.getNodes();
+      if (nodes.length === 1 && $isCodeInlineNode(nodes[0])) {
+        return true;
+      }
+    }
+    return false;
+  });
 }

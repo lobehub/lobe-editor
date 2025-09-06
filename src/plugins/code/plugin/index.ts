@@ -41,6 +41,7 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
 
     markdownService.registerMarkdownWriter(CodeNode.getType(), (ctx, node) => {
       ctx.appendLine(`\`${node.getTextContent()}\``);
+      return true;
     });
   }
 };
