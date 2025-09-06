@@ -13,8 +13,8 @@ import type { ActionItem, ChatInputActionsProps, CollapseItem, DividerItem } fro
 const ChatInputActions = memo<ChatInputActionsProps>(
   ({ gap = 2, disabled, items = [], onActionClick, className, collapseOffset = 0, ...rest }) => {
     const { cx, styles } = useStyles();
-    const [maxCount, setMaxCount] = useState(items.length);
-    const [collapsed, setCollapsed] = useState(false);
+    const [maxCount] = useState(items.length);
+    const [collapsed] = useState(false);
     const ref = useRef(null);
     const size = useSize(ref);
 
@@ -31,15 +31,16 @@ const ChatInputActions = memo<ChatInputActionsProps>(
       [items],
     );
 
+    // Temp fix https://github.com/lobehub/lobe-chat/issues/9139
     useEffect(() => {
       if (!size?.width) return;
       const length = flatItems.length + 1;
       const calcMaxCount = Math.floor((size.width - collapseOffset) / 38);
-      setMaxCount(calcMaxCount);
+      // setMaxCount(calcMaxCount);
       if (calcMaxCount < length) {
-        setCollapsed(true);
+        // setCollapsed(true);
       } else {
-        setCollapsed(false);
+        // setCollapsed(false);
       }
     }, [size, flatItems.length, collapseOffset]);
 
