@@ -1,10 +1,6 @@
-import {
-  $createTextNode,
-  $insertNodes,
-  COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
-  createCommand,
-} from 'lexical';
+import { $insertNodes, COMMAND_PRIORITY_EDITOR, LexicalEditor, createCommand } from 'lexical';
+
+import { $createCursorNode } from '@/plugins/common';
 
 import { $createCodeNode } from '../node/code';
 
@@ -16,10 +12,8 @@ export function registerCodeInlineCommand(editor: LexicalEditor) {
     () => {
       editor.update(() => {
         const codeNode = $createCodeNode();
-        const textNode = $createTextNode('');
-        codeNode.append(textNode);
-        $insertNodes([codeNode]);
-        textNode.select();
+        $insertNodes([codeNode, $createCursorNode()]);
+        codeNode.select();
       });
       return true;
     },

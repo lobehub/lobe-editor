@@ -1,6 +1,7 @@
 import { LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCodeInlineCommand } from '../command';
@@ -18,7 +19,10 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
 {
   static pluginName = 'CodePlugin';
 
-  constructor(kernel: IEditorKernel, options?: CodePluginOptions) {
+  constructor(
+    private kernel: IEditorKernel,
+    options?: CodePluginOptions,
+  ) {
     super();
     kernel.registerNodes([CodeNode]);
     kernel.registerThemes({
@@ -28,6 +32,15 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     this.register(registerCodeInlineCommand(editor));
-    this.register(registerCodeInline(editor));
+    this.register(registerCodeInline(editor, this.kernel));
+
+    const markdownService = this.kernel.requireService(IMarkdownShortCutService);
+    if (!markdownService) {
+      return;
+    }
+
+    markdownService.registerMarkdownWriter(CodeNode.getType(), (ctx, node) => {
+      ctx.appendLine(`\`${node.getTextContent()}\``);
+    });
   }
 };

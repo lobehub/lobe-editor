@@ -21,6 +21,7 @@ import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
+import { CursorNode, registerCursorNode } from '../node/cursor';
 import { createBlockNode } from '../utils';
 import { registerHeaderBackspace, registerRichKeydown } from './register';
 
@@ -57,7 +58,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     // Register the text data source
     kernel.registerDataSource(new TextDataSource('text'));
     // Register common nodes and themes
-    kernel.registerNodes([HeadingNode, QuoteNode]);
+    kernel.registerNodes([HeadingNode, QuoteNode, CursorNode]);
     if (config?.theme) {
       kernel.registerThemes({
         quote: config.theme.quote,
@@ -202,11 +203,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const isItalic = node.hasFormat('italic');
       const isUnderline = node.hasFormat('underline');
       const isStrikethrough = node.hasFormat('strikethrough');
-      const isCode = node.hasFormat('code');
 
-      if (isCode) {
-        ctx.appendLine('`');
-      }
       if (isBold) {
         ctx.appendLine('**');
       }
@@ -241,9 +238,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       if (isBold) {
         ctx.appendLine('**');
       }
-      if (isCode) {
-        ctx.appendLine('`');
-      }
 
       if (tailSpace) {
         ctx.appendLine(tailSpace);
@@ -262,6 +256,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerRichKeydown(editor, this.kernel),
       registerCommands(editor),
       registerBreakLineClick(editor),
+      registerCursorNode(editor),
     );
   }
 

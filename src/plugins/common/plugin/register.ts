@@ -30,7 +30,7 @@ import {
   isModifierMatch,
 } from 'lexical';
 
-import { CONTROL_OR_META, CONTROL_OR_META_AND_SHIFT } from '@/common/sys';
+import { CONTROL_OR_META_AND_SHIFT } from '@/common/sys';
 import { IEditor } from '@/types';
 
 function resolveElement(
@@ -171,13 +171,6 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
           payload.stopImmediatePropagation();
           payload.preventDefault();
           editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
-          return true;
-        }
-        // ctrl + e
-        if (isModifierMatch(payload, CONTROL_OR_META) && payload.code === 'KeyE') {
-          payload.stopImmediatePropagation();
-          payload.preventDefault();
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code');
           return true;
         }
         return false;

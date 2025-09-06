@@ -1,10 +1,17 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { addClassNamesToElement } from '@lexical/utils';
-import { $applyNodeReplacement, EditorConfig, ElementNode, SerializedElementNode } from 'lexical';
+import {
+  $applyNodeReplacement,
+  $createTextNode,
+  EditorConfig,
+  SerializedElementNode,
+} from 'lexical';
+
+import { $createCursorNode, CardLikeElementNode } from '@/plugins/common';
 
 export type SerializedCodeNode = SerializedElementNode;
 
-export class CodeNode extends ElementNode {
+export class CodeNode extends CardLikeElementNode {
   static getType(): string {
     return 'codeInline';
   }
@@ -21,12 +28,12 @@ export class CodeNode extends ElementNode {
     const element = document.createElement('span');
     // eslint-disable-next-line unicorn/prefer-dom-node-dataset
     element.setAttribute('data-lexical-key', this.getKey());
-    const filler = document.createElement('t-filler');
-    filler.contentEditable = 'false';
-    filler.innerHTML = '\uFEFF';
+    // const filler = document.createElement('t-filler');
+    // filler.contentEditable = 'false';
+    // filler.innerHTML = '\uFEFF';
     // eslint-disable-next-line unicorn/prefer-dom-node-dataset
     // filler.setAttribute('data-lexical-cursor', 'true');
-    element.append(filler);
+    // element.append(filler);
     const childContainer = document.createElement('ne-content');
     element.append(childContainer);
     addClassNamesToElement(element, config.theme.codeInline);
@@ -39,6 +46,14 @@ export class CodeNode extends ElementNode {
       throw new Error('CodeNode: ne-content not found');
     }
     return super.getDOMSlot(element).withElement(neContent);
+  }
+
+  canBeEmpty(): boolean {
+    return false;
+  }
+
+  isCardLike(): boolean {
+    return true;
   }
 
   isInline(): boolean {
@@ -58,6 +73,16 @@ export class CodeNode extends ElementNode {
   }
 }
 
-export function $createCodeNode() {
-  return $applyNodeReplacement(new CodeNode());
+export function $createCodeNode(textContent?: string): CodeNode {
+  const codeNode = $applyNodeReplacement(new CodeNode());
+  const cursorNode = $createCursorNode();
+  codeNode.append(cursorNode);
+  if (textContent) {
+    codeNode.append($createTextNode(textContent));
+  }
+  return codeNode;
+}
+
+export function $isCodeInlineNode(node: unknown): node is CodeNode {
+  return node instanceof CodeNode;
 }
