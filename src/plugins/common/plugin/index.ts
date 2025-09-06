@@ -11,7 +11,7 @@ import {
   registerRichText,
 } from '@lexical/rich-text';
 import { $createLineBreakNode, $createParagraphNode, $isTextNode } from 'lexical';
-import { LexicalEditor } from 'lexical/LexicalEditor';
+import type { LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService, isPunctuationChar } from '@/plugins/markdown';
@@ -20,8 +20,12 @@ import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types'
 import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
+import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
+import { CursorNode, registerCursorNode } from '../node/cursor';
 import { createBlockNode } from '../utils';
 import { registerHeaderBackspace, registerRichKeydown } from './register';
+
+patchBreakLine();
 
 export interface CommonPluginOptions {
   theme?: {
@@ -54,7 +58,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     // Register the text data source
     kernel.registerDataSource(new TextDataSource('text'));
     // Register common nodes and themes
-    kernel.registerNodes([HeadingNode, QuoteNode]);
+    kernel.registerNodes([HeadingNode, QuoteNode, CursorNode]);
     if (config?.theme) {
       kernel.registerThemes({
         quote: config.theme.quote,
@@ -199,11 +203,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const isItalic = node.hasFormat('italic');
       const isUnderline = node.hasFormat('underline');
       const isStrikethrough = node.hasFormat('strikethrough');
-      const isCode = node.hasFormat('code');
 
-      if (isCode) {
-        ctx.appendLine('`');
-      }
       if (isBold) {
         ctx.appendLine('**');
       }
@@ -238,9 +238,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       if (isBold) {
         ctx.appendLine('**');
       }
-      if (isCode) {
-        ctx.appendLine('`');
-      }
 
       if (tailSpace) {
         ctx.appendLine(tailSpace);
@@ -256,8 +253,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerDragonSupport(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
       registerHeaderBackspace(editor),
-      registerRichKeydown(editor),
+      registerRichKeydown(editor, this.kernel),
       registerCommands(editor),
+      registerBreakLineClick(editor),
+      registerCursorNode(editor),
     );
   }
 

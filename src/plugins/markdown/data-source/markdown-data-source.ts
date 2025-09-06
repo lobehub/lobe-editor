@@ -41,8 +41,12 @@ export default class MarkdownDataSource extends DataSource {
       if ($isElementNode(child)) {
         currentCtx = currentCtx.newChild();
       }
+      let skipChildren: boolean | undefined = false;
       if (writer) {
-        writer(currentCtx, child);
+        skipChildren = writer(currentCtx, child) as boolean | undefined;
+      }
+      if (skipChildren) {
+        return;
       }
       if ($isElementNode(child)) {
         child.getChildren().forEach((child) => processChild(currentCtx, child));

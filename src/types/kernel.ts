@@ -1,4 +1,6 @@
 import type {
+  CommandListener,
+  CommandListenerPriority,
   CommandPayloadType,
   DecoratorNode,
   LexicalCommand,
@@ -9,6 +11,9 @@ import type {
 import type DataSource from '@/editor-kernel/data-source';
 
 import { ILocaleKeys } from './locale';
+
+export type Commands = Map<LexicalCommand<unknown>, Array<Set<CommandListener<unknown>>>>;
+export type CommandsClean = Map<LexicalCommand<unknown>, () => void>;
 
 /**
  * Service ID type
@@ -110,6 +115,34 @@ export interface IEditor {
    * @param listener
    */
   once<T extends keyof IKernelEventMap>(event: T, listener: IKernelEventMap[T]): this;
+  /**
+   * Extends the priority level of Lexical commands.
+   * Registers a listener that triggers when the provided command is dispatched
+   * via {@link LexicalEditor.dispatch}. The listener is triggered based on its priority.
+   * Listeners with higher priority can "intercept" commands and prevent them
+   * from propagating to other handlers by returning true.
+   *
+   * Listeners are always invoked within {@link LexicalEditor.update} and can call dollar functions.
+   *
+   * Listeners registered at the same priority level will deterministically run
+   * in the order of registration.
+   *
+   * @param command - The command that triggers the callback.
+   * @param listener - The function executed when the command is dispatched.
+   * @param priority - The relative priority of the listener. 0 | 1 | 2 | 3 | 4
+   *   (or {@link COMMAND_PRIORITY_EDITOR} |
+   *     {@link COMMAND_PRIORITY_LOW} |
+   *     {@link COMMAND_PRIORITY_NORMAL} |
+   *     {@link COMMAND_PRIORITY_HIGH} |
+   *     {@link COMMAND_PRIORITY_CRITICAL})
+   * @returns A teardown function to clean up the listener.
+   */
+  registerHighCommand<P>(
+    command: LexicalCommand<P>,
+    listener: CommandListener<P>,
+    priority: CommandListenerPriority,
+  ): () => void;
+
   /**
    * Register internationalization text
    * @param locale Internationalization text object

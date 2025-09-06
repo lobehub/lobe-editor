@@ -2,6 +2,9 @@ import EventEmitter from 'eventemitter3';
 import {
   $getSelection,
   $isRangeSelection,
+  COMMAND_PRIORITY_CRITICAL,
+  CommandListener,
+  CommandListenerPriority,
   CommandPayloadType,
   DecoratorNode,
   LexicalCommand,
@@ -14,6 +17,7 @@ import { get, merge, template, templateSettings } from 'lodash-es';
 import defaultLocale from '@/locale';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
 import {
+  Commands,
   IEditor,
   IEditorKernel,
   IEditorPlugin,
@@ -149,6 +153,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     const editor = (this.editor = createEditor({
       // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
+      namespace: 'lobehub',
       nodes: this.nodes,
       onError: (error: Error) => {
         this.emit('error', error);
@@ -420,5 +425,63 @@ export class Kernel extends EventEmitter implements IEditorKernel {
 
   cleanDocument(): void {
     this.setDocument('text', '');
+  }
+
+  private _commands: Commands = new Map();
+  private _commandsClean: Map<LexicalCommand<unknown>, () => void> = new Map();
+
+  registerHighCommand<P>(
+    command: LexicalCommand<P>,
+    listener: CommandListener<P>,
+    priority: CommandListenerPriority,
+  ): () => void {
+    const lexicalEditor = this.editor;
+    if (!lexicalEditor) {
+      throw new Error('Editor is not initialized.');
+    }
+    const commandsMap = this._commands;
+
+    if (!commandsMap.has(command)) {
+      commandsMap.set(command, [new Set(), new Set(), new Set(), new Set(), new Set()]);
+      this._commandsClean.set(
+        command,
+        lexicalEditor.registerCommand(
+          command,
+          (payload: any) => {
+            for (let i = 4; i >= 0; i--) {
+              const listenerInPriorityOrder = this._commands.get(command);
+
+              if (listenerInPriorityOrder !== undefined) {
+                const listenersSet = listenerInPriorityOrder[i];
+                for (const listener of listenersSet) {
+                  if (listener(payload, lexicalEditor)) {
+                    return true;
+                  }
+                }
+              }
+            }
+            return false;
+          },
+          COMMAND_PRIORITY_CRITICAL,
+        ),
+      );
+    }
+
+    const listenersInPriorityOrder = commandsMap.get(command);
+
+    if (listenersInPriorityOrder === undefined) {
+      return () => {};
+    }
+
+    const listeners = listenersInPriorityOrder[priority];
+    listeners.add(listener as CommandListener<unknown>);
+    return () => {
+      listeners.delete(listener as CommandListener<unknown>);
+
+      if (listenersInPriorityOrder.every((listenersSet) => listenersSet.size === 0)) {
+        commandsMap.delete(command);
+        this._commandsClean.get(command)?.();
+      }
+    };
   }
 }

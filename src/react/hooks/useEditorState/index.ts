@@ -24,6 +24,8 @@ import {
 } from 'lexical';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { INSERT_CODEINLINE_COMMAND } from '@/plugins/code';
+import { $isSelectionInCodeInline } from '@/plugins/code/node/code';
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@/plugins/link/node/LinkNode';
@@ -136,7 +138,7 @@ export function useEditorState(editor?: IEditor): EditorState {
       setIsItalic(selection.hasFormat('italic'));
       setIsUnderline(selection.hasFormat('underline'));
       setIsStrikethrough(selection.hasFormat('strikethrough'));
-      setIsCode(selection.hasFormat('code'));
+      setIsCode($isSelectionInCodeInline(lexicalEditor!));
 
       const anchorNode = selection.anchor.getNode();
       const focusNode = selection.focus.getNode();
@@ -215,7 +217,7 @@ export function useEditorState(editor?: IEditor): EditorState {
   }, [formatText]);
 
   const code = useCallback(() => {
-    formatText('code');
+    editor?.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined);
   }, [formatText]);
 
   const bulletList = useCallback(() => {

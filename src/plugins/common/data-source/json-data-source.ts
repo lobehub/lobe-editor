@@ -7,7 +7,9 @@ import {
   $isElementNode,
   $isRangeSelection,
   $isTextNode,
+  IS_CODE,
   LexicalEditor,
+  SerializedEditorState,
   SerializedElementNode,
   SerializedLexicalNode,
 } from 'lexical';
@@ -15,9 +17,55 @@ import {
 import { DataSource } from '@/editor-kernel';
 import { IWriteOptions } from '@/editor-kernel/data-source';
 
+const cursorNode = {
+  detail: 0,
+  format: 0,
+  mode: 'normal',
+  style: '',
+  text: '\uFEFF',
+  type: 'cursor',
+  version: 1,
+} as SerializedLexicalNode;
+
 export default class JSONDataSource extends DataSource {
   read(editor: LexicalEditor, data: any) {
-    editor.setEditorState(editor.parseEditorState(data));
+    let dataObj: SerializedEditorState<SerializedLexicalNode>;
+    if (typeof data === 'string') {
+      dataObj = JSON.parse(data) as SerializedEditorState<SerializedLexicalNode>;
+    } else {
+      dataObj = data as SerializedEditorState<SerializedLexicalNode>;
+    }
+    const process = (node: SerializedElementNode) => {
+      for (let i = 0; i < node.children.length; i++) {
+        const child = node.children[i];
+        if ('children' in child && Array.isArray(child.children)) {
+          process(child as SerializedElementNode);
+        }
+        if (
+          child.type === 'text' &&
+          'format' in child &&
+          typeof child.format === 'number' &&
+          (child.format & IS_CODE) > 0
+        ) {
+          node.children[i] = {
+            children: [
+              {
+                ...child,
+                format: child.format & ~IS_CODE,
+              } as SerializedLexicalNode,
+            ],
+            direction: 'ltr',
+            format: '',
+            indent: 0,
+            type: 'codeInline',
+            version: 1,
+          } as SerializedElementNode;
+          node.children.splice(i + 1, 0, cursorNode);
+        }
+      }
+    };
+    process(dataObj.root);
+    editor.setEditorState(editor.parseEditorState(dataObj));
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {
