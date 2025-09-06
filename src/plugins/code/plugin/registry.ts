@@ -18,8 +18,8 @@ export function registerCodeInline(editor: LexicalEditor) {
           if (parent?.__last === key) {
             const codeElement = editor.getElementByKey(key);
             if (!codeElement?.nextSibling) {
-              // @ts-expect-error not error
               parent
+                // @ts-expect-error not error
                 .getDOMSlot(editor.getElementByKey(parent.getKey()))
                 .setManagedLineBreak('decorator');
             }
