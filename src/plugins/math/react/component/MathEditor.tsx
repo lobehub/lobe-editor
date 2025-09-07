@@ -2,7 +2,7 @@ import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { mergeRegister } from '@lexical/utils';
 import { Block, Button, Hotkey, Text, TextArea } from '@lobehub/ui';
 import { type TextAreaRef } from 'antd/es/input/TextArea';
-import Katex from 'katex';
+import { renderToString } from 'katex';
 import {
   $getSelection,
   $isElementNode,
@@ -81,23 +81,22 @@ const MathEdit = memo(() => {
   useEffect(() => {
     if (!mathNode) return;
 
-    if (!value.trim()) {
-      setLatexError('');
-      return;
-    }
+    const isEmpty = !value.trim();
+
+    if (isEmpty) setLatexError('');
 
     // 使用防抖来避免过于频繁的验证和更新
     const timeoutId = setTimeout(() => {
       try {
-        // 创建一个临时元素来测试 LaTeX 是否有效
-        const tempDiv = document.createElement('div');
-        Katex.render(value, tempDiv, {
-          displayMode: isBlockMode,
-          throwOnError: true,
-        });
+        if (!isEmpty) {
+          renderToString(value, {
+            displayMode: true,
+            throwOnError: true,
+          });
 
-        // 验证成功：清除错误，更新节点
-        setLatexError('');
+          // 验证成功：清除错误，更新节点
+          setLatexError('');
+        }
 
         // 直接更新节点内容
         const lexicalEditor = editor.getLexicalEditor();
@@ -119,7 +118,7 @@ const MathEdit = memo(() => {
         setLatexError(errorMessage);
         // lastValidCode 保持不变，所以节点显示的内容也保持不变
       }
-    }, 200); // 200ms 防抖
+    }, 50);
 
     return () => clearTimeout(timeoutId);
   }, [value, isBlockMode, mathNode, editor]);

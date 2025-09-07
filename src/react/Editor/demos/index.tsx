@@ -21,7 +21,14 @@ import {
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { Avatar, type CollapseProps } from '@lobehub/ui';
 import { debounce } from 'lodash-es';
-import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
+import {
+  Heading1Icon,
+  Heading2Icon,
+  Heading3Icon,
+  MinusIcon,
+  SigmaIcon,
+  Table2Icon,
+} from 'lucide-react';
 import { memo, useState } from 'react';
 
 import Container from './Container';
@@ -164,6 +171,17 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
               },
             },
             {
+              icon: SigmaIcon,
+              key: 'tex',
+              label: 'Tex',
+              onSelect: (editor) => {
+                editor.dispatchCommand(INSERT_MATH_COMMAND, { code: 'x^2 + y^2 = z^2' });
+                queueMicrotask(() => {
+                  editor.focus();
+                });
+              },
+            },
+            {
               type: 'divider',
             },
             {
@@ -197,16 +215,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
                 });
               },
             },
-            {
-              key: 'insert-mathinline',
-              label: 'InsertMathInline',
-              onSelect: (editor) => {
-                editor.dispatchCommand(INSERT_MATH_COMMAND, { code: 'x^2 + y^2 = z^2' });
-                queueMicrotask(() => {
-                  editor.focus();
-                });
-              },
-            },
+
             {
               key: 'insert-codeInline',
               label: 'InsertCodeInline',

@@ -15,6 +15,7 @@ import {
   ListIcon,
   ListOrderedIcon,
   MessageSquareQuote,
+  SigmaIcon,
   SquareDashedBottomCodeIcon,
   StrikethroughIcon,
   UnderlineIcon,
@@ -96,6 +97,14 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           label: 'link',
           onClick: () => {
             editorState.insertLink();
+          },
+        },
+        {
+          icon: SigmaIcon,
+          key: 'math',
+          label: 'LaTeX',
+          onClick: () => {
+            editorState.insertMath();
           },
         },
         {

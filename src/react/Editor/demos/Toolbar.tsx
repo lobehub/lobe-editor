@@ -18,6 +18,7 @@ import {
   ListOrderedIcon,
   MessageSquareQuote,
   Redo2Icon,
+  SigmaIcon,
   SquareDashedBottomCodeIcon,
   StrikethroughIcon,
   UnderlineIcon,
@@ -117,6 +118,14 @@ const Toolbar = memo<ToolbarProps>(({ editor }) => {
           label: 'Link',
           onClick: () => {
             editorState.insertLink();
+          },
+        },
+        {
+          icon: SigmaIcon,
+          key: 'math',
+          label: 'TeX',
+          onClick: () => {
+            editorState.insertMath();
           },
         },
         {
