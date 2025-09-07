@@ -3,6 +3,7 @@ import { createStyles } from 'antd-style';
 
 export const useStyles = createStyles(({ cx, css, token }) => {
   const latex = css`
+    cursor: pointer;
     user-select: none;
     font-size: 1em;
 
@@ -31,6 +32,10 @@ export const useStyles = createStyles(({ cx, css, token }) => {
       background: ${token.yellow};
     }
 
+    &:hover {
+      background: ${token.colorFillTertiary};
+    }
+
     &.editing {
       background: ${token.colorFillTertiary};
     }
@@ -40,11 +45,17 @@ export const useStyles = createStyles(({ cx, css, token }) => {
     }
   `;
   return {
-    mathInline: cx(latex, css``),
+    mathInline: cx(
+      latex,
+      css`
+        display: inline-block;
+      `,
+    ),
     mathBlock: cx(
       latex,
       css`
         overflow: auto hidden;
+        display: block;
         white-space: nowrap;
       `,
     ),
@@ -55,8 +66,7 @@ export const useStyles = createStyles(({ cx, css, token }) => {
       inset-block-start: -9999px;
       inset-inline-start: -9999px;
 
-      min-width: 320px;
-      max-width: 100%;
+      width: 320px;
 
       background: ${token.colorBgElevated};
 

@@ -1,7 +1,8 @@
 import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { mergeRegister } from '@lexical/utils';
-import { Block, Button, Hotkey, TextArea } from '@lobehub/ui';
+import { Block, Button, Hotkey, Text, TextArea } from '@lobehub/ui';
 import { type TextAreaRef } from 'antd/es/input/TextArea';
+import Katex from 'katex';
 import {
   $getSelection,
   $isElementNode,
@@ -30,6 +31,7 @@ const MathEdit = memo(() => {
   const [mathDOM, setMathDOM] = useState<HTMLElement | null>(null);
   const [prev, setPrev] = useState<boolean>(false);
   const [isBlockMode, setIsBlockMode] = useState<boolean>(false);
+  const [latexError, setLatexError] = useState<string>('');
   const { styles } = useStyles();
   const [editor] = useLexicalComposerContext();
 
@@ -75,11 +77,59 @@ const MathEdit = memo(() => {
     });
   }, [mathDOM, prev, isBlockMode]);
 
+  // 实时验证和更新逻辑
+  useEffect(() => {
+    if (!mathNode) return;
+
+    if (!value.trim()) {
+      setLatexError('');
+      return;
+    }
+
+    // 使用防抖来避免过于频繁的验证和更新
+    const timeoutId = setTimeout(() => {
+      try {
+        // 创建一个临时元素来测试 LaTeX 是否有效
+        const tempDiv = document.createElement('div');
+        Katex.render(value, tempDiv, {
+          displayMode: isBlockMode,
+          throwOnError: true,
+        });
+
+        // 验证成功：清除错误，更新节点
+        setLatexError('');
+
+        // 直接更新节点内容
+        const lexicalEditor = editor.getLexicalEditor();
+        if (lexicalEditor) {
+          lexicalEditor.update(() => {
+            const currentNode = lexicalEditor.getEditorState().read(() => {
+              return lexicalEditor.getElementByKey(mathNode.getKey());
+            });
+
+            if (currentNode) {
+              const writableNode = mathNode.getWritable();
+              writableNode.__code = value;
+            }
+          });
+        }
+      } catch (error) {
+        // 验证失败：只设置错误信息，不更新节点（保持最后正确的渲染）
+        const errorMessage = error instanceof Error ? error.message : 'LaTeX Parse Error';
+        setLatexError(errorMessage);
+        // lastValidCode 保持不变，所以节点显示的内容也保持不变
+      }
+    }, 200); // 200ms 防抖
+
+    return () => clearTimeout(timeoutId);
+  }, [value, isBlockMode, mathNode, editor]);
+
   // 抽取提交逻辑到独立函数
   const handleSubmit = useCallback(() => {
     if (!mathNode) return;
     const lexicalEditor = editor.getLexicalEditor();
     if (lexicalEditor) {
+      // 提交时总是使用原始的 value，不包含错误标记
       lexicalEditor.dispatchCommand(UPDATE_MATH_COMMAND, { code: value, key: mathNode.getKey() });
     }
   }, [editor, mathNode, value]);
@@ -114,6 +164,17 @@ const MathEdit = memo(() => {
         handleCancel();
         return;
       }
+      // 当内容为空且按退格键时，删除数学节点
+      if (e.key === 'Backspace' && !value.trim()) {
+        e.preventDefault();
+        const lexicalEditor = editor.getLexicalEditor();
+        if (lexicalEditor) {
+          lexicalEditor.update(() => {
+            mathNode.remove();
+          });
+        }
+        return;
+      }
       if (e.key === 'ArrowLeft' && e.currentTarget.selectionStart === 0) {
         e.preventDefault();
         editor.dispatchCommand(SELECT_MATH_SIDE_COMMAND, { key: mathNode.getKey(), prev: true });
@@ -126,7 +187,7 @@ const MathEdit = memo(() => {
         editor.dispatchCommand(SELECT_MATH_SIDE_COMMAND, { key: mathNode.getKey(), prev: false });
       }
     },
-    [mathNode, handleSubmit, handleCancel, editor],
+    [mathNode, handleSubmit, handleCancel, editor, value],
   );
 
   useLexicalEditor((editor) => {
@@ -177,6 +238,7 @@ const MathEdit = memo(() => {
           setMathDOM(null);
           setValue('');
           setIsBlockMode(false);
+          setLatexError('');
           if (divRef.current) {
             divRef.current.style.left = `-9999px`;
             divRef.current.style.top = `-9999px`;
@@ -209,6 +271,20 @@ const MathEdit = memo(() => {
         value={value}
         variant={'borderless'}
       />
+      {latexError && (
+        <Flexbox
+          className={styles.mathEditorFooter}
+          horizontal
+          justify={'flex-end'}
+          paddingBlock={4}
+          paddingInline={12}
+          width={'100%'}
+        >
+          <Text fontSize={13} type={'danger'}>
+            {latexError}
+          </Text>
+        </Flexbox>
+      )}
       <Flexbox
         className={styles.mathEditorFooter}
         horizontal

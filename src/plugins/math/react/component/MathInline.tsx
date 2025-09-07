@@ -50,23 +50,34 @@ const MathInline = memo<MathInlineProps>(({ editor, node, className }) => {
     }
   }, [isSelected, isEditing]);
 
-  useLexicalEditor((editor) => {
-    return editor.registerCommand(
-      CLICK_COMMAND,
-      (payload) => {
-        console.info(payload, payload.target, ref.current);
-        if (
-          payload.target &&
-          payload.target instanceof Node &&
-          ref.current?.contains(payload.target)
-        ) {
-          setSelected(true);
-        }
-        return false;
-      },
-      COMMAND_PRIORITY_NORMAL,
-    );
-  }, []);
+  useLexicalEditor(
+    (editor) => {
+      return editor.registerCommand(
+        CLICK_COMMAND,
+        (payload) => {
+          console.info(payload, payload.target, ref.current);
+          if (payload.target && payload.target instanceof Node) {
+            // 获取节点对应的 DOM 元素
+            const nodeElement = editor.getElementByKey(node.getKey());
+
+            // 对于 block 模式，检查是否点击在整个节点容器内
+            // 对于 inline 模式，仍然检查是否点击在渲染内容内
+            const isClickInNode =
+              node instanceof MathBlockNode
+                ? nodeElement?.contains(payload.target)
+                : ref.current?.contains(payload.target);
+
+            if (isClickInNode) {
+              setSelected(true);
+            }
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      );
+    },
+    [node],
+  );
 
   // 监听编辑器状态变化来检测编辑状态
   useLexicalEditor(
