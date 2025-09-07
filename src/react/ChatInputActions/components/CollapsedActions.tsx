@@ -6,18 +6,11 @@ import { motion } from 'framer-motion';
 import { CircleChevronLeftIcon, CircleChevronRightIcon, CircleChevronUpIcon } from 'lucide-react';
 import { memo } from 'react';
 import { Flexbox } from 'react-layout-kit';
-import useMergeState from 'use-merge-value';
 
 import type { ChatInputActionsCollapseProps } from '../type';
 
-const ChatInputActionsCollapse = memo<ChatInputActionsCollapseProps>(
-  ({ children, expand, defaultExpand = true, onChange, gap, mode }) => {
-    const [expanded, setExpaned] = useMergeState(defaultExpand, {
-      defaultValue: defaultExpand,
-      onChange,
-      value: expand,
-    });
-
+const CollapsedActions = memo<ChatInputActionsCollapseProps>(
+  ({ children, groupCollapse = false, onGroupCollapseChange, gap, mode }) => {
     if (mode === 'popup') {
       return (
         <Popover
@@ -47,7 +40,8 @@ const ChatInputActionsCollapse = memo<ChatInputActionsCollapseProps>(
     return (
       <Flexbox align={'center'} flex={'none'} gap={gap} horizontal>
         <motion.div
-          animate={expanded ? 'open' : 'closed'}
+          animate={groupCollapse ? 'closed' : 'open'}
+          initial={groupCollapse ? 'closed' : 'open'}
           style={{
             alignItems: 'center',
             display: 'flex',
@@ -68,8 +62,8 @@ const ChatInputActionsCollapse = memo<ChatInputActionsCollapseProps>(
           {children}
         </motion.div>
         <ActionIcon
-          icon={expanded ? CircleChevronLeftIcon : CircleChevronRightIcon}
-          onClick={() => setExpaned(!expanded)}
+          icon={groupCollapse ? CircleChevronRightIcon : CircleChevronLeftIcon}
+          onClick={() => onGroupCollapseChange?.(!groupCollapse)}
           size={{
             blockSize: 36,
             size: 20,
@@ -80,6 +74,6 @@ const ChatInputActionsCollapse = memo<ChatInputActionsCollapseProps>(
   },
 );
 
-ChatInputActionsCollapse.displayName = 'ChatInputActionsCollapse';
+CollapsedActions.displayName = 'ChatInputActionsCollapse';
 
-export default ChatInputActionsCollapse;
+export default CollapsedActions;

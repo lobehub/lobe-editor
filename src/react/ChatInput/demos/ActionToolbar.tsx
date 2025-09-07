@@ -36,9 +36,9 @@ const ActionToolbar = memo<ActionToolbarProps>(
               {
                 icon: GlobeIcon,
                 key: 'search',
-                wrapper: (node, key) => {
+                wrapper: (node) => {
                   return (
-                    <Popover arrow={false} content={'Test Popover'} key={key}>
+                    <Popover arrow={false} content={'Test Popover'}>
                       {node}
                     </Popover>
                   );
