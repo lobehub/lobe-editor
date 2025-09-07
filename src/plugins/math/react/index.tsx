@@ -6,8 +6,8 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { MarkdownPlugin } from '@/plugins/markdown';
 
 import { MathPlugin } from '../plugin';
-import { MathEdit } from './component/MathEditor';
-import { MathInline } from './component/MathInline';
+import MathEdit from './component/MathEditor';
+import MathInline from './component/MathInline';
 import { useStyles } from './style';
 import { ReactMathPluginProps } from './type';
 

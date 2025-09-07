@@ -16,16 +16,19 @@ export const useStyles = createStyles(({ cx, css, token }) => {
       padding: 2px;
       border: none;
     `,
-
     linkEdit: cx(
       position,
       css`
         min-width: 320px;
         max-width: 100%;
         background: ${token.colorBgElevated};
-        box-shadow: ${token.boxShadowSecondary};
       `,
     ),
+
+    linkEditFooter: css`
+      border-block-start: 1px solid ${token.colorBorderSecondary};
+      background: ${token.colorFillQuaternary};
+    `,
 
     linkToolbar: cx(
       position,
