@@ -104,6 +104,29 @@ export function $getAdjacentNode(focus: PointType, isBackward: boolean): null | 
   return null;
 }
 
+export function $getDownUpNode(focus: PointType, isUp: boolean): null | LexicalNode {
+  const focusNode = focus.getNode();
+  let blockParent: LexicalNode | null = focusNode;
+  while (blockParent !== null && blockParent.isInline()) {
+    blockParent = blockParent.getParent();
+  }
+  if (!blockParent) {
+    return null;
+  }
+  let nextNode = isUp ? blockParent.getPreviousSibling() : blockParent.getNextSibling();
+  while (!nextNode && !$isRootOrShadowRoot(blockParent)) {
+    blockParent = blockParent.getParent();
+    if (!blockParent) {
+      return null;
+    }
+    nextNode = isUp ? blockParent.getPreviousSibling() : blockParent.getNextSibling();
+  }
+  if (!nextNode) {
+    return null;
+  }
+  return nextNode;
+}
+
 function $isSelectionAtEndOfRoot(selection: RangeSelection) {
   const focus = selection.focus;
   return focus.key === 'root' && focus.offset === $getRoot().getChildrenSize();
@@ -192,9 +215,18 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
           }
         } else if ($isRangeSelection(selection)) {
           const possibleNode = $getAdjacentNode(selection.focus, true);
+          const upblock = possibleNode || $getDownUpNode(selection.focus, true);
           if (!event.shiftKey && $isDecoratorNode(possibleNode)) {
             const nodeSelection = $createNodeSelection();
             nodeSelection.add(possibleNode.getKey());
+            editor.update(() => {
+              $setSelection(nodeSelection);
+            });
+            event.preventDefault();
+            return true;
+          } else if (!event.shiftKey && $isDecoratorNode(upblock)) {
+            const nodeSelection = $createNodeSelection();
+            nodeSelection.add(upblock.getKey());
             editor.update(() => {
               $setSelection(nodeSelection);
             });
@@ -240,9 +272,18 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
             return true;
           }
           const possibleNode = $getAdjacentNode(selection.focus, false);
+          const upblock = possibleNode || $getDownUpNode(selection.focus, false);
           if (!event.shiftKey && $isDecoratorNode(possibleNode)) {
             const nodeSelection = $createNodeSelection();
             nodeSelection.add(possibleNode.getKey());
+            editor.update(() => {
+              $setSelection(nodeSelection);
+            });
+            event.preventDefault();
+            return true;
+          } else if (!event.shiftKey && $isDecoratorNode(upblock)) {
+            const nodeSelection = $createNodeSelection();
+            nodeSelection.add(upblock.getKey());
             editor.update(() => {
               $setSelection(nodeSelection);
             });
