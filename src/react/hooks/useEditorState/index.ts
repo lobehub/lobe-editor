@@ -33,6 +33,7 @@ import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@/plugins/link/node/LinkNode';
 import { sanitizeUrl } from '@/plugins/link/utils';
+import { INSERT_CHECK_LIST_COMMAND } from '@/plugins/list';
 import { $createMathBlockNode, $createMathInlineNode } from '@/plugins/math/node';
 import { IEditor } from '@/types';
 
@@ -54,6 +55,8 @@ export interface EditorState {
   canRedo: boolean;
   /** Whether undo operation is available */
   canUndo: boolean;
+  /** Toggle check list */
+  checkList: () => void;
   /** Toggle code formatting */
   code: () => void;
   /** Format selection as code block */
@@ -242,6 +245,14 @@ export function useEditorState(editor?: IEditor): EditorState {
     }
   }, [blockType, editor]);
 
+  const checkList = useCallback(() => {
+    if (blockType !== 'check') {
+      editor?.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined);
+    } else {
+      formatParagraph(editor?.getLexicalEditor());
+    }
+  }, [blockType, editor]);
+
   const codeblock = useCallback(() => {
     if (blockType !== 'code') {
       editor?.getLexicalEditor()?.update(() => {
@@ -386,6 +397,7 @@ export function useEditorState(editor?: IEditor): EditorState {
       bulletList,
       canRedo,
       canUndo,
+      checkList,
       code,
       codeblock,
       codeblockLang,
@@ -410,16 +422,9 @@ export function useEditorState(editor?: IEditor): EditorState {
     }),
     [
       blockType,
-      bold,
-      bulletList,
       canRedo,
       canUndo,
-      code,
       codeblockLang,
-      blockquote,
-      codeblock,
-      insertLink,
-      insertMath,
       isBold,
       isCode,
       isEmpty,
@@ -430,12 +435,6 @@ export function useEditorState(editor?: IEditor): EditorState {
       isStrikethrough,
       isUnderline,
       italic,
-      numberList,
-      redo,
-      strikethrough,
-      underline,
-      undo,
-      updateCodeblockLang,
     ],
   );
 }

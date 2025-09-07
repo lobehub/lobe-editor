@@ -8,6 +8,7 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
+  ReactMathPlugin,
   ReactTablePlugin,
 } from '@lobehub/editor';
 import { ChatInput, Editor, SlashMenu, useEditor, useEditorState } from '@lobehub/editor/react';
@@ -116,6 +117,7 @@ export default () => {
             ReactCodeblockPlugin,
             ReactHRPlugin,
             ReactTablePlugin,
+            ReactMathPlugin,
           ]}
           slashOption={{
             items: [

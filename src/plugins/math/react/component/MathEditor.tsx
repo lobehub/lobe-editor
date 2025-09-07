@@ -40,26 +40,6 @@ const MathEdit = memo(() => {
       return;
     }
 
-    if (isBlockMode) {
-      // Block 模式下，获取主编辑器容器的位置和宽度
-      const editorContainer = mathDOM.closest('[contenteditable="true"]');
-      if (editorContainer) {
-        const containerRect = editorContainer.getBoundingClientRect();
-        const mathRect = mathDOM.getBoundingClientRect();
-
-        // 设置编辑器与主编辑器一样宽，位置在数学元素下方
-        divRef.current.style.left = `${containerRect.left}px`;
-        divRef.current.style.top = `${mathRect.bottom + 8}px`;
-        divRef.current.style.width = `${containerRect.width}px`;
-
-        textareaRef.current?.focus();
-        if (prev) {
-          textareaRef.current?.resizableTextArea?.textArea?.setSelectionRange(0, 0);
-        }
-        return;
-      }
-    }
-
     // Inline 模式下使用默认的 floating-ui 定位
     computePosition(mathDOM, divRef.current, {
       middleware: [offset(8), flip(), shift()],
@@ -72,6 +52,19 @@ const MathEdit = memo(() => {
         textareaRef.current?.focus();
         if (prev) {
           textareaRef.current?.resizableTextArea?.textArea?.setSelectionRange(0, 0);
+        }
+      }
+
+      if (isBlockMode && divRef.current) {
+        // Block 模式下，获取主编辑器容器的位置和宽度
+        const editorContainer = mathDOM.closest('[contenteditable="true"]');
+        if (editorContainer) {
+          const containerRect = editorContainer.getBoundingClientRect();
+          divRef.current.style.width = `${containerRect.width}px`;
+          textareaRef.current?.focus();
+          if (prev) {
+            textareaRef.current?.resizableTextArea?.textArea?.setSelectionRange(0, 0);
+          }
         }
       }
     });
@@ -248,13 +241,7 @@ const MathEdit = memo(() => {
   }, []);
 
   return (
-    <Block
-      className={styles.mathEditor}
-      ref={divRef}
-      shadow
-      style={isBlockMode ? { maxWidth: 'none', width: '100%' } : undefined}
-      variant={'outlined'}
-    >
+    <Block className={styles.mathEditor} ref={divRef} shadow variant={'outlined'}>
       <TextArea
         autoFocus
         autoSize={{ maxRows: 6, minRows: 1 }}
@@ -262,6 +249,7 @@ const MathEdit = memo(() => {
           setValue(e.target.value);
         }}
         onKeyDown={handleKeyDown}
+        placeholder={`${t('math.placeholder')}...`}
         ref={textareaRef}
         resize={false}
         style={{

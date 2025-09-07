@@ -14,6 +14,7 @@ import {
   LinkIcon,
   ListIcon,
   ListOrderedIcon,
+  ListTodoIcon,
   MessageSquareQuote,
   SigmaIcon,
   SquareDashedBottomCodeIcon,
@@ -81,6 +82,17 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           onClick: () => {
             editorState.numberList();
           },
+        },
+        {
+          icon: ListTodoIcon,
+          key: 'tasklist',
+          label: 'Task list',
+          onClick: () => {
+            editorState.checkList();
+          },
+        },
+        {
+          type: 'divider',
         },
         {
           active: editorState.isBlockquote,
