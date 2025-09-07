@@ -1,122 +1,74 @@
-import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { mergeRegister } from '@lexical/utils';
-import { Block, Button, Hotkey, Text, TextArea } from '@lobehub/ui';
 import { type TextAreaRef } from 'antd/es/input/TextArea';
-import { renderToString } from 'katex';
 import {
   $getSelection,
   $isElementNode,
   $isNodeSelection,
   $isRangeSelection,
   $isTextNode,
-  isModifierMatch,
 } from 'lexical';
-import { type KeyboardEvent, memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Flexbox } from 'react-layout-kit';
+import { type FC, type ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
 
-import { CONTROL_OR_META } from '@/common/sys';
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
-import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { SELECT_MATH_SIDE_COMMAND, UPDATE_MATH_COMMAND } from '../../command';
 import { $isMathNode, MathBlockNode, MathInlineNode } from '../../node';
-import { useStyles } from '../style';
+import { MathEditorContainer } from './MathEditorContainer';
+import { MathEditorContent } from './MathEditorContent';
 
-const MathEdit = memo(() => {
-  const t = useTranslation();
-  const divRef = useRef<HTMLDivElement>(null);
+interface MathEditProps {
+  /** 自定义渲染组件，接收 MathEditorContent 作为子节点 */
+  renderComp?: FC<{ children: ReactNode; open?: boolean }>;
+}
+
+const MathEdit = memo<MathEditProps>(({ renderComp }) => {
   const textareaRef = useRef<TextAreaRef>(null);
+  const isUpdatingRef = useRef<boolean>(false);
   const [mathNode, setMathNode] = useState<MathInlineNode | MathBlockNode | null>(null);
   const [value, setValue] = useState<string>('');
   const [mathDOM, setMathDOM] = useState<HTMLElement | null>(null);
   const [prev, setPrev] = useState<boolean>(false);
   const [isBlockMode, setIsBlockMode] = useState<boolean>(false);
-  const [latexError, setLatexError] = useState<string>('');
-  const { styles } = useStyles();
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [editor] = useLexicalComposerContext();
 
-  useEffect(() => {
-    if (!mathDOM || !divRef.current) {
-      return;
-    }
-
-    // Inline 模式下使用默认的 floating-ui 定位
-    computePosition(mathDOM, divRef.current, {
-      middleware: [offset(8), flip(), shift()],
-      placement: 'bottom-start',
-    }).then(({ x, y }) => {
-      if (divRef.current) {
-        divRef.current.style.left = `${x}px`;
-        divRef.current.style.top = `${y}px`;
-        divRef.current.style.width = ''; // 重置宽度
-        textareaRef.current?.focus();
-        if (prev) {
-          textareaRef.current?.resizableTextArea?.textArea?.setSelectionRange(0, 0);
-        }
-      }
-
-      if (isBlockMode && divRef.current) {
-        // Block 模式下，获取主编辑器容器的位置和宽度
-        const editorContainer = mathDOM.closest('[contenteditable="true"]');
-        if (editorContainer) {
-          const containerRect = editorContainer.getBoundingClientRect();
-          divRef.current.style.width = `${containerRect.width}px`;
-          textareaRef.current?.focus();
-          if (prev) {
-            textareaRef.current?.resizableTextArea?.textArea?.setSelectionRange(0, 0);
-          }
-        }
-      }
-    });
-  }, [mathDOM, prev, isBlockMode]);
-
-  // 实时验证和更新逻辑
+  // 实时更新节点内容
   useEffect(() => {
     if (!mathNode) return;
 
-    const isEmpty = !value.trim();
-
-    if (isEmpty) setLatexError('');
-
-    // 使用防抖来避免过于频繁的验证和更新
+    // 使用防抖来避免过于频繁的更新
     const timeoutId = setTimeout(() => {
-      try {
-        if (!isEmpty) {
-          renderToString(value, {
-            displayMode: true,
-            throwOnError: true,
-          });
-
-          // 验证成功：清除错误，更新节点
-          setLatexError('');
+      // 直接更新节点内容
+      const lexicalEditor = editor.getLexicalEditor();
+      if (lexicalEditor && !isUpdatingRef.current) {
+        // 检查当前值是否与节点中的值不同，避免不必要的更新
+        const currentCode = mathNode.code;
+        if (currentCode === value) {
+          return; // 值相同，无需更新
         }
 
-        // 直接更新节点内容
-        const lexicalEditor = editor.getLexicalEditor();
-        if (lexicalEditor) {
-          lexicalEditor.update(() => {
-            const currentNode = lexicalEditor.getEditorState().read(() => {
-              return lexicalEditor.getElementByKey(mathNode.getKey());
-            });
-
-            if (currentNode) {
-              const writableNode = mathNode.getWritable();
-              writableNode.__code = value;
-            }
+        isUpdatingRef.current = true;
+        lexicalEditor.update(() => {
+          const currentNode = lexicalEditor.getEditorState().read(() => {
+            return lexicalEditor.getElementByKey(mathNode.getKey());
           });
-        }
-      } catch (error) {
-        // 验证失败：只设置错误信息，不更新节点（保持最后正确的渲染）
-        const errorMessage = error instanceof Error ? error.message : 'LaTeX Parse Error';
-        setLatexError(errorMessage);
-        // lastValidCode 保持不变，所以节点显示的内容也保持不变
+
+          if (currentNode) {
+            const writableNode = mathNode.getWritable();
+            writableNode.__code = value;
+          }
+        });
+        // 延迟重置更新标志，确保更新监听器不会立即触发
+        setTimeout(() => {
+          isUpdatingRef.current = false;
+        }, 100);
       }
-    }, 50);
+    }, 100); // 增加防抖延迟
 
     return () => clearTimeout(timeoutId);
-  }, [value, isBlockMode, mathNode, editor]);
+  }, [value, mathNode, editor]);
 
-  // 抽取提交逻辑到独立函数
+  // 提交逻辑
   const handleSubmit = useCallback(() => {
     if (!mathNode) return;
     const lexicalEditor = editor.getLexicalEditor();
@@ -143,156 +95,143 @@ const MathEdit = memo(() => {
     }
   }, [mathNode, editor]);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLTextAreaElement>) => {
-      if (!mathNode) return;
-      if (isModifierMatch(e, CONTROL_OR_META) && e.key === 'Enter') {
-        e.preventDefault();
-        handleSubmit();
-        return;
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        handleCancel();
-        return;
-      }
-      // 当内容为空且按退格键时，删除数学节点
-      if (e.key === 'Backspace' && !value.trim()) {
-        e.preventDefault();
-        const lexicalEditor = editor.getLexicalEditor();
-        if (lexicalEditor) {
-          lexicalEditor.update(() => {
-            mathNode.remove();
-          });
-        }
-        return;
-      }
-      if (e.key === 'ArrowLeft' && e.currentTarget.selectionStart === 0) {
-        e.preventDefault();
-        editor.dispatchCommand(SELECT_MATH_SIDE_COMMAND, { key: mathNode.getKey(), prev: true });
-      }
-      if (
-        e.key === 'ArrowRight' &&
-        e.currentTarget.selectionStart === e.currentTarget.value.length
-      ) {
-        e.preventDefault();
-        editor.dispatchCommand(SELECT_MATH_SIDE_COMMAND, { key: mathNode.getKey(), prev: false });
-      }
-    },
-    [mathNode, handleSubmit, handleCancel, editor, value],
-  );
+  // 删除节点
+  const handleDelete = useCallback(() => {
+    if (!mathNode) return;
+    const lexicalEditor = editor.getLexicalEditor();
+    if (lexicalEditor) {
+      lexicalEditor.update(() => {
+        mathNode.remove();
+      });
+    }
+  }, [mathNode, editor]);
 
-  useLexicalEditor((editor) => {
-    return mergeRegister(
-      editor.registerUpdateListener(({ prevEditorState }) => {
-        // Handle editor state updates
-        const canEdit = editor.read(() => {
-          const selection = $getSelection();
-          if (!$isNodeSelection(selection)) {
-            return false;
-          }
-          const node = selection.getNodes()[0];
-          if (!$isMathNode(node)) {
-            // Handle math node
-            return false;
-          }
-          setMathNode(node);
-          setValue(node.code);
-          setMathDOM(editor.getElementByKey(node.getKey()));
-          setIsBlockMode(node instanceof MathBlockNode);
-          return node;
-        });
+  // 左箭头导航
+  const handleArrowLeft = useCallback(() => {
+    if (!mathNode) return;
+    editor.dispatchCommand(SELECT_MATH_SIDE_COMMAND, { key: mathNode.getKey(), prev: true });
+  }, [mathNode, editor]);
 
-        if (canEdit) {
-          const node = prevEditorState.read(() => {
-            const sel = prevEditorState._selection;
-            if (!$isRangeSelection(sel) || !sel.isCollapsed()) {
-              return false;
-            }
-            const node = sel.anchor.getNode();
-            if ($isTextNode(node)) {
-              return node.getNextSibling();
-            }
-            if (!$isElementNode(node)) {
-              return false;
-            }
-            return node.getChildAtIndex(sel.anchor.offset);
-          });
-          if (canEdit === node) {
-            setPrev(true);
-          } else {
-            setPrev(false);
-          }
-        }
+  // 右箭头导航
+  const handleArrowRight = useCallback(() => {
+    if (!mathNode) return;
+    editor.dispatchCommand(SELECT_MATH_SIDE_COMMAND, { key: mathNode.getKey(), prev: false });
+  }, [mathNode, editor]);
 
-        if (!canEdit) {
-          setMathNode(null);
-          setMathDOM(null);
-          setValue('');
-          setIsBlockMode(false);
-          setLatexError('');
-          if (divRef.current) {
-            divRef.current.style.left = `-9999px`;
-            divRef.current.style.top = `-9999px`;
-          }
-        }
-      }),
-    );
+  // 处理焦点
+  const handleFocus = useCallback(() => {
+    textareaRef.current?.focus();
+    if (prev) {
+      textareaRef.current?.resizableTextArea?.textArea?.setSelectionRange(0, 0);
+    }
+  }, [prev]);
+
+  // 设置 textarea ref
+  const setTextareaRef = useCallback((ref: TextAreaRef | null) => {
+    textareaRef.current = ref;
   }, []);
 
+  useLexicalEditor(
+    (editor) => {
+      return mergeRegister(
+        editor.registerUpdateListener(({ prevEditorState }) => {
+          // 如果正在更新中，跳过此次监听器调用
+          if (isUpdatingRef.current) {
+            return;
+          }
+
+          // Handle editor state updates
+          const canEdit = editor.read(() => {
+            const selection = $getSelection();
+            if (!$isNodeSelection(selection)) {
+              return false;
+            }
+            const node = selection.getNodes()[0];
+            if (!$isMathNode(node)) {
+              // Handle math node
+              return false;
+            }
+
+            // 检查是否是同一个节点，避免不必要的状态更新
+            const isSameNode = mathNode && mathNode.getKey() === node.getKey();
+
+            setMathNode(node);
+            // 只有在不是同一个节点或值真正改变时才更新 value
+            if (!isSameNode && node.code !== value) {
+              setValue(node.code);
+            }
+            setMathDOM(editor.getElementByKey(node.getKey()));
+            setIsBlockMode(node instanceof MathBlockNode);
+            return node;
+          });
+
+          if (canEdit) {
+            const node = prevEditorState.read(() => {
+              const sel = prevEditorState._selection;
+              if (!$isRangeSelection(sel) || !sel.isCollapsed()) {
+                return false;
+              }
+              const node = sel.anchor.getNode();
+              if ($isTextNode(node)) {
+                return node.getNextSibling();
+              }
+              if (!$isElementNode(node)) {
+                return false;
+              }
+              return node.getChildAtIndex(sel.anchor.offset);
+            });
+            if (canEdit === node) {
+              setPrev(true);
+            } else {
+              setPrev(false);
+            }
+            setIsOpen(true);
+          }
+
+          if (!canEdit) {
+            setMathNode(null);
+            setMathDOM(null);
+            setValue('');
+            setIsBlockMode(false);
+            setIsOpen(false);
+          }
+        }),
+      );
+    },
+    [mathNode, value],
+  );
+
+  // 构建 MathEditorContent 组件
+  const mathEditorContent = (
+    <MathEditorContent
+      focusRef={setTextareaRef}
+      mathNode={mathNode}
+      onArrowLeft={handleArrowLeft}
+      onArrowRight={handleArrowRight}
+      onCancel={handleCancel}
+      onDelete={handleDelete}
+      onSubmit={handleSubmit}
+      onValueChange={setValue}
+      prev={prev}
+      value={value}
+    />
+  );
+
+  // 如果有自定义渲染组件，使用它来包装 MathEditorContent
+  if (renderComp) {
+    return <>{renderComp({ children: mathEditorContent, open: isOpen })}</>;
+  }
+
+  // 否则使用默认的 MathEditorContainer
   return (
-    <Block className={styles.mathEditor} ref={divRef} shadow variant={'outlined'}>
-      <TextArea
-        autoFocus
-        autoSize={{ maxRows: 6, minRows: 1 }}
-        onChange={(e) => {
-          setValue(e.target.value);
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder={`${t('math.placeholder')}...`}
-        ref={textareaRef}
-        resize={false}
-        style={{
-          marginBlock: 4,
-        }}
-        value={value}
-        variant={'borderless'}
-      />
-      {latexError && (
-        <Flexbox
-          className={styles.mathEditorFooter}
-          horizontal
-          justify={'flex-end'}
-          paddingBlock={4}
-          paddingInline={12}
-          width={'100%'}
-        >
-          <Text fontSize={13} type={'danger'}>
-            {latexError}
-          </Text>
-        </Flexbox>
-      )}
-      <Flexbox
-        className={styles.mathEditorFooter}
-        horizontal
-        justify={'flex-end'}
-        padding={4}
-        width={'100%'}
-      >
-        <Button
-          onClick={(e) => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-          size={'small'}
-          type={'text'}
-          variant={'filled'}
-        >
-          {t('confirm')}
-          <Hotkey compact keys="mod+enter" variant={'borderless'} />
-        </Button>
-      </Flexbox>
-    </Block>
+    <MathEditorContainer
+      isBlockMode={isBlockMode}
+      mathDOM={mathDOM}
+      onFocus={handleFocus}
+      prev={prev}
+    >
+      {mathEditorContent}
+    </MathEditorContainer>
   );
 });
 

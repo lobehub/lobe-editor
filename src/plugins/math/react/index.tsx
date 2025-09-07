@@ -11,7 +11,7 @@ import MathInline from './component/MathInline';
 import { useStyles } from './style';
 import { ReactMathPluginProps } from './type';
 
-export const ReactMathPlugin: FC<ReactMathPluginProps> = ({ className, theme }) => {
+export const ReactMathPlugin: FC<ReactMathPluginProps> = ({ className, renderComp, theme }) => {
   const [editor] = useLexicalComposerContext();
   const { styles } = useStyles();
 
@@ -25,7 +25,7 @@ export const ReactMathPlugin: FC<ReactMathPluginProps> = ({ className, theme }) 
     });
   }, [editor]);
 
-  return <MathEdit />;
+  return <MathEdit renderComp={renderComp} />;
 };
 
 ReactMathPlugin.displayName = 'ReactMathPlugin';

@@ -37,18 +37,23 @@ const MathInline = memo<MathInlineProps>(({ editor, node, className }) => {
   useEffect(() => {
     const parent = editor.getElementByKey(node.getKey());
     if (parent) {
-      if (isEditing) {
-        addClassNamesToElement(parent, 'editing');
-        removeClassNamesFromElement(parent, 'selected');
-      } else if (isSelected) {
-        addClassNamesToElement(parent, 'selected');
-        removeClassNamesFromElement(parent, 'editing');
-      } else {
-        removeClassNamesFromElement(parent, 'selected');
-        removeClassNamesFromElement(parent, 'editing');
-      }
+      // 防抖处理，避免过于频繁的 DOM 操作
+      const timeoutId = setTimeout(() => {
+        if (isEditing) {
+          addClassNamesToElement(parent, 'editing');
+          removeClassNamesFromElement(parent, 'selected');
+        } else if (isSelected) {
+          addClassNamesToElement(parent, 'selected');
+          removeClassNamesFromElement(parent, 'editing');
+        } else {
+          removeClassNamesFromElement(parent, 'selected');
+          removeClassNamesFromElement(parent, 'editing');
+        }
+      }, 10);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [isSelected, isEditing]);
+  }, [isSelected, isEditing, editor, node]);
 
   useLexicalEditor(
     (editor) => {
