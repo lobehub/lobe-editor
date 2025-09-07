@@ -34,7 +34,6 @@ const FloatMenu = memo<FloatMenuProps>(
       >
         <Block
           className={cx(styles.container, className, classNames?.container)}
-          gap={4}
           shadow
           style={{
             maxHeight,

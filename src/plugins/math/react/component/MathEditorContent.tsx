@@ -158,7 +158,6 @@ export const MathEditorContent = memo<MathEditorContentProps>(
           <Flexbox
             className={styles.mathEditorFooter}
             horizontal
-            justify={'flex-end'}
             paddingBlock={4}
             paddingInline={12}
             width={'100%'}
