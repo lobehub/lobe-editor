@@ -1,7 +1,7 @@
-import { ActionIconGroup } from '@lobehub/ui';
+import { ActionIconGroup, type ActionIconGroupProps } from '@lobehub/ui';
 import { LexicalEditor } from 'lexical';
 import { EditIcon, ExternalLinkIcon, UnlinkIcon } from 'lucide-react';
-import type { FC } from 'react';
+import { memo } from 'react';
 
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
@@ -9,11 +9,13 @@ import { LinkNode, TOGGLE_LINK_COMMAND } from '../../node/LinkNode';
 import { useStyles } from '../style';
 import { EDIT_LINK_COMMAND } from './LinkEdit';
 
-export const Toolbar: FC<{ editor: LexicalEditor; linkNode: LinkNode | null }> = ({
-  linkNode,
-  editor,
-}) => {
-  const { theme } = useStyles();
+interface LinkToolbarProps extends Omit<ActionIconGroupProps, 'items'> {
+  editor: LexicalEditor;
+  linkNode: LinkNode | null;
+}
+
+const LinkToolbar = memo<LinkToolbarProps>(({ linkNode, editor, ...rest }) => {
+  const { styles } = useStyles();
   const t = useTranslation();
 
   const handleEdit = () => {
@@ -41,6 +43,7 @@ export const Toolbar: FC<{ editor: LexicalEditor; linkNode: LinkNode | null }> =
 
   return (
     <ActionIconGroup
+      className={styles.linkToolbar}
       items={[
         {
           icon: EditIcon,
@@ -66,10 +69,10 @@ export const Toolbar: FC<{ editor: LexicalEditor; linkNode: LinkNode | null }> =
         blockSize: 32,
         size: 16,
       }}
-      style={{
-        background: theme.colorBgElevated,
-      }}
       variant={'outlined'}
+      {...rest}
     />
   );
-};
+});
+
+export default LinkToolbar;

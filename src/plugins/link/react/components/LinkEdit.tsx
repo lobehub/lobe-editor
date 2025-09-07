@@ -1,6 +1,6 @@
 import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { mergeRegister } from '@lexical/utils';
-import { Icon, Input } from '@lobehub/ui';
+import { Block, Icon, Input, Text } from '@lobehub/ui';
 import type { InputRef } from 'antd';
 import {
   COMMAND_PRIORITY_EDITOR,
@@ -9,7 +9,7 @@ import {
   KEY_TAB_COMMAND,
   createCommand,
 } from 'lexical';
-import { LinkIcon } from 'lucide-react';
+import { BaselineIcon, LinkIcon } from 'lucide-react';
 import {
   type ChangeEvent,
   type FC,
@@ -32,7 +32,7 @@ export const EDIT_LINK_COMMAND = createCommand<{
   linkNodeDOM: HTMLElement | null;
 }>();
 
-export const LinkEdit: FC = () => {
+const LinkEdit: FC = () => {
   const divRef = useRef<HTMLDivElement>(null);
   const linkNodeRef = useRef<LinkNode | null>(null);
   const linkInputRef = useRef<InputRef | null>(null);
@@ -180,8 +180,26 @@ export const LinkEdit: FC = () => {
   }, []);
 
   return (
-    <div className={styles.editor_linkEdit} ref={divRef}>
-      <div>{t('link.editLinkTitle')}</div>
+    <Block
+      className={styles.linkEdit}
+      gap={8}
+      padding={12}
+      ref={divRef}
+      shadow
+      variant={'outlined'}
+    >
+      <Text weight={500}>{t('link.editTextTitle')}</Text>
+      <Input
+        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+          // Handle link text change
+          setLinkText(e.target.value);
+        }}
+        onKeyDown={handleKeyDown}
+        prefix={<Icon color={theme.colorTextDescription} icon={BaselineIcon} />}
+        ref={linkTextInputRef}
+        value={linkText}
+      />
+      <Text weight={500}>{t('link.editLinkTitle')}</Text>
       <Input
         onChange={(e: ChangeEvent<HTMLInputElement>) => {
           // Handle link URL change
@@ -191,21 +209,11 @@ export const LinkEdit: FC = () => {
         placeholder="https://enter-link-url"
         prefix={<Icon color={theme.colorTextDescription} icon={LinkIcon} />}
         ref={linkInputRef}
-        shadow
-        style={{ background: theme.colorBgElevated, maxWidth: '100%', minWidth: 240 }}
         value={linkUrl}
         variant={'outlined'}
       />
-      <div>{t('link.editTextTitle')}</div>
-      <Input
-        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-          // Handle link text change
-          setLinkText(e.target.value);
-        }}
-        onKeyDown={handleKeyDown}
-        ref={linkTextInputRef}
-        value={linkText}
-      />
-    </div>
+    </Block>
   );
 };
+
+export default LinkEdit;
