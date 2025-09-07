@@ -92,7 +92,7 @@ export class MathInlineNode extends DecoratorNode<unknown> {
   }
 
   getTextContent(): string {
-    return `${this.code}`;
+    return `$${this.code}$`;
   }
 
   isInline(): boolean {
@@ -165,8 +165,21 @@ export class MathBlockNode extends DecoratorNode<unknown> {
     return element;
   }
 
+  exportJSON(): SerializedMathInlineNode {
+    return {
+      ...super.exportJSON(),
+      code: this.__code,
+    };
+  }
+
+  updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedMathInlineNode>): this {
+    const node = super.updateFromJSON(serializedNode);
+    this.__code = serializedNode.code || '';
+    return node;
+  }
+
   getTextContent(): string {
-    return `\n$$\n${this.code}\n$$\n`;
+    return `$$\n${this.code}\n$$\n`;
   }
 
   isInline(): boolean {

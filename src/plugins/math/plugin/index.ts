@@ -1,4 +1,5 @@
 import { $createNodeSelection, $setSelection, DecoratorNode, LexicalEditor } from 'lexical';
+
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -85,6 +86,20 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
       trigger: 'enter',
       type: 'element',
     });
+
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(MathInlineNode.getType(), (ctx, node) => {
+        ctx.appendLine(node.getTextContent());
+        return true;
+      });
+
+    kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(MathBlockNode.getType(), (ctx, node) => {
+        ctx.appendLine(node.getTextContent());
+        return true;
+      });
   }
 
   onInit(editor: LexicalEditor): void {
