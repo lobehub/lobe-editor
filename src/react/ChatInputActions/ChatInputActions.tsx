@@ -1,47 +1,40 @@
 'use client';
 
-import { ActionIcon, Dropdown } from '@lobehub/ui';
-import { useSize } from 'ahooks';
-import { Divider } from 'antd';
-import { type ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useMemo } from 'react';
 import { Flexbox } from 'react-layout-kit';
+import useMergeState from 'use-merge-value';
 
-import ChatInputActionsCollapse from './components/ChatInputActionsCollapse';
+import ActionItem from './components/ActionItem';
+import { useDisplayActionCount } from './components/useDisplayActionCount';
 import { useStyles } from './style';
-import type { ActionItem, ChatInputActionsProps, CollapseItem, DividerItem } from './type';
+import type { ChatInputActionsProps, CollapseItem } from './type';
 
 const ChatInputActions = memo<ChatInputActionsProps>(
-  ({ gap = 2, disabled, items = [], onActionClick, className, collapseOffset = 0, ...rest }) => {
+  ({
+    gap = 2,
+    disabled,
+    items = [],
+    onActionClick,
+    className,
+    collapseOffset = 0,
+    autoCollapse = true,
+    defaultGroupCollapse = false,
+    onGroupCollapseChange,
+    groupCollapse,
+    ...rest
+  }) => {
     const { cx, styles } = useStyles();
-    const [maxCount, setMaxCount] = useState(items.length);
-    const [collapsed, setCollapsed] = useState(false);
-    const ref = useRef(null);
-    const size = useSize(ref);
+    const [groupCollapsed, setGroupCollapsed] = useMergeState(defaultGroupCollapse, {
+      defaultValue: defaultGroupCollapse,
+      onChange: onGroupCollapseChange,
+      value: groupCollapse,
+    });
 
-    const flatItems = useMemo(
-      () =>
-        items
-          .flatMap((item) => {
-            if (item.type === 'collapse' && item.children) {
-              return item.children;
-            }
-            return item;
-          })
-          .filter((item) => item.type !== 'divider'),
-      [items],
-    );
-
-    useEffect(() => {
-      if (!size?.width) return;
-      const length = flatItems.length + 1;
-      const calcMaxCount = Math.floor((size.width - collapseOffset) / 38);
-      setMaxCount(calcMaxCount);
-      if (calcMaxCount < length) {
-        setCollapsed(true);
-      } else {
-        setCollapsed(false);
-      }
-    }, [size, flatItems.length, collapseOffset]);
+    const { ref, maxCount, collapsed } = useDisplayActionCount({
+      autoCollapse,
+      collapseOffset,
+      items,
+    });
 
     const calcItem = useMemo(() => {
       if (!collapsed) return items;
@@ -67,111 +60,30 @@ const ChatInputActions = memo<ChatInputActionsProps>(
         },
         ...alwaysDisplayItems,
       ].filter(Boolean);
-    }, [collapsed, items, flatItems, maxCount]);
-
-    const mapActions = useCallback(
-      (item: ActionItem | DividerItem, i: number) => {
-        if (item.type === 'divider') {
-          return (
-            <Divider
-              className={styles.divider}
-              key={`divider-${i}`}
-              style={{
-                height: 20,
-              }}
-              type={'vertical'}
-            />
-          );
-        }
-
-        const { wrapper, icon, key, label, onClick, danger, loading, ...itemRest } = item;
-
-        const node: ReactNode = item.children || (
-          <ActionIcon
-            active={item.active}
-            danger={danger}
-            disabled={disabled || loading || itemRest?.disabled}
-            icon={icon}
-            key={key}
-            loading={loading}
-            onClick={(e) => {
-              onActionClick?.({
-                domEvent: e,
-                key: String(key),
-                keyPath: [String(key)],
-              });
-              onClick?.(e as any);
-            }}
-            size={{
-              blockSize: 36,
-              size: 20,
-            }}
-            title={label}
-            tooltipProps={{
-              placement: 'top',
-            }}
-          />
-        );
-
-        if (!wrapper) return node;
-        return wrapper(node, String(key));
-      },
-      [disabled, onActionClick, styles.divider],
-    );
+    }, [collapsed, items, maxCount]);
 
     return (
       <Flexbox
         align={'center'}
         className={cx(styles.container, className)}
-        flex={'none'}
+        flex={1}
         gap={gap}
         horizontal
         ref={ref}
         {...rest}
       >
-        {calcItem.map((item, index) => {
-          if (item.type === 'collapse') {
-            return (
-              <ChatInputActionsCollapse
-                defaultExpand={item.defaultExpand}
-                expand={item.expand}
-                gap={gap}
-                key={`collapse-${index}`}
-                mode={collapsed ? 'popup' : 'default'}
-                onChange={item.onChange}
-              >
-                {item.children.map((child, childIndex) => mapActions(child as any, childIndex))}
-              </ChatInputActionsCollapse>
-            );
-          }
-          if (item.type === 'dropdown') {
-            return (
-              <Dropdown
-                key={item.key}
-                menu={{
-                  items: item.children,
-                }}
-              >
-                <ActionIcon
-                  active={item.active}
-                  danger={item.danger}
-                  disabled={disabled || item.loading || item?.disabled}
-                  icon={item.icon}
-                  loading={item.loading}
-                  size={{
-                    blockSize: 36,
-                    size: 20,
-                  }}
-                  title={item.label}
-                  tooltipProps={{
-                    placement: 'top',
-                  }}
-                />
-              </Dropdown>
-            );
-          }
-          return mapActions(item, index);
-        })}
+        {calcItem.map((item: any, index) => (
+          <ActionItem
+            collapsed={collapsed}
+            disabled={disabled}
+            gap={gap}
+            groupCollapsed={groupCollapsed}
+            item={item}
+            key={item.key || index}
+            onActionClick={onActionClick}
+            setGroupCollapsed={setGroupCollapsed}
+          />
+        ))}
       </Flexbox>
     );
   },
