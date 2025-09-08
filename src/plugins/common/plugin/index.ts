@@ -245,6 +245,12 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         ctx.appendLine(' ');
       }
     });
+
+    // Register markdown writer for linebreak nodes (soft line breaks)
+    markdownService.registerMarkdownWriter('linebreak', (ctx) => {
+      // In markdown, soft line breaks are represented as two spaces followed by a newline
+      ctx.appendLine('  \n');
+    });
   }
 
   onInit(editor: LexicalEditor): void {
