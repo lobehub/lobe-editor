@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.5.1](https://github.com/lobehub/lobe-editor/compare/v1.5.0...v1.5.1)
+<sup>Released on **2025-09-08**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix soft line break.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix soft line break ([0f42295](https://github.com/lobehub/lobe-editor/commit/0f42295))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.5.0](https://github.com/lobehub/lobe-editor/compare/v1.4.7...v1.5.0)
 <sup>Released on **2025-09-08**</sup>
 
