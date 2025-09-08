@@ -41,7 +41,11 @@ const HRNode = memo<HRNodeProps>(({ node, className, editor }) => {
     );
   }, [clearSelection, editor, isSelected, node, setSelected]);
 
-  return <hr className={cx(styles, isSelected && 'selected', className)} />;
+  return (
+    <div className={cx(styles, isSelected && 'selected', className)}>
+      <hr />
+    </div>
+  );
 });
 
 HRNode.displayName = 'HRNode';

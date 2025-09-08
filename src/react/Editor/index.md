@@ -32,30 +32,30 @@ Editor is a powerful and extensible rich text editor component designed for mode
 
 ### Editor
 
-| Property           | Description                                | Type                                      | Default  |
-| ------------------ | ------------------------------------------ | ----------------------------------------- | -------- |
-| autoFocus          | Auto focus on component mount              | `boolean`                                 | -        |
-| children           | Additional content or components           | `ReactNode`                               | -        |
-| className          | Custom CSS class                           | `string`                                  | -        |
-| content            | Initial editor content                     | `ReactEditorContentProps['content']`      | -        |
-| editor             | Editor instance to use                     | `IEditor`                                 | -        |
-| onInit             | Callback called when editor is initialized | `(editor: IEditor) => void`               | -        |
-| mentionOption      | Configuration for mention functionality    | `MentionOption`                           | `{}`     |
-| onBlur             | Blur event handler                         | `FocusEventHandler<HTMLDivElement>`       | -        |
-| onChange           | Content change event handler               | `(editor: IEditor) => void`               | -        |
-| onCompositionEnd   | IME composition end event handler          | `CompositionEventHandler<HTMLDivElement>` | -        |
-| onCompositionStart | IME composition start event handler        | `CompositionEventHandler<HTMLDivElement>` | -        |
-| onContextMenu      | Context menu event handler                 | `MouseEventHandler<HTMLDivElement>`       | -        |
-| onFocus            | Focus event handler                        | `FocusEventHandler<HTMLDivElement>`       | -        |
-| onKeyDown          | Key down event handler                     | `KeyboardEventHandler<HTMLDivElement>`    | -        |
-| onPressEnter       | Enter key press event handler              | `KeyboardEventHandler<HTMLDivElement>`    | -        |
-| placeholder        | Placeholder content                        | `ReactNode`                               | -        |
-| plugins            | Array of editor plugins                    | `EditorPlugin[]`                          | `[]`     |
-| slashOption        | Configuration for slash commands           | `Partial<ReactSlashOptionProps>`          | `{}`     |
-| style              | Custom inline styles                       | `CSSProperties`                           | -        |
-| theme              | Editor theme                               | `ReactPlainTextProps['theme']`            | -        |
-| type               | Content format type                        | `string`                                  | `'json'` |
-| variant            | Editor variant style                       | `ReactPlainTextProps['variant']`          | -        |
+| Property           | Description                                                              | Type                                                                                    | Default  |
+| ------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- | -------- |
+| autoFocus          | Auto focus on component mount                                            | `boolean`                                                                               | -        |
+| children           | Additional content or components                                         | `ReactNode`                                                                             | -        |
+| className          | Custom CSS class                                                         | `string`                                                                                | -        |
+| content            | Initial editor content                                                   | `ReactEditorContentProps['content']`                                                    | -        |
+| editor             | Editor instance to use                                                   | `IEditor`                                                                               | -        |
+| onInit             | Callback called when editor is initialized                               | `(editor: IEditor) => void`                                                             | -        |
+| mentionOption      | Configuration for mention functionality                                  | `MentionOption`                                                                         | `{}`     |
+| onBlur             | Blur event handler                                                       | `FocusEventHandler<HTMLDivElement>`                                                     | -        |
+| onChange           | Content change event handler                                             | `(editor: IEditor) => void`                                                             | -        |
+| onCompositionEnd   | IME composition end event handler                                        | `CompositionEventHandler<HTMLDivElement>`                                               | -        |
+| onCompositionStart | IME composition start event handler                                      | `CompositionEventHandler<HTMLDivElement>`                                               | -        |
+| onContextMenu      | Context menu event handler                                               | `MouseEventHandler<HTMLDivElement>`                                                     | -        |
+| onFocus            | Focus event handler                                                      | `FocusEventHandler<HTMLDivElement>`                                                     | -        |
+| onKeyDown          | Key down event handler                                                   | `KeyboardEventHandler<HTMLDivElement>`                                                  | -        |
+| onPressEnter       | Enter key press event handler. Return `true` to prevent default behavior | `(props: { editor: IEditor; event: KeyboardEvent<HTMLDivElement> }) => void \| boolean` | -        |
+| placeholder        | Placeholder content                                                      | `ReactNode`                                                                             | -        |
+| plugins            | Array of editor plugins                                                  | `EditorPlugin[]`                                                                        | `[]`     |
+| slashOption        | Configuration for slash commands                                         | `Partial<ReactSlashOptionProps>`                                                        | `{}`     |
+| style              | Custom inline styles                                                     | `CSSProperties`                                                                         | -        |
+| theme              | Editor theme                                                             | `ReactPlainTextProps['theme']`                                                          | -        |
+| type               | Content format type                                                      | `string`                                                                                | `'json'` |
+| variant            | Editor variant style                                                     | `ReactPlainTextProps['variant']`                                                        | -        |
 
 ### EditorPlugin
 
@@ -79,16 +79,26 @@ The Editor component provides comprehensive event handling capabilities for vari
 ### Keyboard Events
 
 - **onKeyDown**: Handles all keyboard input events
-- **onPressEnter**: Specific handler for Enter key presses with support for modifier keys (Ctrl/Cmd + Enter)
+- **onPressEnter**: Specific handler for Enter key presses with support for modifier keys (Ctrl/Cmd + Enter). Return `true` to prevent default behavior.
 
 ```typescript
-const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-  console.log('Key pressed:', e.key);
+const handleKeyDown = ({ editor, event }: { editor: IEditor; event: KeyboardEvent<HTMLDivElement> }) => {
+  console.log('Key pressed:', event.key);
 };
 
-const handleEnterPress = (e: KeyboardEvent<HTMLDivElement>) => {
+const handleEnterPress = ({ editor, event }: { editor: IEditor; event: KeyboardEvent<HTMLDivElement> }) => {
   console.log('Enter pressed');
-  // Handle form submission or other actions
+
+  // Check if it's Ctrl/Cmd + Enter for submission
+  if (event.metaKey || event.ctrlKey) {
+    // Handle form submission
+    const content = editor.getDocument('markdown');
+    submitMessage(content);
+    return true; // Prevent default behavior
+  }
+
+  // For regular Enter, allow default behavior (new line)
+  return false;
 };
 
 <Editor

@@ -3,6 +3,7 @@ import {
   INSERT_HORIZONTAL_RULE_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  ReactCodePlugin,
   ReactCodeblockPlugin,
   ReactHRPlugin,
   ReactImagePlugin,
@@ -35,32 +36,36 @@ export default () => {
   const editor = useEditor();
   const slashMenuRef = useRef<HTMLDivElement>(null);
   const toolbarState = useEditorState(editor);
+
+  // Shared send message function
+  const handleSendMessage = () => {
+    if (!editor || toolbarState.isEmpty) return;
+
+    setMessages([
+      ...messages,
+      {
+        content: editor.getDocument('markdown') as unknown as string,
+        createAt: Date.now(),
+        extra: {},
+        id: String(Date.now()),
+        meta: {
+          avatar: 'https://avatars.githubusercontent.com/u/17870709?v=4',
+          title: 'CanisMinor',
+        },
+        role: 'user',
+        updateAt: Date.now(),
+      },
+    ]);
+
+    editor.setDocument('text', '');
+    editor.focus();
+  };
   return (
     <Container messages={messages}>
       <ChatInput
         footer={
           <ActionToolbar
-            onSend={() => {
-              if (!editor) return;
-              setMessages([
-                ...messages,
-                {
-                  content: editor.getDocument('markdown') as unknown as string,
-                  createAt: 1_686_437_950_084,
-                  extra: {},
-                  id: '1',
-                  meta: {
-                    avatar: 'https://avatars.githubusercontent.com/u/17870709?v=4',
-                    title: 'CanisMinor',
-                  },
-                  role: 'user',
-                  updateAt: 1_686_437_950_084,
-                },
-              ]);
-
-              editor.setDocument('text', '');
-              editor.focus();
-            }}
+            onSend={handleSendMessage}
             sendDisabled={toolbarState.isEmpty}
             setShowTypobar={setShowTypobar}
             showTypobar={showTypobar}
@@ -111,11 +116,26 @@ export default () => {
               return <SlashMenu {...props} getPopupContainer={() => slashMenuRef.current} />;
             },
           }}
-          onBlur={(e) => console.log('Blur', e)}
-          onCompositionEnd={(e) => console.log('Composition End', e)}
-          onCompositionStart={(e) => console.log('Composition Start', e)}
-          onFocus={(e) => console.log('Focus', e)}
-          onPressEnter={(e) => console.log('Enter', e)}
+          onBlur={({ editor, event }) => console.log('Blur', editor, event)}
+          onCompositionEnd={({ editor, event }) => console.log('Composition End', editor, event)}
+          onCompositionStart={({ editor, event }) =>
+            console.log('Composition Start', editor, event)
+          }
+          onFocus={({ editor, event }) => console.log('Focus', editor, event)}
+          onPressEnter={({ event }) => {
+            console.log('Enter pressed', { ctrlKey: event.ctrlKey, metaKey: event.metaKey });
+
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+              console.log('[Enter pressed] allowing new line');
+              return;
+            }
+
+            console.log('[Enter pressed] sending message');
+            event.preventDefault();
+            event.stopPropagation();
+            handleSendMessage();
+            return;
+          }}
           placeholder={'Type something...'}
           plugins={[
             ReactListPlugin,
@@ -123,6 +143,7 @@ export default () => {
             ReactImagePlugin,
             ReactCodeblockPlugin,
             ReactHRPlugin,
+            ReactCodePlugin,
             ReactTablePlugin,
             Editor.withProps(ReactMathPlugin, {
               renderComp: (props) => (
