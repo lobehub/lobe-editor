@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.5.6](https://github.com/lobehub/lobe-editor/compare/v1.5.5...v1.5.6)
+<sup>Released on **2025-09-08**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix markdown syntax in README.md.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix markdown syntax in README.md ([f11a62b](https://github.com/lobehub/lobe-editor/commit/f11a62b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.5.5](https://github.com/lobehub/lobe-editor/compare/v1.5.4...v1.5.5)
 <sup>Released on **2025-09-08**</sup>
 
