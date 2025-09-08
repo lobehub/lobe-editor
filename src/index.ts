@@ -17,6 +17,7 @@ export type { IEditor } from './types';
 
 // Debug utilities
 export {
+  browserDebug,
   createDebugLogger,
   debugLogger,
   debugLoggers,

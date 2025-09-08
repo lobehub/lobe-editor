@@ -8,17 +8,17 @@
 
 A modern, extensible rich text editor built on Meta's Lexical framework with dual-architecture design, featuring both a powerful kernel and React integration. Optimized for AI applications and chat interfaces.
 
-[![][npm-release-shield]][npm-release-link]
-[![][github-releasedate-shield]][github-releasedate-link]
-[![][github-action-test-shield]][github-action-test-link]
-[![][github-action-release-shield]][github-action-release-link]<br/>
-[![][github-contributors-shield]][github-contributors-link]
-[![][github-forks-shield]][github-forks-link]
-[![][github-stars-shield]][github-stars-link]
-[![][github-issues-shield]][github-issues-link]
-[![][github-license-shield]][github-license-link]
+\[!\[]\[npm-release-shield]]\[npm-release-link]
+\[!\[]\[github-releasedate-shield]]\[github-releasedate-link]
+\[!\[]\[github-action-test-shield]]\[github-action-test-link]
+\[!\[]\[github-action-release-shield]]\[github-action-release-link]<br/>
+\[!\[]\[github-contributors-shield]]\[github-contributors-link]
+\[!\[]\[github-forks-shield]]\[github-forks-link]
+\[!\[]\[github-stars-shield]]\[github-stars-link]
+\[!\[]\[github-issues-shield]]\[github-issues-link]
+\[!\[]\[github-license-shield]]\[github-license-link]
 
-[Changelog](./CHANGELOG.md) · [Report Bug][github-issues-link] · [Request Feature][github-issues-link]
+[Changelog](./CHANGELOG.md) · \[Report Bug]\[github-issues-link] · \[Request Feature]\[github-issues-link]
 
 ![](https://github.com/user-attachments/assets/98c9a810-1c7d-4c33-acd7-ae9d4c0695da)
 
@@ -48,12 +48,6 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
   - [Setup](#setup)
   - [Available Scripts](#available-scripts)
   - [Debug Environment Variables](#debug-environment-variables)
-  - [Project Architecture](#project-architecture)
-- [🤝 Contributing](#-contributing)
-- [🔗 Links](#-links)
-  - [More Products](#more-products)
-  - [Design Resources](#design-resources)
-  - [Development Resources](#development-resources)
 
 ####
 
@@ -76,7 +70,7 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
 
 To install `@lobehub/editor`, run the following command:
 
-[![][bun-shield]][bun-link]
+\[!\[]\[bun-shield]]\[bun-link]
 
 ```bash
 $ bun add @lobehub/editor
@@ -88,7 +82,7 @@ $ pnpm add @lobehub/editor
 
 <div align="right">
 
-[![][back-to-top]](#readme-top)
+[!\[\]\[back-to-top\]](#readme-top)
 
 </div>
 
@@ -237,7 +231,7 @@ editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
 
 <div align="right">
 
-[![][back-to-top]](#readme-top)
+[!\[\]\[back-to-top\]](#readme-top)
 
 </div>
 
@@ -396,7 +390,7 @@ CLEAR_FORMAT_COMMAND;
 
 <div align="right">
 
-[![][back-to-top]](#readme-top)
+[!\[\]\[back-to-top\]](#readme-top)
 
 </div>
 
@@ -406,11 +400,11 @@ CLEAR_FORMAT_COMMAND;
 
 You can use Github Codespaces for online development:
 
-[![][github-codespace-shield]][github-codespace-link]
+\[!\[]\[github-codespace-shield]]\[github-codespace-link]
 
 Or clone it for local development:
 
-[![][bun-shield]][bun-link]
+\[!\[]\[bun-shield]]\[bun-link]
 
 ```bash
 $ git clone https://github.com/lobehub/lobe-editor.git
@@ -477,34 +471,18 @@ DEBUG=lobe-editor:kernel,lobe-editor:plugin:*
 
 #### Development Usage
 
-```bash
+````bash
 # Full debug during development
-DEBUG=lobe-editor:* pnpm dev
+DEBUG=lobe-editor:*
 
 # Only critical logs
-DEBUG=lobe-editor:*:error,lobe-editor:*:warn pnpm dev
-
+DEBUG=lobe-editor:*:error,lobe-editor:*:warn
 # Plugin debugging
-DEBUG=lobe-editor:plugin:* pnpm dev
-
+DEBUG=lobe-editor:plugin:*
 # Service debugging
-DEBUG=lobe-editor:service:* pnpm dev
+DEBUG=lobe-editor:service:*
 ```
 
-#### Browser Configuration
-
-In browser environment, you can also enable debug logging via localStorage:
-
-```javascript
-// Enable all debug output
-localStorage.debug = 'lobe-editor:*';
-
-// Enable specific categories
-localStorage.debug = 'lobe-editor:kernel,lobe-editor:plugin:*';
-
-// Disable debug output
-localStorage.removeItem('debug');
-```
 
 ### Project Architecture
 
@@ -707,3 +685,4 @@ This project is [MIT](./LICENSE) licensed.
 [pr-welcome-link]: https://github.com/lobehub/lobe-editor/pulls
 [pr-welcome-shield]: https://img.shields.io/badge/%F0%9F%A4%AF%20PR%20WELCOME-%E2%86%92-ffcb47?labelColor=black&style=for-the-badge
 [profile-link]: https://github.com/lobehub
+````

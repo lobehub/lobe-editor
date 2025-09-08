@@ -7,6 +7,11 @@ import createDebug from 'debug';
 const BASE_NAMESPACE = 'lobe-editor';
 
 /**
+ * Development mode check
+ */
+const isDev = process.env.NODE_ENV === 'development';
+
+/**
  * Debug utility factory for LobeHub Editor
  * Creates namespaced debug functions following the pattern: lobe-editor:category
  */
@@ -120,6 +125,33 @@ export class DebugLogger {
 export const debugLogger = new DebugLogger();
 
 /**
+ * Browser environment debug initialization - Zero configuration approach
+ * Automatically enables debug based on environment variables or development mode
+ */
+if (typeof window !== 'undefined') {
+  // Check for server-side DEBUG environment variable (passed through build process)
+  const envDebug = process.env.DEBUG;
+
+  // Simple logic: Environment variable takes precedence, then development mode
+  let debugConfig: string | null = null;
+
+  if (envDebug) {
+    // Environment variable exists - use it directly
+    debugConfig = envDebug;
+    localStorage.debug = envDebug;
+  } else if (isDev) {
+    // Development mode - auto-enable all lobe-editor debug
+    debugConfig = 'lobe-editor:*';
+    localStorage.debug = debugConfig;
+  }
+
+  // Apply debug configuration
+  if (debugConfig) {
+    createDebug.enable(debugConfig);
+  }
+}
+
+/**
  * Convenience function to create a debug logger for a specific category
  * @param category - Main category (e.g., 'kernel', 'plugin', 'upload')
  * @param subcategory - Optional subcategory
@@ -150,7 +182,7 @@ export const debugLoggers = {
 /**
  * Development mode utilities
  */
-export const isDev = process.env.NODE_ENV === 'development';
+export { isDev };
 
 /**
  * Conditional console logging - only logs in development mode
@@ -207,5 +239,96 @@ export const prodSafeLogger = {
    */
   warn: (...args: any[]) => {
     console.warn(...args);
+  },
+};
+
+/**
+ * Browser debug utilities for Next.js and other client-side frameworks
+ */
+export const browserDebug = {
+  /**
+   * Disable debug logging in browser environment
+   */
+  disable: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('debug');
+      createDebug.disable();
+      console.info('Debug disabled.');
+    }
+  },
+
+  /**
+   * Enable debug logging in browser environment
+   * @param namespaces - Debug namespaces to enable (e.g., 'lobe-editor:*')
+   */
+  enable: (namespaces: string = 'lobe-editor:*') => {
+    if (typeof window !== 'undefined') {
+      localStorage.debug = namespaces;
+      createDebug.enable(namespaces);
+      console.info(`Debug enabled: ${namespaces}`);
+      console.info('Refresh the page to see debug logs from initialization.');
+    }
+  },
+
+  /**
+   * Get current debug configuration
+   */
+  getConfig: () => {
+    if (typeof window !== 'undefined') {
+      const envDebug = process.env.DEBUG;
+      const currentDebug = localStorage.getItem('debug');
+
+      if (envDebug) {
+        return {
+          enabled: envDebug,
+          source: 'environment variable (auto-applied)',
+        };
+      } else if (isDev && currentDebug) {
+        return {
+          enabled: currentDebug,
+          source: 'development mode (auto-applied)',
+        };
+      } else {
+        return {
+          enabled: false,
+          source: 'disabled',
+        };
+      }
+    }
+    return {
+      enabled: process.env.DEBUG || false,
+      source: 'server-side',
+    };
+  },
+
+  /**
+   * Show available debug categories
+   */
+  showCategories: () => {
+    console.group('Available debug categories:');
+    console.log('� lobe-editor:kernel - Core editor functionality');
+    console.log('🔌 lobe-editor:plugin:* - All plugins');
+    console.log('🔍 lobe-editor:service:* - All services');
+    console.log('💬 lobe-editor:*:info - Info level messages');
+    console.log('⚠️ lobe-editor:*:warn - Warning messages');
+    console.log('❌ lobe-editor:*:error - Error messages');
+    console.groupEnd();
+    console.info('Usage: browserDebug.enable("lobe-editor:kernel,lobe-editor:plugin:*")');
+  },
+
+  /**
+   * Show current debug status and configuration
+   */
+  showStatus: () => {
+    const config = browserDebug.getConfig();
+    console.group('� LobeHub Editor Debug Status');
+    console.log(`Status: ${config.enabled ? '✅ Enabled' : '❌ Disabled'}`);
+    console.log(`Configuration: ${config.enabled || 'none'}`);
+    console.log(`Source: ${config.source}`);
+    console.groupEnd();
+
+    if (!config.enabled) {
+      console.info('💡 Zero-config setup: Set DEBUG=lobe-editor:* in your environment');
+    }
   },
 };
