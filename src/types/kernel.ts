@@ -204,6 +204,10 @@ export interface IEditorKernel extends IEditor {
     name: string,
   ): ((_node: DecoratorNode<any>, _editor: LexicalEditor) => any) | undefined;
   /**
+   * Get all registered decorator names
+   */
+  getRegisteredDecorators(): string[];
+  /**
    * Check if hot reload mode is enabled
    */
   isHotReloadMode(): boolean;
@@ -248,6 +252,11 @@ export interface IEditorKernel extends IEditor {
    * @param enabled Whether to enable hot reload mode
    */
   setHotReloadMode(enabled: boolean): void;
+  /**
+   * Unregister editor node decorator
+   * @param name Decorator name
+   */
+  unregisterDecorator(name: string): boolean;
 }
 
 /**

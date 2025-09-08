@@ -36,13 +36,15 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
     if (config?.theme) {
       kernel.registerThemes(config?.theme);
     }
-    kernel.registerDecorator(
+    this.registerDecorator(
+      kernel,
       MathInlineNode.getType(),
       (node: DecoratorNode<unknown>, editor: LexicalEditor) => {
         return config?.decorator ? config.decorator(node as MathInlineNode, editor) : null;
       },
     );
-    kernel.registerDecorator(
+    this.registerDecorator(
+      kernel,
       MathBlockNode.getType(),
       (node: DecoratorNode<unknown>, editor: LexicalEditor) => {
         return config?.decorator ? config.decorator(node as MathBlockNode, editor) : null;

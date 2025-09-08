@@ -33,7 +33,8 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
     kernel.registerThemes({
       hr: config?.theme || '',
     });
-    kernel.registerDecorator(
+    this.registerDecorator(
+      kernel,
       'horizontalrule',
       (node: DecoratorNode<any>, editor: LexicalEditor) => {
         return config?.decorator ? config.decorator(node as HorizontalRuleNode, editor) : null;

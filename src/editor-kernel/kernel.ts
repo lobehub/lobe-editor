@@ -29,6 +29,7 @@ import { ILocaleKeys } from '@/types/locale';
 
 import DataSource from './data-source';
 import { registerEvent } from './event';
+import { KernelPlugin } from './plugin';
 import { createEmptyEditorState } from './utils';
 
 templateSettings.interpolate = /{{([\S\s]+?)}}/g;
@@ -128,6 +129,9 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.pluginsInstances = [];
     // Clear services to support hot reload
     this.serviceMap.clear();
+    // Clear decorators to prevent memory leaks
+    this.decorators = {};
+    console.debug('[Editor] Cleared all decorators during destroy');
   }
 
   getRootElement(): HTMLElement | null {
@@ -217,7 +221,31 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     name: string,
     decorator: (_node: DecoratorNode<any>, _editor: LexicalEditor) => any,
   ) {
+    if (this.decorators[name]) {
+      if (this.hotReloadMode) {
+        // In hot reload mode, allow decorator override with warning
+        console.warn(`[Hot Reload] Overriding decorator "${name}"`);
+        this.decorators[name] = decorator;
+        return this;
+      } else {
+        // Check if it's the same decorator function
+        const existingDecorator = this.decorators[name];
+        if (existingDecorator === decorator) {
+          // Same decorator function, no need to re-register
+          console.warn(`[Editor] Decorator "${name}" is already registered with the same function`);
+          return this;
+        }
+
+        // Different decorator function in production mode
+        console.error(
+          `[Editor] Attempting to register duplicate decorator "${name}". Enable hot reload mode if this is intended.`,
+        );
+        throw new Error(`Decorator with name "${name}" is already registered.`);
+      }
+    }
+
     this.decorators[name] = decorator;
+    console.debug(`[Editor] Registered decorator: ${name}`);
     return this;
   }
 
@@ -225,6 +253,27 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     name: string,
   ): ((_node: DecoratorNode<any>, _editor: LexicalEditor) => any) | undefined {
     return this.decorators[name];
+  }
+
+  /**
+   * Unregister a decorator
+   * @param name Decorator name
+   */
+  unregisterDecorator(name: string): boolean {
+    if (this.decorators[name]) {
+      delete this.decorators[name];
+      console.debug(`[Editor] Unregistered decorator: ${name}`);
+      return true;
+    }
+    console.warn(`[Editor] Decorator "${name}" not found for unregistration`);
+    return false;
+  }
+
+  /**
+   * Get all registered decorator names
+   */
+  getRegisteredDecorators(): string[] {
+    return Object.keys(this.decorators);
   }
 
   /**
@@ -258,6 +307,16 @@ export class Kernel extends EventEmitter implements IEditorKernel {
             });
             if (instanceIndex !== -1) {
               const oldInstance = this.pluginsInstances[instanceIndex];
+              // Clean up decorators registered by the old plugin instance
+              if (oldInstance instanceof KernelPlugin) {
+                const decoratorNames = oldInstance.getRegisteredDecorators();
+                for (const decoratorName of decoratorNames) {
+                  this.unregisterDecorator(decoratorName);
+                  console.debug(
+                    `[Hot Reload] Cleaned up decorator "${decoratorName}" from old plugin instance`,
+                  );
+                }
+              }
               if (oldInstance.destroy) {
                 oldInstance.destroy();
               }

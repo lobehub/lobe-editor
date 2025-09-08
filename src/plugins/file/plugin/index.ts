@@ -44,7 +44,8 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
     if (config?.theme) {
       kernel.registerThemes(config?.theme);
     }
-    kernel.registerDecorator(
+    this.registerDecorator(
+      kernel,
       FileNode.getType(),
       (node: DecoratorNode<any>, editor: LexicalEditor) => {
         return config?.decorator ? config.decorator(node as FileNode, editor) : null;

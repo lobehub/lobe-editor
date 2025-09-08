@@ -33,7 +33,8 @@ export const MentionPlugin: IEditorPluginConstructor<MentionPluginOptions> = cla
     if (config?.theme) {
       kernel.registerThemes(config?.theme);
     }
-    kernel.registerDecorator(
+    this.registerDecorator(
+      kernel,
       MentionNode.getType(),
       (node: DecoratorNode<any>, editor: LexicalEditor) => {
         return config?.decorator ? config.decorator(node as MentionNode, editor) : null;
