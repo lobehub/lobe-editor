@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.5.3](https://github.com/lobehub/lobe-editor/compare/v1.5.2...v1.5.3)
+<sup>Released on **2025-09-08**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix decorator hotload and update log system.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix decorator hotload and update log system, closes [#20](https://github.com/lobehub/lobe-editor/issues/20) ([9f5e2a4](https://github.com/lobehub/lobe-editor/commit/9f5e2a4))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.5.2](https://github.com/lobehub/lobe-editor/compare/v1.5.1...v1.5.2)
 <sup>Released on **2025-09-08**</sup>
 
