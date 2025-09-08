@@ -8,7 +8,11 @@ import {
   createCommand,
 } from 'lexical';
 
+import { createDebugLogger } from '@/utils/debug';
+
 import { $createFileNode } from '../node/FileNode';
+
+const logger = createDebugLogger('plugin', 'file');
 
 export const INSERT_FILE_COMMAND = createCommand<{ file: File }>('INSERT_FILE_COMMAND');
 
@@ -33,7 +37,7 @@ export function registerFileCommand(
             });
           })
           .catch((error) => {
-            console.error('File upload failed:', error);
+            logger.error('❌ File upload failed:', error);
             editor.update(() => {
               fileNode.setError('File upload failed : ' + error.message);
             });

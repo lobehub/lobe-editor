@@ -17,6 +17,10 @@ import {
   TextNode,
 } from 'lexical';
 
+import { createDebugLogger } from '@/utils/debug';
+
+const logger = createDebugLogger('common', 'cursor');
+
 export class CardLikeElementNode extends ElementNode {
   isCardLike(): boolean {
     return true;
@@ -58,7 +62,7 @@ export function registerCursorNode(editor: LexicalEditor) {
           if (DecoratorNode.prototype.isPrototypeOf(kClass.prototype)) {
             for (const [key, mutation] of nodeMaps) {
               const node = $getNodeByKey(key);
-              console.info('DecoratorNode mutated', node, mutation);
+              logger.debug('🎭 DecoratorNode mutated:', node?.getType(), mutation, node);
               if (mutation === 'created' && node?.isInline() && node.getNextSibling() === null) {
                 needAddCursor.push(node);
               }
@@ -198,7 +202,7 @@ export function registerCursorNode(editor: LexicalEditor) {
             $setSelection(sel);
             return true;
           } catch (error) {
-            console.error(error);
+            logger.error('❌ Cursor selection error:', error);
           }
         } else if ($isCursorNode(focusNode)) {
           try {
@@ -210,7 +214,7 @@ export function registerCursorNode(editor: LexicalEditor) {
             $setSelection(sel);
             return true;
           } catch (error) {
-            console.error(error);
+            logger.error('❌ Cursor navigation error:', error);
           }
         }
         return false;

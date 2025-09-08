@@ -15,6 +15,15 @@ export * from './plugins/table';
 export * from './plugins/upload';
 export type { IEditor } from './types';
 
+// Debug utilities
+export {
+  createDebugLogger,
+  debugLogger,
+  debugLoggers,
+  devConsole,
+  prodSafeLogger,
+} from './utils/debug';
+
 // Hot reload utilities
 export { Kernel } from './editor-kernel/kernel';
 
@@ -25,8 +34,9 @@ export { Kernel } from './editor-kernel/kernel';
 export function enableHotReload(): void {
   if (typeof window !== 'undefined') {
     const { Kernel } = require('./editor-kernel/kernel');
+    const { debugLoggers } = require('./utils/debug');
     Kernel.setGlobalHotReloadMode(true);
-    console.log('[LobeHub Editor] Hot reload mode enabled globally');
+    debugLoggers.kernel.info('[LobeHub Editor] Hot reload mode enabled globally');
   }
 }
 
@@ -36,7 +46,8 @@ export function enableHotReload(): void {
 export function disableHotReload(): void {
   if (typeof window !== 'undefined') {
     const { Kernel } = require('./editor-kernel/kernel');
+    const { debugLoggers } = require('./utils/debug');
     Kernel.setGlobalHotReloadMode(false);
-    console.log('[LobeHub Editor] Hot reload mode disabled globally');
+    debugLoggers.kernel.info('[LobeHub Editor] Hot reload mode disabled globally');
   }
 }

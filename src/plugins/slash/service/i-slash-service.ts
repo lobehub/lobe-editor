@@ -5,6 +5,7 @@ import Fuse from 'fuse.js';
 
 import { genServiceId } from '@/editor-kernel';
 import type { IEditor, IEditorKernel, IServiceID } from '@/types';
+import { createDebugLogger } from '@/utils/debug';
 
 import { getBasicTypeaheadTriggerMatch } from '../utils/utils';
 
@@ -46,6 +47,7 @@ export class SlashService implements ISlashService {
   private triggerMap: Map<string, SlashOptions> = new Map();
   private triggerFnMap: Map<string, ReturnType<typeof getBasicTypeaheadTriggerMatch>> = new Map();
   private triggerFuseMap: Map<string, Fuse<ISlashOption>> = new Map();
+  private logger = createDebugLogger('service', 'slash');
 
   constructor(private kernel: IEditorKernel) {}
   // Specific service methods can be added here
@@ -53,7 +55,7 @@ export class SlashService implements ISlashService {
   registerSlash(options: SlashOptions): void {
     if (this.triggerMap.has(options.trigger)) {
       if (this.kernel.isHotReloadMode()) {
-        console.warn(`[Hot Reload] Overriding slash trigger "${options.trigger}"`);
+        this.logger.warn(`🔄 Overriding slash trigger "${options.trigger}"`);
       } else {
         throw new Error(`Slash trigger "${options.trigger}" is already registered.`);
       }
@@ -68,6 +70,7 @@ export class SlashService implements ISlashService {
         punctuation: options.punctuation,
       }),
     );
+    this.logger.debug(`⚡ Slash trigger: ${options.trigger}`);
 
     if (Array.isArray(options.items)) {
       // Filter out divider items for search functionality

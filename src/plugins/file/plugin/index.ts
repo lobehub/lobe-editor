@@ -13,6 +13,7 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IUploadService } from '@/plugins/upload';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import { createDebugLogger } from '@/utils/debug';
 
 import { registerFileCommand } from '../command';
 import { $createFileNode, $isFileNode, FileNode } from '../node/FileNode';
@@ -33,6 +34,7 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
   implements IEditorPlugin<FilePluginOptions>
 {
   static pluginName = 'FilePlugin';
+  private logger = createDebugLogger('plugin', 'file');
 
   constructor(
     protected kernel: IEditorKernel,
@@ -95,7 +97,7 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
               });
             })
             .catch((error) => {
-              console.error('File upload failed:', error);
+              this.logger.error('File upload failed:', error);
               editor.update(() => {
                 fileNode.setError('File upload failed : ' + error.message);
               });

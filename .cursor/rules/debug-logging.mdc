@@ -1,0 +1,186 @@
+---
+description: Debug logging standards and usage guidelines for LobeHub Editor
+---
+
+# Debug Logging Standards
+
+## Debug Package Integration
+
+LobeHub Editor uses the [debug](https://www.npmjs.com/package/debug) package for structured logging. All debug utilities are centralized in [src/utils/debug.ts](mdc:src/utils/debug.ts).
+
+## Usage Guidelines
+
+### Log Level Guidelines
+
+- **info**: Major lifecycle events, initialization, completion
+- **warn**: Issues that don't break functionality but need attention
+- **error**: Critical errors that break functionality
+- **debug**: Detailed tracing information (use sparingly)
+
+### For Core Components
+
+Use namespaced debug loggers with emojis for better visual distinction:
+
+```typescript
+import { createDebugLogger } from '@/utils/debug';
+
+class MyComponent {
+  private logger = createDebugLogger('kernel'); // or 'plugin', 'service', etc.
+  
+  someMethod() {
+    // Use info for major events
+    this.logger.info('🚀 Component initialized');
+    
+    // Use debug for tracing (sparingly)
+    this.logger.debug('🔍 Processing data');
+    
+    // Use warn for non-critical issues (uses console.warn for proper browser dev tool support)
+    this.logger.warn('⚠️ Deprecated feature used');
+    
+    // Use error for critical issues (uses console.error for proper browser dev tool support)
+    this.logger.error('❌ Operation failed:', error);
+  }
+}
+```
+
+**Note**: `logger.error` and `logger.warn` use native `console.error` and `console.warn` respectively, ensuring proper categorization in browser developer tools. `logger.debug` and `logger.info` use the debug package for conditional output based on environment variables.
+
+### For Plugins
+
+Plugin components should use subcategory naming:
+
+```typescript
+import { createDebugLogger } from '@/utils/debug';
+
+export const MyPlugin = class extends KernelPlugin {
+  private logger = createDebugLogger('plugin', 'my-plugin-name');
+  
+  onInit() {
+    this.logger.debug('Plugin initialized');
+  }
+}
+```
+
+### For Demo Files
+
+Demo files should use `devConsole` for development-only logging:
+
+```typescript
+import { devConsole } from '@/utils/debug';
+
+function demoFunction() {
+  devConsole.log('This only shows in development');
+  devConsole.warn('Development warning');
+}
+```
+
+### For Services
+
+Services should use the service category:
+
+```typescript
+import { createDebugLogger } from '@/utils/debug';
+
+export class MyService implements IMyService {
+  private logger = createDebugLogger('service', 'my-service');
+  
+  async processData() {
+    this.logger.debug('Processing started');
+    // ... implementation
+    this.logger.info('Processing completed');
+  }
+}
+```
+
+## Environment Configuration
+
+### Enable Debug Output
+
+Set the `DEBUG` environment variable to control debug output:
+
+```bash
+# Enable all LobeHub Editor debug messages
+DEBUG=lobe-editor:*
+
+# Enable only important info/warn/error logs (recommended)
+DEBUG=lobe-editor:*:info,lobe-editor:*:warn,lobe-editor:*:error
+
+# Enable specific categories
+DEBUG=lobe-editor:kernel,lobe-editor:plugin:*
+
+# Enable with exclusions (reduce noise)
+DEBUG=lobe-editor:*,-lobe-editor:demo,-lobe-editor:kernel:debug
+
+# Enable only critical logs
+DEBUG=lobe-editor:*:error,lobe-editor:*:warn
+```
+
+### Development vs Production
+
+- **Development**: Use `devConsole` for temporary debugging
+- **Production**: Use debug loggers that respect environment variables
+- **Critical Errors**: Use `prodSafeLogger.error()` for errors that should always be visible
+
+## Available Debug Namespaces
+
+Pre-configured debug loggers from [debugLoggers](mdc:src/utils/debug.ts):
+
+- `lobe-editor:kernel` - Core editor functionality
+- `lobe-editor:plugin:*` - Plugin-specific debugging
+- `lobe-editor:service:*` - Service layer debugging
+- `lobe-editor:upload` - File upload operations
+- `lobe-editor:markdown` - Markdown processing
+- `lobe-editor:slash` - Slash commands
+- `lobe-editor:mention` - Mention system
+- `lobe-editor:file` - File handling
+- `lobe-editor:image` - Image processing
+- `lobe-editor:math` - Math rendering
+- `lobe-editor:react` - React components
+- `lobe-editor:demo` - Demo components
+
+## Migration from console.\*
+
+**Replace console usage:**
+
+```typescript
+// ❌ Don't use console directly
+console.log('Debug info');
+console.warn('Warning');
+console.error('Error');
+
+// ✅ Use debug loggers instead
+this.logger.debug('Debug info');
+this.logger.warn('Warning');
+this.logger.error('Error');
+
+// ✅ For demo files, use devConsole
+devConsole.log('Demo debug info');
+```
+
+## Best Practices
+
+1. **Use appropriate log levels**:
+   - `info` for major lifecycle events (initialization, completion)
+   - `warn` for non-critical issues that need attention
+   - `error` for critical failures
+   - `debug` sparingly for detailed tracing
+
+2. **Visual distinction with emojis**:
+   - 🚀 for initialization/startup
+   - ✅ for successful completion
+   - ⚠️ for warnings
+   - ❌ for errors
+   - 🔧 for services
+   - 🎭 for decorators
+   - 📄 for data sources
+
+3. **Reduce log noise**:
+   - Group similar operations (e.g., "Registered 5 plugins" vs individual logs)
+   - Skip frequent/repetitive operations
+   - Use sampling for high-frequency events
+
+4. **Never use console.* directly*\* - Always use debug loggers
+
+5. **Meaningful, concise messages** - Clear but brief descriptions
+
+6. **Respect environment variables** - All logs should be controllable via DEBUG

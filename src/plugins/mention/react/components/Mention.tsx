@@ -30,12 +30,6 @@ const Mention = memo<{
     return editor.registerCommand<MouseEvent>(CLICK_COMMAND, onClick, COMMAND_PRIORITY_LOW);
   }, [editor, node, onClick]);
 
-  console.log('[Mention Component] Rendering:', {
-    className,
-    label: node.label,
-    nodeKey: node.getKey(),
-  });
-
   return (
     <span className={className} ref={spanRef}>
       @{node.label}

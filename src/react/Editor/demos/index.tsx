@@ -31,6 +31,8 @@ import {
 } from 'lucide-react';
 import { memo, useState } from 'react';
 
+import { devConsole } from '@/utils/debug';
+
 import Container from './Container';
 import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
@@ -62,7 +64,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         editor={editor}
         mentionOption={{
           items: async (search) => {
-            console.log(search);
+            devConsole.log(search);
             const data = [
               {
                 icon: <Avatar avatar={'💻'} size={24} />,
@@ -109,7 +111,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           ReactCodePlugin,
           Editor.withProps(ReactFilePlugin, {
             handleUpload: async (file) => {
-              console.log('Files uploaded:', file);
+              devConsole.log('Files uploaded:', file);
               return new Promise((resolve) => {
                 setTimeout(() => {
                   resolve({ url: URL.createObjectURL(file) });

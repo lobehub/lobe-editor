@@ -3,6 +3,7 @@ import { COMMAND_PRIORITY_HIGH, DROP_COMMAND, LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import { createDebugLogger } from '@/utils/debug';
 
 import { IUploadService, UploadService } from '../service/i-upload-service';
 import { getDragSelection } from '../utils';
@@ -17,6 +18,7 @@ export const UploadPlugin: IEditorPluginConstructor<UploadPluginOptions> = class
   implements IEditorPlugin<UploadPluginOptions>
 {
   static readonly pluginName = 'upload';
+  private logger = createDebugLogger('plugin', 'upload');
 
   constructor(
     protected kernel: IEditorKernel,
@@ -40,7 +42,7 @@ export const UploadPlugin: IEditorPluginConstructor<UploadPluginOptions> = class
             const uploadService = this.kernel.requireService(IUploadService);
             if (uploadService) {
               uploadService.uploadFile(file, 'drop', getDragSelection(event)).catch((error) => {
-                console.error('Upload failed:', error);
+                this.logger.error('Upload failed:', error);
               });
             }
           }
@@ -57,7 +59,7 @@ export const UploadPlugin: IEditorPluginConstructor<UploadPluginOptions> = class
             const uploadService = this.kernel.requireService(IUploadService);
             if (uploadService) {
               uploadService.uploadFile(file, 'drag-drop-paste', null).catch((error) => {
-                console.error('Upload failed:', error);
+                this.logger.error('Upload failed:', error);
               });
             }
           }

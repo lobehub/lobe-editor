@@ -11,9 +11,12 @@ import { memo, useEffect, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
+import { createDebugLogger } from '@/utils/debug';
 
 import { $isMathNode, MathBlockNode, MathInlineNode } from '../../node';
 import Placeholder from './Placeholder';
+
+const logger = createDebugLogger('plugin', 'math');
 
 export interface MathInlineProps {
   className?: string;
@@ -60,7 +63,7 @@ const MathInline = memo<MathInlineProps>(({ editor, node, className }) => {
       return editor.registerCommand(
         CLICK_COMMAND,
         (payload) => {
-          console.info(payload, payload.target, ref.current);
+          logger.debug('📊 Math click event:', payload.target === ref.current);
           if (payload.target && payload.target instanceof Node) {
             // 获取节点对应的 DOM 元素
             const nodeElement = editor.getElementByKey(node.getKey());

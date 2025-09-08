@@ -10,7 +10,11 @@ import {
   createCommand,
 } from 'lexical';
 
+import { createDebugLogger } from '@/utils/debug';
+
 import { $createImageNode } from '../node/image-node';
+
+const logger = createDebugLogger('plugin', 'image');
 
 export const INSERT_IMAGE_COMMAND = createCommand<{ file: File; range?: Range | null }>(
   'INSERT_IMAGE_COMMAND',
@@ -55,7 +59,7 @@ export function registerImageCommand(
             });
           })
           .catch((error) => {
-            console.error('Image upload failed:', error);
+            logger.error('❌ Image upload failed:', error);
             editor.update(() => {
               imageNode.setError('Image upload failed : ' + error.message);
             });
