@@ -21,7 +21,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
   extends KernelPlugin
   implements IEditorPlugin<ImagePluginOptions>
 {
-  static readonly pluginName = 'image';
+  static readonly pluginName = 'ImagePlugin';
 
   constructor(
     protected kernel: IEditorKernel,

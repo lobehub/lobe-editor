@@ -17,7 +17,7 @@ export const UploadPlugin: IEditorPluginConstructor<UploadPluginOptions> = class
   extends KernelPlugin
   implements IEditorPlugin<UploadPluginOptions>
 {
-  static readonly pluginName = 'upload';
+  static readonly pluginName = 'UploadPlugin';
   private logger = createDebugLogger('plugin', 'upload');
 
   constructor(

@@ -41,7 +41,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
   extends KernelPlugin
   implements IEditorPlugin<SlashPluginOptions>
 {
-  static readonly pluginName = 'slash';
+  static readonly pluginName = 'SlashPlugin';
 
   private service: SlashService | null = null;
   private currentSlashTrigger: string | null = null;
