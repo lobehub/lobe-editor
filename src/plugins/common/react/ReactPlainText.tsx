@@ -1,10 +1,10 @@
 'use client';
 
+import { COMMAND_PRIORITY_EDITOR, KEY_DOWN_COMMAND } from 'lexical';
 import {
   Children,
   type CompositionEvent,
   type FocusEvent,
-  type KeyboardEvent,
   type MouseEvent,
   memo,
   useEffect,
@@ -83,6 +83,29 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     }, [editor, type, content, onChange, isInitialized]);
 
     useEffect(() => {
+      if (editor && onPressEnter) {
+        return editor.registerHighCommand(
+          KEY_DOWN_COMMAND,
+          (event) => {
+            if (event.key === 'Enter' && !event.isComposing && onPressEnter({ editor, event })) {
+              event.preventDefault();
+              return true; // Indicate that the event has been handled
+            }
+
+            //
+            if (onKeyDown?.({ editor, event })) {
+              event.preventDefault();
+              return true; // Indicate that the event has been handled
+            }
+
+            return false; // Allow other handlers to process the event
+          },
+          COMMAND_PRIORITY_EDITOR,
+        );
+      }
+    }, [editor, onPressEnter, onKeyDown]);
+
+    useEffect(() => {
       if (autoFocus && editorContainerRef.current) {
         editorContainerRef.current.focus();
       }
@@ -108,19 +131,6 @@ const ReactPlainText = memo<ReactPlainTextProps>(
       onFocus?.({ editor, event });
     };
 
-    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-      const isComposing = event.nativeEvent.isComposing;
-      if (
-        event.key === 'Enter' &&
-        !isComposing && // Regular Enter key handling
-        onPressEnter
-      ) {
-        onPressEnter({ editor, event });
-      }
-      // Call the optional onKeyDown handler
-      onKeyDown?.({ editor, event });
-    };
-
     return (
       <div className={cx(styles.root, styles.variant, className)} style={style}>
         <div
@@ -130,7 +140,6 @@ const ReactPlainText = memo<ReactPlainTextProps>(
           onCompositionStart={handleCompositionStart}
           onContextMenu={handleContextMenu}
           onFocus={handleFocus}
-          onKeyDown={handleKeyDown}
           ref={editorContainerRef}
           style={{ outline: 'none' }}
         />
