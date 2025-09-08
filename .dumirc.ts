@@ -81,8 +81,7 @@ export default defineConfig({
   apiParser: isProduction ? {} : false,
   base: '/',
   define: {
-    'process.env.DEBUG': process.env.DEBUG,
-    'process.env.NODE_ENV': process.env.NODE_ENV,
+    'process.env': process.env,
   },
   exportStatic: {},
   extraBabelPlugins: ['babel-plugin-antd-style'],

@@ -130,7 +130,7 @@ export const debugLogger = new DebugLogger();
  */
 if (typeof window !== 'undefined') {
   // Check for server-side DEBUG environment variable (passed through build process)
-  const envDebug = process.env.DEBUG;
+  const envDebug = typeof process !== 'undefined' ? process.env.DEBUG : undefined;
 
   // Simple logic: Environment variable takes precedence, then development mode
   let debugConfig: string | null = null;
@@ -275,7 +275,7 @@ export const browserDebug = {
    */
   getConfig: () => {
     if (typeof window !== 'undefined') {
-      const envDebug = process.env.DEBUG;
+      const envDebug = typeof process !== 'undefined' ? process.env.DEBUG : undefined;
       const currentDebug = localStorage.getItem('debug');
 
       if (envDebug) {
@@ -296,7 +296,7 @@ export const browserDebug = {
       }
     }
     return {
-      enabled: process.env.DEBUG || false,
+      enabled: (typeof process !== 'undefined' ? process.env.DEBUG : undefined) || false,
       source: 'server-side',
     };
   },
