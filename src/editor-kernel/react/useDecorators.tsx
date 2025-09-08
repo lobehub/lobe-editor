@@ -38,8 +38,22 @@ export function useDecorators(
   useLayoutEffectImpl(() => {
     let clears: Array<() => void> = [];
     const handleInit = (editor: LexicalEditor) => {
+      console.log('[useDecorators] Setting up decorator listener for editor');
+
+      // Get initial decorators
+      const initialDecorators = editor.getDecorators<JSX.Element>();
+      console.log('[useDecorators] Initial decorators:', {
+        count: Object.keys(initialDecorators).length,
+        keys: Object.keys(initialDecorators),
+      });
+      setDecorators(initialDecorators);
+
       clears.push(
         editor.registerDecoratorListener<JSX.Element>((nextDecorators) => {
+          console.log('[useDecorators] Decorator listener triggered:', {
+            count: Object.keys(nextDecorators).length,
+            keys: Object.keys(nextDecorators),
+          });
           flushSync(() => {
             setDecorators(nextDecorators);
           });
@@ -47,10 +61,19 @@ export function useDecorators(
       );
     };
 
-    editor.on('initialized', handleInit);
-    clears.push(() => {
-      editor.off('initialized', handleInit);
-    });
+    // Check if editor is already initialized
+    const lexicalEditor = editor.getLexicalEditor();
+    if (lexicalEditor) {
+      console.log('[useDecorators] Editor already initialized, setting up listener immediately');
+      handleInit(lexicalEditor);
+    } else {
+      console.log('[useDecorators] Waiting for editor initialization');
+      editor.on('initialized', handleInit);
+      clears.push(() => {
+        editor.off('initialized', handleInit);
+      });
+    }
+
     return () => {
       clears.forEach((clear) => clear());
     };
