@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.5.0](https://github.com/lobehub/lobe-editor/compare/v1.4.7...v1.5.0)
+<sup>Released on **2025-09-08**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add LaTex and TaskList.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add LaTex and TaskList ([3013a43](https://github.com/lobehub/lobe-editor/commit/3013a43))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.4.7](https://github.com/lobehub/lobe-editor/compare/v1.4.6...v1.4.7)
 <sup>Released on **2025-09-07**</sup>
 
