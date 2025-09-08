@@ -9,8 +9,11 @@ import { $createQuoteNode, $isHeadingNode, $isQuoteNode } from '@lexical/rich-te
 import { $setBlocksType } from '@lexical/selection';
 import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
 import {
+  $createNodeSelection,
   $getSelection,
+  $isParagraphNode,
   $isRangeSelection,
+  $setSelection,
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,
   COMMAND_PRIORITY_LOW,
@@ -24,10 +27,14 @@ import {
 } from 'lexical';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { INSERT_CODEINLINE_COMMAND } from '@/plugins/code';
+import { $isSelectionInCodeInline } from '@/plugins/code/node/code';
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@/plugins/link/node/LinkNode';
 import { sanitizeUrl } from '@/plugins/link/utils';
+import { INSERT_CHECK_LIST_COMMAND } from '@/plugins/list';
+import { $createMathBlockNode, $createMathInlineNode } from '@/plugins/math/node';
 import { IEditor } from '@/types';
 
 import { $findTopLevelElement, formatParagraph, getSelectedNode } from './utils';
@@ -48,6 +55,8 @@ export interface EditorState {
   canRedo: boolean;
   /** Whether undo operation is available */
   canUndo: boolean;
+  /** Toggle check list */
+  checkList: () => void;
   /** Toggle code formatting */
   code: () => void;
   /** Format selection as code block */
@@ -56,6 +65,8 @@ export interface EditorState {
   codeblockLang: string | null | undefined;
   /** Insert or toggle link */
   insertLink: () => void;
+  /** Insert math (inline or block based on context) */
+  insertMath: () => void;
   /** Whether cursor is inside a blockquote */
   isBlockquote: boolean;
   /** Whether selection has bold formatting */
@@ -136,7 +147,7 @@ export function useEditorState(editor?: IEditor): EditorState {
       setIsItalic(selection.hasFormat('italic'));
       setIsUnderline(selection.hasFormat('underline'));
       setIsStrikethrough(selection.hasFormat('strikethrough'));
-      setIsCode(selection.hasFormat('code'));
+      setIsCode($isSelectionInCodeInline(lexicalEditor!));
 
       const anchorNode = selection.anchor.getNode();
       const focusNode = selection.focus.getNode();
@@ -215,7 +226,7 @@ export function useEditorState(editor?: IEditor): EditorState {
   }, [formatText]);
 
   const code = useCallback(() => {
-    formatText('code');
+    editor?.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined);
   }, [formatText]);
 
   const bulletList = useCallback(() => {
@@ -229,6 +240,14 @@ export function useEditorState(editor?: IEditor): EditorState {
   const numberList = useCallback(() => {
     if (blockType !== 'number') {
       editor?.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+    } else {
+      formatParagraph(editor?.getLexicalEditor());
+    }
+  }, [blockType, editor]);
+
+  const checkList = useCallback(() => {
+    if (blockType !== 'check') {
+      editor?.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined);
     } else {
       formatParagraph(editor?.getLexicalEditor());
     }
@@ -291,6 +310,37 @@ export function useEditorState(editor?: IEditor): EditorState {
     }
   }, [editor, isLink]);
 
+  const insertMath = useCallback(() => {
+    editor?.getLexicalEditor()?.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        // 检查当前上下文来决定插入行内还是块级数学公式
+        const anchorNode = selection.anchor.getNode();
+        const element = $findTopLevelElement(anchorNode);
+
+        // 判断是否应该插入块级数学公式的条件（默认插入 inline）：
+        // 1. 在空段落开头（没有任何内容的段落）
+        // 2. 选择了整行内容
+        const shouldInsertBlock =
+          ($isParagraphNode(element) &&
+            selection.isCollapsed() &&
+            selection.anchor.offset === 0 &&
+            element.getTextContentSize() === 0) ||
+          (!selection.isCollapsed() &&
+            selection.anchor.offset === 0 &&
+            selection.focus.offset === element.getTextContentSize());
+
+        const mathNode = shouldInsertBlock ? $createMathBlockNode('') : $createMathInlineNode('');
+        selection.insertNodes([mathNode]);
+
+        // 选择新创建的数学节点
+        const nodeSelection = $createNodeSelection();
+        nodeSelection.add(mathNode.getKey());
+        $setSelection(nodeSelection);
+      }
+    });
+  }, [editor]);
+
   useEffect(() => {
     if (!editor) return;
     const lexicalEditor = editor.getLexicalEditor();
@@ -347,10 +397,12 @@ export function useEditorState(editor?: IEditor): EditorState {
       bulletList,
       canRedo,
       canUndo,
+      checkList,
       code,
       codeblock,
       codeblockLang,
       insertLink,
+      insertMath,
       isBlockquote,
       isBold,
       isCode,
@@ -370,15 +422,9 @@ export function useEditorState(editor?: IEditor): EditorState {
     }),
     [
       blockType,
-      bold,
-      bulletList,
       canRedo,
       canUndo,
-      code,
       codeblockLang,
-      blockquote,
-      codeblock,
-      insertLink,
       isBold,
       isCode,
       isEmpty,
@@ -389,12 +435,6 @@ export function useEditorState(editor?: IEditor): EditorState {
       isStrikethrough,
       isUnderline,
       italic,
-      numberList,
-      redo,
-      strikethrough,
-      underline,
-      undo,
-      updateCodeblockLang,
     ],
   );
 }

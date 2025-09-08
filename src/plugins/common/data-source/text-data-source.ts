@@ -27,11 +27,11 @@ export default class TextDataSource extends DataSource {
     if (options?.selection) {
       return editor.read(() => {
         const selection = $getSelection();
-        return selection ? selection.getTextContent() : null;
+        return selection ? selection.getTextContent().replaceAll('\uFEFF', '') : null;
       });
     }
     return editor.getEditorState().read(() => {
-      return $getRoot().getTextContent();
+      return $getRoot().getTextContent().replaceAll('\uFEFF', '');
     });
   }
 }

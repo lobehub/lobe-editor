@@ -1,33 +1,24 @@
 'use client';
 
-import { Block, Menu, type MenuProps } from '@lobehub/ui';
+import { Menu, type MenuProps } from '@lobehub/ui';
 import { memo, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { Flexbox } from 'react-layout-kit';
 
 import { ISlashMenuOption } from '@/plugins/slash/service/i-slash-service';
 
-import { useStyles } from './style';
+import FloatMenu from '../FloatMenu';
 import type { SlashMenuProps } from './type';
 
 const SlashMenu = memo<SlashMenuProps>(
   ({
-    className,
-    style,
-    getPopupContainer,
-    open,
     options,
     activeKey,
     loading,
-    maxHeight = 'min(50vh, 640px)',
     onSelect,
-    styles: customStyles,
     classNames,
+    styles: customStyles,
     menuProps,
+    ...floatMenuProps
   }) => {
-    const { cx, styles } = useStyles();
-    const parent = getPopupContainer();
-
     const handleMenuClick: MenuProps['onClick'] = useCallback(
       ({ key }: { key: string }) => {
         if (!onSelect) return;
@@ -39,51 +30,39 @@ const SlashMenu = memo<SlashMenuProps>(
       [options, onSelect],
     );
 
-    if (!parent) return;
-    if (!open) return;
-
-    const node = (
-      <Flexbox
-        className={cx(styles.root, classNames?.root)}
-        paddingInline={8}
-        style={customStyles?.root}
-        width={'100%'}
+    return (
+      <FloatMenu
+        classNames={{
+          container: classNames?.container,
+          root: classNames?.root,
+        }}
+        styles={{
+          container: customStyles?.container,
+          root: customStyles?.root,
+        }}
+        {...floatMenuProps}
       >
-        <Block
-          className={cx(styles.container, className, classNames?.container)}
-          gap={4}
-          horizontal
-          shadow
-          style={{
-            maxHeight,
-            ...style,
-            ...customStyles?.container,
-          }}
-          variant={'outlined'}
-        >
-          <Menu
-            className={classNames?.menu}
-            items={
-              loading
-                ? [
-                    {
-                      disabled: true,
-                      key: 'loading',
-                      label: 'Loading...',
-                    },
-                  ]
-                : options
-            }
-            mode={'inline'}
-            onClick={handleMenuClick}
-            selectedKeys={activeKey ? [activeKey] : undefined}
-            style={customStyles?.menu}
-            {...menuProps}
-          />
-        </Block>
-      </Flexbox>
+        <Menu
+          className={classNames?.menu}
+          items={
+            loading
+              ? [
+                  {
+                    disabled: true,
+                    key: 'loading',
+                    label: 'Loading...',
+                  },
+                ]
+              : options
+          }
+          mode={'inline'}
+          onClick={handleMenuClick}
+          selectedKeys={activeKey ? [activeKey] : undefined}
+          style={customStyles?.menu}
+          {...menuProps}
+        />
+      </FloatMenu>
     );
-    return createPortal(node, parent);
   },
 );
 

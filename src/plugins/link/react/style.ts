@@ -1,18 +1,13 @@
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css }) => {
+export const useStyles = createStyles(({ cx, css, token }) => {
   const position = css`
     position: absolute;
     z-index: 999;
     inset-block-start: -9999px;
     inset-inline-start: -9999px;
   `;
-
   return {
-    editor_linkEdit: position,
-
-    editor_linkPlugin: position,
-
     link: css`
       cursor: pointer;
 
@@ -21,5 +16,25 @@ export const useStyles = createStyles(({ css }) => {
       padding: 2px;
       border: none;
     `,
+    linkEdit: cx(
+      position,
+      css`
+        min-width: 320px;
+        max-width: 100%;
+        background: ${token.colorBgElevated};
+      `,
+    ),
+
+    linkEditFooter: css`
+      border-block-start: 1px solid ${token.colorBorderSecondary};
+      background: ${token.colorFillQuaternary};
+    `,
+
+    linkToolbar: cx(
+      position,
+      css`
+        background: ${token.colorBgElevated};
+      `,
+    ),
   };
 });

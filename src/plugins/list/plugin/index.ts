@@ -31,6 +31,7 @@ import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { $indentOverTab, listReplace } from '../utils';
+import { registerCheckList } from './checkList';
 
 const ORDERED_LIST_REGEX = /^(\s*)(\d+)\.\s/;
 const UNORDERED_LIST_REGEX = /^(\s*)[*+-]\s/;
@@ -58,7 +59,10 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
     kernel.registerThemes({
       // Define themes for list nodes here
       list: {
+        checklist: 'editor_listItemCheck',
         listitem: 'editor_listItem',
+        listitemChecked: 'editor_listItemChecked',
+        listitemUnchecked: 'editor_listItemUnchecked',
         nested: {
           listitem: 'editor_listItemNested',
         },
@@ -132,7 +136,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
               break;
             }
             case 'check': {
-              ctx.wrap(`${prefix}[${node.getChecked() ? 'x' : ' '}] `, '\n');
+              ctx.wrap(`${prefix}- [${node.getChecked() ? 'x' : ' '}] `, '\n');
               break;
             }
             default: {
@@ -145,6 +149,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     this.register(registerList(editor));
+    this.register(registerCheckList(editor));
     this.register(registerListStrictIndentTransform(editor));
     this.registerClears(
       editor.registerCommand<KeyboardEvent>(
@@ -177,7 +182,9 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
           }
           const anchorNode = anchor.getNode();
           let listItemNode: ListItemNode | undefined;
-          if ($isTextNode(anchorNode)) {
+          if ($isListItemNode(anchorNode)) {
+            listItemNode = anchorNode;
+          } else if ($isTextNode(anchorNode)) {
             // Do not handle non-leading text nodes
             if (anchorNode.getPreviousSibling()) {
               return false;

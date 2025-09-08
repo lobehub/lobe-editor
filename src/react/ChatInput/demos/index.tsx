@@ -8,9 +8,17 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
+  ReactMathPlugin,
   ReactTablePlugin,
 } from '@lobehub/editor';
-import { ChatInput, Editor, SlashMenu, useEditor, useEditorState } from '@lobehub/editor/react';
+import {
+  ChatInput,
+  Editor,
+  FloatMenu,
+  SlashMenu,
+  useEditor,
+  useEditorState,
+} from '@lobehub/editor/react';
 import { Avatar } from '@lobehub/ui';
 import type { ChatMessage } from '@lobehub/ui/chat';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
@@ -116,6 +124,11 @@ export default () => {
             ReactCodeblockPlugin,
             ReactHRPlugin,
             ReactTablePlugin,
+            Editor.withProps(ReactMathPlugin, {
+              renderComp: (props) => (
+                <FloatMenu {...props} getPopupContainer={() => slashMenuRef.current} />
+              ),
+            }),
           ]}
           slashOption={{
             items: [

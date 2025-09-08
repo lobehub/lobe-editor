@@ -30,7 +30,8 @@ import {
   isModifierMatch,
 } from 'lexical';
 
-import { CONTROL_OR_META, CONTROL_OR_META_AND_SHIFT } from '@/common/sys';
+import { CONTROL_OR_META_AND_SHIFT } from '@/common/sys';
+import { IEditor } from '@/types';
 
 function resolveElement(
   element: ElementNode,
@@ -103,6 +104,29 @@ export function $getAdjacentNode(focus: PointType, isBackward: boolean): null | 
   return null;
 }
 
+export function $getDownUpNode(focus: PointType, isUp: boolean): null | LexicalNode {
+  const focusNode = focus.getNode();
+  let blockParent: LexicalNode | null = focusNode;
+  while (blockParent !== null && blockParent.isInline()) {
+    blockParent = blockParent.getParent();
+  }
+  if (!blockParent) {
+    return null;
+  }
+  let nextNode = isUp ? blockParent.getPreviousSibling() : blockParent.getNextSibling();
+  while (!nextNode && !$isRootOrShadowRoot(blockParent)) {
+    blockParent = blockParent.getParent();
+    if (!blockParent) {
+      return null;
+    }
+    nextNode = isUp ? blockParent.getPreviousSibling() : blockParent.getNextSibling();
+  }
+  if (!nextNode) {
+    return null;
+  }
+  return nextNode;
+}
+
 function $isSelectionAtEndOfRoot(selection: RangeSelection) {
   const focus = selection.focus;
   return focus.key === 'root' && focus.offset === $getRoot().getChildrenSize();
@@ -159,9 +183,9 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
   );
 }
 
-export function registerRichKeydown(editor: LexicalEditor) {
+export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
   return mergeRegister(
-    editor.registerCommand(
+    kernel.registerHighCommand(
       KEY_DOWN_COMMAND,
       (payload) => {
         // ctrl + shift + x
@@ -172,18 +196,11 @@ export function registerRichKeydown(editor: LexicalEditor) {
           editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
           return true;
         }
-        // ctrl + e
-        if (isModifierMatch(payload, CONTROL_OR_META) && payload.code === 'KeyE') {
-          payload.stopImmediatePropagation();
-          payload.preventDefault();
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code');
-          return true;
-        }
         return false;
       },
       COMMAND_PRIORITY_EDITOR,
     ),
-    editor.registerCommand(
+    kernel.registerHighCommand(
       KEY_ARROW_UP_COMMAND,
       (event) => {
         const selection = $getSelection();
@@ -198,9 +215,18 @@ export function registerRichKeydown(editor: LexicalEditor) {
           }
         } else if ($isRangeSelection(selection)) {
           const possibleNode = $getAdjacentNode(selection.focus, true);
+          const upblock = possibleNode || $getDownUpNode(selection.focus, true);
           if (!event.shiftKey && $isDecoratorNode(possibleNode)) {
             const nodeSelection = $createNodeSelection();
             nodeSelection.add(possibleNode.getKey());
+            editor.update(() => {
+              $setSelection(nodeSelection);
+            });
+            event.preventDefault();
+            return true;
+          } else if (!event.shiftKey && $isDecoratorNode(upblock)) {
+            const nodeSelection = $createNodeSelection();
+            nodeSelection.add(upblock.getKey());
             editor.update(() => {
               $setSelection(nodeSelection);
             });
@@ -216,7 +242,7 @@ export function registerRichKeydown(editor: LexicalEditor) {
       },
       COMMAND_PRIORITY_EDITOR,
     ),
-    editor.registerCommand<KeyboardEvent>(
+    kernel.registerHighCommand<KeyboardEvent>(
       KEY_ARROW_DOWN_COMMAND,
       (event) => {
         const selection = $getSelection();
@@ -246,9 +272,18 @@ export function registerRichKeydown(editor: LexicalEditor) {
             return true;
           }
           const possibleNode = $getAdjacentNode(selection.focus, false);
+          const upblock = possibleNode || $getDownUpNode(selection.focus, false);
           if (!event.shiftKey && $isDecoratorNode(possibleNode)) {
             const nodeSelection = $createNodeSelection();
             nodeSelection.add(possibleNode.getKey());
+            editor.update(() => {
+              $setSelection(nodeSelection);
+            });
+            event.preventDefault();
+            return true;
+          } else if (!event.shiftKey && $isDecoratorNode(upblock)) {
+            const nodeSelection = $createNodeSelection();
+            nodeSelection.add(upblock.getKey());
             editor.update(() => {
               $setSelection(nodeSelection);
             });
@@ -264,7 +299,7 @@ export function registerRichKeydown(editor: LexicalEditor) {
       },
       COMMAND_PRIORITY_EDITOR,
     ),
-    editor.registerCommand(
+    kernel.registerHighCommand(
       KEY_ARROW_RIGHT_COMMAND,
       (event) => {
         const selection = $getSelection();

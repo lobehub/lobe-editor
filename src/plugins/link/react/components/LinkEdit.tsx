@@ -1,6 +1,6 @@
 import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { mergeRegister } from '@lexical/utils';
-import { Icon, Input } from '@lobehub/ui';
+import { Block, Button, Hotkey, Icon, Input, Text } from '@lobehub/ui';
 import type { InputRef } from 'antd';
 import {
   COMMAND_PRIORITY_EDITOR,
@@ -9,7 +9,7 @@ import {
   KEY_TAB_COMMAND,
   createCommand,
 } from 'lexical';
-import { LinkIcon } from 'lucide-react';
+import { BaselineIcon, LinkIcon } from 'lucide-react';
 import {
   type ChangeEvent,
   type FC,
@@ -19,9 +19,12 @@ import {
   useRef,
   useState,
 } from 'react';
+import { Flexbox } from 'react-layout-kit';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
+import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
+import { UPDATE_LINK_TEXT_COMMAND } from '../../command';
 import { LinkNode } from '../../node/LinkNode';
 import { useStyles } from '../style';
 
@@ -30,13 +33,16 @@ export const EDIT_LINK_COMMAND = createCommand<{
   linkNodeDOM: HTMLElement | null;
 }>();
 
-export const LinkEdit: FC = () => {
+const LinkEdit: FC = () => {
   const divRef = useRef<HTMLDivElement>(null);
   const linkNodeRef = useRef<LinkNode | null>(null);
   const linkInputRef = useRef<InputRef | null>(null);
+  const linkTextInputRef = useRef<InputRef | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
   const [linkDom, setLinkDom] = useState<HTMLElement | null>(null);
   const [editor] = useLexicalComposerContext();
+  const t = useTranslation();
   const { styles, theme } = useStyles();
 
   useEffect(() => {
@@ -54,35 +60,131 @@ export const LinkEdit: FC = () => {
     });
   }, [linkDom]);
 
+  // 提取提交逻辑到独立函数
+  const handleSubmit = useCallback(() => {
+    const lexicalEditor = editor.getLexicalEditor();
+    if (
+      !linkNodeRef.current ||
+      !linkInputRef.current ||
+      !linkTextInputRef.current ||
+      !lexicalEditor
+    ) {
+      return;
+    }
+
+    const linkNode = linkNodeRef.current;
+    const input = linkInputRef.current;
+    const inputDOM = input.input as HTMLInputElement;
+    const textInput = linkTextInputRef.current;
+    const textInputDOM = textInput.input as HTMLInputElement;
+
+    // 更新链接URL
+    const currentURL = lexicalEditor.read(() => linkNode.getURL());
+    if (currentURL !== inputDOM.value) {
+      lexicalEditor.update(() => {
+        linkNode.setURL(inputDOM.value);
+      });
+    }
+
+    // 更新链接文本
+    const currentText = lexicalEditor.read(() => linkNode.getTextContent());
+    if (currentText !== textInputDOM.value) {
+      lexicalEditor.dispatchCommand(UPDATE_LINK_TEXT_COMMAND, {
+        key: linkNode.getKey(),
+        text: textInputDOM.value,
+      });
+    }
+
+    // 关闭编辑器并聚焦到编辑器
+    lexicalEditor.focus();
+
+    // 隐藏编辑面板
+    if (divRef.current) {
+      divRef.current.style.left = '-9999px';
+      divRef.current.style.top = '-9999px';
+    }
+    linkNodeRef.current = null;
+    setLinkUrl('');
+    setLinkText('');
+    setLinkDom(null);
+  }, [editor, linkNodeRef, linkInputRef, linkTextInputRef]);
+
+  // 取消编辑，不保存更改
+  const handleCancel = useCallback(() => {
+    const lexicalEditor = editor.getLexicalEditor();
+    if (!lexicalEditor) return;
+
+    // 将焦点返回到编辑器
+    lexicalEditor.focus();
+
+    // 隐藏编辑面板
+    if (divRef.current) {
+      divRef.current.style.left = '-9999px';
+      divRef.current.style.top = '-9999px';
+    }
+    linkNodeRef.current = null;
+    setLinkUrl('');
+    setLinkText('');
+    setLinkDom(null);
+  }, [editor]);
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
       const lexicalEditor = editor.getLexicalEditor();
-      if (!linkNodeRef.current || !linkInputRef.current || !lexicalEditor) {
+      if (
+        !linkNodeRef.current ||
+        !linkInputRef.current ||
+        !linkTextInputRef.current ||
+        !lexicalEditor
+      ) {
         return;
       }
 
       const linkNode = linkNodeRef.current;
       const input = linkInputRef.current;
       const inputDOM = input.input as HTMLInputElement;
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        const currentURL = lexicalEditor.read(() => linkNode.getURL());
-        if (currentURL !== inputDOM.value) {
-          lexicalEditor.update(() => {
-            linkNode.setURL(inputDOM.value);
-            lexicalEditor.focus();
-          });
-        } else {
-          lexicalEditor.focus();
+      const textInput = linkTextInputRef.current;
+      const textInputDOM = textInput.input as HTMLInputElement;
+      switch (event.key) {
+        case 'Enter': {
+          event.preventDefault();
+          if (event.currentTarget === textInputDOM) {
+            const currentText = lexicalEditor.read(() => linkNode.getTextContent());
+            if (currentText !== textInputDOM.value) {
+              lexicalEditor.dispatchCommand(UPDATE_LINK_TEXT_COMMAND, {
+                key: linkNode.getKey(),
+                text: textInputDOM.value,
+              });
+              // 更新文本后跳转到链接输入框
+              inputDOM.focus();
+            } else {
+              // 如果文本没有变化，直接跳转到链接输入框
+              inputDOM.focus();
+            }
+          } else if (event.currentTarget === inputDOM) {
+            // 在链接输入框按回车时提交所有更改
+            handleSubmit();
+          }
+          return;
         }
-        return;
-      } else if (event.key === 'Escape' || event.key === 'Tab') {
-        event.preventDefault();
-        lexicalEditor.focus();
-        return;
+        case 'Tab': {
+          event.preventDefault();
+          if (event.currentTarget === textInputDOM) {
+            inputDOM.focus();
+          } else {
+            lexicalEditor.focus();
+          }
+          return;
+        }
+        case 'Escape': {
+          event.preventDefault();
+          handleCancel();
+          return;
+        }
+        // No default
       }
     },
-    [linkNodeRef, linkInputRef],
+    [linkNodeRef, linkInputRef, handleSubmit, handleCancel],
   );
 
   useLexicalEditor((editor) => {
@@ -93,6 +195,7 @@ export const LinkEdit: FC = () => {
           if (!payload.linkNode || !payload.linkNodeDOM) {
             setLinkDom(null);
             setLinkUrl('');
+            setLinkText('');
             if (divRef.current) {
               divRef.current.style.left = '-9999px';
               divRef.current.style.top = '-9999px';
@@ -101,6 +204,7 @@ export const LinkEdit: FC = () => {
           }
           linkNodeRef.current = payload.linkNode;
           setLinkUrl(payload.linkNode.getURL());
+          setLinkText(payload.linkNode.getTextContent());
           setLinkDom(payload.linkNodeDOM);
           return true;
         },
@@ -115,6 +219,7 @@ export const LinkEdit: FC = () => {
           }
           linkNodeRef.current = null;
           setLinkUrl('');
+          setLinkText('');
           setLinkDom(null);
           return true;
         },
@@ -123,10 +228,10 @@ export const LinkEdit: FC = () => {
       editor.registerCommand(
         KEY_TAB_COMMAND,
         (payload) => {
-          if (linkNodeRef.current && linkInputRef.current) {
+          if (linkNodeRef.current && linkTextInputRef.current) {
             payload.stopImmediatePropagation();
             payload.preventDefault();
-            linkInputRef.current.focus();
+            linkTextInputRef.current.focus();
             return true;
           }
           return false;
@@ -137,21 +242,55 @@ export const LinkEdit: FC = () => {
   }, []);
 
   return (
-    <div className={styles.editor_linkEdit} ref={divRef}>
-      <Input
-        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-          // Handle link URL change
-          setLinkUrl(e.target.value);
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder="https://enter-link-url"
-        prefix={<Icon color={theme.colorTextDescription} icon={LinkIcon} />}
-        ref={linkInputRef}
-        shadow
-        style={{ background: theme.colorBgElevated, maxWidth: '100%', minWidth: 240 }}
-        value={linkUrl}
-        variant={'outlined'}
-      />
-    </div>
+    <Block className={styles.linkEdit} ref={divRef} shadow variant={'outlined'}>
+      <Flexbox gap={8} padding={12}>
+        <Text weight={500}>{t('link.editTextTitle')}</Text>
+        <Input
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            // Handle link text change
+            setLinkText(e.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+          prefix={<Icon color={theme.colorTextDescription} icon={BaselineIcon} />}
+          ref={linkTextInputRef}
+          value={linkText}
+        />
+        <Text weight={500}>{t('link.editLinkTitle')}</Text>
+        <Input
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            // Handle link URL change
+            setLinkUrl(e.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="https://enter-link-url"
+          prefix={<Icon color={theme.colorTextDescription} icon={LinkIcon} />}
+          ref={linkInputRef}
+          value={linkUrl}
+          variant={'outlined'}
+        />
+      </Flexbox>
+      <Flexbox
+        className={styles.linkEditFooter}
+        horizontal
+        justify={'flex-end'}
+        padding={4}
+        width={'100%'}
+      >
+        <Button
+          onClick={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          size={'small'}
+          type={'text'}
+          variant={'filled'}
+        >
+          {t('confirm')}
+          <Hotkey compact keys="enter" variant={'borderless'} />
+        </Button>
+      </Flexbox>
+    </Block>
   );
 };
+
+export default LinkEdit;

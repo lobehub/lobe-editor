@@ -12,6 +12,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es6",
+    "typeRoots": ["./src/types", "./node_modules"],
     "types": ["vitest/globals"],
     "paths": {
       "@@/*": [".dumi/tmp/*"],
@@ -23,5 +24,5 @@
     }
   },
   "exclude": ["./react.d.ts"],
-  "include": ["src", "docs", "tests", ".dumirc.ts", ".fatherrc.ts"]
+  "include": ["src", "./src/types", "docs", "tests", ".dumirc.ts", ".fatherrc.ts"]
 }

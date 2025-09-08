@@ -1,4 +1,6 @@
 export default {
+  cancel: 'Cancel',
+  confirm: 'Confirm',
   file: {
     error: 'Error: {{message}}',
     uploading: 'Uploading file...',
@@ -8,9 +10,14 @@ export default {
   },
   link: {
     edit: 'Edit Link',
+    editLinkTitle: 'Link',
+    editTextTitle: 'Text',
     open: 'Open Link',
     placeholder: 'Enter link URL',
     unlink: 'Unlink Link',
+  },
+  math: {
+    placeholder: 'Enter TeX formula',
   },
   table: {
     delete: 'Delete table',

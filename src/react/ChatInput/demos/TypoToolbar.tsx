@@ -14,7 +14,9 @@ import {
   LinkIcon,
   ListIcon,
   ListOrderedIcon,
+  ListTodoIcon,
   MessageSquareQuote,
+  SigmaIcon,
   SquareDashedBottomCodeIcon,
   StrikethroughIcon,
   UnderlineIcon,
@@ -82,6 +84,17 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           },
         },
         {
+          icon: ListTodoIcon,
+          key: 'tasklist',
+          label: 'Task list',
+          onClick: () => {
+            editorState.checkList();
+          },
+        },
+        {
+          type: 'divider',
+        },
+        {
           active: editorState.isBlockquote,
           icon: MessageSquareQuote,
           key: 'blockquote',
@@ -96,6 +109,14 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           label: 'link',
           onClick: () => {
             editorState.insertLink();
+          },
+        },
+        {
+          icon: SigmaIcon,
+          key: 'math',
+          label: 'LaTeX',
+          onClick: () => {
+            editorState.insertMath();
           },
         },
         {

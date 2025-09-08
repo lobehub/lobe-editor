@@ -28,8 +28,8 @@ import {
 } from '../node/LinkNode';
 import { LinkPlugin } from '../plugin';
 import { getSelectedNode, sanitizeUrl } from '../utils';
-import { EDIT_LINK_COMMAND, LinkEdit } from './components/LinkEdit';
-import { Toolbar } from './components/Toolbar';
+import LinkEdit, { EDIT_LINK_COMMAND } from './components/LinkEdit';
+import LinkToolbar from './components/LinkToolbar';
 import { useStyles } from './style';
 import { ReactLinkPluginProps } from './type';
 
@@ -164,15 +164,14 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({ theme, validateUrl, 
 
   return (
     <>
-      <div
-        className={styles.editor_linkPlugin}
+      <LinkToolbar
+        editor={editor.getLexicalEditor()!}
+        linkNode={linkNode}
         onMouseEnter={() => {
           clearTimeout(clearTimerRef.current);
         }}
         ref={divRef}
-      >
-        <Toolbar editor={editor.getLexicalEditor()!} linkNode={linkNode} />
-      </div>
+      />
       <LinkEdit />
     </>
   );

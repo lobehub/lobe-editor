@@ -1,5 +1,6 @@
 export * from './editor-kernel';
 export * from './editor-kernel/react';
+export * from './plugins/code';
 export * from './plugins/codeblock';
 export * from './plugins/common';
 export * from './plugins/file';
@@ -7,6 +8,7 @@ export * from './plugins/hr';
 export * from './plugins/image';
 export * from './plugins/link';
 export * from './plugins/list';
+export * from './plugins/math';
 export * from './plugins/mention';
 export * from './plugins/slash';
 export * from './plugins/table';

@@ -1,5 +1,5 @@
 import { TableNode } from '@lexical/table';
-import { EditorConfig, LexicalEditor } from 'lexical/LexicalEditor';
+import type { EditorConfig, LexicalEditor } from 'lexical';
 
 const OriginalCreateDOM = TableNode.prototype.createDOM;
 

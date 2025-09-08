@@ -1,23 +1,15 @@
-import type { BlockProps, MenuProps } from '@lobehub/ui';
+import type { MenuProps } from '@lobehub/ui';
 import type { CSSProperties } from 'react';
 
 import type { MenuRenderProps } from '@/plugins/slash';
+import type { FloatMenuProps } from '@/react/FloatMenu';
 
-export interface SlashMenuProps extends MenuRenderProps {
-  className?: string;
-  classNames?: {
-    container?: string;
+export interface SlashMenuProps extends MenuRenderProps, Omit<FloatMenuProps, 'children'> {
+  classNames?: FloatMenuProps['classNames'] & {
     menu?: string;
-    root?: string;
   };
-  containerProps?: Omit<BlockProps, 'children'>;
-  getPopupContainer: () => HTMLDivElement | null;
-  maxHeight?: string | number;
   menuProps?: MenuProps;
-  style?: CSSProperties;
-  styles?: {
-    container?: CSSProperties;
+  styles?: FloatMenuProps['styles'] & {
     menu?: CSSProperties;
-    root?: CSSProperties;
   };
 }

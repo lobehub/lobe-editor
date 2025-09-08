@@ -115,7 +115,7 @@ export interface IMarkdownShortCutService {
    */
   registerMarkdownWriter(
     type: string,
-    writer: (ctx: IMarkdownWriterContext, node: LexicalNode) => void,
+    writer: (ctx: IMarkdownWriterContext, node: LexicalNode) => void | boolean,
   ): void;
 }
 
@@ -410,7 +410,7 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
 
   private _markdownWriters: Record<
     string,
-    (ctx: IMarkdownWriterContext, node: LexicalNode) => void
+    (ctx: IMarkdownWriterContext, node: LexicalNode) => boolean | void
   > = {};
 
   constructor(private kernel?: import('@/types/kernel').IEditorKernel) {}
@@ -528,7 +528,7 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
 
   registerMarkdownWriter(
     type: string,
-    writer: (ctx: IMarkdownWriterContext, node: LexicalNode) => void,
+    writer: (ctx: IMarkdownWriterContext, node: LexicalNode) => boolean | void,
   ): void {
     if (!this._markdownWriters[type]) {
       this._markdownWriters[type] = writer;

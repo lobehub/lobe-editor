@@ -18,3 +18,7 @@ declare module '*.svg' {
   const content: any;
   export default content;
 }
+
+declare namespace globalThis {
+  let __DEV__: boolean | undefined;
+}

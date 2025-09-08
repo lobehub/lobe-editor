@@ -2,8 +2,7 @@
 
 import { mergeRegister } from '@lexical/utils';
 import {
-  COMMAND_PRIORITY_HIGH,
-  COMMAND_PRIORITY_NORMAL,
+  COMMAND_PRIORITY_CRITICAL,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_ENTER_COMMAND,
@@ -132,107 +131,106 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
     [editor, resolution, close],
   );
 
-  useLexicalEditor(
-    (editor) => {
-      const pureOptions = options.filter(
-        (item): item is ISlashMenuOption =>
-          !('type' in item && item.type === 'divider') && 'key' in item && Boolean(item.key),
-      );
-      return mergeRegister(
-        editor.registerCommand<KeyboardEvent>(
-          KEY_ARROW_DOWN_COMMAND,
-          (payload) => {
-            const event = payload;
-            if (pureOptions !== null && pureOptions.length) {
-              const currentIndex = activeKey
-                ? pureOptions.findIndex((opt) => opt.key === activeKey)
-                : -1;
-              const newIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % pureOptions.length;
-              setActiveKey(String(pureOptions[newIndex].key));
-              event.preventDefault();
-              event.stopImmediatePropagation();
-            }
-            return true;
-          },
-          COMMAND_PRIORITY_HIGH,
-        ),
-        editor.registerCommand<KeyboardEvent>(
-          KEY_ARROW_UP_COMMAND,
-          (payload) => {
-            const event = payload;
-            if (pureOptions !== null && pureOptions.length) {
-              const currentIndex = activeKey
-                ? pureOptions.findIndex((opt) => opt.key === activeKey)
-                : -1;
-              const newIndex =
-                currentIndex === -1
-                  ? pureOptions.length - 1
-                  : (currentIndex - 1 + pureOptions.length) % pureOptions.length;
-              setActiveKey(String(pureOptions[newIndex].key));
-              event.preventDefault();
-              event.stopImmediatePropagation();
-            }
-            return true;
-          },
-          COMMAND_PRIORITY_HIGH,
-        ),
-        editor.registerCommand<KeyboardEvent>(
-          KEY_ESCAPE_COMMAND,
-          (payload) => {
-            const event = payload;
+  useLexicalEditor(() => {
+    const pureOptions = options.filter(
+      (item): item is ISlashMenuOption =>
+        !('type' in item && item.type === 'divider') && 'key' in item && Boolean(item.key),
+    );
+    return mergeRegister(
+      editor.registerHighCommand<KeyboardEvent>(
+        KEY_ARROW_DOWN_COMMAND,
+        (payload) => {
+          const event = payload;
+          if (pureOptions !== null && pureOptions.length) {
+            const currentIndex = activeKey
+              ? pureOptions.findIndex((opt) => opt.key === activeKey)
+              : -1;
+            const newIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % pureOptions.length;
+            setActiveKey(String(pureOptions[newIndex].key));
             event.preventDefault();
             event.stopImmediatePropagation();
-            close();
             return true;
-          },
-          COMMAND_PRIORITY_NORMAL,
-        ),
-        editor.registerCommand<KeyboardEvent>(
-          KEY_TAB_COMMAND,
-          (payload) => {
-            const event = payload;
-            if (options === null || activeKey === null) {
-              return false;
-            }
-            const selectedOption = options.find(
-              (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
-            );
-            if (!selectedOption) {
-              return false;
-            }
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+      editor.registerHighCommand<KeyboardEvent>(
+        KEY_ARROW_UP_COMMAND,
+        (payload) => {
+          const event = payload;
+          if (pureOptions !== null && pureOptions.length) {
+            const currentIndex = activeKey
+              ? pureOptions.findIndex((opt) => opt.key === activeKey)
+              : -1;
+            const newIndex =
+              currentIndex === -1
+                ? pureOptions.length - 1
+                : (currentIndex - 1 + pureOptions.length) % pureOptions.length;
+            setActiveKey(String(pureOptions[newIndex].key));
             event.preventDefault();
             event.stopImmediatePropagation();
-            handleMenuSelect(selectedOption);
             return true;
-          },
-          COMMAND_PRIORITY_NORMAL,
-        ),
-        editor.registerCommand(
-          KEY_ENTER_COMMAND,
-          (event: KeyboardEvent | null) => {
-            if (options === null || activeKey === null) {
-              return false;
-            }
-            const selectedOption = options.find(
-              (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
-            );
-            if (!selectedOption) {
-              return false;
-            }
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+      editor.registerHighCommand<KeyboardEvent>(
+        KEY_ESCAPE_COMMAND,
+        (payload) => {
+          const event = payload;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          close();
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+      editor.registerHighCommand<KeyboardEvent>(
+        KEY_TAB_COMMAND,
+        (payload) => {
+          const event = payload;
+          if (options === null || activeKey === null) {
+            return false;
+          }
+          const selectedOption = options.find(
+            (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
+          );
+          if (!selectedOption) {
+            return false;
+          }
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          handleMenuSelect(selectedOption);
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+      editor.registerHighCommand(
+        KEY_ENTER_COMMAND,
+        (event: KeyboardEvent | null) => {
+          if (options === null || activeKey === null) {
+            return false;
+          }
+          const selectedOption = options.find(
+            (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
+          );
+          if (!selectedOption) {
+            return false;
+          }
 
-            if (event !== null) {
-              event.preventDefault();
-              event.stopImmediatePropagation();
-            }
-            handleMenuSelect(selectedOption);
-            return true;
-          },
-          COMMAND_PRIORITY_NORMAL,
-        ),
-      );
-    },
-    [options, activeKey, handleActiveKeyChange, handleMenuSelect],
-  );
+          if (event !== null) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+          handleMenuSelect(selectedOption);
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+    );
+  }, [options, activeKey, handleActiveKeyChange, handleMenuSelect]);
 
   // Get custom render component if available
   const { renderComp: CustomRender } = triggerMapRef.current.get(resolution?.trigger || '') || {};
