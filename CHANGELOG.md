@@ -2,6 +2,48 @@
 
 # Changelog
 
+### [Version&nbsp;1.5.4](https://github.com/lobehub/lobe-editor/compare/v1.5.3...v1.5.4)
+<sup>Released on **2025-09-08**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: Update log system to fit nextjs.
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix plugin name.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: Update log system to fit nextjs ([a9f30fa](https://github.com/lobehub/lobe-editor/commit/a9f30fa))
+
+
+
+#### What's fixed
+
+* **misc**: Fix plugin name ([d8e4660](https://github.com/lobehub/lobe-editor/commit/d8e4660))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.5.3](https://github.com/lobehub/lobe-editor/compare/v1.5.2...v1.5.3)
 <sup>Released on **2025-09-08**</sup>
 
