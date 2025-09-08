@@ -23,7 +23,7 @@ export const ReactMathPlugin: FC<ReactMathPluginProps> = ({ className, renderCom
       },
       theme: theme || styles,
     });
-  }, [editor]);
+  }, [editor, className, theme, styles]);
 
   return <MathEdit renderComp={renderComp} />;
 };

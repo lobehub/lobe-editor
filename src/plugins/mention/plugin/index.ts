@@ -37,7 +37,22 @@ export const MentionPlugin: IEditorPluginConstructor<MentionPluginOptions> = cla
       kernel,
       MentionNode.getType(),
       (node: DecoratorNode<any>, editor: LexicalEditor) => {
-        return config?.decorator ? config.decorator(node as MentionNode, editor) : null;
+        console.log('[MentionPlugin] Decorator called:', {
+          hasConfig: !!config,
+          hasDecorator: !!config?.decorator,
+          nodeKey: node.getKey(),
+          nodeLabel: (node as MentionNode).label,
+          nodeType: node.getType(),
+        });
+
+        if (config?.decorator) {
+          const result = config.decorator(node as MentionNode, editor);
+          console.log('[MentionPlugin] Decorator result:', result);
+          return result;
+        }
+
+        console.warn('[MentionPlugin] No decorator provided, returning null');
+        return null;
       },
     );
     kernel
