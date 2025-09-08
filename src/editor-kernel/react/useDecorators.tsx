@@ -61,6 +61,14 @@ export function useDecorators(
     const decoratedPortals = [];
     const decoratorKeys = Object.keys(decorators);
 
+    console.log('[useDecorators] Processing decorators:', {
+      decoratorCount: decoratorKeys.length,
+      decoratorKeys,
+      decorators: Object.fromEntries(
+        Object.entries(decorators).map(([key, value]) => [key, !!value]),
+      ),
+    });
+
     for (const nodeKey of decoratorKeys) {
       const reactDecorator = (
         <ErrorBoundary onError={(e) => editor.getLexicalEditor()?._onError(e)}>
@@ -69,11 +77,22 @@ export function useDecorators(
       );
       const element = editor.getLexicalEditor()?.getElementByKey(nodeKey);
 
+      console.log('[useDecorators] Processing decorator:', {
+        decorator: !!decorators[nodeKey],
+        elementTagName: element?.tagName,
+        hasElement: !!element,
+        nodeKey,
+      });
+
       if (element !== null && element !== undefined) {
         decoratedPortals.push(createPortal(reactDecorator, element, nodeKey));
+        console.log('[useDecorators] Created portal for:', nodeKey);
+      } else {
+        console.warn('[useDecorators] No element found for decorator:', nodeKey);
       }
     }
 
+    console.log('[useDecorators] Total portals created:', decoratedPortals.length);
     return decoratedPortals;
   }, [ErrorBoundary, decorators, editor]);
 }
