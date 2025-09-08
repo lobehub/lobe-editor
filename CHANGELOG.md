@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.5.5](https://github.com/lobehub/lobe-editor/compare/v1.5.4...v1.5.5)
+<sup>Released on **2025-09-08**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Update docs.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Update docs ([27e0f68](https://github.com/lobehub/lobe-editor/commit/27e0f68))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.5.4](https://github.com/lobehub/lobe-editor/compare/v1.5.3...v1.5.4)
 <sup>Released on **2025-09-08**</sup>
 
