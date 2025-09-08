@@ -47,6 +47,7 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
 - [🛠️ Development](#️-development)
   - [Setup](#setup)
   - [Available Scripts](#available-scripts)
+  - [Debug Environment Variables](#debug-environment-variables)
   - [Project Architecture](#project-architecture)
 - [🤝 Contributing](#-contributing)
 - [🔗 Links](#-links)
@@ -433,6 +434,77 @@ This will start the Dumi documentation server with live playground at `http://lo
 | `pnpm ci`            | Run all CI checks (lint, type-check, test)    |
 | `pnpm docs:build`    | Build documentation for production            |
 | `pnpm release`       | Publish new version with semantic-release     |
+
+### Debug Environment Variables
+
+LobeHub Editor includes comprehensive debug logging that can be controlled via environment variables:
+
+#### Basic Debug Configuration
+
+```bash
+# Enable all LobeHub Editor debug output
+DEBUG=lobe-editor:*
+
+# Enable only important logs (recommended for development)
+DEBUG=lobe-editor:*:info,lobe-editor:*:warn,lobe-editor:*:error
+
+# Enable specific components
+DEBUG=lobe-editor:kernel,lobe-editor:plugin:*
+```
+
+#### Available Debug Categories
+
+| Category           | Description               | Example                              |
+| ------------------ | ------------------------- | ------------------------------------ |
+| `kernel`           | Core editor functionality | `DEBUG=lobe-editor:kernel`           |
+| `plugin:*`         | All plugins               | `DEBUG=lobe-editor:plugin:*`         |
+| `plugin:slash`     | Slash commands            | `DEBUG=lobe-editor:plugin:slash`     |
+| `plugin:mention`   | Mention system            | `DEBUG=lobe-editor:plugin:mention`   |
+| `plugin:image`     | Image handling            | `DEBUG=lobe-editor:plugin:image`     |
+| `plugin:file`      | File operations           | `DEBUG=lobe-editor:plugin:file`      |
+| `service:*`        | All services              | `DEBUG=lobe-editor:service:*`        |
+| `service:upload`   | Upload service            | `DEBUG=lobe-editor:service:upload`   |
+| `service:markdown` | Markdown processing       | `DEBUG=lobe-editor:service:markdown` |
+
+#### Debug Levels
+
+| Level   | Browser Display       | Usage               | Environment Variable        |
+| ------- | --------------------- | ------------------- | --------------------------- |
+| `debug` | Console.log (gray)    | Detailed tracing    | `DEBUG=lobe-editor:*:debug` |
+| `info`  | Console.log (blue)    | General information | `DEBUG=lobe-editor:*:info`  |
+| `warn`  | Console.warn (yellow) | Warnings            | `DEBUG=lobe-editor:*:warn`  |
+| `error` | Console.error (red)   | Errors              | `DEBUG=lobe-editor:*:error` |
+
+#### Development Usage
+
+```bash
+# Full debug during development
+DEBUG=lobe-editor:* pnpm dev
+
+# Only critical logs
+DEBUG=lobe-editor:*:error,lobe-editor:*:warn pnpm dev
+
+# Plugin debugging
+DEBUG=lobe-editor:plugin:* pnpm dev
+
+# Service debugging
+DEBUG=lobe-editor:service:* pnpm dev
+```
+
+#### Browser Configuration
+
+In browser environment, you can also enable debug logging via localStorage:
+
+```javascript
+// Enable all debug output
+localStorage.debug = 'lobe-editor:*';
+
+// Enable specific categories
+localStorage.debug = 'lobe-editor:kernel,lobe-editor:plugin:*';
+
+// Disable debug output
+localStorage.removeItem('debug');
+```
 
 ### Project Architecture
 

@@ -38,6 +38,10 @@ export function useDecorators(
   useLayoutEffectImpl(() => {
     let clears: Array<() => void> = [];
     const handleInit = (editor: LexicalEditor) => {
+      // Get initial decorators
+      const initialDecorators = editor.getDecorators<JSX.Element>();
+      setDecorators(initialDecorators);
+
       clears.push(
         editor.registerDecoratorListener<JSX.Element>((nextDecorators) => {
           flushSync(() => {
@@ -47,10 +51,17 @@ export function useDecorators(
       );
     };
 
-    editor.on('initialized', handleInit);
-    clears.push(() => {
-      editor.off('initialized', handleInit);
-    });
+    // Check if editor is already initialized
+    const lexicalEditor = editor.getLexicalEditor();
+    if (lexicalEditor) {
+      handleInit(lexicalEditor);
+    } else {
+      editor.on('initialized', handleInit);
+      clears.push(() => {
+        editor.off('initialized', handleInit);
+      });
+    }
+
     return () => {
       clears.forEach((clear) => clear());
     };

@@ -54,8 +54,8 @@ const Editor = memo<EditorProps>(
 
     const memoMention = useMemo(() => {
       if (!enableMention) return;
-      return <ReactMentionPlugin markdownWriter={markdownWriter} />;
-    }, [enableMention, markdownWriter]);
+      return <ReactMentionPlugin className={className} markdownWriter={markdownWriter} />;
+    }, [enableMention, markdownWriter, className]);
 
     const memoSlash = useMemo(() => {
       if (!enableSlash && !enableMention) return null;

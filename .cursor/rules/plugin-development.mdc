@@ -1,0 +1,288 @@
+---
+description: Plugin development patterns and implementation guidelines for LobeHub Editor
+---
+
+# Plugin Development Guidelines
+
+## Plugin Architecture
+
+LobeHub Editor follows a **dual-layer architecture** with framework-agnostic core and React-specific implementations.
+
+### Plugin Structure Convention
+
+Each plugin in [src/plugins/](mdc:src/plugins/) follows this structure:
+
+```
+plugin-name/
+├── index.ts          # Main exports
+├── index.md          # Documentation
+├── plugin/           # Core plugin logic
+├── react/            # React components (if applicable)
+├── command/          # Editor commands
+├── service/          # Business logic services
+├── node/             # Custom Lexical nodes
+├── utils/            # Utility functions
+└── demos/            # Demo examples
+```
+
+## Plugin Implementation Pattern
+
+### Base Plugin Class
+
+All plugins extend [KernelPlugin](mdc:src/editor-kernel/plugin.ts):
+
+```typescript
+import { KernelPlugin } from '@/editor-kernel/plugin';
+import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import { createDebugLogger } from '@/utils/debug';
+
+export const MyPlugin: IEditorPluginConstructor<MyPluginOptions> = class
+  extends KernelPlugin
+  implements IEditorPlugin<MyPluginOptions>
+{
+  static pluginName = 'MyPlugin';
+  private logger = createDebugLogger('plugin', 'my-plugin');
+
+  constructor(
+    protected kernel: IEditorKernel,
+    public config?: MyPluginOptions,
+  ) {
+    super();
+    
+    // Register nodes, services, themes
+    kernel.registerNodes([MyCustomNode]);
+    kernel.registerService(IMyService, new MyService());
+    
+    if (config?.theme) {
+      kernel.registerThemes(config.theme);
+    }
+    
+    // Register decorators for custom nodes
+    this.registerDecorator(
+      kernel,
+      MyCustomNode.getType(),
+      (node: DecoratorNode<any>, editor: LexicalEditor) => {
+        return config?.decorator ? config.decorator(node as MyCustomNode, editor) : null;
+      },
+    );
+  }
+
+  onInit(editor: LexicalEditor): void {
+    // Register commands, listeners, observers
+    this.register(registerMyCommand(editor));
+    this.register(registerMyObserver(editor));
+  }
+};
+```
+
+## Service Pattern
+
+### Service Definition
+
+Define services with interfaces in `service/` directory:
+
+```typescript
+import { genServiceId } from '@/editor-kernel/service';
+import { IServiceID } from '@/types';
+
+export interface IMyService {
+  method1(param: Type): ReturnType;
+  method2(param: Type): Promise<ReturnType>;
+}
+
+export const IMyService: IServiceID<IMyService> = 
+  genServiceId<IMyService>('MyService');
+
+export class MyService implements IMyService {
+  private logger = createDebugLogger('service', 'my-service');
+  
+  method1(param: Type): ReturnType {
+    this.logger.debug('Method1 called with:', param);
+    // Implementation
+  }
+}
+```
+
+### Service Registration
+
+Register services in plugin constructor:
+
+```typescript
+constructor(protected kernel: IEditorKernel, public config?: Options) {
+  super();
+  kernel.registerService(IMyService, new MyService());
+}
+```
+
+## Command Pattern
+
+### Command Definition
+
+Define commands in `command/index.ts`:
+
+```typescript
+import { createCommand, LexicalEditor, COMMAND_PRIORITY_HIGH } from 'lexical';
+
+export const MY_COMMAND = createCommand<PayloadType>('MY_COMMAND');
+
+export function registerMyCommand(editor: LexicalEditor) {
+  return editor.registerCommand(
+    MY_COMMAND,
+    (payload) => {
+      editor.update(() => {
+        // Command implementation inside editor.update()
+      });
+      return true; // Command handled
+    },
+    COMMAND_PRIORITY_HIGH,
+  );
+}
+```
+
+## Custom Node System
+
+### Node Definition
+
+Define custom nodes in `node/` directory:
+
+```typescript
+import { DecoratorNode, NodeKey, LexicalEditor, EditorConfig } from 'lexical';
+
+export interface SerializedMyNode extends SerializedLexicalNode {
+  type: 'my-node';
+  customProperty: string;
+}
+
+export class MyNode extends DecoratorNode<ReactElement> {
+  __customProperty: string;
+
+  static getType(): string {
+    return 'my-node';
+  }
+
+  static clone(node: MyNode): MyNode {
+    return new MyNode(node.__customProperty, node.__key);
+  }
+
+  static importJSON(serializedNode: SerializedMyNode): MyNode {
+    return $createMyNode(serializedNode.customProperty);
+  }
+
+  exportJSON(): SerializedMyNode {
+    return {
+      ...super.exportJSON(),
+      type: 'my-node',
+      customProperty: this.__customProperty,
+    };
+  }
+
+  createDOM(config: EditorConfig): HTMLElement {
+    const element = document.createElement('div');
+    element.className = config.theme?.myNode || '';
+    return element;
+  }
+
+  updateDOM(): false {
+    return false;
+  }
+
+  decorate(): ReactElement {
+    return <MyNodeComponent node={this} />;
+  }
+}
+
+export function $createMyNode(customProperty: string): MyNode {
+  return new MyNode(customProperty);
+}
+
+export function $isMyNode(node: LexicalNode | null | undefined): node is MyNode {
+  return node instanceof MyNode;
+}
+```
+
+## React Integration
+
+### React Plugin Components
+
+React components in `react/` directory:
+
+```typescript
+import { memo } from 'react';
+import { LexicalEditor } from 'lexical';
+
+export interface ReactMyPluginProps {
+  editor?: LexicalEditor;
+  config?: MyPluginConfig;
+  onEvent?: (event: MyEvent) => void;
+}
+
+export const ReactMyPlugin = memo<ReactMyPluginProps>(({
+  editor,
+  config,
+  onEvent,
+}) => {
+  const logger = createDebugLogger('react', 'my-plugin');
+  
+  const handleAction = useCallback((action: Action) => {
+    logger.debug('Action triggered:', action);
+    editor?.dispatchCommand(MY_COMMAND, action);
+  }, [editor, logger]);
+
+  return (
+    <div>
+      {/* Plugin UI */}
+    </div>
+  );
+});
+
+ReactMyPlugin.displayName = 'ReactMyPlugin';
+```
+
+## Plugin Integration Examples
+
+### Markdown Integration
+
+```typescript
+// In plugin constructor
+kernel
+  .requireService(IMarkdownShortCutService)
+  ?.registerMarkdownWriter(MyNode.getType(), (ctx, node) => {
+    if ($isMyNode(node)) {
+      ctx.appendLine(`Custom: ${node.getCustomProperty()}`);
+    }
+  });
+```
+
+### Upload Integration
+
+```typescript
+// In plugin onInit
+this.kernel
+  .requireService(IUploadService)
+  ?.registerUpload(async (file: File, from: string, range: Range | null) => {
+    // Handle file upload
+    return $createMyNode(file.name);
+  });
+```
+
+## Best Practices
+
+1. **Follow naming conventions** - Use consistent naming for all plugin components
+2. **Use debug logging** - Implement proper logging with namespaced debuggers
+3. **Handle hot reload** - Support development hot reload scenarios
+4. **Document thoroughly** - Provide comprehensive plugin documentation
+5. **Type safety** - Use proper TypeScript interfaces and generics
+6. **Error handling** - Implement robust error handling throughout
+7. **Service isolation** - Keep business logic in services, not components
+8. **Command responsibility** - One command per distinct operation
+
+## Plugin Examples
+
+Reference existing plugins for implementation patterns:
+
+- [Common Plugin](mdc:src/plugins/common/) - Foundation components
+- [Slash Plugin](mdc:src/plugins/slash/) - Command system with search
+- [Mention Plugin](mdc:src/plugins/mention/) - Decorator-based mentions
+- [File Plugin](mdc:src/plugins/file/) - File upload integration
+- [Image Plugin](mdc:src/plugins/image/) - Image handling with captions
+- [Table Plugin](mdc:src/plugins/table/) - Complex editor features

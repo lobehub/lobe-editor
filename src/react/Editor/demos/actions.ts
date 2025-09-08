@@ -1,3 +1,5 @@
+import { devConsole } from '@/utils/debug';
+
 export function openFileSelector(handleFiles: (files: FileList) => void, accept = '*/*') {
   // Skip on server side
   if (typeof document === 'undefined') {
@@ -16,7 +18,7 @@ export function openFileSelector(handleFiles: (files: FileList) => void, accept 
     // @ts-expect-error not error
     const files = event.target?.files;
     if (files && files.length > 0) {
-      console.log('Selected files:', files);
+      devConsole.log('Selected files:', files);
       // Handle selected files
       handleFiles(files);
     }

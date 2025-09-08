@@ -26,6 +26,7 @@ import {
   IServiceID,
 } from '@/types/kernel';
 import { ILocaleKeys } from '@/types/locale';
+import { createDebugLogger } from '@/utils/debug';
 
 import DataSource from './data-source';
 import { registerEvent } from './event';
@@ -50,6 +51,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     string
   >;
   private hotReloadMode: boolean = false;
+  private logger = createDebugLogger('kernel');
 
   private editor?: LexicalEditor;
 
@@ -58,6 +60,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.dataTypeMap = new Map<string, DataSource>();
     // Enable hot reload mode in development
     this.hotReloadMode = this.detectDevelopmentMode();
+    this.logger.info(`🚀 Kernel initialized (hot reload: ${this.hotReloadMode})`);
   }
 
   private detectDevelopmentMode(): boolean {
@@ -119,6 +122,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   destroy() {
+    this.logger.info(`🗑️ Destroying editor with ${this.pluginsInstances.length} plugins`);
     this.editor?.setEditorState(createEmptyEditorState());
     this.dataTypeMap.clear();
     this.pluginsInstances.forEach((plugin) => {
@@ -131,7 +135,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.serviceMap.clear();
     // Clear decorators to prevent memory leaks
     this.decorators = {};
-    console.debug('[Editor] Cleared all decorators during destroy');
+    this.logger.info('✅ Editor destroyed');
   }
 
   getRootElement(): HTMLElement | null {
@@ -141,25 +145,28 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   setRootElement(dom: HTMLElement) {
     // Check if editor is already initialized to prevent re-initialization
     if (this.editor) {
-      console.warn('[Editor] Editor is already initialized, updating root element only');
+      this.logger.warn('[Editor] Editor is already initialized, updating root element only');
       this.editor.setRootElement(dom);
       return this.editor;
     }
 
     // Initialize plugins if not already done
     if (this.pluginsInstances.length === 0) {
+      this.logger.info(`🔌 Initializing ${this.plugins.length} plugins`);
       for (const plugin of this.plugins) {
         const instance = new plugin(this, plugin.__config);
         this.pluginsInstances.push(instance);
       }
     }
 
+    this.logger.info(`📝 Creating editor with ${this.nodes.length} nodes`);
     const editor = (this.editor = createEditor({
       // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
       namespace: 'lobehub',
       nodes: this.nodes,
       onError: (error: Error) => {
+        this.logger.error('❌ Lexical editor error:', error);
         this.emit('error', error);
       },
       theme: this.themes,
@@ -170,6 +177,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.pluginsInstances.forEach((plugin) => {
       plugin.onInit?.(editor);
     });
+    this.logger.info(`✅ Editor ready with ${this.pluginsInstances.length} plugins`);
     this.emit('initialized', editor);
     return this.editor;
   }
@@ -177,12 +185,15 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   setDocument(type: string, content: any) {
     const datasource = this.dataTypeMap.get(type);
     if (!datasource) {
+      this.logger.error(`❌ DataSource for type "${type}" not found`);
       throw new Error(`DataSource for type "${type}" is not registered.`);
     }
     if (!this.editor) {
+      this.logger.error('❌ Editor not initialized');
       throw new Error(`Editor is not initialized.`);
     }
     datasource.read(this.editor, content);
+    this.logger.debug(`📥 Set ${type} document`);
   }
 
   focus() {
@@ -196,12 +207,15 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   getDocument(type: string): DataSource | undefined {
     const datasource = this.dataTypeMap.get(type);
     if (!datasource) {
+      this.logger.error(`❌ DataSource for type "${type}" not found`);
       throw new Error(`DataSource for type "${type}" is not registered.`);
     }
     if (!this.editor) {
+      this.logger.error('❌ Editor not initialized');
       throw new Error(`Editor is not initialized.`);
     }
-    return datasource.write(this.editor);
+    const result = datasource.write(this.editor);
+    return result;
   }
 
   getSelectionDocument(type: string): unknown | null {
@@ -224,7 +238,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     if (this.decorators[name]) {
       if (this.hotReloadMode) {
         // In hot reload mode, allow decorator override with warning
-        console.warn(`[Hot Reload] Overriding decorator "${name}"`);
+        this.logger.warn(`🔄 Hot reload: decorator "${name}"`);
         this.decorators[name] = decorator;
         return this;
       } else {
@@ -232,12 +246,14 @@ export class Kernel extends EventEmitter implements IEditorKernel {
         const existingDecorator = this.decorators[name];
         if (existingDecorator === decorator) {
           // Same decorator function, no need to re-register
-          console.warn(`[Editor] Decorator "${name}" is already registered with the same function`);
+          this.logger.warn(
+            `[Editor] Decorator "${name}" is already registered with the same function`,
+          );
           return this;
         }
 
         // Different decorator function in production mode
-        console.error(
+        this.logger.error(
           `[Editor] Attempting to register duplicate decorator "${name}". Enable hot reload mode if this is intended.`,
         );
         throw new Error(`Decorator with name "${name}" is already registered.`);
@@ -245,7 +261,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     }
 
     this.decorators[name] = decorator;
-    console.debug(`[Editor] Registered decorator: ${name}`);
+    this.logger.debug(`🎭 Decorator: ${name}`);
     return this;
   }
 
@@ -262,10 +278,10 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   unregisterDecorator(name: string): boolean {
     if (this.decorators[name]) {
       delete this.decorators[name];
-      console.debug(`[Editor] Unregistered decorator: ${name}`);
+      this.logger.debug(`🗑️ Removed decorator: ${name}`);
       return true;
     }
-    console.warn(`[Editor] Decorator "${name}" not found for unregistration`);
+    this.logger.warn(`⚠️ Decorator "${name}" not found`);
     return false;
   }
 
@@ -282,6 +298,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
    */
   registerDataSource(dataSource: DataSource) {
     this.dataTypeMap.set(dataSource.type, dataSource);
+    this.logger.debug(`📄 Data source: ${dataSource.type}`);
   }
 
   registerThemes(themes: Record<string, any>) {
@@ -294,9 +311,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       // Error if same name but different plugin
       if (findPlugin !== plugin) {
         if (this.hotReloadMode) {
-          console.warn(
-            `[Hot Reload] Replacing plugin "${plugin.pluginName}" with new implementation`,
-          );
+          this.logger.warn(`🔄 Hot reload: plugin "${plugin.pluginName}"`);
           // Remove old plugin
           const index = this.plugins.findIndex((p) => p.pluginName === plugin.pluginName);
           if (index !== -1) {
@@ -312,9 +327,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
                 const decoratorNames = oldInstance.getRegisteredDecorators();
                 for (const decoratorName of decoratorNames) {
                   this.unregisterDecorator(decoratorName);
-                  console.debug(
-                    `[Hot Reload] Cleaned up decorator "${decoratorName}" from old plugin instance`,
-                  );
+                  this.logger.debug(`🧨 Cleanup: decorator "${decoratorName}"`);
                 }
               }
               if (oldInstance.destroy) {
@@ -341,6 +354,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     plugin.__config = config || {};
     // @ts-expect-error not error
     this.plugins.push(plugin);
+    this.logger.debug(`🔌 Plugin: ${plugin.pluginName}`);
     return this;
   }
 
@@ -352,11 +366,33 @@ export class Kernel extends EventEmitter implements IEditorKernel {
         this.registerPlugin(plugin);
       }
     }
+    this.logger.debug(`🔌 Registered ${plugins.length} plugins`);
     return this;
   }
 
   registerNodes(nodes: Array<LexicalNodeConfig>) {
+    const nodeTypes = nodes
+      .map((node) => {
+        // Handle both node classes and node replacements
+        if (typeof node === 'function' && node.getType) {
+          return node.getType();
+        } else if (
+          typeof node === 'object' &&
+          node.replace &&
+          typeof node.replace === 'function' &&
+          node.replace.getType
+        ) {
+          return node.replace.getType();
+        }
+        return 'unknown';
+      })
+      .filter((type) => type !== 'unknown');
     this.nodes.push(...nodes);
+    if (nodeTypes.length > 3) {
+      this.logger.debug(`🧩 Nodes: ${nodeTypes.length} types`);
+    } else {
+      this.logger.debug(`🧩 Nodes: ${nodeTypes.join(', ')}`);
+    }
   }
 
   registerService<T>(serviceId: IServiceID<T>, service: T): void {
@@ -365,7 +401,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     if (this.serviceMap.has(serviceIdString)) {
       if (this.hotReloadMode) {
         // In hot reload mode, allow service override with warning
-        console.warn(`[Hot Reload] Overriding service with ID "${serviceIdString}"`);
+        this.logger.warn(`🔄 Hot reload: service "${serviceIdString}"`);
         this.serviceMap.set(serviceIdString, service);
         return;
       } else {
@@ -373,14 +409,14 @@ export class Kernel extends EventEmitter implements IEditorKernel {
         const existingService = this.serviceMap.get(serviceIdString);
         if (existingService === service) {
           // Same service instance, no need to re-register
-          console.warn(
+          this.logger.warn(
             `[Editor] Service "${serviceIdString}" is already registered with the same instance`,
           );
           return;
         }
 
         // Different service instance in production mode
-        console.error(
+        this.logger.error(
           `[Editor] Attempting to register duplicate service "${serviceIdString}". Enable hot reload mode if this is intended.`,
         );
         throw new Error(`Service with ID "${serviceIdString}" is already registered.`);
@@ -388,7 +424,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     }
 
     this.serviceMap.set(serviceIdString, service);
-    console.debug(`[Editor] Registered service: ${serviceIdString}`);
+    this.logger.debug(`🔧 Service: ${serviceIdString}`);
   }
 
   /**
@@ -398,6 +434,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
    */
   registerServiceHotReload<T>(serviceId: IServiceID<T>, service: T): void {
     this.serviceMap.set(serviceId.__serviceId, service);
+    this.logger.debug(`🔄 Hot-reload service: ${serviceId.__serviceId}`);
   }
 
   /**
@@ -446,7 +483,9 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   registerLocale(locale: Partial<Record<keyof ILocaleKeys, string>>): void {
+    const localeKeys = Object.keys(locale);
     this.localeMap = merge(this.localeMap, locale);
+    this.logger.debug(`🌐 Locale: ${localeKeys.length} keys`);
   }
 
   t<K extends keyof ILocaleKeys>(key: K, params?: Record<string, any>): string {
@@ -524,6 +563,10 @@ export class Kernel extends EventEmitter implements IEditorKernel {
           COMMAND_PRIORITY_CRITICAL,
         ),
       );
+      // Only log non-keyboard commands to reduce noise
+      if (!command.type?.includes('KEY')) {
+        this.logger.debug(`⚡ Command: ${command.type || 'unknown'}`);
+      }
     }
 
     const listenersInPriorityOrder = commandsMap.get(command);
@@ -534,6 +577,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
 
     const listeners = listenersInPriorityOrder[priority];
     listeners.add(listener as CommandListener<unknown>);
+
     return () => {
       listeners.delete(listener as CommandListener<unknown>);
 

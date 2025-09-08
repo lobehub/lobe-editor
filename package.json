@@ -94,6 +94,7 @@
     "@shikijs/engine-javascript": "^3.9.2",
     "ahooks": "^3.9.3",
     "antd-style": "^3.7.1",
+    "debug": "^4.4.1",
     "eventemitter3": "^5.0.1",
     "framer-motion": "^12.23.12",
     "fuse.js": "^7.1.0",

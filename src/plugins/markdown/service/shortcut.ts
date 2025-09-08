@@ -16,6 +16,7 @@ import {
 
 import { genServiceId } from '@/editor-kernel';
 import { IServiceID } from '@/types/kernel';
+import { createDebugLogger } from '@/utils/debug';
 
 import { PUNCTUATION_OR_SPACE, getOpenTagStartIndex, indexBy, isEqualSubString } from '../utils';
 
@@ -407,6 +408,7 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
   private elementTransformers: Array<ElementTransformer> = [];
   private textFormatTransformers: Array<TextFormatTransformer> = [];
   private textMatchTransformers: Array<TextMatchTransformer> = [];
+  private logger = createDebugLogger('service', 'markdown');
 
   private _markdownWriters: Record<
     string,
@@ -535,7 +537,7 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
       return;
     }
     if (this.kernel?.isHotReloadMode()) {
-      console.warn(`[Hot Reload] Overriding markdown writer for type "${type}"`);
+      this.logger.warn(`🔄 Hot reload: markdown writer "${type}"`);
       this._markdownWriters[type] = writer;
       return;
     }

@@ -3,6 +3,7 @@ import { $createNodeSelection, $setSelection, DecoratorNode, LexicalEditor } fro
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import { createDebugLogger } from '@/utils/debug';
 
 import { registerMathCommand } from '../command';
 import {
@@ -26,6 +27,7 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
   implements IEditorPlugin<MathPluginOptions>
 {
   public static readonly pluginName = 'MathPlugin';
+  private logger = createDebugLogger('plugin', 'math');
 
   constructor(
     protected kernel: IEditorKernel,
@@ -56,7 +58,7 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
       replace: (textNode, match) => {
         const [, code] = match;
         const mathNode = $createMathInlineNode(code);
-        console.log(mathNode);
+        this.logger.debug('Math node inserted:', mathNode);
         // textNode.replace(mathNode);
         textNode.insertBefore(mathNode);
         textNode.setTextContent('');
