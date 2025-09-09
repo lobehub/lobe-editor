@@ -1,12 +1,12 @@
 import { registerDragonSupport } from '@lexical/dragon';
 import { createEmptyHistoryState, registerHistory } from '@lexical/history';
+import type { HeadingTagType } from '@lexical/rich-text';
 import {
   $createHeadingNode,
   $createQuoteNode,
   $isHeadingNode,
   $isQuoteNode,
   HeadingNode,
-  HeadingTagType,
   QuoteNode,
   registerRichText,
 } from '@lexical/rich-text';
@@ -15,7 +15,7 @@ import type { LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService, isPunctuationChar } from '@/plugins/markdown';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';
@@ -23,6 +23,7 @@ import TextDataSource from '../data-source/text-data-source';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { CursorNode, registerCursorNode } from '../node/cursor';
 import { createBlockNode } from '../utils';
+import { registerMDReader } from './mdReader';
 import { registerHeaderBackspace, registerRichKeydown } from './register';
 
 patchBreakLine();
@@ -162,6 +163,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         ctx.wrap('> ', '\n\n');
       }
     });
+
     markdownService.registerMarkdownWriter('heading', (ctx, node) => {
       if ($isHeadingNode(node)) {
         switch (node.getTag()) {
@@ -252,6 +254,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       // In markdown, soft line breaks are represented as two spaces followed by a newline
       ctx.appendLine('  \n');
     });
+
+    // 注册 markdown reader
+    //
+    registerMDReader(markdownService);
   }
 
   onInit(editor: LexicalEditor): void {
