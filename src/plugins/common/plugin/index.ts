@@ -214,7 +214,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         ctx.appendLine('_');
       }
       if (isUnderline) {
-        ctx.appendLine('<u>');
+        ctx.appendLine('<ins>');
       }
 
       const textContent = node.getTextContent();
@@ -227,7 +227,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const lastChar = append.at(-1);
       ctx.appendLine(append);
       if (isUnderline) {
-        ctx.appendLine('</u>');
+        ctx.appendLine('</ins>');
       }
       if (isItalic) {
         ctx.appendLine('_');
