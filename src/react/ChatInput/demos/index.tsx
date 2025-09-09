@@ -24,6 +24,7 @@ import { Avatar } from '@lobehub/ui';
 import type { ChatMessage } from '@lobehub/ui/chat';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 import ActionToolbar from './ActionToolbar';
 import Container from './Container';
@@ -38,7 +39,7 @@ export default () => {
   const toolbarState = useEditorState(editor);
 
   // Shared send message function
-  const handleSendMessage = () => {
+  const handleSendMessage = (asAssistant?: boolean) => {
     if (!editor || toolbarState.isEmpty) return;
 
     setMessages([
@@ -52,7 +53,7 @@ export default () => {
           avatar: 'https://avatars.githubusercontent.com/u/17870709?v=4',
           title: 'CanisMinor',
         },
-        role: 'user',
+        role: asAssistant ? 'assistant' : 'user',
         updateAt: Date.now(),
       },
     ]);
@@ -60,6 +61,31 @@ export default () => {
     editor.setDocument('text', '');
     editor.focus();
   };
+
+  // Hotkey: Alt + Enter to send message as assistant
+  useHotkeys(
+    'alt+enter',
+    () => {
+      handleSendMessage(true);
+    },
+    {
+      enableOnFormTags: true,
+      preventDefault: true,
+    },
+  );
+
+  // Hotkey: alt+n Clean message
+  useHotkeys(
+    'alt+n',
+    () => {
+      setMessages([]);
+    },
+    {
+      enableOnFormTags: true,
+      preventDefault: true,
+    },
+  );
+
   return (
     <Container messages={messages}>
       <ChatInput
