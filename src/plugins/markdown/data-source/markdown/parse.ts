@@ -1,6 +1,7 @@
 /* eslint-disable unused-imports/no-unused-vars */
 import type { PhrasingContent, Root, RootContent, Text } from 'mdast';
 import { remark } from 'remark';
+import remarkGfm from 'remark-gfm';
 
 import type { IElementNode, INode, IRootNode, ITextNode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -87,6 +88,8 @@ export function parseMarkdownToLexical(
   markdown: string,
   markdownReaders: TransformerRecord = {},
 ): IRootNode {
-  const ast = remark().parse(markdown);
+  const ast = remark()
+    .use([[remarkGfm, { singleTilde: false }]])
+    .parse(markdown);
   return convertMdastToLexical(ast, markdownReaders) as IRootNode;
 }
