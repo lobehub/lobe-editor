@@ -1,8 +1,10 @@
-import { LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { cursorNodeSerialized } from '@/plugins/common';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCodeInlineCommand } from '../command';
 import { CodeNode } from '../node/code';
@@ -46,6 +48,20 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
     markdownService.registerMarkdownWriter(CodeNode.getType(), (ctx, node) => {
       ctx.appendLine(`\`${node.getTextContent()}\``);
       return true;
+    });
+
+    markdownService.registerMarkdownReader('inlineCode', (node) => {
+      return [
+        INodeHelper.createElementNode('codeInline', {
+          children: [cursorNodeSerialized, INodeHelper.createTextNode(node.value || '', {})],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          type: 'codeInline',
+          version: 1,
+        }),
+        cursorNodeSerialized,
+      ];
     });
   }
 };
