@@ -1,8 +1,8 @@
-import { IElementNode } from './i-element-node';
-import { INode } from './i-node';
-import { IParagraphNode } from './paragraph-node';
-import { IRootNode } from './root-node';
-import { ITextNode } from './text-node';
+import type { IElementNode } from './i-element-node';
+import type { INode } from './i-node';
+import type { IParagraphNode } from './paragraph-node';
+import type { IRootNode } from './root-node';
+import type { ITextNode } from './text-node';
 
 const BaseContent = {
   direction: 'ltr',
@@ -18,6 +18,15 @@ export const INodeHelper = {
       parent.children = [];
     }
     parent.children.push(...child);
+  },
+
+  createElementNode(type: string, attrs: Record<string, unknown> = {}): IElementNode {
+    return {
+      ...BaseContent,
+      children: [],
+      ...attrs,
+      type,
+    } as IElementNode;
   },
 
   createParagraph(attrs: Record<string, unknown> = {}): IParagraphNode {
@@ -44,6 +53,7 @@ export const INodeHelper = {
     return {
       ...BaseContent,
       detail: 0,
+      format: 0,
       mode: 'normal',
       style: '',
       ...attrs,

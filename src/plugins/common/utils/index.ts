@@ -1,13 +1,7 @@
-import {
-  $getRoot,
-  $isDecoratorNode,
-  $isElementNode,
-  $isParagraphNode,
-  $isTextNode,
-  ElementNode,
-} from 'lexical';
+import type { ElementNode } from 'lexical';
+import { $getRoot, $isDecoratorNode, $isElementNode, $isParagraphNode, $isTextNode } from 'lexical';
 
-import { ElementTransformer } from '@/plugins/markdown/service/shortcut';
+import type { ElementTransformer } from '@/plugins/markdown/service/transformers';
 
 export const createBlockNode = (
   createNode: (match: Array<string>, parentNode: ElementNode) => ElementNode,
