@@ -1,9 +1,10 @@
 import { $setSelection, LexicalEditor } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { $createCursorNode } from '@/plugins/common';
+import { $createCursorNode, cursorNodeSerialized } from '@/plugins/common';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCodeInlineCommand } from '../command';
 import { $createCodeNode, CodeNode } from '../node/code';
@@ -61,5 +62,18 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
         type: 'text-format',
       },
     ]);
+    markdownService.registerMarkdownReader('inlineCode', (node) => {
+      return [
+        INodeHelper.createElementNode('codeInline', {
+          children: [cursorNodeSerialized, INodeHelper.createTextNode(node.value || '', {})],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          type: 'codeInline',
+          version: 1,
+        }),
+        cursorNodeSerialized,
+      ];
+    });
   }
 };
