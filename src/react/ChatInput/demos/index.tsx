@@ -131,10 +131,8 @@ export default () => {
             }
 
             console.log('[Enter pressed] sending message');
-            event.preventDefault();
-            event.stopPropagation();
             handleSendMessage();
-            return;
+            return true;
           }}
           placeholder={'Type something...'}
           plugins={[
