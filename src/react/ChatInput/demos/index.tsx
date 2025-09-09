@@ -66,10 +66,11 @@ export default () => {
   useHotkeys(
     'alt+enter',
     () => {
+      console.log('🚀 useHotkeys: alt+enter triggered');
       handleSendMessage(true);
     },
     {
-      enableOnFormTags: true,
+      enableOnContentEditable: true,
       preventDefault: true,
     },
   );
@@ -78,10 +79,11 @@ export default () => {
   useHotkeys(
     'alt+n',
     () => {
+      console.log('🧹 useHotkeys: alt+n triggered');
       setMessages([]);
     },
     {
-      enableOnFormTags: true,
+      enableOnContentEditable: true,
       preventDefault: true,
     },
   );

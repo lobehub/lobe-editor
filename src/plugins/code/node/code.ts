@@ -75,6 +75,15 @@ export class CodeNode extends CardLikeElementNode {
   canInsertTextAfter(): boolean {
     return true;
   }
+
+  updateDOM(prevNode: CodeNode, dom: HTMLElement, config: EditorConfig): boolean {
+    // Update the class names if theme has changed
+    const prevTheme = prevNode ? prevNode : null;
+    if (prevTheme !== this) {
+      addClassNamesToElement(dom, config.theme.codeInline);
+    }
+    return false;
+  }
 }
 
 export function $createCodeNode(textContent?: string): CodeNode {

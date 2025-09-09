@@ -1,6 +1,6 @@
 'use client';
 
-import { COMMAND_PRIORITY_EDITOR, KEY_DOWN_COMMAND } from 'lexical';
+import { COMMAND_PRIORITY_LOW, KEY_DOWN_COMMAND } from 'lexical';
 import {
   Children,
   type CompositionEvent,
@@ -100,7 +100,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
 
             return false; // Allow other handlers to process the event
           },
-          COMMAND_PRIORITY_EDITOR,
+          COMMAND_PRIORITY_LOW,
         );
       }
     }, [editor, onPressEnter, onKeyDown]);
