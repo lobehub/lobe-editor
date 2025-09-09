@@ -114,16 +114,19 @@ export default () => {
                   icon: <Avatar avatar={'💻'} size={24} />,
                   key: 'bot1',
                   label: '前端研发专家',
+                  metadata: { id: 'bot1' },
                 },
                 {
                   icon: <Avatar avatar={'🌍'} size={24} />,
                   key: 'bot2',
                   label: '中英文互译助手',
+                  metadata: { id: 'bot2' },
                 },
                 {
                   icon: <Avatar avatar={'📖'} size={24} />,
                   key: 'bot3',
                   label: '学术写作增强专家',
+                  metadata: { id: 'bot3' },
                 },
               ];
               if (!search?.matchingString) return data;
@@ -133,11 +136,12 @@ export default () => {
               });
             },
             markdownWriter: (mention) => {
-              return `\n<mention>${mention.label}[${mention.extra.id}]</mention>\n`;
+              return `\n<mention>${mention.label}[${mention.metadata?.id || mention.label}]</mention>\n`;
             },
             onSelect: (editor, option) => {
               editor.dispatchCommand(INSERT_MENTION_COMMAND, {
                 label: String(option.label),
+                metadata: { id: option.key },
               });
             },
             renderComp: (props) => {

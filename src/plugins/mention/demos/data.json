@@ -6,7 +6,9 @@
           {
             "type": "mention",
             "version": 1,
-            "extra": {},
+            "metadata": {
+              "id": "user123"
+            },
             "label": "前端研发专家"
           },
           {

@@ -56,14 +56,14 @@ Programmatically insert mentions into the editor:
 ```typescript
 editor.dispatchCommand(INSERT_MENTION_COMMAND, {
   label: '@username',
-  extra: { id: 'user123', avatar: '...' },
+  metadata: { id: 'user123', avatar: '...' },
 });
 ```
 
 **Parameters:**
 
 - `label`: Display text for the mention
-- `extra`: Additional metadata object
+- `metadata`: Additional metadata object
 
 ## Plugin Configuration
 
@@ -93,7 +93,7 @@ const mentionPlugin = new MentionPlugin(kernel, {
 ```typescript
 const MentionRenderer = ({ node }) => (
   <span className="mention-item">
-    <Avatar src={node.getExtra()?.avatar} />
+    <Avatar src={node.metadata?.avatar} />
     {node.getLabel()}
   </span>
 );

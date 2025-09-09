@@ -13,7 +13,8 @@ export type ISlashDividerOption = {
   type: 'divider';
 };
 
-export interface ISlashMenuOption extends DropdownMenuItemType {
+export interface ISlashMenuOption extends Omit<DropdownMenuItemType, 'extra'> {
+  metadata?: Record<string, any>;
   onSelect?: (editor: IEditor, matchingString: string) => void;
 }
 

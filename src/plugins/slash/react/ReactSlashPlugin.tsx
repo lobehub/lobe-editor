@@ -5,7 +5,7 @@ import {
   COMMAND_PRIORITY_CRITICAL,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
-  KEY_ENTER_COMMAND,
+  KEY_DOWN_COMMAND,
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
 } from 'lexical';
@@ -208,29 +208,30 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
         COMMAND_PRIORITY_CRITICAL,
       ),
       editor.registerHighCommand(
-        KEY_ENTER_COMMAND,
-        (event: KeyboardEvent | null) => {
-          if (options === null || activeKey === null) {
-            return false;
-          }
-          const selectedOption = options.find(
-            (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
-          );
-          if (!selectedOption) {
-            return false;
-          }
-
-          if (event !== null) {
+        KEY_DOWN_COMMAND,
+        (event: KeyboardEvent) => {
+          // If slash menu is open and enter key is pressed, always block propagation
+          if (isOpen && event.key === 'Enter' && !event.isComposing) {
             event.preventDefault();
             event.stopImmediatePropagation();
+
+            // Only select option if we have valid options and activeKey
+            if (options !== null && activeKey !== null) {
+              const selectedOption = options.find(
+                (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
+              );
+              if (selectedOption) {
+                handleMenuSelect(selectedOption);
+              }
+            }
+            return true;
           }
-          handleMenuSelect(selectedOption);
-          return true;
+          return false;
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
     );
-  }, [options, activeKey, handleActiveKeyChange, handleMenuSelect]);
+  }, [options, activeKey, handleActiveKeyChange, handleMenuSelect, isOpen]);
 
   // Get custom render component if available
   const { renderComp: CustomRender } = triggerMapRef.current.get(resolution?.trigger || '') || {};

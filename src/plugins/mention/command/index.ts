@@ -11,17 +11,17 @@ import {
 import { $createMentionNode } from '../node/MentionNode';
 
 export const INSERT_MENTION_COMMAND = createCommand<{
-  extra?: Record<string, unknown>;
   label: string;
+  metadata?: Record<string, unknown>;
 }>('INSERT_MENTION_COMMAND');
 
 export function registerMentionCommand(editor: LexicalEditor) {
   return editor.registerCommand(
     INSERT_MENTION_COMMAND,
     (payload) => {
-      const { extra, label } = payload;
+      const { metadata, label } = payload;
       editor.update(() => {
-        const mentionNode = $createMentionNode(label, extra);
+        const mentionNode = $createMentionNode(label, metadata);
         $insertNodes([mentionNode]); // Insert a zero-width space to ensure the image is not the last child
         if ($isRootOrShadowRoot(mentionNode.getParentOrThrow())) {
           $wrapNodeInElement(mentionNode, $createParagraphNode).selectEnd();

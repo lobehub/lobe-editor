@@ -19,7 +19,7 @@ export default () => {
       </ReactPlainText>
       <ReactMentionPlugin
         markdownWriter={(mention) => {
-          return `\n<mention>${mention.label}[${mention.extra.id}]</mention>\n`;
+          return `\n<mention>${mention.label}[${mention.metadata.id}]</mention>\n`;
         }}
       />
       <ReactSlashPlugin>

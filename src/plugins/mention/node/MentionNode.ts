@@ -18,8 +18,8 @@ import { getKernelFromEditor } from '@/editor-kernel/utils';
 
 export type SerializedMentionNode = Spread<
   {
-    extra?: Record<string, unknown>;
     label?: string;
+    metadata?: Record<string, unknown>;
   },
   SerializedLexicalNode
 >;
@@ -30,7 +30,7 @@ export class MentionNode extends DecoratorNode<any> {
   }
 
   static clone(node: MentionNode): MentionNode {
-    return new MentionNode(node.__label, node.__extra, node.__key);
+    return new MentionNode(node.__label, node.__metadata, node.__key);
   }
 
   static importJSON(serializedNode: SerializedMentionNode): MentionNode {
@@ -52,20 +52,20 @@ export class MentionNode extends DecoratorNode<any> {
   }
 
   __label: string;
-  __extra: Record<string, unknown>;
+  __metadata: Record<string, unknown>;
 
-  constructor(label: string = '', extra: Record<string, unknown> = {}, key?: string) {
+  constructor(label: string = '', metadata: Record<string, unknown> = {}, key?: string) {
     super(key);
     this.__label = label;
-    this.__extra = extra;
+    this.__metadata = metadata;
   }
 
   get label() {
     return this.__label;
   }
 
-  get extra() {
-    return this.__extra;
+  get metadata() {
+    return this.__metadata;
   }
 
   exportDOM(): DOMExportOutput {
@@ -93,15 +93,15 @@ export class MentionNode extends DecoratorNode<any> {
   exportJSON(): SerializedMentionNode {
     return {
       ...super.exportJSON(),
-      extra: this.extra,
       label: this.label,
+      metadata: this.metadata,
     };
   }
 
   updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedMentionNode>): this {
     const node = super.updateFromJSON(serializedNode);
     this.__label = serializedNode.label || '';
-    this.__extra = serializedNode.extra || {};
+    this.__metadata = serializedNode.metadata || {};
     return node;
   }
 
@@ -110,8 +110,11 @@ export class MentionNode extends DecoratorNode<any> {
   }
 }
 
-export function $createMentionNode(label?: string, extra?: Record<string, unknown>): MentionNode {
-  return $applyNodeReplacement(new MentionNode(label, extra));
+export function $createMentionNode(
+  label?: string,
+  metadata?: Record<string, unknown>,
+): MentionNode {
+  return $applyNodeReplacement(new MentionNode(label, metadata));
 }
 
 function $convertMentionElement(): DOMConversionOutput {
