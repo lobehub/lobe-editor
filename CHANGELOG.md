@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.5.7](https://github.com/lobehub/lobe-editor/compare/v1.5.6...v1.5.7)
+<sup>Released on **2025-09-09**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Replace underline <u> to <ins>.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Replace underline <u> to <ins> ([8bc9d27](https://github.com/lobehub/lobe-editor/commit/8bc9d27))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.5.6](https://github.com/lobehub/lobe-editor/compare/v1.5.5...v1.5.6)
 <sup>Released on **2025-09-08**</sup>
 
