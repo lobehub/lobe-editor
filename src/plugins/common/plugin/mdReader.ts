@@ -1,4 +1,4 @@
-import { IS_BOLD, IS_ITALIC } from 'lexical';
+import { IS_BOLD, IS_ITALIC, IS_STRIKETHROUGH } from 'lexical';
 
 import type { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -30,6 +30,16 @@ export function registerMDReader(markdownService: IMarkdownShortCutService) {
     return children.map((child) => {
       if (INodeHelper.isTextNode(child)) {
         child.format = (child.format || 0) | IS_ITALIC;
+      }
+      return child;
+    });
+  });
+
+  // strong italic del
+  markdownService.registerMarkdownReader('delete', (node, children) => {
+    return children.map((child) => {
+      if (INodeHelper.isTextNode(child)) {
+        child.format = (child.format || 0) | IS_STRIKETHROUGH;
       }
       return child;
     });
