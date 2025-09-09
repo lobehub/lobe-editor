@@ -2,7 +2,6 @@ import type {
   CSSProperties,
   CompositionEvent,
   FocusEvent,
-  KeyboardEvent,
   MouseEvent,
   ReactElement,
   ReactNode,
@@ -30,8 +29,8 @@ export interface ReactPlainTextProps {
   }) => void;
   onContextMenu?: (props: { editor: IEditor; event: MouseEvent<HTMLDivElement> }) => void;
   onFocus?: (props: { editor: IEditor; event: FocusEvent<HTMLDivElement> }) => void;
-  onKeyDown?: (props: { editor: IEditor; event: KeyboardEvent<HTMLDivElement> }) => void;
-  onPressEnter?: (props: { editor: IEditor; event: KeyboardEvent<HTMLDivElement> }) => void;
+  onKeyDown?: (props: { editor: IEditor; event: KeyboardEvent }) => boolean | void;
+  onPressEnter?: (props: { editor: IEditor; event: KeyboardEvent }) => boolean | void;
   style?: CSSProperties;
   theme?: CommonPluginOptions['theme'] & {
     fontSize?: number;
