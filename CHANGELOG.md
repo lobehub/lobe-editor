@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.5.8](https://github.com/lobehub/lobe-editor/compare/v1.5.7...v1.5.8)
+<sup>Released on **2025-09-09**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix onPressEnter key handling.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix onPressEnter key handling ([ea9500a](https://github.com/lobehub/lobe-editor/commit/ea9500a))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.5.7](https://github.com/lobehub/lobe-editor/compare/v1.5.6...v1.5.7)
 <sup>Released on **2025-09-09**</sup>
 
