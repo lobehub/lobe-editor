@@ -99,7 +99,7 @@ export default () => {
             showTypobar={showTypobar}
           />
         }
-        header={<TypoToolbar editor={editor} show={showTypobar} />}
+        header={showTypobar && <TypoToolbar editor={editor} show={showTypobar} />}
         slashMenuRef={slashMenuRef}
       >
         <Editor

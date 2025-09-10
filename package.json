@@ -103,6 +103,7 @@
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.536.0",
     "polished": "^4.3.1",
+    "re-resizable": "^6.11.2",
     "react-error-boundary": "^6.0.0",
     "react-layout-kit": "^2.0.0",
     "react-merge-refs": "^3.0.2",
