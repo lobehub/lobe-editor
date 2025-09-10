@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.6.0](https://github.com/lobehub/lobe-editor/compare/v1.5.10...v1.6.0)
+<sup>Released on **2025-09-10**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Update hotkey system.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Update hotkey system, closes [#26](https://github.com/lobehub/lobe-editor/issues/26) ([0c07d5e](https://github.com/lobehub/lobe-editor/commit/0c07d5e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.5.10](https://github.com/lobehub/lobe-editor/compare/v1.5.9...v1.5.10)
 <sup>Released on **2025-09-09**</sup>
 
