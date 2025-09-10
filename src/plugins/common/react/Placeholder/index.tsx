@@ -48,9 +48,9 @@ const Placeholder = memo<PlaceholderProps>(({ children, style }) => {
   }
 
   return (
-    <p className={styles.placeholder} style={style}>
+    <div className={styles.placeholder} style={style}>
       {children}
-    </p>
+    </div>
   );
 });
 
