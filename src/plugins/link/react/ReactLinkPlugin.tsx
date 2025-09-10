@@ -74,10 +74,6 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
         } else {
           state.current.isLink = false;
         }
-        if (divRef.current) {
-          divRef.current.style.left = '-9999px';
-          divRef.current.style.top = '-9999px';
-        }
       }),
       editor.registerCommand(
         HOVER_LINK_COMMAND,
@@ -85,6 +81,8 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
           if (!payload.event.target || divRef.current === null) {
             return false;
           }
+          // Cancel any pending hide timers when hovering a link again
+          clearTimeout(clearTimerRef.current);
           setLinkNode(payload.linkNode);
           computePosition(payload.event.target as HTMLElement, divRef.current, {
             middleware: [offset(5), flip(), shift()],
@@ -126,6 +124,15 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
         linkNode={linkNode}
         onMouseEnter={() => {
           clearTimeout(clearTimerRef.current);
+        }}
+        onMouseLeave={() => {
+          clearTimeout(clearTimerRef.current);
+          clearTimerRef.current = setTimeout(() => {
+            if (divRef.current) {
+              divRef.current.style.left = '-9999px';
+              divRef.current.style.top = '-9999px';
+            }
+          }, 300);
         }}
         ref={divRef}
       />

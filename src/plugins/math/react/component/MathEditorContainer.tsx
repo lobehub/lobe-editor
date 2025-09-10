@@ -60,7 +60,13 @@ export const MathEditorContainer = memo<MathEditorContainerProps>(
     }, [mathDOM]);
 
     return (
-      <Block className={styles.mathEditor} ref={divRef} shadow variant={'outlined'}>
+      <Block
+        className={styles.mathEditor}
+        data-math-editor-container
+        ref={divRef}
+        shadow
+        variant={'outlined'}
+      >
         {children}
       </Block>
     );
