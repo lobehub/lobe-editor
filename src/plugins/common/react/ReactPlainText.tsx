@@ -21,7 +21,7 @@ import { MarkdownPlugin } from '@/plugins/markdown';
 import { CommonPlugin } from '../plugin';
 import Placeholder from './Placeholder';
 import { useStyles, useThemeStyles } from './style';
-import { ReactPlainTextProps } from './type';
+import type { ReactPlainTextProps } from './type';
 
 const ReactPlainText = memo<ReactPlainTextProps>(
   ({

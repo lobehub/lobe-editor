@@ -1,13 +1,14 @@
-import { $createListItemNode, $createListNode, $isListNode, ListType } from '@lexical/list';
+import type { ListType } from '@lexical/list';
+import { $createListItemNode, $createListNode, $isListNode } from '@lexical/list';
 import { $filter, $getNearestBlockElementAncestorOrThrow } from '@lexical/utils';
+import type { RangeSelection } from 'lexical';
 import {
   $createRangeSelection,
   $isBlockElementNode,
   $normalizeSelection__EXPERIMENTAL,
-  RangeSelection,
 } from 'lexical';
 
-import { ElementTransformer } from '@/plugins/markdown/service/shortcut';
+import type { ElementTransformer } from '@/plugins/markdown/service/transformers';
 
 // Amount of spaces that define indentation level
 // TODO: should be an option
