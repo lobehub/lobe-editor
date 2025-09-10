@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.6.2](https://github.com/lobehub/lobe-editor/compare/v1.6.1...v1.6.2)
+<sup>Released on **2025-09-10**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix div cannot be a descendant of p.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix div cannot be a descendant of p ([4d05d0f](https://github.com/lobehub/lobe-editor/commit/4d05d0f))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.6.1](https://github.com/lobehub/lobe-editor/compare/v1.6.0...v1.6.1)
 <sup>Released on **2025-09-10**</sup>
 
