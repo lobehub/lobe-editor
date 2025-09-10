@@ -28,6 +28,7 @@ import { registerHeaderBackspace, registerRichKeydown } from './register';
 patchBreakLine();
 
 export interface CommonPluginOptions {
+  enableHotkey?: boolean;
   theme?: {
     quote?: string;
     textBold?: string;
@@ -259,7 +260,9 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerDragonSupport(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
       registerHeaderBackspace(editor),
-      registerRichKeydown(editor, this.kernel),
+      registerRichKeydown(editor, this.kernel, {
+        enableHotkey: this.config?.enableHotkey,
+      }),
       registerCommands(editor),
       registerBreakLineClick(editor),
       registerCursorNode(editor),

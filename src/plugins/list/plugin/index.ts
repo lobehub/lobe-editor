@@ -22,8 +22,8 @@ const ORDERED_LIST_REGEX = /^(\s*)(\d+)\.\s/;
 const UNORDERED_LIST_REGEX = /^(\s*)[*+-]\s/;
 const CHECK_LIST_REGEX = /^(\s*)(?:-\s)?\s?(\[(\s|x)?])\s/i;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ListPluginOptions {
+  enableHotkey?: boolean;
   theme?: string;
 }
 
@@ -35,7 +35,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
 
   constructor(
     protected kernel: IEditorKernel,
-    config?: ListPluginOptions,
+    public config?: ListPluginOptions,
   ) {
     super();
     // Register the list nodes
@@ -136,6 +136,10 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
     this.register(registerList(editor));
     this.register(registerCheckList(editor));
     this.register(registerListStrictIndentTransform(editor));
-    this.register(registerListCommands(editor, this.kernel));
+    this.register(
+      registerListCommands(editor, this.kernel, {
+        enableHotkey: this.config?.enableHotkey,
+      }),
+    );
   }
 };

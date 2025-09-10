@@ -31,6 +31,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     onChange,
     className,
     variant,
+    enableHotkey = true,
     onKeyDown,
     onFocus,
     onBlur,
@@ -62,9 +63,10 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     useLayoutEffect(() => {
       editor.registerPlugin(MarkdownPlugin);
       editor.registerPlugin(CommonPlugin, {
+        enableHotkey,
         theme: restTheme ? { ...themeStyles, ...restTheme } : themeStyles,
       });
-    }, [editor, restTheme, themeStyles]);
+    }, [editor, enableHotkey, restTheme, themeStyles]);
 
     useEffect(() => {
       const container = editorContainerRef.current;

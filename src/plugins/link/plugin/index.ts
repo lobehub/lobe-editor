@@ -5,11 +5,18 @@ import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { INSERT_LINK_COMMAND, registerLinkCommand } from '../command';
-import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
+import {
+  $createLinkNode,
+  $isLinkNode,
+  AutoLinkNode,
+  LinkAttributes,
+  LinkNode,
+} from '../node/LinkNode';
 import { registerLinkCommands } from './registry';
 
 export interface LinkPluginOptions {
-  attributes?: Record<string, string>;
+  attributes?: LinkAttributes;
+  enableHotkey?: boolean;
   linkRegex?: RegExp;
   theme?: {
     link?: string;
@@ -69,6 +76,7 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
     this.register(
       registerLinkCommands(editor, this.kernel, {
         attributes: this.config?.attributes,
+        enableHotkey: this.config?.enableHotkey,
         validateUrl: this.config?.validateUrl,
       }),
     );

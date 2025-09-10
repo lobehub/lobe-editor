@@ -181,12 +181,23 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
   );
 }
 
-export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
+export interface RichKeydownOptions {
+  enableHotkey?: boolean;
+}
+
+export function registerRichKeydown(
+  editor: LexicalEditor,
+  kernel: IEditor,
+  options?: RichKeydownOptions,
+) {
+  const { enableHotkey = true } = options || {};
+
   return mergeRegister(
     kernel.registerHotkey(
       HotkeyEnum.Bold,
       () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold'),
       {
+        enabled: enableHotkey,
         preventDefault: true,
         stopImmediatePropagation: true,
       },
@@ -195,6 +206,7 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
       HotkeyEnum.Italic,
       () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic'),
       {
+        enabled: enableHotkey,
         preventDefault: true,
         stopImmediatePropagation: true,
       },
@@ -203,6 +215,7 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
       HotkeyEnum.Underline,
       () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline'),
       {
+        enabled: enableHotkey,
         preventDefault: true,
         stopImmediatePropagation: true,
       },
@@ -211,6 +224,7 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
       HotkeyEnum.Strikethrough,
       () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough'),
       {
+        enabled: enableHotkey,
         preventDefault: true,
         stopImmediatePropagation: true,
       },

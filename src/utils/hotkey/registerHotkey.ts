@@ -35,7 +35,7 @@ export const registerHotkey = (
     if (options.stopPropagation) e.stopPropagation();
     callback(e, { keys: hotkey.keys, ...keys, scopes: hotkey.scopes });
 
-    logger.debug(`⌨️ [${hotkey.id}] Hotkey matched successfully: ${hotkey.keys}`, hotkey);
+    logger.debug(`⌨️ Hotkey matched: ${hotkey.id} [${hotkey.keys}]`, hotkey);
 
     return true;
   };

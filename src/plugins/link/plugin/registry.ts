@@ -4,11 +4,12 @@ import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, LexicalEditor }
 import { IEditorKernel } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 
-import { $isLinkNode, $toggleLink, TOGGLE_LINK_COMMAND } from '../node/LinkNode';
+import { $isLinkNode, $toggleLink, LinkAttributes, TOGGLE_LINK_COMMAND } from '../node/LinkNode';
 import { getSelectedNode, sanitizeUrl } from '../utils';
 
 export interface LinkRegistryOptions {
-  attributes?: Record<string, string>;
+  attributes?: LinkAttributes;
+  enableHotkey?: boolean;
   validateUrl?: (url: string) => boolean;
 }
 
@@ -17,10 +18,10 @@ export function registerLinkCommands(
   kernel: IEditorKernel,
   options?: LinkRegistryOptions,
 ) {
-  const { validateUrl, attributes } = options || {};
+  const { validateUrl, attributes, enableHotkey = true } = options || {};
   const state = { isLink: false };
 
-  return mergeRegister(
+  const registrations = [
     editor.registerUpdateListener(() => {
       const selection = editor.read(() => $getSelection());
       if (!selection) return;
@@ -61,6 +62,10 @@ export function registerLinkCommands(
       },
       COMMAND_PRIORITY_LOW,
     ),
+  ];
+
+  // 注册热键，通过 enabled 选项控制
+  registrations.push(
     kernel.registerHotkey(
       HotkeyEnum.Link,
       () => {
@@ -68,9 +73,12 @@ export function registerLinkCommands(
         editor.dispatchCommand(TOGGLE_LINK_COMMAND, isLink ? null : sanitizeUrl('https://'));
       },
       {
+        enabled: enableHotkey,
         preventDefault: true,
         stopPropagation: true,
       },
     ),
   );
+
+  return mergeRegister(...registrations);
 }

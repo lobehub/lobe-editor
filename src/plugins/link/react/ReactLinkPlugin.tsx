@@ -22,7 +22,12 @@ import LinkToolbar from './components/LinkToolbar';
 import { useStyles } from './style';
 import { ReactLinkPluginProps } from './type';
 
-export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({ theme }) => {
+export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
+  theme,
+  enableHotkey = true,
+  validateUrl,
+  attributes,
+}) => {
   const [editor] = useLexicalComposerContext();
   const [linkNode, setLinkNode] = useState<LinkNode | null>(null);
   const state = useRef<{ isLink: boolean }>({ isLink: false });
@@ -34,9 +39,12 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({ theme }) => {
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(LinkPlugin, {
+      attributes,
+      enableHotkey,
       theme: theme || styles,
+      validateUrl,
     });
-  }, []);
+  }, [attributes, enableHotkey, styles, theme, validateUrl]);
 
   useLexicalEditor((editor) => {
     return mergeRegister(

@@ -7,7 +7,17 @@ import { HotkeyEnum } from '@/types/hotkey';
 import { INSERT_CODEINLINE_COMMAND } from '../command';
 import { CodeNode } from '../node/code';
 
-export function registerCodeInline(editor: LexicalEditor, kernel: IEditorKernel) {
+export interface CodeRegistryOptions {
+  enableHotkey?: boolean;
+}
+
+export function registerCodeInline(
+  editor: LexicalEditor,
+  kernel: IEditorKernel,
+  options?: CodeRegistryOptions,
+) {
+  const { enableHotkey = true } = options || {};
+
   return mergeRegister(
     editor.registerUpdateListener(({ mutatedNodes }) => {
       const codeChanged = mutatedNodes?.get(CodeNode);
@@ -35,6 +45,7 @@ export function registerCodeInline(editor: LexicalEditor, kernel: IEditorKernel)
       HotkeyEnum.CodeInline,
       () => editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined),
       {
+        enabled: enableHotkey,
         preventDefault: true,
         stopImmediatePropagation: true,
       },

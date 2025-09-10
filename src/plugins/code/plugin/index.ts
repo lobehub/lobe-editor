@@ -8,8 +8,8 @@ import { registerCodeInlineCommand } from '../command';
 import { CodeNode } from '../node/code';
 import { registerCodeInline } from './registry';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CodePluginOptions {
+  enableHotkey?: boolean;
   theme?: string;
 }
 
@@ -21,18 +21,22 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
 
   constructor(
     private kernel: IEditorKernel,
-    options?: CodePluginOptions,
+    public config?: CodePluginOptions,
   ) {
     super();
     kernel.registerNodes([CodeNode]);
     kernel.registerThemes({
-      codeInline: options?.theme || 'editor-code',
+      codeInline: config?.theme || 'editor-code',
     });
   }
 
   onInit(editor: LexicalEditor): void {
     this.register(registerCodeInlineCommand(editor));
-    this.register(registerCodeInline(editor, this.kernel));
+    this.register(
+      registerCodeInline(editor, this.kernel, {
+        enableHotkey: this.config?.enableHotkey,
+      }),
+    );
 
     const markdownService = this.kernel.requireService(IMarkdownShortCutService);
     if (!markdownService) {

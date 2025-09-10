@@ -549,6 +549,9 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     const hotkey = getHotkeyById(hotkeyId);
     if (!hotkey) return () => false;
     if (options.enabled === false) return () => false;
+
+    this.logger.debug(`⌨️ Hotkey: ${hotkey.id}`);
+
     return lexicalEditor.registerCommand(
       KEY_DOWN_COMMAND,
       registerHotkey(hotkey, callback, options),

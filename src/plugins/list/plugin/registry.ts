@@ -29,13 +29,24 @@ import { HotkeyEnum } from '@/types/hotkey';
 
 import { $indentOverTab } from '../utils';
 
-export function registerListCommands(editor: LexicalEditor, kernel: IEditorKernel) {
+export interface ListRegistryOptions {
+  enableHotkey?: boolean;
+}
+
+export function registerListCommands(
+  editor: LexicalEditor,
+  kernel: IEditorKernel,
+  options?: ListRegistryOptions,
+) {
+  const { enableHotkey = true } = options || {};
+
   return mergeRegister(
     // Hotkey registrations
     kernel.registerHotkey(
       HotkeyEnum.UnorderedList,
       () => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined),
       {
+        enabled: enableHotkey,
         preventDefault: true,
         stopImmediatePropagation: true,
       },
@@ -44,6 +55,7 @@ export function registerListCommands(editor: LexicalEditor, kernel: IEditorKerne
       HotkeyEnum.OrderedList,
       () => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined),
       {
+        enabled: enableHotkey,
         preventDefault: true,
         stopImmediatePropagation: true,
       },

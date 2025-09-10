@@ -266,7 +266,6 @@ const LinkEdit: FC = () => {
           prefix={<Icon color={theme.colorTextDescription} icon={LinkIcon} />}
           ref={linkInputRef}
           value={linkUrl}
-          variant={'outlined'}
         />
       </Flexbox>
       <Flexbox
