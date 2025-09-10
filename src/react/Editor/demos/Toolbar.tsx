@@ -52,6 +52,7 @@ const Toolbar = memo<ToolbarProps>(({ editor }) => {
           key: 'undo',
           label: 'Undo',
           onClick: editorState.undo,
+          tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.Undo).keys },
         },
         {
           disabled: !editorState.canRedo,
@@ -59,6 +60,7 @@ const Toolbar = memo<ToolbarProps>(({ editor }) => {
           key: 'redo',
           label: 'Redo',
           onClick: editorState.redo,
+          tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.Redo).keys },
         },
         {
           type: 'divider',

@@ -1,4 +1,4 @@
-import { COMMAND_PRIORITY_CRITICAL, COMMAND_PRIORITY_EDITOR } from 'lexical';
+import { COMMAND_PRIORITY_EDITOR } from 'lexical';
 
 import { HotkeyEnum, HotkeyItem, HotkeyScopeEnum, KeyEnum } from '@/types/hotkey';
 
@@ -7,6 +7,18 @@ const combineKeys = (keys: string[]) => keys.join('+');
 export type HotkeyRegistration = HotkeyItem[];
 
 export const HOTKEYS_REGISTRATION: HotkeyRegistration = [
+  {
+    id: HotkeyEnum.Undo,
+    keys: combineKeys([KeyEnum.Mod, 'z']),
+    priority: COMMAND_PRIORITY_EDITOR,
+    scopes: [HotkeyScopeEnum.Format],
+  },
+  {
+    id: HotkeyEnum.Redo,
+    keys: combineKeys([KeyEnum.Mod, 'y']),
+    priority: COMMAND_PRIORITY_EDITOR,
+    scopes: [HotkeyScopeEnum.Format],
+  },
   {
     id: HotkeyEnum.Bold,
     keys: combineKeys([KeyEnum.Mod, 'b']),
@@ -56,19 +68,5 @@ export const HOTKEYS_REGISTRATION: HotkeyRegistration = [
     keys: combineKeys([KeyEnum.Mod, KeyEnum.Shift, '8']),
     priority: COMMAND_PRIORITY_EDITOR,
     scopes: [HotkeyScopeEnum.Insert, HotkeyScopeEnum.Plugin],
-  },
-
-  // Insert content hotkeys
-  {
-    id: HotkeyEnum.Mention,
-    keys: '@',
-    priority: COMMAND_PRIORITY_CRITICAL,
-    scopes: [HotkeyScopeEnum.Slash, HotkeyScopeEnum.Plugin],
-  },
-  {
-    id: HotkeyEnum.Slash,
-    keys: '/',
-    priority: COMMAND_PRIORITY_CRITICAL,
-    scopes: [HotkeyScopeEnum.Slash, HotkeyScopeEnum.Plugin],
   },
 ];

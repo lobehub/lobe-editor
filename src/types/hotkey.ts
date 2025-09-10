@@ -67,9 +67,11 @@ export const HotkeyEnum = {
   Link: 'link',
   Mention: 'mention',
   NumberList: 'numberList',
+  Redo: 'redo',
   Slash: 'slash',
   Strikethrough: 'strikethrough',
   Underline: 'underline',
+  Undo: 'undo',
 } as const;
 
 export const HotkeyScopeEnum = {

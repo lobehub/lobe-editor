@@ -1,11 +1,19 @@
 import { ActionIconGroup, type ActionIconGroupProps } from '@lobehub/ui';
-import { LexicalEditor } from 'lexical';
+import {
+  $createRangeSelection,
+  $getNodeByKey,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+  $setSelection,
+  LexicalEditor,
+} from 'lexical';
 import { EditIcon, ExternalLinkIcon, UnlinkIcon } from 'lucide-react';
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
-import { LinkNode, TOGGLE_LINK_COMMAND } from '../../node/LinkNode';
+import { $isLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from '../../node/LinkNode';
 import { useStyles } from '../style';
 import { EDIT_LINK_COMMAND } from './LinkEdit';
 
@@ -18,28 +26,51 @@ const LinkToolbar = memo<LinkToolbarProps>(({ linkNode, editor, ...rest }) => {
   const { styles } = useStyles();
   const t = useTranslation();
 
-  const handleEdit = () => {
-    // Edit link
-    if (linkNode) {
-      editor.dispatchCommand(EDIT_LINK_COMMAND, {
-        linkNode,
-        linkNodeDOM: editor.getElementByKey(linkNode.getKey()),
-      });
-    }
-  };
+  const handleEdit = useCallback(() => {
+    if (!linkNode) return;
+    editor.dispatchCommand(EDIT_LINK_COMMAND, {
+      linkNode,
+      linkNodeDOM: editor.getElementByKey(linkNode.getKey()),
+    });
+  }, [editor, linkNode]);
 
-  const handleRemove = () => {
-    // Remove link
-    editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
-  };
+  const handleRemove = useCallback(() => {
+    if (!linkNode) return;
+    editor.update(() => {
+      const node = $getNodeByKey(linkNode.getKey());
+      if (!$isLinkNode(node)) return;
 
-  const handleOpenLink = () => {
-    // Open link in new window
-    if (linkNode) {
-      const url = editor.read(() => linkNode.getURL());
-      window.open(url, '_blank');
-    }
-  };
+      // Try to create a range selection that covers the link's text
+      let selection = $getSelection();
+      if (!selection || !$isRangeSelection(selection)) {
+        $setSelection($createRangeSelection());
+        selection = $getSelection();
+      }
+
+      const first = node.getFirstDescendant();
+      const last = node.getLastDescendant();
+
+      if (selection && $isRangeSelection(selection) && $isTextNode(first) && $isTextNode(last)) {
+        selection.anchor.set(first.getKey(), 0, 'text');
+        selection.focus.set(last.getKey(), last.getTextContentSize(), 'text');
+        editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+        return;
+      }
+
+      // Fallback: directly unwrap the link node preserving its children
+      const children = node.getChildren();
+      for (const child of children) {
+        node.insertBefore(child);
+      }
+      node.remove();
+    });
+  }, [editor, linkNode]);
+
+  const handleOpenLink = useCallback(() => {
+    if (!linkNode) return;
+    const url = editor.read(() => linkNode.getURL());
+    window.open(url, '_blank');
+  }, [editor, linkNode]);
 
   return (
     <ActionIconGroup

@@ -694,6 +694,5 @@ export function formatUrl(url: string): string {
     return `tel:${url}`;
   }
 
-  // For everything else, return with https:// prefix
-  return `https://${url}`;
+  return url;
 }

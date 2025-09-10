@@ -25,7 +25,9 @@ import {
   LexicalEditor,
   LexicalNode,
   PointType,
+  REDO_COMMAND,
   RangeSelection,
+  UNDO_COMMAND,
 } from 'lexical';
 
 import { IEditor } from '@/types';
@@ -229,6 +231,16 @@ export function registerRichKeydown(
         stopImmediatePropagation: true,
       },
     ),
+    kernel.registerHotkey(HotkeyEnum.Undo, () => editor.dispatchCommand(UNDO_COMMAND, undefined), {
+      enabled: enableHotkey,
+      preventDefault: true,
+      stopImmediatePropagation: true,
+    }),
+    kernel.registerHotkey(HotkeyEnum.Redo, () => editor.dispatchCommand(REDO_COMMAND, undefined), {
+      enabled: enableHotkey,
+      preventDefault: true,
+      stopImmediatePropagation: true,
+    }),
     kernel.registerHighCommand(
       KEY_ARROW_UP_COMMAND,
       (event) => {

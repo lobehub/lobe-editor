@@ -4,8 +4,14 @@ import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, LexicalEditor }
 import { IEditorKernel } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 
-import { $isLinkNode, $toggleLink, LinkAttributes, TOGGLE_LINK_COMMAND } from '../node/LinkNode';
-import { getSelectedNode, sanitizeUrl } from '../utils';
+import {
+  $isLinkNode,
+  $toggleLink,
+  LinkAttributes,
+  TOGGLE_LINK_COMMAND,
+  formatUrl,
+} from '../node/LinkNode';
+import { extractUrlFromText, getSelectedNode, sanitizeUrl } from '../utils';
 
 export interface LinkRegistryOptions {
   attributes?: LinkAttributes;
@@ -70,7 +76,43 @@ export function registerLinkCommands(
       HotkeyEnum.Link,
       () => {
         const isLink = state.isLink;
-        editor.dispatchCommand(TOGGLE_LINK_COMMAND, isLink ? null : sanitizeUrl('https://'));
+        if (isLink) {
+          editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+          return;
+        }
+
+        let nextUrl = sanitizeUrl('https://');
+        let expandTo: { index: number; length: number } | null = null;
+        editor.getEditorState().read(() => {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            if (!selection.isCollapsed()) {
+              const text = selection.getTextContent().trim();
+              const maybeUrl = formatUrl(text);
+              if (validateUrl?.(maybeUrl)) {
+                nextUrl = maybeUrl;
+              }
+            } else {
+              const lineText = selection.anchor.getNode().getTextContent();
+              const found = extractUrlFromText(lineText);
+              if (found && validateUrl?.(formatUrl(found.url))) {
+                nextUrl = formatUrl(found.url);
+                expandTo = { index: found.index, length: found.length };
+              }
+            }
+          }
+        });
+        editor.update(() => {
+          if (expandTo) {
+            const selection = $getSelection();
+            if ($isRangeSelection(selection)) {
+              const anchorNode = selection.anchor.getNode();
+              selection.anchor.set(anchorNode.getKey(), expandTo.index, 'text');
+              selection.focus.set(anchorNode.getKey(), expandTo.index + expandTo.length, 'text');
+            }
+          }
+          editor.dispatchCommand(TOGGLE_LINK_COMMAND, nextUrl);
+        });
       },
       {
         enabled: enableHotkey,
