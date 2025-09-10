@@ -26,6 +26,8 @@ export interface MathEditorContentProps {
   onDelete: () => void;
   /** 提交回调 */
   onSubmit: () => void;
+  /** 验证状态变化回调 */
+  onValidationChange?: (isValid: boolean) => void;
   /** 值变化回调 */
   onValueChange: (value: string) => void;
   /** 是否从前一个位置进入 */
@@ -43,6 +45,7 @@ export const MathEditorContent = memo<MathEditorContentProps>(
     onCancel,
     onDelete,
     onSubmit,
+    onValidationChange,
     onValueChange,
     prev,
     value,
@@ -75,6 +78,7 @@ export const MathEditorContent = memo<MathEditorContentProps>(
 
       if (isEmpty) {
         setLatexError('');
+        onValidationChange?.(true); // 空值视为有效
         return;
       }
 
@@ -85,17 +89,19 @@ export const MathEditorContent = memo<MathEditorContentProps>(
             displayMode: true,
             throwOnError: true,
           });
-          // 验证成功：清除错误
+          // 验证成功：清除错误，通知父组件验证通过
           setLatexError('');
+          onValidationChange?.(true);
         } catch (error) {
-          // 验证失败：设置错误信息
+          // 验证失败：设置错误信息，通知父组件验证失败
           const errorMessage = error instanceof Error ? error.message : 'LaTeX Parse Error';
           setLatexError(errorMessage);
+          onValidationChange?.(false);
         }
       }, 50);
 
       return () => clearTimeout(timeoutId);
-    }, [value, mathNode]);
+    }, [value, mathNode, onValidationChange]);
 
     const handleKeyDown = useCallback(
       (e: KeyboardEvent<HTMLTextAreaElement>) => {

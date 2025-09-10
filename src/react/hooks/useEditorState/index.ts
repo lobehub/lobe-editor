@@ -31,8 +31,8 @@ import { INSERT_CODEINLINE_COMMAND } from '@/plugins/code';
 import { $isSelectionInCodeInline } from '@/plugins/code/node/code';
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
-import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@/plugins/link/node/LinkNode';
-import { sanitizeUrl } from '@/plugins/link/utils';
+import { $isLinkNode, TOGGLE_LINK_COMMAND, formatUrl } from '@/plugins/link/node/LinkNode';
+import { extractUrlFromText, sanitizeUrl, validateUrl } from '@/plugins/link/utils';
 import { INSERT_CHECK_LIST_COMMAND } from '@/plugins/list';
 import { $createMathBlockNode, $createMathInlineNode } from '@/plugins/math/node';
 import { IEditor } from '@/types';
@@ -301,12 +301,53 @@ export function useEditorState(editor?: IEditor): EditorState {
   );
 
   const insertLink = useCallback(() => {
+    const lexical = editor?.getLexicalEditor();
+    if (!lexical) return;
+
     if (!isLink) {
+      let nextUrl = sanitizeUrl('https://');
+      let expandTo: { index: number; length: number } | null = null;
+      lexical.getEditorState().read(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          const text = selection.getTextContent();
+          if (!selection.isCollapsed()) {
+            const maybeUrl = formatUrl(text.trim());
+            if (validateUrl(maybeUrl)) {
+              nextUrl = maybeUrl;
+            }
+          } else {
+            const lineText = selection.anchor.getNode().getTextContent();
+            const found = extractUrlFromText(lineText);
+            if (found && validateUrl(formatUrl(found.url))) {
+              expandTo = { index: found.index, length: found.length };
+            }
+          }
+        }
+      });
       setIsLink(true);
-      editor?.getLexicalEditor()?.dispatchCommand(TOGGLE_LINK_COMMAND, sanitizeUrl('https://'));
+      console.log(nextUrl);
+
+      lexical.update(() => {
+        if (expandTo) {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            const anchorNode = selection.anchor.getNode();
+            // Move selection to the URL range within the current text node
+            selection.anchor.set(anchorNode.getKey(), expandTo.index, 'text');
+            selection.focus.set(anchorNode.getKey(), expandTo.index + expandTo.length, 'text');
+          }
+        }
+        console.log(nextUrl);
+
+        lexical.dispatchCommand(
+          TOGGLE_LINK_COMMAND,
+          validateUrl(nextUrl) ? nextUrl : sanitizeUrl('https://'),
+        );
+      });
     } else {
       setIsLink(false);
-      editor?.getLexicalEditor()?.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+      lexical.dispatchCommand(TOGGLE_LINK_COMMAND, null);
     }
   }, [editor, isLink]);
 

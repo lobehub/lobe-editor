@@ -26,6 +26,18 @@ export function validateUrl(url: string): boolean {
   return url === 'https://' || urlRegExp.test(url);
 }
 
+export function extractUrlFromText(
+  text: string,
+): { index: number; length: number; url: string } | null {
+  const match = urlRegExp.exec(text);
+  if (!match) return null;
+  const raw = match[0];
+  const start = (match as any).index ?? text.indexOf(raw);
+  // Trim trailing punctuation that often follows inline links
+  const trimmed = raw.replace(/[)\],.;:]+$/u, '');
+  return { index: start, length: trimmed.length, url: trimmed };
+}
+
 export function getSelectedNode(selection: RangeSelection): TextNode | ElementNode {
   const anchor = selection.anchor;
   const focus = selection.focus;

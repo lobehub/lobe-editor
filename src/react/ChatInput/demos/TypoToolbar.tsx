@@ -1,4 +1,4 @@
-import { IEditor } from '@lobehub/editor';
+import { HotkeyEnum, IEditor, getHotkeyById } from '@lobehub/editor';
 import {
   ChatInputActionBar,
   ChatInputActions,
@@ -41,6 +41,7 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           key: 'bold',
           label: 'Bold',
           onClick: editorState.bold,
+          tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.Bold).keys },
         },
         {
           active: editorState.isItalic,
@@ -48,6 +49,7 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           key: 'italic',
           label: 'Italic',
           onClick: editorState.italic,
+          tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.Italic).keys },
         },
         {
           active: editorState.isUnderline,
@@ -55,6 +57,7 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           key: 'underline',
           label: 'Underline',
           onClick: editorState.underline,
+          tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.Underline).keys },
         },
         {
           active: editorState.isStrikethrough,
@@ -62,6 +65,7 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           key: 'strikethrough',
           label: 'Strikethrough',
           onClick: editorState.strikethrough,
+          tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.Strikethrough).keys },
         },
         {
           type: 'divider',
@@ -71,25 +75,21 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           icon: ListIcon,
           key: 'bulletList',
           label: 'bulletList',
-          onClick: () => {
-            editorState.bulletList();
-          },
+          onClick: editorState.bulletList,
+          tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.BulletList).keys },
         },
         {
           icon: ListOrderedIcon,
           key: 'numberlist',
           label: 'numberlist',
-          onClick: () => {
-            editorState.numberList();
-          },
+          onClick: editorState.numberList,
+          tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.NumberList).keys },
         },
         {
           icon: ListTodoIcon,
           key: 'tasklist',
           label: 'Task list',
-          onClick: () => {
-            editorState.checkList();
-          },
+          onClick: editorState.checkList,
         },
         {
           type: 'divider',
@@ -99,25 +99,20 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           icon: MessageSquareQuote,
           key: 'blockquote',
           label: 'Blockquote',
-          onClick: () => {
-            editorState.blockquote();
-          },
+          onClick: editorState.blockquote,
         },
         {
           icon: LinkIcon,
           key: 'link',
           label: 'link',
-          onClick: () => {
-            editorState.insertLink();
-          },
+          onClick: editorState.insertLink,
+          tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.Link).keys },
         },
         {
           icon: SigmaIcon,
           key: 'math',
           label: 'LaTeX',
-          onClick: () => {
-            editorState.insertMath();
-          },
+          onClick: editorState.insertMath,
         },
         {
           type: 'divider',
@@ -128,15 +123,14 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
           key: 'code',
           label: 'Code',
           onClick: editorState.code,
+          tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.CodeInline).keys },
         },
         {
           active: editorState.isCodeblock,
           icon: SquareDashedBottomCodeIcon,
           key: 'codeblock',
           label: 'Codeblock',
-          onClick: () => {
-            editorState.codeblock();
-          },
+          onClick: editorState.codeblock,
         },
         editorState.isCodeblock && {
           children: (

@@ -5,13 +5,23 @@ import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { INSERT_LINK_COMMAND, registerLinkCommand } from '../command';
-import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
+import {
+  $createLinkNode,
+  $isLinkNode,
+  AutoLinkNode,
+  LinkAttributes,
+  LinkNode,
+} from '../node/LinkNode';
+import { registerLinkCommands } from './registry';
 
 export interface LinkPluginOptions {
+  attributes?: LinkAttributes;
+  enableHotkey?: boolean;
   linkRegex?: RegExp;
   theme?: {
     link?: string;
   };
+  validateUrl?: (url: string) => boolean;
 }
 
 export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
@@ -23,7 +33,7 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
 
   constructor(
     protected kernel: IEditorKernel,
-    config?: LinkPluginOptions,
+    public config?: LinkPluginOptions,
   ) {
     super();
     // Register the link nodes
@@ -63,6 +73,13 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     this.register(registerLinkCommand(editor));
+    this.register(
+      registerLinkCommands(editor, this.kernel, {
+        attributes: this.config?.attributes,
+        enableHotkey: this.config?.enableHotkey,
+        validateUrl: this.config?.validateUrl,
+      }),
+    );
     this.register(
       editor.registerCommand(
         PASTE_COMMAND,

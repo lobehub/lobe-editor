@@ -9,16 +9,17 @@ import { CodePlugin } from '../plugin';
 import { useStyles } from './style';
 import { ReactCodePluginProps } from './type';
 
-const ReactCodePlugin: FC<ReactCodePluginProps> = ({ className }) => {
+const ReactCodePlugin: FC<ReactCodePluginProps> = ({ className, enableHotkey = true }) => {
   const [editor] = useLexicalComposerContext();
   const { cx, styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(CodePlugin, {
+      enableHotkey,
       theme: cx(styles.codeInline, className),
     });
-  }, []);
+  }, [className, cx, enableHotkey, styles.codeInline]);
 
   return null;
 };

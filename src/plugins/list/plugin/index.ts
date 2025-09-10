@@ -1,5 +1,4 @@
 import {
-  $createListNode,
   $isListItemNode,
   $isListNode,
   ListItemNode,
@@ -9,36 +8,22 @@ import {
 } from '@lexical/list';
 import { $getNearestNodeOfType } from '@lexical/utils';
 import { cx } from 'antd-style';
-import {
-  $createParagraphNode,
-  $getSelection,
-  $isRangeSelection,
-  $isRootNode,
-  $isTextNode,
-  COMMAND_PRIORITY_EDITOR,
-  COMMAND_PRIORITY_LOW,
-  INDENT_CONTENT_COMMAND,
-  INSERT_TAB_COMMAND,
-  KEY_BACKSPACE_COMMAND,
-  KEY_TAB_COMMAND,
-  LexicalCommand,
-  LexicalEditor,
-  OUTDENT_CONTENT_COMMAND,
-} from 'lexical';
+import { $isRootNode, LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
-import { $indentOverTab, listReplace } from '../utils';
+import { listReplace } from '../utils';
 import { registerCheckList } from './checkList';
+import { registerListCommands } from './registry';
 
 const ORDERED_LIST_REGEX = /^(\s*)(\d+)\.\s/;
 const UNORDERED_LIST_REGEX = /^(\s*)[*+-]\s/;
 const CHECK_LIST_REGEX = /^(\s*)(?:-\s)?\s?(\[(\s|x)?])\s/i;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ListPluginOptions {
+  enableHotkey?: boolean;
   theme?: string;
 }
 
@@ -50,7 +35,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
 
   constructor(
     protected kernel: IEditorKernel,
-    config?: ListPluginOptions,
+    public config?: ListPluginOptions,
   ) {
     super();
     // Register the list nodes
@@ -151,90 +136,10 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
     this.register(registerList(editor));
     this.register(registerCheckList(editor));
     this.register(registerListStrictIndentTransform(editor));
-    this.registerClears(
-      editor.registerCommand<KeyboardEvent>(
-        KEY_TAB_COMMAND,
-        (event) => {
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection)) {
-            return false;
-          }
-          event.preventDefault();
-          const command: LexicalCommand<void> = $indentOverTab(selection)
-            ? event.shiftKey
-              ? OUTDENT_CONTENT_COMMAND
-              : INDENT_CONTENT_COMMAND
-            : INSERT_TAB_COMMAND;
-          return editor.dispatchCommand(command, undefined);
-        },
-        COMMAND_PRIORITY_EDITOR,
-      ),
-      editor.registerCommand<KeyboardEvent>(
-        KEY_BACKSPACE_COMMAND,
-        (event) => {
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-            return false;
-          }
-          const anchor = selection.anchor;
-          if (anchor.offset !== 0) {
-            return false;
-          }
-          const anchorNode = anchor.getNode();
-          let listItemNode: ListItemNode | undefined;
-          if ($isListItemNode(anchorNode)) {
-            listItemNode = anchorNode;
-          } else if ($isTextNode(anchorNode)) {
-            // Do not handle non-leading text nodes
-            if (anchorNode.getPreviousSibling()) {
-              return false;
-            }
-            const parent = anchorNode.getParentOrThrow();
-            if (!$isListItemNode(parent)) {
-              return false;
-            }
-            listItemNode = parent;
-          }
-          if (!listItemNode || !$isRootNode(listItemNode.getParent()?.getParent())) {
-            return false;
-          }
-          const listNode = listItemNode.getParentOrThrow() as ListNode;
-          queueMicrotask(() => {
-            editor.update(() => {
-              // Add null check since listItemNode might be undefined in this closure
-              if (!listItemNode) return;
-
-              let newlistNode: ListNode | undefined;
-              const isFirst = listItemNode.getPreviousSibling() === null;
-              if (isFirst) {
-                const p = listItemNode.replace($createParagraphNode(), true);
-                p.select(0, 0);
-                return;
-              }
-              let next = listItemNode.getNextSibling();
-              if (next) {
-                newlistNode = $createListNode(listNode.getListType(), listItemNode.getValue());
-              }
-              while (next && newlistNode) {
-                next.remove();
-                newlistNode.append(next);
-                next = next.getNextSibling();
-              }
-              const p = listItemNode.replace($createParagraphNode(), true);
-              p.remove();
-              listNode.insertAfter(p);
-              if (newlistNode) {
-                p.insertAfter(newlistNode);
-              }
-              p.select(0, 0);
-            });
-          });
-          event.stopImmediatePropagation();
-          event.preventDefault();
-          return true;
-        },
-        COMMAND_PRIORITY_LOW,
-      ),
+    this.register(
+      registerListCommands(editor, this.kernel, {
+        enableHotkey: this.config?.enableHotkey,
+      }),
     );
   }
 };

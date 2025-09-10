@@ -26,13 +26,16 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
   const isUpdatingRef = useRef<boolean>(false);
   const [mathNode, setMathNode] = useState<MathInlineNode | MathBlockNode | null>(null);
   const [value, setValue] = useState<string>('');
+  // 最近一次成功渲染（校验通过）的 LaTeX
+  const lastValidRef = useRef<string>('');
+  const isInputValidRef = useRef<boolean>(true);
   const [mathDOM, setMathDOM] = useState<HTMLElement | null>(null);
   const [prev, setPrev] = useState<boolean>(false);
   const [isBlockMode, setIsBlockMode] = useState<boolean>(false);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [editor] = useLexicalComposerContext();
 
-  // 实时更新节点内容
+  // 实时更新节点内容（仅当输入可渲染时才同步到 document）
   useEffect(() => {
     if (!mathNode) return;
 
@@ -41,6 +44,10 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
       // 直接更新节点内容
       const lexicalEditor = editor.getLexicalEditor();
       if (lexicalEditor && !isUpdatingRef.current) {
+        // 仅在校验通过时更新文档；失败时不更新，保持最后一次成功渲染
+        if (!isInputValidRef.current) {
+          return;
+        }
         // 检查当前值是否与节点中的值不同，避免不必要的更新
         const currentCode = mathNode.code;
         if (currentCode === value) {
@@ -61,9 +68,9 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
         // 延迟重置更新标志，确保更新监听器不会立即触发
         setTimeout(() => {
           isUpdatingRef.current = false;
-        }, 100);
+        }, 50);
       }
-    }, 100); // 增加防抖延迟
+    }, 50); // 增加防抖延迟
 
     return () => clearTimeout(timeoutId);
   }, [value, mathNode, editor]);
@@ -73,8 +80,12 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
     if (!mathNode) return;
     const lexicalEditor = editor.getLexicalEditor();
     if (lexicalEditor) {
-      // 提交时总是使用原始的 value，不包含错误标记
-      lexicalEditor.dispatchCommand(UPDATE_MATH_COMMAND, { code: value, key: mathNode.getKey() });
+      // 提交时若当前不可渲染，则使用最近一次成功渲染的内容
+      const codeToCommit = isInputValidRef.current ? value : lastValidRef.current;
+      lexicalEditor.dispatchCommand(UPDATE_MATH_COMMAND, {
+        code: codeToCommit,
+        key: mathNode.getKey(),
+      });
     }
   }, [editor, mathNode, value]);
 
@@ -159,6 +170,8 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
             // 只有在不是同一个节点或值真正改变时才更新 value
             if (!isSameNode && node.code !== value) {
               setValue(node.code);
+              lastValidRef.current = node.code; // 切换节点时以节点里的内容作为最近一次有效值
+              isInputValidRef.current = true; // 重置有效状态
             }
             setMathDOM(editor.getElementByKey(node.getKey()));
             setIsBlockMode(node instanceof MathBlockNode);
@@ -192,6 +205,8 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
             setMathNode(null);
             setMathDOM(null);
             setValue('');
+            lastValidRef.current = '';
+            isInputValidRef.current = true;
             setIsBlockMode(false);
             setIsOpen(false);
           }
@@ -211,11 +226,41 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
       onCancel={handleCancel}
       onDelete={handleDelete}
       onSubmit={handleSubmit}
+      onValidationChange={(isValid) => {
+        isInputValidRef.current = isValid;
+        if (isValid) {
+          lastValidRef.current = value;
+        }
+      }}
       onValueChange={setValue}
       prev={prev}
       value={value}
     />
   );
+
+  // 点击编辑器外部时关闭面板
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      const container = document.querySelector(
+        '[data-math-editor-container]',
+      ) as HTMLElement | null;
+      if (container && container.contains(target)) return;
+
+      handleCancel();
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [isOpen, handleCancel]);
 
   // 如果有自定义渲染组件，使用它来包装 MathEditorContent
   if (renderComp) {

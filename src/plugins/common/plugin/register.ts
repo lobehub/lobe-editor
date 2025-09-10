@@ -22,16 +22,16 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
-  KEY_DOWN_COMMAND,
   LexicalEditor,
   LexicalNode,
   PointType,
+  REDO_COMMAND,
   RangeSelection,
-  isModifierMatch,
+  UNDO_COMMAND,
 } from 'lexical';
 
-import { CONTROL_OR_META_AND_SHIFT } from '@/common/sys';
 import { IEditor } from '@/types';
+import { HotkeyEnum } from '@/types/hotkey';
 
 function resolveElement(
   element: ElementNode,
@@ -183,23 +183,64 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
   );
 }
 
-export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
+export interface RichKeydownOptions {
+  enableHotkey?: boolean;
+}
+
+export function registerRichKeydown(
+  editor: LexicalEditor,
+  kernel: IEditor,
+  options?: RichKeydownOptions,
+) {
+  const { enableHotkey = true } = options || {};
+
   return mergeRegister(
-    kernel.registerHighCommand(
-      KEY_DOWN_COMMAND,
-      (payload) => {
-        // ctrl + shift + x
-        if (isModifierMatch(payload, CONTROL_OR_META_AND_SHIFT) && payload.code === 'KeyX') {
-          // Handle the custom key combination
-          payload.stopImmediatePropagation();
-          payload.preventDefault();
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
-          return true;
-        }
-        return false;
+    kernel.registerHotkey(
+      HotkeyEnum.Bold,
+      () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold'),
+      {
+        enabled: enableHotkey,
+        preventDefault: true,
+        stopImmediatePropagation: true,
       },
-      COMMAND_PRIORITY_EDITOR,
     ),
+    kernel.registerHotkey(
+      HotkeyEnum.Italic,
+      () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic'),
+      {
+        enabled: enableHotkey,
+        preventDefault: true,
+        stopImmediatePropagation: true,
+      },
+    ),
+    kernel.registerHotkey(
+      HotkeyEnum.Underline,
+      () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline'),
+      {
+        enabled: enableHotkey,
+        preventDefault: true,
+        stopImmediatePropagation: true,
+      },
+    ),
+    kernel.registerHotkey(
+      HotkeyEnum.Strikethrough,
+      () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough'),
+      {
+        enabled: enableHotkey,
+        preventDefault: true,
+        stopImmediatePropagation: true,
+      },
+    ),
+    kernel.registerHotkey(HotkeyEnum.Undo, () => editor.dispatchCommand(UNDO_COMMAND, undefined), {
+      enabled: enableHotkey,
+      preventDefault: true,
+      stopImmediatePropagation: true,
+    }),
+    kernel.registerHotkey(HotkeyEnum.Redo, () => editor.dispatchCommand(REDO_COMMAND, undefined), {
+      enabled: enableHotkey,
+      preventDefault: true,
+      stopImmediatePropagation: true,
+    }),
     kernel.registerHighCommand(
       KEY_ARROW_UP_COMMAND,
       (event) => {

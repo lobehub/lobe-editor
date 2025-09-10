@@ -7,6 +7,7 @@ import {
   CommandListenerPriority,
   CommandPayloadType,
   DecoratorNode,
+  KEY_DOWN_COMMAND,
   LexicalCommand,
   LexicalEditor,
   LexicalNodeConfig,
@@ -16,6 +17,7 @@ import { get, merge, template, templateSettings } from 'lodash-es';
 
 import defaultLocale from '@/locale';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
+import { HotkeyId } from '@/types/hotkey';
 import {
   Commands,
   IEditor,
@@ -27,6 +29,12 @@ import {
 } from '@/types/kernel';
 import { ILocaleKeys } from '@/types/locale';
 import { createDebugLogger } from '@/utils/debug';
+import {
+  HotkeyOptions,
+  HotkeysEvent,
+  getHotkeyById,
+  registerHotkey,
+} from '@/utils/hotkey/registerHotkey';
 
 import DataSource from './data-source';
 import { registerEvent } from './event';
@@ -527,6 +535,29 @@ export class Kernel extends EventEmitter implements IEditorKernel {
 
   private _commands: Commands = new Map();
   private _commandsClean: Map<LexicalCommand<unknown>, () => void> = new Map();
+
+  registerHotkey(
+    hotkeyId: HotkeyId,
+    callback: (event: KeyboardEvent, handler: HotkeysEvent) => void,
+    options: HotkeyOptions = {},
+  ): () => void {
+    const lexicalEditor = this.editor;
+    if (!lexicalEditor) {
+      throw new Error('Editor is not initialized.');
+    }
+
+    const hotkey = getHotkeyById(hotkeyId);
+    if (!hotkey) return () => false;
+    if (options.enabled === false) return () => false;
+
+    this.logger.debug(`⌨️ Hotkey: ${hotkey.id}`);
+
+    return lexicalEditor.registerCommand(
+      KEY_DOWN_COMMAND,
+      registerHotkey(hotkey, callback, options),
+      hotkey.priority,
+    );
+  }
 
   registerHighCommand<P>(
     command: LexicalCommand<P>,

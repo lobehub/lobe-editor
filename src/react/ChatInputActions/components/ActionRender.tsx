@@ -26,7 +26,7 @@ const ActionRender = memo<ActionRenderProps>(({ item, onActionClick, disabled })
     );
   }
 
-  const { wrapper, icon, key, label, onClick, danger, loading, active, ...itemRest } =
+  const { wrapper, icon, key, label, onClick, danger, loading, active, tooltipProps, ...itemRest } =
     item as ActionItem;
 
   if (item.children && isValidElement(item.children)) {
@@ -56,6 +56,7 @@ const ActionRender = memo<ActionRenderProps>(({ item, onActionClick, disabled })
       title={label}
       tooltipProps={{
         placement: 'top',
+        ...tooltipProps,
       }}
     />
   );

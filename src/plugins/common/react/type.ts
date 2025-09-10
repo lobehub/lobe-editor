@@ -20,6 +20,7 @@ export interface ReactPlainTextProps {
   autoFocus?: boolean;
   children: ReactElement<ReactEditorContentProps>;
   className?: string;
+  enableHotkey?: boolean;
   onBlur?: (props: { editor: IEditor; event: FocusEvent<HTMLDivElement> }) => void;
   onChange?: (editor: IEditor) => void;
   onCompositionEnd?: (props: { editor: IEditor; event: CompositionEvent<HTMLDivElement> }) => void;

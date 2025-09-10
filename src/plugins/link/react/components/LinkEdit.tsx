@@ -45,6 +45,25 @@ const LinkEdit: FC = () => {
   const t = useTranslation();
   const { styles, theme } = useStyles();
 
+  // 取消编辑，不保存更改
+  const handleCancel = useCallback(() => {
+    const lexicalEditor = editor.getLexicalEditor();
+    if (!lexicalEditor) return;
+
+    // 将焦点返回到编辑器
+    lexicalEditor.focus();
+
+    // 隐藏编辑面板
+    if (divRef.current) {
+      divRef.current.style.left = '-9999px';
+      divRef.current.style.top = '-9999px';
+    }
+    linkNodeRef.current = null;
+    setLinkUrl('');
+    setLinkText('');
+    setLinkDom(null);
+  }, [editor]);
+
   useEffect(() => {
     if (!linkDom || !divRef.current) {
       return;
@@ -59,6 +78,28 @@ const LinkEdit: FC = () => {
       }
     });
   }, [linkDom]);
+
+  // 点击编辑器外部时关闭面板
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!divRef.current) return;
+      const target = event.target as Node | null;
+      if (!target) return;
+      // 点击面板内部忽略
+      if (divRef.current.contains(target)) return;
+      // 面板打开时（存在 linkDom）才触发关闭
+      if (linkDom) {
+        handleCancel();
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [handleCancel, linkDom]);
 
   // 提取提交逻辑到独立函数
   const handleSubmit = useCallback(() => {
@@ -108,25 +149,6 @@ const LinkEdit: FC = () => {
     setLinkText('');
     setLinkDom(null);
   }, [editor, linkNodeRef, linkInputRef, linkTextInputRef]);
-
-  // 取消编辑，不保存更改
-  const handleCancel = useCallback(() => {
-    const lexicalEditor = editor.getLexicalEditor();
-    if (!lexicalEditor) return;
-
-    // 将焦点返回到编辑器
-    lexicalEditor.focus();
-
-    // 隐藏编辑面板
-    if (divRef.current) {
-      divRef.current.style.left = '-9999px';
-      divRef.current.style.top = '-9999px';
-    }
-    linkNodeRef.current = null;
-    setLinkUrl('');
-    setLinkText('');
-    setLinkDom(null);
-  }, [editor]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
@@ -266,7 +288,6 @@ const LinkEdit: FC = () => {
           prefix={<Icon color={theme.colorTextDescription} icon={LinkIcon} />}
           ref={linkInputRef}
           value={linkUrl}
-          variant={'outlined'}
         />
       </Flexbox>
       <Flexbox
