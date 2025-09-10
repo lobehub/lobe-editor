@@ -126,8 +126,8 @@ outdentListItem(item: ListItemNode): void
 getListItemDepth(item: ListItemNode): number
 
 // List conversion
-convertToOrderedList(list: ListNode): void
-convertToUnorderedList(list: ListNode): void
+convertToNumberList(list: ListNode): void
+convertToBulletList(list: ListNode): void
 
 // List traversal
 getListItems(list: ListNode): ListItemNode[]

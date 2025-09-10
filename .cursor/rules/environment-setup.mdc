@@ -32,36 +32,24 @@ export DEBUG=lobe-editor:upload
 
 ### Development Scripts
 
-Add debug-enabled scripts to [package.json](mdc:package.json):
-
 ```json
 {
   "scripts": {
     "dev:debug": "DEBUG=lobe-editor:* npm run dev",
     "dev:debug-kernel": "DEBUG=lobe-editor:kernel npm run dev",
-    "dev:debug-plugins": "DEBUG=lobe-editor:plugin:* npm run dev",
-    "dev:debug-services": "DEBUG=lobe-editor:service:* npm run dev",
-    "dev:debug-upload": "DEBUG=lobe-editor:upload npm run dev"
+    "dev:debug-plugins": "DEBUG=lobe-editor:plugin:* npm run dev"
   }
 }
 ```
 
 ### Browser Console Setup
 
-For browser environments, enable debug in the console:
-
 ```javascript
-// Enable all LobeHub Editor debugging
+// Enable debugging
 localStorage.debug = 'lobe-editor:*';
-
-// Enable specific categories
-localStorage.debug = 'lobe-editor:kernel,lobe-editor:plugin:*';
 
 // Disable debugging
 localStorage.removeItem('debug');
-
-// Check current debug setting
-console.log(localStorage.debug);
 ```
 
 ## Development Environment

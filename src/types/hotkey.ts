@@ -61,15 +61,15 @@ export const KeyEnum = {
 
 export const HotkeyEnum = {
   Bold: 'bold',
+  BulletList: 'bulletList',
   CodeInline: 'codeInline',
   Italic: 'italic',
   Link: 'link',
   Mention: 'mention',
-  OrderedList: 'orderedList',
+  NumberList: 'numberList',
   Slash: 'slash',
   Strikethrough: 'strikethrough',
   Underline: 'underline',
-  UnorderedList: 'unorderedList',
 } as const;
 
 export const HotkeyScopeEnum = {

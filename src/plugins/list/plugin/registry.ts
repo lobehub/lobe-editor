@@ -43,7 +43,7 @@ export function registerListCommands(
   return mergeRegister(
     // Hotkey registrations
     kernel.registerHotkey(
-      HotkeyEnum.UnorderedList,
+      HotkeyEnum.BulletList,
       () => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined),
       {
         enabled: enableHotkey,
@@ -52,7 +52,7 @@ export function registerListCommands(
       },
     ),
     kernel.registerHotkey(
-      HotkeyEnum.OrderedList,
+      HotkeyEnum.NumberList,
       () => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined),
       {
         enabled: enableHotkey,

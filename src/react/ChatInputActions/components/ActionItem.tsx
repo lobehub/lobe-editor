@@ -60,6 +60,7 @@ const ActionItem = memo<ChatInputActionItemProps>(
             title={item.label}
             tooltipProps={{
               placement: 'top',
+              ...item.tooltipProps,
             }}
           />
         </Dropdown>

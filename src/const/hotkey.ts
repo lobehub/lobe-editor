@@ -46,13 +46,13 @@ export const HOTKEYS_REGISTRATION: HotkeyRegistration = [
 
   // List hotkeys
   {
-    id: HotkeyEnum.OrderedList,
+    id: HotkeyEnum.NumberList,
     keys: combineKeys([KeyEnum.Mod, KeyEnum.Shift, '7']),
     priority: COMMAND_PRIORITY_EDITOR,
     scopes: [HotkeyScopeEnum.Insert, HotkeyScopeEnum.Plugin],
   },
   {
-    id: HotkeyEnum.UnorderedList,
+    id: HotkeyEnum.BulletList,
     keys: combineKeys([KeyEnum.Mod, KeyEnum.Shift, '8']),
     priority: COMMAND_PRIORITY_EDITOR,
     scopes: [HotkeyScopeEnum.Insert, HotkeyScopeEnum.Plugin],

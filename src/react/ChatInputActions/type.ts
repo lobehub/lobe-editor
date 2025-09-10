@@ -1,4 +1,4 @@
-import type { MenuInfo, MenuItemType } from '@lobehub/ui';
+import type { MenuInfo, MenuItemType, TooltipProps } from '@lobehub/ui';
 import type { ReactNode } from 'react';
 import type { FlexboxProps } from 'react-layout-kit';
 
@@ -8,6 +8,7 @@ export interface ActionItem extends MenuItemType {
   active?: boolean;
   alwaysDisplay?: boolean;
   children?: ReactNode;
+  tooltipProps?: TooltipProps;
   wrapper?: (dom: ReactNode) => ReactNode;
 }
 
