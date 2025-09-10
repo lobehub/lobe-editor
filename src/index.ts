@@ -15,6 +15,10 @@ export * from './plugins/table';
 export * from './plugins/upload';
 export type { IEditor } from './types';
 
+// Hotkey utilities
+export * from './types/hotkey';
+export { getHotkeyById } from './utils/hotkey/registerHotkey';
+
 // Debug utilities
 export {
   browserDebug,

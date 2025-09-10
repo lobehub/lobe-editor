@@ -2,38 +2,27 @@
 
 import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { mergeRegister } from '@lexical/utils';
-import {
-  $getSelection,
-  $isRangeSelection,
-  COMMAND_PRIORITY_EDITOR,
-  COMMAND_PRIORITY_LOW,
-  COMMAND_PRIORITY_NORMAL,
-  KEY_DOWN_COMMAND,
-  isModifierMatch,
-} from 'lexical';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_NORMAL } from 'lexical';
 import { type FC, useLayoutEffect, useRef, useState } from 'react';
 
-import { CONTROL_OR_META } from '@/common/sys';
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { MarkdownPlugin } from '@/plugins/markdown';
 
 import {
   $isLinkNode,
-  $toggleLink,
   HOVER_LINK_COMMAND,
   HOVER_OUT_LINK_COMMAND,
   LinkNode,
-  TOGGLE_LINK_COMMAND,
 } from '../node/LinkNode';
 import { LinkPlugin } from '../plugin';
-import { getSelectedNode, sanitizeUrl } from '../utils';
+import { getSelectedNode } from '../utils';
 import LinkEdit, { EDIT_LINK_COMMAND } from './components/LinkEdit';
 import LinkToolbar from './components/LinkToolbar';
 import { useStyles } from './style';
 import { ReactLinkPluginProps } from './type';
 
-export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({ theme, validateUrl, attributes }) => {
+export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({ theme }) => {
   const [editor] = useLexicalComposerContext();
   const [linkNode, setLinkNode] = useState<LinkNode | null>(null);
   const state = useRef<{ isLink: boolean }>({ isLink: false });
@@ -55,7 +44,7 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({ theme, validateUrl, 
         const selection = editor.read(() => $getSelection());
         if (!selection) return;
         if ($isRangeSelection(selection)) {
-          // Update links
+          // Update links for UI components
           editor.read(() => {
             const node = getSelectedNode(selection);
             const parent = node.getParent();
@@ -82,46 +71,6 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({ theme, validateUrl, 
           divRef.current.style.top = '-9999px';
         }
       }),
-      editor.registerCommand(
-        TOGGLE_LINK_COMMAND,
-        (payload) => {
-          if (payload === null) {
-            $toggleLink(payload);
-            return true;
-          } else if (typeof payload === 'string') {
-            if (validateUrl === undefined || validateUrl(payload)) {
-              $toggleLink(payload, attributes);
-              return true;
-            }
-            return false;
-          } else {
-            const { url, target, rel, title } = payload;
-            $toggleLink(url, {
-              ...attributes,
-              rel,
-              target,
-              title,
-            });
-            return true;
-          }
-        },
-        COMMAND_PRIORITY_LOW,
-      ),
-      editor.registerCommand(
-        KEY_DOWN_COMMAND,
-        (e) => {
-          // ctrl + k / cmd + k
-          if (isModifierMatch(e, CONTROL_OR_META) && 'KeyK' === e.code) {
-            const isLink = state.current.isLink;
-            e.preventDefault();
-            e.stopPropagation();
-            editor.dispatchCommand(TOGGLE_LINK_COMMAND, isLink ? null : sanitizeUrl('https://'));
-            return true;
-          }
-          return false;
-        },
-        COMMAND_PRIORITY_EDITOR,
-      ),
       editor.registerCommand(
         HOVER_LINK_COMMAND,
         (payload) => {

@@ -9,6 +9,8 @@ import type {
 } from 'lexical';
 
 import type DataSource from '@/editor-kernel/data-source';
+import { HotkeyId } from '@/types/hotkey';
+import { HotkeyOptions, HotkeysEvent } from '@/utils/hotkey/registerHotkey';
 
 import { ILocaleKeys } from './locale';
 
@@ -144,10 +146,22 @@ export interface IEditor {
   ): () => void;
 
   /**
+   * Register keyboard shortcut
+   * @param hotkey
+   * @param callback
+   * @param options
+   */
+  registerHotkey(
+    hotkey: HotkeyId,
+    callback: (event: KeyboardEvent, handler: HotkeysEvent) => void,
+    options?: HotkeyOptions,
+  ): () => void;
+  /**
    * Register internationalization text
    * @param locale Internationalization text object
    */
   registerLocale(locale: Partial<Record<keyof ILocaleKeys, string>>): void;
+
   /**
    * Register editor plugin
    */
@@ -183,7 +197,6 @@ export interface IEditor {
    * @param params Parameter replacement
    */
   t<K extends keyof ILocaleKeys>(key: K, params?: Record<string, any>): string;
-
   /**
    * Update editor theme
    * @param key
@@ -252,6 +265,7 @@ export interface IEditorKernel extends IEditor {
    * @param enabled Whether to enable hot reload mode
    */
   setHotReloadMode(enabled: boolean): void;
+
   /**
    * Unregister editor node decorator
    * @param name Decorator name

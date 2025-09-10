@@ -1,14 +1,8 @@
 import { mergeRegister } from '@lexical/utils';
-import {
-  $getNodeByKey,
-  COMMAND_PRIORITY_EDITOR,
-  KEY_DOWN_COMMAND,
-  LexicalEditor,
-  isModifierMatch,
-} from 'lexical';
+import { $getNodeByKey, LexicalEditor } from 'lexical';
 
-import { CONTROL_OR_META } from '@/common/sys';
 import { IEditorKernel } from '@/types';
+import { HotkeyEnum } from '@/types/hotkey';
 
 import { INSERT_CODEINLINE_COMMAND } from '../command';
 import { CodeNode } from '../node/code';
@@ -37,17 +31,13 @@ export function registerCodeInline(editor: LexicalEditor, kernel: IEditorKernel)
         }
       });
     }),
-    kernel.registerHighCommand(
-      KEY_DOWN_COMMAND,
-      (payload) => {
-        // ctrl + e
-        if (isModifierMatch(payload, CONTROL_OR_META) && payload.code === 'KeyE') {
-          payload.preventDefault();
-          return editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined);
-        }
-        return false;
+    kernel.registerHotkey(
+      HotkeyEnum.CodeInline,
+      () => editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined),
+      {
+        preventDefault: true,
+        stopImmediatePropagation: true,
       },
-      COMMAND_PRIORITY_EDITOR,
     ),
   );
 }

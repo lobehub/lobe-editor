@@ -22,16 +22,14 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
-  KEY_DOWN_COMMAND,
   LexicalEditor,
   LexicalNode,
   PointType,
   RangeSelection,
-  isModifierMatch,
 } from 'lexical';
 
-import { CONTROL_OR_META_AND_SHIFT } from '@/common/sys';
 import { IEditor } from '@/types';
+import { HotkeyEnum } from '@/types/hotkey';
 
 function resolveElement(
   element: ElementNode,
@@ -185,20 +183,37 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
 
 export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
   return mergeRegister(
-    kernel.registerHighCommand(
-      KEY_DOWN_COMMAND,
-      (payload) => {
-        // ctrl + shift + x
-        if (isModifierMatch(payload, CONTROL_OR_META_AND_SHIFT) && payload.code === 'KeyX') {
-          // Handle the custom key combination
-          payload.stopImmediatePropagation();
-          payload.preventDefault();
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
-          return true;
-        }
-        return false;
+    kernel.registerHotkey(
+      HotkeyEnum.Bold,
+      () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold'),
+      {
+        preventDefault: true,
+        stopImmediatePropagation: true,
       },
-      COMMAND_PRIORITY_EDITOR,
+    ),
+    kernel.registerHotkey(
+      HotkeyEnum.Italic,
+      () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic'),
+      {
+        preventDefault: true,
+        stopImmediatePropagation: true,
+      },
+    ),
+    kernel.registerHotkey(
+      HotkeyEnum.Underline,
+      () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline'),
+      {
+        preventDefault: true,
+        stopImmediatePropagation: true,
+      },
+    ),
+    kernel.registerHotkey(
+      HotkeyEnum.Strikethrough,
+      () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough'),
+      {
+        preventDefault: true,
+        stopImmediatePropagation: true,
+      },
     ),
     kernel.registerHighCommand(
       KEY_ARROW_UP_COMMAND,
