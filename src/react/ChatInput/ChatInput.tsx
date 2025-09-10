@@ -84,7 +84,7 @@ const ChatInput = memo<ChatInputProps>(
         {slashMenuRef && <div ref={slashMenuRef} />}
         {header}
         <Resizable
-          className={cx(styles.resizableContainer)}
+          className={styles.resizableContainer}
           enable={enableResizing}
           handleClasses={{
             top: styles.resizeHandle,
@@ -108,8 +108,9 @@ const ChatInput = memo<ChatInputProps>(
           size={{ height: 'auto', width: '100%' }}
         >
           <div
-            className={styles.editor}
+            className={cx(styles.editor, classNames?.body)}
             style={{
+              ...customStyles?.body,
               minHeight: currentHeight,
             }}
           >
