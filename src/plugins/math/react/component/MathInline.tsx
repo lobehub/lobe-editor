@@ -29,9 +29,14 @@ const MathInline = memo<MathInlineProps>(({ editor, node, className }) => {
   const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
   const [isEditing, setIsEditing] = useState<boolean>(false);
 
+  const isMathBlock = node instanceof MathBlockNode;
+
   useEffect(() => {
     if (ref.current && node.code) {
       Katex.render(node.code, ref.current, {
+        // 使用 displayMode 渲染块级公式
+        displayMode: node instanceof MathBlockNode,
+
         throwOnError: false,
       });
     }
@@ -116,7 +121,7 @@ const MathInline = memo<MathInlineProps>(({ editor, node, className }) => {
 
   return (
     <span className={className} ref={ref}>
-      {node.code ? node.code : <Placeholder />}
+      {node.code ? node.code : <Placeholder mathBlock={isMathBlock} />}
     </span>
   );
 });

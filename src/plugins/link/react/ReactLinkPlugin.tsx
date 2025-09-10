@@ -127,12 +127,10 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
         }}
         onMouseLeave={() => {
           clearTimeout(clearTimerRef.current);
-          clearTimerRef.current = setTimeout(() => {
-            if (divRef.current) {
-              divRef.current.style.left = '-9999px';
-              divRef.current.style.top = '-9999px';
-            }
-          }, 300);
+          if (divRef.current) {
+            divRef.current.style.left = '-9999px';
+            divRef.current.style.top = '-9999px';
+          }
         }}
         ref={divRef}
       />

@@ -44,13 +44,21 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
       // 直接更新节点内容
       const lexicalEditor = editor.getLexicalEditor();
       if (lexicalEditor && !isUpdatingRef.current) {
-        // 仅在校验通过时更新文档；失败时不更新，保持最后一次成功渲染
         if (!isInputValidRef.current) {
+          const currentNode = lexicalEditor.getEditorState().read(() => {
+            return lexicalEditor.getElementByKey(mathNode.getKey());
+          });
+
+          if (currentNode) {
+            const writableNode = mathNode.getWritable();
+            writableNode.__code = value;
+          }
           return;
         }
+
         // 检查当前值是否与节点中的值不同，避免不必要的更新
         const currentCode = mathNode.code;
-        if (currentCode === value) {
+        if (value && currentCode && currentCode === value) {
           return; // 值相同，无需更新
         }
 
@@ -246,10 +254,11 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
       const target = event.target as Node | null;
       if (!target) return;
 
-      const container = document.querySelector(
-        '[data-math-editor-container]',
-      ) as HTMLElement | null;
-      if (container && container.contains(target)) return;
+      // 支持多个容器（例如使用 renderComp 渲染到外部节点时，会有额外容器）
+      const containers = Array.from(
+        document.querySelectorAll('[data-math-editor-container]'),
+      ) as HTMLElement[];
+      if (containers.some((el) => el && el.contains(target as Node))) return;
 
       handleCancel();
     };
@@ -264,7 +273,9 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
 
   // 如果有自定义渲染组件，使用它来包装 MathEditorContent
   if (renderComp) {
-    return <>{renderComp({ children: mathEditorContent, open: isOpen })}</>;
+    // 为自定义渲染的内容增加容器标记，便于外部点击检测
+    const wrapped = <div data-math-editor-container>{mathEditorContent}</div>;
+    return <>{renderComp({ children: wrapped, open: isOpen })}</>;
   }
 
   // 否则使用默认的 MathEditorContainer

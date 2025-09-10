@@ -49,6 +49,7 @@ export const useStyles = createStyles(({ cx, css, token }) => {
       latex,
       css`
         display: inline-block;
+        border-radius: calc(var(--lobe-markdown-border-radius) * 0.5px);
       `,
     ),
     mathBlock: cx(
@@ -56,6 +57,7 @@ export const useStyles = createStyles(({ cx, css, token }) => {
       css`
         overflow: auto hidden;
         display: block;
+        border-radius: calc(var(--lobe-markdown-border-radius) * 1px);
         white-space: nowrap;
       `,
     ),

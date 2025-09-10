@@ -1,15 +1,17 @@
 import { Text } from '@lobehub/ui';
 import { memo } from 'react';
+import { Center } from 'react-layout-kit';
 
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
-const Placeholder = memo(() => {
+const Placeholder = memo<{ mathBlock?: boolean }>(({ mathBlock }) => {
   const t = useTranslation();
-  return (
+
+  const node = (
     <Text
       as={'span'}
       className={'katex'}
-      fontSize={'1em'}
+      fontSize={mathBlock ? '1.2em' : '1em'}
       style={{
         fontStyle: 'italic',
         paddingInline: '0.2em',
@@ -18,6 +20,14 @@ const Placeholder = memo(() => {
     >
       {t('math.placeholder')}
     </Text>
+  );
+
+  if (!mathBlock) return node;
+
+  return (
+    <Center padding={18} width={'100%'}>
+      {node}
+    </Center>
   );
 });
 

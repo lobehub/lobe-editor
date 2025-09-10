@@ -23,32 +23,51 @@ export const MathEditorContainer = memo<MathEditorContainerProps>(
     const { styles } = useStyles();
 
     useEffect(() => {
-      if (!mathDOM || !divRef.current) {
-        return;
+      if (!mathDOM || !divRef.current) return;
+
+      const floating = divRef.current;
+
+      const updatePosition = () => {
+        if (!mathDOM || !floating) return;
+        computePosition(mathDOM, floating, {
+          middleware: [offset(8), flip(), shift()],
+          placement: 'bottom-start',
+        }).then(({ x, y }) => {
+          if (!floating) return;
+          floating.style.left = `${x}px`;
+          floating.style.top = `${y}px`;
+          floating.style.width = '';
+
+          if (isBlockMode) {
+            const editorContainer = mathDOM.closest(
+              '[contenteditable="true"]',
+            ) as HTMLElement | null;
+            if (editorContainer) {
+              const containerRect = editorContainer.getBoundingClientRect();
+              floating.style.width = `${containerRect.width}px`;
+            }
+          }
+        });
+      };
+
+      // 监听尺寸变化，随内容变化重新定位
+      const resizeObserver = new ResizeObserver(() => updatePosition());
+      resizeObserver.observe(mathDOM);
+      resizeObserver.observe(floating);
+
+      let editorContainer: HTMLElement | null = null;
+      if (isBlockMode) {
+        editorContainer = mathDOM.closest('[contenteditable="true"]') as HTMLElement | null;
+        if (editorContainer) resizeObserver.observe(editorContainer);
       }
 
-      // Inline 模式下使用默认的 floating-ui 定位
-      computePosition(mathDOM, divRef.current, {
-        middleware: [offset(8), flip(), shift()],
-        placement: 'bottom-start',
-      }).then(({ x, y }) => {
-        if (divRef.current) {
-          divRef.current.style.left = `${x}px`;
-          divRef.current.style.top = `${y}px`;
-          divRef.current.style.width = ''; // 重置宽度
-          onFocus?.();
-        }
+      // 窗口尺寸变化时也重新定位
+      window.addEventListener('resize', updatePosition);
 
-        if (isBlockMode && divRef.current) {
-          // Block 模式下，获取主编辑器容器的位置和宽度
-          const editorContainer = mathDOM.closest('[contenteditable="true"]');
-          if (editorContainer) {
-            const containerRect = editorContainer.getBoundingClientRect();
-            divRef.current.style.width = `${containerRect.width}px`;
-            onFocus?.();
-          }
-        }
-      });
+      return () => {
+        resizeObserver.disconnect();
+        window.removeEventListener('resize', updatePosition);
+      };
     }, [mathDOM, prev, isBlockMode, onFocus]);
 
     // 当没有 mathDOM 时，隐藏容器
@@ -63,6 +82,9 @@ export const MathEditorContainer = memo<MathEditorContainerProps>(
       <Block
         className={styles.mathEditor}
         data-math-editor-container
+        onClick={(e) => {
+          e.preventDefault();
+        }}
         ref={divRef}
         shadow
         variant={'outlined'}

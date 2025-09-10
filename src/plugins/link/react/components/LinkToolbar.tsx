@@ -22,7 +22,7 @@ interface LinkToolbarProps extends Omit<ActionIconGroupProps, 'items'> {
   linkNode: LinkNode | null;
 }
 
-const LinkToolbar = memo<LinkToolbarProps>(({ linkNode, editor, ...rest }) => {
+const LinkToolbar = memo<LinkToolbarProps>(({ linkNode, editor, onMouseLeave, ...rest }) => {
   const { styles } = useStyles();
   const t = useTranslation();
 
@@ -92,9 +92,13 @@ const LinkToolbar = memo<LinkToolbarProps>(({ linkNode, editor, ...rest }) => {
           icon: UnlinkIcon,
           key: 'unlink',
           label: t('link.unlink'),
-          onClick: handleRemove,
+          onClick: (e) => {
+            handleRemove();
+            onMouseLeave?.(e as any);
+          },
         },
       ]}
+      onMouseLeave={onMouseLeave}
       shadow
       size={{
         blockSize: 32,
