@@ -87,6 +87,18 @@ export function registerCursorNode(editor: LexicalEditor) {
           for (const [key, mutation] of cursorNodes) {
             if (mutation === 'updated') {
               const cursorNode = $getNodeByKey(key);
+              if (cursorNode?.getIndexWithinParent() === 0) {
+                const nextElement = cursorNode.getNextSibling();
+                if (
+                  !$isCardLikeElementNode(nextElement) &&
+                  !$isDecoratorNode(nextElement) &&
+                  !$isCardLikeElementNode(cursorNode?.getParent())
+                ) {
+                  needRemove.add(cursorNode as CursorNode);
+                } else {
+                  continue;
+                }
+              }
               const element = cursorNode?.getPreviousSibling();
               if (
                 !$isCardLikeElementNode(element) &&
