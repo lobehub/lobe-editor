@@ -23,7 +23,7 @@ import TextDataSource from '../data-source/text-data-source';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { CursorNode, registerCursorNode } from '../node/cursor';
 import { createBlockNode } from '../utils';
-import { registerHeaderBackspace, registerRichKeydown } from './register';
+import { registerHeaderBackspace, registerLastElement, registerRichKeydown } from './register';
 
 patchBreakLine();
 
@@ -266,6 +266,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerCommands(editor),
       registerBreakLineClick(editor),
       registerCursorNode(editor),
+      registerLastElement(editor),
     );
   }
 

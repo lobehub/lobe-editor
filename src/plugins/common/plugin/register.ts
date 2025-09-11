@@ -136,7 +136,7 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
   return editor.registerCommand(
     KEY_BACKSPACE_COMMAND,
     (payload) => {
-      // Handle backspace key press
+      // Handle backspace key press for heading nodes
       const headingNode = editor.read(() => {
         const selection = $getSelection();
         // Do not handle non-collapsed selection
@@ -374,4 +374,52 @@ export function registerRichKeydown(
       COMMAND_PRIORITY_EDITOR,
     ),
   );
+}
+
+const NEEDS_FOLLOWING_PARAGRAPH_TYPES = new Set<string | undefined>(['code', 'table']);
+
+export function registerLastElement(editor: LexicalEditor) {
+  let isProcessing = false;
+
+  return editor.registerUpdateListener(({ dirtyElements }) => {
+    // Only process when root node or its direct children have changes
+    if (
+      !dirtyElements.has('root') &&
+      !Array.from(dirtyElements.keys()).some((key) => {
+        const node = editor.getEditorState()._nodeMap.get(key);
+        return node?.getParent()?.getKey() === 'root';
+      })
+    ) {
+      return;
+    }
+
+    if (isProcessing) return;
+
+    const needsParagraph = editor.read(() => {
+      const root = $getRoot();
+      const lastChild = root.getLastChild();
+
+      // Check if the last element needs a trailing paragraph
+      return NEEDS_FOLLOWING_PARAGRAPH_TYPES.has(lastChild?.getType());
+    });
+
+    if (needsParagraph) {
+      isProcessing = true;
+
+      queueMicrotask(() => {
+        editor.update(() => {
+          const root = $getRoot();
+          const currentLast = root.getLastChild();
+
+          // Double check to ensure the state still needs processing
+          if (NEEDS_FOLLOWING_PARAGRAPH_TYPES.has(currentLast?.getType())) {
+            const paragraph = $createParagraphNode();
+            root.append(paragraph);
+          }
+
+          isProcessing = false;
+        });
+      });
+    }
+  });
 }
