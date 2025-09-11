@@ -7,6 +7,7 @@ import {
 } from '@lexical/code';
 import { DOMConversionOutput, LexicalEditor, TabNode } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -81,8 +82,27 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
     if (this.config?.colorReplacements) {
       CustomShikiTokenizer.defaultColorReplacements = this.config?.colorReplacements;
     }
+  }
 
-    kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+  onInit(editor: LexicalEditor): void {
+    if (this.config?.shikiTheme) {
+      this.register(registerCodeHighlighting(editor, CustomShikiTokenizer));
+    } else {
+      this.register(registerCodeHighlighting(editor));
+    }
+    this.register(registerCodeCommand(editor));
+    this.registerMarkdown();
+  }
+
+  registerMarkdown() {
+    const kernel = this.kernel;
+    const markdownService = kernel.requireService(IMarkdownShortCutService);
+
+    if (!markdownService) {
+      return;
+    }
+
+    markdownService.registerMarkdownShortCut({
       regExp: /^(```|···)(.+)?$/,
       replace: (parentNode, _, match) => {
         const code = $createCodeNode(
@@ -97,40 +117,57 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
       trigger: 'enter',
       type: 'element',
     });
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(CodeNode.getType(), (ctx, node) => {
-        if ($isCodeNode(node)) {
-          ctx.wrap('```' + (node.getLanguage() || '') + '\n', '\n```\n');
-        }
-      });
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(TabNode.getType(), (ctx) => {
-        ctx.appendLine('  ');
-      });
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(CodeHighlightNode.getType(), (ctx, node) => {
-        if ($isCodeHighlightNode(node)) {
-          ctx.appendLine(node.getTextContent());
-        }
-      });
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter('linebreak', (ctx, node) => {
-        if ($isCodeNode(node.getParent())) {
-          ctx.appendLine('\n');
-        }
-      });
-  }
 
-  onInit(editor: LexicalEditor): void {
-    if (this.config?.shikiTheme) {
-      this.register(registerCodeHighlighting(editor, CustomShikiTokenizer));
-    } else {
-      this.register(registerCodeHighlighting(editor));
-    }
-    this.register(registerCodeCommand(editor));
+    markdownService.registerMarkdownWriter(CodeNode.getType(), (ctx, node) => {
+      if ($isCodeNode(node)) {
+        ctx.wrap('```' + (node.getLanguage() || '') + '\n', '\n```\n');
+      }
+    });
+
+    markdownService.registerMarkdownWriter(TabNode.getType(), (ctx) => {
+      ctx.appendLine('  ');
+    });
+
+    markdownService.registerMarkdownWriter(CodeHighlightNode.getType(), (ctx, node) => {
+      if ($isCodeHighlightNode(node)) {
+        ctx.appendLine(node.getTextContent());
+      }
+    });
+
+    markdownService.registerMarkdownWriter('linebreak', (ctx, node) => {
+      if ($isCodeNode(node.getParent())) {
+        ctx.appendLine('\n');
+      }
+    });
+
+    markdownService.registerMarkdownReader('code', (node) => {
+      const language = node.lang ? getCodeLanguageByInput(node.lang) : 'plaintext';
+      return INodeHelper.createElementNode('code', {
+        children: node.value
+          .split('\n')
+          .flatMap((text, index, arr) => {
+            const textNode = INodeHelper.createTextNode(text);
+            textNode.type = 'code-highlight';
+            if (index === arr.length - 1) {
+              return textNode;
+            }
+            return [
+              textNode,
+              {
+                type: 'linebreak',
+                version: 1,
+              },
+            ];
+          })
+          .flat(),
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        language: language,
+        textStyle: '--shiki-dark:var(--color-info);--shiki-light:var(--color-info)',
+        theme: 'slack-ochin slack-dark',
+        version: 1,
+      });
+    });
   }
 };

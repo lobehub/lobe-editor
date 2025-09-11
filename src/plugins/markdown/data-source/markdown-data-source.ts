@@ -34,11 +34,11 @@ export default class MarkdownDataSource extends DataSource {
   }
 
   read(editor: LexicalEditor, data: string): void {
-    editor.setEditorState(
-      editor.parseEditorState({
-        root: parseMarkdownToLexical(data, this.markdownService.markdownReaders),
-      }),
-    );
+    const inode = {
+      root: parseMarkdownToLexical(data, this.markdownService.markdownReaders),
+    };
+    console.info('------------->', inode);
+    editor.setEditorState(editor.parseEditorState(inode));
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {

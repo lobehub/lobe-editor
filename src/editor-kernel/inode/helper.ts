@@ -29,6 +29,19 @@ export const INodeHelper = {
     } as IElementNode;
   },
 
+  createLikeTextNode(type: string, text: string, attrs: Record<string, unknown> = {}): ITextNode {
+    return {
+      ...BaseContent,
+      detail: 0,
+      format: 0,
+      mode: 'normal',
+      style: '',
+      ...attrs,
+      text,
+      type: type,
+    };
+  },
+
   createParagraph(attrs: Record<string, unknown> = {}): IParagraphNode {
     return {
       ...BaseContent,
@@ -60,6 +73,14 @@ export const INodeHelper = {
       text,
       type: 'text',
     };
+  },
+
+  createTypeNode(type: string, attrs: Record<string, unknown> = {}): INode {
+    return {
+      ...BaseContent,
+      ...attrs,
+      type,
+    } as INode;
   },
 
   isParagraphNode(node: INode): node is IParagraphNode {

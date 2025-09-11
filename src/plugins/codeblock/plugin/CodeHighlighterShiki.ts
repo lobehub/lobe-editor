@@ -57,9 +57,12 @@ import {
   TextNode,
 } from 'lexical';
 
+import { INode } from '@/editor-kernel/inode';
+
 import {
   $getHighlightNodes,
   AllColorReplacements,
+  getHighlightSerializeNode,
   isCodeLanguageLoaded,
   isCodeThemeLoaded,
   loadCodeLanguage,
@@ -69,6 +72,17 @@ import invariant from './invariant';
 
 export interface Tokenizer {
   $tokenize(codeNode: CodeNode, language?: string): LexicalNode[];
+  $tokenizeSerialized(
+    code: string,
+    language?: string,
+    theme?:
+      | string
+      | {
+          dark: string;
+          light: string;
+        },
+    defaultColorReplacements?: { current?: AllColorReplacements },
+  ): INode[];
   defaultColorReplacements?: { current?: AllColorReplacements };
   defaultLanguage: string;
   defaultTheme:
@@ -87,6 +101,27 @@ export const ShikiTokenizer: Tokenizer = {
       codeNode,
       language || this.defaultLanguage,
       this.defaultColorReplacements,
+    );
+  },
+  $tokenizeSerialized(
+    code: string,
+    language?: string,
+    theme?:
+      | string
+      | {
+          dark: string;
+          light: string;
+        },
+    defaultColorReplacements?: { current?: AllColorReplacements },
+  ): INode[] {
+    return getHighlightSerializeNode(
+      code,
+      language || this.defaultLanguage,
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      toCodeTheme({
+        defaultTheme: theme || this.defaultTheme,
+      } as Tokenizer),
+      defaultColorReplacements || ShikiTokenizer.defaultColorReplacements,
     );
   },
   defaultColorReplacements: undefined,
@@ -152,6 +187,7 @@ const nodesCurrentlyHighlighting = new Set();
 const waitingNodesCurrentlyHighlighting = new Set<NodeKey>();
 
 function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tokenizer) {
+  console.info('transform code node', node);
   const nodeKey = node.getKey();
 
   // When new code block inserted it might not have language selected
