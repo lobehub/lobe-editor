@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.7.0](https://github.com/lobehub/lobe-editor/compare/v1.6.2...v1.7.0)
+<sup>Released on **2025-09-11**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add registerLastElement function to handle trailing paragraphs.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add registerLastElement function to handle trailing paragraphs, closes [#30](https://github.com/lobehub/lobe-editor/issues/30) ([b8f211e](https://github.com/lobehub/lobe-editor/commit/b8f211e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.6.2](https://github.com/lobehub/lobe-editor/compare/v1.6.1...v1.6.2)
 <sup>Released on **2025-09-10**</sup>
 
