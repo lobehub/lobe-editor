@@ -14,11 +14,14 @@ const Container = memo<PropsWithChildren<{ messages: ChatMessage[] }>>(({ childr
 
   return (
     <Flexbox
-      height={599}
+      height={'100vh'}
       style={{
         background: theme.colorBgContainerSecondary,
+
         overflow: 'hidden',
+        position: 'relative',
       }}
+      width={'100%'}
     >
       <Flexbox
         flex={1}

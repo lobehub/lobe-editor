@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { useWidth } from '@/react/hooks/useSize';
+
 import type { ChatInputActionItem } from '../type';
-import { useContainerSize } from './useContainerSize';
 
 interface UseDisplayActionCountOptions {
   autoCollapse?: boolean;
@@ -14,7 +15,7 @@ export const useDisplayActionCount = ({
   collapseOffset = 0,
   autoCollapse,
 }: UseDisplayActionCountOptions = {}) => {
-  const { ref, size } = useContainerSize();
+  const { ref, width } = useWidth();
   const [collapsed, setCollapsed] = useState(false);
   const flatItems = useMemo(
     () =>
@@ -43,16 +44,16 @@ export const useDisplayActionCount = ({
       return;
     }
 
-    if (!size) return;
+    if (!width) return;
 
     const atLeastCount = 1 + alwaysDisplayCount;
 
-    let calcMaxCount = Math.floor((size - collapseOffset) / 38);
+    let calcMaxCount = Math.floor((width - collapseOffset) / 38);
     if (calcMaxCount < atLeastCount) calcMaxCount = atLeastCount;
     setCollapsed(calcMaxCount < rawMaxCount);
     if (calcMaxCount >= rawMaxCount) return;
     setMaxCount(calcMaxCount);
-  }, [autoCollapse, size, rawMaxCount, collapseOffset, alwaysDisplayCount]);
+  }, [autoCollapse, width, rawMaxCount, collapseOffset, alwaysDisplayCount]);
 
   return useMemo(() => ({ collapsed, maxCount, ref }), [collapsed, maxCount, ref]);
 };

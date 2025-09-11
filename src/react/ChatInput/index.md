@@ -15,18 +15,26 @@ ChatInput is a versatile container component designed for chat input interfaces.
 
 ## Basic Usage
 
-<code src="./demos/index.tsx" iframe></code>
+<code src="./demos/index.tsx" iframe nopadding></code>
 
 ## APIs
 
 ### ChatInput
 
-| Property     | Description                           | Type                  | Default              |
-| ------------ | ------------------------------------- | --------------------- | -------------------- |
-| children     | Main content area                     | `ReactNode`           | -                    |
-| className    | Custom CSS class                      | `string`              | -                    |
-| footer       | Footer content                        | `ReactNode`           | -                    |
-| header       | Header content                        | `ReactNode`           | -                    |
-| maxHeight    | Maximum height of the input container | `string \| number`    | `'min(50vh, 640px)'` |
-| slashMenuRef | Reference for slash menu positioning  | `Ref<HTMLDivElement>` | -                    |
-| style        | Custom inline styles                  | `CSSProperties`       | -                    |
+| Property         | Description                                | Type                                                                       | Default |
+| ---------------- | ------------------------------------------ | -------------------------------------------------------------------------- | ------- |
+| children         | Main content area                          | `ReactNode`                                                                | -       |
+| classNames       | Custom CSS class names for different areas | `{ body?: string; footer?: string; header?: string }`                      | -       |
+| defaultHeight    | Default height of the input container      | `number`                                                                   | `64`    |
+| footer           | Footer content                             | `ReactNode`                                                                | -       |
+| fullscreen       | Enable fullscreen mode                     | `boolean`                                                                  | -       |
+| header           | Header content                             | `ReactNode`                                                                | -       |
+| height           | Controlled height of the input container   | `number`                                                                   | -       |
+| maxHeight        | Maximum height of the input container      | `number`                                                                   | `320`   |
+| minHeight        | Minimum height of the input container      | `number`                                                                   | `64`    |
+| onSizeChange     | Callback when height changes               | `(height: number) => void`                                                 | -       |
+| onSizeDragging   | Callback during height dragging            | `(height: number) => void`                                                 | -       |
+| resize           | Enable resize functionality                | `boolean`                                                                  | `true`  |
+| showResizeHandle | Show visual resize handle                  | `boolean`                                                                  | -       |
+| slashMenuRef     | Reference for slash menu positioning       | `Ref<HTMLDivElement>`                                                      | -       |
+| styles           | Custom inline styles for different areas   | `{ body?: CSSProperties; footer?: CSSProperties; header?: CSSProperties }` | -       |
