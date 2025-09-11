@@ -10,7 +10,7 @@ import {
 
 import { $createCursorNode } from '@/plugins/common';
 
-import { $createCodeNode, $isCodeInlineNode } from '../node/code';
+import { $createCodeNode, $isCodeInlineNode, getCodeInlineNode } from '../node/code';
 
 export const INSERT_CODEINLINE_COMMAND = createCommand<undefined>('INSERT_CODEINLINE_COMMAND');
 
@@ -28,15 +28,18 @@ export function registerCodeInlineCommand(editor: LexicalEditor) {
         if ($isCodeHighlightNode(focusNode) || $isCodeHighlightNode(anchorNode)) {
           return false;
         }
-        if (focusNode.getParent() !== anchorNode.getParent()) {
+
+        const code = getCodeInlineNode(focusNode);
+
+        if (code !== getCodeInlineNode(anchorNode)) {
           return false;
         }
-        const parentNode = focusNode.getParent();
-        if ($isCodeInlineNode(parentNode)) {
-          for (const node of parentNode.getChildren().slice(0)) {
-            parentNode.insertBefore(node);
+
+        if ($isCodeInlineNode(code)) {
+          for (const node of code.getChildren().slice(0)) {
+            code.insertBefore(node);
           }
-          parentNode.remove();
+          code.remove();
           return true;
         }
         const codeNode = $createCodeNode(selection.getTextContent());

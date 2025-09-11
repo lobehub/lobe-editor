@@ -1,6 +1,7 @@
 import { mergeRegister } from '@lexical/utils';
 import { $getNodeByKey, LexicalEditor } from 'lexical';
 
+import { $createCursorNode } from '@/plugins/common';
 import { IEditorKernel } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 
@@ -22,6 +23,7 @@ export function registerCodeInline(
     editor.registerUpdateListener(({ mutatedNodes }) => {
       const codeChanged = mutatedNodes?.get(CodeNode);
       const keys = codeChanged?.keys() || [];
+      const needAddBefore = new Set<CodeNode>();
       editor.read(() => {
         for (const key of keys) {
           const node = $getNodeByKey(key);
@@ -29,17 +31,22 @@ export function registerCodeInline(
             return;
           }
           const parent = node.getParent();
-          if (parent?.__last === key) {
-            const codeElement = editor.getElementByKey(key);
-            if (!codeElement?.nextSibling) {
-              parent
-                // @ts-expect-error not error
-                .getDOMSlot(editor.getElementByKey(parent.getKey()))
-                .setManagedLineBreak('decorator');
-            }
+          if (parent?.getFirstChild() === node) {
+            needAddBefore.add(node as CodeNode);
           }
         }
       });
+
+      if (needAddBefore.size > 0) {
+        editor.update(() => {
+          needAddBefore.forEach((node) => {
+            const prev = node.getPreviousSibling();
+            if (!prev) {
+              node.insertBefore($createCursorNode());
+            }
+          });
+        });
+      }
     }),
     kernel.registerHotkey(
       HotkeyEnum.CodeInline,

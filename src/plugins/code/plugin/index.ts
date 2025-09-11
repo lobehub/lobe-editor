@@ -1,11 +1,12 @@
-import { LexicalEditor } from 'lexical';
+import { $setSelection, LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { $createCursorNode } from '@/plugins/common';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCodeInlineCommand } from '../command';
-import { CodeNode } from '../node/code';
+import { $createCodeNode, CodeNode } from '../node/code';
 import { registerCodeInline } from './registry';
 
 export interface CodePluginOptions {
@@ -47,5 +48,18 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
       ctx.appendLine(`\`${node.getTextContent()}\``);
       return true;
     });
+
+    markdownService.registerMarkdownShortCuts([
+      {
+        process: (selection) => {
+          const text = selection.getTextContent();
+          selection.removeText();
+          selection.insertNodes([$createCodeNode(text), $createCursorNode()]);
+          $setSelection(selection);
+        },
+        tag: '`',
+        type: 'text-format',
+      },
+    ]);
   }
 };

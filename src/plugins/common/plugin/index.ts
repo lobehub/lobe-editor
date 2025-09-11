@@ -132,11 +132,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         type: 'text-format',
       },
       {
-        format: ['code'],
-        tag: '`',
-        type: 'text-format',
-      },
-      {
         format: ['strikethrough'],
         tag: '~~',
         type: 'text-format',
