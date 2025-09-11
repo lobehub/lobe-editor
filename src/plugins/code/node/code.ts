@@ -8,10 +8,11 @@ import {
   $isRangeSelection,
   EditorConfig,
   LexicalEditor,
+  LexicalNode,
   SerializedElementNode,
 } from 'lexical';
 
-import { $createCursorNode, CardLikeElementNode } from '@/plugins/common';
+import { $createCursorNode, $isCursorNode, CardLikeElementNode } from '@/plugins/common';
 
 export type SerializedCodeNode = SerializedElementNode;
 
@@ -100,6 +101,26 @@ export function $isCodeInlineNode(node: unknown): node is CodeNode {
   return node instanceof CodeNode;
 }
 
+export function getCodeInlineNode(node: LexicalNode) {
+  if ($isCursorNode(node)) {
+    const parent = node.getParent();
+    if ($isCodeInlineNode(parent)) {
+      return parent;
+    }
+    if ($isCodeInlineNode(node.getNextSibling())) {
+      return node.getNextSibling();
+    }
+    if ($isCodeInlineNode(node.getPreviousSibling())) {
+      return node.getPreviousSibling();
+    }
+    return null;
+  }
+  if ($isCodeInlineNode(node.getParent())) {
+    return node.getParent();
+  }
+  return null;
+}
+
 export function $isSelectionInCodeInline(editor: LexicalEditor): boolean {
   return editor.read(() => {
     const selection = $getSelection();
@@ -109,11 +130,11 @@ export function $isSelectionInCodeInline(editor: LexicalEditor): boolean {
     if ($isRangeSelection(selection)) {
       const focusNode = selection.focus.getNode();
       const anchorNode = selection.anchor.getNode();
-      if (focusNode.getParent() !== anchorNode.getParent()) {
+      const code = getCodeInlineNode(focusNode);
+      if (code !== getCodeInlineNode(anchorNode)) {
         return false;
       }
-      const parentNode = focusNode.getParent();
-      if ($isCodeInlineNode(parentNode)) {
+      if ($isCodeInlineNode(code)) {
         return true;
       }
       return false;
