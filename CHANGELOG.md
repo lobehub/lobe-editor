@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.7.1](https://github.com/lobehub/lobe-editor/compare/v1.7.0...v1.7.1)
+<sup>Released on **2025-09-11**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Enhance code formatting shortcuts and selection handling.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Enhance code formatting shortcuts and selection handling, closes [#29](https://github.com/lobehub/lobe-editor/issues/29) ([498230e](https://github.com/lobehub/lobe-editor/commit/498230e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.7.0](https://github.com/lobehub/lobe-editor/compare/v1.6.2...v1.7.0)
 <sup>Released on **2025-09-11**</sup>
 
