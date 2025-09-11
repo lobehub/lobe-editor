@@ -17,6 +17,7 @@ export interface ChatInputProps extends Omit<FlexboxProps, 'height'> {
   onSizeChange?: (height: number) => void;
   onSizeDragging?: (height: number) => void;
   resize?: boolean;
+  resizeMaxHeightOffset?: number;
   showResizeHandle?: boolean;
   slashMenuRef?: Ref<HTMLDivElement>;
   styles?: {

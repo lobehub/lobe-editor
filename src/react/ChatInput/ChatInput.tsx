@@ -16,6 +16,7 @@ const ChatInput = memo<ChatInputProps>((props) => {
     height,
     maxHeight = 320,
     minHeight = 64,
+    resizeMaxHeightOffset = 120,
     resize = true,
     onSizeChange,
     onSizeDragging,
@@ -84,6 +85,7 @@ const ChatInput = memo<ChatInputProps>((props) => {
       className={cx(styles.editor, classNames?.body)}
       style={{
         ...customStyles?.body,
+        maxHeight,
         minHeight: resize ? currentHeight : minHeight,
         zIndex: 0,
       }}
@@ -125,7 +127,7 @@ const ChatInput = memo<ChatInputProps>((props) => {
               width: '100%',
             },
           }}
-          maxHeight={maxHeight}
+          maxHeight={maxHeight + resizeMaxHeightOffset}
           minHeight={minHeight}
           onResize={handleResize}
           onResizeStop={handleResizeStop}
