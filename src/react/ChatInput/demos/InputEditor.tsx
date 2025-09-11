@@ -22,9 +22,10 @@ import { content } from './data';
 
 const InputEditor = memo<{
   editor: IEditor;
+  fullscreen?: boolean;
   onSend?: () => void;
   slashMenuRef: Ref<HTMLDivElement>;
-}>(({ editor, slashMenuRef, onSend }) => {
+}>(({ editor, slashMenuRef, onSend, fullscreen }) => {
   return (
     <Editor
       autoFocus
@@ -68,9 +69,13 @@ const InputEditor = memo<{
             metadata: { id: option.key },
           });
         },
-        renderComp: (props) => {
-          return <SlashMenu {...props} getPopupContainer={() => (slashMenuRef as any).current} />;
-        },
+        renderComp: fullscreen
+          ? undefined
+          : (props) => {
+              return (
+                <SlashMenu {...props} getPopupContainer={() => (slashMenuRef as any).current} />
+              );
+            },
       }}
       onBlur={({ editor, event }) => console.log('Blur', editor, event)}
       onCompositionEnd={({ editor, event }) => console.log('Composition End', editor, event)}
@@ -98,9 +103,11 @@ const InputEditor = memo<{
         ReactCodePlugin,
         ReactTablePlugin,
         Editor.withProps(ReactMathPlugin, {
-          renderComp: (props) => (
-            <FloatMenu {...props} getPopupContainer={() => (slashMenuRef as any).current} />
-          ),
+          renderComp: fullscreen
+            ? undefined
+            : (props) => (
+                <FloatMenu {...props} getPopupContainer={() => (slashMenuRef as any).current} />
+              ),
         }),
       ]}
       slashOption={{
@@ -150,9 +157,13 @@ const InputEditor = memo<{
             },
           },
         ],
-        renderComp: (props) => {
-          return <SlashMenu {...props} getPopupContainer={() => (slashMenuRef as any).current} />;
-        },
+        renderComp: fullscreen
+          ? undefined
+          : (props) => {
+              return (
+                <SlashMenu {...props} getPopupContainer={() => (slashMenuRef as any).current} />
+              );
+            },
       }}
       variant={'chat'}
     />

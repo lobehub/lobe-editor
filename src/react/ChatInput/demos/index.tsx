@@ -20,6 +20,7 @@ export default () => {
 
   const controls = useControls(
     {
+      fullscreen: false,
       maxHeight: {
         max: 480,
         min: 240,
@@ -92,7 +93,7 @@ export default () => {
 
   return (
     <StoryBook levaStore={store} noPadding>
-      <Container messages={messages}>
+      <Container fullscreen={controls.fullscreen} messages={messages}>
         <ChatInput
           defaultHeight={64}
           footer={
@@ -107,7 +108,12 @@ export default () => {
           slashMenuRef={slashMenuRef}
           {...controls}
         >
-          <InputEditor editor={editor} onSend={handleSendMessage} slashMenuRef={slashMenuRef} />
+          <InputEditor
+            editor={editor}
+            fullscreen={controls.fullscreen}
+            onSend={handleSendMessage}
+            slashMenuRef={slashMenuRef}
+          />
         </ChatInput>
       </Container>
     </StoryBook>

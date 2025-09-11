@@ -60,32 +60,13 @@ const ChatInput = memo<ChatInputProps>((props) => {
     [onSizeDragging, defaultHeight],
   );
 
-  // 如果是全屏模式，使用普通的 Flexbox
-  if (fullscreen) {
-    return (
-      <Flexbox
-        className={cx(styles.container, className)}
-        height="100%"
-        style={style}
-        width="100%"
-        {...rest}
-      >
-        {slashMenuRef && <div ref={slashMenuRef} />}
-        {header}
-        <div className={cx(styles.editor, classNames?.body)} style={customStyles?.body}>
-          {children}
-        </div>
-        {footer}
-      </Flexbox>
-    );
-  }
-
   const bodyNode = (
     <div
       className={cx(styles.editor, classNames?.body)}
       style={{
         ...customStyles?.body,
-        maxHeight,
+        flex: 1,
+        maxHeight: fullscreen ? '100%' : maxHeight,
         minHeight: resize ? currentHeight : minHeight,
         zIndex: 0,
       }}
@@ -95,7 +76,16 @@ const ChatInput = memo<ChatInputProps>((props) => {
   );
 
   return (
-    <Flexbox className={cx(styles.container, className)} style={style} width="100%" {...rest}>
+    <Flexbox
+      className={cx(styles.container, className)}
+      height={fullscreen ? '100%' : undefined}
+      style={{
+        position: 'relative',
+        ...style,
+      }}
+      width="100%"
+      {...rest}
+    >
       {slashMenuRef && <div ref={slashMenuRef} />}
       <Flexbox
         className={classNames?.header}
@@ -111,7 +101,7 @@ const ChatInput = memo<ChatInputProps>((props) => {
       {resize ? (
         <Resizable
           className={styles.resizableContainer}
-          enable={{ top: true }}
+          enable={fullscreen ? false : { top: true }}
           handleClasses={{
             top: showResizeHandle ? styles.resizeHandle : undefined,
           }}
@@ -127,11 +117,20 @@ const ChatInput = memo<ChatInputProps>((props) => {
               width: '100%',
             },
           }}
-          maxHeight={maxHeight + resizeMaxHeightOffset}
-          minHeight={minHeight}
+          maxHeight={fullscreen ? undefined : maxHeight + resizeMaxHeightOffset}
+          minHeight={fullscreen ? undefined : minHeight}
           onResize={handleResize}
           onResizeStop={handleResizeStop}
-          size={{ height: 'auto', width: '100%' }}
+          size={{ height: fullscreen ? undefined : 'auto', width: '100%' }}
+          style={
+            fullscreen
+              ? {
+                  flex: 1,
+                  overflow: 'hidden',
+                  position: 'relative',
+                }
+              : {}
+          }
         >
           {bodyNode}
         </Resizable>
