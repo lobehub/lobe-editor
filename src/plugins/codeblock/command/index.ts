@@ -16,6 +16,7 @@ import { ShikiTokenizer } from '../plugin/CodeHighlighterShiki';
 
 export const CustomShikiTokenizer = {
   $tokenize: ShikiTokenizer.$tokenize,
+  $tokenizeSerialized: ShikiTokenizer.$tokenizeSerialized,
   defaultColorReplacements: ShikiTokenizer.defaultColorReplacements,
   defaultLanguage: ShikiTokenizer.defaultLanguage,
   defaultTheme: ShikiTokenizer.defaultTheme,
