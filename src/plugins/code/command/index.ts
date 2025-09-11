@@ -5,14 +5,35 @@ import {
   $isRangeSelection,
   COMMAND_PRIORITY_EDITOR,
   LexicalEditor,
+  LexicalNode,
   createCommand,
 } from 'lexical';
 
-import { $createCursorNode } from '@/plugins/common';
+import { $createCursorNode, $isCursorNode } from '@/plugins/common';
 
 import { $createCodeNode, $isCodeInlineNode } from '../node/code';
 
 export const INSERT_CODEINLINE_COMMAND = createCommand<undefined>('INSERT_CODEINLINE_COMMAND');
+
+function getCodeInlineNode(node: LexicalNode) {
+  if ($isCursorNode(node)) {
+    const parent = node.getParent();
+    if ($isCodeInlineNode(parent)) {
+      return parent;
+    }
+    if ($isCodeInlineNode(node.getNextSibling())) {
+      return node.getNextSibling();
+    }
+    if ($isCodeInlineNode(node.getPreviousSibling())) {
+      return node.getPreviousSibling();
+    }
+    return null;
+  }
+  if ($isCodeInlineNode(node.getParent())) {
+    return node.getParent();
+  }
+  return null;
+}
 
 export function registerCodeInlineCommand(editor: LexicalEditor) {
   return editor.registerCommand(
@@ -28,15 +49,18 @@ export function registerCodeInlineCommand(editor: LexicalEditor) {
         if ($isCodeHighlightNode(focusNode) || $isCodeHighlightNode(anchorNode)) {
           return false;
         }
-        if (focusNode.getParent() !== anchorNode.getParent()) {
+
+        const code = getCodeInlineNode(focusNode);
+
+        if (code !== getCodeInlineNode(anchorNode)) {
           return false;
         }
-        const parentNode = focusNode.getParent();
-        if ($isCodeInlineNode(parentNode)) {
-          for (const node of parentNode.getChildren().slice(0)) {
-            parentNode.insertBefore(node);
+
+        if ($isCodeInlineNode(code)) {
+          for (const node of code.getChildren().slice(0)) {
+            code.insertBefore(node);
           }
-          parentNode.remove();
+          code.remove();
           return true;
         }
         const codeNode = $createCodeNode(selection.getTextContent());
