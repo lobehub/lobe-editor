@@ -87,17 +87,17 @@ const ChatInput = memo<ChatInputProps>((props) => {
       {...rest}
     >
       {slashMenuRef && <div ref={slashMenuRef} />}
-      <Flexbox
+      <div
         className={classNames?.header}
         ref={headerRef}
         style={{
+          width: '100%',
           zIndex: 1,
           ...customStyles?.header,
         }}
-        width="100%"
       >
         {header}
-      </Flexbox>
+      </div>
       {resize ? (
         <Resizable
           className={styles.resizableContainer}
@@ -137,16 +137,16 @@ const ChatInput = memo<ChatInputProps>((props) => {
       ) : (
         bodyNode
       )}
-      <Flexbox
+      <div
         className={classNames?.footer}
         style={{
+          width: '100%',
           zIndex: 1,
           ...customStyles?.footer,
         }}
-        width="100%"
       >
         {footer}
-      </Flexbox>
+      </div>
     </Flexbox>
   );
 });

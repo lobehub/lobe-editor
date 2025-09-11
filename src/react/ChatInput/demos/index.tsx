@@ -105,6 +105,7 @@ export default () => {
             />
           }
           header={<TypoToolbar editor={editor} show={showTypobar} />}
+          onSizeChange={(height) => console.log('resize:', height)}
           slashMenuRef={slashMenuRef}
           {...controls}
         >

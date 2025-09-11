@@ -8,7 +8,7 @@ interface UseContainerSizeOptions {
 
 export const useWidth = (options: UseContainerSizeOptions = {}) => {
   const { debounceMs = 100 } = options;
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<number>();
   const resizeObserverRef = useRef<ResizeObserver>(null);
 
@@ -42,7 +42,7 @@ export const useWidth = (options: UseContainerSizeOptions = {}) => {
 
 export const useHeight = (options: UseContainerSizeOptions = {}) => {
   const { debounceMs = 100 } = options;
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<number>();
   const resizeObserverRef = useRef<ResizeObserver>(null);
 
