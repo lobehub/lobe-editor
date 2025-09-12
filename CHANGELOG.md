@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.8.0](https://github.com/lobehub/lobe-editor/compare/v1.7.1...v1.8.0)
+<sup>Released on **2025-09-12**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add resize to ChatInput.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add resize to ChatInput, closes [#27](https://github.com/lobehub/lobe-editor/issues/27) ([80f902c](https://github.com/lobehub/lobe-editor/commit/80f902c))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.7.1](https://github.com/lobehub/lobe-editor/compare/v1.7.0...v1.7.1)
 <sup>Released on **2025-09-11**</sup>
 
