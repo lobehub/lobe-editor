@@ -1,7 +1,7 @@
 /* eslint-disable no-redeclare */
 /* eslint-disable @typescript-eslint/no-redeclare */
 import { DropdownMenuItemType } from '@lobehub/ui';
-import Fuse from 'fuse.js';
+import Fuse, { type IFuseOptions } from 'fuse.js';
 
 import { genServiceId } from '@/editor-kernel';
 import type { IEditor, IEditorKernel, IServiceID } from '@/types';
@@ -13,7 +13,7 @@ export type ISlashDividerOption = {
   type: 'divider';
 };
 
-export interface ISlashMenuOption extends Omit<DropdownMenuItemType, 'extra'> {
+export interface ISlashMenuOption extends DropdownMenuItemType {
   metadata?: Record<string, any>;
   onSelect?: (editor: IEditor, matchingString: string) => void;
 }
@@ -22,6 +22,17 @@ export type ISlashOption = ISlashMenuOption | ISlashDividerOption;
 
 export interface SlashOptions {
   allowWhitespace?: boolean;
+  /**
+   * Complete Fuse.js configuration options
+   * @example
+   * {
+   *   keys: ['key', 'label', 'description'],
+   *   threshold: 0.3,
+   *   includeScore: true,
+   *   includeMatches: true
+   * }
+   */
+  fuseOptions?: IFuseOptions<ISlashMenuOption>;
   // Trigger symbol
   items:
     | Array<ISlashOption>
@@ -35,6 +46,13 @@ export interface SlashOptions {
   maxLength?: number;
   minLength?: number;
   punctuation?: string;
+  /**
+   * Fuse.js search keys for fuzzy matching
+   * Default is ['key']
+   * @example ['key', 'label', 'description']
+   * @deprecated Use fuseOptions instead
+   */
+  searchKeys?: string[];
   trigger: string;
 }
 
@@ -78,12 +96,13 @@ export class SlashService implements ISlashService {
       const searchableItems = options.items.filter(
         (item): item is ISlashMenuOption => !('type' in item) || item.type !== 'divider',
       );
-      this.triggerFuseMap.set(
-        options.trigger,
-        new Fuse(searchableItems, {
-          keys: ['label', 'value'],
-        }),
-      );
+
+      // Use fuseOptions if provided, otherwise fallback to searchKeys or default
+      const fuseConfig: IFuseOptions<ISlashMenuOption> = options.fuseOptions || {
+        keys: options.searchKeys || ['key'],
+      };
+
+      this.triggerFuseMap.set(options.trigger, new Fuse(searchableItems, fuseConfig));
     }
   }
 

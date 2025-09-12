@@ -12,11 +12,12 @@ import {
   ReactListPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
+  type SlashOptions,
 } from '@lobehub/editor';
 import { Editor, FloatMenu, SlashMenu } from '@lobehub/editor/react';
-import { Avatar } from '@lobehub/ui';
+import { Avatar, Text } from '@lobehub/ui';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
-import { Ref, memo } from 'react';
+import { Ref, memo, useMemo } from 'react';
 
 import { content } from './data';
 
@@ -26,40 +27,97 @@ const InputEditor = memo<{
   onSend?: () => void;
   slashMenuRef: Ref<HTMLDivElement>;
 }>(({ editor, slashMenuRef, onSend, fullscreen }) => {
+  const mentionItems: SlashOptions['items'] = useMemo(
+    () => [
+      {
+        icon: <Avatar avatar={'💻'} size={24} />,
+        key: 'bot1',
+        label: '前端研发专家',
+        metadata: { id: 'bot1' },
+      },
+      {
+        icon: <Avatar avatar={'🌍'} size={24} />,
+        key: 'bot2',
+        label: '中英文互译助手',
+        metadata: { id: 'bot2' },
+      },
+      {
+        icon: <Avatar avatar={'📖'} size={24} />,
+        key: 'bot3',
+        label: '学术写作增强专家',
+        metadata: { id: 'bot3' },
+      },
+    ],
+    [],
+  );
+
+  const slashItems: SlashOptions['items'] = useMemo(() => {
+    const data: SlashOptions['items'] = [
+      {
+        icon: Heading1Icon,
+        key: 'h1',
+        label: 'Heading 1',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
+        },
+      },
+      {
+        icon: Heading2Icon,
+        key: 'h2',
+        label: 'Heading 2',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
+        },
+      },
+      {
+        icon: Heading3Icon,
+        key: 'h3',
+        label: 'Heading 3',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h3' });
+        },
+      },
+
+      {
+        type: 'divider',
+      },
+      {
+        icon: MinusIcon,
+        key: 'hr',
+        label: 'Hr',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, {});
+        },
+      },
+      {
+        icon: Table2Icon,
+        key: 'table',
+        label: 'Table',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' });
+        },
+      },
+    ];
+    return data.map((item) => {
+      if (item.type === 'divider') return item;
+      return {
+        ...item,
+        extra: (
+          <Text code fontSize={12} type={'secondary'}>
+            {item.key}
+          </Text>
+        ),
+      };
+    });
+  }, []);
+
   return (
     <Editor
       autoFocus
       content={content}
       editor={editor}
       mentionOption={{
-        items: async (search) => {
-          console.log(search);
-          const data = [
-            {
-              icon: <Avatar avatar={'💻'} size={24} />,
-              key: 'bot1',
-              label: '前端研发专家',
-              metadata: { id: 'bot1' },
-            },
-            {
-              icon: <Avatar avatar={'🌍'} size={24} />,
-              key: 'bot2',
-              label: '中英文互译助手',
-              metadata: { id: 'bot2' },
-            },
-            {
-              icon: <Avatar avatar={'📖'} size={24} />,
-              key: 'bot3',
-              label: '学术写作增强专家',
-              metadata: { id: 'bot3' },
-            },
-          ];
-          if (!search?.matchingString) return data;
-          return data.filter((item) => {
-            if (!item.label) return true;
-            return item.label.toLowerCase().includes(search.matchingString.toLowerCase());
-          });
-        },
+        items: mentionItems,
         markdownWriter: (mention) => {
           return `\n<mention>${mention.label}[${mention.metadata?.id || mention.label}]</mention>\n`;
         },
@@ -72,10 +130,12 @@ const InputEditor = memo<{
         renderComp: fullscreen
           ? undefined
           : (props) => {
+              if (props.options.length === 0) return;
               return (
                 <SlashMenu {...props} getPopupContainer={() => (slashMenuRef as any).current} />
               );
             },
+        searchKeys: ['label'],
       }}
       onBlur={({ editor, event }) => console.log('Blur', editor, event)}
       onCompositionEnd={({ editor, event }) => console.log('Composition End', editor, event)}
@@ -111,52 +171,8 @@ const InputEditor = memo<{
         }),
       ]}
       slashOption={{
-        items: [
-          {
-            icon: Heading1Icon,
-            key: 'h1',
-            label: 'Heading 1',
-            onSelect: (editor) => {
-              editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
-            },
-          },
-          {
-            icon: Heading2Icon,
-            key: 'h2',
-            label: 'Heading 2',
-            onSelect: (editor) => {
-              editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
-            },
-          },
-          {
-            icon: Heading3Icon,
-            key: 'h3',
-            label: 'Heading 3',
-            onSelect: (editor) => {
-              editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h3' });
-            },
-          },
-
-          {
-            type: 'divider',
-          },
-          {
-            icon: MinusIcon,
-            key: 'hr',
-            label: 'Hr',
-            onSelect: (editor) => {
-              editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, {});
-            },
-          },
-          {
-            icon: Table2Icon,
-            key: 'table',
-            label: 'Table',
-            onSelect: (editor) => {
-              editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' });
-            },
-          },
-        ],
+        items: slashItems,
+        maxLength: 6,
         renderComp: fullscreen
           ? undefined
           : (props) => {

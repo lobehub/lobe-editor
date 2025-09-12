@@ -1,4 +1,10 @@
-import { $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
+import {
+  $getSelection,
+  $isRangeSelection,
+  COMMAND_PRIORITY_CRITICAL,
+  KEY_DOWN_COMMAND,
+  LexicalEditor,
+} from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -46,6 +52,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
   private service: SlashService | null = null;
   private currentSlashTrigger: string | null = null;
   private currentSlashTriggerIndex = -1;
+  private suppressOpen = false;
 
   constructor(
     kernel: IEditorKernel,
@@ -65,9 +72,28 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
     this.config?.triggerClose();
     this.currentSlashTrigger = null;
     this.currentSlashTriggerIndex = -1;
+    // After an explicit close, suppress reopening until next typing input
+    this.suppressOpen = true;
   }
 
   onInit(editor: LexicalEditor): void {
+    // Reset suppression on typing-related key presses
+    this.register(
+      editor.registerCommand<KeyboardEvent>(
+        KEY_DOWN_COMMAND,
+        (event) => {
+          if (event.isComposing) return false;
+          const key = event.key;
+          // Any character input or deletion should re-enable opening
+          if (key.length === 1 || key === 'Backspace' || key === 'Delete') {
+            this.suppressOpen = false;
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+    );
+
     this.register(
       editor.registerUpdateListener(() => {
         editor.getEditorState().read(() => {
@@ -104,6 +130,12 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
             return;
           }
 
+          // If we previously suppressed opening, do not reopen until user types
+          if (this.currentSlashTrigger === null && this.suppressOpen) {
+            this.triggerClose();
+            return;
+          }
+
           let triggerText = this.currentSlashTrigger;
           if (triggerText === null) {
             triggerText = text.slice(-1);
@@ -131,6 +163,16 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
             editorWindow,
           );
           const match = triggerFn?.(text.slice(this.currentSlashTriggerIndex));
+
+          // Check if there's a space in the current search text that should close the menu
+          const searchText = text.slice(this.currentSlashTriggerIndex);
+          const hasSpaceAfterTrigger = searchText.includes(' ') && !slashOptions?.allowWhitespace;
+
+          if (hasSpaceAfterTrigger) {
+            this.triggerClose();
+            return;
+          }
+
           const finalItems =
             fuse && match && match.matchingString.length > 0
               ? fuse.search(match.matchingString).map((result) => result.item)

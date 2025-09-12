@@ -63,10 +63,10 @@ const Editor = memo<EditorProps>(
       return (
         <ReactSlashPlugin>
           {enableSlash ? (
-            <ReactSlashOption maxLength={1} trigger="/" {...slashOption} />
+            <ReactSlashOption maxLength={8} trigger="/" {...slashOption} />
           ) : undefined}
           {enableMention ? (
-            <ReactSlashOption maxLength={6} trigger="@" {...restMentionOption} />
+            <ReactSlashOption maxLength={8} trigger="@" {...restMentionOption} />
           ) : undefined}
         </ReactSlashPlugin>
       );
