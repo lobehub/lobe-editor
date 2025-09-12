@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.8.3](https://github.com/lobehub/lobe-editor/compare/v1.8.2...v1.8.3)
+<sup>Released on **2025-09-12**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: Refactor floating system.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: Refactor floating system ([9acf4a1](https://github.com/lobehub/lobe-editor/commit/9acf4a1))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.8.2](https://github.com/lobehub/lobe-editor/compare/v1.8.1...v1.8.2)
 <sup>Released on **2025-09-12**</sup>
 
