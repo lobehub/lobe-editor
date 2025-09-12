@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.8.4](https://github.com/lobehub/lobe-editor/compare/v1.8.3...v1.8.4)
+<sup>Released on **2025-09-12**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: UpdatePosition.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: UpdatePosition ([02a4e59](https://github.com/lobehub/lobe-editor/commit/02a4e59))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.8.3](https://github.com/lobehub/lobe-editor/compare/v1.8.2...v1.8.3)
 <sup>Released on **2025-09-12**</sup>
 
