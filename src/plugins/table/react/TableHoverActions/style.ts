@@ -5,12 +5,10 @@ export const useStyles = createStyles(({ css }) => {
   return {
     tableAddColumns: css`
       position: absolute;
-      height: 100%;
     `,
 
     tableAddRows: css`
       position: absolute;
-      width: calc(100% - 25px);
     `,
   };
 });
