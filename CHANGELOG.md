@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.8.2](https://github.com/lobehub/lobe-editor/compare/v1.8.1...v1.8.2)
+<sup>Released on **2025-09-12**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Fix link anchor.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Fix link anchor ([961ce4f](https://github.com/lobehub/lobe-editor/commit/961ce4f))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.8.1](https://github.com/lobehub/lobe-editor/compare/v1.8.0...v1.8.1)
 <sup>Released on **2025-09-12**</sup>
 
