@@ -16,17 +16,17 @@ import { ActionIcon } from '@lobehub/ui';
 import { $getNearestNodeFromDOMNode, LexicalEditor, NodeKey } from 'lexical';
 import { PlusIcon } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react';
+import { useAnchor } from '@/editor-kernel/react/useAnchor';
 
 import { useStyles } from './style';
 import { getMouseInfo, useDebounce } from './utils';
 
-const TableHoverActionsContainer = memo<{
-  anchorElem: HTMLElement;
+const TableHoverActions = memo<{
   editor: LexicalEditor;
-}>(({ anchorElem, editor }) => {
+}>(({ editor }) => {
+  const anchorElem = useAnchor();
   const [iEditor] = useLexicalComposerContext();
   const [isShownRow, setShownRow] = useState<boolean>(false);
   const [isShownColumn, setShownColumn] = useState<boolean>(false);
@@ -88,7 +88,7 @@ const TableHoverActionsContainer = memo<{
         { editor },
       );
 
-      if (tableDOMElement) {
+      if (tableDOMElement && anchorElem) {
         const {
           y: tableElemY,
           right: tableElemRight,
@@ -243,21 +243,6 @@ const TableHoverActionsContainer = memo<{
   );
 });
 
-export default memo(
-  ({ anchorElem, editor }: { anchorElem?: HTMLElement; editor: LexicalEditor }) => {
-    // Don't render portal on server side
-    if (typeof document === 'undefined') {
-      return null;
-    }
+TableHoverActions.displayName = 'TableHoverActions';
 
-    const root = editor.getRootElement();
-    const anchor = root ? root.parentElement : null;
-
-    const targetElement = anchorElem || anchor || document.body;
-
-    return createPortal(
-      <TableHoverActionsContainer anchorElem={targetElement} editor={editor} />,
-      targetElement,
-    );
-  },
-);
+export default TableHoverActions;

@@ -7,13 +7,14 @@ import {
   COMMAND_PRIORITY_NORMAL,
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
+  LexicalEditor,
   createCommand,
 } from 'lexical';
 import { BaselineIcon, LinkIcon } from 'lucide-react';
 import {
   type ChangeEvent,
-  type FC,
   type KeyboardEvent,
+  memo,
   useCallback,
   useEffect,
   useRef,
@@ -21,7 +22,7 @@ import {
 } from 'react';
 import { Flexbox } from 'react-layout-kit';
 
-import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
+import { useLexicalEditor } from '@/editor-kernel/react';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { UPDATE_LINK_TEXT_COMMAND } from '../../command';
@@ -33,7 +34,11 @@ export const EDIT_LINK_COMMAND = createCommand<{
   linkNodeDOM: HTMLElement | null;
 }>();
 
-const LinkEdit: FC = () => {
+interface LinkEditProps {
+  editor: LexicalEditor;
+}
+
+const LinkEdit = memo<LinkEditProps>(({ editor }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const linkNodeRef = useRef<LinkNode | null>(null);
   const linkInputRef = useRef<InputRef | null>(null);
@@ -41,17 +46,16 @@ const LinkEdit: FC = () => {
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
   const [linkDom, setLinkDom] = useState<HTMLElement | null>(null);
-  const [editor] = useLexicalComposerContext();
+
   const t = useTranslation();
   const { styles, theme } = useStyles();
 
   // 取消编辑，不保存更改
   const handleCancel = useCallback(() => {
-    const lexicalEditor = editor.getLexicalEditor();
-    if (!lexicalEditor) return;
+    if (!editor) return;
 
     // 将焦点返回到编辑器
-    lexicalEditor.focus();
+    editor.focus();
 
     // 隐藏编辑面板
     if (divRef.current) {
@@ -103,13 +107,7 @@ const LinkEdit: FC = () => {
 
   // 提取提交逻辑到独立函数
   const handleSubmit = useCallback(() => {
-    const lexicalEditor = editor.getLexicalEditor();
-    if (
-      !linkNodeRef.current ||
-      !linkInputRef.current ||
-      !linkTextInputRef.current ||
-      !lexicalEditor
-    ) {
+    if (!linkNodeRef.current || !linkInputRef.current || !linkTextInputRef.current || !editor) {
       return;
     }
 
@@ -120,24 +118,24 @@ const LinkEdit: FC = () => {
     const textInputDOM = textInput.input as HTMLInputElement;
 
     // 更新链接URL
-    const currentURL = lexicalEditor.read(() => linkNode.getURL());
+    const currentURL = editor.read(() => linkNode.getURL());
     if (currentURL !== inputDOM.value) {
-      lexicalEditor.update(() => {
+      editor.update(() => {
         linkNode.setURL(inputDOM.value);
       });
     }
 
     // 更新链接文本
-    const currentText = lexicalEditor.read(() => linkNode.getTextContent());
+    const currentText = editor.read(() => linkNode.getTextContent());
     if (currentText !== textInputDOM.value) {
-      lexicalEditor.dispatchCommand(UPDATE_LINK_TEXT_COMMAND, {
+      editor.dispatchCommand(UPDATE_LINK_TEXT_COMMAND, {
         key: linkNode.getKey(),
         text: textInputDOM.value,
       });
     }
 
     // 关闭编辑器并聚焦到编辑器
-    lexicalEditor.focus();
+    editor.focus();
 
     // 隐藏编辑面板
     if (divRef.current) {
@@ -152,13 +150,7 @@ const LinkEdit: FC = () => {
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
-      const lexicalEditor = editor.getLexicalEditor();
-      if (
-        !linkNodeRef.current ||
-        !linkInputRef.current ||
-        !linkTextInputRef.current ||
-        !lexicalEditor
-      ) {
+      if (!linkNodeRef.current || !linkInputRef.current || !linkTextInputRef.current || !editor) {
         return;
       }
 
@@ -171,9 +163,9 @@ const LinkEdit: FC = () => {
         case 'Enter': {
           event.preventDefault();
           if (event.currentTarget === textInputDOM) {
-            const currentText = lexicalEditor.read(() => linkNode.getTextContent());
+            const currentText = editor.read(() => linkNode.getTextContent());
             if (currentText !== textInputDOM.value) {
-              lexicalEditor.dispatchCommand(UPDATE_LINK_TEXT_COMMAND, {
+              editor.dispatchCommand(UPDATE_LINK_TEXT_COMMAND, {
                 key: linkNode.getKey(),
                 text: textInputDOM.value,
               });
@@ -194,7 +186,7 @@ const LinkEdit: FC = () => {
           if (event.currentTarget === textInputDOM) {
             inputDOM.focus();
           } else {
-            lexicalEditor.focus();
+            editor.focus();
           }
           return;
         }
@@ -312,6 +304,8 @@ const LinkEdit: FC = () => {
       </Flexbox>
     </Block>
   );
-};
+});
+
+LinkEdit.displayName = 'LinkEdit';
 
 export default LinkEdit;

@@ -17,7 +17,7 @@ export interface MathEditorContainerProps {
   prev: boolean;
 }
 
-export const MathEditorContainer = memo<MathEditorContainerProps>(
+const MathEditorContainer = memo<MathEditorContainerProps>(
   ({ children, isBlockMode, mathDOM, onFocus, prev }) => {
     const divRef = useRef<HTMLDivElement>(null);
     const { styles } = useStyles();
@@ -96,3 +96,5 @@ export const MathEditorContainer = memo<MathEditorContainerProps>(
 );
 
 MathEditorContainer.displayName = 'MathEditorContainer';
+
+export default MathEditorContainer;

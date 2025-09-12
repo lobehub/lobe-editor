@@ -6,6 +6,7 @@ import { $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
 import { type FC, useLayoutEffect, useMemo, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
+import PortalAnchor from '@/editor-kernel/react/PortalAnchor';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
 import { TablePlugin } from '../plugin';
@@ -57,8 +58,10 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({ className, locale 
     lexicalEditor && (
       <>
         <TableCellResizePlugin editor={lexicalEditor} eventEmitter={eventEmitter} />
-        <TableActionMenuPlugin editor={lexicalEditor} />
-        <TableHoverActionsPlugin editor={lexicalEditor} />
+        <PortalAnchor>
+          <TableActionMenuPlugin editor={lexicalEditor} />
+          <TableHoverActionsPlugin editor={lexicalEditor} />
+        </PortalAnchor>
       </>
     )
   );

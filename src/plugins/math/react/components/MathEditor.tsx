@@ -10,11 +10,12 @@ import {
 import { type FC, type ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
+import PortalAnchor from '@/editor-kernel/react/PortalAnchor';
 
 import { SELECT_MATH_SIDE_COMMAND, UPDATE_MATH_COMMAND } from '../../command';
 import { $isMathNode, MathBlockNode, MathInlineNode } from '../../node';
-import { MathEditorContainer } from './MathEditorContainer';
-import { MathEditorContent } from './MathEditorContent';
+import MathEditorContainer from './MathEditorContainer';
+import MathEditorContent from './MathEditorContent';
 
 interface MathEditProps {
   /** 自定义渲染组件，接收 MathEditorContent 作为子节点 */
@@ -280,14 +281,16 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
 
   // 否则使用默认的 MathEditorContainer
   return (
-    <MathEditorContainer
-      isBlockMode={isBlockMode}
-      mathDOM={mathDOM}
-      onFocus={handleFocus}
-      prev={prev}
-    >
-      {mathEditorContent}
-    </MathEditorContainer>
+    <PortalAnchor>
+      <MathEditorContainer
+        isBlockMode={isBlockMode}
+        mathDOM={mathDOM}
+        onFocus={handleFocus}
+        prev={prev}
+      >
+        {mathEditorContent}
+      </MathEditorContainer>
+    </PortalAnchor>
   );
 });
 

@@ -36,7 +36,7 @@ export interface MathEditorContentProps {
   value: string;
 }
 
-export const MathEditorContent = memo<MathEditorContentProps>(
+const MathEditorContent = memo<MathEditorContentProps>(
   ({
     focusRef,
     mathNode,
@@ -199,3 +199,5 @@ export const MathEditorContent = memo<MathEditorContentProps>(
 );
 
 MathEditorContent.displayName = 'MathEditorContent';
+
+export default MathEditorContent;
