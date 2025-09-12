@@ -1,6 +1,7 @@
-import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { Block } from '@lobehub/ui';
 import { type ReactNode, memo, useEffect, useRef } from 'react';
+
+import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
 import { useStyles } from '../style';
 
@@ -22,36 +23,31 @@ const MathEditorContainer = memo<MathEditorContainerProps>(
     const divRef = useRef<HTMLDivElement>(null);
     const { styles } = useStyles();
 
+    const updateMathPosition = () => {
+      return updatePosition({
+        callback: () => {
+          if (!divRef.current || !mathDOM) return;
+          if (!isBlockMode) {
+            divRef.current.style.width = '';
+            return;
+          }
+          const editorContainer = mathDOM.closest('[contenteditable="true"]') as HTMLElement | null;
+          if (editorContainer) {
+            const containerRect = editorContainer.getBoundingClientRect();
+            divRef.current.style.width = `${containerRect.width}px`;
+          }
+        },
+        floating: divRef.current,
+        reference: mathDOM,
+      });
+    };
+
     useEffect(() => {
       if (!mathDOM || !divRef.current) return;
-
       const floating = divRef.current;
 
-      const updatePosition = () => {
-        if (!mathDOM || !floating) return;
-        computePosition(mathDOM, floating, {
-          middleware: [offset(8), flip(), shift()],
-          placement: 'bottom-start',
-        }).then(({ x, y }) => {
-          if (!floating) return;
-          floating.style.left = `${x}px`;
-          floating.style.top = `${y}px`;
-          floating.style.width = '';
-
-          if (isBlockMode) {
-            const editorContainer = mathDOM.closest(
-              '[contenteditable="true"]',
-            ) as HTMLElement | null;
-            if (editorContainer) {
-              const containerRect = editorContainer.getBoundingClientRect();
-              floating.style.width = `${containerRect.width}px`;
-            }
-          }
-        });
-      };
-
       // 监听尺寸变化，随内容变化重新定位
-      const resizeObserver = new ResizeObserver(() => updatePosition());
+      const resizeObserver = new ResizeObserver(() => updateMathPosition());
       resizeObserver.observe(mathDOM);
       resizeObserver.observe(floating);
 
@@ -62,20 +58,18 @@ const MathEditorContainer = memo<MathEditorContainerProps>(
       }
 
       // 窗口尺寸变化时也重新定位
-      window.addEventListener('resize', updatePosition);
+      window.addEventListener('resize', updateMathPosition);
 
       return () => {
         resizeObserver.disconnect();
-        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('resize', updateMathPosition);
       };
     }, [mathDOM, prev, isBlockMode, onFocus]);
 
     // 当没有 mathDOM 时，隐藏容器
     useEffect(() => {
-      if (!mathDOM && divRef.current) {
-        divRef.current.style.left = `-9999px`;
-        divRef.current.style.top = `-9999px`;
-      }
+      if (mathDOM || !divRef.current) return;
+      cleanPosition(divRef.current);
     }, [mathDOM]);
 
     return (

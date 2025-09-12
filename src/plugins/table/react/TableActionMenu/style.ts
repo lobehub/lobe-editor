@@ -8,7 +8,8 @@ export const useStyles = createStyles(({ css }) => {
     z-index: 3;
     inset-block-start: 0;
     inset-inline-start: 0;
+    transform: translateY(100%);
 
-    background: red;
+    padding: 2px;
   `;
 });

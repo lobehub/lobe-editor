@@ -1,4 +1,3 @@
-import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { mergeRegister } from '@lexical/utils';
 import { Block, Button, Hotkey, Icon, Input, Text } from '@lobehub/ui';
 import type { InputRef } from 'antd';
@@ -24,6 +23,7 @@ import { Flexbox } from 'react-layout-kit';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
+import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
 import { UPDATE_LINK_TEXT_COMMAND } from '../../command';
 import { LinkNode } from '../../node/LinkNode';
@@ -53,63 +53,18 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
   // 取消编辑，不保存更改
   const handleCancel = useCallback(() => {
     if (!editor) return;
-
-    // 将焦点返回到编辑器
     editor.focus();
-
-    // 隐藏编辑面板
-    if (divRef.current) {
-      divRef.current.style.left = '-9999px';
-      divRef.current.style.top = '-9999px';
-    }
+    cleanPosition(divRef.current);
     linkNodeRef.current = null;
     setLinkUrl('');
     setLinkText('');
     setLinkDom(null);
   }, [editor]);
 
-  useEffect(() => {
-    if (!linkDom || !divRef.current) {
-      return;
-    }
-    computePosition(linkDom, divRef.current, {
-      middleware: [offset(8), flip(), shift()],
-      placement: 'bottom-start',
-    }).then(({ x, y }) => {
-      if (divRef.current) {
-        divRef.current.style.left = `${x}px`;
-        divRef.current.style.top = `${y}px`;
-      }
-    });
-  }, [linkDom]);
-
-  // 点击编辑器外部时关闭面板
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
-      if (!divRef.current) return;
-      const target = event.target as Node | null;
-      if (!target) return;
-      // 点击面板内部忽略
-      if (divRef.current.contains(target)) return;
-      // 面板打开时（存在 linkDom）才触发关闭
-      if (linkDom) {
-        handleCancel();
-      }
-    };
-
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('touchstart', handlePointerDown);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('touchstart', handlePointerDown);
-    };
-  }, [handleCancel, linkDom]);
-
   // 提取提交逻辑到独立函数
   const handleSubmit = useCallback(() => {
-    if (!linkNodeRef.current || !linkInputRef.current || !linkTextInputRef.current || !editor) {
+    if (!linkNodeRef.current || !linkInputRef.current || !linkTextInputRef.current || !editor)
       return;
-    }
 
     const linkNode = linkNodeRef.current;
     const input = linkInputRef.current;
@@ -138,15 +93,8 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
     editor.focus();
 
     // 隐藏编辑面板
-    if (divRef.current) {
-      divRef.current.style.left = '-9999px';
-      divRef.current.style.top = '-9999px';
-    }
-    linkNodeRef.current = null;
-    setLinkUrl('');
-    setLinkText('');
-    setLinkDom(null);
-  }, [editor, linkNodeRef, linkInputRef, linkTextInputRef]);
+    handleCancel();
+  }, [editor, linkNodeRef, linkInputRef, linkTextInputRef, handleCancel]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
@@ -201,19 +149,40 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
     [linkNodeRef, linkInputRef, handleSubmit, handleCancel],
   );
 
+  useEffect(() => {
+    updatePosition({
+      floating: divRef.current,
+      reference: linkDom,
+    });
+  }, [linkDom]);
+
+  // 点击编辑器外部时关闭面板
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!divRef.current) return;
+      const target = event.target as Node | null;
+      if (!target) return;
+      // 点击面板内部忽略
+      if (divRef.current.contains(target)) return;
+      // 面板打开时（存在 linkDom）才触发关闭
+      if (linkDom) handleCancel();
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [linkDom]);
+
   useLexicalEditor((editor) => {
     return mergeRegister(
       editor.registerCommand(
         EDIT_LINK_COMMAND,
         (payload) => {
           if (!payload.linkNode || !payload.linkNodeDOM) {
-            setLinkDom(null);
-            setLinkUrl('');
-            setLinkText('');
-            if (divRef.current) {
-              divRef.current.style.left = '-9999px';
-              divRef.current.style.top = '-9999px';
-            }
+            handleCancel();
             return false;
           }
           linkNodeRef.current = payload.linkNode;
@@ -227,14 +196,7 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
       editor.registerCommand(
         KEY_ESCAPE_COMMAND,
         () => {
-          if (divRef.current) {
-            divRef.current.style.left = '-9999px';
-            divRef.current.style.top = '-9999px';
-          }
-          linkNodeRef.current = null;
-          setLinkUrl('');
-          setLinkText('');
-          setLinkDom(null);
+          handleCancel();
           return true;
         },
         COMMAND_PRIORITY_EDITOR,

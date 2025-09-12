@@ -49,6 +49,7 @@ import {
 interface TableCellActionMenuProps {
   cellMerge?: boolean;
   children: ReactNode;
+  className?: string;
   editor: LexicalEditor;
   tableCellNode: TableCellNode;
 }
@@ -245,29 +246,6 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
     // Create menu items array with useMemo for performance
     const menuItems = useMemo(() => {
       return [
-        // // Merge/Unmerge cells (conditional)
-        // ...(cellMerge && canMergeCells
-        //   ? [
-        //       {
-        //         key: 'table-merge-cells',
-        //         label: 'Merge cells',
-        //         onClick: () => mergeTableCellsAtSelection(),
-        //       },
-        //     ]
-        //   : []),
-        // ...(cellMerge && canUnmergeCell
-        //   ? [
-        //       {
-        //         key: 'table-unmerge-cells',
-        //         label: 'Unmerge cells',
-        //         onClick: () => unmergeTableCellsAtSelection(),
-        //       },
-        //     ]
-        //   : []),
-        // // Divider after merge operations (if any merge operations exist)
-        // ...(cellMerge && (canMergeCells || canUnmergeCell) ? [{ type: 'divider' as const }] : []),
-        //
-        // // Row operations
         {
           icon: PanelTopCloseIcon,
           key: 'table-insert-row-above',

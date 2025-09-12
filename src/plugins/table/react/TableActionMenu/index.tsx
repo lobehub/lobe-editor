@@ -29,6 +29,7 @@ import { ChevronDown } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAnchor } from '@/editor-kernel/react/useAnchor';
+import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
 import ActionMenu from './ActionMenu';
 import { useStyles } from './style';
@@ -148,12 +149,16 @@ const TableActionMenu = memo<{
     const enabled = !tableObserver || !tableObserver.isSelecting;
     menu.classList.toggle('table-cell-action-button-container--active', enabled);
     menu.classList.toggle('table-cell-action-button-container--inactive', !enabled);
-    if (enabled && anchorElem) {
-      const tableCellRect = tableCellParentNodeDOM.getBoundingClientRect();
-      const anchorRect = anchorElem.getBoundingClientRect();
-      const top = tableCellRect.top - anchorRect.top;
-      const left = tableCellRect.right - anchorRect.left;
-      menu.style.transform = `translate(${left}px, ${top}px)`;
+
+    if (enabled) {
+      updatePosition({
+        floating: menu,
+        offset: 0,
+        placement: 'top-end',
+        reference: tableCellParentNodeDOM,
+      });
+    } else {
+      cleanPosition(menu);
     }
   }, [editor, anchorElem, checkTableCellOverflow]);
 
@@ -202,11 +207,9 @@ const TableActionMenu = memo<{
           <ActionIcon
             glass
             icon={ChevronDown}
-            size={'small'}
+            size={12}
             style={{
-              position: 'absolute',
-              right: 4,
-              top: 4,
+              transform: 'postionX(2px)',
             }}
             variant={'filled'}
           />

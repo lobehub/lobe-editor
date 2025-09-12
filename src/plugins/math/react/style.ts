@@ -65,11 +65,7 @@ export const useStyles = createStyles(({ cx, css, token }) => {
     mathEditor: css`
       position: absolute;
       z-index: 999;
-      inset-block-start: -9999px;
-      inset-inline-start: -9999px;
-
       width: 320px;
-
       background: ${token.colorBgElevated};
 
       textarea {
