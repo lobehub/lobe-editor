@@ -4,6 +4,7 @@ import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { mergeRegister } from '@lexical/utils';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_NORMAL } from 'lexical';
 import { type FC, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
@@ -92,7 +93,6 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
               return false;
             }
             LinkRef.current = payload.event.target as HTMLDivElement;
-            // const url = editor.read(() => payload.linkNode.getURL());
             divRef.current.style.left = `${x}px`;
             divRef.current.style.top = `${y}px`;
           });
@@ -117,26 +117,35 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
     );
   }, []);
 
-  return (
-    <>
-      <LinkToolbar
-        editor={editor.getLexicalEditor()!}
-        linkNode={linkNode}
-        onMouseEnter={() => {
-          clearTimeout(clearTimerRef.current);
-        }}
-        onMouseLeave={() => {
-          clearTimeout(clearTimerRef.current);
-          if (divRef.current) {
-            divRef.current.style.left = '-9999px';
-            divRef.current.style.top = '-9999px';
-          }
-        }}
-        ref={divRef}
-      />
-      <LinkEdit />
-    </>
-  );
+  // Determine anchor element (editor inner wrapper)
+  const lexicalEditor = editor.getLexicalEditor?.();
+  const root = lexicalEditor?.getRootElement?.() as HTMLElement | null | undefined;
+  const anchor = root ? (root.parentElement as HTMLElement | null) : null;
+  const targetElement = anchor || (typeof document !== 'undefined' ? document.body : null);
+
+  return targetElement
+    ? createPortal(
+        <>
+          <LinkToolbar
+            editor={editor.getLexicalEditor()!}
+            linkNode={linkNode}
+            onMouseEnter={() => {
+              clearTimeout(clearTimerRef.current);
+            }}
+            onMouseLeave={() => {
+              clearTimeout(clearTimerRef.current);
+              if (divRef.current) {
+                divRef.current.style.left = '-9999px';
+                divRef.current.style.top = '-9999px';
+              }
+            }}
+            ref={divRef}
+          />
+          <LinkEdit />
+        </>,
+        targetElement,
+      )
+    : null;
 };
 
 ReactLinkPlugin.displayName = 'ReactLinkPlugin';
