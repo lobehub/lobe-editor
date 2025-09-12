@@ -572,7 +572,10 @@ export default memo<{
     return null;
   }
 
-  const targetElement = anchorElem || document.body;
+  const root = editor.getRootElement();
+  const anchor = root ? root.parentElement : null;
+
+  const targetElement = anchorElem || anchor || document.body;
 
   return createPortal(
     <TableCellActionMenuContainer
