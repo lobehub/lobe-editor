@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.8.1](https://github.com/lobehub/lobe-editor/compare/v1.8.0...v1.8.1)
+<sup>Released on **2025-09-12**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix table anchor.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix table anchor ([27b3b94](https://github.com/lobehub/lobe-editor/commit/27b3b94))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.8.0](https://github.com/lobehub/lobe-editor/compare/v1.7.1...v1.8.0)
 <sup>Released on **2025-09-12**</sup>
 
