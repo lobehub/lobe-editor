@@ -144,17 +144,33 @@ export function getBasicTypeaheadTriggerMatch(
   },
 ) {
   return (text: string) => {
+    // When whitespace is not allowed, we need to ensure the regex stops at whitespace
     const validCharsSuffix = allowWhitespace ? '' : '\\s';
     const validChars = '[^' + trigger + punctuation + validCharsSuffix + ']';
-    const TypeaheadTriggerRegex = new RegExp(
-      '(^|\\s|\\()(' + '[' + trigger + ']' + '((?:' + validChars + '){0,' + maxLength + '})' + ')$',
-    );
+
+    // Create regex that matches from trigger to either end of string OR whitespace (when not allowed)
+    const regexPattern = allowWhitespace
+      ? '(^|\\s|\\()(' +
+        '[' +
+        trigger +
+        ']' +
+        '((?:' +
+        validChars +
+        '){0,' +
+        maxLength +
+        '})' +
+        ')$'
+      : '(^|\\s|\\()(' + '[' + trigger + ']' + '((?:' + validChars + ')*?)' + ')(?=\\s|$)';
+
+    const TypeaheadTriggerRegex = new RegExp(regexPattern);
     const match = TypeaheadTriggerRegex.exec(text);
 
     if (match !== null) {
       const maybeLeadingWhitespace = match[1];
       const matchingString = match[3];
-      if (matchingString.length >= minLength) {
+
+      // Check length constraints
+      if (matchingString.length >= minLength && matchingString.length <= maxLength) {
         return {
           leadOffset: match.index + maybeLeadingWhitespace.length,
           matchingString,

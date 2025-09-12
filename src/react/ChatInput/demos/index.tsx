@@ -1,42 +1,45 @@
-import {
-  INSERT_HEADING_COMMAND,
-  INSERT_HORIZONTAL_RULE_COMMAND,
-  INSERT_MENTION_COMMAND,
-  INSERT_TABLE_COMMAND,
-  ReactCodePlugin,
-  ReactCodeblockPlugin,
-  ReactHRPlugin,
-  ReactImagePlugin,
-  ReactLinkPlugin,
-  ReactListPlugin,
-  ReactMathPlugin,
-  ReactTablePlugin,
-} from '@lobehub/editor';
-import {
-  ChatInput,
-  Editor,
-  FloatMenu,
-  SlashMenu,
-  useEditor,
-  useEditorState,
-} from '@lobehub/editor/react';
-import { Avatar } from '@lobehub/ui';
+import { ChatInput, ChatInputProps, useEditor, useEditorState } from '@lobehub/editor/react';
 import type { ChatMessage } from '@lobehub/ui/chat';
-import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
+import { StoryBook, useControls, useCreateStore } from '@lobehub/ui/storybook';
 import { useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import ActionToolbar from './ActionToolbar';
 import Container from './Container';
+import InputEditor from './InputEditor';
 import TypoToolbar from './TypoToolbar';
-import { chatMessages, content } from './data';
+import { chatMessages } from './data';
 
 export default () => {
   const [messages, setMessages] = useState<ChatMessage[]>(chatMessages);
-  const [showTypobar, setShowTypobar] = useState(true);
+  const [showTypobar, setShowTypobar] = useState(false);
   const editor = useEditor();
   const slashMenuRef = useRef<HTMLDivElement>(null);
   const toolbarState = useEditorState(editor);
+  const store = useCreateStore();
+
+  const controls = useControls(
+    {
+      fullscreen: false,
+      maxHeight: {
+        max: 480,
+        min: 240,
+        step: 1,
+        value: 320,
+      },
+      minHeight: {
+        max: 240,
+        min: 16,
+        step: 1,
+        value: 32,
+      },
+      resize: true,
+      showResizeHandle: false,
+    },
+    {
+      store,
+    },
+  ) as ChatInputProps;
 
   // Shared send message function
   const handleSendMessage = (asAssistant?: boolean) => {
@@ -89,152 +92,31 @@ export default () => {
   );
 
   return (
-    <Container messages={messages}>
-      <ChatInput
-        footer={
-          <ActionToolbar
-            onSend={handleSendMessage}
-            sendDisabled={toolbarState.isEmpty}
-            setShowTypobar={setShowTypobar}
-            showTypobar={showTypobar}
-          />
-        }
-        header={<TypoToolbar editor={editor} show={showTypobar} />}
-        slashMenuRef={slashMenuRef}
-      >
-        <Editor
-          autoFocus
-          content={content}
-          editor={editor}
-          mentionOption={{
-            items: async (search) => {
-              console.log(search);
-              const data = [
-                {
-                  icon: <Avatar avatar={'💻'} size={24} />,
-                  key: 'bot1',
-                  label: '前端研发专家',
-                  metadata: { id: 'bot1' },
-                },
-                {
-                  icon: <Avatar avatar={'🌍'} size={24} />,
-                  key: 'bot2',
-                  label: '中英文互译助手',
-                  metadata: { id: 'bot2' },
-                },
-                {
-                  icon: <Avatar avatar={'📖'} size={24} />,
-                  key: 'bot3',
-                  label: '学术写作增强专家',
-                  metadata: { id: 'bot3' },
-                },
-              ];
-              if (!search?.matchingString) return data;
-              return data.filter((item) => {
-                if (!item.label) return true;
-                return item.label.toLowerCase().includes(search.matchingString.toLowerCase());
-              });
-            },
-            markdownWriter: (mention) => {
-              return `\n<mention>${mention.label}[${mention.metadata?.id || mention.label}]</mention>\n`;
-            },
-            onSelect: (editor, option) => {
-              editor.dispatchCommand(INSERT_MENTION_COMMAND, {
-                label: String(option.label),
-                metadata: { id: option.key },
-              });
-            },
-            renderComp: (props) => {
-              return <SlashMenu {...props} getPopupContainer={() => slashMenuRef.current} />;
-            },
-          }}
-          onBlur={({ editor, event }) => console.log('Blur', editor, event)}
-          onCompositionEnd={({ editor, event }) => console.log('Composition End', editor, event)}
-          onCompositionStart={({ editor, event }) =>
-            console.log('Composition Start', editor, event)
+    <StoryBook levaStore={store} noPadding>
+      <Container fullscreen={controls.fullscreen} messages={messages}>
+        <ChatInput
+          defaultHeight={64}
+          footer={
+            <ActionToolbar
+              onSend={handleSendMessage}
+              sendDisabled={toolbarState.isEmpty}
+              setShowTypobar={setShowTypobar}
+              showTypobar={showTypobar}
+            />
           }
-          onFocus={({ editor, event }) => console.log('Focus', editor, event)}
-          onPressEnter={({ event }) => {
-            console.log('Enter pressed', { ctrlKey: event.ctrlKey, metaKey: event.metaKey });
-
-            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-              console.log('[Enter pressed] allowing new line');
-              return;
-            }
-
-            console.log('[Enter pressed] sending message');
-            handleSendMessage();
-            return true;
-          }}
-          placeholder={'Type something...'}
-          plugins={[
-            ReactListPlugin,
-            ReactLinkPlugin,
-            ReactImagePlugin,
-            ReactCodeblockPlugin,
-            ReactHRPlugin,
-            ReactCodePlugin,
-            ReactTablePlugin,
-            Editor.withProps(ReactMathPlugin, {
-              renderComp: (props) => (
-                <FloatMenu {...props} getPopupContainer={() => slashMenuRef.current} />
-              ),
-            }),
-          ]}
-          slashOption={{
-            items: [
-              {
-                icon: Heading1Icon,
-                key: 'h1',
-                label: 'Heading 1',
-                onSelect: (editor) => {
-                  editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
-                },
-              },
-              {
-                icon: Heading2Icon,
-                key: 'h2',
-                label: 'Heading 2',
-                onSelect: (editor) => {
-                  editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
-                },
-              },
-              {
-                icon: Heading3Icon,
-                key: 'h3',
-                label: 'Heading 3',
-                onSelect: (editor) => {
-                  editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h3' });
-                },
-              },
-
-              {
-                type: 'divider',
-              },
-              {
-                icon: MinusIcon,
-                key: 'hr',
-                label: 'Hr',
-                onSelect: (editor) => {
-                  editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, {});
-                },
-              },
-              {
-                icon: Table2Icon,
-                key: 'table',
-                label: 'Table',
-                onSelect: (editor) => {
-                  editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' });
-                },
-              },
-            ],
-            renderComp: (props) => {
-              return <SlashMenu {...props} getPopupContainer={() => slashMenuRef.current} />;
-            },
-          }}
-          variant={'chat'}
-        />
-      </ChatInput>
-    </Container>
+          header={<TypoToolbar editor={editor} show={showTypobar} />}
+          onSizeChange={(height) => console.log('resize:', height)}
+          slashMenuRef={slashMenuRef}
+          {...controls}
+        >
+          <InputEditor
+            editor={editor}
+            fullscreen={controls.fullscreen}
+            onSend={handleSendMessage}
+            slashMenuRef={slashMenuRef}
+          />
+        </ChatInput>
+      </Container>
+    </StoryBook>
   );
 };

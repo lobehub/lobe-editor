@@ -78,12 +78,14 @@ interface ISlashService {
 
 ### SlashOptions Configuration
 
-| Property  | Description             | Type                           | Default |
-| --------- | ----------------------- | ------------------------------ | ------- |
-| trigger   | Trigger character       | `string`                       | `'/'`   |
-| items     | Available command items | `ISlashOption[]` or `Function` | `[]`    |
-| maxLength | Maximum input length    | `number`                       | `75`    |
-| triggerFn | Custom trigger function | `(text: string) => Match`      | -       |
+| Property         | Description                       | Type                           | Default        |
+| ---------------- | --------------------------------- | ------------------------------ | -------------- |
+| trigger          | Trigger character                 | `string`                       | `'/'`          |
+| items            | Available command items           | `ISlashOption[]` or `Function` | `[]`           |
+| maxLength        | Maximum input length              | `number`                       | `75`           |
+| matchingFields   | Custom matching fields for search | `string[]`                     | `['key']`      |
+| matchingStrategy | Matching strategy for search      | `'startsWith'` \| `'fuzzy'`    | `'startsWith'` |
+| triggerFn        | Custom trigger function           | `(text: string) => Match`      | -              |
 
 ### ISlashOption
 
@@ -128,15 +130,62 @@ const slashPlugin = new SlashPlugin(kernel, {
 ```typescript
 const dynamicSlashOptions = {
   trigger: '#',
+  matchingStrategy: 'startsWith', // Search will be applied after async loading
+  matchingFields: ['key', 'title'], // Fields to search on
   items: async (search) => {
-    const commands = await fetchCommands(search.matchingString);
+    // Load all commands first
+    const commands = await fetchCommands();
     return commands.map((cmd) => ({
       key: cmd.id,
       title: cmd.name,
+      description: cmd.description,
       onSelect: () => executeCommand(cmd),
     }));
+    // Search filtering will be automatically applied after loading
+    // based on search.matchingString using the configured strategy
   },
 };
+```
+
+### Custom Matching Configuration
+
+```typescript
+// Use startsWith matching with key field (default behavior)
+const startsWithMatching = {
+  trigger: '/',
+  matchingStrategy: 'startsWith', // Default strategy
+  matchingFields: ['key'], // Default field
+  items: [
+    { key: 'heading1', title: 'Heading 1' },
+    { key: 'heading2', title: 'Heading 2' },
+    { key: 'list', title: 'List' },
+  ],
+};
+// Typing 'h' will match 'heading1' and 'heading2'
+
+// Use custom fields for matching
+const customFieldMatching = {
+  trigger: '@',
+  matchingStrategy: 'startsWith',
+  matchingFields: ['title', 'description'], // Match by title and description
+  items: [
+    { key: 'user1', title: 'John Doe', description: 'Developer' },
+    { key: 'user2', title: 'Jane Smith', description: 'Designer' },
+  ],
+};
+// Typing 'john' or 'dev' will match the first item
+
+// Use fuzzy matching for more flexible search
+const fuzzyMatching = {
+  trigger: '#',
+  matchingStrategy: 'fuzzy',
+  matchingFields: ['key', 'title'],
+  items: [
+    { key: 'react-component', title: 'React Component' },
+    { key: 'vue-template', title: 'Vue Template' },
+  ],
+};
+// Typing 'comp' will match 'react-component' even with characters in between
 ```
 
 ### Custom Trigger Function

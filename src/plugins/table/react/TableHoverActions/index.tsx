@@ -20,7 +20,7 @@ import { createPortal } from 'react-dom';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react';
 
-import { BUTTON_WIDTH_PX, useStyles } from './style';
+import { useStyles } from './style';
 import { getMouseInfo, useDebounce } from './utils';
 
 const TableHoverActionsContainer = memo<{
@@ -90,12 +90,10 @@ const TableHoverActionsContainer = memo<{
 
       if (tableDOMElement) {
         const {
-          width: tableElemWidth,
           y: tableElemY,
           right: tableElemRight,
           left: tableElemLeft,
           bottom: tableElemBottom,
-          height: tableElemHeight,
         } = (tableDOMElement as HTMLTableElement).getBoundingClientRect();
 
         // Adjust for using the scrollable table container
@@ -113,22 +111,18 @@ const TableHoverActionsContainer = memo<{
           setShownColumn(false);
           setShownRow(true);
           setPosition({
-            height: BUTTON_WIDTH_PX,
             left:
               tableHasScroll && parentElement
                 ? parentElement.offsetLeft
                 : tableElemLeft - editorElemLeft,
             top: tableElemBottom - editorElemY + 5,
-            width: tableHasScroll && parentElement ? parentElement.offsetWidth : tableElemWidth,
           });
         } else if (hoveredColumnNode) {
           setShownColumn(true);
           setShownRow(false);
           setPosition({
-            height: tableElemHeight,
             left: tableElemRight - editorElemLeft + 5,
             top: tableElemY - editorElemY,
-            width: BUTTON_WIDTH_PX,
           });
         }
       }

@@ -1,3 +1,4 @@
+import type { IFuseOptions } from 'fuse.js';
 import type { FC, ReactElement } from 'react';
 
 import type { SlashOptions } from '@/plugins/slash';
@@ -5,6 +6,17 @@ import type { ISlashMenuOption, ISlashOption } from '@/plugins/slash/service/i-s
 import type { IEditor } from '@/types';
 
 export interface ReactSlashOptionProps {
+  /**
+   * Complete Fuse.js configuration options
+   * @example
+   * {
+   *   keys: ['key', 'label', 'description'],
+   *   threshold: 0.3,
+   *   includeScore: true,
+   *   includeMatches: true
+   * }
+   */
+  fuseOptions?: IFuseOptions<ISlashMenuOption>;
   /**
    * Searchable options
    */
@@ -19,6 +31,13 @@ export interface ReactSlashOptionProps {
    * Custom render component
    */
   renderComp?: FC<MenuRenderProps>;
+  /**
+   * Fuse.js search keys for fuzzy matching
+   * Default is ['key']
+   * @example ['key', 'label', 'description']
+   * @deprecated Use fuseOptions instead
+   */
+  searchKeys?: string[];
   /**
    * Trigger character
    */
