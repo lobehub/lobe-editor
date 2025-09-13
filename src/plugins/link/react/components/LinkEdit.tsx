@@ -150,10 +150,14 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
   );
 
   useEffect(() => {
-    updatePosition({
-      floating: divRef.current,
-      reference: linkDom,
-    });
+    if (linkDom) {
+      updatePosition({
+        floating: divRef.current,
+        reference: linkDom,
+      });
+    } else {
+      cleanPosition(divRef.current);
+    }
   }, [linkDom]);
 
   // 点击编辑器外部时关闭面板
@@ -216,6 +220,8 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
       ),
     );
   }, []);
+
+  if (!linkNodeRef.current) return null;
 
   return (
     <Block className={styles.linkEdit} ref={divRef} shadow variant={'outlined'}>

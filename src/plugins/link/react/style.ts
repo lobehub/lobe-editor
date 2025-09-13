@@ -4,6 +4,8 @@ export const useStyles = createStyles(({ cx, css, token }) => {
   const position = css`
     position: absolute;
     z-index: 999;
+    inset-block-start: -9999px;
+    inset-inline-start: -9999px;
   `;
   return {
     link: css`
