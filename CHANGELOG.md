@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.9.0](https://github.com/lobehub/lobe-editor/compare/v1.8.6...v1.9.0)
+<sup>Released on **2025-09-15**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add node comparison utility and update MathEditor components.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add node comparison utility and update MathEditor components, closes [#33](https://github.com/lobehub/lobe-editor/issues/33) ([45cafc5](https://github.com/lobehub/lobe-editor/commit/45cafc5))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.8.6](https://github.com/lobehub/lobe-editor/compare/v1.8.5...v1.8.6)
 <sup>Released on **2025-09-15**</sup>
 
