@@ -41,8 +41,12 @@ export const useStyles = createStyles(
 
       position: relative;
 
+      display: flex;
+      flex-direction: column;
+
       width: 100%;
       max-width: 100%;
+      height: 100%;
 
       font-size: var(--lobe-markdown-font-size);
       line-height: var(--lobe-markdown-line-height);

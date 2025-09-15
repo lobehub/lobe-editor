@@ -15,7 +15,7 @@ export default () => {
   const [showTypobar, setShowTypobar] = useState(false);
   const editor = useEditor();
   const slashMenuRef = useRef<HTMLDivElement>(null);
-  const toolbarState = useEditorState(editor);
+  const editorState = useEditorState(editor);
   const store = useCreateStore();
 
   const controls = useControls(
@@ -43,7 +43,7 @@ export default () => {
 
   // Shared send message function
   const handleSendMessage = (asAssistant?: boolean) => {
-    if (!editor || toolbarState.isEmpty) return;
+    if (!editor || editorState.isEmpty) return;
 
     setMessages([
       ...messages,
@@ -99,7 +99,7 @@ export default () => {
           footer={
             <ActionToolbar
               onSend={handleSendMessage}
-              sendDisabled={toolbarState.isEmpty}
+              sendDisabled={editorState.isEmpty}
               setShowTypobar={setShowTypobar}
               showTypobar={showTypobar}
             />

@@ -29,6 +29,7 @@ const ChatInput = memo<ChatInputProps>((props) => {
     classNames,
     fullscreen,
     showResizeHandle,
+    onBodyClick,
     styles: customStyles,
     ...rest
   } = props;
@@ -63,6 +64,8 @@ const ChatInput = memo<ChatInputProps>((props) => {
   const bodyNode = (
     <div
       className={cx(styles.editor, classNames?.body)}
+      draggable={false}
+      onClick={onBodyClick}
       style={{
         ...customStyles?.body,
         flex: 1,

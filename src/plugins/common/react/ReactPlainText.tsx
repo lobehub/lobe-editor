@@ -143,7 +143,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
           onContextMenu={handleContextMenu}
           onFocus={handleFocus}
           ref={editorContainerRef}
-          style={{ outline: 'none' }}
+          style={{ flex: 1, minHeight: 0, outline: 'none' }}
         />
         <Placeholder style={style}>{placeholder}</Placeholder>
         {decorators}

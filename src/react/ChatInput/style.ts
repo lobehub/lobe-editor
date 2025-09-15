@@ -18,6 +18,8 @@ export const useStyles = createStyles(({ css, token }) => ({
   `,
 
   editor: css`
+    cursor: text;
+
     overflow: hidden auto;
     flex: 1;
 
@@ -30,6 +32,7 @@ export const useStyles = createStyles(({ css, token }) => ({
     position: relative;
 
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
     align-self: flex-end;
 
@@ -39,7 +42,6 @@ export const useStyles = createStyles(({ css, token }) => ({
       opacity: 1;
     }
   `,
-
   resizeHandle: css`
     position: absolute;
     inset-block-start: -4px;

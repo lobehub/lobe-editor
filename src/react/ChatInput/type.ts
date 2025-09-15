@@ -14,6 +14,7 @@ export interface ChatInputProps extends Omit<FlexboxProps, 'height'> {
   height?: number;
   maxHeight?: number;
   minHeight?: number;
+  onBodyClick?: FlexboxProps['onClick'];
   onSizeChange?: (height: number) => void;
   onSizeDragging?: (height: number) => void;
   resize?: boolean;
