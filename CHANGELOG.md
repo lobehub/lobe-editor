@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.8.6](https://github.com/lobehub/lobe-editor/compare/v1.8.5...v1.8.6)
+<sup>Released on **2025-09-15**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Fix ChatInput focus area.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Fix ChatInput focus area ([33602e2](https://github.com/lobehub/lobe-editor/commit/33602e2))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.8.5](https://github.com/lobehub/lobe-editor/compare/v1.8.4...v1.8.5)
 <sup>Released on **2025-09-13**</sup>
 
