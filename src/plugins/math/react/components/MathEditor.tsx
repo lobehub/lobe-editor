@@ -1,16 +1,11 @@
 import { mergeRegister } from '@lexical/utils';
 import { type TextAreaRef } from 'antd/es/input/TextArea';
-import {
-  $getSelection,
-  $isElementNode,
-  $isNodeSelection,
-  $isRangeSelection,
-  $isTextNode,
-} from 'lexical';
+import { $getNodeByKey, $getSelection, $isNodeSelection, $isRangeSelection } from 'lexical';
 import { type FC, type ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
 import PortalAnchor from '@/editor-kernel/react/PortalAnchor';
+import { compareNodeOrder } from '@/editor-kernel/utils';
 
 import { SELECT_MATH_SIDE_COMMAND, UPDATE_MATH_COMMAND } from '../../command';
 import { $isMathNode, MathBlockNode, MathInlineNode } from '../../node';
@@ -51,8 +46,10 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
           });
 
           if (currentNode) {
-            const writableNode = mathNode.getWritable();
-            writableNode.__code = value;
+            lexicalEditor.update(() => {
+              const writableNode = mathNode.getWritable();
+              writableNode.__code = value;
+            });
           }
           return;
         }
@@ -188,25 +185,23 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
           });
 
           if (canEdit) {
-            const node = prevEditorState.read(() => {
+            const anchorNodeKey = prevEditorState.read(() => {
               const sel = prevEditorState._selection;
-              if (!$isRangeSelection(sel) || !sel.isCollapsed()) {
+              if (!$isRangeSelection(sel)) {
                 return false;
               }
-              const node = sel.anchor.getNode();
-              if ($isTextNode(node)) {
-                return node.getNextSibling();
-              }
-              if (!$isElementNode(node)) {
-                return false;
-              }
-              return node.getChildAtIndex(sel.anchor.offset);
+              const node = sel.anchor.key;
+              return node;
             });
-            if (canEdit === node) {
-              setPrev(true);
-            } else {
-              setPrev(false);
-            }
+            editor.read(() => {
+              const anchorNode = anchorNodeKey ? $getNodeByKey(anchorNodeKey) : null;
+              const isPrev = anchorNode && compareNodeOrder(anchorNode, canEdit) < 0;
+              if (isPrev) {
+                setPrev(true);
+              } else {
+                setPrev(false);
+              }
+            });
             setIsOpen(true);
           }
 
@@ -242,7 +237,7 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
         }
       }}
       onValueChange={setValue}
-      prev={prev}
+      // prev={prev}
       value={value}
     />
   );

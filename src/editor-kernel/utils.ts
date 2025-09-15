@@ -88,3 +88,46 @@ export function getKernelFromEditor(editor: LexicalEditor): IEditorKernel {
   // @ts-expect-error __kernel is injected into the lexical editor instance
   return editor._createEditorArgs?.__kernel || editor._kernel;
 }
+
+/**
+ *
+ * @param nodeA
+ * @param nodeB
+ * @returns
+ */
+export function compareNodeOrder(nodeA: LexicalNode, nodeB: LexicalNode): number {
+  if (nodeA === nodeB) {
+    return 0;
+  }
+  const pathA: LexicalNode[] = [];
+  const pathB: LexicalNode[] = [];
+  let currentA: LexicalNode | null = nodeA;
+  let currentB: LexicalNode | null = nodeB;
+
+  while (currentA) {
+    pathA.unshift(currentA);
+    currentA = currentA.getParent();
+  }
+
+  while (currentB) {
+    pathB.unshift(currentB);
+    currentB = currentB.getParent();
+  }
+
+  const minLength = Math.min(pathA.length, pathB.length);
+
+  for (let i = 0; i < minLength; i++) {
+    if (pathA[i] !== pathB[i]) {
+      const siblings = pathA[i].getParent()?.getChildren() || [];
+      return siblings.indexOf(pathA[i]) - siblings.indexOf(pathB[i]);
+    }
+  }
+
+  // If all nodes in the shorter path are the same, the shorter path's node comes first
+  if (pathA.length !== pathB.length) {
+    return pathA.length - pathB.length;
+  }
+
+  // This case should not happen as we checked for equality at the start
+  return 0;
+}

@@ -27,6 +27,8 @@ const MathEditorContainer = memo<MathEditorContainerProps>(
       return updatePosition({
         callback: () => {
           if (!divRef.current || !mathDOM) return;
+          // 展示的时候聚焦
+          onFocus?.();
           if (!isBlockMode) {
             divRef.current.style.width = '';
             return;

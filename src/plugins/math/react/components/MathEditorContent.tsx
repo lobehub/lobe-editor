@@ -31,7 +31,7 @@ export interface MathEditorContentProps {
   /** 值变化回调 */
   onValueChange: (value: string) => void;
   /** 是否从前一个位置进入 */
-  prev: boolean;
+  // prev: boolean;
   /** 当前输入值 */
   value: string;
 }
@@ -47,7 +47,7 @@ const MathEditorContent = memo<MathEditorContentProps>(
     onSubmit,
     onValidationChange,
     onValueChange,
-    prev,
+    // prev,
     value,
   }) => {
     const t = useTranslation();
@@ -60,15 +60,15 @@ const MathEditorContent = memo<MathEditorContentProps>(
       focusRef?.(textareaRef.current);
     }, [focusRef]);
 
-    // 聚焦和光标位置处理
-    useEffect(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        if (prev) {
-          textareaRef.current.resizableTextArea?.textArea?.setSelectionRange(0, 0);
-        }
-      }
-    }, [prev]);
+    // // 聚焦和光标位置处理
+    // useEffect(() => {
+    //   if (textareaRef.current) {
+    //     textareaRef.current.focus();
+    //     if (prev) {
+    //       textareaRef.current.resizableTextArea?.textArea?.setSelectionRange(0, 0);
+    //     }
+    //   }
+    // }, [prev]);
 
     // 实时验证 LaTeX 语法
     useEffect(() => {
