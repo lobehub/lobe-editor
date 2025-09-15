@@ -273,7 +273,7 @@ export function registerRichKeydown(
             });
             event.preventDefault();
             return true;
-          } else if (possibleNode) {
+          } else if (possibleNode && possibleNode.getType() !== 'linebreak') {
             possibleNode?.selectEnd();
             event.preventDefault();
             return true;
@@ -330,7 +330,7 @@ export function registerRichKeydown(
             });
             event.preventDefault();
             return true;
-          } else if (possibleNode) {
+          } else if (possibleNode && possibleNode.getType() !== 'linebreak') {
             possibleNode?.selectStart();
             event.preventDefault();
             return true;
