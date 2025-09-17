@@ -117,6 +117,7 @@
     "@lobehub/lint": "^1.26.2",
     "@lobehub/ui": "^2.9.4",
     "@shikijs/types": "^3.9.2",
+    "@types/debug": "^4.1.12",
     "@types/katex": "^0.16.7",
     "@types/lodash": "^4.17.20",
     "@types/lodash-es": "^4.17.12",
