@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.9.2](https://github.com/lobehub/lobe-editor/compare/v1.9.1...v1.9.2)
+<sup>Released on **2025-09-17**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix debug injection.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix debug injection, closes [#36](https://github.com/lobehub/lobe-editor/issues/36) ([b248d54](https://github.com/lobehub/lobe-editor/commit/b248d54))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.9.1](https://github.com/lobehub/lobe-editor/compare/v1.9.0...v1.9.1)
 <sup>Released on **2025-09-17**</sup>
 
