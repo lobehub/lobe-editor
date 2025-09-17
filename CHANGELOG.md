@@ -2,6 +2,48 @@
 
 # Changelog
 
+### [Version&nbsp;1.9.1](https://github.com/lobehub/lobe-editor/compare/v1.9.0...v1.9.1)
+<sup>Released on **2025-09-17**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix mention with chinese input cursor issues.
+
+
+#### 💄 Styles
+
+- **misc**: Fix placeholder.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix mention with chinese input cursor issues ([5b270e0](https://github.com/lobehub/lobe-editor/commit/5b270e0))
+
+
+
+#### Styles
+
+* **misc**: Fix placeholder ([dc40a74](https://github.com/lobehub/lobe-editor/commit/dc40a74))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.9.0](https://github.com/lobehub/lobe-editor/compare/v1.8.6...v1.9.0)
 <sup>Released on **2025-09-15**</sup>
 
