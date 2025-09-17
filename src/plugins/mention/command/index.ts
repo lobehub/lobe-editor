@@ -1,6 +1,7 @@
 import { $wrapNodeInElement } from '@lexical/utils';
 import {
   $createParagraphNode,
+  $createTextNode,
   $insertNodes,
   $isRootOrShadowRoot,
   COMMAND_PRIORITY_HIGH,
@@ -22,10 +23,15 @@ export function registerMentionCommand(editor: LexicalEditor) {
       const { metadata, label } = payload;
       editor.update(() => {
         const mentionNode = $createMentionNode(label, metadata);
-        $insertNodes([mentionNode]); // Insert a zero-width space to ensure the image is not the last child
+        $insertNodes([mentionNode]);
+        // Ensure mention is inside a paragraph when inserted at root
         if ($isRootOrShadowRoot(mentionNode.getParentOrThrow())) {
-          $wrapNodeInElement(mentionNode, $createParagraphNode).selectEnd();
+          $wrapNodeInElement(mentionNode, $createParagraphNode);
         }
+        // Insert a trailing text node and move caret into it to enable IME input
+        const trailingText = $createTextNode('\u200B');
+        mentionNode.insertAfter(trailingText);
+        trailingText.selectEnd();
       });
       return true;
     },
