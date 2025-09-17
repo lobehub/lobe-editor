@@ -1,4 +1,3 @@
-// @ts-ignore - debug package types
 import createDebug from 'debug';
 
 /**
@@ -123,33 +122,6 @@ export class DebugLogger {
  * Global debug logger instance
  */
 export const debugLogger = new DebugLogger();
-
-/**
- * Browser environment debug initialization - Zero configuration approach
- * Automatically enables debug based on environment variables or development mode
- */
-if (typeof window !== 'undefined') {
-  // Check for server-side DEBUG environment variable (passed through build process)
-  const envDebug = typeof process !== 'undefined' ? process.env.DEBUG : undefined;
-
-  // Simple logic: Environment variable takes precedence, then development mode
-  let debugConfig: string | null = null;
-
-  if (envDebug) {
-    // Environment variable exists - use it directly
-    debugConfig = envDebug;
-    localStorage.debug = envDebug;
-  } else if (isDev) {
-    // Development mode - auto-enable all lobe-editor debug
-    debugConfig = 'lobe-editor:*';
-    localStorage.debug = debugConfig;
-  }
-
-  // Apply debug configuration
-  if (debugConfig) {
-    createDebug.enable(debugConfig);
-  }
-}
 
 /**
  * Convenience function to create a debug logger for a specific category
