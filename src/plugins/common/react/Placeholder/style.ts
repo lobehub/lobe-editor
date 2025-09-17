@@ -9,9 +9,11 @@ export const useStyles = createStyles(({ css, token }) => ({
     position: absolute;
     inset-block-start: 0;
 
-    margin-block: 0 !important;
+    margin-block: 4px;
 
+    line-height: var(--lobe-markdown-line-height);
     color: ${token.colorTextDescription};
+    letter-spacing: 0.02em;
   `,
   placeholderContainer: css`
     transform: translateY(-2px);
