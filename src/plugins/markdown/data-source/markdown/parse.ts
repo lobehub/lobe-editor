@@ -15,11 +15,13 @@ export type TransformerRecord = {
   [K in MarkdownNode['type']]?: (
     node: Extract<MarkdownNode, { type: K }>,
     children: MarkdownReadNode[],
+    index: number,
   ) => MarkdownReadNode | MarkdownReadNode[];
 };
 
 function convertMdastToLexical(
   node: Root | RootContent,
+  index: number,
   markdownReaders: TransformerRecord = {},
 ): MarkdownReadNode | MarkdownReadNode[] | null {
   switch (node.type) {
@@ -27,7 +29,7 @@ function convertMdastToLexical(
       return {
         ...INodeHelper.createRootNode(),
         children: node.children
-          .map((child) => convertMdastToLexical(child, markdownReaders))
+          .map((child, index) => convertMdastToLexical(child, index, markdownReaders))
           .filter(Boolean)
           .flat() as INode[],
       };
@@ -38,7 +40,9 @@ function convertMdastToLexical(
       return {
         ...paragraph,
         children: node.children
-          .map((child) => convertMdastToLexical(child as PhrasingContent, markdownReaders))
+          .map((child, index) =>
+            convertMdastToLexical(child as PhrasingContent, index, markdownReaders),
+          )
           .filter(Boolean)
           .flat() as INode[],
       };
@@ -49,7 +53,9 @@ function convertMdastToLexical(
       const headingType = `h${Math.min(Math.max(node.depth, 1), 6)}`;
       return INodeHelper.createElementNode('heading', {
         children: node.children
-          .map((child) => convertMdastToLexical(child as PhrasingContent, markdownReaders))
+          .map((child, index) =>
+            convertMdastToLexical(child as PhrasingContent, index, markdownReaders),
+          )
           .filter(Boolean)
           .flat() as INode[],
         direction: 'ltr',
@@ -68,11 +74,13 @@ function convertMdastToLexical(
         let children: MarkdownReadNode[] = [];
         if ('children' in node && Array.isArray(node.children)) {
           children = node.children
-            .map((child) => convertMdastToLexical(child as PhrasingContent, markdownReaders))
+            .map((child, index) =>
+              convertMdastToLexical(child as PhrasingContent, index, markdownReaders),
+            )
             .filter(Boolean)
             .flat() as MarkdownReadNode[];
         }
-        const inode = markdownReaders[node.type]?.(node as unknown as any, children);
+        const inode = markdownReaders[node.type]?.(node as unknown as any, children, index);
         if (inode) {
           return inode;
         }
@@ -91,5 +99,6 @@ export function parseMarkdownToLexical(
   const ast = remark()
     .use([[remarkGfm, { singleTilde: false }]])
     .parse(markdown);
-  return convertMdastToLexical(ast, markdownReaders) as IRootNode;
+  console.info('mdast', ast);
+  return convertMdastToLexical(ast, 0, markdownReaders) as IRootNode;
 }

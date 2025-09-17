@@ -1,5 +1,6 @@
 import { DecoratorNode, LexicalEditor } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -40,7 +41,12 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
         return config?.decorator ? config.decorator(node as HorizontalRuleNode, editor) : null;
       },
     );
-    kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+  }
+
+  onInit(editor: LexicalEditor): void {
+    this.register(registerHorizontalRuleCommand(editor));
+
+    this.kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
       regExp: /^(---|\*\*\*|___)$/,
       replace: (parentNode, _1, _2, isImport) => {
         const line = $createHorizontalRuleNode();
@@ -57,16 +63,17 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
       trigger: 'enter',
       type: 'element',
     });
-    kernel
+    this.kernel
       .requireService(IMarkdownShortCutService)
       ?.registerMarkdownWriter(HorizontalRuleNode.getType(), (ctx, node) => {
         if ($isHorizontalRuleNode(node)) {
           ctx.appendLine('---\n\n');
         }
       });
-  }
-
-  onInit(editor: LexicalEditor): void {
-    this.register(registerHorizontalRuleCommand(editor));
+    this.kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownReader('thematicBreak', () => {
+        return INodeHelper.createElementNode('horizontalrule', {});
+      });
   }
 };
