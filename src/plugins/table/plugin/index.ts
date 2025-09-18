@@ -10,6 +10,7 @@ import {
 import { cx } from 'antd-style';
 import { LexicalEditor } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -47,44 +48,6 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       tableCellSelected: 'editor_table_cell_selected',
       tableScrollableWrapper: cx('editor_table_scrollable_wrapper', options?.theme),
     });
-
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(TableNode.getType(), (ctx) => {
-        ctx.wrap('', '\n');
-      });
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(TableRowNode.getType(), (ctx, node) => {
-        const parent = node.getParent();
-        if (!$isTableNode(parent)) {
-          return;
-        }
-        if (!node.getPreviousSibling()) {
-          ctx.wrap(
-            '',
-            `\n${parent
-              .getColWidths()
-              ?.map(() => {
-                return '|:--';
-              })
-              .join('')}|\n`,
-          );
-        } else {
-          ctx.wrap('', '\n');
-        }
-      });
-
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(TableCellNode.getType(), (ctx, node) => {
-        ctx.addProcessor(tableCellProcessor);
-        if (!node.getNextSibling()) {
-          ctx.wrap('|', '|');
-        } else {
-          ctx.wrap('|', '');
-        }
-      });
   }
 
   onInit(editor: LexicalEditor): void {
@@ -93,5 +56,85 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     this.register(registerTableSelectionObserver(editor));
     this.register(registerTableCellUnmergeTransform(editor));
     this.register(registerTableCommand(editor));
+
+    this.registerMarkdown();
+  }
+
+  registerMarkdown() {
+    const markdownService = this.kernel.requireService(IMarkdownShortCutService);
+
+    if (!markdownService) {
+      return;
+    }
+
+    markdownService.registerMarkdownWriter(TableNode.getType(), (ctx) => {
+      ctx.wrap('', '\n');
+    });
+    markdownService.registerMarkdownWriter(TableRowNode.getType(), (ctx, node) => {
+      const parent = node.getParent();
+      if (!$isTableNode(parent)) {
+        return;
+      }
+      if (!node.getPreviousSibling()) {
+        ctx.wrap(
+          '',
+          `\n${parent
+            .getColWidths()
+            ?.map(() => {
+              return '|:--';
+            })
+            .join('')}|\n`,
+        );
+      } else {
+        ctx.wrap('', '\n');
+      }
+    });
+
+    markdownService.registerMarkdownWriter(TableCellNode.getType(), (ctx, node) => {
+      ctx.addProcessor(tableCellProcessor);
+      if (!node.getNextSibling()) {
+        ctx.wrap('|', '|');
+      } else {
+        ctx.wrap('|', '');
+      }
+    });
+
+    markdownService.registerMarkdownReader('table', (node, children) => {
+      const colLen = node.children[0]?.children.length || 1;
+      return INodeHelper.createElementNode('table', {
+        children,
+        // eslint-disable-next-line unicorn/no-new-array
+        colWidths: new Array(colLen).fill(750 / colLen),
+        direction: null,
+        format: '',
+        indent: 0,
+        version: 1,
+      });
+    });
+
+    markdownService.registerMarkdownReader('tableRow', (_node, children) => {
+      return INodeHelper.createElementNode('tablerow', {
+        children,
+        direction: 'ltr',
+        format: '',
+        height: 33,
+        indent: 0,
+        version: 1,
+      });
+    });
+
+    markdownService.registerMarkdownReader('tableCell', (_node, children) => {
+      return INodeHelper.createElementNode('tablecell', {
+        backgroundColor: null,
+        children,
+        colSpan: 1,
+        direction: 'ltr',
+        format: '',
+        headerState: 0,
+        indent: 0,
+        rowSpan: 1,
+        version: 1,
+      });
+    });
   }
 };
