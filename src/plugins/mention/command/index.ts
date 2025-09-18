@@ -1,7 +1,6 @@
 import { $wrapNodeInElement } from '@lexical/utils';
 import {
   $createParagraphNode,
-  $createTextNode,
   $insertNodes,
   $isRootOrShadowRoot,
   COMMAND_PRIORITY_HIGH,
@@ -26,12 +25,8 @@ export function registerMentionCommand(editor: LexicalEditor) {
         $insertNodes([mentionNode]);
         // Ensure mention is inside a paragraph when inserted at root
         if ($isRootOrShadowRoot(mentionNode.getParentOrThrow())) {
-          $wrapNodeInElement(mentionNode, $createParagraphNode);
+          $wrapNodeInElement(mentionNode, $createParagraphNode).selectEnd();
         }
-        // Insert a trailing text node and move caret into it to enable IME input
-        const trailingText = $createTextNode('\u200B');
-        mentionNode.insertAfter(trailingText);
-        trailingText.selectEnd();
       });
       return true;
     },

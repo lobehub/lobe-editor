@@ -123,6 +123,10 @@ export function registerCursorNode(editor: LexicalEditor) {
     editor.registerUpdateListener(() => {
       editor.read(() => {
         const selection = $getSelection();
+        const isComposing = editor.isComposing();
+        if (isComposing) {
+          return false;
+        }
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
           return false;
         }
