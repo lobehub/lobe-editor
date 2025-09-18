@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.9.3](https://github.com/lobehub/lobe-editor/compare/v1.9.2...v1.9.3)
+<sup>Released on **2025-09-18**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Prevent cursor updates during composition and ensure mentions ….
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Prevent cursor updates during composition and ensure mentions …, closes [#37](https://github.com/lobehub/lobe-editor/issues/37) ([201b967](https://github.com/lobehub/lobe-editor/commit/201b967))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.9.2](https://github.com/lobehub/lobe-editor/compare/v1.9.1...v1.9.2)
 <sup>Released on **2025-09-17**</sup>
 
