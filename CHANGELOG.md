@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.11.0](https://github.com/lobehub/lobe-editor/compare/v1.10.0...v1.11.0)
+<sup>Released on **2025-09-19**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Enhance code highlighting to manage concurrent highlighting l….
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Enhance code highlighting to manage concurrent highlighting l…, closes [#39](https://github.com/lobehub/lobe-editor/issues/39) ([6c49134](https://github.com/lobehub/lobe-editor/commit/6c49134))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.10.0](https://github.com/lobehub/lobe-editor/compare/v1.9.3...v1.10.0)
 <sup>Released on **2025-09-19**</sup>
 
