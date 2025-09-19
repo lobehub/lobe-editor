@@ -58,6 +58,7 @@ export interface SlashOptions {
 
 export interface ISlashService {
   registerSlash(options: SlashOptions): void;
+  updateOptions(options: SlashOptions[]): void;
 }
 
 export const ISlashService: IServiceID<ISlashService> = genServiceId<ISlashService>('SlashService');
@@ -71,8 +72,8 @@ export class SlashService implements ISlashService {
   constructor(private kernel: IEditorKernel) {}
   // Specific service methods can be added here
 
-  registerSlash(options: SlashOptions): void {
-    if (this.triggerMap.has(options.trigger)) {
+  registerSlash(options: SlashOptions, update = false): void {
+    if (this.triggerMap.has(options.trigger) && !update) {
       if (this.kernel.isHotReloadMode()) {
         this.logger.warn(`🔄 Overriding slash trigger "${options.trigger}"`);
       } else {
@@ -104,6 +105,19 @@ export class SlashService implements ISlashService {
 
       this.triggerFuseMap.set(options.trigger, new Fuse(searchableItems, fuseConfig));
     }
+  }
+
+  removeAllOptions(): void {
+    this.triggerMap.clear();
+    this.triggerFnMap.clear();
+    this.triggerFuseMap.clear();
+  }
+
+  updateOptions(options: SlashOptions[]): void {
+    this.removeAllOptions();
+    options.forEach((option) => {
+      this.registerSlash(option);
+    });
   }
 
   getSlashOptions(trigger: string): SlashOptions | undefined {

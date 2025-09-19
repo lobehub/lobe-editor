@@ -15,7 +15,12 @@ import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
 import { type ITriggerContext, SlashPlugin } from '../plugin/index';
-import type { ISlashMenuOption, ISlashOption, SlashOptions } from '../service/i-slash-service';
+import {
+  type ISlashMenuOption,
+  type ISlashOption,
+  ISlashService,
+  type SlashOptions,
+} from '../service/i-slash-service';
 import { $splitNodeContainingQuery } from '../utils/utils';
 import SlashMenu from './components/SlashMenu';
 import type { ReactSlashOptionProps, ReactSlashPluginProps } from './type';
@@ -99,6 +104,20 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
       },
     });
   }, [activeKey, editor, close]);
+
+  useLayoutEffect(() => {
+    const slash = editor.requireService(ISlashService);
+    if (slash) {
+      const options =
+        Children.map(children, (child) => {
+          if (!child) return null;
+          const option = child.props as SlashOptions;
+          triggerMapRef.current.set(option.trigger, option);
+          return option;
+        })?.filter(Boolean) || [];
+      slash.updateOptions(options);
+    }
+  }, [children]);
 
   const handleMenuSelect = useCallback(
     (option: ISlashMenuOption) => {
