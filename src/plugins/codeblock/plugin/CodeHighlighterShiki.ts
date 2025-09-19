@@ -187,7 +187,6 @@ const nodesCurrentlyHighlighting = new Set();
 const waitingNodesCurrentlyHighlighting = new Set<NodeKey>();
 
 function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tokenizer) {
-  console.info('transform code node', node);
   const nodeKey = node.getKey();
 
   // When new code block inserted it might not have language selected

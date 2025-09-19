@@ -77,7 +77,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         },
       });
     }
-    this.registerMarkdown(kernel);
   }
 
   registerMarkdown(kernel: IEditorKernel) {
@@ -269,6 +268,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerCursorNode(editor),
       registerLastElement(editor),
     );
+
+    this.registerMarkdown(this.kernel);
   }
 
   destroy(): void {
