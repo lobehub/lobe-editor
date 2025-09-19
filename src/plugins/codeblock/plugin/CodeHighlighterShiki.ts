@@ -803,6 +803,27 @@ export function registerCodeHighlighting(editor: LexicalEditor, tokenizer?: Toke
 
   // Add the rest of the registrations
   registrations.push(
+    editor.registerMutationListener(
+      CodeNode,
+      (mutations) => {
+        editor.update(() => {
+          for (const [key, type] of mutations) {
+            if (type !== 'destroyed') {
+              const node = $getNodeByKey(key);
+              if (node !== null) {
+                const codeNode = node as CodeNode;
+                if (codeNode.getTheme()?.endsWith(' needUpdate')) {
+                  editor.update(() => {
+                    codeNode.setTheme(codeNode.getTheme()?.replace(' needUpdate', '') || '');
+                  });
+                }
+              }
+            }
+          }
+        });
+      },
+      { skipInitialization: false },
+    ),
     editor.registerNodeTransform(CodeNode, (node) =>
       codeNodeTransform(node, editor, tokenizer as Tokenizer),
     ),

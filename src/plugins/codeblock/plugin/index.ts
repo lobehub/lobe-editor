@@ -58,6 +58,16 @@ export interface CodeblockPluginOptions {
   };
 }
 
+function toMarkdownTheme(theme: CodeblockPluginOptions['shikiTheme']) {
+  if (!theme) {
+    return '';
+  }
+  if (typeof theme === 'string') {
+    return theme;
+  }
+  return `${theme.light} ${theme.dark}`;
+}
+
 export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> = class
   extends KernelPlugin
   implements IEditorPlugin<CodeblockPluginOptions>
@@ -165,7 +175,7 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
         indent: 0,
         language: language,
         textStyle: '--shiki-dark:var(--color-info);--shiki-light:var(--color-info)',
-        theme: 'slack-ochin slack-dark',
+        theme: `${toMarkdownTheme(this.config?.shikiTheme)} needUpdate`,
         version: 1,
       });
     });
