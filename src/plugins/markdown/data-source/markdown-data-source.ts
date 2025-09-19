@@ -37,7 +37,6 @@ export default class MarkdownDataSource extends DataSource {
     const inode = {
       root: parseMarkdownToLexical(data, this.markdownService.markdownReaders),
     };
-    console.info('------------->', inode);
     editor.setEditorState(editor.parseEditorState(inode));
   }
 
