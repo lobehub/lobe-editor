@@ -147,7 +147,9 @@ function updateCodeGutter(node: CodeNode, editor: LexicalEditor): void {
 // in both cases we'll rerun whole reformatting over CodeNode, which is redundant.
 // Especially when pasting code into CodeBlock.
 
+const MAX_CONCURRENT_HIGHLIGHTING = 2;
 const nodesCurrentlyHighlighting = new Set();
+const waitingNodesCurrentlyHighlighting = new Set<NodeKey>();
 
 function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tokenizer) {
   const nodeKey = node.getKey();
@@ -193,6 +195,11 @@ function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tok
     return;
   }
 
+  if (nodesCurrentlyHighlighting.size > MAX_CONCURRENT_HIGHLIGHTING) {
+    waitingNodesCurrentlyHighlighting.add(nodeKey);
+    return;
+  }
+
   nodesCurrentlyHighlighting.add(nodeKey);
 
   // Using nested update call to pass `skipTransforms` since we don't want
@@ -225,6 +232,19 @@ function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tok
     {
       onUpdate: () => {
         nodesCurrentlyHighlighting.delete(nodeKey);
+        if (
+          nodesCurrentlyHighlighting.size < MAX_CONCURRENT_HIGHLIGHTING &&
+          waitingNodesCurrentlyHighlighting.size
+        ) {
+          const next = waitingNodesCurrentlyHighlighting.values().next().value;
+          if (!next) return;
+          waitingNodesCurrentlyHighlighting.delete(next);
+          requestAnimationFrame(() => {
+            editor.read(() => {
+              codeNodeTransform($getNodeByKey(next) as CodeNode, editor, tokenizer);
+            });
+          });
+        }
       },
       skipTransforms: true,
     },
