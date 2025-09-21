@@ -22,6 +22,7 @@ import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 
 import type { MarkdownShortCutService } from '../service/shortcut';
+import { logger } from '../utils/logger';
 import { MarkdownWriterContext } from './markdown-writer-context';
 import { parseMarkdownToLexical } from './markdown/parse';
 
@@ -37,6 +38,9 @@ export default class MarkdownDataSource extends DataSource {
     const inode = {
       root: parseMarkdownToLexical(data, this.markdownService.markdownReaders),
     };
+
+    logger.debug('Parsed Lexical State:', inode);
+
     editor.setEditorState(editor.parseEditorState(inode));
   }
 

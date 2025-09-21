@@ -7,6 +7,8 @@ import remarkMath from 'remark-math';
 import type { IElementNode, INode, IRootNode, ITextNode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 
+import { logger } from '../../utils/logger';
+
 export type MarkdownReadNode = INode | ITextNode | IElementNode;
 
 export type MarkdownNode = RootContent | PhrasingContent;
@@ -101,6 +103,6 @@ export function parseMarkdownToLexical(
     .use(remarkMath)
     .use([[remarkGfm, { singleTilde: false }]])
     .parse(markdown);
-  console.info('mdast', ast);
+  logger.debug('Parsed MDAST:', ast);
   return convertMdastToLexical(ast, 0, markdownReaders) as IRootNode;
 }
