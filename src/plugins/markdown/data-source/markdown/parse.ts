@@ -1,4 +1,3 @@
-/* eslint-disable unused-imports/no-unused-vars */
 import type { PhrasingContent, Root, RootContent, Text } from 'mdast';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
@@ -8,6 +7,7 @@ import type { IElementNode, INode, IRootNode, ITextNode } from '@/editor-kernel/
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 
 import { logger } from '../../utils/logger';
+import remarkSupersub from './supersub';
 
 export type MarkdownReadNode = INode | ITextNode | IElementNode;
 
@@ -101,6 +101,7 @@ export function parseMarkdownToLexical(
 ): IRootNode {
   const ast = remark()
     .use(remarkMath)
+    .use(remarkSupersub)
     .use([[remarkGfm, { singleTilde: false }]])
     .parse(markdown);
   logger.debug('Parsed MDAST:', ast);

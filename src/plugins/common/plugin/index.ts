@@ -147,6 +147,16 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         tag: '_',
         type: 'text-format',
       },
+      {
+        format: ['superscript'],
+        tag: '^',
+        type: 'text-format',
+      },
+      {
+        format: ['subscript'],
+        tag: '~',
+        type: 'text-format',
+      },
     ]);
 
     markdownService.registerMarkdownWriter('paragraph', (ctx) => {
@@ -200,6 +210,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const isItalic = node.hasFormat('italic');
       const isUnderline = node.hasFormat('underline');
       const isStrikethrough = node.hasFormat('strikethrough');
+      const isSuperscript = node.hasFormat('superscript');
+      const isSubscript = node.hasFormat('subscript');
 
       if (isBold) {
         ctx.appendLine('**');
@@ -213,6 +225,12 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       if (isUnderline) {
         ctx.appendLine('<ins>');
       }
+      if (isSuperscript) {
+        ctx.appendLine('^');
+      }
+      if (isSubscript) {
+        ctx.appendLine('~');
+      }
 
       const textContent = node.getTextContent();
       const res = textContent.match(/\s+$/);
@@ -223,6 +241,13 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const append = textContent.trimEnd();
       const lastChar = append.at(-1);
       ctx.appendLine(append);
+
+      if (isSubscript) {
+        ctx.appendLine('~');
+      }
+      if (isSuperscript) {
+        ctx.appendLine('^');
+      }
       if (isUnderline) {
         ctx.appendLine('</ins>');
       }

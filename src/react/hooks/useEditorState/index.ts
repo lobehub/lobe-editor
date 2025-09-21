@@ -113,6 +113,8 @@ export function useEditorState(editor?: IEditor): EditorState {
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
   const [isStrikethrough, setIsStrikethrough] = useState(false);
+  const [isSubscript, setIsSubscript] = useState(false);
+  const [isSuperscript, setIsSuperscript] = useState(false);
   const [isCode, setIsCode] = useState(false);
   const [isLink, setIsLink] = useState(false);
   const [isCodeblock, setIsInCodeblok] = useState(false);
@@ -147,6 +149,8 @@ export function useEditorState(editor?: IEditor): EditorState {
       setIsItalic(selection.hasFormat('italic'));
       setIsUnderline(selection.hasFormat('underline'));
       setIsStrikethrough(selection.hasFormat('strikethrough'));
+      setIsSubscript(selection.hasFormat('subscript'));
+      setIsSuperscript(selection.hasFormat('superscript'));
       setIsCode($isSelectionInCodeInline(lexicalEditor!));
 
       const anchorNode = selection.anchor.getNode();
@@ -185,6 +189,8 @@ export function useEditorState(editor?: IEditor): EditorState {
       setIsItalic(false);
       setIsUnderline(false);
       setIsStrikethrough(false);
+      setIsSubscript(false);
+      setIsSuperscript(false);
       setIsCode(false);
       setIsLink(false);
       setIsInCodeblok(false);
@@ -223,6 +229,14 @@ export function useEditorState(editor?: IEditor): EditorState {
 
   const italic = useCallback(() => {
     formatText('italic');
+  }, [formatText]);
+
+  const subscript = useCallback(() => {
+    formatText('subscript');
+  }, [formatText]);
+
+  const superscript = useCallback(() => {
+    formatText('superscript');
   }, [formatText]);
 
   const code = useCallback(() => {
@@ -452,11 +466,15 @@ export function useEditorState(editor?: IEditor): EditorState {
       isItalic,
       isSelected,
       isStrikethrough,
+      isSubscript,
+      isSuperscript,
       isUnderline,
       italic,
       numberList,
       redo,
       strikethrough,
+      subscript,
+      superscript,
       underline,
       undo,
       updateCodeblockLang,
@@ -475,6 +493,8 @@ export function useEditorState(editor?: IEditor): EditorState {
       isSelected,
       isStrikethrough,
       isUnderline,
+      isSubscript,
+      isSuperscript,
       italic,
     ],
   );
