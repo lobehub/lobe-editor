@@ -2,6 +2,7 @@
 import type { PhrasingContent, Root, RootContent, Text } from 'mdast';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 
 import type { IElementNode, INode, IRootNode, ITextNode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -97,6 +98,7 @@ export function parseMarkdownToLexical(
   markdownReaders: TransformerRecord = {},
 ): IRootNode {
   const ast = remark()
+    .use(remarkMath)
     .use([[remarkGfm, { singleTilde: false }]])
     .parse(markdown);
   console.info('mdast', ast);
