@@ -1,4 +1,4 @@
-import type { ElementNode, LexicalNode, TextFormatType, TextNode } from 'lexical';
+import type { ElementNode, LexicalNode, RangeSelection, TextFormatType, TextNode } from 'lexical';
 import {
   $createRangeSelection,
   $getSelection,
@@ -12,8 +12,9 @@ import {
 import { PUNCTUATION_OR_SPACE, getOpenTagStartIndex, isEqualSubString } from '../utils';
 
 export type TextFormatTransformer = Readonly<{
-  format: ReadonlyArray<TextFormatType>;
+  format?: ReadonlyArray<TextFormatType>;
   intraword?: boolean;
+  process?: (selection: RangeSelection) => void;
   tag: string;
   type: 'text-format';
 }>;
@@ -323,29 +324,38 @@ export function $runTextFormatTransformers(
     nextSelection.anchor.set(openNode.__key, openTagStartIndex, 'text');
     nextSelection.focus.set(closeNode.__key, newOffset, 'text');
 
-    // Apply formatting to selected text
-    for (const format of matcher.format) {
-      if (!nextSelection.hasFormat(format)) {
-        nextSelection.formatText(format);
+    if (matcher.process) {
+      matcher.process(nextSelection);
+      return true;
+    } else if (matcher.format) {
+      // Apply formatting to selected text
+      for (const format of matcher.format) {
+        if (!nextSelection.hasFormat(format)) {
+          nextSelection.formatText(format);
+        }
       }
-    }
 
-    // Collapse selection up to the focus point
-    nextSelection.anchor.set(
-      nextSelection.focus.key,
-      nextSelection.focus.offset,
-      nextSelection.focus.type,
-    );
+      // Collapse selection up to the focus point
+      nextSelection.anchor.set(
+        nextSelection.focus.key,
+        nextSelection.focus.offset,
+        nextSelection.focus.type,
+      );
 
-    // Remove formatting from collapsed selection
-    for (const format of matcher.format) {
-      if (nextSelection.hasFormat(format)) {
-        nextSelection.toggleFormat(format);
+      // Remove formatting from collapsed selection
+      for (const format of matcher.format) {
+        if (nextSelection.hasFormat(format)) {
+          nextSelection.toggleFormat(format);
+        }
       }
-    }
 
-    if ($isRangeSelection(selection)) {
-      nextSelection.format = selection.format;
+      if ($isRangeSelection(selection)) {
+        nextSelection.format = selection.format;
+      }
+    } else {
+      // No format or process specified, nothing to do
+      $setSelection(selection);
+      continue;
     }
 
     return true;
