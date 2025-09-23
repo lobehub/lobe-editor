@@ -15,14 +15,24 @@ import {
 } from '@shikijs/core';
 import { createJavaScriptRegexEngine } from '@shikijs/engine-javascript';
 import type { ThemedToken, TokensResult } from '@shikijs/types';
-import type { LexicalEditor, LexicalNode, NodeKey } from 'lexical';
+import type { LexicalEditor, LexicalNode, NodeKey, SerializedTextNode, Spread } from 'lexical';
 import { $createLineBreakNode, $createTabNode, $getNodeByKey } from 'lexical';
 import { bundledLanguagesInfo, bundledThemesInfo } from 'shiki';
+
+import { INode } from '@/editor-kernel/inode';
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 
 // Color replacements types for Shiki
 export type ColorReplacements = Record<string, string>;
 export type ScopedColorReplacements = Record<string, ColorReplacements>;
 export type AllColorReplacements = ColorReplacements | ScopedColorReplacements;
+
+export type SerializedCodeHighlightNode = Spread<
+  {
+    highlightType: string | null | undefined;
+  },
+  SerializedTextNode
+>;
 
 const shiki = createHighlighterCoreSync({
   engine: createJavaScriptRegexEngine(),
@@ -223,6 +233,72 @@ function getTokenStyleObject(token: ThemedToken): string {
   return style;
 }
 
+function mapTokensToLexicalSerialized(
+  tokens: ThemedToken[][],
+  diff: boolean,
+  colorReplacements?: AllColorReplacements,
+): INode[] {
+  const nodes: INode[] = [];
+
+  tokens.forEach((line, idx) => {
+    if (idx) {
+      nodes.push({
+        type: 'linebreak',
+        version: 1,
+      });
+    }
+    line.forEach((token, tidx) => {
+      let text = token.content;
+
+      // implement diff-xxxx languages
+      if (diff && tidx === 0 && text.length > 0) {
+        const prefixes = ['+', '-', '>', '<', ' '];
+        const prefixTypes = ['inserted', 'deleted', 'inserted', 'deleted', 'unchanged'];
+        const prefixIndex = prefixes.indexOf(text[0]);
+        if (prefixIndex !== -1) {
+          nodes.push(
+            INodeHelper.createLikeTextNode('code-highlight', prefixes[prefixIndex], {
+              highlightType: prefixTypes[prefixIndex],
+            }),
+          );
+          text = text.slice(1);
+        }
+      }
+
+      const parts = text.split('\t');
+      parts.forEach((part: string, pidx: number) => {
+        if (pidx) {
+          nodes.push(INodeHelper.createLikeTextNode('tab', '\t'));
+        }
+        if (part !== '') {
+          const node = INodeHelper.createLikeTextNode('code-highlight', part);
+          if (token.htmlStyle?.['--shiki-light'] && colorReplacements?.['light']) {
+            const newColor = (colorReplacements['light'] as any)[
+              token.htmlStyle['--shiki-light'].toLowerCase()
+            ];
+            if (newColor) {
+              token.htmlStyle['--shiki-light'] = newColor;
+            }
+          }
+          if (token.htmlStyle?.['--shiki-dark'] && colorReplacements?.['dark']) {
+            const newColor = (colorReplacements['dark'] as any)[
+              token.htmlStyle['--shiki-dark'].toLowerCase()
+            ];
+            if (newColor) {
+              token.htmlStyle['--shiki-dark'] = newColor;
+            }
+          }
+          const style = stringifyTokenStyle(token.htmlStyle || getTokenStyleObject(token));
+          node.style = style;
+          nodes.push(node);
+        }
+      });
+    });
+  });
+
+  return nodes;
+}
+
 function mapTokensToLexicalStructure(
   tokens: ThemedToken[][],
   diff: boolean,
@@ -282,12 +358,61 @@ function mapTokensToLexicalStructure(
   return nodes;
 }
 
+const DIFF_LANGUAGE_REGEX = /^diff-([\w-]+)/i;
+
+export function getHighlightSerializeNode(
+  code: string,
+  language: string,
+  theme = 'poimandres',
+  colorReplacements?: { current?: AllColorReplacements },
+): INode[] {
+  // Implementation goes here
+
+  const diffLanguageMatch = DIFF_LANGUAGE_REGEX.exec(language);
+
+  const themes = theme.split(' ');
+
+  // Build the options for codeToTokens
+  const options: any =
+    themes.length > 1
+      ? {
+          defaultColor: false,
+          lang: diffLanguageMatch ? diffLanguageMatch[1] : language,
+          themes: {
+            dark: themes[1],
+            light: themes[0],
+          },
+        }
+      : {
+          lang: language,
+          theme: themes[0],
+        };
+
+  const newColorReplacements: AllColorReplacements = {};
+
+  if (colorReplacements?.current && themes.length > 1) {
+    if (colorReplacements.current[themes[0]]) {
+      newColorReplacements['light'] = colorReplacements.current[themes[0]];
+    }
+    if (colorReplacements.current[themes[1]]) {
+      newColorReplacements['dark'] = colorReplacements.current[themes[1]];
+    }
+  } else if (colorReplacements?.current) {
+    options.colorReplacements = resolveColorReplacements(colorReplacements.current, themes[0]);
+  }
+
+  const tokensResult: TokensResult = shiki.codeToTokens(code, options);
+
+  const { tokens } = tokensResult;
+
+  return mapTokensToLexicalSerialized(tokens, !!diffLanguageMatch, newColorReplacements);
+}
+
 export function $getHighlightNodes(
   codeNode: CodeNode,
   language: string,
   colorReplacements?: { current?: AllColorReplacements },
 ): LexicalNode[] {
-  const DIFF_LANGUAGE_REGEX = /^diff-([\w-]+)/i;
   const diffLanguageMatch = DIFF_LANGUAGE_REGEX.exec(language);
   const code: string = codeNode.getTextContent();
   const theme = codeNode.getTheme() || 'poimandres';

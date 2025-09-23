@@ -1,5 +1,6 @@
 import { $createTextNode, COMMAND_PRIORITY_NORMAL, LexicalEditor, PASTE_COMMAND } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -45,30 +46,6 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
     if (config?.linkRegex) {
       this.linkRegex = config.linkRegex;
     }
-
-    kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
-      regExp: /\[([^[]+)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)\s?$/,
-      replace: (textNode, match) => {
-        const [, linkText, linkUrl, linkTitle] = match;
-        const linkNode = $createLinkNode(linkUrl, { title: linkTitle });
-        const linkTextNode = $createTextNode(linkText);
-        linkTextNode.setFormat(textNode.getFormat());
-        linkNode.append(linkTextNode);
-        textNode.replace(linkNode);
-
-        return linkTextNode;
-      },
-      trigger: ')',
-      type: 'text-match',
-    });
-
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(LinkNode.getType(), (ctx, node) => {
-        if ($isLinkNode(node)) {
-          ctx.wrap('[', `](${node.getURL()})`);
-        }
-      });
   }
 
   onInit(editor: LexicalEditor): void {
@@ -104,5 +81,45 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
         COMMAND_PRIORITY_NORMAL,
       ),
     );
+
+    this.kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+      regExp: /\[([^[]+)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)\s?$/,
+      replace: (textNode, match) => {
+        const [, linkText, linkUrl, linkTitle] = match;
+        const linkNode = $createLinkNode(linkUrl, { title: linkTitle });
+        const linkTextNode = $createTextNode(linkText);
+        linkTextNode.setFormat(textNode.getFormat());
+        linkNode.append(linkTextNode);
+        textNode.replace(linkNode);
+
+        return linkTextNode;
+      },
+      trigger: ')',
+      type: 'text-match',
+    });
+
+    this.kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(LinkNode.getType(), (ctx, node) => {
+        if ($isLinkNode(node)) {
+          ctx.wrap('[', `](${node.getURL()})`);
+        }
+      });
+
+    this.kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownReader('link', (node, children) => {
+        const linkNode = INodeHelper.createElementNode('link', {
+          children: children,
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          title: node.title || undefined,
+          type: 'link',
+          url: node.url || '',
+          version: 1,
+        });
+        return [linkNode];
+      });
   }
 };

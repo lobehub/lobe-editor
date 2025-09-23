@@ -1,5 +1,6 @@
 import { $createNodeSelection, $setSelection, DecoratorNode, LexicalEditor } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -52,8 +53,17 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
         return config?.decorator ? config.decorator(node as MathBlockNode, editor) : null;
       },
     );
+  }
 
-    kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+  onInit(editor: LexicalEditor): void {
+    this.register(registerMathCommand(editor));
+    this.registerMarkdown();
+  }
+
+  registerMarkdown() {
+    const markdownService = this.kernel.requireService(IMarkdownShortCutService);
+
+    markdownService?.registerMarkdownShortCut({
       regExp: /\$([^$]+)\$\s?$/,
       replace: (textNode, match) => {
         const [, code] = match;
@@ -71,7 +81,7 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
       type: 'text-match',
     });
 
-    kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+    markdownService?.registerMarkdownShortCut({
       regExp: /^(\$\$)$/,
       replace: (parentNode, _1, _2, isImport) => {
         const node = $createMathBlockNode();
@@ -91,22 +101,28 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
       type: 'element',
     });
 
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(MathInlineNode.getType(), (ctx, node) => {
-        ctx.appendLine(node.getTextContent());
-        return true;
-      });
+    markdownService?.registerMarkdownWriter(MathInlineNode.getType(), (ctx, node) => {
+      ctx.appendLine(node.getTextContent());
+      return true;
+    });
 
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(MathBlockNode.getType(), (ctx, node) => {
-        ctx.appendLine(node.getTextContent());
-        return true;
-      });
-  }
+    markdownService?.registerMarkdownWriter(MathBlockNode.getType(), (ctx, node) => {
+      ctx.appendLine(node.getTextContent());
+      return true;
+    });
 
-  onInit(editor: LexicalEditor): void {
-    this.register(registerMathCommand(editor));
+    markdownService?.registerMarkdownReader('inlineMath', (node) => {
+      return INodeHelper.createElementNode('math', {
+        code: node.value,
+        version: 1,
+      });
+    });
+
+    markdownService?.registerMarkdownReader('math', (node) => {
+      return INodeHelper.createElementNode('mathBlock', {
+        code: node.value,
+        version: 1,
+      });
+    });
   }
 };

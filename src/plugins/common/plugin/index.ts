@@ -1,12 +1,12 @@
 import { registerDragonSupport } from '@lexical/dragon';
 import { createEmptyHistoryState, registerHistory } from '@lexical/history';
+import type { HeadingTagType } from '@lexical/rich-text';
 import {
   $createHeadingNode,
   $createQuoteNode,
   $isHeadingNode,
   $isQuoteNode,
   HeadingNode,
-  HeadingTagType,
   QuoteNode,
   registerRichText,
 } from '@lexical/rich-text';
@@ -15,7 +15,7 @@ import type { LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService, isPunctuationChar } from '@/plugins/markdown';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';
@@ -24,6 +24,7 @@ import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { CursorNode, registerCursorNode } from '../node/cursor';
 import { createBlockNode } from '../utils';
 import { registerHeaderBackspace, registerLastElement, registerRichKeydown } from './register';
+import { registerMDReader } from './mdReader';
 
 patchBreakLine();
 
@@ -76,7 +77,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         },
       });
     }
-    this.registerMarkdown(kernel);
   }
 
   registerMarkdown(kernel: IEditorKernel) {
@@ -147,6 +147,16 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         tag: '_',
         type: 'text-format',
       },
+      {
+        format: ['superscript'],
+        tag: '^',
+        type: 'text-format',
+      },
+      {
+        format: ['subscript'],
+        tag: '~',
+        type: 'text-format',
+      },
     ]);
 
     markdownService.registerMarkdownWriter('paragraph', (ctx) => {
@@ -157,6 +167,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         ctx.wrap('> ', '\n\n');
       }
     });
+
     markdownService.registerMarkdownWriter('heading', (ctx, node) => {
       if ($isHeadingNode(node)) {
         switch (node.getTag()) {
@@ -199,6 +210,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const isItalic = node.hasFormat('italic');
       const isUnderline = node.hasFormat('underline');
       const isStrikethrough = node.hasFormat('strikethrough');
+      const isSuperscript = node.hasFormat('superscript');
+      const isSubscript = node.hasFormat('subscript');
 
       if (isBold) {
         ctx.appendLine('**');
@@ -212,6 +225,12 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       if (isUnderline) {
         ctx.appendLine('<ins>');
       }
+      if (isSuperscript) {
+        ctx.appendLine('^');
+      }
+      if (isSubscript) {
+        ctx.appendLine('~');
+      }
 
       const textContent = node.getTextContent();
       const res = textContent.match(/\s+$/);
@@ -222,6 +241,13 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const append = textContent.trimEnd();
       const lastChar = append.at(-1);
       ctx.appendLine(append);
+
+      if (isSubscript) {
+        ctx.appendLine('~');
+      }
+      if (isSuperscript) {
+        ctx.appendLine('^');
+      }
       if (isUnderline) {
         ctx.appendLine('</ins>');
       }
@@ -247,6 +273,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       // In markdown, soft line breaks are represented as two spaces followed by a newline
       ctx.appendLine('  \n');
     });
+
+    // 注册 markdown reader
+    //
+    registerMDReader(markdownService);
   }
 
   onInit(editor: LexicalEditor): void {
@@ -263,6 +293,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerCursorNode(editor),
       registerLastElement(editor),
     );
+
+    this.registerMarkdown(this.kernel);
   }
 
   destroy(): void {

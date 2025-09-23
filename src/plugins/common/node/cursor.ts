@@ -1,4 +1,5 @@
 import { mergeRegister } from '@lexical/utils';
+import type { LexicalEditor, LexicalNode, SerializedLexicalNode } from 'lexical';
 import {
   $createTextNode,
   $getNodeByKey,
@@ -12,8 +13,6 @@ import {
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_BACKSPACE_COMMAND,
-  LexicalEditor,
-  LexicalNode,
   TextNode,
 } from 'lexical';
 
@@ -26,6 +25,16 @@ export class CardLikeElementNode extends ElementNode {
     return true;
   }
 }
+
+export const cursorNodeSerialized = {
+  detail: 0,
+  format: 0,
+  mode: 'normal',
+  style: '',
+  text: '\uFEFF',
+  type: 'cursor',
+  version: 1,
+} as SerializedLexicalNode;
 
 export class CursorNode extends TextNode {
   static getType(): string {

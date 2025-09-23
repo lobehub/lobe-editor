@@ -1,5 +1,12 @@
 /* eslint-disable unicorn/no-for-loop */
 import { $isTableSelection } from '@lexical/table';
+import type {
+  ElementNode,
+  LexicalEditor,
+  LexicalNode,
+  SerializedElementNode,
+  SerializedLexicalNode,
+} from 'lexical';
 import {
   $getCharacterOffsets,
   $getNodeByKey,
@@ -8,19 +15,16 @@ import {
   $isElementNode,
   $isRangeSelection,
   $isTextNode,
-  ElementNode,
-  LexicalEditor,
-  LexicalNode,
-  SerializedElementNode,
-  SerializedLexicalNode,
 } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
-import { IWriteOptions } from '@/editor-kernel/data-source';
+import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 
-import { MarkdownShortCutService } from '../service/shortcut';
+import type { MarkdownShortCutService } from '../service/shortcut';
+import { logger } from '../utils/logger';
 import { MarkdownWriterContext } from './markdown-writer-context';
+import { parseMarkdownToLexical } from './markdown/parse';
 
 export default class MarkdownDataSource extends DataSource {
   constructor(
@@ -30,8 +34,14 @@ export default class MarkdownDataSource extends DataSource {
     super(dataType);
   }
 
-  read() {
-    throw new Error('MarkdownDataSource not implemented yet!');
+  read(editor: LexicalEditor, data: string): void {
+    const inode = {
+      root: parseMarkdownToLexical(data, this.markdownService.markdownReaders),
+    };
+
+    logger.debug('Parsed Lexical State:', inode);
+
+    editor.setEditorState(editor.parseEditorState(inode));
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {

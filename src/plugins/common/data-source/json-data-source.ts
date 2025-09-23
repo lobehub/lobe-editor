@@ -1,5 +1,11 @@
 /* eslint-disable unicorn/no-for-loop */
 import { $isTableSelection } from '@lexical/table';
+import type {
+  LexicalEditor,
+  SerializedEditorState,
+  SerializedElementNode,
+  SerializedLexicalNode,
+} from 'lexical';
 import {
   $getCharacterOffsets,
   $getNodeByKey,
@@ -8,24 +14,12 @@ import {
   $isRangeSelection,
   $isTextNode,
   IS_CODE,
-  LexicalEditor,
-  SerializedEditorState,
-  SerializedElementNode,
-  SerializedLexicalNode,
 } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
-import { IWriteOptions } from '@/editor-kernel/data-source';
+import type { IWriteOptions } from '@/editor-kernel/data-source';
 
-const cursorNode = {
-  detail: 0,
-  format: 0,
-  mode: 'normal',
-  style: '',
-  text: '\uFEFF',
-  type: 'cursor',
-  version: 1,
-} as SerializedLexicalNode;
+import { cursorNodeSerialized } from '../node/cursor';
 
 export default class JSONDataSource extends DataSource {
   read(editor: LexicalEditor, data: any) {
@@ -60,7 +54,7 @@ export default class JSONDataSource extends DataSource {
             type: 'codeInline',
             version: 1,
           } as SerializedElementNode;
-          node.children.splice(i + 1, 0, cursorNode);
+          node.children.splice(i + 1, 0, cursorNodeSerialized);
         }
       }
     };

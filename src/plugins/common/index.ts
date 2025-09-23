@@ -4,6 +4,7 @@ export {
   $isCardLikeElementNode,
   $isCursorNode,
   CardLikeElementNode,
+  cursorNodeSerialized,
 } from './node/cursor';
 export * from './plugin';
 export * from './react';

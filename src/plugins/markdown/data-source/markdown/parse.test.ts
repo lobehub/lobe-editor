@@ -1,0 +1,32 @@
+import { IS_BOLD } from 'lexical';
+import { Strong } from 'mdast';
+import { describe, expect, it } from 'vitest';
+
+import { INodeHelper } from '@/editor-kernel/inode/helper';
+
+import { parseMarkdownToLexical } from './parse';
+
+describe('Markdown to Lexical Conversion', () => {
+  it('should convert a simple markdown string to Lexical format', () => {
+    const markdown = 'This is a **bold** text.';
+    const lexical = parseMarkdownToLexical(markdown, {
+      strong: (node: Strong, children) => {
+        return children.map((child) => {
+          if (INodeHelper.isTextNode(child)) {
+            child.format = (child.format || 0) | IS_BOLD;
+          }
+          return child;
+        });
+      },
+    });
+
+    expect(lexical.children.length).toEqual(1);
+    expect(lexical.children[0].type).toEqual('paragraph');
+    // @ts-expect-error not error
+    expect(lexical.children[0].children.length).toEqual(3);
+    // @ts-expect-error not error
+    expect(INodeHelper.isTextNode(lexical.children[0]?.children?.[1])).toBe(true);
+    // @ts-expect-error not error
+    expect(lexical.children[0]?.children?.[1]?.format).toBe(1);
+  });
+});

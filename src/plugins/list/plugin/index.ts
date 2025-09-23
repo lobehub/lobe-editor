@@ -10,6 +10,7 @@ import { $getNearestNodeOfType } from '@lexical/utils';
 import { cx } from 'antd-style';
 import { $isRootNode, LexicalEditor } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -62,32 +63,48 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
         ul: cx('editor_listUnordered', config?.theme),
       },
     });
+  }
 
-    kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+  onInit(editor: LexicalEditor): void {
+    this.register(registerList(editor));
+    this.register(registerCheckList(editor));
+    this.register(registerListStrictIndentTransform(editor));
+    this.register(
+      registerListCommands(editor, this.kernel, {
+        enableHotkey: this.config?.enableHotkey,
+      }),
+    );
+    this.registerMarkdown();
+  }
+
+  registerMarkdown() {
+    const markdownService = this.kernel.requireService(IMarkdownShortCutService);
+    if (!markdownService) {
+      return;
+    }
+    markdownService.registerMarkdownShortCut({
       regExp: UNORDERED_LIST_REGEX,
       replace: listReplace('bullet'),
       type: 'element',
     });
 
-    kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+    markdownService.registerMarkdownShortCut({
       regExp: ORDERED_LIST_REGEX,
       replace: listReplace('number'),
       type: 'element',
     });
 
-    kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
+    markdownService.registerMarkdownShortCut({
       regExp: CHECK_LIST_REGEX,
       replace: listReplace('check'),
       type: 'element',
     });
 
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(ListNode.getType(), (ctx, node) => {
-        if ($isListNode(node)) {
-          ctx.wrap('', '\n');
-        }
-      });
+    markdownService.registerMarkdownWriter(ListNode.getType(), (ctx, node) => {
+      if ($isListNode(node)) {
+        ctx.wrap('', '\n');
+      }
+    });
 
     const getLevel = (node: ListNode | null): number => {
       if (!node) return 0;
@@ -101,45 +118,83 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
       return getLevel($getNearestNodeOfType(parent, ListNode)) + 1;
     };
 
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(ListItemNode.getType(), (ctx, node) => {
-        const parent = node.getParent();
-        if ($isListItemNode(node) && $isListNode(parent)) {
-          if ($isListNode(node.getFirstChild())) {
-            return;
+    markdownService.registerMarkdownWriter(ListItemNode.getType(), (ctx, node) => {
+      const parent = node.getParent();
+      if ($isListItemNode(node) && $isListNode(parent)) {
+        if ($isListNode(node.getFirstChild())) {
+          return;
+        }
+        const level = getLevel(parent);
+        const prefix = '    '.repeat(level);
+        switch (parent.getListType()) {
+          case 'bullet': {
+            ctx.wrap(prefix + '- ', '\n');
+            break;
           }
-          const level = getLevel(parent);
-          const prefix = '    '.repeat(level);
-          switch (parent.getListType()) {
-            case 'bullet': {
-              ctx.wrap(prefix + '- ', '\n');
-              break;
-            }
-            case 'number': {
-              ctx.wrap(`${prefix}${node.getValue()}. `, '\n');
-              break;
-            }
-            case 'check': {
-              ctx.wrap(`${prefix}- [${node.getChecked() ? 'x' : ' '}] `, '\n');
-              break;
-            }
-            default: {
-              break;
-            }
+          case 'number': {
+            ctx.wrap(`${prefix}${node.getValue()}. `, '\n');
+            break;
+          }
+          case 'check': {
+            ctx.wrap(`${prefix}- [${node.getChecked() ? 'x' : ' '}] `, '\n');
+            break;
+          }
+          default: {
+            break;
           }
         }
-      });
-  }
+      }
+    });
 
-  onInit(editor: LexicalEditor): void {
-    this.register(registerList(editor));
-    this.register(registerCheckList(editor));
-    this.register(registerListStrictIndentTransform(editor));
-    this.register(
-      registerListCommands(editor, this.kernel, {
-        enableHotkey: this.config?.enableHotkey,
-      }),
-    );
+    markdownService.registerMarkdownReader('list', (node, children) => {
+      const isCheck =
+        node.children?.[0]?.type === 'listItem' && typeof node.children?.[0]?.checked === 'boolean';
+      let start = node.start || 1;
+      return INodeHelper.createElementNode('list', {
+        children: children.map((v) => {
+          if (v.type === 'listitem') {
+            // @ts-expect-error not error
+            v.value = start++;
+          }
+          return v;
+        }),
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        listType: isCheck ? 'check' : node.ordered ? 'number' : 'bullet',
+        start: node.start || 1,
+        tag: node.ordered ? 'ol' : 'ul',
+        version: 1,
+      });
+    });
+
+    markdownService.registerMarkdownReader('listItem', (node, children, index) => {
+      return children.map((v) => {
+        if (v.type === 'paragraph') {
+          return INodeHelper.createElementNode('listitem', {
+            checked: typeof node.checked === 'boolean' ? node.checked : undefined,
+            // @ts-expect-error not error
+            children: v.children,
+            direction: 'ltr',
+            format: '',
+            indent: 0,
+            type: 'listitem',
+            value: index + 1,
+            version: 1,
+          });
+        } else if (v.type === 'list') {
+          return INodeHelper.createElementNode('listitem', {
+            children: [v],
+            direction: 'ltr',
+            format: '',
+            indent: 0,
+            type: 'listitem',
+            value: index + 1,
+            version: 1,
+          });
+        }
+        throw new Error('ListItem node children must be paragraph or list node ' + v.type);
+      });
+    });
   }
 };

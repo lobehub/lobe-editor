@@ -57,9 +57,12 @@ import {
   TextNode,
 } from 'lexical';
 
+import { INode } from '@/editor-kernel/inode';
+
 import {
   $getHighlightNodes,
   AllColorReplacements,
+  getHighlightSerializeNode,
   isCodeLanguageLoaded,
   isCodeThemeLoaded,
   loadCodeLanguage,
@@ -69,6 +72,17 @@ import invariant from './invariant';
 
 export interface Tokenizer {
   $tokenize(codeNode: CodeNode, language?: string): LexicalNode[];
+  $tokenizeSerialized(
+    code: string,
+    language?: string,
+    theme?:
+      | string
+      | {
+          dark: string;
+          light: string;
+        },
+    defaultColorReplacements?: { current?: AllColorReplacements },
+  ): INode[];
   defaultColorReplacements?: { current?: AllColorReplacements };
   defaultLanguage: string;
   defaultTheme:
@@ -87,6 +101,27 @@ export const ShikiTokenizer: Tokenizer = {
       codeNode,
       language || this.defaultLanguage,
       this.defaultColorReplacements,
+    );
+  },
+  $tokenizeSerialized(
+    code: string,
+    language?: string,
+    theme?:
+      | string
+      | {
+          dark: string;
+          light: string;
+        },
+    defaultColorReplacements?: { current?: AllColorReplacements },
+  ): INode[] {
+    return getHighlightSerializeNode(
+      code,
+      language || this.defaultLanguage,
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      toCodeTheme({
+        defaultTheme: theme || this.defaultTheme,
+      } as Tokenizer),
+      defaultColorReplacements || ShikiTokenizer.defaultColorReplacements,
     );
   },
   defaultColorReplacements: undefined,
@@ -768,6 +803,27 @@ export function registerCodeHighlighting(editor: LexicalEditor, tokenizer?: Toke
 
   // Add the rest of the registrations
   registrations.push(
+    editor.registerMutationListener(
+      CodeNode,
+      (mutations) => {
+        editor.update(() => {
+          for (const [key, type] of mutations) {
+            if (type !== 'destroyed') {
+              const node = $getNodeByKey(key);
+              if (node !== null) {
+                const codeNode = node as CodeNode;
+                if (codeNode.getTheme()?.endsWith(' needUpdate')) {
+                  editor.update(() => {
+                    codeNode.setTheme(codeNode.getTheme()?.replace(' needUpdate', '') || '');
+                  });
+                }
+              }
+            }
+          }
+        });
+      },
+      { skipInitialization: false },
+    ),
     editor.registerNodeTransform(CodeNode, (node) =>
       codeNodeTransform(node, editor, tokenizer as Tokenizer),
     ),
