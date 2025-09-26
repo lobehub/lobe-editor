@@ -90,6 +90,7 @@ function convertMdastToLexical(
       if (markdownReaders[node.type]) {
         let children: MarkdownReadNode[] = [];
         if ('children' in node && Array.isArray(node.children)) {
+          let htmlStack: Array<IHTMLStack> = []; // 当前循环是否包含 HTML 标签
           children = node.children
             .reduce(
               (ret, child, index) => {
@@ -119,6 +120,7 @@ function convertMdastToLexical(
                   }
                   if (isEndTag) {
                     const top = ctx.pop();
+                    htmlStack.pop();
                     if (top?.tag !== tag) {
                       logger.warn('HTML tag mismatch:', tag);
                       ret.push(...(top?.children || []));
@@ -147,17 +149,21 @@ function convertMdastToLexical(
                     }
                     return ret;
                   }
-                  ctx.push({
+
+                  const htmlStackItem: IHTMLStack = {
                     children: [],
                     index,
                     isEndTag,
                     node: child,
                     tag,
-                  });
+                  };
+
+                  htmlStack.push(htmlStackItem);
+                  ctx.push(htmlStackItem);
                   return ret;
                 }
 
-                if (ctx.isReadingHTML) {
+                if (htmlStack.length > 0) {
                   const top = ctx.last;
                   if (top) {
                     top.children.push(
