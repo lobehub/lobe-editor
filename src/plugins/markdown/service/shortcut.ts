@@ -258,7 +258,7 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
     }
 
     if (this._markdownReaders[level]) {
-      this._markdownReaders[level][type].push(reader);
+      this._markdownReaders[level][type]?.push(reader);
     }
   }
 }
