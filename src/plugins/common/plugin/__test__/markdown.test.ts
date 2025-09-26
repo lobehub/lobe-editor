@@ -50,8 +50,6 @@ describe('Common Plugin Tests', () => {
 
     expect(root.children[0].children[1].text).toBe('strong');
     expect(root.children[0].children[1].format & IS_UNDERLINE).toBe(IS_UNDERLINE);
-
-    expect(root.children[0].children[1].text).toBe('strong');
     expect(root.children[0].children[1].format & IS_BOLD).toBe(IS_BOLD);
   });
 });
