@@ -1,4 +1,11 @@
-import { IS_BOLD, IS_ITALIC, IS_STRIKETHROUGH, IS_SUBSCRIPT, IS_SUPERSCRIPT } from 'lexical';
+import {
+  IS_BOLD,
+  IS_ITALIC,
+  IS_STRIKETHROUGH,
+  IS_SUBSCRIPT,
+  IS_SUPERSCRIPT,
+  IS_UNDERLINE,
+} from 'lexical';
 
 import type { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -61,5 +68,31 @@ export function registerMDReader(markdownService: IMarkdownShortCutService) {
       }
       return child;
     });
+  });
+
+  markdownService.registerMarkdownReader('html', (node, children) => {
+    if (['<ins>', '<u>'].includes(node.value.toLocaleLowerCase())) {
+      return children.map((child) => {
+        if (INodeHelper.isTextNode(child)) {
+          child.format = (child.format || 0) | IS_UNDERLINE;
+        }
+        return child;
+      });
+    } else if (['<em>'].includes(node.value.toLocaleLowerCase())) {
+      return children.map((child) => {
+        if (INodeHelper.isTextNode(child)) {
+          child.format = (child.format || 0) | IS_ITALIC;
+        }
+        return child;
+      });
+    } else if (['<strong>'].includes(node.value.toLocaleLowerCase())) {
+      return children.map((child) => {
+        if (INodeHelper.isTextNode(child)) {
+          child.format = (child.format || 0) | IS_BOLD;
+        }
+        return child;
+      });
+    }
+    return false;
   });
 }

@@ -1,16 +1,16 @@
 /* eslint-disable no-redeclare */
 /* eslint-disable @typescript-eslint/no-redeclare */
-import {
-  ElementNode,
-  LexicalNode,
-  TextNode,
-} from 'lexical';
+import { ElementNode, LexicalNode, TextNode } from 'lexical';
 
 import { genServiceId } from '@/editor-kernel';
 import type { IEditorKernel, IServiceID } from '@/types/kernel';
 import { createDebugLogger } from '@/utils/debug';
 
-import type { TransformerRecord } from '../data-source/markdown/parse';
+import type {
+  MarkdownReaderFunc,
+  TransformerRecord,
+  TransfromerRecordArray,
+} from '../data-source/markdown/parse';
 import { indexBy } from '../utils';
 import type {
   ElementTransformer,
@@ -49,13 +49,23 @@ export interface IMarkdownWriterContext {
   wrap: (before: string, after: string) => void;
 }
 
+export const MARKDOWN_WRITER_LEVEL_MAX = 0;
+export const MARKDOWN_READER_LEVEL_HIGH = 1;
+export const MARKDOWN_READER_LEVEL_NORMAL = 2;
+
+export type MARKDOWN_READER_LEVEL =
+  | typeof MARKDOWN_READER_LEVEL_HIGH
+  | typeof MARKDOWN_READER_LEVEL_NORMAL
+  | typeof MARKDOWN_WRITER_LEVEL_MAX;
+
 export interface IMarkdownShortCutService {
   /**
    * Register Markdown reader
    */
   registerMarkdownReader<K extends keyof TransformerRecord>(
     type: K,
-    reader: TransformerRecord[K],
+    reader: MarkdownReaderFunc<K>,
+    level?: MARKDOWN_READER_LEVEL,
   ): void;
 
   registerMarkdownShortCut(transformer: Transformer): void;
@@ -85,7 +95,11 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
     (_ctx: IMarkdownWriterContext, _node: LexicalNode) => boolean | void
   > = {};
 
-  private _markdownReaders: TransformerRecord = {};
+  private _markdownReaders: [
+    TransfromerRecordArray,
+    TransfromerRecordArray,
+    TransfromerRecordArray,
+  ] = [{}, {}, {}];
 
   constructor(private kernel?: IEditorKernel) {}
 
@@ -94,7 +108,21 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
   }
 
   get markdownReaders() {
-    return this._markdownReaders;
+    return this._markdownReaders.reduce(
+      (acc: TransfromerRecordArray, curr: TransfromerRecordArray) => {
+        // @ts-expect-error not error
+        Object.keys(curr).forEach((key: keyof TransfromerRecordArray) => {
+          if (!acc[key]) {
+            acc[key] = [];
+          }
+          const existing = acc[key] as Array<MarkdownReaderFunc<typeof key>>;
+          const adding = curr[key];
+          existing.push(...(adding as Array<MarkdownReaderFunc<typeof key>>));
+        });
+        return acc;
+      },
+      {} as TransfromerRecordArray,
+    );
   }
 
   private _textFormatTransformersByTrigger: Readonly<
@@ -222,17 +250,15 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
 
   registerMarkdownReader<K extends keyof TransformerRecord>(
     type: K,
-    reader: TransformerRecord[K],
+    reader: MarkdownReaderFunc<K>,
+    level: MARKDOWN_READER_LEVEL = MARKDOWN_READER_LEVEL_NORMAL,
   ): void {
-    if (!this._markdownReaders[type]) {
-      this._markdownReaders[type] = reader;
-      return;
+    if (!this._markdownReaders[level][type]) {
+      this._markdownReaders[level][type] = [];
     }
-    if (this.kernel?.isHotReloadMode()) {
-      this.logger.warn(`🔄 Hot reload: markdown reader "${type}"`);
-      this._markdownReaders[type] = reader;
-      return;
+
+    if (this._markdownReaders[level]) {
+      this._markdownReaders[level][type]?.push(reader);
     }
-    throw new Error(`Markdown reader for type "${type}" is already registered.`);
   }
 }
