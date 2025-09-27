@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.13.0](https://github.com/lobehub/lobe-editor/compare/v1.12.0...v1.13.0)
+<sup>Released on **2025-09-27**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add markdown reader support for mention plugin and enhance ma….
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add markdown reader support for mention plugin and enhance ma…, closes [#41](https://github.com/lobehub/lobe-editor/issues/41) ([66a78e1](https://github.com/lobehub/lobe-editor/commit/66a78e1))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.12.0](https://github.com/lobehub/lobe-editor/compare/v1.11.0...v1.12.0)
 <sup>Released on **2025-09-23**</sup>
 
