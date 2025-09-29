@@ -1,4 +1,4 @@
-import { $setSelection, LexicalEditor } from 'lexical';
+import { $setSelection, LexicalEditor, TextNode } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
@@ -37,6 +37,13 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
     this.register(
       registerCodeInline(editor, this.kernel, {
         enableHotkey: this.config?.enableHotkey,
+      }),
+    );
+    this.register(
+      editor.registerNodeTransform(TextNode, (node) => {
+        if (node.hasFormat('code')) {
+          node.replace($createCodeNode(node.getTextContent())).insertAfter($createCursorNode());
+        }
       }),
     );
 
