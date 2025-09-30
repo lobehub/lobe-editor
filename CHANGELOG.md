@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.14.2](https://github.com/lobehub/lobe-editor/compare/v1.14.1...v1.14.2)
+<sup>Released on **2025-09-30**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Clean log.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Clean log ([11dc313](https://github.com/lobehub/lobe-editor/commit/11dc313))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.14.1](https://github.com/lobehub/lobe-editor/compare/v1.14.0...v1.14.1)
 <sup>Released on **2025-09-30**</sup>
 
