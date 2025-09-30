@@ -161,17 +161,25 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           const clipboardData = event.clipboardData;
           if (!clipboardData) return false;
 
-          // Get plain text content
+          // Get clipboard content
           const text = clipboardData.getData('text/plain');
           const html = clipboardData.getData('text/html');
 
+          // If there's no text content, let Lexical handle it
           if (!text) return false;
 
-          // Check if content contains markdown patterns
+          // If there's HTML content, it's a rich text paste
+          // Let Lexical's rich text handler process it
+          if (html && html.trim()) {
+            console.log('paste content analysis: HTML detected, letting Lexical handle it');
+            return false;
+          }
+
+          // Only handle plain text paste - check for markdown patterns
           const hasMarkdownContent = this.detectMarkdownContent(text);
 
           console.log('paste content analysis:', {
-            hasHTML: !!html,
+            hasHTML: false,
             hasMarkdown: hasMarkdownContent,
             markdownPatterns: this.getMarkdownPatterns(text),
             text: text.slice(0, 100) + (text.length > 100 ? '...' : ''),

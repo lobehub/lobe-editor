@@ -67,6 +67,7 @@ export const HotkeyEnum = {
   Link: 'link',
   Mention: 'mention',
   NumberList: 'numberList',
+  PasteAsPlainText: 'pasteAsPlainText',
   Redo: 'redo',
   Slash: 'slash',
   Strikethrough: 'strikethrough',

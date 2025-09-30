@@ -69,4 +69,10 @@ export const HOTKEYS_REGISTRATION: HotkeyRegistration = [
     priority: COMMAND_PRIORITY_EDITOR,
     scopes: [HotkeyScopeEnum.Insert, HotkeyScopeEnum.Plugin],
   },
+  {
+    id: HotkeyEnum.PasteAsPlainText,
+    keys: combineKeys([KeyEnum.Mod, KeyEnum.Shift, 'v']),
+    priority: COMMAND_PRIORITY_EDITOR,
+    scopes: [HotkeyScopeEnum.Format],
+  },
 ];

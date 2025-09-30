@@ -196,6 +196,29 @@ export function registerRichKeydown(
 
   return mergeRegister(
     kernel.registerHotkey(
+      HotkeyEnum.PasteAsPlainText,
+      async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+
+          editor.update(() => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection)) return;
+
+            // Simply insert the plain text
+            selection.insertText(text);
+          });
+        } catch (error) {
+          console.error('Failed to paste as plain text:', error);
+        }
+      },
+      {
+        enabled: enableHotkey,
+        preventDefault: true,
+        stopPropagation: true,
+      },
+    ),
+    kernel.registerHotkey(
       HotkeyEnum.Bold,
       () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold'),
       {
