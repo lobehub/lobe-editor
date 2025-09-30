@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.14.1](https://github.com/lobehub/lobe-editor/compare/v1.14.0...v1.14.1)
+<sup>Released on **2025-09-30**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix html paste and cmd+shift+v.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix html paste and cmd+shift+v, closes [#43](https://github.com/lobehub/lobe-editor/issues/43) ([0a10a9d](https://github.com/lobehub/lobe-editor/commit/0a10a9d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.14.0](https://github.com/lobehub/lobe-editor/compare/v1.13.0...v1.14.0)
 <sup>Released on **2025-09-30**</sup>
 
