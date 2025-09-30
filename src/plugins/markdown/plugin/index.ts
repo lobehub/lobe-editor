@@ -14,6 +14,7 @@ import {
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import { createDebugLogger } from '@/utils/debug';
 
 import MarkdownDataSource from '../data-source/markdown-data-source';
 import { parseMarkdownToLexical } from '../data-source/markdown/parse';
@@ -32,6 +33,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
   implements IEditorPlugin<MarkdownPluginOptions>
 {
   static pluginName = 'MarkdownPlugin';
+  private logger = createDebugLogger('plugin', 'markdown');
   private service: MarkdownShortCutService;
 
   constructor(protected kernel: IEditorKernel) {
@@ -171,14 +173,14 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           // If there's HTML content, it's a rich text paste
           // Let Lexical's rich text handler process it
           if (html && html.trim()) {
-            console.log('paste content analysis: HTML detected, letting Lexical handle it');
+            this.logger.debug('paste content analysis: HTML detected, letting Lexical handle it');
             return false;
           }
 
           // Only handle plain text paste - check for markdown patterns
           const hasMarkdownContent = this.detectMarkdownContent(text);
 
-          console.log('paste content analysis:', {
+          this.logger.debug('paste content analysis:', {
             hasHTML: false,
             hasMarkdown: hasMarkdownContent,
             markdownPatterns: this.getMarkdownPatterns(text),
@@ -267,7 +269,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
       $insertGeneratedNodes(editor, nodes, selection!);
       return true;
     } catch (error) {
-      console.error('Failed to handle markdown paste:', error);
+      this.logger.error('Failed to handle markdown paste:', error);
     }
 
     return false;
