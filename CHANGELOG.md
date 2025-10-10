@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.15.0](https://github.com/lobehub/lobe-editor/compare/v1.14.2...v1.15.0)
+<sup>Released on **2025-10-10**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add markdownOption and enablePasteMarkdown in Editor props.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add markdownOption and enablePasteMarkdown in Editor props ([56b5d5d](https://github.com/lobehub/lobe-editor/commit/56b5d5d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.14.2](https://github.com/lobehub/lobe-editor/compare/v1.14.1...v1.14.2)
 <sup>Released on **2025-09-30**</sup>
 
