@@ -30,6 +30,8 @@ const Editor = memo<EditorProps>(
     onFocus,
     onBlur,
     autoFocus,
+    enablePasteMarkdown = true,
+    markdownOption = true,
     onCompositionStart,
     onCompositionEnd,
     onContextMenu,
@@ -80,6 +82,8 @@ const Editor = memo<EditorProps>(
         <ReactPlainText
           autoFocus={autoFocus}
           className={className}
+          enablePasteMarkdown={enablePasteMarkdown}
+          markdownOption={markdownOption}
           onBlur={onBlur}
           onChange={onChange}
           onCompositionEnd={onCompositionEnd}

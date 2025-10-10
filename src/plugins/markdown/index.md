@@ -64,10 +64,29 @@ Handles pattern-based text replacements:
 
 ```typescript
 interface MarkdownPluginOptions {
-  // Currently no specific options required
-  // Configuration is handled through service registration
+  /**
+   * Enable automatic markdown formatting for pasted content
+   * @default true
+   */
+  enablePasteMarkdown?: boolean;
 }
 ```
+
+The plugin automatically detects markdown patterns in pasted plain text content and converts them to structured editor nodes. This feature can be disabled by setting `enablePasteMarkdown` to `false`.
+
+#### Paste Behavior
+
+When `enablePasteMarkdown` is enabled (default):
+
+- Plain text with markdown patterns is automatically formatted
+- Detects headers, bold/italic, code blocks, links, images, lists, tables, etc.
+- HTML content is handled by Lexical's rich text handler
+- Plain text without markdown patterns is inserted as-is
+
+When disabled:
+
+- All pasted content is handled by Lexical's default paste handlers
+- No automatic markdown formatting occurs
 
 ## Service API
 
@@ -145,10 +164,38 @@ interface IMarkdownWriterContext {
 ### Basic Plugin Setup
 
 ```typescript
+// With default options (paste markdown enabled)
 const markdownPlugin = new MarkdownPlugin(kernel);
 
 // The plugin automatically registers the markdown service
 const markdownService = kernel.requireService(IMarkdownShortCutService);
+```
+
+### Disabling Paste Markdown Formatting
+
+```typescript
+// Disable automatic markdown formatting for pasted content
+const markdownPlugin = new MarkdownPlugin(kernel, {
+  enablePasteMarkdown: false,
+});
+```
+
+### Using with React Editor
+
+```typescript
+import { Editor } from '@lobehub/editor/react';
+
+// Disable paste markdown formatting
+<Editor
+  enablePasteMarkdown={false}
+  placeholder="Paste content here..."
+/>
+
+// Enable paste markdown formatting (default)
+<Editor
+  enablePasteMarkdown={true}
+  placeholder="Paste markdown content here..."
+/>
 ```
 
 ### Registering Custom Transformers

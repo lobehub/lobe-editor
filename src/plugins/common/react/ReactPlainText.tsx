@@ -32,6 +32,8 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     className,
     variant,
     enableHotkey = true,
+    enablePasteMarkdown = true,
+    markdownOption = true,
     onKeyDown,
     onFocus,
     onBlur,
@@ -52,7 +54,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const [editor] = useLexicalComposerContext();
     const decorators = useDecorators(editor, LexicalErrorBoundary);
-    const { styles: themeStyles } = useThemeStyles();
+    const { styles: themeStyles } = useThemeStyles(markdownOption);
     const { cx, styles } = useStyles({ fontSize, headerMultiple, lineHeight, marginMultiple });
     const [isInitialized, setIsInitialized] = useState(false);
 
@@ -61,12 +63,15 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     } = Children.only(children);
 
     useLayoutEffect(() => {
-      editor.registerPlugin(MarkdownPlugin);
+      editor.registerPlugin(MarkdownPlugin, {
+        enablePasteMarkdown,
+      });
       editor.registerPlugin(CommonPlugin, {
         enableHotkey,
+        markdownOption,
         theme: restTheme ? { ...themeStyles, ...restTheme } : themeStyles,
       });
-    }, [editor, enableHotkey, restTheme, themeStyles]);
+    }, [editor, enableHotkey, enablePasteMarkdown, markdownOption, restTheme, themeStyles]);
 
     useEffect(() => {
       const container = editorContainerRef.current;
@@ -134,7 +139,19 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     };
 
     return (
-      <div className={cx(styles.root, styles.variant, className)} style={style}>
+      <div
+        className={cx(
+          styles.root,
+          markdownOption === true && styles.variant,
+          markdownOption === false && styles.noHeader,
+          typeof markdownOption === 'object' && markdownOption.header === true && styles.header,
+          typeof markdownOption === 'object' && markdownOption.header === false && styles.noHeader,
+          typeof markdownOption === 'object' && markdownOption.code === true && styles.code,
+          typeof markdownOption === 'object' && markdownOption.quote === true && styles.blockquote,
+          className,
+        )}
+        style={style}
+      >
         <div
           contentEditable
           onBlur={handleBlur}

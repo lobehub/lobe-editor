@@ -21,6 +21,16 @@ export interface ReactPlainTextProps {
   children: ReactElement<ReactEditorContentProps>;
   className?: string;
   enableHotkey?: boolean;
+  /**
+   * Enable automatic markdown formatting for pasted content
+   * @default true
+   */
+  enablePasteMarkdown?: boolean;
+  /**
+   * Enable/disable markdown shortcuts
+   * @default true - all formats enabled
+   */
+  markdownOption?: CommonPluginOptions['markdownOption'];
   onBlur?: (props: { editor: IEditor; event: FocusEvent<HTMLDivElement> }) => void;
   onChange?: (editor: IEditor) => void;
   onCompositionEnd?: (props: { editor: IEditor; event: CompositionEvent<HTMLDivElement> }) => void;

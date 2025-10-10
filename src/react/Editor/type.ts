@@ -18,6 +18,23 @@ export interface EditorProps
   children?: ReactNode;
   className?: string;
   editor?: IEditor;
+  /**
+   * Enable automatic markdown formatting for pasted content
+   * @default true
+   */
+  enablePasteMarkdown?: boolean;
+  markdownOption?:
+    | boolean
+    | {
+        bold?: boolean;
+        code?: boolean;
+        header?: boolean;
+        italic?: boolean;
+        quote?: boolean;
+        strikethrough?: boolean;
+        underline?: boolean;
+        underlineStrikethrough?: boolean;
+      };
   mentionOption?: MentionOption;
   onInit?: (editor: IEditor) => void;
   plugins?: EditorPlugin[];

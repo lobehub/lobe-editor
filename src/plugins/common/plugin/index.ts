@@ -23,13 +23,29 @@ import TextDataSource from '../data-source/text-data-source';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { CursorNode, registerCursorNode } from '../node/cursor';
 import { createBlockNode } from '../utils';
-import { registerHeaderBackspace, registerLastElement, registerRichKeydown } from './register';
 import { registerMDReader } from './mdReader';
+import { registerHeaderBackspace, registerLastElement, registerRichKeydown } from './register';
 
 patchBreakLine();
 
 export interface CommonPluginOptions {
   enableHotkey?: boolean;
+  /**
+   * Enable/disable markdown shortcuts
+   * @default true - all formats enabled
+   */
+  markdownOption?:
+    | boolean
+    | {
+        bold?: boolean;
+        code?: boolean;
+        header?: boolean;
+        italic?: boolean;
+        quote?: boolean;
+        strikethrough?: boolean;
+        underline?: boolean;
+        underlineStrikethrough?: boolean;
+      };
   theme?: {
     quote?: string;
     textBold?: string;
@@ -84,69 +100,121 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     if (!markdownService) {
       return;
     }
-    markdownService.registerMarkdownShortCut({
-      regExp: /^>\s/,
-      replace: (parentNode, children, _match, isImport) => {
-        if (isImport) {
-          const previousNode = parentNode.getPreviousSibling();
-          if ($isQuoteNode(previousNode)) {
-            previousNode.splice(previousNode.getChildrenSize(), 0, [
-              $createLineBreakNode(),
-              ...children,
-            ]);
-            parentNode.remove();
-            return;
-          }
-        }
 
-        const node = $createQuoteNode();
-        node.append(...children);
-        parentNode.replace(node);
-        if (!isImport) {
-          node.select(0, 0);
-        }
-      },
-      type: 'element',
-    });
-    markdownService.registerMarkdownShortCut({
-      regExp: /^(#{1,6})\s/,
-      replace: createBlockNode((match, parentNode) => {
-        const tag = ('h' + match[1].length) as HeadingTagType;
-        if ($isHeadingNode(parentNode) && parentNode.getTag() === tag) {
-          return $createParagraphNode();
-        }
-        return $createHeadingNode(tag);
-      }),
-      type: 'element',
-    });
-    markdownService.registerMarkdownShortCuts([
-      {
-        format: ['bold'],
-        tag: '**',
-        type: 'text-format',
-      },
-      {
-        format: ['bold'],
-        intraword: false,
-        tag: '__',
-        type: 'text-format',
-      },
-      {
+    // Parse markdown options
+    const markdownOption = this.config?.markdownOption ?? true;
+    const isMarkdownEnabled = markdownOption !== false;
+
+    // Determine which formats are enabled
+    const formats = {
+      bold: true,
+      header: true,
+      italic: true,
+      quote: true,
+      strikethrough: true,
+      // Note: code, underline, underlineStrikethrough are handled by other plugins/writers
+    };
+
+    if (typeof markdownOption === 'object') {
+      formats.bold = markdownOption.bold ?? true;
+      formats.header = markdownOption.header ?? true;
+      formats.italic = markdownOption.italic ?? true;
+      formats.quote = markdownOption.quote ?? true;
+      formats.strikethrough = markdownOption.strikethrough ?? true;
+    }
+
+    if (!isMarkdownEnabled) {
+      return;
+    }
+
+    // Register quote shortcut if enabled
+    if (formats.quote) {
+      markdownService.registerMarkdownShortCut({
+        regExp: /^>\s/,
+        replace: (parentNode, children, _match, isImport) => {
+          if (isImport) {
+            const previousNode = parentNode.getPreviousSibling();
+            if ($isQuoteNode(previousNode)) {
+              previousNode.splice(previousNode.getChildrenSize(), 0, [
+                $createLineBreakNode(),
+                ...children,
+              ]);
+              parentNode.remove();
+              return;
+            }
+          }
+
+          const node = $createQuoteNode();
+          node.append(...children);
+          parentNode.replace(node);
+          if (!isImport) {
+            node.select(0, 0);
+          }
+        },
+        type: 'element',
+      });
+    }
+
+    // Register header shortcut if enabled
+    if (formats.header) {
+      markdownService.registerMarkdownShortCut({
+        regExp: /^(#{1,6})\s/,
+        replace: createBlockNode((match, parentNode) => {
+          const tag = ('h' + match[1].length) as HeadingTagType;
+          if ($isHeadingNode(parentNode) && parentNode.getTag() === tag) {
+            return $createParagraphNode();
+          }
+          return $createHeadingNode(tag);
+        }),
+        type: 'element',
+      });
+    }
+
+    // Register text format shortcuts based on enabled formats
+    const textFormatShortcuts = [];
+
+    if (formats.bold) {
+      textFormatShortcuts.push(
+        {
+          format: ['bold'],
+          tag: '**',
+          type: 'text-format',
+        },
+        {
+          format: ['bold'],
+          intraword: false,
+          tag: '__',
+          type: 'text-format',
+        },
+      );
+    }
+
+    if (formats.strikethrough) {
+      textFormatShortcuts.push({
         format: ['strikethrough'],
         tag: '~~',
         type: 'text-format',
-      },
-      {
-        format: ['italic'],
-        tag: '*',
-        type: 'text-format',
-      },
-      {
-        format: ['italic'],
-        intraword: false,
-        tag: '_',
-        type: 'text-format',
-      },
+      });
+    }
+
+    if (formats.italic) {
+      textFormatShortcuts.push(
+        {
+          format: ['italic'],
+          tag: '*',
+          type: 'text-format',
+        },
+        {
+          format: ['italic'],
+          intraword: false,
+          tag: '_',
+          type: 'text-format',
+        },
+      );
+    }
+
+    // Always register superscript and subscript (not in options)
+    textFormatShortcuts.push(
       {
         format: ['superscript'],
         tag: '^',
@@ -157,7 +225,11 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         tag: '~',
         type: 'text-format',
       },
-    ]);
+    );
+
+    if (textFormatShortcuts.length > 0) {
+      markdownService.registerMarkdownShortCuts(textFormatShortcuts as any);
+    }
 
     markdownService.registerMarkdownWriter('paragraph', (ctx) => {
       ctx.wrap('', '\n\n');

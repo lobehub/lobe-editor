@@ -25,8 +25,13 @@ import {
   canContainTransformableMarkdown,
 } from '../utils';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface MarkdownPluginOptions {}
+export interface MarkdownPluginOptions {
+  /**
+   * Enable automatic markdown formatting for pasted content
+   * @default true
+   */
+  enablePasteMarkdown?: boolean;
+}
 
 export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = class
   extends KernelPlugin
@@ -36,7 +41,10 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
   private logger = createDebugLogger('plugin', 'markdown');
   private service: MarkdownShortCutService;
 
-  constructor(protected kernel: IEditorKernel) {
+  constructor(
+    protected kernel: IEditorKernel,
+    public config?: MarkdownPluginOptions,
+  ) {
     super();
     this.service = new MarkdownShortCutService(kernel);
     kernel.registerService(IMarkdownShortCutService, this.service);
@@ -158,6 +166,13 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
       editor.registerCommand(
         PASTE_COMMAND,
         (event) => {
+          // Check if markdown paste formatting is enabled (default: true)
+          const enablePasteMarkdown = this.config?.enablePasteMarkdown ?? true;
+          if (!enablePasteMarkdown) {
+            this.logger.debug('paste markdown formatting is disabled');
+            return false;
+          }
+
           if (!(event instanceof ClipboardEvent)) return false;
 
           const clipboardData = event.clipboardData;

@@ -1,25 +1,61 @@
 import { createStyles } from 'antd-style';
 
-export const useThemeStyles = createStyles(({ css, token }) => ({
-  quote: 'editor_quote',
-  textBold: css`
-    font-weight: bold;
-  `,
-  textCode: 'editor_code',
-  textItalic: css`
-    font-style: italic;
-  `,
-  textStrikethrough: css`
-    color: ${token.colorTextDescription};
-    text-decoration: line-through;
-  `,
-  textUnderline: css`
-    text-decoration: underline;
-  `,
-  textUnderlineStrikethrough: css`
-    text-decoration: underline line-through;
-  `,
-}));
+import type { CommonPluginOptions } from '@/plugins/common';
+
+export const useThemeStyles = createStyles(
+  ({ css, token }, markdownOption: CommonPluginOptions['markdownOption'] = true) => {
+    return {
+      quote: 'editor_quote',
+      textBold:
+        markdownOption === true ||
+        (typeof markdownOption === 'object' && markdownOption.bold === true)
+          ? css`
+              font-weight: bold;
+            `
+          : css`
+              font-weight: unset;
+            `,
+      textCode: 'editor_code',
+      textItalic:
+        markdownOption === true ||
+        (typeof markdownOption === 'object' && markdownOption.italic === true)
+          ? css`
+              font-style: italic;
+            `
+          : css`
+              font-style: unset;
+            `,
+      textStrikethrough:
+        markdownOption === true ||
+        (typeof markdownOption === 'object' && markdownOption.strikethrough === true)
+          ? css`
+              color: ${token.colorTextDescription};
+              text-decoration: line-through;
+            `
+          : css`
+              text-decoration: unset;
+            `,
+      textUnderline:
+        markdownOption === true ||
+        (typeof markdownOption === 'object' && markdownOption.strikethrough === true)
+          ? css`
+              text-decoration: underline;
+            `
+          : css`
+              text-decoration: unset;
+            `,
+      textUnderlineStrikethrough:
+        markdownOption === true ||
+        (typeof markdownOption === 'object' && markdownOption.underlineStrikethrough === true)
+          ? css`
+              text-decoration: underline line-through;
+            `
+          : css`
+              text-decoration: unset;
+            `,
+    };
+  },
+);
 
 export const useStyles = createStyles(
   (
@@ -173,6 +209,31 @@ export const useStyles = createStyles(
     `;
 
     return {
+      blockquote,
+      code,
+      header,
+      noHeader: css`
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+          margin-block: 4px;
+          font-size: var(--lobe-markdown-font-size);
+          line-height: var(--lobe-markdown-line-height);
+          letter-spacing: 0.02em;
+
+          &:not(:first-child) {
+            margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+          }
+
+          &:not(:last-child) {
+            margin-block-end: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+          }
+        }
+      `,
+      p,
       root: __root,
       variant: cx(header, p, blockquote, code),
     };
