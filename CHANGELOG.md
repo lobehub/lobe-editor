@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.16.0](https://github.com/lobehub/lobe-editor/compare/v1.15.0...v1.16.0)
+<sup>Released on **2025-10-10**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add fallback nodes in markdown parsing.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add fallback nodes in markdown parsing, closes [#46](https://github.com/lobehub/lobe-editor/issues/46) ([e713d14](https://github.com/lobehub/lobe-editor/commit/e713d14))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.15.0](https://github.com/lobehub/lobe-editor/compare/v1.14.2...v1.15.0)
 <sup>Released on **2025-10-10**</sup>
 
