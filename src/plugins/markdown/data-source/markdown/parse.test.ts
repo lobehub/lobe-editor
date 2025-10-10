@@ -84,4 +84,15 @@ describe('Markdown to Lexical Conversion', () => {
     // @ts-expect-error not error
     expect(lexical.children[0]?.children?.[1]?.format).toBe(1);
   });
+
+  it('should fallback list', () => {
+    const markdown = '* asd\n* 123\n';
+    const lexical = parseMarkdownToLexical(markdown, {});
+
+    expect(lexical.children.length).toEqual(2);
+    // @ts-expect-error not error
+    expect(lexical.children[0].children.length).toEqual(1);
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[0].text).toEqual('asd');
+  });
 });
