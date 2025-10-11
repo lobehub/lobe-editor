@@ -143,6 +143,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
         className={cx(
           styles.root,
           markdownOption === true && styles.variant,
+          markdownOption === false && styles.noStyle,
           markdownOption === false && styles.noHeader,
           typeof markdownOption === 'object' && markdownOption.header === true && styles.header,
           typeof markdownOption === 'object' && markdownOption.header === false && styles.noHeader,

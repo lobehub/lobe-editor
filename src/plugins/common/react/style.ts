@@ -162,7 +162,7 @@ export const useStyles = createStyles(
 
     const p = css`
       p {
-        margin-block: 4px;
+        margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
         line-height: var(--lobe-markdown-line-height);
         letter-spacing: 0.02em;
 
@@ -231,6 +231,15 @@ export const useStyles = createStyles(
           &:not(:last-child) {
             margin-block-end: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
           }
+        }
+      `,
+      noStyle: css`
+        --lobe-markdown-header-multiple: 0;
+        --lobe-markdown-margin-multiple: 0;
+        --lobe-markdown-line-height: 1.5;
+
+        p {
+          margin-block: 0;
         }
       `,
       p,
