@@ -5,6 +5,7 @@ import {
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
   INSERT_LINK_COMMAND,
+  INSERT_MARKDOWN_COMMAND,
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
@@ -21,6 +22,8 @@ import {
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
+import { Button, Space, notification } from 'antd';
+import { EditorState, UNDO_COMMAND } from 'lexical';
 import { debounce } from 'lodash-es';
 import {
   Heading1Icon,
@@ -30,7 +33,7 @@ import {
   SigmaIcon,
   Table2Icon,
 } from 'lucide-react';
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 
 import { devConsole } from '@/utils/debug';
 
@@ -43,6 +46,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
   const editor = useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
+  const [api, contextHolder] = notification.useNotification();
 
   const handleChange = debounce((editor: IEditor) => {
     const markdownContent = editor.getDocument('markdown') as unknown as string;
@@ -56,6 +60,49 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
     window.editor = editor;
     handleChange(editor);
   };
+
+  useEffect(() => {
+    const handleEvent = ({
+      markdown,
+      cacheState,
+    }: {
+      cacheState: EditorState;
+      markdown: string;
+    }) => {
+      console.info('markdownParse event:', { cacheState, markdown });
+      const key = `open${Date.now()}`;
+      const actions = (
+        <Space>
+          <Button onClick={() => api.destroy()} size="small" type="link">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              editor.dispatchCommand(UNDO_COMMAND, undefined);
+              editor.dispatchCommand(INSERT_MARKDOWN_COMMAND, { markdown });
+              api.destroy();
+            }}
+            size="small"
+            type="primary"
+          >
+            Confirm
+          </Button>
+        </Space>
+      );
+      api.open({
+        actions,
+        description:
+          'Convert to markdown format, existing content will be overwritten, confirm? (Auto close in 5 seconds)',
+        key,
+        message: 'Markdown Parse',
+        onClose: close,
+      });
+    };
+    editor.on('markdownParse', handleEvent);
+    return () => {
+      editor.off('markdownParse', handleEvent);
+    };
+  }, [editor]);
 
   const mentionItems: SlashOptions['items'] = useMemo(
     () => [
@@ -199,6 +246,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
 
   return (
     <Container json={json} markdown={markdown} {...props}>
+      {contextHolder}
       <Toolbar editor={editor} />
       <Editor
         content={content}

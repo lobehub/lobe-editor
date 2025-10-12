@@ -3,6 +3,7 @@ import type {
   CommandListenerPriority,
   CommandPayloadType,
   DecoratorNode,
+  EditorState,
   LexicalCommand,
   LexicalEditor,
   LexicalNodeConfig,
@@ -36,6 +37,10 @@ export interface IKernelEventMap {
    * @returns
    */
   initialized: (editor: LexicalEditor) => void;
+  /**
+   * handle markdown parse event
+   */
+  markdownParse: (params: { cacheState: EditorState; markdown: string }) => void;
 }
 
 /**
@@ -209,6 +214,7 @@ export interface IEditor {
  * API provided to plugins
  */
 export interface IEditorKernel extends IEditor {
+  emit<T extends keyof IKernelEventMap>(event: T, params: Parameters<IKernelEventMap[T]>[0]): void;
   /**
    * Get editor Node decorator for specific Node rendering
    * @param name
@@ -260,6 +266,7 @@ export interface IEditorKernel extends IEditor {
    * @param themes
    */
   registerThemes(themes: Record<string, any>): void;
+
   /**
    * Enable or disable hot reload mode
    * @param enabled Whether to enable hot reload mode

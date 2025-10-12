@@ -16,14 +16,10 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
+import { registerMarkdownCommand } from '../command';
 import MarkdownDataSource from '../data-source/markdown-data-source';
-import { parseMarkdownToLexical } from '../data-source/markdown/parse';
 import { IMarkdownShortCutService, MarkdownShortCutService } from '../service/shortcut';
-import {
-  $generateNodesFromSerializedNodes,
-  $insertGeneratedNodes,
-  canContainTransformableMarkdown,
-} from '../utils';
+import { canContainTransformableMarkdown } from '../utils';
 
 export interface MarkdownPluginOptions {
   /**
@@ -204,7 +200,19 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
 
           if (hasMarkdownContent) {
             // Handle markdown paste
-            return this.handleMarkdownPaste(editor, text);
+            // return this.handleMarkdownPaste(editor, text);
+            const cacheState = editor.getEditorState();
+            this.kernel.emit('markdownParse', {
+              cacheState,
+              markdown: text,
+            });
+            // setTimeout(() => {
+            //   editor.setEditorState(cacheState);
+            //   editor.update(() => {
+            //     this.handleMarkdownPaste(editor, text);
+            //   });
+            // }, 5000);
+            return false;
           }
 
           return false;
@@ -212,6 +220,8 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
         COMMAND_PRIORITY_CRITICAL,
       ),
     );
+
+    this.register(registerMarkdownCommand(editor, this.service));
   }
 
   /**
@@ -272,21 +282,21 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     return patterns.filter(({ regex }) => regex.test(text)).map(({ name }) => name);
   }
 
-  /**
-   * Handle markdown paste by parsing and inserting as structured content
-   */
-  private handleMarkdownPaste(editor: LexicalEditor, text: string): boolean {
-    try {
-      // Use the markdown data source to parse the content
-      const root = parseMarkdownToLexical(text, this.service.markdownReaders);
-      const selection = $getSelection();
-      const nodes = $generateNodesFromSerializedNodes(root.children);
-      $insertGeneratedNodes(editor, nodes, selection!);
-      return true;
-    } catch (error) {
-      this.logger.error('Failed to handle markdown paste:', error);
-    }
+  // /**
+  //  * Handle markdown paste by parsing and inserting as structured content
+  //  */
+  // private handleMarkdownPaste(editor: LexicalEditor, text: string): boolean {
+  //   try {
+  //     // Use the markdown data source to parse the content
+  //     const root = parseMarkdownToLexical(text, this.service.markdownReaders);
+  //     const selection = $getSelection();
+  //     const nodes = $generateNodesFromSerializedNodes(root.children);
+  //     $insertGeneratedNodes(editor, nodes, selection!);
+  //     return true;
+  //   } catch (error) {
+  //     this.logger.error('Failed to handle markdown paste:', error);
+  //   }
 
-    return false;
-  }
+  //   return false;
+  // }
 };
