@@ -105,6 +105,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     const markdownOption = this.config?.markdownOption ?? true;
     const isMarkdownEnabled = markdownOption !== false;
 
+    const softBreak = isMarkdownEnabled ? '\n\n' : '\n';
+
     // Determine which formats are enabled
     const formats = {
       bold: true,
@@ -121,10 +123,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       formats.italic = markdownOption.italic ?? true;
       formats.quote = markdownOption.quote ?? true;
       formats.strikethrough = markdownOption.strikethrough ?? true;
-    }
-
-    if (!isMarkdownEnabled) {
-      return;
     }
 
     // Register quote shortcut if enabled
@@ -232,11 +230,11 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     }
 
     markdownService.registerMarkdownWriter('paragraph', (ctx) => {
-      ctx.wrap('', '\n\n');
+      ctx.wrap('', softBreak);
     });
     markdownService.registerMarkdownWriter('quote', (ctx, node) => {
       if ($isQuoteNode(node)) {
-        ctx.wrap('> ', '\n\n');
+        ctx.wrap('> ', softBreak);
       }
     });
 
@@ -268,7 +266,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
             break;
           }
           default: {
-            ctx.wrap('', '\n\n');
+            ctx.wrap('', softBreak);
             break;
           }
         }

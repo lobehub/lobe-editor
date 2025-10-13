@@ -28,6 +28,10 @@ Editor is a powerful and extensible rich text editor component designed for mode
 
 <code src="./demos/index.tsx" nopadding iframe></code>
 
+## Disable Markdown Formatting
+
+<code src="./demos/disableMarkdown.tsx" nopadding iframe></code>
+
 ## APIs
 
 ### Editor
