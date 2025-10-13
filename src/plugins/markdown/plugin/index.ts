@@ -166,13 +166,6 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
       editor.registerCommand(
         PASTE_COMMAND,
         (event) => {
-          // Check if markdown paste formatting is enabled (default: true)
-          const enablePasteMarkdown = this.config?.enablePasteMarkdown ?? true;
-          if (!enablePasteMarkdown) {
-            this.logger.debug('paste markdown formatting is disabled');
-            return false;
-          }
-
           if (!(event instanceof ClipboardEvent)) return false;
 
           const clipboardData = event.clipboardData;
@@ -184,6 +177,26 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
 
           // If there's no text content, let Lexical handle it
           if (!text) return false;
+
+          // Check if markdown paste formatting is enabled (default: true)
+          const enablePasteMarkdown = this.config?.enablePasteMarkdown ?? true;
+          if (!enablePasteMarkdown) {
+            // Force plain text paste - ignore all formatting (like Cmd+Shift+V)
+            this.logger.debug('paste markdown formatting is disabled, inserting as plain text');
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            editor.update(() => {
+              const selection = $getSelection();
+              if (!$isRangeSelection(selection)) return;
+
+              // Simply insert the plain text
+              selection.insertText(text);
+            });
+
+            return true;
+          }
 
           // If there's HTML content, it's a rich text paste
           // Let Lexical's rich text handler process it

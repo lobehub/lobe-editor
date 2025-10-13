@@ -162,7 +162,7 @@ export const useStyles = createStyles(
 
     const p = css`
       p {
-        margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+        margin-block: 4px;
         line-height: var(--lobe-markdown-line-height);
         letter-spacing: 0.02em;
 
@@ -219,18 +219,10 @@ export const useStyles = createStyles(
         h4,
         h5,
         h6 {
-          margin-block: 4px;
+          margin-block: 0;
           font-size: var(--lobe-markdown-font-size);
+          font-weight: normal;
           line-height: var(--lobe-markdown-line-height);
-          letter-spacing: 0.02em;
-
-          &:not(:first-child) {
-            margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
-          }
-
-          &:not(:last-child) {
-            margin-block-end: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
-          }
         }
       `,
       noStyle: css`
@@ -239,7 +231,7 @@ export const useStyles = createStyles(
         --lobe-markdown-line-height: 1.5;
 
         p {
-          margin-block: 0;
+          margin-block: 4px;
         }
       `,
       p,
