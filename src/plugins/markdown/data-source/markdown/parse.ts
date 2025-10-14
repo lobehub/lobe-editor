@@ -94,6 +94,10 @@ function convertMdastToLexical(
           .reduce(
             (ret, child, index) => {
               if (child.type === 'html') {
+                const isComment = child.value.startsWith('<!--') && child.value.endsWith('-->');
+                if (isComment) {
+                  return ret;
+                }
                 const tag = child.value.replaceAll(/^<\/?|>$/g, '');
                 const isEndTag = child.value.startsWith('</');
                 if (selfClosingHtmlTags.has(tag)) {

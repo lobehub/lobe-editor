@@ -95,4 +95,18 @@ describe('Markdown to Lexical Conversion', () => {
     // @ts-expect-error not error
     expect(lexical.children[0].children[0].text).toEqual('asd');
   });
+
+  it('should ignore html comment', () => {
+    const markdown = 'This is a <!-- comment --> text.';
+    const lexical = parseMarkdownToLexical(markdown, {});
+    expect(lexical.children.length).toEqual(1);
+
+    // @ts-expect-error not error
+    expect(lexical.children[0].children.length).toEqual(2);
+
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[0].text).toEqual('This is a ');
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[1].text).toEqual(' text.');
+  });
 });

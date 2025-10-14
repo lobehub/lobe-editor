@@ -17,13 +17,14 @@ export function registerMarkdownCommand(editor: LexicalEditor, service: Markdown
     INSERT_MARKDOWN_COMMAND,
     (payload) => {
       const { markdown } = payload;
-      console.info('INSERT_MARKDOWN_COMMAND payload:', payload);
+      logger.debug('INSERT_MARKDOWN_COMMAND payload:', payload);
       editor.update(() => {
         try {
           // Use the markdown data source to parse the content
           const root = parseMarkdownToLexical(markdown, service.markdownReaders);
           const selection = $getSelection();
           const nodes = $generateNodesFromSerializedNodes(root.children);
+          logger.debug('INSERT_MARKDOWN_COMMAND nodes:', nodes);
           $insertGeneratedNodes(editor, nodes, selection!);
           return true;
         } catch (error) {
