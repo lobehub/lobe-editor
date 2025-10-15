@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.17.0](https://github.com/lobehub/lobe-editor/compare/v1.16.3...v1.17.0)
+<sup>Released on **2025-10-15**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add markdown command and integrate markdown parsing functionality.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add markdown command and integrate markdown parsing functionality, closes [#47](https://github.com/lobehub/lobe-editor/issues/47) ([869e1ba](https://github.com/lobehub/lobe-editor/commit/869e1ba))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.16.3](https://github.com/lobehub/lobe-editor/compare/v1.16.2...v1.16.3)
 <sup>Released on **2025-10-13**</sup>
 
