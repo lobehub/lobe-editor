@@ -16,6 +16,13 @@ export default {
     placeholder: 'Enter link URL',
     unlink: 'Unlink Link',
   },
+  markdown: {
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    parseMessage:
+      'Convert to markdown format, existing content will be overwritten, confirm? (Auto close in 5 seconds)',
+    parseTitle: 'Parse Markdown',
+  },
   math: {
     placeholder: 'Enter TeX formula',
   },

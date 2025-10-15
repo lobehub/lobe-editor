@@ -8,6 +8,7 @@ export * from './plugins/hr';
 export * from './plugins/image';
 export * from './plugins/link';
 export * from './plugins/list';
+export * from './plugins/markdown';
 export * from './plugins/math';
 export * from './plugins/mention';
 export * from './plugins/slash';

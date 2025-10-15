@@ -15,6 +15,7 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
+  ReactMarkdownPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
   type SlashOptions,
@@ -220,6 +221,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         onInit={handleInit}
         placeholder={'Type something...'}
         plugins={[
+          ReactMarkdownPlugin,
           ReactListPlugin,
           ReactLinkPlugin,
           ReactImagePlugin,
