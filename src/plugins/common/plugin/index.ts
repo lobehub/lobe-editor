@@ -103,8 +103,9 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
     // Parse markdown options
     const markdownOption = this.config?.markdownOption ?? true;
+    const isMarkdownEnabled = markdownOption !== false;
 
-    const softBreak = '\n';
+    const softBreak = isMarkdownEnabled ? '\n\n' : '\n';
 
     // Determine which formats are enabled
     const formats = {
@@ -229,7 +230,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     }
 
     markdownService.registerMarkdownWriter('paragraph', (ctx) => {
-      ctx.wrap('', softBreak);
+      ctx.wrap('', '\n');
     });
     markdownService.registerMarkdownWriter('quote', (ctx, node) => {
       if ($isQuoteNode(node)) {
