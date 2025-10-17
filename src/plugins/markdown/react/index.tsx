@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, Space, notification } from 'antd';
+import { Button } from '@lobehub/ui';
+import { Space, notification } from 'antd';
 import { EditorState, UNDO_COMMAND } from 'lexical';
 import { type FC, useLayoutEffect } from 'react';
 
@@ -21,7 +22,7 @@ const ReactMarkdownPlugin: FC<void> = () => {
       const key = `open${Date.now()}`;
       const actions = (
         <Space>
-          <Button onClick={() => api.destroy()} size="small" type="link">
+          <Button onClick={() => api.destroy()} size="small">
             {t('markdown.cancel')}
           </Button>
           <Button
@@ -43,7 +44,7 @@ const ReactMarkdownPlugin: FC<void> = () => {
         duration: 5,
         key,
         message: t('markdown.parseTitle'),
-        onClose: close,
+        showProgress: true,
       });
     };
     editor.on('markdownParse', handleEvent);

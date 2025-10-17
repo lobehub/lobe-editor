@@ -10,6 +10,7 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
+  ReactMarkdownPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
   type SlashOptions,
@@ -155,6 +156,7 @@ const InputEditor = memo<{
       }}
       placeholder={'Type something...'}
       plugins={[
+        ReactMarkdownPlugin,
         ReactListPlugin,
         ReactLinkPlugin,
         ReactImagePlugin,

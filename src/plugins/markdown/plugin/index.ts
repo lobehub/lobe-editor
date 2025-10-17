@@ -176,59 +176,50 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
 
           // Check if markdown paste formatting is enabled (default: true)
           const enablePasteMarkdown = this.config?.enablePasteMarkdown ?? true;
-          if (!enablePasteMarkdown) {
-            // Force plain text paste - ignore all formatting (like Cmd+Shift+V)
-            this.logger.debug('paste markdown formatting is disabled, inserting as plain text');
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            editor.update(() => {
-              const selection = $getSelection();
-              if (!$isRangeSelection(selection)) return;
-
-              // Simply insert the plain text
-              selection.insertText(text);
-            });
-
-            return true;
-          }
-
-          // If there's HTML content, it's a rich text paste
-          // Let Lexical's rich text handler process it
-          if (html && html.trim()) {
-            this.logger.debug('paste content analysis: HTML detected, letting Lexical handle it');
-            return false;
-          }
-
-          // Only handle plain text paste - check for markdown patterns
-          const hasMarkdownContent = this.detectMarkdownContent(text);
 
           this.logger.debug('paste content analysis:', {
-            hasHTML: false,
-            hasMarkdown: hasMarkdownContent,
-            markdownPatterns: this.getMarkdownPatterns(text),
+            enablePasteMarkdown,
+            hasHTML: !!(html && html.trim()),
             text: text.slice(0, 100) + (text.length > 100 ? '...' : ''),
           });
 
-          if (hasMarkdownContent) {
-            // Handle markdown paste
-            // return this.handleMarkdownPaste(editor, text);
-            const cacheState = editor.getEditorState();
-            this.kernel.emit('markdownParse', {
-              cacheState,
-              markdown: text,
-            });
-            // setTimeout(() => {
-            //   editor.setEditorState(cacheState);
-            //   editor.update(() => {
-            //     this.handleMarkdownPaste(editor, text);
-            //   });
-            // }, 5000);
-            return false;
+          // Always force plain text paste first (prevents HTML formatting issues)
+          event.preventDefault();
+          event.stopPropagation();
+
+          editor.update(() => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection)) return;
+
+            // Insert plain text
+            selection.insertText(text);
+          });
+
+          // If markdown formatting is disabled, we're done
+          if (!enablePasteMarkdown) {
+            this.logger.debug('markdown formatting disabled, plain text inserted');
+            return true;
           }
 
-          return false;
+          // Check if the pasted plain text contains markdown patterns
+          const hasMarkdownContent = this.detectMarkdownContent(text);
+
+          if (hasMarkdownContent) {
+            // Markdown detected - show confirmation dialog
+            this.logger.debug('markdown patterns detected:', this.getMarkdownPatterns(text));
+
+            setTimeout(() => {
+              this.kernel.emit('markdownParse', {
+                cacheState: editor.getEditorState(),
+                markdown: text,
+              });
+            }, 10);
+          } else {
+            // No markdown detected - plain text is already inserted
+            this.logger.debug('no markdown patterns detected, keeping as plain text');
+          }
+
+          return true; // Command handled
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
@@ -239,8 +230,20 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
 
   /**
    * Detect if text contains markdown patterns
+   * Returns false if content has too much HTML (likely not pure markdown)
    */
   private detectMarkdownContent(text: string): boolean {
+    // Check if content has significant HTML structure
+    // If it does, it's likely an HTML document, not markdown
+    const htmlTagPattern = /<[a-z][\S\s]*?>/gi;
+    const htmlMatches = text.match(htmlTagPattern);
+
+    if (htmlMatches && htmlMatches.length > 5) {
+      // More than 5 HTML tags suggests this is HTML content, not markdown
+      this.logger.debug('content has significant HTML structure, not treating as markdown');
+      return false;
+    }
+
     const markdownPatterns = [
       // Headers
       /^#{1,6}\s+/m,
