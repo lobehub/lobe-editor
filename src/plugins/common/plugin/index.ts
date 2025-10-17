@@ -103,9 +103,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
     // Parse markdown options
     const markdownOption = this.config?.markdownOption ?? true;
-    const isMarkdownEnabled = markdownOption !== false;
 
-    const softBreak = isMarkdownEnabled ? '\n\n' : '\n';
+    const softBreak = '\n';
 
     // Determine which formats are enabled
     const formats = {
