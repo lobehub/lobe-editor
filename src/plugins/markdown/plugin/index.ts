@@ -230,17 +230,45 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
 
   /**
    * Detect if text contains markdown patterns
-   * Returns false if content has too much HTML (likely not pure markdown)
+   * Returns false if content is likely code (JSON, HTML, SQL, etc.)
    */
   private detectMarkdownContent(text: string): boolean {
+    const trimmed = text.trim();
+
+    // Check if content is JSON
+    if (
+      (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+      (trimmed.startsWith('[') && trimmed.endsWith(']'))
+    ) {
+      try {
+        JSON.parse(trimmed);
+        this.logger.debug('content is valid JSON, not treating as markdown');
+        return false;
+      } catch {
+        // Not valid JSON, continue checking
+      }
+    }
+
     // Check if content has significant HTML structure
-    // If it does, it's likely an HTML document, not markdown
     const htmlTagPattern = /<[a-z][\S\s]*?>/gi;
     const htmlMatches = text.match(htmlTagPattern);
 
     if (htmlMatches && htmlMatches.length > 5) {
       // More than 5 HTML tags suggests this is HTML content, not markdown
       this.logger.debug('content has significant HTML structure, not treating as markdown');
+      return false;
+    }
+
+    // Check if content looks like code (SQL, XML, etc.)
+    // Common patterns: SQL keywords, XML declarations, file paths
+    const codePatterns = [
+      /^\s*(select|insert|update|delete|create|alter|drop)\s+/im, // SQL
+      /^\s*<\?xml/i, // XML declaration
+      /^[a-z]:\\|^\/[a-z]/im, // File paths (Windows/Unix)
+    ];
+
+    if (codePatterns.some((pattern) => pattern.test(text))) {
+      this.logger.debug('content looks like code, not treating as markdown');
       return false;
     }
 

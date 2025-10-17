@@ -1,5 +1,7 @@
+import { preprocessMarkdownContent } from '@lobehub/ui';
 import type { Heading, Html, Paragraph, PhrasingContent, Root, RootContent, Text } from 'mdast';
 import { remark } from 'remark';
+import remarkCjkFriendly from 'remark-cjk-friendly';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
@@ -7,7 +9,6 @@ import type { IElementNode, INode, IRootNode, ITextNode } from '@/editor-kernel/
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 
 import { logger } from '../../utils/logger';
-import remarkSupersub from './supersub';
 
 export type MarkdownReadNode = INode | ITextNode | IElementNode;
 
@@ -247,10 +248,10 @@ export function parseMarkdownToLexical(
   markdownReaders: TransformerRecord = {},
 ): IRootNode {
   const ast = remark()
+    .use(remarkCjkFriendly)
     .use(remarkMath)
-    .use(remarkSupersub)
     .use([[remarkGfm, { singleTilde: false }]])
-    .parse(markdown);
+    .parse(preprocessMarkdownContent(markdown));
   logger.debug('Parsed MDAST:', ast);
 
   const ctx = new MarkdownContext(ast);

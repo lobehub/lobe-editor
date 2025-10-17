@@ -10,7 +10,14 @@ import {
   QuoteNode,
   registerRichText,
 } from '@lexical/rich-text';
-import { $createLineBreakNode, $createParagraphNode, $isTextNode } from 'lexical';
+import {
+  $createLineBreakNode,
+  $createParagraphNode,
+  $isTextNode,
+  COMMAND_PRIORITY_HIGH,
+  INSERT_LINE_BREAK_COMMAND,
+  INSERT_PARAGRAPH_COMMAND,
+} from 'lexical';
 import type { LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
@@ -105,7 +112,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     const markdownOption = this.config?.markdownOption ?? true;
     const isMarkdownEnabled = markdownOption !== false;
 
-    const softBreak = isMarkdownEnabled ? '\n\n' : '\n';
+    const breakMark = isMarkdownEnabled ? '\n\n' : '\n';
 
     // Determine which formats are enabled
     const formats = {
@@ -234,7 +241,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     });
     markdownService.registerMarkdownWriter('quote', (ctx, node) => {
       if ($isQuoteNode(node)) {
-        ctx.wrap('> ', softBreak);
+        ctx.wrap('> ', breakMark);
       }
     });
 
@@ -242,31 +249,31 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       if ($isHeadingNode(node)) {
         switch (node.getTag()) {
           case 'h1': {
-            ctx.wrap('# ', '\n');
+            ctx.wrap('# ', breakMark);
             break;
           }
           case 'h2': {
-            ctx.wrap('## ', '\n');
+            ctx.wrap('## ', breakMark);
             break;
           }
           case 'h3': {
-            ctx.wrap('### ', '\n');
+            ctx.wrap('### ', breakMark);
             break;
           }
           case 'h4': {
-            ctx.wrap('#### ', '\n');
+            ctx.wrap('#### ', breakMark);
             break;
           }
           case 'h5': {
-            ctx.wrap('##### ', '\n');
+            ctx.wrap('##### ', breakMark);
             break;
           }
           case 'h6': {
-            ctx.wrap('###### ', '\n');
+            ctx.wrap('###### ', breakMark);
             break;
           }
           default: {
-            ctx.wrap('', softBreak);
+            ctx.wrap('', '\n');
             break;
           }
         }
@@ -362,6 +369,17 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerBreakLineClick(editor),
       registerCursorNode(editor),
       registerLastElement(editor),
+      // Convert soft line breaks (Shift+Enter) to hard line breaks (paragraph breaks)
+      // This allows breaking out of code blocks with Shift+Enter
+      editor.registerCommand(
+        INSERT_LINE_BREAK_COMMAND,
+        () => {
+          // Dispatch paragraph command instead of line break
+          editor.dispatchCommand(INSERT_PARAGRAPH_COMMAND, undefined);
+          return true; // Prevent default line break behavior
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
     );
 
     this.registerMarkdown(this.kernel);
