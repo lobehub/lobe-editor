@@ -2,6 +2,50 @@
 
 # Changelog
 
+### [Version&nbsp;1.17.1](https://github.com/lobehub/lobe-editor/compare/v1.17.0...v1.17.1)
+<sup>Released on **2025-10-17**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix doulbe line, Fix soft break, Fix test.
+
+
+#### 💄 Styles
+
+- **misc**: Update Notification.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix doulbe line ([a85208b](https://github.com/lobehub/lobe-editor/commit/a85208b))
+* **misc**: Fix soft break ([492d323](https://github.com/lobehub/lobe-editor/commit/492d323))
+* **misc**: Fix test ([4ee97db](https://github.com/lobehub/lobe-editor/commit/4ee97db))
+
+
+
+#### Styles
+
+* **misc**: Update Notification ([d017b20](https://github.com/lobehub/lobe-editor/commit/d017b20))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.17.0](https://github.com/lobehub/lobe-editor/compare/v1.16.3...v1.17.0)
 <sup>Released on **2025-10-15**</sup>
 
