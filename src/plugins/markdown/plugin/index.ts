@@ -1,4 +1,4 @@
-import { $isCodeNode } from '@lexical/code';
+import { $createCodeNode, $isCodeNode } from '@lexical/code';
 import {
   $getNodeByKey,
   $getSelection,
@@ -20,6 +20,7 @@ import { registerMarkdownCommand } from '../command';
 import MarkdownDataSource from '../data-source/markdown-data-source';
 import { IMarkdownShortCutService, MarkdownShortCutService } from '../service/shortcut';
 import { canContainTransformableMarkdown } from '../utils';
+import { detectCodeLanguage, detectLanguage } from '../utils/detectLanguage';
 
 export interface MarkdownPluginOptions {
   /**
@@ -181,45 +182,61 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             textLength: text.length,
           });
 
-          // Check if this is likely a rich-text paste from the editor or other rich editor
-          // Rich text pastes typically have HTML that's more complex than just wrapping text
-          if (html && html.trim()) {
-            const htmlDoc = new DOMParser().parseFromString(html, 'text/html');
-            const hasRichContent =
-              // Has block elements (p, div, h1-h6, etc.)
-              htmlDoc.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, ul, ol, li, table').length >
-                0 ||
-              // Has inline formatting (strong, em, code, etc.)
-              htmlDoc.querySelectorAll('strong, em, b, i, u, code, span[style]').length > 0 ||
-              // Has data attributes (often used by editors to store metadata)
-              htmlDoc.querySelectorAll('[data-lexical-text], [data-lexical-decorator]').length > 0;
-
-            if (hasRichContent) {
-              // This looks like rich content from an editor - let Lexical handle it
-              this.logger.debug('rich content detected, letting Lexical handle paste');
-              return false;
-            }
-          }
-
-          // Check if markdown paste formatting is enabled (default: true)
           const enablePasteMarkdown = this.config?.enablePasteMarkdown ?? true;
-
-          // Force plain text paste for external content
-          event.preventDefault();
-          event.stopPropagation();
-
-          editor.update(() => {
-            const selection = $getSelection();
-            if (!$isRangeSelection(selection)) return;
-
-            // Insert plain text
-            selection.insertText(text);
-          });
 
           // If markdown formatting is disabled, we're done
           if (!enablePasteMarkdown) {
+            // Force plain text paste for external content
+            event.preventDefault();
+            event.stopPropagation();
+
+            editor.update(() => {
+              const selection = $getSelection();
+              if (!$isRangeSelection(selection)) return;
+
+              // Insert plain text
+              selection.insertText(text);
+            });
             this.logger.debug('markdown formatting disabled, plain text inserted');
             return true;
+          }
+
+          // Check if this is likely a rich-text paste from the editor or other rich editor
+          // Rich text pastes typically have HTML that's more complex than just wrapping text
+          if (clipboardData.types.includes('application/x-lexical-editor')) {
+            this.logger.debug('rich content detected, letting Lexical handle paste');
+            return false;
+          }
+
+          // Check if markdown paste formatting is enabled (default: true)
+
+          // Check if content is code (JSON, SQL, etc.) and should be inserted as code block
+          const codeInfo = this.detectCodeContent(text);
+
+          if (codeInfo) {
+            // Code detected - insert as code block
+            this.logger.debug(`code detected (${codeInfo.language}), inserting as code block`);
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            editor.update(() => {
+              const selection = $getSelection();
+              if (!$isRangeSelection(selection)) return;
+
+              // Create code block node with detected language
+              const codeNode = $createCodeNode(codeInfo.language);
+              selection.insertNodes([codeNode]);
+
+              // Insert the code text into the code block
+              codeNode.select();
+              const codeSelection = $getSelection();
+              if ($isRangeSelection(codeSelection)) {
+                codeSelection.insertText(text);
+              }
+            });
+
+            return true; // Command handled
           }
 
           // Check if the pasted plain text contains markdown patterns
@@ -240,6 +257,47 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             this.logger.debug('no markdown patterns detected, keeping as plain text');
           }
 
+          if (
+            clipboardData.types.includes('text/html') &&
+            clipboardData.types.includes('text/rtf')
+          ) {
+            // Code detected - insert as code block
+            this.logger.debug(`code like, inserting as code block`);
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            editor.update(() => {
+              const selection = $getSelection();
+              if (!$isRangeSelection(selection)) return;
+
+              // Create code block node with detected language
+              const codeNode = $createCodeNode('plaintext');
+              selection.insertNodes([codeNode]);
+
+              // Insert the code text into the code block
+              codeNode.select();
+              const codeSelection = $getSelection();
+              if ($isRangeSelection(codeSelection)) {
+                codeSelection.insertText(text);
+              }
+            });
+
+            return true; // Command handled
+          }
+
+          // Force plain text paste for external content
+          event.preventDefault();
+          event.stopPropagation();
+
+          editor.update(() => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection)) return;
+
+            // Insert plain text
+            selection.insertText(text);
+          });
+
           return true; // Command handled
         },
         COMMAND_PRIORITY_CRITICAL,
@@ -250,46 +308,44 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
   }
 
   /**
+   * Detect if content is code and should be inserted as code block
+   * Uses advanced language detection with pattern matching
+   * Excludes markdown as it should be handled by markdown formatting dialog
+   */
+  private detectCodeContent(text: string): { confidence: number; language: string } | null {
+    // Use the advanced language detector
+    const detected = detectLanguage(text);
+
+    if (detected && detected.confidence > 50) {
+      // Don't insert markdown as code block - it should trigger the formatting dialog
+      if (detected.language === 'markdown') {
+        return null;
+      }
+
+      this.logger.debug('language detected:', detected);
+      return detected;
+    }
+
+    // Fallback to fast detection for common formats
+    const fastDetected = detectCodeLanguage(text);
+    if (fastDetected) {
+      // Don't insert markdown as code block
+      if (fastDetected === 'markdown') {
+        return null;
+      }
+      return { confidence: 80, language: fastDetected };
+    }
+
+    return null;
+  }
+
+  /**
    * Detect if text contains markdown patterns
-   * Returns false if content is likely code (JSON, HTML, SQL, etc.)
+   * Returns false if content is likely code (will be handled by detectCodeContent)
    */
   private detectMarkdownContent(text: string): boolean {
-    const trimmed = text.trim();
-
-    // Check if content is JSON
-    if (
-      (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-      (trimmed.startsWith('[') && trimmed.endsWith(']'))
-    ) {
-      try {
-        JSON.parse(trimmed);
-        this.logger.debug('content is valid JSON, not treating as markdown');
-        return false;
-      } catch {
-        // Not valid JSON, continue checking
-      }
-    }
-
-    // Check if content has significant HTML structure
-    const htmlTagPattern = /<[a-z][\S\s]*?>/gi;
-    const htmlMatches = text.match(htmlTagPattern);
-
-    if (htmlMatches && htmlMatches.length > 5) {
-      // More than 5 HTML tags suggests this is HTML content, not markdown
-      this.logger.debug('content has significant HTML structure, not treating as markdown');
-      return false;
-    }
-
-    // Check if content looks like code (SQL, XML, etc.)
-    // Common patterns: SQL keywords, XML declarations, file paths
-    const codePatterns = [
-      /^\s*(select|insert|update|delete|create|alter|drop)\s+/im, // SQL
-      /^\s*<\?xml/i, // XML declaration
-      /^[a-z]:\\|^\/[a-z]/im, // File paths (Windows/Unix)
-    ];
-
-    if (codePatterns.some((pattern) => pattern.test(text))) {
-      this.logger.debug('content looks like code, not treating as markdown');
+    // If code is detected, don't treat as markdown
+    if (this.detectCodeContent(text)) {
       return false;
     }
 
