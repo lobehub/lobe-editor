@@ -4,11 +4,12 @@ import { createElement, memo, useMemo } from 'react';
 
 import { ReactEditor } from '@/editor-kernel/react/react-editor';
 import { ReactEditorContent, ReactPlainText } from '@/plugins/common';
+import { ReactMarkdownPlugin } from '@/plugins/markdown';
 import { ReactMentionPlugin } from '@/plugins/mention';
 import { ReactSlashOption, ReactSlashPlugin } from '@/plugins/slash';
 import { useEditorContent } from '@/react/EditorProvider';
 
-import { EditorProps } from './type';
+import { EditorPlugin, EditorProps } from './type';
 
 const Editor = memo<EditorProps>(
   ({
@@ -43,7 +44,9 @@ const Editor = memo<EditorProps>(
 
     const memoPlugins = useMemo(
       () =>
-        plugins.map((plugin, index) => {
+        (
+          [enablePasteMarkdown && ReactMarkdownPlugin, ...plugins].filter(Boolean) as EditorPlugin[]
+        ).map((plugin, index) => {
           const withNoProps = typeof plugin === 'function';
           if (withNoProps) return createElement(plugin, { key: index });
           return createElement(plugin[0], {
@@ -51,7 +54,7 @@ const Editor = memo<EditorProps>(
             ...plugin[1],
           });
         }),
-      [plugins],
+      [plugins, enablePasteMarkdown, ReactMarkdownPlugin],
     );
 
     const memoMention = useMemo(() => {
