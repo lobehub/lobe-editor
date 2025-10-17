@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.18.0](https://github.com/lobehub/lobe-editor/compare/v1.17.2...v1.18.0)
+<sup>Released on **2025-10-17**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Better paster.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Better paster ([14652b7](https://github.com/lobehub/lobe-editor/commit/14652b7))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.17.2](https://github.com/lobehub/lobe-editor/compare/v1.17.1...v1.17.2)
 <sup>Released on **2025-10-17**</sup>
 
