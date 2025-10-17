@@ -174,16 +174,37 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           // If there's no text content, let Lexical handle it
           if (!text) return false;
 
+          this.logger.debug('paste content analysis:', {
+            clipboardTypes: Array.from(clipboardData.types || []),
+            hasHTML: !!(html && html.trim()),
+            htmlLength: html?.length || 0,
+            textLength: text.length,
+          });
+
+          // Check if this is likely a rich-text paste from the editor or other rich editor
+          // Rich text pastes typically have HTML that's more complex than just wrapping text
+          if (html && html.trim()) {
+            const htmlDoc = new DOMParser().parseFromString(html, 'text/html');
+            const hasRichContent =
+              // Has block elements (p, div, h1-h6, etc.)
+              htmlDoc.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, ul, ol, li, table').length >
+                0 ||
+              // Has inline formatting (strong, em, code, etc.)
+              htmlDoc.querySelectorAll('strong, em, b, i, u, code, span[style]').length > 0 ||
+              // Has data attributes (often used by editors to store metadata)
+              htmlDoc.querySelectorAll('[data-lexical-text], [data-lexical-decorator]').length > 0;
+
+            if (hasRichContent) {
+              // This looks like rich content from an editor - let Lexical handle it
+              this.logger.debug('rich content detected, letting Lexical handle paste');
+              return false;
+            }
+          }
+
           // Check if markdown paste formatting is enabled (default: true)
           const enablePasteMarkdown = this.config?.enablePasteMarkdown ?? true;
 
-          this.logger.debug('paste content analysis:', {
-            enablePasteMarkdown,
-            hasHTML: !!(html && html.trim()),
-            text: text.slice(0, 100) + (text.length > 100 ? '...' : ''),
-          });
-
-          // Always force plain text paste first (prevents HTML formatting issues)
+          // Force plain text paste for external content
           event.preventDefault();
           event.stopPropagation();
 
