@@ -169,8 +169,8 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           if (!clipboardData) return false;
 
           // Get clipboard content
-          const text = clipboardData.getData('text/plain');
-          const html = clipboardData.getData('text/html');
+          const text = clipboardData.getData('text/plain').trimEnd();
+          const html = clipboardData.getData('text/html').trimEnd();
 
           // If there's no text content, let Lexical handle it
           if (!text) return false;
