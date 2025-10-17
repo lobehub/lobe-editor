@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.17.2](https://github.com/lobehub/lobe-editor/compare/v1.17.1...v1.17.2)
+<sup>Released on **2025-10-17**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix inside copy format.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix inside copy format ([113507b](https://github.com/lobehub/lobe-editor/commit/113507b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.17.1](https://github.com/lobehub/lobe-editor/compare/v1.17.0...v1.17.1)
 <sup>Released on **2025-10-17**</sup>
 
