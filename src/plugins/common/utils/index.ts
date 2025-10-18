@@ -1,5 +1,14 @@
+import { $isQuoteNode } from '@lexical/rich-text';
+import { $isTableCellNode, $isTableNode } from '@lexical/table';
 import type { ElementNode } from 'lexical';
-import { $getRoot, $isDecoratorNode, $isElementNode, $isParagraphNode, $isTextNode } from 'lexical';
+import {
+  $getRoot,
+  $isDecoratorNode,
+  $isElementNode,
+  $isParagraphNode,
+  $isRangeSelection,
+  $isTextNode,
+} from 'lexical';
 
 import type { ElementTransformer } from '@/plugins/markdown/service/transformers';
 
@@ -104,4 +113,60 @@ export function $canShowPlaceholder(isComposing: boolean): boolean {
  */
 export function $canShowPlaceholderCurry(isEditorComposing: boolean): () => boolean {
   return () => $canShowPlaceholder(isEditorComposing);
+}
+
+// Utility function to check if cursor is in a table
+export function $isCursorInTable(selection: any): { inCell: boolean; inTable: boolean } {
+  if (!$isRangeSelection(selection)) {
+    return { inCell: false, inTable: false };
+  }
+
+  const focusNode = selection.focus.getNode();
+  let currentNode: any = focusNode;
+  let inTable = false;
+  let inCell = false;
+
+  // Traverse up the parent chain to find table context
+  while (currentNode) {
+    if ($isTableCellNode(currentNode)) {
+      inCell = true;
+      inTable = true;
+      break;
+    }
+    if ($isTableNode(currentNode)) {
+      inTable = true;
+      break;
+    }
+    const parent = currentNode.getParent();
+    if (!parent) {
+      break;
+    }
+    currentNode = parent;
+  }
+
+  return { inCell, inTable };
+}
+
+// Utility function to check if cursor is in a quote
+export function $isCursorInQuote(selection: any): boolean {
+  if (!$isRangeSelection(selection)) {
+    return false;
+  }
+
+  const focusNode = selection.focus.getNode();
+  let currentNode: any = focusNode;
+
+  // Traverse up the parent chain to find quote context
+  while (currentNode) {
+    if ($isQuoteNode(currentNode)) {
+      return true;
+    }
+    const parent = currentNode.getParent();
+    if (!parent) {
+      break;
+    }
+    currentNode = parent;
+  }
+
+  return false;
 }
