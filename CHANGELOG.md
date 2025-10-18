@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.19.0](https://github.com/lobehub/lobe-editor/compare/v1.18.2...v1.19.0)
+<sup>Released on **2025-10-18**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Enhance cursor position detection for tables and quotes.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Enhance cursor position detection for tables and quotes, closes [#51](https://github.com/lobehub/lobe-editor/issues/51) ([819e06d](https://github.com/lobehub/lobe-editor/commit/819e06d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.18.2](https://github.com/lobehub/lobe-editor/compare/v1.18.1...v1.18.2)
 <sup>Released on **2025-10-17**</sup>
 
