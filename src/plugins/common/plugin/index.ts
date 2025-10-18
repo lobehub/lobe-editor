@@ -13,6 +13,8 @@ import {
 import {
   $createLineBreakNode,
   $createParagraphNode,
+  $getSelection,
+  $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_HIGH,
   INSERT_LINE_BREAK_COMMAND,
@@ -29,7 +31,7 @@ import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { CursorNode, registerCursorNode } from '../node/cursor';
-import { createBlockNode } from '../utils';
+import { $isCursorInQuote, $isCursorInTable, createBlockNode } from '../utils';
 import { registerMDReader } from './mdReader';
 import { registerHeaderBackspace, registerLastElement, registerRichKeydown } from './register';
 
@@ -374,8 +376,39 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       editor.registerCommand(
         INSERT_LINE_BREAK_COMMAND,
         () => {
-          // Dispatch paragraph command instead of line break
-          editor.dispatchCommand(INSERT_PARAGRAPH_COMMAND, undefined);
+          // editor.read(() => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) {
+            console.info('---------?');
+            return false;
+          }
+
+          // Check if cursor is in a table
+          const { inCell, inTable } = $isCursorInTable(selection);
+
+          if (inCell) {
+            // We're in a table cell, allow normal line break behavior
+            return false;
+          }
+
+          if (inTable) {
+            // We're in a table but not in a cell, prevent line break
+            return false;
+          }
+
+          // Check if cursor is in a quote
+          const inQuote = $isCursorInQuote(selection);
+
+          if (inQuote) {
+            // We're in a quote block, allow normal line break behavior
+            // This preserves line breaks within quotes while maintaining quote formatting
+            return false;
+          }
+
+          // Not in a table or quote, convert to paragraph break
+          editor.update(() => {
+            editor.dispatchCommand(INSERT_PARAGRAPH_COMMAND, undefined);
+          });
           return true; // Prevent default line break behavior
         },
         COMMAND_PRIORITY_HIGH,
