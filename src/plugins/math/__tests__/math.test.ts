@@ -1,7 +1,7 @@
 import { CommonPlugin, Kernel } from '@lobehub/editor';
 import { describe, expect, it } from 'vitest';
 
-import { MarkdownPlugin } from '@/plugins/markdown';
+import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { MathPlugin } from '../plugin';
 

@@ -3,7 +3,10 @@ import { Html } from 'mdast';
 
 import { INode } from '@/editor-kernel/inode';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IMarkdownShortCutService, MARKDOWN_READER_LEVEL_HIGH } from '@/plugins/markdown';
+import {
+  IMarkdownShortCutService,
+  MARKDOWN_READER_LEVEL_HIGH,
+} from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerMentionCommand } from '../command';

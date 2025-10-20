@@ -3,7 +3,7 @@
 import { type FC, useLayoutEffect } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
-import { MarkdownPlugin } from '@/plugins/markdown';
+import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { HRPlugin } from '../plugin';
 import HRNode from './components/HRNode';

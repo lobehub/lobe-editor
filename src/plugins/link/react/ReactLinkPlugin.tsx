@@ -4,7 +4,7 @@ import { type FC, useLayoutEffect } from 'react';
 
 import PortalAnchor from '@/editor-kernel/react/PortalAnchor';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
-import { MarkdownPlugin } from '@/plugins/markdown';
+import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { LinkPlugin } from '../plugin';
 import LinkEdit from './components/LinkEdit';

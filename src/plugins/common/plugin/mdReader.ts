@@ -9,7 +9,7 @@ import {
 
 import type { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
-import type { IMarkdownShortCutService } from '@/plugins/markdown';
+import type { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 
 export function registerMDReader(markdownService: IMarkdownShortCutService) {
   markdownService.registerMarkdownReader('blockquote', (node, children) => {

@@ -9,7 +9,7 @@ import { DOMConversionOutput, LexicalEditor, TabNode } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { CustomShikiTokenizer, registerCodeCommand } from '../command';

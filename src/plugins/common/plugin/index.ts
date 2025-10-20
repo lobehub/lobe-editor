@@ -23,7 +23,8 @@ import {
 import type { LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IMarkdownShortCutService, isPunctuationChar } from '@/plugins/markdown';
+import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
+import { isPunctuationChar } from '@/plugins/markdown/utils';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCommands } from '../command';

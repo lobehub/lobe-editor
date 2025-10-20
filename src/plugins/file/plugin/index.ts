@@ -10,7 +10,7 @@ import {
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService } from '@/plugins/upload';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';

@@ -4,7 +4,7 @@ import { createElement, memo, useMemo } from 'react';
 
 import { ReactEditor } from '@/editor-kernel/react/react-editor';
 import { ReactEditorContent, ReactPlainText } from '@/plugins/common';
-import { ReactMarkdownPlugin } from '@/plugins/markdown';
+import ReactMarkdownPlugin from '@/plugins/markdown/react';
 import { ReactMentionPlugin } from '@/plugins/mention';
 import { ReactSlashOption, ReactSlashPlugin } from '@/plugins/slash';
 import { useEditorContent } from '@/react/EditorProvider';

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
-import { MarkdownPlugin } from '@/plugins/markdown';
+import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 import { IEditor } from '@/types';
 
 import { MentionPlugin } from '..';

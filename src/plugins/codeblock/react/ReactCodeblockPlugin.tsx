@@ -4,7 +4,7 @@ import { usePrevious } from 'ahooks';
 import { type FC, useEffect, useLayoutEffect, useRef } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
-import { MarkdownPlugin } from '@/plugins/markdown';
+import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { CodeblockPlugin } from '../plugin';
 import { AllColorReplacements } from '../plugin/FacadeShiki';

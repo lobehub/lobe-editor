@@ -12,7 +12,11 @@ import {
   SerializedElementNode,
 } from 'lexical';
 
-import { $createCursorNode, $isCursorNode, CardLikeElementNode } from '@/plugins/common';
+import {
+  $createCursorNode,
+  $isCursorNode,
+  CardLikeElementNode,
+} from '@/plugins/common/node/cursor';
 
 export type SerializedCodeNode = SerializedElementNode;
 

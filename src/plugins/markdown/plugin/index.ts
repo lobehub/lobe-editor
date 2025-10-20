@@ -1,4 +1,4 @@
-import { $createCodeNode, $isCodeNode } from '@lexical/code';
+import { $createCodeNode, $isCodeHighlightNode, $isCodeNode } from '@lexical/code';
 import {
   $getNodeByKey,
   $getSelection,
@@ -13,6 +13,7 @@ import {
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { $isCodeInlineNode } from '@/plugins/code/node/code';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
@@ -181,6 +182,58 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             htmlLength: html?.length || 0,
             textLength: text.length,
           });
+
+          // Check if cursor is inside code block or inline code
+          // If so, always paste as plain text
+          const isInCodeBlock = editor.read(() => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection)) return false;
+
+            const anchorNode = selection.anchor.getNode();
+            const focusNode = selection.focus.getNode();
+
+            // Check if in code block (CodeNode or CodeHighlightNode)
+            const anchorParent = anchorNode.getParent();
+            const focusParent = focusNode.getParent();
+
+            if ($isCodeNode(anchorNode) || $isCodeNode(focusNode)) {
+              return true;
+            }
+
+            if ($isCodeNode(anchorParent) || $isCodeNode(focusParent)) {
+              return true;
+            }
+
+            if ($isCodeHighlightNode(anchorNode) || $isCodeHighlightNode(focusNode)) {
+              return true;
+            }
+
+            // Check if in inline code
+            if ($isCodeInlineNode(anchorNode) || $isCodeInlineNode(focusNode)) {
+              return true;
+            }
+
+            if ($isCodeInlineNode(anchorParent) || $isCodeInlineNode(focusParent)) {
+              return true;
+            }
+
+            return false;
+          });
+
+          if (isInCodeBlock) {
+            this.logger.debug('cursor in code block, pasting as plain text');
+            event.preventDefault();
+            event.stopPropagation();
+
+            editor.update(() => {
+              const selection = $getSelection();
+              if (!$isRangeSelection(selection)) return;
+
+              selection.insertText(text);
+            });
+
+            return true;
+          }
 
           const enablePasteMarkdown = this.config?.enablePasteMarkdown ?? true;
 
