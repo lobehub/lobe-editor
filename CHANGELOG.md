@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.19.1](https://github.com/lobehub/lobe-editor/compare/v1.19.0...v1.19.1)
+<sup>Released on **2025-10-20**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix paste in codeblck.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix paste in codeblck ([47d3fa1](https://github.com/lobehub/lobe-editor/commit/47d3fa1))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.19.0](https://github.com/lobehub/lobe-editor/compare/v1.18.2...v1.19.0)
 <sup>Released on **2025-10-18**</sup>
 
