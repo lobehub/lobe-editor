@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.20.2](https://github.com/lobehub/lobe-editor/compare/v1.20.1...v1.20.2)
+<sup>Released on **2025-10-21**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix markdown format.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix markdown format ([ed1c5da](https://github.com/lobehub/lobe-editor/commit/ed1c5da))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.20.1](https://github.com/lobehub/lobe-editor/compare/v1.20.0...v1.20.1)
 <sup>Released on **2025-10-21**</sup>
 
