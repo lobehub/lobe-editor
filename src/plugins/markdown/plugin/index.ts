@@ -325,34 +325,35 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             this.logger.debug('no markdown patterns detected, keeping as plain text');
           }
 
-          if (
-            clipboardData.types.includes('text/html') &&
-            clipboardData.types.includes('text/rtf')
-          ) {
-            // Code detected - insert as code block
-            this.logger.debug(`code like, inserting as code block`);
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            editor.update(() => {
-              const selection = $getSelection();
-              if (!$isRangeSelection(selection)) return;
-
-              // Create code block node with detected language
-              const codeNode = $createCodeNode('plaintext');
-              selection.insertNodes([codeNode]);
-
-              // Insert the code text into the code block
-              codeNode.select();
-              const codeSelection = $getSelection();
-              if ($isRangeSelection(codeSelection)) {
-                codeSelection.insertText(text);
-              }
-            });
-
-            return true; // Command handled
-          }
+          // word 一类富文本编辑器会同时包含 text/html 和 text/rtf 类型的内容
+          // if (
+          //   clipboardData.types.includes('text/html') &&
+          //   clipboardData.types.includes('text/rtf')
+          // ) {
+          //   // Code detected - insert as code block
+          //   this.logger.debug(`code like, inserting as code block`);
+          //
+          //   event.preventDefault();
+          //   event.stopPropagation();
+          //
+          //   editor.update(() => {
+          //     const selection = $getSelection();
+          //     if (!$isRangeSelection(selection)) return;
+          //
+          //     // Create code block node with detected language
+          //     const codeNode = $createCodeNode('plaintext');
+          //     selection.insertNodes([codeNode]);
+          //
+          //     // Insert the code text into the code block
+          //     codeNode.select();
+          //     const codeSelection = $getSelection();
+          //     if ($isRangeSelection(codeSelection)) {
+          //       codeSelection.insertText(text);
+          //     }
+          //   });
+          //
+          //   return true; // Command handled
+          // }
 
           // Force plain text paste for external content
           event.preventDefault();
