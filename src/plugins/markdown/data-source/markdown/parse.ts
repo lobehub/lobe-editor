@@ -186,6 +186,12 @@ function convertMdastToLexical(
           )
           .filter(Boolean)
           .flat() as MarkdownReadNode[];
+        while (htmlStack.length > 0) {
+          const tag = htmlStack.shift();
+          ctx.pop();
+          // @ts-expect-error not error
+          children.push(INodeHelper.createTextNode(tag?.node.value), ...tag.children);
+        }
       }
 
       if (markdownReaders[node.type]) {
