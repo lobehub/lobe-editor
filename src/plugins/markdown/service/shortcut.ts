@@ -1,17 +1,19 @@
 /* eslint-disable no-redeclare */
 /* eslint-disable @typescript-eslint/no-redeclare */
-import { ElementNode, LexicalNode, TextNode } from 'lexical';
+import { BaseSelection, ElementNode, LexicalEditor, LexicalNode, TextNode } from 'lexical';
 
 import { genServiceId } from '@/editor-kernel';
+import { IRootNode } from '@/editor-kernel/inode';
 import type { IEditorKernel, IServiceID } from '@/types/kernel';
 import { createDebugLogger } from '@/utils/debug';
 
-import type {
-  MarkdownReaderFunc,
-  TransformerRecord,
-  TransfromerRecordArray,
+import {
+  type MarkdownReaderFunc,
+  type TransformerRecord,
+  type TransfromerRecordArray,
+  parseMarkdownToLexical,
 } from '../data-source/markdown/parse';
-import { indexBy } from '../utils';
+import { indexBy, insertIRootNode } from '../utils';
 import type {
   ElementTransformer,
   TextFormatTransformer,
@@ -59,6 +61,10 @@ export type MARKDOWN_READER_LEVEL =
   | typeof MARKDOWN_WRITER_LEVEL_MAX;
 
 export interface IMarkdownShortCutService {
+  insertIRootNode(editor: LexicalEditor, root: IRootNode, selection: BaseSelection): void;
+
+  parseMarkdownToLexical(markdown: string): IRootNode;
+
   /**
    * Register Markdown reader
    */
@@ -67,9 +73,9 @@ export interface IMarkdownShortCutService {
     reader: MarkdownReaderFunc<K>,
     level?: MARKDOWN_READER_LEVEL,
   ): void;
-
   registerMarkdownShortCut(transformer: Transformer): void;
   registerMarkdownShortCuts(transformers: Transformer[]): void;
+
   /**
    * Register Markdown writer
    * @param type Lexical Node type
@@ -260,5 +266,13 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
     if (this._markdownReaders[level]) {
       this._markdownReaders[level][type]?.push(reader);
     }
+  }
+
+  parseMarkdownToLexical(markdown: string): IRootNode {
+    return parseMarkdownToLexical(markdown, this.markdownReaders);
+  }
+
+  insertIRootNode(editor: LexicalEditor, root: IRootNode, selection: BaseSelection): void {
+    insertIRootNode(editor, root, selection);
   }
 }
