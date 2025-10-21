@@ -25,6 +25,7 @@ import {
   TextFormatType,
   UNDO_COMMAND,
 } from 'lexical';
+import { debounce } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { INSERT_CODEINLINE_COMMAND } from '@/plugins/code';
@@ -450,17 +451,27 @@ export function useEditorState(editor?: IEditor): EditorState {
     if (!editor) return;
     const lexicalEditor = editor.getLexicalEditor();
     let cleanup: () => void = () => {};
+    const debounceUpdate = debounce(() => {
+      lexicalEditor?.read(() => {
+        $updateToolbar();
+      });
+    }, 500);
     const handleLexicalEditor = (lexicalEditor: LexicalEditor) => {
       cleanup = mergeRegister(
-        lexicalEditor.registerUpdateListener(({ editorState }) => {
-          editorState.read(() => {
-            $updateToolbar();
-          });
-        }),
+        lexicalEditor.registerUpdateListener(
+          debounce(({ editorState }) => {
+            editorState.read(() => {
+              $updateToolbar();
+            });
+          }, 500),
+        ),
         lexicalEditor.registerCommand(
           SELECTION_CHANGE_COMMAND,
           () => {
-            $updateToolbar();
+            if (lexicalEditor.isComposing()) {
+              return false;
+            }
+            debounceUpdate();
             return false;
           },
           COMMAND_PRIORITY_LOW,
