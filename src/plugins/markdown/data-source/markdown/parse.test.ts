@@ -109,4 +109,27 @@ describe('Markdown to Lexical Conversion', () => {
     // @ts-expect-error not error
     expect(lexical.children[0].children[1].text).toEqual(' text.');
   });
+
+  it('should output origin xml no reader', () => {
+    const markdown =
+      '不存在从 "int" 转换到 "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>" 的适当构造函数';
+    const lexical = parseMarkdownToLexical(markdown, {});
+    expect(lexical.children.length).toEqual(1);
+
+    // @ts-expect-error not error
+    expect(lexical.children[0].children.length).toEqual(5);
+
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[0].text).toEqual(
+      '不存在从 "int" 转换到 "std::__cxx11::basic_string<char, std::char_traits',
+    );
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[1].text).toEqual('<char>');
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[2].text).toEqual(', std::allocator');
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[3].text).toEqual('<char>');
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[4].text).toEqual('>" 的适当构造函数');
+  });
 });
