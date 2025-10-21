@@ -186,6 +186,17 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             textLength: text.length,
           });
 
+          // Check if the pasted content is a pure URL
+          // If so, let Link/LinkHighlight plugins handle it
+          if (
+            clipboardData.types.length === 1 &&
+            clipboardData.types[0] === 'text/plain' &&
+            isValidLinkUrl(text)
+          ) {
+            this.logger.debug('pure URL detected, letting Link/LinkHighlight plugins handle');
+            return false; // Let other plugins handle URL paste
+          }
+
           // Check if cursor is inside code block or inline code
           // If so, always paste as plain text
           const isInCodeBlock = editor.read(() => {
@@ -341,17 +352,6 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             });
 
             return true; // Command handled
-          }
-
-          // Check if the pasted content is a pure URL
-          // If so, let Link/LinkHighlight plugins handle it
-          if (
-            clipboardData.types.length === 1 &&
-            clipboardData.types[0] === 'text/plain' &&
-            isValidLinkUrl(text)
-          ) {
-            this.logger.debug('pure URL detected, letting Link/LinkHighlight plugins handle');
-            return false; // Let other plugins handle URL paste
           }
 
           // Force plain text paste for external content
