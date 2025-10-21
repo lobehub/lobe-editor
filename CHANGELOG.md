@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.20.1](https://github.com/lobehub/lobe-editor/compare/v1.20.0...v1.20.1)
+<sup>Released on **2025-10-21**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix export.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix export ([8dbccbf](https://github.com/lobehub/lobe-editor/commit/8dbccbf))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.20.0](https://github.com/lobehub/lobe-editor/compare/v1.19.1...v1.20.0)
 <sup>Released on **2025-10-21**</sup>
 
