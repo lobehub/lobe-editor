@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.20.3](https://github.com/lobehub/lobe-editor/compare/v1.20.2...v1.20.3)
+<sup>Released on **2025-10-21**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix text/rtf.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix text/rtf ([691955d](https://github.com/lobehub/lobe-editor/commit/691955d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.20.2](https://github.com/lobehub/lobe-editor/compare/v1.20.1...v1.20.2)
 <sup>Released on **2025-10-21**</sup>
 
