@@ -42,7 +42,7 @@ export interface CommonPluginOptions {
   enableHotkey?: boolean;
   /**
    * Enable/disable markdown shortcuts
-   * @default true - all formats enabled
+   * @default true - most formats enabled, but subscript/superscript are disabled by default
    */
   markdownOption?:
     | boolean
@@ -53,6 +53,8 @@ export interface CommonPluginOptions {
         italic?: boolean;
         quote?: boolean;
         strikethrough?: boolean;
+        subscript?: boolean;
+        superscript?: boolean;
         underline?: boolean;
         underlineStrikethrough?: boolean;
       };
@@ -124,6 +126,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       italic: true,
       quote: true,
       strikethrough: true,
+      subscript: false, // Disabled by default
+      superscript: false, // Disabled by default
       // Note: code, underline, underlineStrikethrough are handled by other plugins/writers
     };
 
@@ -133,6 +137,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       formats.italic = markdownOption.italic ?? true;
       formats.quote = markdownOption.quote ?? true;
       formats.strikethrough = markdownOption.strikethrough ?? true;
+      formats.subscript = markdownOption.subscript ?? false;
+      formats.superscript = markdownOption.superscript ?? false;
     }
 
     // Register quote shortcut if enabled
@@ -221,19 +227,21 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       );
     }
 
-    // Always register superscript and subscript (not in options)
-    textFormatShortcuts.push(
-      {
+    if (formats.superscript) {
+      textFormatShortcuts.push({
         format: ['superscript'],
         tag: '^',
         type: 'text-format',
-      },
-      {
+      });
+    }
+
+    if (formats.subscript) {
+      textFormatShortcuts.push({
         format: ['subscript'],
         tag: '~',
         type: 'text-format',
-      },
-    );
+      });
+    }
 
     if (textFormatShortcuts.length > 0) {
       markdownService.registerMarkdownShortCuts(textFormatShortcuts as any);
