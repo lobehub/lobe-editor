@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.21.0](https://github.com/lobehub/lobe-editor/compare/v1.20.3...v1.21.0)
+<sup>Released on **2025-10-21**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Implement debounce for toolbar updates in editor state.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Implement debounce for toolbar updates in editor state, closes [#54](https://github.com/lobehub/lobe-editor/issues/54) ([0eab4cb](https://github.com/lobehub/lobe-editor/commit/0eab4cb))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.20.3](https://github.com/lobehub/lobe-editor/compare/v1.20.2...v1.20.3)
 <sup>Released on **2025-10-21**</sup>
 
