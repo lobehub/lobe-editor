@@ -22,6 +22,7 @@ import MarkdownDataSource from '../data-source/markdown-data-source';
 import { IMarkdownShortCutService, MarkdownShortCutService } from '../service/shortcut';
 import { canContainTransformableMarkdown } from '../utils';
 import { detectCodeLanguage, detectLanguage } from '../utils/detectLanguage';
+import { isValidUrl as isValidLinkUrl } from '../utils/url-validator';
 
 export interface MarkdownPluginOptions {
   /**
@@ -169,8 +170,10 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           const clipboardData = event.clipboardData;
           if (!clipboardData) return false;
 
-          // Get clipboard content
-          const text = clipboardData.getData('text/plain').trimEnd();
+          // Get clipboard content and clean BOM/zero-width characters
+          const rawText = clipboardData.getData('text/plain').trimEnd();
+          // Remove BOM, zero-width spaces, and other invisible characters
+          const text = rawText.replaceAll(/[\u200B-\u200D\u2060\uFEFF]/g, '');
           const html = clipboardData.getData('text/html').trimEnd();
 
           // If there's no text content, let Lexical handle it
@@ -262,6 +265,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           }
 
           // Check if markdown paste formatting is enabled (default: true)
+          // Note: URL pasting is handled by Link/LinkHighlight plugins themselves
 
           // Check if content is code (JSON, SQL, etc.) and should be inserted as code block
           const codeInfo = this.detectCodeContent(text);
@@ -337,6 +341,17 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             });
 
             return true; // Command handled
+          }
+
+          // Check if the pasted content is a pure URL
+          // If so, let Link/LinkHighlight plugins handle it
+          if (
+            clipboardData.types.length === 1 &&
+            clipboardData.types[0] === 'text/plain' &&
+            isValidLinkUrl(text)
+          ) {
+            this.logger.debug('pure URL detected, letting Link/LinkHighlight plugins handle');
+            return false; // Let other plugins handle URL paste
           }
 
           // Force plain text paste for external content

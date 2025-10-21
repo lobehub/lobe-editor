@@ -31,6 +31,8 @@ import { INSERT_CODEINLINE_COMMAND } from '@/plugins/code';
 import { $isSelectionInCodeInline } from '@/plugins/code/node/code';
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
+import { INSERT_LINK_HIGHLIGHT_COMMAND } from '@/plugins/link-highlight/command';
+import { $isLinkHighlightNode } from '@/plugins/link-highlight/node/link-highlight';
 import { $isLinkNode, TOGGLE_LINK_COMMAND, formatUrl } from '@/plugins/link/node/LinkNode';
 import { extractUrlFromText, sanitizeUrl, validateUrl } from '@/plugins/link/utils';
 import { INSERT_CHECK_LIST_COMMAND } from '@/plugins/list';
@@ -163,7 +165,13 @@ export function useEditorState(editor?: IEditor): EditorState {
       const node = getSelectedNode(selection);
 
       const parent = node.getParent();
-      setIsLink($isLinkNode(parent) || $isLinkNode(node));
+      // Check for both Link and LinkHighlight nodes
+      setIsLink(
+        $isLinkNode(parent) ||
+          $isLinkNode(node) ||
+          $isLinkHighlightNode(parent) ||
+          $isLinkHighlightNode(node),
+      );
       const isCodeBlock =
         $isCodeNode(element) && $isCodeNode(focusElement) && elementKey === focusElement.getKey();
       setIsInCodeblok(isCodeBlock);
@@ -318,7 +326,54 @@ export function useEditorState(editor?: IEditor): EditorState {
     const lexical = editor?.getLexicalEditor();
     if (!lexical) return;
 
+    // Detect which link type we're currently in
+    let inLinkNode = false;
+    let inLinkHighlightNode = false;
+
+    lexical.getEditorState().read(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const node = getSelectedNode(selection);
+        const parent = node.getParent();
+
+        if ($isLinkNode(parent) || $isLinkNode(node)) {
+          inLinkNode = true;
+        }
+        if ($isLinkHighlightNode(parent) || $isLinkHighlightNode(node)) {
+          inLinkHighlightNode = true;
+        }
+      }
+    });
+
+    // If inside LinkHighlightNode, toggle it
+    if (inLinkHighlightNode) {
+      lexical.dispatchCommand(INSERT_LINK_HIGHLIGHT_COMMAND, undefined);
+      setIsLink(false);
+      return;
+    }
+
+    // If inside LinkNode, toggle it with standard Link plugin
+    if (inLinkNode) {
+      setIsLink(false);
+      lexical.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+      return;
+    }
+
+    // Not in any link - try to insert new link
+    // Try LinkHighlight first, then fall back to standard Link if not handled
     if (!isLink) {
+      // First try INSERT_LINK_HIGHLIGHT_COMMAND
+      const linkHighlightHandled = lexical.dispatchCommand(
+        INSERT_LINK_HIGHLIGHT_COMMAND,
+        undefined,
+      );
+
+      if (linkHighlightHandled) {
+        setIsLink(true);
+        return;
+      }
+
+      // Fall back to standard Link plugin
       let nextUrl = sanitizeUrl('https://');
       let expandTo: { index: number; length: number } | null = null;
       lexical.getEditorState().read(() => {
@@ -340,7 +395,6 @@ export function useEditorState(editor?: IEditor): EditorState {
         }
       });
       setIsLink(true);
-      console.log(nextUrl);
 
       lexical.update(() => {
         if (expandTo) {
@@ -352,16 +406,12 @@ export function useEditorState(editor?: IEditor): EditorState {
             selection.focus.set(anchorNode.getKey(), expandTo.index + expandTo.length, 'text');
           }
         }
-        console.log(nextUrl);
 
         lexical.dispatchCommand(
           TOGGLE_LINK_COMMAND,
           validateUrl(nextUrl) ? nextUrl : sanitizeUrl('https://'),
         );
       });
-    } else {
-      setIsLink(false);
-      lexical.dispatchCommand(TOGGLE_LINK_COMMAND, null);
     }
   }, [editor, isLink]);
 

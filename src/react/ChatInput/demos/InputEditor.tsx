@@ -8,7 +8,7 @@ import {
   ReactCodeblockPlugin,
   ReactHRPlugin,
   ReactImagePlugin,
-  ReactLinkPlugin,
+  ReactLinkHighlightPlugin,
   ReactListPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
@@ -156,7 +156,7 @@ const InputEditor = memo<{
       placeholder={'Type something...'}
       plugins={[
         ReactListPlugin,
-        ReactLinkPlugin,
+        ReactLinkHighlightPlugin,
         ReactImagePlugin,
         ReactCodeblockPlugin,
         ReactHRPlugin,

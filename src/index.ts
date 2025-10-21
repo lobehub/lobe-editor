@@ -7,6 +7,7 @@ export * from './plugins/file';
 export * from './plugins/hr';
 export * from './plugins/image';
 export * from './plugins/link';
+export * from './plugins/link-highlight';
 export * from './plugins/list';
 export * from './plugins/markdown';
 export * from './plugins/math';
@@ -19,6 +20,9 @@ export type { IEditor } from './types';
 // Hotkey utilities
 export * from './types/hotkey';
 export { getHotkeyById } from './utils/hotkey/registerHotkey';
+
+// URL utilities
+export { isPureUrl, isValidUrl } from './utils/url';
 
 // Debug utilities
 export {

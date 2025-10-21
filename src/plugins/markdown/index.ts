@@ -10,3 +10,4 @@ export {
 } from './service/shortcut';
 export { isPunctuationChar } from './utils';
 export { detectCodeLanguage, detectLanguage } from './utils/detectLanguage';
+export { isPureUrl, isValidUrl } from './utils/url-validator';
