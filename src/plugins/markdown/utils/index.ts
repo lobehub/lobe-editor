@@ -15,6 +15,8 @@ import {
   TextNode,
 } from 'lexical';
 
+import { IRootNode } from '@/editor-kernel/inode';
+
 /**
  * Returns true if the node can contain transformable markdown.
  * Code nodes cannot contain transformable markdown.
@@ -229,4 +231,13 @@ export function $generateNodesFromSerializedNodes(
     nodes.push(node);
   }
   return nodes;
+}
+
+export function insertIRootNode(
+  editor: LexicalEditor,
+  root: IRootNode,
+  selection: BaseSelection,
+): void {
+  const nodes = $generateNodesFromSerializedNodes(root.children);
+  $insertGeneratedNodes(editor, nodes, selection!);
 }
