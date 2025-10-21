@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.20.0](https://github.com/lobehub/lobe-editor/compare/v1.19.1...v1.20.0)
+<sup>Released on **2025-10-21**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add ReactLinkHighlightPlugin.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add ReactLinkHighlightPlugin ([4df7004](https://github.com/lobehub/lobe-editor/commit/4df7004))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.19.1](https://github.com/lobehub/lobe-editor/compare/v1.19.0...v1.19.1)
 <sup>Released on **2025-10-20**</sup>
 
