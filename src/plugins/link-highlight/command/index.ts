@@ -1,4 +1,5 @@
 import {
+  $createTextNode,
   $getSelection,
   $insertNodes,
   $isRangeSelection,
@@ -6,8 +7,6 @@ import {
   LexicalEditor,
   createCommand,
 } from 'lexical';
-
-import { $createCursorNode } from '@/plugins/common/node/cursor';
 
 import {
   $createLinkHighlightNode,
@@ -47,8 +46,11 @@ export function registerLinkHighlightCommand(editor: LexicalEditor) {
         }
 
         // Create link highlight with selected text
-        const linkHighlightNode = $createLinkHighlightNode(selection.getTextContent());
-        $insertNodes([linkHighlightNode, $createCursorNode()]);
+        const selectedText = selection.getTextContent();
+        const linkHighlightNode = $createLinkHighlightNode();
+        const textNode = $createTextNode(selectedText);
+        linkHighlightNode.append(textNode);
+        $insertNodes([linkHighlightNode]);
         linkHighlightNode.select();
       });
       return true;

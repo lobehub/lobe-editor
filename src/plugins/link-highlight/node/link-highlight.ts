@@ -2,25 +2,19 @@
 import { addClassNamesToElement } from '@lexical/utils';
 import {
   $applyNodeReplacement,
-  $createTextNode,
   $getSelection,
   $isNodeSelection,
   $isRangeSelection,
   EditorConfig,
+  ElementNode,
   LexicalEditor,
   LexicalNode,
   SerializedElementNode,
 } from 'lexical';
 
-import {
-  $createCursorNode,
-  $isCursorNode,
-  CardLikeElementNode,
-} from '@/plugins/common/node/cursor';
-
 export type SerializedLinkHighlightNode = SerializedElementNode;
 
-export class LinkHighlightNode extends CardLikeElementNode {
+export class LinkHighlightNode extends ElementNode {
   static getType(): string {
     return 'linkHighlight';
   }
@@ -33,32 +27,18 @@ export class LinkHighlightNode extends CardLikeElementNode {
     return $createLinkHighlightNode().updateFromJSON(serializedNode);
   }
 
-  createDOM(config: EditorConfig, editor: LexicalEditor): HTMLElement {
-    const element = document.createElement('span');
-    // eslint-disable-next-line unicorn/prefer-dom-node-dataset
-    element.setAttribute('data-lexical-key', this.getKey());
-    const childContainer = document.createElement('ne-content');
-    element.append(childContainer);
+  createDOM(config: EditorConfig): HTMLElement {
+    const element = document.createElement('a');
+
+    // Set link attributes
+    const url = this.getURL();
+    if (url) {
+      element.href = this.formatUrl(url);
+    }
+    element.setAttribute('target', '_blank');
+    element.setAttribute('rel', 'noopener noreferrer');
+
     addClassNamesToElement(element, config.theme.linkHighlight);
-
-    // Add click handler to open link in new window
-    element.addEventListener('click', (event) => {
-      // Only handle left click without modifier keys
-      if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        // Read URL in editor context
-        editor.read(() => {
-          const url = this.getURL();
-          if (url) {
-            // Format URL to ensure it has proper protocol
-            const formattedUrl = this.formatUrl(url);
-            window.open(formattedUrl, '_blank', 'noopener,noreferrer');
-          }
-        });
-      }
-    });
 
     return element;
   }
@@ -94,36 +74,20 @@ export class LinkHighlightNode extends CardLikeElementNode {
     return url;
   }
 
-  getDOMSlot(element: HTMLElement) {
-    const neContent = element.querySelector<HTMLElement>('ne-content');
-    if (!neContent) {
-      throw new Error('LinkHighlightNode: ne-content not found');
-    }
-    return super.getDOMSlot(element).withElement(neContent);
-  }
-
-  canBeEmpty(): boolean {
+  canBeEmpty(): false {
     return false;
   }
 
-  isCardLike(): boolean {
+  isInline(): true {
     return true;
   }
 
-  isInline(): boolean {
-    return true;
-  }
-
-  canIndent(): boolean {
+  canInsertTextBefore(): false {
     return false;
   }
 
-  canInsertTextBefore(): boolean {
-    return true;
-  }
-
-  canInsertTextAfter(): boolean {
-    return true;
+  canInsertTextAfter(): false {
+    return false;
   }
 
   updateDOM(prevNode: LinkHighlightNode, dom: HTMLElement, config: EditorConfig): boolean {
@@ -132,6 +96,17 @@ export class LinkHighlightNode extends CardLikeElementNode {
     if (prevTheme !== this) {
       addClassNamesToElement(dom, config.theme.linkHighlight);
     }
+
+    // Update href attribute if it's an anchor element
+    if (dom instanceof HTMLAnchorElement) {
+      const url = this.getURL();
+      if (url) {
+        dom.href = this.formatUrl(url);
+      } else {
+        dom.removeAttribute('href');
+      }
+    }
+
     return false;
   }
 
@@ -143,36 +118,21 @@ export class LinkHighlightNode extends CardLikeElementNode {
   }
 }
 
-export function $createLinkHighlightNode(textContent?: string): LinkHighlightNode {
-  const linkHighlightNode = $applyNodeReplacement(new LinkHighlightNode());
-  const cursorNode = $createCursorNode();
-  linkHighlightNode.append(cursorNode);
-  if (textContent) {
-    linkHighlightNode.append($createTextNode(textContent));
-  }
-  return linkHighlightNode;
+export function $createLinkHighlightNode(): LinkHighlightNode {
+  return $applyNodeReplacement(new LinkHighlightNode());
 }
 
 export function $isLinkHighlightNode(node: unknown): node is LinkHighlightNode {
   return node instanceof LinkHighlightNode;
 }
 
-export function getLinkHighlightNode(node: LexicalNode) {
-  if ($isCursorNode(node)) {
-    const parent = node.getParent();
-    if ($isLinkHighlightNode(parent)) {
-      return parent;
-    }
-    if ($isLinkHighlightNode(node.getNextSibling())) {
-      return node.getNextSibling();
-    }
-    if ($isLinkHighlightNode(node.getPreviousSibling())) {
-      return node.getPreviousSibling();
-    }
-    return null;
+export function getLinkHighlightNode(node: LexicalNode): LinkHighlightNode | null {
+  if ($isLinkHighlightNode(node)) {
+    return node;
   }
-  if ($isLinkHighlightNode(node.getParent())) {
-    return node.getParent();
+  const parent = node.getParent();
+  if ($isLinkHighlightNode(parent)) {
+    return parent;
   }
   return null;
 }
@@ -183,23 +143,26 @@ export function $isSelectionInLinkHighlight(editor: LexicalEditor): boolean {
     if (!selection) {
       return false;
     }
+
     if ($isRangeSelection(selection)) {
       const focusNode = selection.focus.getNode();
       const anchorNode = selection.anchor.getNode();
-      const linkHighlight = getLinkHighlightNode(focusNode);
-      if (linkHighlight !== getLinkHighlightNode(anchorNode)) {
-        return false;
-      }
-      if ($isLinkHighlightNode(linkHighlight)) {
-        return true;
-      }
-      return false;
-    } else if ($isNodeSelection(selection)) {
-      const nodes = selection.getNodes();
-      if (nodes.length === 1 && $isLinkHighlightNode(nodes[0])) {
-        return true;
-      }
+      const focusLinkHighlight = getLinkHighlightNode(focusNode);
+      const anchorLinkHighlight = getLinkHighlightNode(anchorNode);
+
+      // Both nodes should be in the same link-highlight node
+      return (
+        focusLinkHighlight !== null &&
+        anchorLinkHighlight !== null &&
+        focusLinkHighlight === anchorLinkHighlight
+      );
     }
+
+    if ($isNodeSelection(selection)) {
+      const nodes = selection.getNodes();
+      return nodes.length === 1 && $isLinkHighlightNode(nodes[0]);
+    }
+
     return false;
   });
 }

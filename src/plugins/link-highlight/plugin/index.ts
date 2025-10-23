@@ -1,4 +1,5 @@
 import {
+  $createTextNode,
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_NORMAL,
@@ -9,7 +10,6 @@ import {
 import type { ITextNode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { $createCursorNode, cursorNodeSerialized } from '@/plugins/common/node/cursor';
 import {
   IMarkdownShortCutService,
   MARKDOWN_READER_LEVEL_HIGH,
@@ -94,9 +94,10 @@ export const LinkHighlightPlugin: IEditorPluginConstructor<LinkHighlightPluginOp
                 editor.update(() => {
                   const selection = $getSelection();
                   if ($isRangeSelection(selection)) {
-                    const linkHighlightNode = $createLinkHighlightNode(data);
-                    const cursorNode = $createCursorNode();
-                    selection.insertNodes([linkHighlightNode, cursorNode]);
+                    const linkHighlightNode = $createLinkHighlightNode();
+                    const textNode = $createTextNode(data);
+                    linkHighlightNode.append(textNode);
+                    selection.insertNodes([linkHighlightNode]);
                   }
                 });
 
@@ -117,7 +118,7 @@ export const LinkHighlightPlugin: IEditorPluginConstructor<LinkHighlightPluginOp
 
     // Register markdown writer for <link> format
     markdownService.registerMarkdownWriter(LinkHighlightNode.getType(), (ctx, node) => {
-      ctx.appendLine(`<${node.getTextContent()}>`);
+      ctx.appendLine(node.getTextContent());
       return true;
     });
 
@@ -132,10 +133,10 @@ export const LinkHighlightPlugin: IEditorPluginConstructor<LinkHighlightPluginOp
         }
 
         this.logger.debug('Converting markdown auto-link to LinkHighlightNode:', url);
-        const linkHighlightNode = $createLinkHighlightNode(url);
-        const cursorNode = $createCursorNode();
+        const linkHighlightNode = $createLinkHighlightNode();
+        const textNodeContent = $createTextNode(url);
+        linkHighlightNode.append(textNodeContent);
         textNode.replace(linkHighlightNode);
-        linkHighlightNode.insertAfter(cursorNode);
 
         return undefined;
       },
@@ -158,17 +159,14 @@ export const LinkHighlightPlugin: IEditorPluginConstructor<LinkHighlightPluginOp
           const url = match[1].replaceAll(/[\u200B-\u200D\u2060\uFEFF]/g, '');
           this.logger.debug('Converting HTML auto-link to LinkHighlightNode:', url);
 
-          return [
-            INodeHelper.createElementNode('linkHighlight', {
-              children: [cursorNodeSerialized, INodeHelper.createTextNode(url, {})],
-              direction: 'ltr',
-              format: '',
-              indent: 0,
-              type: 'linkHighlight',
-              version: 1,
-            }),
-            cursorNodeSerialized,
-          ];
+          return INodeHelper.createElementNode('linkHighlight', {
+            children: [INodeHelper.createTextNode(url, {})],
+            direction: 'ltr',
+            format: '',
+            indent: 0,
+            type: 'linkHighlight',
+            version: 1,
+          });
         }
 
         // Not an auto-link, let other handlers process it
@@ -199,19 +197,14 @@ export const LinkHighlightPlugin: IEditorPluginConstructor<LinkHighlightPluginOp
         // If text matches URL exactly (auto-link syntax), convert to LinkHighlightNode
         if (textContent === url) {
           this.logger.debug('Converting markdown auto-link to LinkHighlightNode:', url);
-          // Return array with LinkHighlightNode and trailing cursor
-          // Structure matches CodeNode: [node with internal cursor + text, external cursor]
-          return [
-            INodeHelper.createElementNode('linkHighlight', {
-              children: [cursorNodeSerialized, INodeHelper.createTextNode(url, {})],
-              direction: 'ltr',
-              format: '',
-              indent: 0,
-              type: 'linkHighlight',
-              version: 1,
-            }),
-            cursorNodeSerialized,
-          ];
+          return INodeHelper.createElementNode('linkHighlight', {
+            children: [INodeHelper.createTextNode(url, {})],
+            direction: 'ltr',
+            format: '',
+            indent: 0,
+            type: 'linkHighlight',
+            version: 1,
+          });
         }
 
         // Otherwise, let standard Link plugin handle it

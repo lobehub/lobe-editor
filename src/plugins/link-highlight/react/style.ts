@@ -1,27 +1,14 @@
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css, token }) => {
+export const useStyles = createStyles(({ css }) => {
   return {
     linkHighlight: css`
-      cursor: pointer;
+      cursor: unset;
 
-      display: inline;
-
+      margin-block: 1em;
+      margin-inline: 0;
       padding: 2px;
-
-      color: ${token.colorLink};
-      text-decoration: none;
-
-      transition: all 0.2s ease;
-
-      &:hover {
-        color: ${token.colorLinkHover};
-        text-decoration: underline;
-      }
-
-      ne-content {
-        display: inline;
-      }
+      border: none;
     `,
   };
 });
