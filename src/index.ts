@@ -2,6 +2,7 @@ export * from './editor-kernel';
 export * from './editor-kernel/react';
 export * from './plugins/code';
 export * from './plugins/codeblock';
+export * from './plugins/codemirror-block';
 export * from './plugins/common';
 export * from './plugins/file';
 export * from './plugins/hr';
