@@ -1,12 +1,15 @@
 import { createStyles } from 'antd-style';
 
 export const useStyles = createStyles(
-  ({ css, token }) => css`
+  ({ css, token, isDarkMode }) => css`
     cursor: pointer;
+
+    position: relative;
 
     display: flex;
     flex-direction: row;
     align-items: center;
+
     width: 100%;
 
     .cm-editor {
@@ -19,12 +22,37 @@ export const useStyles = createStyles(
       border-inline-end: none;
     }
 
+    .cm-cursor.cm-cursor-primary {
+      border-inline-start: 2px solid ${token.colorPrimary} !important;
+    }
+
+    .cm-selectionBackground {
+      background: transparent;
+    }
+
+    .ͼ3.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+      background: ${isDarkMode ? token.yellow : token.colorBgContainer};
+    }
+
     &.selected {
+      user-select: none;
+    }
+
+    &.selected::after {
+      pointer-events: none;
+      content: '';
+
+      position: absolute;
+      z-index: 10;
+      inset: 0;
+
+      width: 100%;
+      height: 100%;
+
+      opacity: 0.2;
       background: ${token.yellow};
 
-      hr {
-        border-color: #000;
-      }
+      transition: all 0.3s;
     }
   `,
 );

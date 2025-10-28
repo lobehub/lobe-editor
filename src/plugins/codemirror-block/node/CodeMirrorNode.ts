@@ -14,18 +14,20 @@ import {
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 
-export type SerializedCodeMirrorNode = Spread<{
-  lang: string;
-  code: string;
-}, SerializedLexicalNode>;
+export type SerializedCodeMirrorNode = Spread<
+  {
+    code: string;
+    language: string;
+  },
+  SerializedLexicalNode
+>;
 
 export class CodeMirrorNode extends DecoratorNode<any> {
-
   private __lang: string;
   private __code: string;
 
   static getType(): string {
-    return 'codemirror';
+    return 'code';
   }
 
   static clone(node: CodeMirrorNode): CodeMirrorNode {
@@ -33,10 +35,12 @@ export class CodeMirrorNode extends DecoratorNode<any> {
   }
 
   static importJSON(serializedNode: SerializedCodeMirrorNode): CodeMirrorNode {
-    return $createCodeMirrorNode(
-      serializedNode.lang,
-      serializedNode.code,
-    ).updateFromJSON(serializedNode);
+    let code = serializedNode.code;
+    if ('children' in serializedNode) {
+      // @ts-expect-error not error
+      code = serializedNode.children?.map((child) => child.text).join('') || '';
+    }
+    return $createCodeMirrorNode(serializedNode.language, code).updateFromJSON(serializedNode);
   }
 
   static importDOM(): DOMConversionMap | null {
@@ -65,8 +69,8 @@ export class CodeMirrorNode extends DecoratorNode<any> {
   exportJSON(): SerializedCodeMirrorNode {
     return {
       ...super.exportJSON(),
-      lang: this.lang,
       code: this.code,
+      language: this.lang,
     };
   }
 
