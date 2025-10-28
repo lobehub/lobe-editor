@@ -1,11 +1,16 @@
-import { $getNodeByKey, $insertNodes, $setSelection, COMMAND_PRIORITY_EDITOR, LexicalEditor, createCommand } from 'lexical';
+import { mergeRegister } from '@lexical/utils';
+import {
+  $getNodeByKey,
+  $insertNodes,
+  $setSelection,
+  COMMAND_PRIORITY_EDITOR,
+  LexicalEditor,
+  createCommand,
+} from 'lexical';
 
 import { $createCodeMirrorNode } from '../node/CodeMirrorNode';
-import { mergeRegister } from '@lexical/utils';
 
-export const INSERT_CODEMIRROR_COMMAND = createCommand<unknown>(
-  'INSERT_CODEMIRROR_COMMAND',
-);
+export const INSERT_CODEMIRROR_COMMAND = createCommand<unknown>('INSERT_CODEMIRROR_COMMAND');
 
 export const SELECT_BEFORE_CODEMIRROR_COMMAND = createCommand<{ key: string }>(
   'SELECT_BEFORE_CODEMIRROR_COMMAND',
@@ -46,19 +51,19 @@ export function registerCodeMirrorCommand(editor: LexicalEditor) {
         });
         return false;
       },
-      COMMAND_PRIORITY_EDITOR
+      COMMAND_PRIORITY_EDITOR,
     ),
     editor.registerCommand(
       SELECT_AFTER_CODEMIRROR_COMMAND,
       (payload) => {
         editor.update(() => {
           const node = $getNodeByKey(payload.key);
-          console.info('SELECT_AFTER_CODEMIRROR_COMMAND', node);
           if (!node) {
             return;
           }
           const nextNode = node.getNextSibling();
           const sel = nextNode?.selectStart();
+          console.info('SELECT_AFTER_CODEMIRROR_COMMAND', sel, nextNode, node);
           if (sel) {
             $setSelection(sel);
           }
@@ -66,7 +71,7 @@ export function registerCodeMirrorCommand(editor: LexicalEditor) {
         });
         return false;
       },
-      COMMAND_PRIORITY_EDITOR
-    )
-  )
+      COMMAND_PRIORITY_EDITOR,
+    ),
+  );
 }

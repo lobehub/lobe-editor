@@ -1,15 +1,13 @@
 import { $createNodeSelection, $setSelection, DecoratorNode, LexicalEditor } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCodeMirrorCommand } from '../command';
-import {
-  $createCodeMirrorNode,
-  CodeMirrorNode,
-} from '../node/CodeMirrorNode';
 import { modeMatch } from '../lib/mode';
+import { $createCodeMirrorNode, CodeMirrorNode } from '../node/CodeMirrorNode';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CodemirrorPluginOptions {
@@ -19,7 +17,8 @@ export interface CodemirrorPluginOptions {
 
 export const CodemirrorPlugin: IEditorPluginConstructor<CodemirrorPluginOptions> = class
   extends KernelPlugin
-  implements IEditorPlugin<CodemirrorPluginOptions> {
+  implements IEditorPlugin<CodemirrorPluginOptions>
+{
   static pluginName = 'CodemirrorPlugin';
 
   constructor(
@@ -58,6 +57,24 @@ export const CodemirrorPlugin: IEditorPluginConstructor<CodemirrorPluginOptions>
       },
       trigger: 'enter',
       type: 'element',
+    });
+
+    markdownService?.registerMarkdownWriter(CodeMirrorNode.getType(), (ctx, node) => {
+      if (node instanceof CodeMirrorNode) {
+        ctx.appendLine('```' + node.lang);
+        ctx.appendLine('\n');
+        ctx.appendLine(node.code);
+        ctx.appendLine('\n```\n');
+      }
+    });
+
+    markdownService?.registerMarkdownReader('code', (node) => {
+      const language = node.lang ? modeMatch(node.lang) : 'plain';
+      return INodeHelper.createTypeNode('code', {
+        code: node.value,
+        language,
+        version: 1,
+      });
     });
     // this.kernel
     //   .requireService(IMarkdownShortCutService)
