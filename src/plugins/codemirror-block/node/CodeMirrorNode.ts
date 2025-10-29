@@ -17,6 +17,7 @@ import { getKernelFromEditor } from '@/editor-kernel/utils';
 export type SerializedCodeMirrorNode = Spread<
   {
     code: string;
+    codeTheme: string;
     language: string;
   },
   SerializedLexicalNode
@@ -25,13 +26,14 @@ export type SerializedCodeMirrorNode = Spread<
 export class CodeMirrorNode extends DecoratorNode<any> {
   private __lang: string;
   private __code: string;
+  private __codeTheme: string;
 
   static getType(): string {
     return 'code';
   }
 
   static clone(node: CodeMirrorNode): CodeMirrorNode {
-    return new CodeMirrorNode(node.__lang, node.__code, node.__key);
+    return new CodeMirrorNode(node.__lang, node.__code, node.__codeTheme, node.__key);
   }
 
   static importJSON(serializedNode: SerializedCodeMirrorNode): CodeMirrorNode {
@@ -52,10 +54,11 @@ export class CodeMirrorNode extends DecoratorNode<any> {
     };
   }
 
-  constructor(lang: string, code: string, key?: string) {
+  constructor(lang: string, code: string, codeTheme: string, key?: string) {
     super(key);
     this.__lang = lang;
     this.__code = code;
+    this.__codeTheme = codeTheme;
   }
 
   get lang(): string {
@@ -66,10 +69,15 @@ export class CodeMirrorNode extends DecoratorNode<any> {
     return this.__code;
   }
 
+  get codeTheme(): string {
+    return this.__codeTheme;
+  }
+
   exportJSON(): SerializedCodeMirrorNode {
     return {
       ...super.exportJSON(),
       code: this.code,
+      codeTheme: this.codeTheme,
       language: this.lang,
     };
   }
@@ -83,6 +91,12 @@ export class CodeMirrorNode extends DecoratorNode<any> {
   setCode(code: string) {
     const writer = this.getWritable();
     writer.__code = code;
+    return this;
+  }
+
+  setCodeTheme(codeTheme: string) {
+    const writer = this.getWritable();
+    writer.__codeTheme = codeTheme;
     return this;
   }
 
@@ -109,12 +123,16 @@ export class CodeMirrorNode extends DecoratorNode<any> {
   }
 }
 
-export function $createCodeMirrorNode(lang: string, code = ''): CodeMirrorNode {
-  return $applyNodeReplacement(new CodeMirrorNode(lang, code));
+export function $createCodeMirrorNode(
+  lang: string,
+  code = '',
+  codeTheme = 'One Dark Pro',
+): CodeMirrorNode {
+  return $applyNodeReplacement(new CodeMirrorNode(lang, code, codeTheme));
 }
 
 function $convertCodeMirrorElement(): DOMConversionOutput {
-  return { node: $createCodeMirrorNode('', '') };
+  return { node: $createCodeMirrorNode('', '', '') };
 }
 
 export function $isCodeMirrorNode(node: LexicalNode): node is CodeMirrorNode {
