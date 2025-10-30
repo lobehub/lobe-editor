@@ -16,17 +16,34 @@ import {
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 
+export interface CodeMirrorOptions {
+  indentWithTabs: boolean;
+  lineNumbers: boolean;
+  tabSize: number;
+}
+
 export type SerializedCodeMirrorNode = Spread<
   {
     code: string;
     codeTheme: string;
     language: string;
+    options: {
+      indentWithTabs: boolean;
+      lineNumbers: boolean;
+      tabSize: number;
+    };
   },
   SerializedLexicalNode
 >;
 
 const LANGUAGE_DATA_ATTRIBUTE = 'data-language';
 const THEME_DATA_ATTRIBUTE = 'data-theme';
+
+const DEFAULT_OPTIONS: CodeMirrorOptions = {
+  indentWithTabs: false,
+  lineNumbers: true,
+  tabSize: 2,
+};
 
 function hasChildDOMNodeTag(node: Node, tagName: string) {
   for (const child of node.childNodes) {
@@ -50,13 +67,20 @@ export class CodeMirrorNode extends DecoratorNode<any> {
   private __lang: string;
   private __code: string;
   private __codeTheme: string;
+  private __options: CodeMirrorOptions;
 
   static getType(): string {
     return 'code';
   }
 
   static clone(node: CodeMirrorNode): CodeMirrorNode {
-    return new CodeMirrorNode(node.__lang, node.__code, node.__codeTheme, node.__key);
+    return new CodeMirrorNode(
+      node.__lang,
+      node.__code,
+      node.__codeTheme,
+      node.__options,
+      node.__key,
+    );
   }
 
   static importJSON(serializedNode: SerializedCodeMirrorNode): CodeMirrorNode {
@@ -65,7 +89,12 @@ export class CodeMirrorNode extends DecoratorNode<any> {
       // @ts-expect-error not error
       code = serializedNode.children?.map((child) => child.text).join('') || '';
     }
-    return $createCodeMirrorNode(serializedNode.language, code).updateFromJSON(serializedNode);
+    return $createCodeMirrorNode(
+      serializedNode.language,
+      code,
+      serializedNode.codeTheme,
+      serializedNode.options,
+    ).updateFromJSON(serializedNode);
   }
 
   static importDOM(): DOMConversionMap | null {
@@ -135,11 +164,18 @@ export class CodeMirrorNode extends DecoratorNode<any> {
     };
   }
 
-  constructor(lang: string, code: string, codeTheme: string, key?: string) {
+  constructor(
+    lang: string,
+    code: string,
+    codeTheme: string,
+    options: CodeMirrorOptions,
+    key?: string,
+  ) {
     super(key);
     this.__lang = lang;
     this.__code = code;
     this.__codeTheme = codeTheme;
+    this.__options = options;
   }
 
   get lang(): string {
@@ -152,6 +188,10 @@ export class CodeMirrorNode extends DecoratorNode<any> {
 
   get codeTheme(): string {
     return this.__codeTheme;
+  }
+
+  get options(): CodeMirrorOptions {
+    return this.__options;
   }
 
   exportDOM(editor: LexicalEditor): DOMExportOutput {
@@ -178,6 +218,7 @@ export class CodeMirrorNode extends DecoratorNode<any> {
       code: this.code,
       codeTheme: this.codeTheme,
       language: this.lang,
+      options: this.options,
     };
   }
 
@@ -196,6 +237,24 @@ export class CodeMirrorNode extends DecoratorNode<any> {
   setCodeTheme(codeTheme: string) {
     const writer = this.getWritable();
     writer.__codeTheme = codeTheme;
+    return this;
+  }
+
+  setTabSize(tabSize: number) {
+    const writer = this.getWritable();
+    writer.__options.tabSize = tabSize;
+    return this;
+  }
+
+  setIndentWithTabs(indentWithTabs: boolean) {
+    const writer = this.getWritable();
+    writer.__options.indentWithTabs = indentWithTabs;
+    return this;
+  }
+
+  setLineNumbers(lineNumbers: boolean) {
+    const writer = this.getWritable();
+    writer.__options.lineNumbers = lineNumbers;
     return this;
   }
 
@@ -226,8 +285,9 @@ export function $createCodeMirrorNode(
   lang: string,
   code = '',
   codeTheme = 'One Dark Pro',
+  options: CodeMirrorOptions = DEFAULT_OPTIONS,
 ): CodeMirrorNode {
-  return $applyNodeReplacement(new CodeMirrorNode(lang, code, codeTheme));
+  return $applyNodeReplacement(new CodeMirrorNode(lang, code, codeTheme, options));
 }
 
 function isCodeElement(div: HTMLElement): boolean {
