@@ -4,12 +4,14 @@ import {
   $applyNodeReplacement,
   DOMConversionMap,
   DOMConversionOutput,
+  DOMExportOutput,
   DecoratorNode,
   EditorConfig,
   LexicalEditor,
   LexicalNode,
   SerializedLexicalNode,
   Spread,
+  isHTMLElement,
 } from 'lexical';
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
@@ -22,6 +24,27 @@ export type SerializedCodeMirrorNode = Spread<
   },
   SerializedLexicalNode
 >;
+
+const LANGUAGE_DATA_ATTRIBUTE = 'data-language';
+const THEME_DATA_ATTRIBUTE = 'data-theme';
+
+function hasChildDOMNodeTag(node: Node, tagName: string) {
+  for (const child of node.childNodes) {
+    if (isHTMLElement(child) && child.tagName === tagName) {
+      return true;
+    }
+    hasChildDOMNodeTag(child, tagName);
+  }
+  return false;
+}
+
+function isGitHubCodeTable(table: HTMLTableElement): table is HTMLTableElement {
+  return table.classList.contains('js-file-line-container');
+}
+
+function isGitHubCodeCell(cell: HTMLTableCellElement): cell is HTMLTableCellElement {
+  return cell.classList.contains('js-file-line');
+}
 
 export class CodeMirrorNode extends DecoratorNode<any> {
   private __lang: string;
@@ -47,10 +70,68 @@ export class CodeMirrorNode extends DecoratorNode<any> {
 
   static importDOM(): DOMConversionMap | null {
     return {
-      hr: () => ({
-        conversion: $convertCodeMirrorElement,
+      // Typically <pre> is used for code blocks, and <code> for inline code styles
+      // but if it's a multi line <code> we'll create a block. Pass through to
+      // inline format handled by TextNode otherwise.
+      code: (node: Node) => {
+        const isMultiLine =
+          node.textContent !== null &&
+          (/\r?\n/.test(node.textContent) || hasChildDOMNodeTag(node, 'BR'));
+
+        return isMultiLine
+          ? {
+              conversion: $convertPreElement,
+              priority: 1,
+            }
+          : null;
+      },
+      div: () => ({
+        conversion: $convertDivElement,
+        priority: 1,
+      }),
+      pre: () => ({
+        conversion: $convertPreElement,
         priority: 0,
       }),
+      table: (node: Node) => {
+        const table = node;
+        // domNode is a <table> since we matched it by nodeName
+        if (isGitHubCodeTable(table as HTMLTableElement)) {
+          return {
+            conversion: $convertTableElement,
+            priority: 3,
+          };
+        }
+        return null;
+      },
+      td: (node: Node) => {
+        // element is a <td> since we matched it by nodeName
+        const td = node as HTMLTableCellElement;
+        const table: HTMLTableElement | null = td.closest('table');
+
+        if (isGitHubCodeCell(td) || (table && isGitHubCodeTable(table))) {
+          // Return a no-op if it's a table cell in a code table, but not a code line.
+          // Otherwise it'll fall back to the T
+          return {
+            conversion: convertCodeNoop,
+            priority: 3,
+          };
+        }
+
+        return null;
+      },
+      tr: (node: Node) => {
+        // element is a <tr> since we matched it by nodeName
+        const tr = node as HTMLTableCellElement;
+        const table: HTMLTableElement | null = tr.closest('table');
+        if (table && isGitHubCodeTable(table)) {
+          return {
+            conversion: convertCodeNoop,
+            priority: 3,
+          };
+        }
+        return null;
+      },
     };
   }
 
@@ -71,6 +152,24 @@ export class CodeMirrorNode extends DecoratorNode<any> {
 
   get codeTheme(): string {
     return this.__codeTheme;
+  }
+
+  exportDOM(editor: LexicalEditor): DOMExportOutput {
+    const element = document.createElement('pre');
+    addClassNamesToElement(element, editor._config.theme.code);
+    element.setAttribute('spellcheck', 'false');
+    const language = this.__lang;
+    if (language) {
+      element.setAttribute(LANGUAGE_DATA_ATTRIBUTE, language);
+    }
+
+    const theme = this.__codeTheme;
+    if (theme) {
+      element.setAttribute(THEME_DATA_ATTRIBUTE, theme);
+    }
+
+    element.textContent = this.__code;
+    return { element };
   }
 
   exportJSON(): SerializedCodeMirrorNode {
@@ -131,10 +230,49 @@ export function $createCodeMirrorNode(
   return $applyNodeReplacement(new CodeMirrorNode(lang, code, codeTheme));
 }
 
-function $convertCodeMirrorElement(): DOMConversionOutput {
-  return { node: $createCodeMirrorNode('', '', '') };
+function isCodeElement(div: HTMLElement): boolean {
+  return div.style.fontFamily.match('monospace') !== null;
+}
+
+function isCodeChildElement(node: HTMLElement): boolean {
+  let parent = node.parentElement;
+  while (parent !== null) {
+    if (isCodeElement(parent)) {
+      return true;
+    }
+    parent = parent.parentElement;
+  }
+  return false;
+}
+
+function $convertDivElement(domNode: Node): DOMConversionOutput {
+  // domNode is a <div> since we matched it by nodeName
+  const div = domNode as HTMLDivElement;
+  const isCode = isCodeElement(div);
+  if (!isCode && !isCodeChildElement(div)) {
+    return {
+      node: null,
+    };
+  }
+  return {
+    node: isCode ? $createCodeMirrorNode('plain', domNode.textContent || '', '') : null,
+  };
+}
+
+function $convertTableElement(): DOMConversionOutput {
+  return { node: $createCodeMirrorNode('plain', '', '') };
+}
+
+function $convertPreElement(domNode: HTMLElement): DOMConversionOutput {
+  const language = domNode.getAttribute(LANGUAGE_DATA_ATTRIBUTE);
+  const codeTheme = domNode.getAttribute(THEME_DATA_ATTRIBUTE) || '';
+  return { node: $createCodeMirrorNode(language || 'plain', domNode.textContent || '', codeTheme) };
 }
 
 export function $isCodeMirrorNode(node: LexicalNode): node is CodeMirrorNode {
   return node.getType() === CodeMirrorNode.getType();
+}
+
+function convertCodeNoop(): DOMConversionOutput {
+  return { node: null };
 }
