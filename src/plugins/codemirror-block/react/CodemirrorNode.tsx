@@ -1,10 +1,10 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { Button, Select, message } from 'antd';
+import { Button, InputNumber, Popover, Select, Space, Switch, message } from 'antd';
 import { $getSelection, COMMAND_PRIORITY_CRITICAL, KEY_DOWN_COMMAND, LexicalEditor } from 'lexical';
 import { debounce } from 'lodash';
-import { Copy } from 'lucide-react';
+import { Copy, Settings } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
@@ -32,6 +32,10 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
   );
   const [selectedTheme, setSelectedTheme] = useState('One Dark Pro');
   const [selectedLang, setSelectedLang] = useState(node.lang || 'javascript');
+  // use any to avoid strict typing on optional persistence fields
+  const [tabSize, setTabSize] = useState<number>(node.options.tabSize ?? 2);
+  const [useTabs, setUseTabs] = useState<boolean>(node.options.indentWithTabs ?? false);
+  const [showLineNumbers, setShowLineNumbers] = useState<boolean>(node.options.lineNumbers ?? true);
   const { cx, styles } = useStyles();
 
   // 语言选项
@@ -74,15 +78,60 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
   );
 
   // 更改主题
-  const handleThemeChange = useCallback((value: string) => {
-    setSelectedTheme(value);
-    if (instanceRef.current) {
-      instanceRef.current.setOption('theme', value);
-    }
-    editor.update(() => {
-      node.setCodeTheme(value);
-    });
-  }, []);
+  const handleThemeChange = useCallback(
+    (value: string) => {
+      setSelectedTheme(value);
+      if (instanceRef.current) {
+        instanceRef.current.setOption('theme', value);
+      }
+      editor.update(() => {
+        node.setCodeTheme(value);
+      });
+    },
+    [editor, node],
+  );
+
+  // 更改 tab 大小
+  const handleTabSizeChange = useCallback(
+    (value: number | null = 2) => {
+      const v = value === null ? 2 : value;
+      setTabSize(v);
+      if (instanceRef.current) {
+        instanceRef.current.setOption('tabSize', v);
+      }
+      editor.update(() => {
+        node.setTabSize(v);
+      });
+    },
+    [editor, node],
+  );
+
+  // 更改是否使用制表符
+  const handleUseTabsChange = useCallback(
+    (checked: boolean) => {
+      setUseTabs(checked);
+      if (instanceRef.current) {
+        instanceRef.current.setOption('indentWithTabs', checked);
+      }
+      editor.update(() => {
+        node.setIndentWithTabs(checked);
+      });
+    },
+    [editor, node],
+  );
+
+  const handleShowLineNumbersChange = useCallback(
+    (checked: boolean) => {
+      setShowLineNumbers(checked);
+      if (instanceRef.current) {
+        instanceRef.current.setOption('lineNumbers', checked);
+      }
+      editor.update(() => {
+        node.setLineNumbers(checked);
+      });
+    },
+    [editor, node],
+  );
 
   useEffect(() => {
     const sel = editor.read(() => $getSelection());
@@ -115,8 +164,11 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
       const dom = ref.current;
       loadCodeMirror().then((CodeMirror) => {
         const instance = CodeMirror.fromTextArea(dom, {
+          // keep options alphabetically ordered
+          indentWithTabs: useTabs,
           lineNumbers: true,
           mode: node.lang,
+          tabSize,
           theme: 'One Dark Pro',
           value: node.code,
         });
@@ -251,6 +303,43 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
             size="small"
             type="text"
           />
+          <Popover
+            content={
+              <Space direction="vertical">
+                <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
+                  <span>Tab Size</span>
+                  <InputNumber
+                    max={8}
+                    min={1}
+                    onChange={handleTabSizeChange}
+                    size="small"
+                    value={tabSize}
+                  />
+                </div>
+                <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
+                  <span>Use Tabs</span>
+                  <Switch checked={useTabs} onChange={handleUseTabsChange} size="small" />
+                </div>
+                <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
+                  <span>Show Line Numbers</span>
+                  <Switch
+                    checked={showLineNumbers}
+                    onChange={handleShowLineNumbersChange}
+                    size="small"
+                  />
+                </div>
+              </Space>
+            }
+            placement="bottomRight"
+            trigger="click"
+          >
+            <Button
+              icon={<Settings size={14} />}
+              onMouseDown={(e) => e.preventDefault()}
+              size="small"
+              type="text"
+            />
+          </Popover>
         </div>
       </div>
 
