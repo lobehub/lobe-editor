@@ -1,4 +1,4 @@
-import { $createCodeNode, $isCodeHighlightNode, $isCodeNode } from '@lexical/code';
+import { $isCodeNode } from '@lexical/code';
 import {
   $getNodeByKey,
   $getSelection,
@@ -13,7 +13,6 @@ import {
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { $isCodeInlineNode } from '@/plugins/code/node/code';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
@@ -22,7 +21,6 @@ import MarkdownDataSource from '../data-source/markdown-data-source';
 import { IMarkdownShortCutService, MarkdownShortCutService } from '../service/shortcut';
 import { canContainTransformableMarkdown } from '../utils';
 import { detectCodeLanguage, detectLanguage } from '../utils/detectLanguage';
-import { isValidUrl as isValidLinkUrl } from '../utils/url-validator';
 
 export interface MarkdownPluginOptions {
   /**
@@ -186,127 +184,6 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             textLength: text.length,
           });
 
-          // Check if the pasted content is a pure URL
-          // If so, let Link/LinkHighlight plugins handle it
-          if (
-            clipboardData.types.length === 1 &&
-            clipboardData.types[0] === 'text/plain' &&
-            isValidLinkUrl(text)
-          ) {
-            this.logger.debug('pure URL detected, letting Link/LinkHighlight plugins handle');
-            return false; // Let other plugins handle URL paste
-          }
-
-          // Check if cursor is inside code block or inline code
-          // If so, always paste as plain text
-          const isInCodeBlock = editor.read(() => {
-            const selection = $getSelection();
-            if (!$isRangeSelection(selection)) return false;
-
-            const anchorNode = selection.anchor.getNode();
-            const focusNode = selection.focus.getNode();
-
-            // Check if in code block (CodeNode or CodeHighlightNode)
-            const anchorParent = anchorNode.getParent();
-            const focusParent = focusNode.getParent();
-
-            if ($isCodeNode(anchorNode) || $isCodeNode(focusNode)) {
-              return true;
-            }
-
-            if ($isCodeNode(anchorParent) || $isCodeNode(focusParent)) {
-              return true;
-            }
-
-            if ($isCodeHighlightNode(anchorNode) || $isCodeHighlightNode(focusNode)) {
-              return true;
-            }
-
-            // Check if in inline code
-            if ($isCodeInlineNode(anchorNode) || $isCodeInlineNode(focusNode)) {
-              return true;
-            }
-
-            if ($isCodeInlineNode(anchorParent) || $isCodeInlineNode(focusParent)) {
-              return true;
-            }
-
-            return false;
-          });
-
-          if (isInCodeBlock) {
-            this.logger.debug('cursor in code block, pasting as plain text');
-            event.preventDefault();
-            event.stopPropagation();
-
-            editor.update(() => {
-              const selection = $getSelection();
-              if (!$isRangeSelection(selection)) return;
-
-              selection.insertText(text);
-            });
-
-            return true;
-          }
-
-          const enablePasteMarkdown = this.config?.enablePasteMarkdown ?? true;
-
-          // If markdown formatting is disabled, we're done
-          if (!enablePasteMarkdown) {
-            // Force plain text paste for external content
-            event.preventDefault();
-            event.stopPropagation();
-
-            editor.update(() => {
-              const selection = $getSelection();
-              if (!$isRangeSelection(selection)) return;
-
-              // Insert plain text
-              selection.insertText(text);
-            });
-            this.logger.debug('markdown formatting disabled, plain text inserted');
-            return true;
-          }
-
-          // Check if this is likely a rich-text paste from the editor or other rich editor
-          // Rich text pastes typically have HTML that's more complex than just wrapping text
-          if (clipboardData.types.includes('application/x-lexical-editor')) {
-            this.logger.debug('rich content detected, letting Lexical handle paste');
-            return false;
-          }
-
-          // Check if markdown paste formatting is enabled (default: true)
-          // Note: URL pasting is handled by Link/LinkHighlight plugins themselves
-
-          // Check if content is code (JSON, SQL, etc.) and should be inserted as code block
-          const codeInfo = this.detectCodeContent(text);
-
-          if (codeInfo) {
-            // Code detected - insert as code block
-            this.logger.debug(`code detected (${codeInfo.language}), inserting as code block`);
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            editor.update(() => {
-              const selection = $getSelection();
-              if (!$isRangeSelection(selection)) return;
-
-              // Create code block node with detected language
-              const codeNode = $createCodeNode(codeInfo.language);
-              selection.insertNodes([codeNode]);
-
-              // Insert the code text into the code block
-              codeNode.select();
-              const codeSelection = $getSelection();
-              if ($isRangeSelection(codeSelection)) {
-                codeSelection.insertText(text);
-              }
-            });
-
-            return true; // Command handled
-          }
-
           // Check if the pasted plain text contains markdown patterns
           const hasMarkdownContent = this.detectMarkdownContent(text);
 
@@ -325,49 +202,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             this.logger.debug('no markdown patterns detected, keeping as plain text');
           }
 
-          // word 一类富文本编辑器会同时包含 text/html 和 text/rtf 类型的内容
-          // if (
-          //   clipboardData.types.includes('text/html') &&
-          //   clipboardData.types.includes('text/rtf')
-          // ) {
-          //   // Code detected - insert as code block
-          //   this.logger.debug(`code like, inserting as code block`);
-          //
-          //   event.preventDefault();
-          //   event.stopPropagation();
-          //
-          //   editor.update(() => {
-          //     const selection = $getSelection();
-          //     if (!$isRangeSelection(selection)) return;
-          //
-          //     // Create code block node with detected language
-          //     const codeNode = $createCodeNode('plaintext');
-          //     selection.insertNodes([codeNode]);
-          //
-          //     // Insert the code text into the code block
-          //     codeNode.select();
-          //     const codeSelection = $getSelection();
-          //     if ($isRangeSelection(codeSelection)) {
-          //       codeSelection.insertText(text);
-          //     }
-          //   });
-          //
-          //   return true; // Command handled
-          // }
-
-          // Force plain text paste for external content
-          event.preventDefault();
-          event.stopPropagation();
-
-          editor.update(() => {
-            const selection = $getSelection();
-            if (!$isRangeSelection(selection)) return;
-
-            // Insert plain text
-            selection.insertText(text);
-          });
-
-          return true; // Command handled
+          return false;
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
