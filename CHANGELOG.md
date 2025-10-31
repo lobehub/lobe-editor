@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.21.2](https://github.com/lobehub/lobe-editor/compare/v1.21.1...v1.21.2)
+<sup>Released on **2025-10-31**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Remove redundant code handling for markdown paste in MarkdownP….
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Remove redundant code handling for markdown paste in MarkdownP…, closes [#57](https://github.com/lobehub/lobe-editor/issues/57) ([56c971d](https://github.com/lobehub/lobe-editor/commit/56c971d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.21.1](https://github.com/lobehub/lobe-editor/compare/v1.21.0...v1.21.1)
 <sup>Released on **2025-10-23**</sup>
 
