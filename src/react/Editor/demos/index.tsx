@@ -8,6 +8,7 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  ReactAutoCompletePlugin,
   ReactCodePlugin,
   ReactCodeblockPlugin,
   ReactFilePlugin,
@@ -228,6 +229,21 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           ReactTablePlugin,
           ReactMathPlugin,
           ReactCodePlugin,
+          Editor.withProps(ReactAutoCompletePlugin, {
+            delay: 500,
+            onAutoComplete: async (input, afterText, selectionType) => {
+              // Simple example: return a fixed string for demonstration
+              console.log('Auto-complete triggered:', {
+                afterText,
+                input,
+                selectionType,
+              });
+              if (input === 'hello') {
+                return 'Hello, world!\n\nThis is an `auto-completed` message.';
+              }
+              return null;
+            },
+          }),
           Editor.withProps(ReactFilePlugin, {
             handleUpload: async (file) => {
               devConsole.log('Files uploaded:', file);
