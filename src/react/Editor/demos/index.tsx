@@ -232,9 +232,10 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           ReactCodePlugin,
           Editor.withProps(ReactAutoCompletePlugin, {
             delay: 500,
-            onAutoComplete: async (input, selectionType) => {
+            onAutoComplete: async (input, afterText, selectionType) => {
               // Simple example: return a fixed string for demonstration
               console.log('Auto-complete triggered:', {
+                afterText,
                 input,
                 selectionType,
               });

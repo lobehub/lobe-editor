@@ -19,6 +19,7 @@ export interface AutoCompletePluginOptions {
   delay?: number;
   onAutoComplete?: (
     input: string,
+    afterText: string,
     selectionType: string,
     editor: IEditor,
   ) => Promise<string | null>;
@@ -169,17 +170,16 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
       // Get context around cursor for auto-complete
       const anchorNode = selection.anchor.getNode();
-      let contextText = '';
       let selectionType = 'unknown';
 
       // Get text before cursor in the entire paragraph
-      contextText = this.getTextBeforeCursor(selection);
+      const textRet = this.getTextBeforeCursor(selection);
       selectionType = anchorNode.getType();
 
       // Trigger auto-complete callback if provided
       if (this.config?.onAutoComplete) {
         this.config
-          .onAutoComplete(contextText, selectionType, this.kernel as any)
+          .onAutoComplete(textRet.textBefore, textRet.textAfter, selectionType, this.kernel as any)
           .then((result) => {
             if (result) {
               // Store suggestion and show placeholder
@@ -187,7 +187,8 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
               this.showPlaceholderNodes(editor, result);
 
               console.log('Auto-complete triggered:', {
-                input: contextText,
+                afterText: textRet.textAfter,
+                input: textRet.textBefore,
                 position: currentPosition,
                 result,
                 selectionType,
@@ -200,7 +201,14 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     });
   }
 
-  private getTextBeforeCursor(selection: any): string {
+  private getTextBeforeCursor(selection: any): {
+    textAfter: string;
+    textBefore: string;
+  } {
+    const ret = {
+      textAfter: '',
+      textBefore: '',
+    };
     const anchorNode = selection.anchor.getNode();
     const anchorOffset = selection.anchor.offset;
 
@@ -213,34 +221,42 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     }
 
     if (!paragraphNode) {
-      return '';
+      return ret;
     }
 
     console.info('Paragraph Node Type:', paragraphNode, anchorNode);
+
+    let founded = false;
 
     // Collect all text before cursor in the paragraph
     const collectTextBeforeCursor = (
       node: any,
       targetNode: any,
       targetOffset: number,
-    ): { found: boolean; text: string } => {
+    ): { text: string; textAfter: string } => {
       if (node === targetNode) {
         // We've reached the target node, get text up to the cursor position
         if (node.getTextContent) {
           const nodeText = node.getTextContent();
           return {
-            found: true,
             text: nodeText.slice(0, targetOffset),
+            textAfter: nodeText.slice(targetOffset),
           };
         }
-        return { found: true, text: '' };
+        founded = true;
+        return { text: '', textAfter: '' };
       }
 
       let collectedText = '';
+      let collectedTextAfter = '';
 
       // If this is a text node, collect all its text
       if (node.getTextContent && node.getType() === 'text') {
-        collectedText += node.getTextContent();
+        if (founded) {
+          collectedTextAfter += node.getTextContent();
+        } else {
+          collectedText += node.getTextContent();
+        }
       }
 
       // Recursively check children
@@ -248,19 +264,19 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         const children = node.getChildren();
         for (const child of children) {
           const result = collectTextBeforeCursor(child, targetNode, targetOffset);
+          collectedTextAfter += result.textAfter;
           collectedText += result.text;
-
-          if (result.found) {
-            return { found: true, text: collectedText };
-          }
         }
       }
 
-      return { found: false, text: collectedText };
+      return { text: collectedText, textAfter: collectedTextAfter };
     };
 
     const result = collectTextBeforeCursor(paragraphNode, anchorNode, anchorOffset);
-    return result.text;
+    return {
+      textAfter: result.textAfter,
+      textBefore: result.text,
+    };
   }
 
   private showPlaceholderNodes(editor: LexicalEditor, suggestion: string): void {
