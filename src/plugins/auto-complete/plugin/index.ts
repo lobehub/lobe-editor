@@ -1,13 +1,17 @@
 import {
   $getSelection,
+  $insertNodes,
   $isRangeSelection,
   $setSelection,
+  COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
+  KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
   LexicalEditor,
   TextNode,
 } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -109,6 +113,22 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
           return false;
         },
         COMMAND_PRIORITY_HIGH,
+      ),
+    );
+
+    this.register(
+      editor.registerCommand(
+        KEY_ESCAPE_COMMAND,
+        (event) => {
+          if (this.currentSuggestion) {
+            event?.preventDefault();
+            this.clearPlaceholderNodes(editor);
+            this.currentSuggestion = null;
+            return true;
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
       ),
     );
 
@@ -235,6 +255,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
       targetOffset: number,
     ): { text: string; textAfter: string } => {
       if (node === targetNode) {
+        founded = true;
         // We've reached the target node, get text up to the cursor position
         if (node.getTextContent) {
           const nodeText = node.getTextContent();
@@ -243,7 +264,6 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             textAfter: nodeText.slice(targetOffset),
           };
         }
-        founded = true;
         return { text: '', textAfter: '' };
       }
 
@@ -285,11 +305,11 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     editor.update(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-        console.info('No valid selection for placeholder');
+        console.warn('No valid selection for placeholder');
         return;
       }
       if (!this.markdownService) {
-        console.info('No valid markdown service for placeholder');
+        console.warn('No valid markdown service for placeholder');
         return;
       }
 
@@ -318,6 +338,15 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         };
       }
 
+      // 创建标记节点并保存其key
+      const markerNode = INodeHelper.createTextNode('\u200B'); // 使用零宽空格
+      nodes.children.push({
+        // @ts-expect-error not error
+        children: [markerNode],
+        name: '',
+        type: 'PlaceholderInline',
+      });
+
       const saveSel = selection.clone();
       this.markdownService.insertIRootNode(editor, nodes, selection);
 
@@ -328,10 +357,27 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   private clearPlaceholderNodes(editor: LexicalEditor): void {
     editor.update(() => {
       editor.getEditorState()._nodeMap.forEach((node) => {
+        const selection = $getSelection();
+        const clonedSelection = selection ? selection.clone() : null;
         if (
           node.isAttached() &&
           ['PlaceholderBlock', 'PlaceholderInline'].includes(node.getType())
         ) {
+          if (
+            node.getType() === 'PlaceholderInline' &&
+            node.getTextContent().includes('\u200B') &&
+            node.getPreviousSibling() === null
+          ) {
+            while (node.getNextSibling()) {
+              const next = node.getNextSibling();
+              if (next) {
+                $insertNodes([next]);
+              }
+            }
+            $setSelection(clonedSelection);
+            node.getParent()?.remove();
+            return;
+          }
           node.remove();
         }
       });
