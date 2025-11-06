@@ -49,7 +49,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
     const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
     setMarkdown(markdownContent || '');
     setJson(JSON.stringify(jsonContent || {}, null, 2));
-  }, 300);
+  }, 200);
 
   const handleInit = (editor: IEditor) => {
     // @ts-expect-error not error：
@@ -216,8 +216,8 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           },
           searchKeys: ['label'],
         }}
-        onChange={handleChange}
         onInit={handleInit}
+        onTextChange={handleChange}
         placeholder={'Type something...'}
         plugins={[
           ReactListPlugin,

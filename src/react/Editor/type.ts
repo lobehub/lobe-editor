@@ -37,6 +37,11 @@ export interface EditorProps
       };
   mentionOption?: MentionOption;
   onInit?: (editor: IEditor) => void;
+  /**
+   * Callback triggered only when text content changes
+   * Unlike onChange, this won't trigger on cursor movement or selection changes
+   */
+  onTextChange?: (editor: IEditor) => void;
   plugins?: EditorPlugin[];
   slashOption?: Partial<ReactSlashOptionProps>;
   style?: CSSProperties;

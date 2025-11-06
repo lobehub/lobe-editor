@@ -36,6 +36,7 @@ const Editor = memo<EditorProps>(
     onCompositionStart,
     onCompositionEnd,
     onContextMenu,
+    onTextChange,
   }) => {
     const { config } = useEditorContent();
     const enableSlash = Boolean(slashOption?.items && slashOption.items.length > 0);
@@ -95,6 +96,7 @@ const Editor = memo<EditorProps>(
           onFocus={onFocus}
           onKeyDown={onKeyDown}
           onPressEnter={onPressEnter}
+          onTextChange={onTextChange}
           style={style}
           variant={variant}
         >

@@ -42,6 +42,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     onCompositionStart,
     onCompositionEnd,
     onContextMenu,
+    onTextChange,
   }) => {
     const isChat = variant === 'chat';
     const {
@@ -84,10 +85,27 @@ const ReactPlainText = memo<ReactPlainTextProps>(
         setIsInitialized(true);
       }
 
-      return editor.getLexicalEditor()?.registerUpdateListener(() => {
+      // Track previous content for onTextChange comparison
+      let previousContent: string | undefined;
+
+      return editor.getLexicalEditor()?.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
+        // Always trigger onChange for any update
         onChange?.(editor);
+
+        // Only trigger onTextChange when content actually changes
+        if (onTextChange && (dirtyElements.size > 0 || dirtyLeaves.size > 0)) {
+          const currentContent = JSON.stringify(editor.getDocument(type));
+          if (previousContent === undefined) {
+            // First update after initialization
+            previousContent = currentContent;
+          } else if (currentContent !== previousContent) {
+            // Content has actually changed
+            previousContent = currentContent;
+            onTextChange(editor);
+          }
+        }
       });
-    }, [editor, type, content, onChange, isInitialized]);
+    }, [editor, type, content, onChange, onTextChange, isInitialized]);
 
     useEffect(() => {
       if (editor && onPressEnter) {

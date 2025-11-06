@@ -42,6 +42,11 @@ export interface ReactPlainTextProps {
   onFocus?: (props: { editor: IEditor; event: FocusEvent<HTMLDivElement> }) => void;
   onKeyDown?: (props: { editor: IEditor; event: KeyboardEvent }) => boolean | void;
   onPressEnter?: (props: { editor: IEditor; event: KeyboardEvent }) => boolean | void;
+  /**
+   * Callback triggered only when text content changes
+   * Unlike onChange, this won't trigger on cursor movement or selection changes
+   */
+  onTextChange?: (editor: IEditor) => void;
   style?: CSSProperties;
   theme?: CommonPluginOptions['theme'] & {
     fontSize?: number;
