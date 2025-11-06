@@ -193,7 +193,8 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
             version: 1,
           });
         }
-        throw new Error('ListItem node children must be paragraph or list node ' + v.type);
+        // keep node unchanged
+        return v;
       });
     });
   }
