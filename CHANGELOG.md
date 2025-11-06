@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.22.0](https://github.com/lobehub/lobe-editor/compare/v1.21.3...v1.22.0)
+<sup>Released on **2025-11-06**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add onTextChange.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add onTextChange ([85b86a7](https://github.com/lobehub/lobe-editor/commit/85b86a7))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.21.3](https://github.com/lobehub/lobe-editor/compare/v1.21.2...v1.21.3)
 <sup>Released on **2025-11-06**</sup>
 
