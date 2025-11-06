@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.21.3](https://github.com/lobehub/lobe-editor/compare/v1.21.2...v1.21.3)
+<sup>Released on **2025-11-06**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Update ListPlugin to keep node unchanged instead of throwing a….
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Update ListPlugin to keep node unchanged instead of throwing a…, closes [#58](https://github.com/lobehub/lobe-editor/issues/58) ([8fdb9d6](https://github.com/lobehub/lobe-editor/commit/8fdb9d6))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.21.2](https://github.com/lobehub/lobe-editor/compare/v1.21.1...v1.21.2)
 <sup>Released on **2025-10-31**</sup>
 
