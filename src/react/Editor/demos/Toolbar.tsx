@@ -31,15 +31,17 @@ import {
   UnderlineIcon,
   Undo2Icon,
 } from 'lucide-react';
-import { memo, useMemo } from 'react';
+import { CSSProperties, memo, useMemo } from 'react';
 
 import { openFileSelector } from './actions';
 
 export interface ToolbarProps {
+  className?: string;
   editor: IEditor;
+  style?: CSSProperties;
 }
 
-const Toolbar = memo<ToolbarProps>(({ editor }) => {
+const Toolbar = memo<ToolbarProps>(({ editor, style, className }) => {
   const editorState = useEditorState(editor);
   const theme = useTheme();
 
@@ -207,6 +209,7 @@ const Toolbar = memo<ToolbarProps>(({ editor }) => {
 
   return (
     <Block
+      className={className}
       padding={4}
       shadow
       style={{
@@ -215,6 +218,7 @@ const Toolbar = memo<ToolbarProps>(({ editor }) => {
         position: 'sticky',
         top: 12,
         zIndex: 10,
+        ...style,
       }}
       variant={'outlined'}
     >
