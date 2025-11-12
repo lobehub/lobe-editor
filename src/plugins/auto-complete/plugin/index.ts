@@ -21,12 +21,13 @@ import { PlaceholderBlockNode, PlaceholderNode } from '../node/placeholderNode';
 export interface AutoCompletePluginOptions {
   /** Delay in milliseconds before triggering auto-complete (default: 1000ms) */
   delay?: number;
-  onAutoComplete?: (
-    input: string,
-    afterText: string,
-    selectionType: string,
-    editor: IEditor,
-  ) => Promise<string | null>;
+  onAutoComplete?: (opt: {
+    abortSignal: AbortSignal;
+    afterText: string;
+    editor: IEditor;
+    input: string;
+    selectionType: string;
+  }) => Promise<string | null>;
   theme?: {
     placeholderBlock?: string;
     placeholderInline?: string;
@@ -41,6 +42,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
   private lastCursorPosition: { key: string; offset: number; type: string } | null = null;
   private cursorStableTimer: number | null = null;
+  private abortController: AbortController | null = null;
   private delay: number;
   private placeholderNodes: TextNode[] = [];
   private currentSuggestion: string | null = null;
@@ -71,6 +73,9 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     this.register(
       editor.registerUpdateListener(({ editorState }) => {
         editorState.read(() => {
+          if (editor.isComposing()) {
+            return;
+          }
           const selection = $getSelection();
 
           if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
@@ -89,8 +94,8 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
           if (this.hasPositionChanged(currentPosition)) {
             this.clearTimer();
             this.clearPlaceholderNodes(editor);
-            this.lastCursorPosition = currentPosition;
 
+            this.abortController = new AbortController();
             // Start new timer for cursor stability check
             this.cursorStableTimer = window.setTimeout(() => {
               this.handleCursorStable(editor, currentPosition);
@@ -160,6 +165,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   }
 
   private clearTimer(): void {
+    this.abortController?.abort();
     if (this.cursorStableTimer) {
       clearTimeout(this.cursorStableTimer);
       this.cursorStableTimer = null;
@@ -171,6 +177,12 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     position: { key: string; offset: number; type: string },
   ): void {
     editor.read(() => {
+      if (editor.isComposing()) {
+        return;
+      }
+      if (!this.abortController || this.abortController.signal.aborted) {
+        return;
+      }
       const selection = $getSelection();
 
       if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
@@ -188,6 +200,13 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         return;
       }
 
+      // Avoid duplicate triggers for the same position
+      if (this.lastCursorPosition && this.isSamePosition(position, this.lastCursorPosition)) {
+        return;
+      }
+
+      this.lastCursorPosition = currentPosition;
+
       // Get context around cursor for auto-complete
       const anchorNode = selection.anchor.getNode();
       let selectionType = 'unknown';
@@ -199,7 +218,13 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
       // Trigger auto-complete callback if provided
       if (this.config?.onAutoComplete) {
         this.config
-          .onAutoComplete(textRet.textBefore, textRet.textAfter, selectionType, this.kernel as any)
+          .onAutoComplete({
+            abortSignal: this.abortController!.signal,
+            afterText: textRet.textAfter,
+            editor: this.kernel as any,
+            input: textRet.textBefore,
+            selectionType,
+          })
           .then((result) => {
             if (result) {
               // Store suggestion and show placeholder

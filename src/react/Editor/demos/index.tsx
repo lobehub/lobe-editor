@@ -231,14 +231,21 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           ReactMathPlugin,
           ReactCodePlugin,
           Editor.withProps(ReactAutoCompletePlugin, {
-            delay: 500,
-            onAutoComplete: async (input, afterText, selectionType) => {
+            delay: 1000,
+            onAutoComplete: async ({ input, afterText, selectionType, abortSignal }) => {
               // Simple example: return a fixed string for demonstration
               console.log('Auto-complete triggered:', {
                 afterText,
                 input,
                 selectionType,
               });
+              if (abortSignal.aborted) {
+                console.log('Auto-complete aborted');
+                return null;
+              }
+              console.info('triggering');
+              // console.info('ZenMux response:', res);
+              // openai.Chat.Completions.
               if (input === 'hello') {
                 return 'Hello, world!\n\nThis is an `auto-completed` message.';
               }
