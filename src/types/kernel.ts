@@ -1,3 +1,4 @@
+import type { HistoryState, HistoryStateEntry } from '@lexical/history';
 import type {
   CommandListener,
   CommandListenerPriority,
@@ -10,10 +11,10 @@ import type {
 } from 'lexical';
 
 import type DataSource from '@/editor-kernel/data-source';
-import { HotkeyId } from '@/types/hotkey';
-import { HotkeyOptions, HotkeysEvent } from '@/utils/hotkey/registerHotkey';
+import type { HotkeyId } from '@/types/hotkey';
+import type { HotkeyOptions, HotkeysEvent } from '@/utils/hotkey/registerHotkey';
 
-import { ILocaleKeys } from './locale';
+import type { ILocaleKeys } from './locale';
 
 export type Commands = Map<LexicalCommand<unknown>, Array<Set<CommandListener<unknown>>>>;
 export type CommandsClean = Map<LexicalCommand<unknown>, () => void>;
@@ -40,7 +41,11 @@ export interface IKernelEventMap {
   /**
    * handle markdown parse event
    */
-  markdownParse: (params: { cacheState: EditorState; markdown: string }) => void;
+  markdownParse: (params: {
+    cacheState: EditorState;
+    historyState: HistoryStateEntry | null;
+    markdown: string;
+  }) => void;
 }
 
 /**
@@ -222,6 +227,10 @@ export interface IEditorKernel extends IEditor {
   getDecorator(
     name: string,
   ): ((_node: DecoratorNode<any>, _editor: LexicalEditor) => any) | undefined;
+  /**
+   * Get editor history state
+   */
+  getHistoryState(): HistoryState;
   /**
    * Get all registered decorator names
    */

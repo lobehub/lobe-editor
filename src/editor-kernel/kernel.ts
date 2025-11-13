@@ -1,3 +1,4 @@
+import { HistoryState, createEmptyHistoryState } from '@lexical/history';
 import EventEmitter from 'eventemitter3';
 import {
   $getSelection,
@@ -61,6 +62,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   private hotReloadMode: boolean = false;
   private logger = createDebugLogger('kernel');
 
+  private historyState = createEmptyHistoryState();
+
   private editor?: LexicalEditor;
 
   constructor() {
@@ -69,6 +72,10 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     // Enable hot reload mode in development
     this.hotReloadMode = this.detectDevelopmentMode();
     this.logger.info(`🚀 Kernel initialized (hot reload: ${this.hotReloadMode})`);
+  }
+
+  getHistoryState(): HistoryState {
+    return this.historyState;
   }
 
   private detectDevelopmentMode(): boolean {

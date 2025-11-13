@@ -1,5 +1,5 @@
 import { registerDragonSupport } from '@lexical/dragon';
-import { createEmptyHistoryState, registerHistory } from '@lexical/history';
+import { registerHistory } from '@lexical/history';
 import type { HeadingTagType } from '@lexical/rich-text';
 import {
   $createHeadingNode,
@@ -371,7 +371,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     this.registerClears(
       registerRichText(editor),
       registerDragonSupport(editor),
-      registerHistory(editor, createEmptyHistoryState(), 300),
+      registerHistory(editor, this.kernel.getHistoryState(), 300),
       registerHeaderBackspace(editor),
       registerRichKeydown(editor, this.kernel, {
         enableHotkey: this.config?.enableHotkey,
