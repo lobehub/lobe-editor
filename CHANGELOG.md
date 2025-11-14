@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.22.1](https://github.com/lobehub/lobe-editor/compare/v1.22.0...v1.22.1)
+<sup>Released on **2025-11-14**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Resolve duplicate content issue after confirming markdown conversion.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Resolve duplicate content issue after confirming markdown conversion, closes [#63](https://github.com/lobehub/lobe-editor/issues/63) ([c7e5df9](https://github.com/lobehub/lobe-editor/commit/c7e5df9))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.22.0](https://github.com/lobehub/lobe-editor/compare/v1.21.3...v1.22.0)
 <sup>Released on **2025-11-06**</sup>
 
