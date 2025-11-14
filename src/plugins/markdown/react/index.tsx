@@ -1,8 +1,9 @@
 'use client';
 
+import { HistoryStateEntry } from '@lexical/history';
 import { Button } from '@lobehub/ui';
 import { Space, notification } from 'antd';
-import { EditorState, UNDO_COMMAND } from 'lexical';
+import { EditorState } from 'lexical';
 import { type FC, useLayoutEffect } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react';
@@ -18,7 +19,14 @@ const ReactMarkdownPlugin: FC<void> = () => {
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
-    const handleEvent = ({ markdown }: { cacheState: EditorState; markdown: string }) => {
+    const handleEvent = ({
+      markdown,
+      historyState,
+    }: {
+      cacheState: EditorState;
+      historyState: HistoryStateEntry | null;
+      markdown: string;
+    }) => {
       const key = `open${Date.now()}`;
       const actions = (
         <Space>
@@ -27,8 +35,7 @@ const ReactMarkdownPlugin: FC<void> = () => {
           </Button>
           <Button
             onClick={() => {
-              editor.dispatchCommand(UNDO_COMMAND, undefined);
-              editor.dispatchCommand(INSERT_MARKDOWN_COMMAND, { markdown });
+              editor.dispatchCommand(INSERT_MARKDOWN_COMMAND, { historyState, markdown });
               api.destroy();
             }}
             size="small"

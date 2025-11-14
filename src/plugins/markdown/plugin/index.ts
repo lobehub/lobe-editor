@@ -191,9 +191,11 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             // Markdown detected - show confirmation dialog
             this.logger.debug('markdown patterns detected:', this.getMarkdownPatterns(text));
 
+            const historyState = this.kernel.getHistoryState().current;
             setTimeout(() => {
               this.kernel.emit('markdownParse', {
                 cacheState: editor.getEditorState(),
+                historyState,
                 markdown: text,
               });
             }, 10);
@@ -208,7 +210,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
       ),
     );
 
-    this.register(registerMarkdownCommand(editor, this.service));
+    this.register(registerMarkdownCommand(editor, this.service, this.kernel.getHistoryState()));
   }
 
   /**
