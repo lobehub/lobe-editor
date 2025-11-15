@@ -190,7 +190,8 @@ function convertMdastToLexical(
           const tag = htmlStack.shift();
           ctx.pop();
           // @ts-expect-error not error
-          children.push(INodeHelper.createTextNode(tag?.node.value), ...tag.children);
+          children.push(INodeHelper.createTextNode(tag?.node.value), ...tag.children.flat());
+          children = children.flat();
         }
       }
 
