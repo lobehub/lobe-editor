@@ -20,6 +20,7 @@ const Editor = memo<EditorProps>(
     onInit,
     onChange,
     placeholder,
+    lineEmptyPlaceholder,
     plugins = [],
     slashOption = {},
     mentionOption = {},
@@ -100,7 +101,12 @@ const Editor = memo<EditorProps>(
           style={style}
           variant={variant}
         >
-          <ReactEditorContent content={content} placeholder={placeholder} type={type} />
+          <ReactEditorContent
+            content={content}
+            lineEmptyPlaceholder={lineEmptyPlaceholder}
+            placeholder={placeholder}
+            type={type}
+          />
         </ReactPlainText>
         {children}
       </ReactEditor>
