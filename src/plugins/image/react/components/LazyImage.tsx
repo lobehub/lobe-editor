@@ -1,5 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 
+import { BlockImageNode } from '../../node/block-image-node';
 import { ImageNode } from '../../node/image-node';
 import BrokenImage from './BrokenImage';
 import { useSuspenseImage } from './useSupenseImage';
@@ -11,7 +12,7 @@ function isSVG(src: string): boolean {
 const LazyImage = memo<{
   className?: string | null;
   newWidth?: number | null;
-  node: ImageNode;
+  node: ImageNode | BlockImageNode;
   onError?: () => void;
   // eslint-disable-next-line unused-imports/no-unused-vars
   onLoad?: (dimensions: { height: number; width: number }) => void;
