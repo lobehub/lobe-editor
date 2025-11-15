@@ -12,6 +12,17 @@ export const useStyles = createStyles(({ token }) => ({
       backgroundColor: token.colorPrimaryBg,
     },
   },
+  blockImage: {
+    'userSelect': 'none',
+    'position': 'relative',
+    'display': 'block',
+    'textAlign': 'center' as const,
+    'cursor': 'default',
+
+    '&.selected': {
+      backgroundColor: token.colorPrimaryBg,
+    },
+  },
 }));
 
 export const imageBroken =
