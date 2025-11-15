@@ -10,9 +10,12 @@ function isSVG(src: string): boolean {
 
 const LazyImage = memo<{
   className?: string | null;
+  newWidth?: number | null;
   node: ImageNode;
   onError?: () => void;
-}>(({ className, node, onError }) => {
+  // eslint-disable-next-line unused-imports/no-unused-vars
+  onLoad?: (dimensions: { height: number; width: number }) => void;
+}>(({ className, node, newWidth, onError, onLoad }) => {
   const { src, altText, maxWidth, width } = node;
   const [dimensions, setDimensions] = useState<{
     height: number;
@@ -78,16 +81,25 @@ const LazyImage = memo<{
       draggable="false"
       onError={onError}
       onLoad={(e) => {
+        const img = e.currentTarget;
         if (isSVGImage) {
-          const img = e.currentTarget;
           setDimensions({
             height: img.naturalHeight,
             width: img.naturalWidth,
           });
         }
+        onLoad?.({
+          height: img.naturalHeight,
+          width: img.naturalWidth,
+        });
       }}
       src={src}
-      style={{ ...imageStyle, cursor: 'default' }}
+      style={{
+        ...imageStyle,
+        cursor: 'default',
+        maxWidth: newWidth || imageStyle.maxWidth,
+        width: newWidth || imageStyle.width,
+      }}
     />
   );
 });

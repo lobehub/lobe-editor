@@ -46,6 +46,20 @@ export class ImageNode extends BaseImageNode {
     return this.__width;
   }
 
+  public get height(): number | string {
+    return this.__height;
+  }
+
+  public setMaxWidth(maxWidth: number): void {
+    const writable = this.getWritable();
+    writable.__maxWidth = maxWidth;
+  }
+
+  public setWidth(width: number): void {
+    const writable = this.getWritable();
+    writable.__width = width;
+  }
+
   public setUploaded(url: string): void {
     const writable = this.getWritable();
     writable.__loading = false;
