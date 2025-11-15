@@ -132,4 +132,27 @@ describe('Markdown to Lexical Conversion', () => {
     // @ts-expect-error not error
     expect(lexical.children[0].children[4].text).toEqual('>" 的适当构造函数');
   });
+
+  it('should output origin xml no reader case 2', () => {
+    const markdown = 'sql<number>`COALESCE(SUM(${plugins.installCount}), 0)`';
+    const lexical = parseMarkdownToLexical(markdown, {
+      inlineCode: (node, children) => {
+        return [INodeHelper.createTextNode('`' + node.value + '`')];
+      },
+    });
+
+    expect(lexical.children.length).toEqual(1);
+
+    // @ts-expect-error not error
+    expect(lexical.children[0].children.length).toEqual(3);
+
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[0].text).toEqual('sql');
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[1].text).toEqual('<number>');
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[2].text).toEqual(
+      '`COALESCE(SUM(${plugins.installCount}), 0)`',
+    );
+  });
 });
