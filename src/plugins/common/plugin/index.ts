@@ -10,6 +10,7 @@ import {
   QuoteNode,
   registerRichText,
 } from '@lexical/rich-text';
+import { CAN_USE_DOM } from '@lexical/utils';
 import {
   $createLineBreakNode,
   $createParagraphNode,
@@ -370,7 +371,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   onInit(editor: LexicalEditor): void {
     this.registerClears(
       registerRichText(editor),
-      registerDragonSupport(editor),
+      CAN_USE_DOM ? registerDragonSupport(editor) : () => {},
       registerHistory(editor, this.kernel.getHistoryState(), 300),
       registerHeaderBackspace(editor),
       registerRichKeydown(editor, this.kernel, {
