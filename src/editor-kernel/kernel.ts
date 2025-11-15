@@ -78,6 +78,10 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     return this.historyState;
   }
 
+  isEditable(): boolean {
+    return this.editor?.isEditable() || false;
+  }
+
   private detectDevelopmentMode(): boolean {
     // Check global override first
     if (Kernel.globalHotReloadMode !== undefined) {
@@ -157,7 +161,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     return this.editor?.getRootElement() || null;
   }
 
-  setRootElement(dom: HTMLElement) {
+  setRootElement(dom: HTMLElement, editable: boolean = true): LexicalEditor {
     // Check if editor is already initialized to prevent re-initialization
     if (this.editor) {
       this.logger.warn('[Editor] Editor is already initialized, updating root element only');
@@ -178,6 +182,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     const editor = (this.editor = createEditor({
       // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
+      editable,
       namespace: 'lobehub',
       nodes: this.nodes,
       onError: (error: Error) => {
@@ -195,6 +200,16 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.logger.info(`✅ Editor ready with ${this.pluginsInstances.length} plugins`);
     this.emit('initialized', editor);
     return this.editor;
+  }
+
+  setEditable(editable: boolean): void {
+    if (!this.editor) {
+      this.logger.error('❌ Editor not initialized');
+      throw new Error(`Editor is not initialized.`);
+    }
+    this.editor.setEditable(editable);
+    this.emit('editableChange', editable);
+    this.logger.debug(`✏️ Editor editable set to ${editable}`);
   }
 
   setDocument(type: string, content: any) {

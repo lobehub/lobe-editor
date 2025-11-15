@@ -22,6 +22,7 @@ import {
 import { Flexbox } from 'react-layout-kit';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
+import { useEditable } from '@/editor-kernel/react/useEditable';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
@@ -46,6 +47,7 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
   const [linkDom, setLinkDom] = useState<HTMLElement | null>(null);
+  const { editable } = useEditable();
 
   const t = useTranslation();
   const { styles, theme } = useStyles();
@@ -221,7 +223,7 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
     );
   }, []);
 
-  if (!linkNodeRef.current) return null;
+  if (!linkNodeRef.current || !editable) return null;
 
   return (
     <Block className={styles.linkEdit} ref={divRef} shadow variant={'outlined'}>
