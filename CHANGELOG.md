@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.23.0](https://github.com/lobehub/lobe-editor/compare/v1.22.1...v1.23.0)
+<sup>Released on **2025-11-15**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add node editor initialization and corresponding tests.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add node editor initialization and corresponding tests, closes [#64](https://github.com/lobehub/lobe-editor/issues/64) ([400f88e](https://github.com/lobehub/lobe-editor/commit/400f88e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.22.1](https://github.com/lobehub/lobe-editor/compare/v1.22.0...v1.22.1)
 <sup>Released on **2025-11-14**</sup>
 
