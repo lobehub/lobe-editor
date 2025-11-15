@@ -16,6 +16,7 @@ const Editor = memo<EditorProps>(
     content,
     style,
     className,
+    editable,
     editor,
     onInit,
     onChange,
@@ -86,6 +87,7 @@ const Editor = memo<EditorProps>(
         <ReactPlainText
           autoFocus={autoFocus}
           className={className}
+          editable={editable}
           enablePasteMarkdown={enablePasteMarkdown}
           markdownOption={markdownOption}
           onBlur={onBlur}

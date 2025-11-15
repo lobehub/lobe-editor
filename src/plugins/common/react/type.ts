@@ -20,6 +20,7 @@ export interface ReactPlainTextProps {
   autoFocus?: boolean;
   children: ReactElement<ReactEditorContentProps>;
   className?: string;
+  editable?: boolean;
   enableHotkey?: boolean;
   /**
    * Enable automatic markdown formatting for pasted content

@@ -112,6 +112,7 @@ export interface EditorState {
 export function useEditorState(editor?: IEditor): EditorState {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [editable, setEditable] = useState(editor?.isEditable() ?? true);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
@@ -142,6 +143,7 @@ export function useEditorState(editor?: IEditor): EditorState {
     const selection = $getSelection();
     const lexicalEditor = editor?.getLexicalEditor();
     setIsSelected(false);
+    setEditable(editor?.isEditable() ?? true);
     if (lexicalEditor) {
       setIsEmpty($isRootTextContentEmpty(lexicalEditor.isComposing(), false));
     }
@@ -517,6 +519,7 @@ export function useEditorState(editor?: IEditor): EditorState {
       code,
       codeblock,
       codeblockLang,
+      editable,
       insertLink,
       insertMath,
       isBlockquote,

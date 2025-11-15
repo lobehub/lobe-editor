@@ -29,9 +29,14 @@ export type IServiceID<Service> = {
 
 export interface IKernelEventMap {
   /**
+   * Editor editable state change event
+   */
+  editableChange: (editable: boolean) => void;
+  /**
    * Editor error event
    */
   error: (error: Error) => void;
+
   /**
    * Initialization event
    * @param editor Lexical editor instance
@@ -100,6 +105,10 @@ export interface IEditor {
    */
   getTheme(): Record<string, string | Record<string, string>>;
   /**
+   * Check if editor is editable
+   */
+  isEditable(): boolean;
+  /**
    * Check if editor content is empty
    * @returns true if editor content is empty, false otherwise
    */
@@ -127,6 +136,7 @@ export interface IEditor {
    * @param listener
    */
   once<T extends keyof IKernelEventMap>(event: T, listener: IKernelEventMap[T]): this;
+
   /**
    * Extends the priority level of Lexical commands.
    * Registers a listener that triggers when the provided command is dispatched
@@ -154,7 +164,6 @@ export interface IEditor {
     listener: CommandListener<P>,
     priority: CommandListenerPriority,
   ): () => void;
-
   /**
    * Register keyboard shortcut
    * @param hotkey
@@ -166,6 +175,7 @@ export interface IEditor {
     callback: (event: KeyboardEvent, handler: HotkeysEvent) => void,
     options?: HotkeyOptions,
   ): () => void;
+
   /**
    * Register internationalization text
    * @param locale Internationalization text object
@@ -196,10 +206,16 @@ export interface IEditor {
   setDocument(type: string, content: any): void;
 
   /**
+   * Enable or disable editor editing capability
+   * @param editable
+   */
+  setEditable(editable: boolean): void;
+
+  /**
    * Set document editor root node
    * @param dom
    */
-  setRootElement(dom: HTMLElement): LexicalEditor;
+  setRootElement(dom: HTMLElement, editable?: boolean): LexicalEditor;
 
   /**
    * Get translation text
