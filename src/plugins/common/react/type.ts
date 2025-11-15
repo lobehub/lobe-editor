@@ -12,6 +12,7 @@ import type { IEditor } from '@/types';
 
 export interface ReactEditorContentProps {
   content: any;
+  lineEmptyPlaceholder?: string;
   placeholder?: ReactNode;
   type: string;
 }

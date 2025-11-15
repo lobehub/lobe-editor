@@ -203,6 +203,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
       <Editor
         content={content}
         editor={editor}
+        lineEmptyPlaceholder={'Start typing here...'}
         mentionOption={{
           items: mentionItems,
           markdownWriter: (mention) => {
