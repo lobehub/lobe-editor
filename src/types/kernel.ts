@@ -100,6 +100,10 @@ export interface IEditor {
    */
   getTheme(): Record<string, string | Record<string, string>>;
   /**
+   * Get node editor instance
+   */
+  initNodeEditor(): LexicalEditor | null;
+  /**
    * Check if editor content is empty
    * @returns true if editor content is empty, false otherwise
    */
@@ -127,6 +131,7 @@ export interface IEditor {
    * @param listener
    */
   once<T extends keyof IKernelEventMap>(event: T, listener: IKernelEventMap[T]): this;
+
   /**
    * Extends the priority level of Lexical commands.
    * Registers a listener that triggers when the provided command is dispatched
@@ -154,7 +159,6 @@ export interface IEditor {
     listener: CommandListener<P>,
     priority: CommandListenerPriority,
   ): () => void;
-
   /**
    * Register keyboard shortcut
    * @param hotkey
@@ -166,6 +170,7 @@ export interface IEditor {
     callback: (event: KeyboardEvent, handler: HotkeysEvent) => void,
     options?: HotkeyOptions,
   ): () => void;
+
   /**
    * Register internationalization text
    * @param locale Internationalization text object
