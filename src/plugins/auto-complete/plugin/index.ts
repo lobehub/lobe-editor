@@ -165,7 +165,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   }
 
   private clearTimer(): void {
-    this.abortController?.abort();
+    this.abortController?.abort('use cancel');
     if (this.cursorStableTimer) {
       clearTimeout(this.cursorStableTimer);
       this.cursorStableTimer = null;
