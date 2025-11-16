@@ -239,15 +239,26 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
                 input,
                 selectionType,
               });
+              const res = await fetch(`${location.origin}/nodeserver/completion`, {
+                body: JSON.stringify({
+                  prompt: `Please complete the following text:\n\n${input}`,
+                }),
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                method: 'POST',
+                signal: abortSignal,
+              });
               if (abortSignal.aborted) {
                 console.log('Auto-complete aborted');
                 return null;
               }
-              console.info('triggering');
-              // console.info('ZenMux response:', res);
-              // openai.Chat.Completions.
-              if (input === 'hello') {
-                return 'Hello, world!\n\nThis is an `auto-completed` message.';
+              const ai = await res.json();
+              if (ai) {
+                if (ai.content.startsWith(input)) {
+                  return ai.content.replace(input, '');
+                }
+                return ai.content;
               }
               return null;
             },
