@@ -8,7 +8,8 @@ import {
 } from 'lexical';
 import { FC, useCallback, useRef } from 'react';
 
-import { useLexicalEditor } from '@/editor-kernel/react';
+import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
+import { ILinkService } from '@/plugins/link';
 
 import { getDOMRangeRect } from '../utils/getDOMRangeRect';
 import { setFloatingElemPosition } from '../utils/setFloatingElemPosition';
@@ -18,6 +19,7 @@ import { ReactToolbarPluginProps } from './type';
 export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, children }) => {
   const popupCharStylesEditorRef = useRef<HTMLDivElement | null>(null);
   const anchorElemRef = useRef<HTMLDivElement | null>(null);
+  const [kernelEditor] = useLexicalComposerContext();
   const { cx, styles } = useStyles();
 
   const $updateTextFormatFloatingToolbar = useCallback(
@@ -52,6 +54,16 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
     },
     [anchorElemRef],
   );
+
+  useLexicalEditor(() => {
+    const service = kernelEditor.requireService(ILinkService);
+    if (service) {
+      service.setLinkToolbar(false);
+      return () => {
+        service.setLinkToolbar(true);
+      };
+    }
+  }, []);
 
   useLexicalEditor((editor) => {
     return mergeRegister(
