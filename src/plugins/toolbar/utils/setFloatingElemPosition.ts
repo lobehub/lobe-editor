@@ -63,7 +63,7 @@ export function setFloatingElemPosition(
     left = editorScrollerRect.left + horizontalOffset;
   }
 
-  top -= anchorElementRect.top;
+  top -= anchorElementRect.top + 12;
   left -= anchorElementRect.left;
 
   floatingElem.style.opacity = '1';

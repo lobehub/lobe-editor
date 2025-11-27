@@ -13,6 +13,7 @@ import {
   LinkAttributes,
   LinkNode,
 } from '../node/LinkNode';
+import { ILinkService, LinkService } from '../service/i-link-service';
 import { registerLinkCommands } from './registry';
 
 export interface LinkPluginOptions {
@@ -31,6 +32,7 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
 {
   static pluginName = 'LinkPlugin';
   protected linkRegex = /^https?:\/\/\S+$/;
+  public service: LinkService = new LinkService();
 
   constructor(
     protected kernel: IEditorKernel,
@@ -39,6 +41,7 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
     super();
     // Register the link nodes
     kernel.registerNodes([LinkNode, AutoLinkNode]);
+    kernel.registerService(ILinkService, this.service);
     if (config?.theme) {
       kernel.registerThemes(config.theme);
     }

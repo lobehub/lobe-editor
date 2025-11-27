@@ -31,9 +31,10 @@ import { EDIT_LINK_COMMAND } from './LinkEdit';
 
 interface LinkToolbarProps {
   editor: LexicalEditor;
+  enable: boolean;
 }
 
-const LinkToolbar = memo<LinkToolbarProps>(({ editor }) => {
+const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const LinkRef = useRef<HTMLDivElement>(null);
   const { styles } = useStyles();
@@ -128,6 +129,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor }) => {
         editor.registerCommand(
           HOVER_LINK_COMMAND,
           (payload) => {
+            if (!enable) return false;
             if (!payload.event.target || divRef.current === null) return false;
             // Cancel any pending hide timers when hovering a link again
             clearTimeout(clearTimerRef.current);
@@ -155,7 +157,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor }) => {
         ),
       );
     },
-    [editable],
+    [enable, editable],
   );
 
   return (
