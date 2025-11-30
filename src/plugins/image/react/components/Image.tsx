@@ -12,9 +12,9 @@ import { useStyles } from './style';
 
 interface ResizeHandleProps {
   isBlock: boolean;
-  onResize: (deltaX: number, deltaY: number, position: 'nw' | 'ne' | 'sw' | 'se') => void;
+  onResize: (deltaX: number, deltaY: number, position: 'left' | 'right') => void;
   onResizeEnd?: (deltaX: number, deltaY: number) => void;
-  position: 'nw' | 'ne' | 'sw' | 'se';
+  position: 'left' | 'right';
 }
 
 const ResizeHandle = memo<ResizeHandleProps>(({ onResize, onResizeEnd, position, isBlock }) => {
@@ -34,43 +34,22 @@ const ResizeHandle = memo<ResizeHandleProps>(({ onResize, onResizeEnd, position,
             width: 0,
           };
       const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
       let lastDeltaX = 0;
       let lastDeltaY = 0;
 
       const handleMouseMove = (e: MouseEvent) => {
         let deltaX = e.clientX - startX;
-        let deltaY = e.clientY - startY;
+        const deltaY = e.clientY - startY;
 
-        // Adjust deltas based on the resize handle position and center alignment
+        // Only adjust deltaX based on the resize handle position
         switch (position) {
-          case 'nw': {
+          case 'left': {
             deltaX = isBlock ? centerX - e.clientX : -deltaX;
-            deltaY = isBlock ? centerY - e.clientY : -deltaY;
             break;
           }
-          case 'ne': {
+          case 'right': {
             if (isBlock) {
               deltaX = e.clientX - centerX;
-              deltaY = centerY - e.clientY;
-            } else {
-              deltaY = -deltaY;
-            }
-            break;
-          }
-          case 'sw': {
-            if (isBlock) {
-              deltaX = centerX - e.clientX;
-              deltaY = e.clientY - centerY;
-            } else {
-              deltaX = -deltaX;
-            }
-            break;
-          }
-          default: {
-            if (isBlock) {
-              deltaX = e.clientX - centerX;
-              deltaY = e.clientY - centerY;
             }
             break;
           }
@@ -97,30 +76,24 @@ const ResizeHandle = memo<ResizeHandleProps>(({ onResize, onResizeEnd, position,
 
   const getPositionStyle = () => {
     const baseStyle = {
-      backgroundColor: '#0066ff',
-      border: '1px solid #fff',
-      borderRadius: '50%',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-      cursor: 'nwse-resize',
-      height: 8,
+      backgroundColor: '#999999',
+      borderRadius: 2,
+      cursor: 'col-resize',
+      height: '60%',
+      opacity: 0.6,
       pointerEvents: 'auto' as const,
       position: 'absolute' as const,
-      width: 8,
+      top: '20%',
+      width: 4,
       zIndex: 9999,
     };
 
     switch (position) {
-      case 'nw': {
-        return { ...baseStyle, cursor: 'nw-resize', left: -4, top: -4 };
+      case 'left': {
+        return { ...baseStyle, left: 20 };
       }
-      case 'ne': {
-        return { ...baseStyle, cursor: 'ne-resize', right: -4, top: -4 };
-      }
-      case 'sw': {
-        return { ...baseStyle, bottom: -4, cursor: 'sw-resize', left: -4 };
-      }
-      default: {
-        return { ...baseStyle, bottom: -4, cursor: 'se-resize', right: -4 };
+      case 'right': {
+        return { ...baseStyle, right: 20 };
       }
     }
   };
@@ -162,22 +135,12 @@ const Image = memo<{ className?: string; node: ImageNode | BlockImageNode }>(
 
     // Resize by dragging - only control width; height is calculated by aspect ratio
     const handleResize = useCallback(
-      (deltaX: number, deltaY: number) => {
+      (deltaX: number) => {
         if (!originalSizeRef.current.width || !originalSizeRef.current.height) return;
 
         const aspectRatio = originalSizeRef.current.width / originalSizeRef.current.height;
 
-        let widthDelta = deltaX;
-        let heightDelta = deltaY;
-
-        // Convert height change to width change (based on original aspect ratio)
-        const widthFromHeight = heightDelta * aspectRatio;
-
-        // Use the larger change value as the final width adjustment
-        const finalWidthDelta =
-          Math.abs(widthDelta) > Math.abs(widthFromHeight) ? widthDelta : widthFromHeight;
-
-        const newWidth = Math.max(50, size.width + finalWidthDelta);
+        const newWidth = Math.max(50, size.width + deltaX);
 
         // Calculate new height based on the original aspect ratio
         const newHeight = newWidth / aspectRatio;
@@ -251,16 +214,10 @@ const Image = memo<{ className?: string; node: ImageNode | BlockImageNode }>(
 
     // On resize end, persist to node (set maxWidth)
     const handleResizeEnd = useCallback(
-      (deltaX: number, deltaY: number) => {
+      (deltaX: number) => {
         if (!originalSizeRef.current.width || !originalSizeRef.current.height) return;
 
-        const widthDelta = deltaX;
-        const heightDelta = deltaY;
-        const aspectRatio = originalSizeRef.current.width / originalSizeRef.current.height;
-        const widthFromHeight = heightDelta * aspectRatio;
-        const finalWidthDelta =
-          Math.abs(widthDelta) > Math.abs(widthFromHeight) ? widthDelta : widthFromHeight;
-        const finalWidth = Math.max(50, size.width + finalWidthDelta);
+        const finalWidth = Math.max(50, size.width + deltaX);
 
         // persist to node via editor.update
         const editor = editorRef.current;
@@ -296,32 +253,20 @@ const Image = memo<{ className?: string; node: ImageNode | BlockImageNode }>(
           <div className={styles.scaleInfo}>{Math.round(scale * 100)}%</div>
         )}
 
-        {/* Resize handles */}
+        {/* Resize handles - only left and right */}
         {isSelected && (
           <>
             <ResizeHandle
               isBlock={isBlock}
               onResize={handleResize}
               onResizeEnd={handleResizeEnd}
-              position="nw"
+              position="left"
             />
             <ResizeHandle
               isBlock={isBlock}
               onResize={handleResize}
               onResizeEnd={handleResizeEnd}
-              position="ne"
-            />
-            <ResizeHandle
-              isBlock={isBlock}
-              onResize={handleResize}
-              onResizeEnd={handleResizeEnd}
-              position="sw"
-            />
-            <ResizeHandle
-              isBlock={isBlock}
-              onResize={handleResize}
-              onResizeEnd={handleResizeEnd}
-              position="se"
+              position="right"
             />
           </>
         )}
