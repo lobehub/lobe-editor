@@ -10,13 +10,14 @@ import Image from './components/Image';
 import { useStyles } from './style';
 import { ReactImagePluginProps } from './type';
 
-const ReactImagePlugin: FC<ReactImagePluginProps> = ({ theme, className }) => {
+const ReactImagePlugin: FC<ReactImagePluginProps> = ({ theme, className, defaultBlockImage }) => {
   const [editor] = useLexicalComposerContext();
   const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(UploadPlugin);
     editor.registerPlugin(ImagePlugin, {
+      defaultBlockImage,
       handleUpload(file) {
         return new Promise((resolve) => {
           setTimeout(() => {

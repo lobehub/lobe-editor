@@ -1,16 +1,22 @@
-import { $applyNodeReplacement, DOMConversionMap, DOMConversionOutput, LexicalNode } from 'lexical';
+import {
+  $applyNodeReplacement,
+  DOMConversionMap,
+  DOMConversionOutput,
+  EditorConfig,
+  LexicalNode,
+} from 'lexical';
 
 import { BaseImageNode, ImagePayload, SerializedImageNode } from './basie-image-node';
 
-export class ImageNode extends BaseImageNode {
-  private static _decorate: (node: ImageNode) => any | null = () => null;
+export class BlockImageNode extends BaseImageNode {
+  private static _decorate: (node: BlockImageNode) => any | null = () => null;
 
-  static setDecorate(decorate: (node: ImageNode) => any): void {
-    ImageNode._decorate = decorate;
+  static setDecorate(decorate: (node: BlockImageNode) => any): void {
+    BlockImageNode._decorate = decorate;
   }
 
   static getType(): string {
-    return 'image';
+    return 'block-image';
   }
 
   private __loading = true;
@@ -50,6 +56,10 @@ export class ImageNode extends BaseImageNode {
     return this.__height;
   }
 
+  override isInline(): boolean {
+    return false;
+  }
+
   public setMaxWidth(maxWidth: number): void {
     const writable = this.getWritable();
     writable.__maxWidth = maxWidth;
@@ -74,8 +84,8 @@ export class ImageNode extends BaseImageNode {
     writable.__message = message;
   }
 
-  static clone(node: ImageNode): ImageNode {
-    return new ImageNode(
+  static clone(node: BlockImageNode): BlockImageNode {
+    return new BlockImageNode(
       node.__src,
       node.__altText,
       node.__maxWidth,
@@ -88,10 +98,10 @@ export class ImageNode extends BaseImageNode {
     );
   }
 
-  static importJSON(serializedNode: SerializedImageNode): ImageNode {
+  static importJSON(serializedNode: SerializedImageNode): BlockImageNode {
     const { altText, height, width, maxWidth, src, showCaption } = serializedNode;
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return $createImageNode({
+    return $createBlockImageNode({
       altText,
       height,
       maxWidth,
@@ -112,11 +122,21 @@ export class ImageNode extends BaseImageNode {
   }
 
   decorate(): any {
-    return ImageNode._decorate(this)!;
+    return BlockImageNode._decorate(this)!;
+  }
+
+  override createDOM(config: EditorConfig): HTMLElement {
+    const span = document.createElement('div');
+    const theme = config.theme;
+    const className = theme.blockImage;
+    if (className !== undefined) {
+      span.className = className;
+    }
+    return span;
   }
 }
 
-export function $createImageNode({
+export function $createBlockImageNode({
   altText,
   height,
   maxWidth = 500,
@@ -126,9 +146,9 @@ export function $createImageNode({
   showCaption,
   caption,
   key,
-}: ImagePayload): ImageNode {
+}: ImagePayload): BlockImageNode {
   return $applyNodeReplacement(
-    new ImageNode(
+    new BlockImageNode(
       src,
       altText,
       maxWidth,
@@ -148,10 +168,10 @@ function $convertImageElement(domNode: Node): null | DOMConversionOutput {
     return null;
   }
   const { alt: altText, src, width, height } = img;
-  const node = $createImageNode({ altText, height, src, width });
+  const node = $createBlockImageNode({ altText, height, src, width });
   return { node };
 }
 
-export function $isImageNode(node: LexicalNode): node is ImageNode {
-  return node.getType() === ImageNode.getType();
+export function $isBlockImageNode(node: LexicalNode): node is BlockImageNode {
+  return node.getType() === BlockImageNode.getType();
 }
