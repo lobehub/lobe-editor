@@ -2,6 +2,48 @@
 
 # Changelog
 
+## [Version&nbsp;1.24.0](https://github.com/lobehub/lobe-editor/compare/v1.23.1...v1.24.0)
+<sup>Released on **2025-11-30**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add lineEmptyPlaceholder support to Placeholder and related c….
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Enhance codeblock plugin with clipboard paste handling for co….
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add lineEmptyPlaceholder support to Placeholder and related c…, closes [#65](https://github.com/lobehub/lobe-editor/issues/65) ([7523a01](https://github.com/lobehub/lobe-editor/commit/7523a01))
+
+
+
+#### What's fixed
+
+* **misc**: Enhance codeblock plugin with clipboard paste handling for co…, closes [#69](https://github.com/lobehub/lobe-editor/issues/69) ([08b54f9](https://github.com/lobehub/lobe-editor/commit/08b54f9))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.23.1](https://github.com/lobehub/lobe-editor/compare/v1.23.0...v1.23.1)
 <sup>Released on **2025-11-15**</sup>
 
