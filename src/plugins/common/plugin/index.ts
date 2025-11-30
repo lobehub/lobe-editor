@@ -389,7 +389,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
           // editor.read(() => {
           const selection = $getSelection();
           if (!$isRangeSelection(selection)) {
-            console.info('---------?');
             return false;
           }
 
