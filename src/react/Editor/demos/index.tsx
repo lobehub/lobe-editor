@@ -17,6 +17,7 @@ import {
   ReactListPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
+  ReactToolbarPlugin,
   type SlashOptions,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
@@ -229,6 +230,16 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           ReactTablePlugin,
           ReactMathPlugin,
           ReactCodePlugin,
+          Editor.withProps(ReactToolbarPlugin, {
+            children: (
+              <Toolbar
+                editor={editor}
+                style={{
+                  height: 40,
+                }}
+              />
+            ),
+          }),
           Editor.withProps(ReactFilePlugin, {
             handleUpload: async (file) => {
               devConsole.log('Files uploaded:', file);

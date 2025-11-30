@@ -30,9 +30,10 @@ import { EDIT_LINK_COMMAND } from './LinkEdit';
 
 interface LinkToolbarProps {
   editor: LexicalEditor;
+  enable: boolean;
 }
 
-const LinkToolbar = memo<LinkToolbarProps>(({ editor }) => {
+const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const LinkRef = useRef<HTMLDivElement>(null);
   const { styles } = useStyles();
@@ -92,65 +93,69 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor }) => {
     window.open(url, '_blank');
   }, [editor, linkNode]);
 
-  useLexicalEditor((editor) => {
-    return mergeRegister(
-      editor.registerUpdateListener(() => {
-        const selection = editor.read(() => $getSelection());
-        if (!selection) return;
-        if ($isRangeSelection(selection)) {
-          // Update links for UI components
-          editor.read(() => {
-            const node = getSelectedNode(selection);
-            const parent = node.getParent();
-            const isLink = $isLinkNode(parent) || $isLinkNode(node);
-            state.current.isLink = isLink;
-            if (isLink) {
-              const linkNode = $isLinkNode(parent) ? (parent as LinkNode) : (node as LinkNode);
-              editor.dispatchCommand(EDIT_LINK_COMMAND, {
-                linkNode,
-                linkNodeDOM: editor.getElementByKey(linkNode.getKey()),
-              });
-            } else {
-              editor.dispatchCommand(EDIT_LINK_COMMAND, {
-                linkNode: null,
-                linkNodeDOM: null,
-              });
-            }
-          });
-        } else {
-          state.current.isLink = false;
-        }
-      }),
-      editor.registerCommand(
-        HOVER_LINK_COMMAND,
-        (payload) => {
-          if (!payload.event.target || divRef.current === null) return false;
-          // Cancel any pending hide timers when hovering a link again
-          clearTimeout(clearTimerRef.current);
-          setLinkNode(payload.linkNode);
-          updatePosition({
-            callback: () => {
-              LinkRef.current = payload.event.target as HTMLDivElement;
-            },
-            floating: divRef.current,
-            offset: 4,
-            placement: 'top-start',
-            reference: payload.event.target as HTMLElement,
-          });
-          return false;
-        },
-        COMMAND_PRIORITY_NORMAL,
-      ),
-      editor.registerCommand(
-        HOVER_OUT_LINK_COMMAND,
-        () => {
-          clearTimerRef.current = setTimeout(handleCancel, 300);
-          return true;
-        },
-        COMMAND_PRIORITY_NORMAL,
-      ),
-    );
-  }, []);
+  useLexicalEditor(
+    (editor) => {
+      return mergeRegister(
+        editor.registerUpdateListener(() => {
+          const selection = editor.read(() => $getSelection());
+          if (!selection) return;
+          if ($isRangeSelection(selection)) {
+            // Update links for UI components
+            editor.read(() => {
+              const node = getSelectedNode(selection);
+              const parent = node.getParent();
+              const isLink = $isLinkNode(parent) || $isLinkNode(node);
+              state.current.isLink = isLink;
+              if (isLink) {
+                const linkNode = $isLinkNode(parent) ? (parent as LinkNode) : (node as LinkNode);
+                editor.dispatchCommand(EDIT_LINK_COMMAND, {
+                  linkNode,
+                  linkNodeDOM: editor.getElementByKey(linkNode.getKey()),
+                });
+              } else {
+                editor.dispatchCommand(EDIT_LINK_COMMAND, {
+                  linkNode: null,
+                  linkNodeDOM: null,
+                });
+              }
+            });
+          } else {
+            state.current.isLink = false;
+          }
+        }),
+        editor.registerCommand(
+          HOVER_LINK_COMMAND,
+          (payload) => {
+            if (!enable) return false;
+            if (!payload.event.target || divRef.current === null) return false;
+            // Cancel any pending hide timers when hovering a link again
+            clearTimeout(clearTimerRef.current);
+            setLinkNode(payload.linkNode);
+            updatePosition({
+              callback: () => {
+                LinkRef.current = payload.event.target as HTMLDivElement;
+              },
+              floating: divRef.current,
+              offset: 4,
+              placement: 'top-start',
+              reference: payload.event.target as HTMLElement,
+            });
+            return false;
+          },
+          COMMAND_PRIORITY_NORMAL,
+        ),
+        editor.registerCommand(
+          HOVER_OUT_LINK_COMMAND,
+          () => {
+            clearTimerRef.current = setTimeout(handleCancel, 300);
+            return true;
+          },
+          COMMAND_PRIORITY_NORMAL,
+        ),
+      );
+    },
+    [enable],
+  );
 
   return (
     <ActionIconGroup

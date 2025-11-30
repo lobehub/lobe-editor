@@ -14,6 +14,7 @@ export * from './plugins/math';
 export * from './plugins/mention';
 export * from './plugins/slash';
 export * from './plugins/table';
+export * from './plugins/toolbar';
 export * from './plugins/upload';
 export type { IEditor } from './types';
 
