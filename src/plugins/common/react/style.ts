@@ -94,6 +94,25 @@ export const useStyles = createStyles(
         }
       }
 
+      [data-placeholder] {
+        position: relative;
+      }
+
+      [data-placeholder]::after {
+        pointer-events: none;
+        content: attr(data-placeholder);
+        user-select: none;
+
+        position: absolute;
+        inset-block-start: 50%;
+        transform: translateY(-50%);
+
+        padding-inline-start: 2px;
+
+        color: ${token.colorTextDescription};
+        white-space: nowrap;
+      }
+
       [data-lexical-cursor='true'] {
         pointer-events: none;
         position: absolute;

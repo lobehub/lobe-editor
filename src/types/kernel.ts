@@ -105,9 +105,15 @@ export interface IEditor {
    */
   getTheme(): Record<string, string | Record<string, string>>;
   /**
+   * Get node editor instance
+   */
+  initNodeEditor(): LexicalEditor | null;
+
+  /**
    * Check if editor is editable
    */
   isEditable(): boolean;
+
   /**
    * Check if editor content is empty
    * @returns true if editor content is empty, false otherwise

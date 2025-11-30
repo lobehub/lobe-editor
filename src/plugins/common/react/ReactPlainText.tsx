@@ -61,7 +61,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     const [isInitialized, setIsInitialized] = useState(false);
 
     const {
-      props: { type, content, placeholder },
+      props: { type, content, placeholder, lineEmptyPlaceholder },
     } = Children.only(children);
 
     useLayoutEffect(() => {
@@ -189,7 +189,9 @@ const ReactPlainText = memo<ReactPlainTextProps>(
           ref={editorContainerRef}
           style={{ flex: 1, minHeight: 0, outline: 'none' }}
         />
-        <Placeholder style={style}>{placeholder}</Placeholder>
+        <Placeholder lineEmptyPlaceholder={lineEmptyPlaceholder} style={style}>
+          {placeholder}
+        </Placeholder>
         {decorators}
       </div>
     );

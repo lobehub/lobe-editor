@@ -212,6 +212,41 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.logger.debug(`✏️ Editor editable set to ${editable}`);
   }
 
+  initNodeEditor() {
+    if (this.editor) {
+      return this.editor;
+    }
+    // Initialize plugins if not already done
+    if (this.pluginsInstances.length === 0) {
+      this.logger.info(`🔌 Initializing ${this.plugins.length} plugins`);
+      for (const plugin of this.plugins) {
+        const instance = new plugin(this, plugin.__config);
+        this.pluginsInstances.push(instance);
+      }
+    }
+
+    this.logger.info(`📝 Creating editor with ${this.nodes.length} nodes`);
+    const editor = (this.editor = createEditor({
+      // @ts-expect-error Inject into lexical editor instance
+      __kernel: this,
+      namespace: 'lobehub',
+      nodes: this.nodes,
+      onError: (error: Error) => {
+        this.logger.error('❌ Lexical editor error:', error);
+        this.emit('error', error);
+      },
+      theme: this.themes,
+    }));
+
+    this.pluginsInstances.forEach((plugin) => {
+      plugin.onInit?.(editor);
+    });
+    this.logger.info(`✅ Editor ready with ${this.pluginsInstances.length} plugins`);
+    this.emit('initialized', editor);
+
+    return editor || null;
+  }
+
   setDocument(type: string, content: any) {
     const datasource = this.dataTypeMap.get(type);
     if (!datasource) {
