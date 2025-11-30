@@ -1,10 +1,21 @@
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ token }) => ({
+export const useStyles = createStyles(() => ({
   imageContainer: {
     '&.selected': {
       cursor: 'pointer',
-      outline: `2px solid ${token['blue-6']}`,
+      outline: 'none',
+    },
+    '&.selected::after': {
+      backgroundColor: 'rgba(0, 102, 255, 0.15)',
+      bottom: 0,
+      content: '""',
+      left: 0,
+      pointerEvents: 'none',
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      zIndex: 10,
     },
     'cursor': 'default',
     'display': 'inline-block',
