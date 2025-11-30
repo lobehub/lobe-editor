@@ -17,6 +17,7 @@ export interface EditorProps
   autoFocus?: boolean;
   children?: ReactNode;
   className?: string;
+  editable?: boolean;
   editor?: IEditor;
   /**
    * Enable automatic markdown formatting for pasted content

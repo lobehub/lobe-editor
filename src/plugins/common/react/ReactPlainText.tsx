@@ -29,6 +29,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     children,
     theme = {},
     onChange,
+    editable,
     className,
     variant,
     enableHotkey = true,
@@ -78,7 +79,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
       const container = editorContainerRef.current;
       if (container && !isInitialized) {
         // Initialize the editor
-        editor.setRootElement(container);
+        editor.setRootElement(container, editable);
 
         // Set initial document content only once
         editor.setDocument(type, content);
@@ -106,6 +107,13 @@ const ReactPlainText = memo<ReactPlainTextProps>(
         }
       });
     }, [editor, type, content, onChange, onTextChange, isInitialized]);
+
+    useEffect(() => {
+      if (!isInitialized) return;
+      if (typeof editable === 'boolean') {
+        editor.setEditable(editable);
+      }
+    }, [isInitialized, editable]);
 
     useEffect(() => {
       if (editor && onPressEnter) {
@@ -172,7 +180,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
         style={style}
       >
         <div
-          contentEditable
+          contentEditable={editable ?? true}
           onBlur={handleBlur}
           onCompositionEnd={handleCompositionEnd}
           onCompositionStart={handleCompositionStart}

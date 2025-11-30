@@ -405,6 +405,9 @@ export function registerLastElement(editor: LexicalEditor) {
   let isProcessing = false;
 
   return editor.registerUpdateListener(({ dirtyElements }) => {
+    if (!editor.isEditable()) {
+      return;
+    }
     // Only process when root node or its direct children have changes
     if (
       !dirtyElements.has('root') &&

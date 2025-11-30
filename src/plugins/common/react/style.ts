@@ -102,8 +102,6 @@ export const useStyles = createStyles(
         pointer-events: none;
         content: attr(data-placeholder);
         user-select: none;
-        user-select: none;
-        user-select: none;
 
         position: absolute;
         inset-block-start: 50%;

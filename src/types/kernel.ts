@@ -29,9 +29,14 @@ export type IServiceID<Service> = {
 
 export interface IKernelEventMap {
   /**
+   * Editor editable state change event
+   */
+  editableChange: (editable: boolean) => void;
+  /**
    * Editor error event
    */
   error: (error: Error) => void;
+
   /**
    * Initialization event
    * @param editor Lexical editor instance
@@ -103,6 +108,12 @@ export interface IEditor {
    * Get node editor instance
    */
   initNodeEditor(): LexicalEditor | null;
+
+  /**
+   * Check if editor is editable
+   */
+  isEditable(): boolean;
+
   /**
    * Check if editor content is empty
    * @returns true if editor content is empty, false otherwise
@@ -201,10 +212,16 @@ export interface IEditor {
   setDocument(type: string, content: any): void;
 
   /**
+   * Enable or disable editor editing capability
+   * @param editable
+   */
+  setEditable(editable: boolean): void;
+
+  /**
    * Set document editor root node
    * @param dom
    */
-  setRootElement(dom: HTMLElement): LexicalEditor;
+  setRootElement(dom: HTMLElement, editable?: boolean): LexicalEditor;
 
   /**
    * Get translation text

@@ -14,6 +14,7 @@ import { EditIcon, ExternalLinkIcon, UnlinkIcon } from 'lucide-react';
 import { memo, useCallback, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
+import { useEditable } from '@/editor-kernel/react/useEditable';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { getSelectedNode } from '@/plugins/link/utils';
 import { cleanPosition, updatePosition } from '@/utils/updatePosition';
@@ -40,6 +41,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor }) => {
   const state = useRef<{ isLink: boolean }>({ isLink: false });
   const t = useTranslation();
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | number>(-1);
+  const { editable } = useEditable();
 
   const handleEdit = useCallback(() => {
     if (!linkNode) return;
@@ -92,65 +94,69 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor }) => {
     window.open(url, '_blank');
   }, [editor, linkNode]);
 
-  useLexicalEditor((editor) => {
-    return mergeRegister(
-      editor.registerUpdateListener(() => {
-        const selection = editor.read(() => $getSelection());
-        if (!selection) return;
-        if ($isRangeSelection(selection)) {
-          // Update links for UI components
-          editor.read(() => {
-            const node = getSelectedNode(selection);
-            const parent = node.getParent();
-            const isLink = $isLinkNode(parent) || $isLinkNode(node);
-            state.current.isLink = isLink;
-            if (isLink) {
-              const linkNode = $isLinkNode(parent) ? (parent as LinkNode) : (node as LinkNode);
-              editor.dispatchCommand(EDIT_LINK_COMMAND, {
-                linkNode,
-                linkNodeDOM: editor.getElementByKey(linkNode.getKey()),
-              });
-            } else {
-              editor.dispatchCommand(EDIT_LINK_COMMAND, {
-                linkNode: null,
-                linkNodeDOM: null,
-              });
-            }
-          });
-        } else {
-          state.current.isLink = false;
-        }
-      }),
-      editor.registerCommand(
-        HOVER_LINK_COMMAND,
-        (payload) => {
-          if (!payload.event.target || divRef.current === null) return false;
-          // Cancel any pending hide timers when hovering a link again
-          clearTimeout(clearTimerRef.current);
-          setLinkNode(payload.linkNode);
-          updatePosition({
-            callback: () => {
-              LinkRef.current = payload.event.target as HTMLDivElement;
-            },
-            floating: divRef.current,
-            offset: 4,
-            placement: 'top-start',
-            reference: payload.event.target as HTMLElement,
-          });
-          return false;
-        },
-        COMMAND_PRIORITY_NORMAL,
-      ),
-      editor.registerCommand(
-        HOVER_OUT_LINK_COMMAND,
-        () => {
-          clearTimerRef.current = setTimeout(handleCancel, 300);
-          return true;
-        },
-        COMMAND_PRIORITY_NORMAL,
-      ),
-    );
-  }, []);
+  useLexicalEditor(
+    (editor) => {
+      if (!editable) return;
+      return mergeRegister(
+        editor.registerUpdateListener(() => {
+          const selection = editor.read(() => $getSelection());
+          if (!selection) return;
+          if ($isRangeSelection(selection)) {
+            // Update links for UI components
+            editor.read(() => {
+              const node = getSelectedNode(selection);
+              const parent = node.getParent();
+              const isLink = $isLinkNode(parent) || $isLinkNode(node);
+              state.current.isLink = isLink;
+              if (isLink) {
+                const linkNode = $isLinkNode(parent) ? (parent as LinkNode) : (node as LinkNode);
+                editor.dispatchCommand(EDIT_LINK_COMMAND, {
+                  linkNode,
+                  linkNodeDOM: editor.getElementByKey(linkNode.getKey()),
+                });
+              } else {
+                editor.dispatchCommand(EDIT_LINK_COMMAND, {
+                  linkNode: null,
+                  linkNodeDOM: null,
+                });
+              }
+            });
+          } else {
+            state.current.isLink = false;
+          }
+        }),
+        editor.registerCommand(
+          HOVER_LINK_COMMAND,
+          (payload) => {
+            if (!payload.event.target || divRef.current === null) return false;
+            // Cancel any pending hide timers when hovering a link again
+            clearTimeout(clearTimerRef.current);
+            setLinkNode(payload.linkNode);
+            updatePosition({
+              callback: () => {
+                LinkRef.current = payload.event.target as HTMLDivElement;
+              },
+              floating: divRef.current,
+              offset: 4,
+              placement: 'top-start',
+              reference: payload.event.target as HTMLElement,
+            });
+            return false;
+          },
+          COMMAND_PRIORITY_NORMAL,
+        ),
+        editor.registerCommand(
+          HOVER_OUT_LINK_COMMAND,
+          () => {
+            clearTimerRef.current = setTimeout(handleCancel, 300);
+            return true;
+          },
+          COMMAND_PRIORITY_NORMAL,
+        ),
+      );
+    },
+    [editable],
+  );
 
   return (
     <ActionIconGroup
