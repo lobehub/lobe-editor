@@ -5,7 +5,17 @@ import {
   CodeHighlightNode,
   CodeNode,
 } from '@lexical/code';
-import { DOMConversionOutput, LexicalEditor, TabNode } from 'lexical';
+import {
+  $getSelection,
+  $isRangeSelection,
+  COMMAND_PRIORITY_EDITOR,
+  DOMConversionOutput,
+  ElementNode,
+  LexicalEditor,
+  PASTE_COMMAND,
+  TabNode,
+  TextNode,
+} from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
@@ -101,6 +111,44 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
       this.register(registerCodeHighlighting(editor));
     }
     this.register(registerCodeCommand(editor));
+    this.register(
+      editor.registerCommand(
+        PASTE_COMMAND,
+        (event) => {
+          if (!(event instanceof ClipboardEvent)) return false;
+
+          const clipboardData = event.clipboardData;
+          if (!clipboardData) return false;
+
+          const isInHighlightNodeSelection = editor.read(() => {
+            const sel = $getSelection();
+            if (!$isRangeSelection(sel)) {
+              return false;
+            }
+            let node: TextNode | ElementNode | null = sel.focus.getNode();
+            while (node) {
+              if ($isCodeHighlightNode(node) || $isCodeNode(node)) {
+                return sel;
+              }
+              node = node.getParent();
+            }
+            return false;
+          });
+
+          if (isInHighlightNodeSelection) {
+            const rawText =
+              clipboardData.getData('text/plain').trimEnd() ||
+              clipboardData.getData('text/uri-list').trimEnd();
+            editor.update(() => {
+              isInHighlightNodeSelection.insertRawText(rawText);
+            });
+            return true;
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_EDITOR,
+      ),
+    );
     this.registerMarkdown();
   }
 
