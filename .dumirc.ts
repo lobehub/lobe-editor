@@ -91,6 +91,13 @@ export default defineConfig({
   locales: [{ id: 'en-US', name: 'English' }],
   mfsu: isWin ? undefined : {},
   npmClient: 'pnpm',
+  proxy: {
+    '/nodeserver': {
+      changeOrigin: true,
+      pathRewrite: (path: string) => path.replace(/^\/nodeserver/, ''),
+      target: 'http://localhost:3000',
+    },
+  },
   publicPath: '/',
   resolve: {
     atomDirs: packages.map((pkg) => ({ dir: `src/${pkg}`, subType: pkg, type: 'component' })),
