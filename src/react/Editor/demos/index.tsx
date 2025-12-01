@@ -8,6 +8,7 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  ReactAutoCompletePlugin,
   ReactCodePlugin,
   ReactCodeblockPlugin,
   ReactFilePlugin,
@@ -228,6 +229,38 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           ReactTablePlugin,
           ReactMathPlugin,
           ReactCodePlugin,
+          Editor.withProps(ReactAutoCompletePlugin, {
+            delay: 1000,
+            onAutoComplete: async ({ input, afterText, selectionType, abortSignal }) => {
+              // Simple example: return a fixed string for demonstration
+              console.log('Auto-complete triggered:', {
+                afterText,
+                input,
+                selectionType,
+              });
+              const res = await fetch(`${location.origin}/nodeserver/completion`, {
+                body: JSON.stringify({
+                  prompt: `Please complete the following text:\n\n${input}`,
+                }),
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                method: 'POST',
+                signal: abortSignal,
+              });
+              if (abortSignal.aborted) {
+                console.log('Auto-complete aborted');
+                return null;
+              }
+              const ai = await res.json();
+              if (ai) {
+                if (ai.content.startsWith(input)) {
+                  return ai.content.replace(input, '');
+                }
+                return ai.content;
+              }
+              return null;
+            },
           Editor.withProps(ReactImagePlugin, {
             defaultBlockImage: true,
           }),
