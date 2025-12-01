@@ -57,13 +57,39 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     this.kernel
       .requireService(IUploadService)
       ?.registerUpload(async (file: File, from: string, range?: Range | null) => {
+        // Get image dimensions before uploading
+        const imageWidth = await this.getImageWidth(file);
+
         return editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
           block: this.config?.defaultBlockImage,
           file,
+          maxWidth: imageWidth,
           range,
         });
       }, UPLOAD_PRIORITY_HIGH);
 
     this.register(registerImageCommand(editor, this.config!.handleUpload));
+  }
+
+  private getImageWidth(file: File): Promise<number> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.addEventListener('load', (e) => {
+        const img = new Image();
+        img.addEventListener('load', () => {
+          resolve(img.naturalWidth);
+        });
+        img.addEventListener('error', () => {
+          // Default width if image fails to load
+          resolve(800);
+        });
+        img.src = e.target?.result as string;
+      });
+      reader.addEventListener('error', () => {
+        // Default width if file reading fails
+        resolve(800);
+      });
+      reader.readAsDataURL(file);
+    });
   }
 };

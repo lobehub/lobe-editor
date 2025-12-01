@@ -11,95 +11,109 @@ import LazyImage from './LazyImage';
 import { useStyles } from './style';
 
 interface ResizeHandleProps {
+  imageRef: React.RefObject<HTMLDivElement | null>;
   isBlock: boolean;
   onResize: (deltaX: number, deltaY: number, position: 'left' | 'right') => void;
   onResizeEnd?: (deltaX: number, deltaY: number) => void;
+  onResizeStart: (initialWidth: number) => void;
   position: 'left' | 'right';
 }
 
-const ResizeHandle = memo<ResizeHandleProps>(({ onResize, onResizeEnd, position, isBlock }) => {
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+const ResizeHandle = memo<ResizeHandleProps>(
+  ({ onResize, onResizeEnd, onResizeStart, position, isBlock, imageRef }) => {
+    const startWidthRef = useRef<number>(0);
 
-      const startX = e.clientX;
-      const startY = e.clientY;
-      const rect = isBlock
-        ? (e.target as HTMLElement).getBoundingClientRect()
-        : {
-            height: 0,
-            left: 0,
-            top: 0,
-            width: 0,
-          };
-      const centerX = rect.left + rect.width / 2;
-      let lastDeltaX = 0;
-      let lastDeltaY = 0;
+    const handleMouseDown = useCallback(
+      (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-      const handleMouseMove = (e: MouseEvent) => {
-        let deltaX = e.clientX - startX;
-        const deltaY = e.clientY - startY;
+        // Get the actual current width at mousedown time
+        const initialWidth = imageRef.current?.offsetWidth || 0;
+        startWidthRef.current = initialWidth;
 
-        // Only adjust deltaX based on the resize handle position
-        switch (position) {
-          case 'left': {
-            deltaX = isBlock ? centerX - e.clientX : -deltaX;
-            break;
-          }
-          case 'right': {
-            if (isBlock) {
-              deltaX = e.clientX - centerX;
+        // Notify parent component of the initial width
+        onResizeStart(initialWidth);
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+
+        const rect = isBlock
+          ? (e.target as HTMLElement).getBoundingClientRect()
+          : {
+              height: 0,
+              left: 0,
+              top: 0,
+              width: 0,
+            };
+        const centerX = rect.left + rect.width / 2;
+        let lastDeltaX = 0;
+        let lastDeltaY = 0;
+
+        const handleMouseMove = (e: MouseEvent) => {
+          let deltaX = e.clientX - startX;
+          const deltaY = e.clientY - startY;
+
+          // Only adjust deltaX based on the resize handle position
+          switch (position) {
+            case 'left': {
+              deltaX = isBlock ? centerX - e.clientX : -deltaX;
+              break;
             }
-            break;
+            case 'right': {
+              if (isBlock) {
+                deltaX = e.clientX - centerX;
+              }
+              break;
+            }
           }
-        }
 
-        lastDeltaX = deltaX;
-        lastDeltaY = deltaY;
-        onResize(deltaX, deltaY, position);
+          lastDeltaX = deltaX;
+          lastDeltaY = deltaY;
+          onResize(deltaX, deltaY, position);
+        };
+
+        const handleMouseUp = () => {
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+          if (typeof onResizeEnd === 'function') {
+            onResizeEnd(lastDeltaX, lastDeltaY);
+          }
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      },
+      [onResize, onResizeEnd, onResizeStart, position, imageRef],
+    );
+
+    const getPositionStyle = () => {
+      const baseStyle = {
+        backgroundColor: '#999999',
+        borderRadius: 2,
+        cursor: 'col-resize',
+        height: '60%',
+        opacity: 0.6,
+        pointerEvents: 'auto' as const,
+        position: 'absolute' as const,
+        top: '20%',
+        width: 4,
+        zIndex: 9999,
       };
 
-      const handleMouseUp = () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        if (typeof onResizeEnd === 'function') {
-          onResizeEnd(lastDeltaX, lastDeltaY);
+      switch (position) {
+        case 'left': {
+          return { ...baseStyle, left: 20 };
         }
-      };
-
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    },
-    [onResize, onResizeEnd, position],
-  );
-
-  const getPositionStyle = () => {
-    const baseStyle = {
-      backgroundColor: '#999999',
-      borderRadius: 2,
-      cursor: 'col-resize',
-      height: '60%',
-      opacity: 0.6,
-      pointerEvents: 'auto' as const,
-      position: 'absolute' as const,
-      top: '20%',
-      width: 4,
-      zIndex: 9999,
+        case 'right': {
+          return { ...baseStyle, right: 20 };
+        }
+      }
     };
 
-    switch (position) {
-      case 'left': {
-        return { ...baseStyle, left: 20 };
-      }
-      case 'right': {
-        return { ...baseStyle, right: 20 };
-      }
-    }
-  };
-
-  return <div onMouseDown={handleMouseDown} style={getPositionStyle()} />;
-});
+    return <div onMouseDown={handleMouseDown} style={getPositionStyle()} />;
+  },
+);
 
 ResizeHandle.displayName = 'ResizeHandle';
 
@@ -113,6 +127,7 @@ const Image = memo<{ className?: string; node: ImageNode | BlockImageNode }>(
     const imageRef = useRef<HTMLDivElement>(null);
     const originalSizeRef = useRef({ height: 0, width: 0 });
     const editorRef = useRef<any>(null);
+    const startWidthRef = useRef<number>(0);
     const isBlock = useMemo(() => {
       return $isBlockImageNode(node);
     }, [node]);
@@ -134,27 +149,38 @@ const Image = memo<{ className?: string; node: ImageNode | BlockImageNode }>(
     }, []);
 
     // Resize by dragging - only control width; height is calculated by aspect ratio
-    const handleResize = useCallback(
-      (deltaX: number) => {
-        if (!originalSizeRef.current.width || !originalSizeRef.current.height) return;
+    const handleResize = useCallback((deltaX: number) => {
+      if (!originalSizeRef.current.width || !originalSizeRef.current.height) return;
+      if (!imageRef.current) return;
 
-        const aspectRatio = originalSizeRef.current.width / originalSizeRef.current.height;
+      const aspectRatio = originalSizeRef.current.width / originalSizeRef.current.height;
 
-        const newWidth = Math.max(50, size.width + deltaX);
+      // Get parent container width to limit max width
+      const parentWidth = imageRef.current.parentElement?.clientWidth || window.innerWidth;
+      const maxWidth = parentWidth;
 
-        // Calculate new height based on the original aspect ratio
-        const newHeight = newWidth / aspectRatio;
+      // Since image is centered, delta is halved (both sides resize)
+      const adjustedDeltaX = deltaX * 2;
 
-        setSize({ height: newHeight, width: newWidth });
+      // Use the width captured at mousedown time
+      const newWidth = Math.max(50, Math.min(startWidthRef.current + adjustedDeltaX, maxWidth));
 
-        setNewWidth(newWidth);
+      // Calculate new height based on the original aspect ratio
+      const newHeight = newWidth / aspectRatio;
 
-        // Update the scale
-        const newScale = newWidth / originalSizeRef.current.width;
-        setScale(newScale);
-      },
-      [size],
-    );
+      setSize({ height: newHeight, width: newWidth });
+
+      setNewWidth(newWidth);
+
+      // Update the scale
+      const newScale = newWidth / originalSizeRef.current.width;
+      setScale(newScale);
+    }, []);
+
+    // Store the initial width when resize starts
+    const handleResizeStart = useCallback((initialWidth: number) => {
+      startWidthRef.current = initialWidth;
+    }, []);
 
     // Click to select
     const handleClick = useCallback(
@@ -216,8 +242,17 @@ const Image = memo<{ className?: string; node: ImageNode | BlockImageNode }>(
     const handleResizeEnd = useCallback(
       (deltaX: number) => {
         if (!originalSizeRef.current.width || !originalSizeRef.current.height) return;
+        if (!imageRef.current) return;
 
-        const finalWidth = Math.max(50, size.width + deltaX);
+        // Get parent container width to limit max width
+        const parentWidth = imageRef.current.parentElement?.clientWidth || window.innerWidth;
+        const maxWidth = parentWidth;
+
+        // Since image is centered, delta is halved (both sides resize)
+        const adjustedDeltaX = deltaX / 2;
+
+        // Use the width captured at mousedown time
+        const finalWidth = Math.max(50, Math.min(startWidthRef.current + adjustedDeltaX, maxWidth));
 
         // persist to node via editor.update
         const editor = editorRef.current;
@@ -231,7 +266,7 @@ const Image = memo<{ className?: string; node: ImageNode | BlockImageNode }>(
           }
         });
       },
-      [node, size],
+      [node],
     );
 
     return (
@@ -242,7 +277,6 @@ const Image = memo<{ className?: string; node: ImageNode | BlockImageNode }>(
         onDoubleClick={handleDoubleClick}
         ref={imageRef}
         style={{
-          height: size.height || 'auto',
           width: size.width || 'auto',
         }}
       >
@@ -257,15 +291,19 @@ const Image = memo<{ className?: string; node: ImageNode | BlockImageNode }>(
         {isSelected && (
           <>
             <ResizeHandle
+              imageRef={imageRef}
               isBlock={isBlock}
               onResize={handleResize}
               onResizeEnd={handleResizeEnd}
+              onResizeStart={handleResizeStart}
               position="left"
             />
             <ResizeHandle
+              imageRef={imageRef}
               isBlock={isBlock}
               onResize={handleResize}
               onResizeEnd={handleResizeEnd}
+              onResizeStart={handleResizeStart}
               position="right"
             />
           </>

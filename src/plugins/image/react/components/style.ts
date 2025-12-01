@@ -20,6 +20,7 @@ export const useStyles = createStyles(() => ({
     'cursor': 'default',
     'display': 'inline-block',
     'height': 'auto',
+    'maxWidth': '100%',
     'outline': '2px solid transparent',
     'position': 'relative',
     'transition': 'border-color 0.2s ease',

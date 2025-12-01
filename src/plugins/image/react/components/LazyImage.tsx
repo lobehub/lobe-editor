@@ -98,7 +98,7 @@ const LazyImage = memo<{
       style={{
         ...imageStyle,
         cursor: 'default',
-        maxWidth: newWidth || imageStyle.maxWidth,
+        maxWidth: `calc(min(${newWidth || imageStyle.maxWidth}px, 100%))`,
         width: newWidth || imageStyle.width,
       }}
     />

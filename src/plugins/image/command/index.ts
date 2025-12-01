@@ -20,6 +20,7 @@ const logger = createDebugLogger('plugin', 'image');
 export const INSERT_IMAGE_COMMAND = createCommand<{
   block?: boolean;
   file: File;
+  maxWidth?: number;
   range?: Range | null;
 }>('INSERT_IMAGE_COMMAND');
 
@@ -34,7 +35,7 @@ export function registerImageCommand(
   return editor.registerCommand(
     INSERT_IMAGE_COMMAND,
     (payload) => {
-      const { file, range, block } = payload;
+      const { file, range, block, maxWidth } = payload;
       if (!isImageFile(file)) {
         return false; // Not an image file
       }
@@ -50,10 +51,12 @@ export function registerImageCommand(
         const imageNode = block
           ? $createBlockImageNode({
               altText: file.name,
+              maxWidth: maxWidth || 800,
               src: placeholderURL,
             })
           : $createImageNode({
               altText: file.name,
+              maxWidth: maxWidth || 800,
               src: placeholderURL,
             });
         $insertNodes([imageNode]); // Insert a zero-width space to ensure the image is not the last child
