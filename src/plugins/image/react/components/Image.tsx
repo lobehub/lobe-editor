@@ -1,64 +1,317 @@
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
-import { memo, useMemo } from 'react';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 
+import { $isBlockImageNode, BlockImageNode } from '../../node/block-image-node';
 import { ImageNode } from '../../node/image-node';
 import BrokenImage from './BrokenImage';
 import LazyImage from './LazyImage';
+import { useStyles } from './style';
 
-const Image = memo<{ className?: string; node: ImageNode }>(({ node, className }) => {
-  const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
-  // const [isNodeSelect] = useState(false);
+interface ResizeHandleProps {
+  imageRef: React.RefObject<HTMLDivElement | null>;
+  isBlock: boolean;
+  onResize: (deltaX: number, deltaY: number, position: 'left' | 'right') => void;
+  onResizeEnd?: (deltaX: number, deltaY: number) => void;
+  onResizeStart: (initialWidth: number) => void;
+  position: 'left' | 'right';
+}
 
-  // useEffect(() => {
-  //   if (isSelected) {
-  //     console.log('Image selected:', node.getKey());
-  //   } else {
-  //     console.log('Image deselected:', node.getKey());
-  //   }
-  // }, [isSelected, node]);
+const ResizeHandle = memo<ResizeHandleProps>(
+  ({ onResize, onResizeEnd, onResizeStart, position, isBlock, imageRef }) => {
+    const startWidthRef = useRef<number>(0);
 
-  useLexicalEditor((editor) => {
-    return editor.registerCommand(
-      SELECTION_CHANGE_COMMAND,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (_, _activeEditor) => {
-        return false;
+    const handleMouseDown = useCallback(
+      (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Get the actual current width at mousedown time
+        const initialWidth = imageRef.current?.offsetWidth || 0;
+        startWidthRef.current = initialWidth;
+
+        // Notify parent component of the initial width
+        onResizeStart(initialWidth);
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+
+        const rect = isBlock
+          ? (e.target as HTMLElement).getBoundingClientRect()
+          : {
+              height: 0,
+              left: 0,
+              top: 0,
+              width: 0,
+            };
+        const centerX = rect.left + rect.width / 2;
+        let lastDeltaX = 0;
+        let lastDeltaY = 0;
+
+        const handleMouseMove = (e: MouseEvent) => {
+          let deltaX = e.clientX - startX;
+          const deltaY = e.clientY - startY;
+
+          // Only adjust deltaX based on the resize handle position
+          switch (position) {
+            case 'left': {
+              deltaX = isBlock ? centerX - e.clientX : -deltaX;
+              break;
+            }
+            case 'right': {
+              if (isBlock) {
+                deltaX = e.clientX - centerX;
+              }
+              break;
+            }
+          }
+
+          lastDeltaX = deltaX;
+          lastDeltaY = deltaY;
+          onResize(deltaX, deltaY, position);
+        };
+
+        const handleMouseUp = () => {
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+          if (typeof onResizeEnd === 'function') {
+            onResizeEnd(lastDeltaX, lastDeltaY);
+          }
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
       },
-      COMMAND_PRIORITY_LOW,
+      [onResize, onResizeEnd, onResizeStart, position, imageRef],
     );
-  }, []);
 
-  const children = useMemo(() => {
-    switch (node.status) {
-      case 'error': {
-        return <BrokenImage />;
-      }
-      case 'uploaded':
-      case 'loading': {
-        return <LazyImage className={className} node={node} />;
-      }
-      default: {
-        return null;
-      }
-    }
-  }, [node.status, className, node]);
+    const getPositionStyle = () => {
+      const baseStyle = {
+        backgroundColor: '#999999',
+        borderRadius: 2,
+        cursor: 'col-resize',
+        height: '60%',
+        opacity: 0.6,
+        pointerEvents: 'auto' as const,
+        position: 'absolute' as const,
+        top: '20%',
+        width: 4,
+        zIndex: 9999,
+      };
 
-  return (
-    <div
-      draggable={false}
-      onClick={() => setSelected(true)}
-      style={{
-        border: isSelected ? '1px solid blue' : '1px solid transparent',
-        display: 'inline-block',
-      }}
-    >
-      {children}
-    </div>
-  );
-});
+      switch (position) {
+        case 'left': {
+          return { ...baseStyle, left: 20 };
+        }
+        case 'right': {
+          return { ...baseStyle, right: 20 };
+        }
+      }
+    };
+
+    return <div onMouseDown={handleMouseDown} style={getPositionStyle()} />;
+  },
+);
+
+ResizeHandle.displayName = 'ResizeHandle';
+
+const Image = memo<{ className?: string; node: ImageNode | BlockImageNode }>(
+  ({ node, className }) => {
+    const { styles, cx } = useStyles();
+    const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
+    const [scale, setScale] = useState(1);
+    const [size, setSize] = useState({ height: 0, width: 0 });
+    const [newWidth, setNewWidth] = useState<number | null>(null);
+    const imageRef = useRef<HTMLDivElement>(null);
+    const originalSizeRef = useRef({ height: 0, width: 0 });
+    const editorRef = useRef<any>(null);
+    const startWidthRef = useRef<number>(0);
+    const isBlock = useMemo(() => {
+      return $isBlockImageNode(node);
+    }, [node]);
+
+    useLexicalEditor((editor) => {
+      editorRef.current = editor;
+      const unregister = editor.registerCommand(
+        SELECTION_CHANGE_COMMAND,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        (_, _activeEditor) => {
+          return false;
+        },
+        COMMAND_PRIORITY_LOW,
+      );
+      return () => {
+        editorRef.current = null;
+        unregister();
+      };
+    }, []);
+
+    // Resize by dragging - only control width; height is calculated by aspect ratio
+    const handleResize = useCallback((deltaX: number) => {
+      if (!originalSizeRef.current.width || !originalSizeRef.current.height) return;
+      if (!imageRef.current) return;
+
+      const aspectRatio = originalSizeRef.current.width / originalSizeRef.current.height;
+
+      // Get parent container width to limit max width
+      const parentWidth = imageRef.current.parentElement?.clientWidth || window.innerWidth;
+      const maxWidth = parentWidth;
+
+      // Since image is centered, delta is halved (both sides resize)
+      const adjustedDeltaX = deltaX * 2;
+
+      // Use the width captured at mousedown time
+      const newWidth = Math.max(50, Math.min(startWidthRef.current + adjustedDeltaX, maxWidth));
+
+      // Calculate new height based on the original aspect ratio
+      const newHeight = newWidth / aspectRatio;
+
+      setSize({ height: newHeight, width: newWidth });
+
+      setNewWidth(newWidth);
+
+      // Update the scale
+      const newScale = newWidth / originalSizeRef.current.width;
+      setScale(newScale);
+    }, []);
+
+    // Store the initial width when resize starts
+    const handleResizeStart = useCallback((initialWidth: number) => {
+      startWidthRef.current = initialWidth;
+    }, []);
+
+    // Click to select
+    const handleClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelected(true);
+      },
+      [setSelected],
+    );
+
+    // Double-click to reset to original size and aspect ratio
+    const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const orig = originalSizeRef.current;
+      if (!orig.width || !orig.height) return;
+      setSize(orig);
+      setScale(1);
+      setNewWidth(orig.width);
+      editor.update(() => {
+        try {
+          node.setWidth(orig.width);
+          node.setMaxWidth(orig.width);
+        } catch {
+          // ignore errors silently
+        }
+      });
+    }, []);
+
+    const children = useMemo(() => {
+      switch (node.status) {
+        case 'error': {
+          return <BrokenImage />;
+        }
+        case 'uploaded':
+        case 'loading': {
+          return (
+            <LazyImage
+              className={className}
+              newWidth={newWidth}
+              node={node}
+              onLoad={(size) => {
+                originalSizeRef.current.width = size.width;
+                originalSizeRef.current.height = size.height;
+                setSize(size);
+              }}
+            />
+          );
+        }
+        default: {
+          return null;
+        }
+      }
+    }, [node.status, className, node, newWidth]);
+
+    // On resize end, persist to node (set maxWidth)
+    const handleResizeEnd = useCallback(
+      (deltaX: number) => {
+        if (!originalSizeRef.current.width || !originalSizeRef.current.height) return;
+        if (!imageRef.current) return;
+
+        // Get parent container width to limit max width
+        const parentWidth = imageRef.current.parentElement?.clientWidth || window.innerWidth;
+        const maxWidth = parentWidth;
+
+        // Since image is centered, delta is halved (both sides resize)
+        const adjustedDeltaX = deltaX / 2;
+
+        // Use the width captured at mousedown time
+        const finalWidth = Math.max(50, Math.min(startWidthRef.current + adjustedDeltaX, maxWidth));
+
+        // persist to node via editor.update
+        const editor = editorRef.current;
+        if (!editor) return;
+        editor.update(() => {
+          try {
+            node.setWidth(finalWidth);
+            node.setMaxWidth(finalWidth);
+          } catch {
+            // ignore errors silently
+          }
+        });
+      },
+      [node],
+    );
+
+    return (
+      <div
+        className={cx(styles.imageContainer, { selected: isSelected })}
+        draggable={false}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+        ref={imageRef}
+        style={{
+          width: size.width || 'auto',
+        }}
+      >
+        {children}
+
+        {/* Scale info display */}
+        {isSelected && scale !== 1 && (
+          <div className={styles.scaleInfo}>{Math.round(scale * 100)}%</div>
+        )}
+
+        {/* Resize handles - only left and right */}
+        {isSelected && (
+          <>
+            <ResizeHandle
+              imageRef={imageRef}
+              isBlock={isBlock}
+              onResize={handleResize}
+              onResizeEnd={handleResizeEnd}
+              onResizeStart={handleResizeStart}
+              position="left"
+            />
+            <ResizeHandle
+              imageRef={imageRef}
+              isBlock={isBlock}
+              onResize={handleResize}
+              onResizeEnd={handleResizeEnd}
+              onResizeStart={handleResizeStart}
+              position="right"
+            />
+          </>
+        )}
+      </div>
+    );
+  },
+);
 
 Image.displayName = 'Image';
 

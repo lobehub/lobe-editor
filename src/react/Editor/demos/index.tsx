@@ -224,7 +224,6 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         plugins={[
           ReactListPlugin,
           ReactLinkPlugin,
-          ReactImagePlugin,
           ReactCodeblockPlugin,
           ReactHRPlugin,
           ReactTablePlugin,
@@ -262,6 +261,8 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
               }
               return null;
             },
+          Editor.withProps(ReactImagePlugin, {
+            defaultBlockImage: true,
           }),
           Editor.withProps(ReactFilePlugin, {
             handleUpload: async (file) => {
