@@ -18,6 +18,7 @@ import {
   ReactListPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
+  ReactToolbarPlugin,
   type SlashOptions,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
@@ -229,6 +230,9 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           ReactTablePlugin,
           ReactMathPlugin,
           ReactCodePlugin,
+          Editor.withProps(ReactToolbarPlugin, {
+            children: <Toolbar editor={editor} floating />,
+          }),
           Editor.withProps(ReactAutoCompletePlugin, {
             delay: 1000,
             onAutoComplete: async ({ input, afterText, selectionType, abortSignal }) => {

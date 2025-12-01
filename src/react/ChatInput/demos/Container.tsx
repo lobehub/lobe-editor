@@ -17,8 +17,7 @@ const Container = memo<PropsWithChildren<{ fullscreen?: boolean; messages: ChatM
       <Flexbox
         height={'100vh'}
         style={{
-          background: theme.colorBgContainerSecondary,
-
+          background: theme.colorBgContainer,
           overflow: 'hidden',
           position: 'relative',
         }}

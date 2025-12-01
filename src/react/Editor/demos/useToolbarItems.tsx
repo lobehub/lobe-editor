@@ -5,14 +5,7 @@ import {
   INSERT_IMAGE_COMMAND,
   getHotkeyById,
 } from '@lobehub/editor';
-import {
-  ChatInputActions,
-  ChatInputActionsProps,
-  CodeLanguageSelect,
-  useEditorState,
-} from '@lobehub/editor/react';
-import { Block } from '@lobehub/ui';
-import { useTheme } from 'antd-style';
+import { ChatInputActionsProps, CodeLanguageSelect, useEditorState } from '@lobehub/editor/react';
 import {
   BoldIcon,
   CodeXmlIcon,
@@ -31,22 +24,14 @@ import {
   UnderlineIcon,
   Undo2Icon,
 } from 'lucide-react';
-import { CSSProperties, memo, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { openFileSelector } from './actions';
 
-export interface ToolbarProps {
-  className?: string;
-  editor: IEditor;
-  floating?: boolean;
-  style?: CSSProperties;
-}
-
-const Toolbar = memo<ToolbarProps>(({ floating, editor, style, className }) => {
+export const useToolbarItems = (editor: IEditor) => {
   const editorState = useEditorState(editor);
-  const theme = useTheme();
 
-  const items = useMemo(
+  return useMemo(
     () =>
       [
         {
@@ -207,29 +192,4 @@ const Toolbar = memo<ToolbarProps>(({ floating, editor, style, className }) => {
       ].filter(Boolean) as ChatInputActionsProps['items'],
     [editor, editorState],
   );
-
-  const content = <ChatInputActions items={items} />;
-
-  if (floating) return content;
-
-  return (
-    <Block
-      className={className}
-      padding={4}
-      shadow
-      style={{
-        background: theme.colorBgElevated,
-        marginBottom: 16,
-        position: 'sticky',
-        top: 12,
-        zIndex: 10,
-        ...style,
-      }}
-      variant={'outlined'}
-    >
-      {content}
-    </Block>
-  );
-});
-
-export default Toolbar;
+};
