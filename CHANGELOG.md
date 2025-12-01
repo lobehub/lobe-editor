@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.26.1](https://github.com/lobehub/lobe-editor/compare/v1.26.0...v1.26.1)
+<sup>Released on **2025-12-01**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Update image resize handle style.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Update image resize handle style ([d867161](https://github.com/lobehub/lobe-editor/commit/d867161))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.26.0](https://github.com/lobehub/lobe-editor/compare/v1.25.0...v1.26.0)
 <sup>Released on **2025-12-01**</sup>
 
