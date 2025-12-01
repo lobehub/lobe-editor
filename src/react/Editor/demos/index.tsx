@@ -231,14 +231,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           ReactMathPlugin,
           ReactCodePlugin,
           Editor.withProps(ReactToolbarPlugin, {
-            children: (
-              <Toolbar
-                editor={editor}
-                style={{
-                  height: 40,
-                }}
-              />
-            ),
+            children: <Toolbar editor={editor} floating />,
           }),
           Editor.withProps(ReactAutoCompletePlugin, {
             delay: 1000,

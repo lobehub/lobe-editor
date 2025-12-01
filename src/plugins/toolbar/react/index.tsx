@@ -1,4 +1,5 @@
 import { mergeRegister } from '@lexical/utils';
+import { Block } from '@lobehub/ui';
 import {
   $getSelection,
   COMMAND_PRIORITY_LOW,
@@ -86,9 +87,14 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
 
   return (
     <div ref={anchorElemRef} style={{ position: 'relative' }}>
-      <div className={cx(styles, className)} ref={popupCharStylesEditorRef}>
+      <Block
+        className={cx(styles, className)}
+        padding={4}
+        ref={popupCharStylesEditorRef}
+        variant={'outlined'}
+      >
         {children}
-      </div>
+      </Block>
     </div>
   );
 };

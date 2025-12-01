@@ -12,16 +12,16 @@ export const useStyles = createStyles(
 
     display: flex;
 
-    height: 35px;
-    padding: 4px;
-    border-radius: 8px;
+    border-color: ${token.colorBorder};
 
     vertical-align: middle;
 
     opacity: 0;
-    background: ${token.colorBgContainer};
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 30%);
+    background: ${token.colorBgElevated};
+    box-shadow:
+      0 14px 28px -6px #0000001a,
+      0 2px 4px -1px #0000000f;
 
-    transition: opacity 0.5s;
+    transition: opacity 0.12s ${token.motionEaseOut};
   `,
 );
