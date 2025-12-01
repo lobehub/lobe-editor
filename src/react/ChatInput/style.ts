@@ -1,6 +1,6 @@
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css, token }) => ({
+export const useStyles = createStyles(({ css, token, isDarkMode }) => ({
   container: css`
     position: relative;
 
@@ -8,13 +8,13 @@ export const useStyles = createStyles(({ css, token }) => ({
     flex-direction: column;
 
     height: 100%;
-    border: 1px solid ${token.colorBorderSecondary};
+    border: 1px solid ${isDarkMode ? token.colorFillSecondary : token.colorFill};
     border-radius: ${token.borderRadiusLG}px;
 
-    background-color: ${token.colorBgContainer};
-    box-shadow:
-      ${token.boxShadowTertiary},
-      0 32px 0 ${token.colorBgContainerSecondary};
+    background-color: ${token.colorBgElevated};
+    box-shadow: ${isDarkMode
+      ? '0px 4px 4px rgba(0, 0, 0, 0.4)'
+      : '0px 4px 4px rgba(0, 0, 0, 0.04)'};
   `,
 
   editor: css`
