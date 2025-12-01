@@ -261,6 +261,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
               }
               return null;
             },
+          }),
           Editor.withProps(ReactImagePlugin, {
             defaultBlockImage: true,
           }),
