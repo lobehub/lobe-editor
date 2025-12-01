@@ -48,6 +48,12 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
   - [Setup](#setup)
   - [Available Scripts](#available-scripts)
   - [Debug Environment Variables](#debug-environment-variables)
+  - [Project Architecture](#project-architecture)
+- [🤝 Contributing](#-contributing)
+- [🔗 Links](#-links)
+  - [More Products](#more-products)
+  - [Design Resources](#design-resources)
+  - [Development Resources](#development-resources)
 
 ####
 
@@ -82,7 +88,7 @@ $ pnpm add @lobehub/editor
 
 <div align="right">
 
-[![\][back-to-top\]](#readme-top)
+\[!\[][back-to-top\]](#readme-top)
 
 </div>
 
@@ -231,7 +237,7 @@ editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
 
 <div align="right">
 
-[![\][back-to-top\]](#readme-top)
+\[!\[][back-to-top\]](#readme-top)
 
 </div>
 
@@ -390,7 +396,7 @@ CLEAR_FORMAT_COMMAND;
 
 <div align="right">
 
-[![\][back-to-top\]](#readme-top)
+\[!\[][back-to-top\]](#readme-top)
 
 </div>
 
@@ -482,7 +488,6 @@ DEBUG=lobe-editor:plugin:*
 # Service debugging
 DEBUG=lobe-editor:service:*
 ```
-
 
 ### Project Architecture
 
