@@ -12,13 +12,17 @@ import {
 
 import { createDebugLogger } from '@/utils/debug';
 
+import { $createBlockImageNode } from '../node/block-image-node';
 import { $createImageNode } from '../node/image-node';
 
 const logger = createDebugLogger('plugin', 'image');
 
-export const INSERT_IMAGE_COMMAND = createCommand<{ file: File; range?: Range | null }>(
-  'INSERT_IMAGE_COMMAND',
-);
+export const INSERT_IMAGE_COMMAND = createCommand<{
+  block?: boolean;
+  file: File;
+  maxWidth?: number;
+  range?: Range | null;
+}>('INSERT_IMAGE_COMMAND');
 
 function isImageFile(file: File): boolean {
   return file.type.startsWith('image/');
@@ -31,7 +35,7 @@ export function registerImageCommand(
   return editor.registerCommand(
     INSERT_IMAGE_COMMAND,
     (payload) => {
-      const { file, range } = payload;
+      const { file, range, block, maxWidth } = payload;
       if (!isImageFile(file)) {
         return false; // Not an image file
       }
@@ -44,10 +48,17 @@ export function registerImageCommand(
           }
           $setSelection(rangeSelection);
         }
-        const imageNode = $createImageNode({
-          altText: file.name,
-          src: placeholderURL,
-        });
+        const imageNode = block
+          ? $createBlockImageNode({
+              altText: file.name,
+              maxWidth: maxWidth || 800,
+              src: placeholderURL,
+            })
+          : $createImageNode({
+              altText: file.name,
+              maxWidth: maxWidth || 800,
+              src: placeholderURL,
+            });
         $insertNodes([imageNode]); // Insert a zero-width space to ensure the image is not the last child
         if ($isRootOrShadowRoot(imageNode.getParentOrThrow())) {
           $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();

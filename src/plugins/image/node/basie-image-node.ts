@@ -146,6 +146,10 @@ export class BaseImageNode extends DecoratorNode<any> {
     writable.__showCaption = showCaption;
   }
 
+  override isInline(): boolean {
+    return true;
+  }
+
   // View
 
   createDOM(config: EditorConfig): HTMLElement {

@@ -1,5 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 
+import { BlockImageNode } from '../../node/block-image-node';
 import { ImageNode } from '../../node/image-node';
 import BrokenImage from './BrokenImage';
 import { useSuspenseImage } from './useSupenseImage';
@@ -10,9 +11,12 @@ function isSVG(src: string): boolean {
 
 const LazyImage = memo<{
   className?: string | null;
-  node: ImageNode;
+  newWidth?: number | null;
+  node: ImageNode | BlockImageNode;
   onError?: () => void;
-}>(({ className, node, onError }) => {
+  // eslint-disable-next-line unused-imports/no-unused-vars
+  onLoad?: (dimensions: { height: number; width: number }) => void;
+}>(({ className, node, newWidth, onError, onLoad }) => {
   const { src, altText, maxWidth, width } = node;
   const [dimensions, setDimensions] = useState<{
     height: number;
@@ -78,16 +82,25 @@ const LazyImage = memo<{
       draggable="false"
       onError={onError}
       onLoad={(e) => {
+        const img = e.currentTarget;
         if (isSVGImage) {
-          const img = e.currentTarget;
           setDimensions({
             height: img.naturalHeight,
             width: img.naturalWidth,
           });
         }
+        onLoad?.({
+          height: img.naturalHeight,
+          width: img.naturalWidth,
+        });
       }}
       src={src}
-      style={{ ...imageStyle, cursor: 'default' }}
+      style={{
+        ...imageStyle,
+        cursor: 'default',
+        maxWidth: `calc(min(${newWidth || imageStyle.maxWidth}px, 100%))`,
+        width: newWidth || imageStyle.width,
+      }}
     />
   );
 });
