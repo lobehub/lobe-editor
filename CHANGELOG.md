@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.26.0](https://github.com/lobehub/lobe-editor/compare/v1.25.0...v1.26.0)
+<sup>Released on **2025-12-01**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add ReactToolbarPlugin and integrate it into the editor demo.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add ReactToolbarPlugin and integrate it into the editor demo, closes [#62](https://github.com/lobehub/lobe-editor/issues/62) ([2da5cb6](https://github.com/lobehub/lobe-editor/commit/2da5cb6))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.25.0](https://github.com/lobehub/lobe-editor/compare/v1.24.0...v1.25.0)
 <sup>Released on **2025-12-01**</sup>
 
