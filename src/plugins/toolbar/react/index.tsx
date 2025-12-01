@@ -22,6 +22,7 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
   const anchorElemRef = useRef<HTMLDivElement | null>(null);
   const [kernelEditor] = useLexicalComposerContext();
   const { cx, styles } = useStyles();
+  const isMouseDownRef = useRef(false);
 
   const $updateTextFormatFloatingToolbar = useCallback(
     (editor: LexicalEditor) => {
@@ -56,6 +57,45 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
     [anchorElemRef],
   );
 
+  const $hideFloatingToolbar = useCallback(() => {
+    if (!anchorElemRef.current) {
+      return;
+    }
+
+    const popupCharStylesEditorElem = popupCharStylesEditorRef.current;
+
+    if (popupCharStylesEditorElem === null) {
+      return;
+    }
+
+    popupCharStylesEditorElem.style.opacity = '0';
+    popupCharStylesEditorElem.style.transform = 'translate(-10000px, -10000px)';
+  }, [anchorElemRef]);
+
+  const handleMouseDownFactory = useCallback(
+    (updateToolbar: () => void) => (e: MouseEvent) => {
+      if (e.button === 0) {
+        // 0 is left mouse button
+        isMouseDownRef.current = true;
+        // Update toolbar when mouse is released
+        updateToolbar();
+      }
+    },
+    [],
+  );
+
+  const handleMouseUpFactory = useCallback(
+    (updateToolbar: () => void) => (e: MouseEvent) => {
+      if (e.button === 0) {
+        // 0 is left mouse button
+        isMouseDownRef.current = false;
+        // Update toolbar when mouse is released
+        updateToolbar();
+      }
+    },
+    [],
+  );
+
   useLexicalEditor(() => {
     const service = kernelEditor.requireService(ILinkService);
     if (service) {
@@ -67,21 +107,49 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
   }, []);
 
   useLexicalEditor((editor) => {
+    const handleMouseDown = handleMouseDownFactory(() => {
+      $hideFloatingToolbar();
+    });
+    const handleMouseUp = handleMouseUpFactory(() => {
+      editor.update(() => {
+        $updateTextFormatFloatingToolbar(editor);
+      });
+    });
+
+    const rootElement = editor.getRootElement();
+    if (rootElement) {
+      rootElement.addEventListener('mousedown', handleMouseDown);
+      rootElement.addEventListener('mouseup', handleMouseUp);
+    }
+
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
-        editorState.read(() => {
-          $updateTextFormatFloatingToolbar(editor);
-        });
+        // Only update when mouse is not pressed
+        if (!isMouseDownRef.current) {
+          editorState.read(() => {
+            $updateTextFormatFloatingToolbar(editor);
+          });
+        }
       }),
 
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
         () => {
-          $updateTextFormatFloatingToolbar(editor);
+          // Only update when mouse is not pressed
+          if (!isMouseDownRef.current) {
+            $updateTextFormatFloatingToolbar(editor);
+          }
           return false;
         },
         COMMAND_PRIORITY_LOW,
       ),
+
+      () => {
+        if (rootElement) {
+          rootElement.removeEventListener('mousedown', handleMouseDown);
+          rootElement.removeEventListener('mouseup', handleMouseUp);
+        }
+      },
     );
   });
 
