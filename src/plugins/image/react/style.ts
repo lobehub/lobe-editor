@@ -1,28 +1,32 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix */
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ token }) => ({
-  image: {
-    'userSelect': 'none',
-    'position': 'relative',
-    'display': 'inline-block',
-    'cursor': 'default',
+export const useStyles = createStyles(({ css, token }) => ({
+  image: css`
+    cursor: default;
+    user-select: none;
+    position: relative;
+    display: inline-block;
 
-    '&.selected': {
-      backgroundColor: token.colorPrimaryBg,
-    },
-  },
-  blockImage: {
-    'userSelect': 'none',
-    'position': 'relative',
-    'display': 'block',
-    'textAlign': 'center' as const,
-    'cursor': 'default',
+    &.selected {
+      background-color: ${token.colorPrimaryBg};
+    }
+  `,
 
-    '&.selected': {
-      backgroundColor: token.colorPrimaryBg,
-    },
-  },
+  blockImage: css`
+    cursor: default;
+    user-select: none;
+
+    position: relative;
+
+    display: block;
+
+    text-align: center;
+
+    &.selected {
+      background-color: ${token.colorPrimaryBg};
+    }
+  `,
 }));
 
 export const imageBroken =

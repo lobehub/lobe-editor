@@ -1,43 +1,92 @@
 import { createStyles } from 'antd-style';
+import { rgba } from 'polished';
 
-export const useStyles = createStyles(() => ({
-  imageContainer: {
-    '&.selected': {
-      cursor: 'pointer',
-      outline: 'none',
-    },
-    '&.selected::after': {
-      backgroundColor: 'rgba(0, 102, 255, 0.15)',
-      bottom: 0,
-      content: '""',
-      left: 0,
-      pointerEvents: 'none',
-      position: 'absolute',
-      right: 0,
-      top: 0,
-      zIndex: 10,
-    },
-    'cursor': 'default',
-    'display': 'inline-block',
-    'height': 'auto',
-    'maxWidth': '100%',
-    'outline': '2px solid transparent',
-    'position': 'relative',
-    'transition': 'border-color 0.2s ease',
-    'userSelect': 'none',
-    'width': 'auto',
-  },
+export const useStyles = createStyles(({ css, token }) => ({
+  imageContainer: css`
+    cursor: default;
+    user-select: none;
 
-  scaleInfo: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 3,
-    color: 'white',
-    fontSize: 12,
-    left: 0,
-    padding: '2px 6px',
-    pointerEvents: 'none',
-    position: 'absolute',
-    top: -25,
-    zIndex: 11,
-  },
+    position: relative;
+
+    overflow: hidden;
+    display: inline-block;
+
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    border-radius: ${token.borderRadiusSM}px;
+
+    transition: border-color 0.2s ease;
+
+    &.selected {
+      cursor: pointer;
+      outline: none;
+
+      &::after {
+        pointer-events: none;
+        content: '';
+
+        position: absolute;
+        z-index: 10;
+        inset: 0;
+
+        background-color: ${rgba(token.yellow, 0.1)};
+      }
+    }
+  `,
+
+  resizeHandle: css`
+    pointer-events: auto;
+    cursor: col-resize;
+
+    position: absolute;
+    z-index: 9999;
+    inset-block-start: 0;
+
+    width: 6px;
+    height: 100%;
+
+    &::after {
+      pointer-events: none;
+      content: '';
+
+      position: absolute;
+      inset-block-start: 50%;
+      inset-inline-start: 0;
+      transform: translateY(-50%);
+
+      width: 6px;
+      height: min(80px, 80%);
+      border: 1px solid rgba(255, 255, 255, 75%);
+      border-radius: 3px;
+
+      background-color: rgba(0, 0, 0, 50%);
+    }
+  `,
+
+  resizeHandleLeft: css`
+    inset-inline-start: 8px;
+  `,
+
+  resizeHandleRight: css`
+    inset-inline-end: 8px;
+  `,
+
+  scaleInfo: css`
+    pointer-events: none;
+
+    position: absolute;
+    z-index: 11;
+    inset-block-start: 2px;
+    inset-inline-start: 2px;
+
+    padding-block: 2px;
+    padding-inline: 6px;
+    border-radius: ${token.borderRadiusSM}px;
+
+    font-size: 12px;
+    color: white;
+
+    background-color: rgba(0, 0, 0, 50%);
+  `,
 }));
