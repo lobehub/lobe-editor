@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.27.0](https://github.com/lobehub/lobe-editor/compare/v1.26.1...v1.27.0)
+<sup>Released on **2025-12-02**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Implement mouse down/up handling for floating toolbar visibility.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Implement mouse down/up handling for floating toolbar visibility, closes [#70](https://github.com/lobehub/lobe-editor/issues/70) ([4b90ff2](https://github.com/lobehub/lobe-editor/commit/4b90ff2))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.26.1](https://github.com/lobehub/lobe-editor/compare/v1.26.0...v1.26.1)
 <sup>Released on **2025-12-01**</sup>
 
