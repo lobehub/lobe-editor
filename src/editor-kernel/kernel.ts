@@ -48,7 +48,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   // Global hot reload flag
   private static globalHotReloadMode: boolean | undefined = undefined;
   private dataTypeMap: Map<string, DataSource>;
-  private plugins: Array<IEditorPluginConstructor<any> & { __config: any }> = [];
+  private plugins: Array<IEditorPluginConstructor<any>> = [];
+  private pluginsConfig: Map<IEditorPluginConstructor<any>, any> = new Map();
   private pluginsInstances: Array<IEditorPlugin<any>> = [];
   private nodes: Array<LexicalNodeConfig> = [];
   private themes: Record<string, any> = {}; // Used to store theme configuration
@@ -173,7 +174,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     if (this.pluginsInstances.length === 0) {
       this.logger.info(`🔌 Initializing ${this.plugins.length} plugins`);
       for (const plugin of this.plugins) {
-        const instance = new plugin(this, plugin.__config);
+        const instance = new plugin(this, this.pluginsConfig.get(plugin));
         this.pluginsInstances.push(instance);
       }
     }
@@ -220,7 +221,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     if (this.pluginsInstances.length === 0) {
       this.logger.info(`🔌 Initializing ${this.plugins.length} plugins`);
       for (const plugin of this.plugins) {
-        const instance = new plugin(this, plugin.__config);
+        const instance = new plugin(this, this.pluginsConfig.get(plugin));
         this.pluginsInstances.push(instance);
       }
     }
@@ -409,15 +410,12 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       } else {
         // Same plugin, just update config if provided
         if (config !== undefined) {
-          // @ts-expect-error not error
-          plugin.__config = config;
+          this.pluginsConfig.set(plugin, config);
         }
         return this; // If plugin already exists, don't register again
       }
     }
-    // @ts-expect-error not error
-    plugin.__config = config || {};
-    // @ts-expect-error not error
+    this.pluginsConfig.set(plugin, config || {});
     this.plugins.push(plugin);
     this.logger.debug(`🔌 Plugin: ${plugin.pluginName}`);
     return this;
