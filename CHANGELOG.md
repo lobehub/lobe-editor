@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.28.0](https://github.com/lobehub/lobe-editor/compare/v1.27.1...v1.28.0)
+<sup>Released on **2025-12-04**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add FloatActions.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add FloatActions ([bf6315c](https://github.com/lobehub/lobe-editor/commit/bf6315c))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.27.1](https://github.com/lobehub/lobe-editor/compare/v1.27.0...v1.27.1)
 <sup>Released on **2025-12-02**</sup>
 
