@@ -13,6 +13,7 @@ export {
   type EditorProviderProps,
   useEditorContent,
 } from './EditorProvider';
+export { default as FloatActions, type FloatActionsProps } from './FloatActions';
 export { default as FloatMenu, type FloatMenuProps } from './FloatMenu';
 export { useEditor } from './hooks/useEditor';
 export { type EditorState, useEditorState } from './hooks/useEditorState';
