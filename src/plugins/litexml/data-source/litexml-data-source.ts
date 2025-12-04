@@ -255,7 +255,7 @@ export default class LitexmlDataSource extends DataSource {
    * Process XML element's children
    */
   private processXMLChildren(xmlElement: Element | Document, parentNode: any): void {
-    xmlElement.childNodes.forEach((child) => {
+    Array.from(xmlElement.childNodes).forEach((child) => {
       if (child.nodeType === 1) {
         // Element node
         this.processXMLElement(child as Element, parentNode);

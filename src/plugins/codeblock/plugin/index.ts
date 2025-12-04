@@ -171,6 +171,36 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
       );
       return xmlNode;
     });
+
+    litexmlService.registerXMLReader('code', (xmlElment: Element, children: any[]) => {
+      const text = children.map((v) => v.text || '').join('');
+      return INodeHelper.createElementNode(CodeNode.getType(), {
+        children: text
+          .split('\n')
+          .flatMap((text, index, arr) => {
+            const textNode = INodeHelper.createTextNode(text);
+            textNode.type = 'code-highlight';
+            if (index === arr.length - 1) {
+              return textNode;
+            }
+            return [
+              textNode,
+              {
+                type: 'linebreak',
+                version: 1,
+              },
+            ];
+          })
+          .flat(),
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        language: xmlElment.getAttribute('lang'),
+        textStyle: '--shiki-dark:var(--color-info);--shiki-light:var(--color-info)',
+        theme: `${toMarkdownTheme(this.config?.shikiTheme)} needUpdate`,
+        version: 1,
+      });
+    });
   }
 
   registerMarkdown() {

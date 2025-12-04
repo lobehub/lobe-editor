@@ -61,6 +61,11 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
     litexmlService.registerXMLWriter(CodeNode.getType(), (node, ctx) => {
       return ctx.createXmlNode('codeInline', {});
     });
+    litexmlService.registerXMLReader('codeInline', (xmlElement: Element, children: any[]) => {
+      return INodeHelper.createElementNode(CodeNode.getType(), {
+        children,
+      });
+    });
   }
 
   registerMarkdown() {
@@ -70,7 +75,7 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
     }
 
     markdownService.registerMarkdownWriter(CodeNode.getType(), (ctx, node) => {
-      ctx.appendLine(`\`${node.getTextContent()}\``);
+      ctx.appendLine(`\`${node.getTextContent().replaceAll('\uFEFF', '')}\``);
       return true;
     });
 
