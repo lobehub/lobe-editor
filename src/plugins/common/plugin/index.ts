@@ -20,10 +20,12 @@ import {
   COMMAND_PRIORITY_HIGH,
   INSERT_LINE_BREAK_COMMAND,
   INSERT_PARAGRAPH_COMMAND,
+  ParagraphNode,
 } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { isPunctuationChar } from '@/plugins/markdown/utils';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -425,6 +427,32 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     );
 
     this.registerMarkdown(this.kernel);
+    this.registerLiteXml();
+  }
+
+  registerLiteXml() {
+    const litexmlService = this.kernel.requireService(ILitexmlService);
+    if (!litexmlService) {
+      return;
+    }
+
+    litexmlService.registerXMLWriter('quote', (node, ctx) => {
+      if ($isQuoteNode(node)) {
+        return ctx.createXmlNode('quote', {});
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLWriter('heading', (node, ctx) => {
+      if ($isHeadingNode(node)) {
+        return ctx.createXmlNode(node.getTag(), {});
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLWriter(ParagraphNode.getType(), (node, ctx) => {
+      return ctx.createXmlNode('p', {});
+    });
   }
 
   destroy(): void {

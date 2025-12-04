@@ -16,6 +16,7 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
+  ReactLiteXmlPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
   ReactToolbarPlugin,
@@ -223,6 +224,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         onTextChange={handleChange}
         placeholder={'Type something...'}
         plugins={[
+          ReactLiteXmlPlugin,
           ReactListPlugin,
           ReactLinkPlugin,
           ReactCodeblockPlugin,

@@ -3,6 +3,7 @@ import { Html } from 'mdast';
 
 import { INode } from '@/editor-kernel/inode';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import {
   IMarkdownShortCutService,
   MARKDOWN_READER_LEVEL_HIGH,
@@ -53,6 +54,21 @@ export const MentionPlugin: IEditorPluginConstructor<MentionPluginOptions> = cla
     this.register(registerMentionNodeSelectionObserver(editor));
 
     this.registerMarkdown();
+    this.registerLiteXml();
+  }
+
+  private registerLiteXml() {
+    this.kernel
+      .requireService(ILitexmlService)
+      ?.registerXMLWriter(MentionNode.getType(), (node, ctx) => {
+        if ($isMentionNode(node)) {
+          const attributes: { [key: string]: string } = {
+            label: node.label,
+          };
+          return ctx.createXmlNode('mention', attributes);
+        }
+        return false;
+      });
   }
 
   private registerMarkdown() {

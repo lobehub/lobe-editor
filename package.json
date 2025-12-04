@@ -92,6 +92,7 @@
     "@lexical/utils": "^0.38.2",
     "@shikijs/core": "^3.15.0",
     "@shikijs/engine-javascript": "^3.15.0",
+    "@xmldom/xmldom": "^0.8.11",
     "ahooks": "^3.9.6",
     "antd-style": "^3.7.1",
     "debug": "^4.4.3",

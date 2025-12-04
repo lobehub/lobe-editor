@@ -12,6 +12,7 @@ import { LexicalEditor } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -58,6 +59,50 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     this.register(registerTableCommand(editor));
 
     this.registerMarkdown();
+    this.registerLiteXml();
+  }
+
+  registerLiteXml() {
+    const litexmlService = this.kernel.requireService(ILitexmlService);
+    if (!litexmlService) {
+      return;
+    }
+
+    litexmlService.registerXMLWriter(TableNode.getType(), (node, ctx) => {
+      if ($isTableNode(node)) {
+        const attributes: { [key: string]: string } = {};
+        const colWidths = node.getColWidths();
+        if (colWidths && colWidths.length > 0) {
+          attributes.colWidths = colWidths.join(',');
+        }
+        return ctx.createXmlNode('table', attributes);
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLWriter(TableRowNode.getType(), (node, ctx) => {
+      if (node instanceof TableRowNode) {
+        return ctx.createXmlNode('tr', {});
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLWriter(TableCellNode.getType(), (node, ctx) => {
+      if (node instanceof TableCellNode) {
+        const attributes: { [key: string]: string } = {};
+        if (node.getColSpan() > 1) {
+          attributes.colSpan = node.getColSpan().toString();
+        }
+        if (node.getRowSpan() > 1) {
+          attributes.rowSpan = node.getRowSpan().toString();
+        }
+        if (node.getBackgroundColor()) {
+          attributes.backgroundColor = node.getBackgroundColor()!;
+        }
+        return ctx.createXmlNode('td', attributes);
+      }
+      return false;
+    });
   }
 
   registerMarkdown() {

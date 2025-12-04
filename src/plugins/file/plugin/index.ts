@@ -10,6 +10,7 @@ import {
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService } from '@/plugins/upload';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -53,23 +54,6 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
         return config?.decorator ? config.decorator(node as FileNode, editor) : null;
       },
     );
-    kernel
-      .requireService(IMarkdownShortCutService)
-      ?.registerMarkdownWriter(FileNode.getType(), (ctx, node) => {
-        if ($isFileNode(node)) {
-          if (config?.markdownWriter) {
-            ctx.appendLine(config.markdownWriter(node));
-            return;
-          }
-          if (node.status === 'pending') {
-            ctx.appendLine(`Uploading ${node.name}...`);
-          } else if (node.status === 'error') {
-            ctx.appendLine(`Failed to upload ${node.name}: ${node.message}`);
-          } else {
-            ctx.appendLine(`[${node.name}](${node.fileUrl})`);
-          }
-        }
-      });
   }
 
   onInit(editor: LexicalEditor): void {
@@ -108,5 +92,46 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
 
     this.register(registerFileCommand(editor, this.config!.handleUpload));
     this.register(registerFileNodeSelectionObserver(editor));
+    this.registerLiteXml();
+    this.registerMarkdownWriter();
+  }
+
+  registerLiteXml() {
+    const litexmlService = this.kernel.requireService(ILitexmlService);
+    if (!litexmlService) {
+      return;
+    }
+
+    litexmlService.registerXMLWriter(FileNode.getType(), (node, ctx) => {
+      if ($isFileNode(node)) {
+        return ctx.createXmlNode('file', {
+          fileUrl: node.fileUrl || '',
+          name: node.name,
+        });
+      }
+      return false;
+    });
+  }
+
+  registerMarkdownWriter() {
+    const markdownService = this.kernel.requireService(IMarkdownShortCutService);
+    if (!markdownService) {
+      return;
+    }
+    markdownService.registerMarkdownWriter(FileNode.getType(), (ctx, node) => {
+      if ($isFileNode(node)) {
+        if (this.config?.markdownWriter) {
+          ctx.appendLine(this.config.markdownWriter(node));
+          return;
+        }
+        if (node.status === 'pending') {
+          ctx.appendLine(`Uploading ${node.name}...`);
+        } else if (node.status === 'error') {
+          ctx.appendLine(`Failed to upload ${node.name}: ${node.message}`);
+        } else {
+          ctx.appendLine(`[${node.name}](${node.fileUrl})`);
+        }
+      }
+    });
   }
 };
