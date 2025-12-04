@@ -11,6 +11,7 @@ import {
   ReactAutoCompletePlugin,
   ReactCodePlugin,
   ReactCodeblockPlugin,
+  ReactCodemirrorPlugin,
   ReactFilePlugin,
   ReactHRPlugin,
   ReactImagePlugin,
@@ -225,7 +226,9 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         plugins={[
           ReactListPlugin,
           ReactLinkPlugin,
-          ReactCodeblockPlugin,
+          ReactImagePlugin,
+          // ReactCodeblockPlugin,
+          ReactCodemirrorPlugin,
           ReactHRPlugin,
           ReactTablePlugin,
           ReactMathPlugin,

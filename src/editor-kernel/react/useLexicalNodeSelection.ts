@@ -31,6 +31,13 @@ function isNodeSelected(editor: LexicalEditor | null, key: NodeKey): boolean {
   });
 }
 
+function detectNodeSelection(editor: LexicalEditor | null): boolean {
+  if (!editor) return false;
+  return editor.getEditorState().read(() => {
+    return $getSelection()?.getNodes().length === 1;
+  });
+}
+
 /**
  * A custom hook to manage the selection state of a specific node in a Lexical editor.
  *
@@ -49,12 +56,13 @@ function isNodeSelected(editor: LexicalEditor | null, key: NodeKey): boolean {
 
 export function useLexicalNodeSelection(
   key: NodeKey,
-): [boolean, (selected: boolean) => void, () => void] {
+): [boolean, (selected: boolean) => void, () => void, boolean] {
   const [editor] = useLexicalComposerContext();
   const lexicalEditor = editor.getLexicalEditor();
 
   // State to track whether the node is currently selected.
   const [isSelected, setIsSelected] = useState(() => isNodeSelected(lexicalEditor, key));
+  const [isNodeSelection, setIsNodeSelection] = useState(() => detectNodeSelection(lexicalEditor));
 
   useEffect(() => {
     let isMounted = true;
@@ -62,6 +70,7 @@ export function useLexicalNodeSelection(
     const unregister = lexicalEditor.registerUpdateListener(() => {
       if (isMounted) {
         setIsSelected(isNodeSelected(lexicalEditor, key));
+        setIsNodeSelection(detectNodeSelection(lexicalEditor));
       }
     });
 
@@ -76,6 +85,17 @@ export function useLexicalNodeSelection(
       if (!lexicalEditor) return;
       lexicalEditor.update(() => {
         let selection = $getSelection();
+
+        if (
+          selection?.getNodes().length === 1 &&
+          selection
+            ?.getNodes()
+            .map((v) => v.getKey())
+            .includes(key)
+        ) {
+          // If the node is already selected, we can just return.
+          return;
+        }
 
         if (!$isNodeSelection(selection)) {
           selection = $createNodeSelection();
@@ -105,5 +125,5 @@ export function useLexicalNodeSelection(
     });
   }, [lexicalEditor]);
 
-  return [isSelected, setSelected, clearSelected];
+  return [isSelected, setSelected, clearSelected, isNodeSelection];
 }
