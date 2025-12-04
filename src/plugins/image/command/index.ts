@@ -60,7 +60,7 @@ export function registerImageCommand(
               src: placeholderURL,
             });
         $insertNodes([imageNode]); // Insert a zero-width space to ensure the image is not the last child
-        if ($isRootOrShadowRoot(imageNode.getParentOrThrow())) {
+        if (!block && $isRootOrShadowRoot(imageNode.getParentOrThrow())) {
           $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
         }
         handleUpload(file)

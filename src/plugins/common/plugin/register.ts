@@ -399,7 +399,11 @@ export function registerRichKeydown(
   );
 }
 
-const NEEDS_FOLLOWING_PARAGRAPH_TYPES = new Set<string | undefined>(['code', 'table']);
+const NEEDS_FOLLOWING_PARAGRAPH_TYPES = new Set<string | undefined>([
+  'code',
+  'table',
+  'block-image',
+]);
 
 export function registerLastElement(editor: LexicalEditor) {
   let isProcessing = false;
