@@ -162,7 +162,6 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
 
     litexmlService.registerXMLWriter(CodeNode.getType(), (node, ctx) => {
       const codeNode = node as CodeNode;
-      console.info(codeNode.getTextContent());
       const xmlNode = ctx.createXmlNode(
         'code',
         {

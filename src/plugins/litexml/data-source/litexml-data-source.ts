@@ -101,9 +101,9 @@ export default class LitexmlDataSource extends DataSource {
             }
 
             const editorState = editor.parseEditorState({ root: rootNode });
-            const lexicalRootNode = editorState._nodeMap.get('root') as ElementNode;
 
             return editorState.read(() => {
+              const lexicalRootNode = $getRoot();
               return this.lexicalToXML(lexicalRootNode);
             });
           }
