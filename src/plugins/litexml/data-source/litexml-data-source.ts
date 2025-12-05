@@ -1,20 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { DOMParser } from '@xmldom/xmldom';
-import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
-import { $getRoot, $getSelection, $isElementNode, $isRangeSelection, $isTextNode } from 'lexical';
+import type { ElementNode, LexicalEditor } from 'lexical';
+import { $getRoot, $getSelection, $isElementNode, $isRangeSelection } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
-import type { CursorNode } from '@/plugins/common/node/cursor';
 import { createDebugLogger } from '@/utils/debug';
 
 import type { ILitexmlService, IWriterContext, IXmlNode } from '../service/litexml-service';
 import { LitexmlService } from '../service/litexml-service';
-
-function $isCursorNode(node: LexicalNode | null | undefined): node is CursorNode {
-  return node?.getType() === 'cursor';
-}
 
 const logger = createDebugLogger('plugin', 'litexml');
 
@@ -291,21 +286,6 @@ export default class LitexmlDataSource extends DataSource {
    */
   private nodesToXML(node: any, lines: string[], indent: number = 1): void {
     const indentStr = ' '.repeat(indent * 2);
-
-    if ($isCursorNode(node)) {
-      return;
-    }
-
-    if ($isTextNode(node)) {
-      // Escape XML special characters
-      const text = this.escapeXML(node.getTextContent());
-      const attributes = this.buildXMLAttributes({
-        format: node.getFormat()?.toString(),
-        id: node.getKey(),
-      });
-      lines.push(`${indentStr}<span${attributes}>${text}</span>`);
-      return;
-    }
     const type = node.getType();
     const customWriters = this.litexmlService.getXMLWriters();
 

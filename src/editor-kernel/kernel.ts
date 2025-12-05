@@ -40,7 +40,7 @@ import {
 import DataSource from './data-source';
 import { registerEvent } from './event';
 import { KernelPlugin } from './plugin';
-import { createEmptyEditorState } from './utils';
+import { createEmptyEditorState, noop } from './utils';
 
 templateSettings.interpolate = /{{([\S\s]+?)}}/g;
 
@@ -658,7 +658,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     const listenersInPriorityOrder = commandsMap.get(command);
 
     if (listenersInPriorityOrder === undefined) {
-      return () => {};
+      return noop;
     }
 
     const listeners = listenersInPriorityOrder[priority];

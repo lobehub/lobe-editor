@@ -21,9 +21,13 @@ import {
   INSERT_LINE_BREAK_COMMAND,
   INSERT_PARAGRAPH_COMMAND,
   ParagraphNode,
+  TEXT_TYPE_TO_FORMAT,
+  TextNode,
 } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 
+import { noop } from '@/editor-kernel';
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
@@ -373,7 +377,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   onInit(editor: LexicalEditor): void {
     this.registerClears(
       registerRichText(editor),
-      CAN_USE_DOM ? registerDragonSupport(editor) : () => {},
+      CAN_USE_DOM ? registerDragonSupport(editor) : noop,
       registerHistory(editor, this.kernel.getHistoryState(), 300),
       registerHeaderBackspace(editor),
       registerRichKeydown(editor, this.kernel, {
@@ -436,6 +440,70 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       return;
     }
 
+    litexmlService.registerXMLWriter(TextNode.getType(), (node, ctx) => {
+      const attr = {} as Record<string, string>;
+      if ($isTextNode(node)) {
+        if (node.hasFormat('bold')) {
+          attr['bold'] = 'true';
+        }
+        if (node.hasFormat('italic')) {
+          attr['italic'] = 'true';
+        }
+        if (node.hasFormat('underline')) {
+          attr['underline'] = 'true';
+        }
+        if (node.hasFormat('strikethrough')) {
+          attr['strikethrough'] = 'true';
+        }
+        if (node.hasFormat('subscript')) {
+          attr['subscript'] = 'true';
+        }
+        if (node.hasFormat('superscript')) {
+          attr['superscript'] = 'true';
+        }
+        return ctx.createXmlNode('span', attr, node.getTextContent());
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLReader('span', (xmlElement: Element) => {
+      const textContent = xmlElement.textContent || '';
+      const bold = xmlElement.getAttribute('bold');
+      const italic = xmlElement.getAttribute('italic');
+      const underline = xmlElement.getAttribute('underline');
+      const strikethrough = xmlElement.getAttribute('strikethrough');
+      const subscript = xmlElement.getAttribute('subscript');
+      const superscript = xmlElement.getAttribute('superscript');
+
+      let format = 0;
+
+      if (bold === 'true') {
+        format |= TEXT_TYPE_TO_FORMAT['bold'];
+      }
+      if (italic === 'true') {
+        format |= TEXT_TYPE_TO_FORMAT['italic'];
+      }
+      if (underline === 'true') {
+        format |= TEXT_TYPE_TO_FORMAT['underline'];
+      }
+      if (strikethrough === 'true') {
+        format |= TEXT_TYPE_TO_FORMAT['strikethrough'];
+      }
+      if (subscript === 'true') {
+        format |= TEXT_TYPE_TO_FORMAT['subscript'];
+      }
+      if (superscript === 'true') {
+        format |= TEXT_TYPE_TO_FORMAT['superscript'];
+      }
+
+      return INodeHelper.createTextNode(textContent, {
+        detail: 0,
+        format: format,
+        mode: 'normal',
+        style: '',
+      });
+    });
+
     litexmlService.registerXMLWriter('quote', (node, ctx) => {
       if ($isQuoteNode(node)) {
         return ctx.createXmlNode('quote', {});
@@ -452,6 +520,28 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
     litexmlService.registerXMLWriter(ParagraphNode.getType(), (node, ctx) => {
       return ctx.createXmlNode('p', {});
+    });
+
+    litexmlService.registerXMLReader('quote', (xmlElement: Element, children: any[]) => {
+      return INodeHelper.createElementNode(QuoteNode.getType(), {
+        children,
+      });
+    });
+
+    litexmlService.registerXMLReader('p', (xmlElement: Element, children: any[]) => {
+      return INodeHelper.createElementNode(ParagraphNode.getType(), {
+        children,
+      });
+    });
+
+    const headingTags: HeadingTagType[] = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+    headingTags.forEach((tag) => {
+      litexmlService.registerXMLReader(tag, (xmlElement: Element, children: any[]) => {
+        return INodeHelper.createElementNode(HeadingNode.getType(), {
+          children,
+          tag,
+        });
+      });
     });
   }
 
