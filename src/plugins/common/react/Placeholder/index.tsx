@@ -67,7 +67,7 @@ const Placeholder = memo<PlaceholderProps>(({ children, style, lineEmptyPlacehol
               while (node && !$isBlockElementNode(node)) {
                 node = node.getParent();
               }
-              const tableNode = $closestNodeType(node, 'tablecell');
+              const tableNode = $closestNodeType(node, ['tablecell', 'heading']);
               if (node && !tableNode) {
                 const dom = editor.getElementByKey(node.getKey()) as HTMLElement | null;
                 if (dom && hasOnlyBrChild(dom)) {

@@ -31,11 +31,13 @@ function isImageFile(file: File): boolean {
 export function registerImageCommand(
   editor: LexicalEditor,
   handleUpload: (file: File) => Promise<{ url: string }>,
+  defaultBlockImage: boolean = false,
 ) {
   return editor.registerCommand(
     INSERT_IMAGE_COMMAND,
     (payload) => {
       const { file, range, block, maxWidth } = payload;
+      const isBlock = block ?? defaultBlockImage;
       if (!isImageFile(file)) {
         return false; // Not an image file
       }
@@ -48,7 +50,7 @@ export function registerImageCommand(
           }
           $setSelection(rangeSelection);
         }
-        const imageNode = block
+        const imageNode = isBlock
           ? $createBlockImageNode({
               altText: file.name,
               maxWidth: maxWidth || 800,
@@ -60,7 +62,7 @@ export function registerImageCommand(
               src: placeholderURL,
             });
         $insertNodes([imageNode]); // Insert a zero-width space to ensure the image is not the last child
-        if ($isRootOrShadowRoot(imageNode.getParentOrThrow())) {
+        if (!isBlock && $isRootOrShadowRoot(imageNode.getParentOrThrow())) {
           $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
         }
         handleUpload(file)

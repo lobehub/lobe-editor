@@ -155,7 +155,9 @@ export function closest(
 
 export function $closestNodeType(
   node: LexicalNode | ElementNode | null,
-  type: string,
+  type: string | string[],
 ): LexicalNode | null {
-  return closest(node, (n) => n.getType() === type);
+  return closest(node, (n) =>
+    Array.isArray(type) ? type.includes(n.getType()) : n.getType() === type,
+  );
 }
