@@ -9,6 +9,7 @@ import {
   LexicalEditor,
 } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
@@ -106,10 +107,30 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
       if ($isFileNode(node)) {
         return ctx.createXmlNode('file', {
           fileUrl: node.fileUrl || '',
+          message: node.message || '',
           name: node.name,
+          size: node.size?.toString() || '0',
+          status: node.status,
         });
       }
       return false;
+    });
+
+    litexmlService.registerXMLReader('file', (xmlElement: Element) => {
+      const name = xmlElement.getAttribute('name') || 'unknown';
+      const fileUrl = xmlElement.getAttribute('fileUrl') || '';
+      const status = xmlElement.getAttribute('status') as
+        | 'pending'
+        | 'uploaded'
+        | 'error'
+        | undefined;
+      return INodeHelper.createTypeNode(FileNode.getType(), {
+        fileUrl,
+        message: xmlElement.getAttribute('message') || '',
+        name,
+        size: parseInt(xmlElement.getAttribute('size') || '0', 10),
+        status,
+      });
     });
   }
 

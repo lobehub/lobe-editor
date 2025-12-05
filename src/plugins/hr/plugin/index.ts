@@ -63,6 +63,10 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
       }
       return false;
     });
+
+    litexmlService.registerXMLReader('hr', () => {
+      return INodeHelper.createElementNode(HorizontalRuleNode.getType(), {});
+    });
   }
 
   registerMarkdown() {
