@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.29.0](https://github.com/lobehub/lobe-editor/compare/v1.28.1...v1.29.0)
+<sup>Released on **2025-12-05**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Line placeholder should not show in table.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Line placeholder should not show in table, closes [#74](https://github.com/lobehub/lobe-editor/issues/74) ([4fa9c21](https://github.com/lobehub/lobe-editor/commit/4fa9c21))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 1.28.1](https://github.com/lobehub/lobe-editor/compare/v1.28.0...v1.28.1)
 
 <sup>Released on **2025-12-04**</sup>
