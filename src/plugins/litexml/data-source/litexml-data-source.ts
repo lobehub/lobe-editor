@@ -44,6 +44,19 @@ export default class LitexmlDataSource extends DataSource {
     this.litexmlService = service || new LitexmlService();
   }
 
+  readLiteXMLToInode(litexml: string): any {
+    if (typeof litexml !== 'string') {
+      throw new Error('Invalid data type. Expected string, got ' + typeof litexml);
+    }
+    const xml = this.parseXMLString(litexml);
+    const inode = this.xmlToLexical(xml);
+
+    logger.debug('Parsed XML to Lexical State:', inode);
+    console.info(inode.root.children);
+
+    return inode;
+  }
+
   /**
    * Parse XML string and set it to the editor
    * @param editor - The Lexical editor instance
@@ -51,14 +64,7 @@ export default class LitexmlDataSource extends DataSource {
    */
   read(editor: LexicalEditor, data: string): void {
     try {
-      if (typeof data !== 'string') {
-        throw new Error('Invalid data type. Expected string, got ' + typeof data);
-      }
-
-      const xml = this.parseXMLString(data);
-      const inode = this.xmlToLexical(xml);
-
-      logger.debug('Parsed XML to Lexical State:', inode);
+      const inode = this.readLiteXMLToInode(data);
 
       editor.setEditorState(editor.parseEditorState(inode));
     } catch (error) {
@@ -139,6 +145,7 @@ export default class LitexmlDataSource extends DataSource {
 
     // Process XML root element's children
     const xmlRoot = xml.documentElement;
+    console.info('XML Root Element:', xmlRoot);
     if (xmlRoot) {
       this.processXMLElement(xmlRoot, rootNode);
     }
@@ -167,6 +174,7 @@ export default class LitexmlDataSource extends DataSource {
           if (Array.isArray(result)) {
             INodeHelper.appendChild(parentNode, ...result);
           } else if (result) {
+            result.id = xmlElement.getAttribute('id') || undefined;
             INodeHelper.appendChild(parentNode, result);
           }
           return; // Custom reader handled it

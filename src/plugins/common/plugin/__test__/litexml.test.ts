@@ -1,4 +1,3 @@
-import { IS_BOLD, IS_UNDERLINE } from 'lexical';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor from '@/editor-kernel';

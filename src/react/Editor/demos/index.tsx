@@ -8,6 +8,7 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  LITEXML_APPLY_COMMAND,
   ReactAutoCompletePlugin,
   ReactCodePlugin,
   ReactCodeblockPlugin,
@@ -181,6 +182,20 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         label: 'InsertCodeInline',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined);
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
+
+      {
+        key: 'apply-litexml',
+        label: 'Apply LiteXML',
+        onSelect: (editor) => {
+          editor.dispatchCommand(LITEXML_APPLY_COMMAND, {
+            litexml:
+              '<root><span id="2" bold="true">replace</span><p id="444"><span>M</span></p></root>',
+          });
           queueMicrotask(() => {
             editor.focus();
           });
