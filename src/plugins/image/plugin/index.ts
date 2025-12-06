@@ -98,7 +98,9 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
         });
       }, UPLOAD_PRIORITY_HIGH);
 
-    this.register(registerImageCommand(editor, this.config!.handleUpload));
+    this.register(
+      registerImageCommand(editor, this.config!.handleUpload, this.config?.defaultBlockImage),
+    );
   }
 
   private getImageWidth(file: File): Promise<number> {

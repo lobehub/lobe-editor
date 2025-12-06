@@ -2,30 +2,130 @@
 
 # Changelog
 
-## [Version&nbsp;1.27.0](https://github.com/lobehub/lobe-editor/compare/v1.26.1...v1.27.0)
+## [Version&nbsp;1.29.0](https://github.com/lobehub/lobe-editor/compare/v1.28.1...v1.29.0)
+<sup>Released on **2025-12-05**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Line placeholder should not show in table.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Line placeholder should not show in table, closes [#74](https://github.com/lobehub/lobe-editor/issues/74) ([4fa9c21](https://github.com/lobehub/lobe-editor/commit/4fa9c21))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.28.1](https://github.com/lobehub/lobe-editor/compare/v1.28.0...v1.28.1)
+
+<sup>Released on **2025-12-04**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Block image selection.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Block image selection, closes [#73](https://github.com/lobehub/lobe-editor/issues/73) ([760d030](https://github.com/lobehub/lobe-editor/commit/760d030))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.28.0](https://github.com/lobehub/lobe-editor/compare/v1.27.1...v1.28.0)
+
+<sup>Released on **2025-12-04**</sup>
+
+#### ✨ Features
+
+- **misc**: Add FloatActions.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add FloatActions ([bf6315c](https://github.com/lobehub/lobe-editor/commit/bf6315c))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.27.1](https://github.com/lobehub/lobe-editor/compare/v1.27.0...v1.27.1)
+
 <sup>Released on **2025-12-02**</sup>
 
+#### 🐛 Bug Fixes
+
+- **misc**: Prevent plugin config from being overwritten in multi-instance….
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Prevent plugin config from being overwritten in multi-instance…, closes [#71](https://github.com/lobehub/lobe-editor/issues/71) ([44e39e2](https://github.com/lobehub/lobe-editor/commit/44e39e2))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.27.0](https://github.com/lobehub/lobe-editor/compare/v1.26.1...v1.27.0)
+
+<sup>Released on **2025-12-02**</sup>
 
 #### ✨ Features
 
 - **misc**: Implement mouse down/up handling for floating toolbar visibility.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### What's improved
 
-* **misc**: Implement mouse down/up handling for floating toolbar visibility, closes [#70](https://github.com/lobehub/lobe-editor/issues/70) ([4b90ff2](https://github.com/lobehub/lobe-editor/commit/4b90ff2))
+- **misc**: Implement mouse down/up handling for floating toolbar visibility, closes [#70](https://github.com/lobehub/lobe-editor/issues/70) ([4b90ff2](https://github.com/lobehub/lobe-editor/commit/4b90ff2))
 
 </details>
-
 
 <div align="right">
 
@@ -33,30 +133,24 @@
 
 </div>
 
-### [Version&nbsp;1.26.1](https://github.com/lobehub/lobe-editor/compare/v1.26.0...v1.26.1)
-<sup>Released on **2025-12-01**</sup>
+### [Version 1.26.1](https://github.com/lobehub/lobe-editor/compare/v1.26.0...v1.26.1)
 
+<sup>Released on **2025-12-01**</sup>
 
 #### 💄 Styles
 
 - **misc**: Update image resize handle style.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### Styles
 
-* **misc**: Update image resize handle style ([d867161](https://github.com/lobehub/lobe-editor/commit/d867161))
+- **misc**: Update image resize handle style ([d867161](https://github.com/lobehub/lobe-editor/commit/d867161))
 
 </details>
-
 
 <div align="right">
 
@@ -64,30 +158,24 @@
 
 </div>
 
-## [Version&nbsp;1.26.0](https://github.com/lobehub/lobe-editor/compare/v1.25.0...v1.26.0)
-<sup>Released on **2025-12-01**</sup>
+## [Version 1.26.0](https://github.com/lobehub/lobe-editor/compare/v1.25.0...v1.26.0)
 
+<sup>Released on **2025-12-01**</sup>
 
 #### ✨ Features
 
 - **misc**: Add ReactToolbarPlugin and integrate it into the editor demo.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### What's improved
 
-* **misc**: Add ReactToolbarPlugin and integrate it into the editor demo, closes [#62](https://github.com/lobehub/lobe-editor/issues/62) ([2da5cb6](https://github.com/lobehub/lobe-editor/commit/2da5cb6))
+- **misc**: Add ReactToolbarPlugin and integrate it into the editor demo, closes [#62](https://github.com/lobehub/lobe-editor/issues/62) ([2da5cb6](https://github.com/lobehub/lobe-editor/commit/2da5cb6))
 
 </details>
-
 
 <div align="right">
 
@@ -95,43 +183,34 @@
 
 </div>
 
-## [Version&nbsp;1.25.0](https://github.com/lobehub/lobe-editor/compare/v1.24.0...v1.25.0)
-<sup>Released on **2025-12-01**</sup>
+## [Version 1.25.0](https://github.com/lobehub/lobe-editor/compare/v1.24.0...v1.25.0)
 
+<sup>Released on **2025-12-01**</sup>
 
 #### ✨ Features
 
 - **misc**: Add AutoComplete plugin with React integration and placeholder nodes, Add editable state management to the editor and related compo…, Add image resizing functionality with new ResizeHandle compon….
 
-
 #### 🐛 Bug Fixes
 
 - **misc**: Fix error.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### What's improved
 
-* **misc**: Add AutoComplete plugin with React integration and placeholder nodes, closes [#53](https://github.com/lobehub/lobe-editor/issues/53) ([e9dc1a7](https://github.com/lobehub/lobe-editor/commit/e9dc1a7))
-* **misc**: Add editable state management to the editor and related compo…, closes [#67](https://github.com/lobehub/lobe-editor/issues/67) ([5851459](https://github.com/lobehub/lobe-editor/commit/5851459))
-* **misc**: Add image resizing functionality with new ResizeHandle compon…, closes [#66](https://github.com/lobehub/lobe-editor/issues/66) ([8e749d2](https://github.com/lobehub/lobe-editor/commit/8e749d2))
-
-
+- **misc**: Add AutoComplete plugin with React integration and placeholder nodes, closes [#53](https://github.com/lobehub/lobe-editor/issues/53) ([e9dc1a7](https://github.com/lobehub/lobe-editor/commit/e9dc1a7))
+- **misc**: Add editable state management to the editor and related compo…, closes [#67](https://github.com/lobehub/lobe-editor/issues/67) ([5851459](https://github.com/lobehub/lobe-editor/commit/5851459))
+- **misc**: Add image resizing functionality with new ResizeHandle compon…, closes [#66](https://github.com/lobehub/lobe-editor/issues/66) ([8e749d2](https://github.com/lobehub/lobe-editor/commit/8e749d2))
 
 #### What's fixed
 
-* **misc**: Fix error ([2273811](https://github.com/lobehub/lobe-editor/commit/2273811))
+- **misc**: Fix error ([2273811](https://github.com/lobehub/lobe-editor/commit/2273811))
 
 </details>
-
 
 <div align="right">
 
