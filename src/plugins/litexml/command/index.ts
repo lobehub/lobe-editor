@@ -9,6 +9,8 @@ import {
   createCommand,
 } from 'lexical';
 
+import { $closest } from '@/editor-kernel';
+
 import type LitexmlDataSource from '../data-source/litexml-data-source';
 import { $parseSerializedNodeImpl } from '../utils';
 
@@ -33,13 +35,20 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
                 prevNode = oldNode.replace(newNode, $isElementNode(newNode));
               } else {
                 if (prevNode) {
-                  if ($isElementNode(newNode) && !$isElementNode(prevNode)) {
-                    prevNode = prevNode.getParentOrThrow().insertAfter(newNode);
+                  if (!newNode.isInline()) {
+                    const prevBlock = $closest(prevNode, (node) => node.isInline() === false);
+                    if (prevBlock) {
+                      prevNode = prevBlock.insertAfter(newNode);
+                    } else {
+                      $insertNodes([newNode]);
+                      prevNode = newNode;
+                    }
                   } else {
                     prevNode = prevNode.insertAfter(newNode);
                   }
                 } else {
                   $insertNodes([newNode]);
+                  prevNode = newNode;
                 }
               }
             } catch (error) {
