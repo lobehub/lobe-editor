@@ -2,6 +2,7 @@ import { LexicalEditor } from 'lexical';
 import type { JSX } from 'react';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -40,6 +41,35 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    this.kernel
+      .requireService(ILitexmlService)
+      ?.registerXMLWriter(ImageNode.getType(), (node, ctx) => {
+        if ($isImageNode(node)) {
+          const attributes: { [key: string]: string } = {
+            src: node.src,
+          };
+          if (node.altText) {
+            attributes.alt = node.altText;
+          }
+          return ctx.createXmlNode('img', attributes);
+        }
+        return false;
+      });
+    this.kernel
+      .requireService(ILitexmlService)
+      ?.registerXMLWriter(BlockImageNode.getType(), (node, ctx) => {
+        if ($isBlockImageNode(node)) {
+          const attributes: { [key: string]: string } = {
+            block: 'true',
+            src: node.src,
+          };
+          if (node.altText) {
+            attributes.alt = node.altText;
+          }
+          return ctx.createXmlNode('img', attributes);
+        }
+        return false;
+      });
     this.kernel
       .requireService(IMarkdownShortCutService)
       ?.registerMarkdownWriter(ImageNode.getType(), (ctx, node) => {

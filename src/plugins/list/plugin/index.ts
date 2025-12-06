@@ -12,6 +12,7 @@ import { $isRootNode, LexicalEditor } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -75,6 +76,33 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
       }),
     );
     this.registerMarkdown();
+    this.registerLiteXml();
+  }
+
+  registerLiteXml() {
+    const litexmlService = this.kernel.requireService(ILitexmlService);
+    if (!litexmlService) {
+      return;
+    }
+
+    litexmlService.registerXMLWriter(ListNode.getType(), (node, ctx) => {
+      if ($isListNode(node)) {
+        const tagName = node.getListType() === 'number' ? 'ol' : 'ul';
+        const attributes: { [key: string]: string } = {};
+        if (node.getListType() === 'number' && node.getStart() !== 1) {
+          attributes.start = node.getStart().toString();
+        }
+        return ctx.createXmlNode(tagName, attributes);
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLWriter(ListItemNode.getType(), (node, ctx) => {
+      if ($isListItemNode(node)) {
+        return ctx.createXmlNode('li');
+      }
+      return false;
+    });
   }
 
   registerMarkdown() {

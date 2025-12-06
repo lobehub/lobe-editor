@@ -8,6 +8,7 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  LITEXML_APPLY_COMMAND,
   ReactAutoCompletePlugin,
   ReactCodePlugin,
   ReactCodeblockPlugin,
@@ -16,6 +17,7 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
+  ReactLiteXmlPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
   ReactToolbarPlugin,
@@ -185,6 +187,20 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           });
         },
       },
+
+      {
+        key: 'apply-litexml',
+        label: 'Apply LiteXML',
+        onSelect: (editor) => {
+          editor.dispatchCommand(LITEXML_APPLY_COMMAND, {
+            litexml:
+              '<root><span id="2" bold="true">replace</span><p id="444"><span>M</span></p></root>',
+          });
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
     ];
     return data.map((item) => {
       if (item.type === 'divider') return item;
@@ -223,6 +239,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         onTextChange={handleChange}
         placeholder={'Type something...'}
         plugins={[
+          ReactLiteXmlPlugin,
           ReactListPlugin,
           ReactLinkPlugin,
           ReactCodeblockPlugin,
