@@ -103,6 +103,43 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
       }
       return false;
     });
+
+    litexmlService.registerXMLReader('ol', (xmlNode, children) => {
+      return INodeHelper.createElementNode('list', {
+        children: children,
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        listType: 'number',
+        start: xmlNode.getAttribute('start')
+          ? parseInt(xmlNode.getAttribute('start') as string, 10)
+          : 1,
+        tag: 'ol',
+        version: 1,
+      });
+    });
+    litexmlService.registerXMLReader('ul', (xmlNode, children) => {
+      return INodeHelper.createElementNode('list', {
+        children: children,
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        listType: 'bullet',
+        start: 1,
+        tag: 'ul',
+        version: 1,
+      });
+    });
+    litexmlService.registerXMLReader('li', (xmlNode, children) => {
+      return INodeHelper.createElementNode('listitem', {
+        children: children,
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        type: 'listitem',
+        version: 1,
+      });
+    });
   }
 
   registerMarkdown() {
