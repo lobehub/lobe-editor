@@ -21,7 +21,7 @@ describe('Common Plugin Tests', () => {
       '<?xml version="1.0" encoding="UTF-8"?><p id="1"><span id="2">this is </span><span id="3" underline="true">underline</span><span id="4"> and this is </span><span id="5" underline="true">underline2</span></p>',
     );
     const markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('this is <ins>underline</ins> and this is <ins>underline2</ins>\n');
+    expect(markdown).toBe('this is <ins>underline</ins> and this is <ins>underline2</ins>\n\n');
   });
 
   it('should litexml writer work', () => {

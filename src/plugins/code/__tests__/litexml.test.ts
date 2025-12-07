@@ -27,7 +27,7 @@ describe('codeblock litexml', () => {
     editor.setDocument('markdown', '`123`');
     const xml = editor.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="4"><codeInline id="5"><span format="0" id="8">123</span></codeInline></p></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><p id="4"><codeInline id="5"><span id="8">123</span></codeInline></p></root>`,
     );
   });
 });

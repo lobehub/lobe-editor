@@ -255,7 +255,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     }
 
     markdownService.registerMarkdownWriter('paragraph', (ctx) => {
-      ctx.wrap('', '\n');
+      ctx.wrap('', '\n\n');
     });
     markdownService.registerMarkdownWriter('quote', (ctx, node) => {
       if ($isQuoteNode(node)) {

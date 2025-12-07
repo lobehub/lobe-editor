@@ -1,4 +1,4 @@
-export { LITEXML_APPLY_COMMAND } from './command';
+export { LITEXML_APPLY_COMMAND, LITEXML_INSERT_COMMAND,LITEXML_REMOVE_COMMAND } from './command';
 export { default as LitexmlDataSource } from './data-source/litexml-data-source';
 export type { LitexmlPluginOptions } from './plugin';
 export { LitexmlPlugin } from './plugin';
