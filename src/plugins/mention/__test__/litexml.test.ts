@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import Editor from '@/editor-kernel';
-import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { CommonPlugin } from '@/plugins/common';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
