@@ -103,6 +103,51 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       }
       return false;
     });
+
+    litexmlService.registerXMLReader('table', (xmlNode, children) => {
+      const colWidthsAttr = xmlNode.getAttribute('colWidths');
+      const colWidths = colWidthsAttr
+        ? colWidthsAttr.split(',').map((width) => parseInt(width, 10))
+        : [];
+      return INodeHelper.createElementNode(TableNode.getType(), {
+        children,
+        // eslint-disable-next-line unicorn/no-new-array
+        colWidths: colWidths.length > 0 ? colWidths : [750],
+        direction: null,
+        format: '',
+        indent: 0,
+        version: 1,
+      });
+    });
+
+    litexmlService.registerXMLReader('tr', (_xmlNode, children) => {
+      return INodeHelper.createElementNode(TableRowNode.getType(), {
+        children,
+        direction: 'ltr',
+        format: '',
+        height: 33,
+        indent: 0,
+        version: 1,
+      });
+    });
+
+    litexmlService.registerXMLReader('td', (xmlNode, children) => {
+      return INodeHelper.createElementNode(TableCellNode.getType(), {
+        backgroundColor: xmlNode.getAttribute('backgroundColor') || null,
+        children,
+        colSpan: xmlNode.getAttribute('colSpan')
+          ? parseInt(xmlNode.getAttribute('colSpan') as string, 10)
+          : 1,
+        direction: 'ltr',
+        format: '',
+        headerState: 0,
+        indent: 0,
+        rowSpan: xmlNode.getAttribute('rowSpan')
+          ? parseInt(xmlNode.getAttribute('rowSpan') as string, 10)
+          : 1,
+        version: 1,
+      });
+    });
   }
 
   registerMarkdown() {
