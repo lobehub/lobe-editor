@@ -99,12 +99,21 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
     litexmlService.registerXMLWriter(LinkNode.getType(), (node, ctx) => {
       if ($isLinkNode(node)) {
         const attributes: Record<string, string> = { href: node.getURL() };
-        if (node.getTitle()) {
-          attributes.title = node.getTitle()!;
-        }
         return ctx.createXmlNode('a', attributes);
       }
       return false;
+    });
+    litexmlService.registerXMLReader('a', (xmlNode, children) => {
+      const linkNode = INodeHelper.createElementNode('link', {
+        children,
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        type: 'link',
+        url: xmlNode.getAttribute('href') || '',
+        version: 1,
+      });
+      return [linkNode];
     });
   }
 
