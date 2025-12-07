@@ -1,14 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import Editor from '@/editor-kernel';
+import Editor, { moment } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
 import { LITEXML_INSERT_COMMAND, LITEXML_REMOVE_COMMAND, LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 import { IEditor } from '@/types';
-
-function moment() {
-  return new Promise((resolve) => queueMicrotask(() => resolve(true)));
-}
 
 describe('Common Plugin Tests', () => {
   let kernel: IEditor;

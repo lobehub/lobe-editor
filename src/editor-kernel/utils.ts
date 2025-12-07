@@ -161,3 +161,9 @@ export function $closestNodeType(
     Array.isArray(type) ? type.includes(n.getType()) : n.getType() === type,
   );
 }
+
+export function moment() {
+  return new Promise((resolve) => {
+    queueMicrotask(() => resolve(true));
+  });
+}
