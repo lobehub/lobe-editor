@@ -87,6 +87,20 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
       }
       return false;
     });
+
+    litexmlService.registerXMLReader('math', (xmlNode) => {
+      return INodeHelper.createElementNode(MathInlineNode.getType(), {
+        code: xmlNode.getAttribute('code') || '',
+        version: 1,
+      });
+    });
+
+    litexmlService.registerXMLReader('mathBlock', (xmlNode) => {
+      return INodeHelper.createElementNode(MathBlockNode.getType(), {
+        code: xmlNode.getAttribute('code') || '',
+        version: 1,
+      });
+    });
   }
 
   registerMarkdown() {
