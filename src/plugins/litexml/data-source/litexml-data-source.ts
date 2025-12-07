@@ -52,7 +52,6 @@ export default class LitexmlDataSource extends DataSource {
     const inode = this.xmlToLexical(xml);
 
     logger.debug('Parsed XML to Lexical State:', inode);
-    console.info(inode.root.children);
 
     return inode;
   }
@@ -145,7 +144,6 @@ export default class LitexmlDataSource extends DataSource {
 
     // Process XML root element's children
     const xmlRoot = xml.documentElement;
-    console.info('XML Root Element:', xmlRoot);
     if (xmlRoot) {
       this.processXMLElement(xmlRoot, rootNode);
     }
@@ -322,6 +320,8 @@ export default class LitexmlDataSource extends DataSource {
               this.nodesToXML(child, childLines, indent + 1);
             });
             lines.push(openTag, ...childLines, `${indentStr}${closeTag}`);
+          } else {
+            lines.push(openTag, `${indentStr}${closeTag}`);
           }
           return; // Custom writer handled it
         }

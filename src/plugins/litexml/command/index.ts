@@ -34,7 +34,6 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
       (payload) => {
         const { litexml } = payload;
         const inode = dataSource.readLiteXMLToInode(litexml);
-        console.info('Applying LiteXML Inode:', inode);
 
         editor.update(() => {
           let prevNode: LexicalNode | null = null;
