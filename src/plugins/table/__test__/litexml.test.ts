@@ -8,7 +8,7 @@ import { IEditor } from '@/types';
 
 import { TablePlugin } from '../plugin';
 
-describe('codeblock litexml', () => {
+describe('table litexml', () => {
   let editor: IEditor;
 
   beforeEach(() => {
