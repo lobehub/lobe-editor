@@ -5,23 +5,16 @@ import {
   LexicalEditor,
   LexicalUpdateJSON,
   NodeKey,
-  ParagraphNode,
-  RootNode,
-  SerializedEditor,
   SerializedLexicalNode,
   Spread,
-  TextNode,
-  createEditor,
 } from 'lexical';
 
 export interface ImagePayload {
   altText: string;
   caption?: LexicalEditor;
-  captionsEnabled?: boolean;
   height?: number;
   key?: NodeKey;
   maxWidth?: number;
-  showCaption?: boolean;
   src: string;
   width?: number;
 }
@@ -29,10 +22,8 @@ export interface ImagePayload {
 export type SerializedImageNode = Spread<
   {
     altText: string;
-    caption: SerializedEditor;
     height?: number;
     maxWidth: number;
-    showCaption: boolean;
     src: string;
     width?: number;
   },
@@ -45,10 +36,6 @@ export class BaseImageNode extends DecoratorNode<any> {
   __width: 'inherit' | number;
   __height: 'inherit' | number;
   __maxWidth: number;
-  __showCaption: boolean;
-  __caption: LexicalEditor;
-  // Captions cannot yet be used within editor cells
-  __captionsEnabled: boolean;
 
   static clone(node: BaseImageNode): BaseImageNode {
     return new BaseImageNode(
@@ -57,17 +44,14 @@ export class BaseImageNode extends DecoratorNode<any> {
       node.__maxWidth,
       node.__width,
       node.__height,
-      node.__showCaption,
-      node.__caption,
-      node.__captionsEnabled,
       node.__key,
     );
   }
 
   static importJSON(serializedNode: SerializedImageNode): BaseImageNode {
-    const { altText, height, width, maxWidth, src, showCaption } = serializedNode;
+    const { altText, height, width, maxWidth, src } = serializedNode;
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return new BaseImageNode(src, altText, maxWidth, width, height, showCaption);
+    return new BaseImageNode(src, altText, maxWidth, width, height);
   }
 
   static getType(): string {
@@ -76,13 +60,6 @@ export class BaseImageNode extends DecoratorNode<any> {
 
   updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedImageNode>): this {
     const node = super.updateFromJSON(serializedNode);
-    const { caption } = serializedNode;
-
-    const nestedEditor = node.__caption;
-    const editorState = nestedEditor.parseEditorState(caption.editorState);
-    if (!editorState.isEmpty()) {
-      nestedEditor.setEditorState(editorState);
-    }
     return node;
   }
 
@@ -101,9 +78,6 @@ export class BaseImageNode extends DecoratorNode<any> {
     maxWidth: number,
     width?: 'inherit' | number,
     height?: 'inherit' | number,
-    showCaption?: boolean,
-    caption?: LexicalEditor,
-    captionsEnabled?: boolean,
     key?: NodeKey,
   ) {
     super(key);
@@ -112,24 +86,14 @@ export class BaseImageNode extends DecoratorNode<any> {
     this.__maxWidth = maxWidth;
     this.__width = width || 'inherit';
     this.__height = height || 'inherit';
-    this.__showCaption = showCaption || false;
-    this.__caption =
-      caption ||
-      createEditor({
-        namespace: 'Playground/ImageNodeCaption',
-        nodes: [RootNode, TextNode, ParagraphNode],
-      });
-    this.__captionsEnabled = captionsEnabled || captionsEnabled === undefined;
   }
 
   exportJSON(): SerializedImageNode {
     return {
       ...super.exportJSON(),
       altText: this.getAltText(),
-      caption: this.__caption.toJSON(),
       height: this.__height === 'inherit' ? 0 : this.__height,
       maxWidth: this.__maxWidth,
-      showCaption: this.__showCaption,
       src: this.getSrc(),
       width: this.__width === 'inherit' ? 0 : this.__width,
     };
@@ -139,11 +103,6 @@ export class BaseImageNode extends DecoratorNode<any> {
     const writable = this.getWritable();
     writable.__width = width;
     writable.__height = height;
-  }
-
-  setShowCaption(showCaption: boolean): void {
-    const writable = this.getWritable();
-    writable.__showCaption = showCaption;
   }
 
   override isInline(): boolean {

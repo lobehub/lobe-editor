@@ -139,7 +139,7 @@ export function compareNodeOrder(nodeA: LexicalNode, nodeB: LexicalNode): number
   return 0;
 }
 
-export function closest(
+export function $closest(
   node: LexicalNode | ElementNode | null,
   test: (node: LexicalNode) => boolean,
 ): LexicalNode | null {
@@ -157,7 +157,13 @@ export function $closestNodeType(
   node: LexicalNode | ElementNode | null,
   type: string | string[],
 ): LexicalNode | null {
-  return closest(node, (n) =>
+  return $closest(node, (n) =>
     Array.isArray(type) ? type.includes(n.getType()) : n.getType() === type,
   );
+}
+
+export function moment() {
+  return new Promise((resolve) => {
+    queueMicrotask(() => resolve(true));
+  });
 }

@@ -2,6 +2,7 @@ import { DecoratorNode, LexicalEditor } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -46,6 +47,29 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
   onInit(editor: LexicalEditor): void {
     this.register(registerHorizontalRuleCommand(editor));
 
+    this.registerMarkdown();
+    this.registerLiteXml();
+  }
+
+  registerLiteXml() {
+    const litexmlService = this.kernel.requireService(ILitexmlService);
+    if (!litexmlService) {
+      return;
+    }
+
+    litexmlService.registerXMLWriter(HorizontalRuleNode.getType(), (node, ctx) => {
+      if ($isHorizontalRuleNode(node)) {
+        return ctx.createXmlNode('hr', {});
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLReader('hr', () => {
+      return INodeHelper.createElementNode(HorizontalRuleNode.getType(), {});
+    });
+  }
+
+  registerMarkdown() {
     this.kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
       regExp: /^(---|\*\*\*|___)$/,
       replace: (parentNode, _1, _2, isImport) => {

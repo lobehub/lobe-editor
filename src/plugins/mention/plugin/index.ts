@@ -2,7 +2,9 @@ import { DecoratorNode, LexicalEditor } from 'lexical';
 import { Html } from 'mdast';
 
 import { INode } from '@/editor-kernel/inode';
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import {
   IMarkdownShortCutService,
   MARKDOWN_READER_LEVEL_HIGH,
@@ -17,7 +19,7 @@ import { registerMentionNodeSelectionObserver } from './register';
 export interface MentionPluginOptions {
   decorator: (node: MentionNode, editor: LexicalEditor) => any;
   markdownReader?: (node: Html, children: INode[]) => SerializedMentionNode | null | false;
-  markdownWriter?: (file: MentionNode) => string;
+  markdownWriter?: (mention: MentionNode) => string;
   theme?: {
     mention?: string;
   };
@@ -53,6 +55,33 @@ export const MentionPlugin: IEditorPluginConstructor<MentionPluginOptions> = cla
     this.register(registerMentionNodeSelectionObserver(editor));
 
     this.registerMarkdown();
+    this.registerLiteXml();
+  }
+
+  private registerLiteXml() {
+    this.kernel
+      .requireService(ILitexmlService)
+      ?.registerXMLWriter(MentionNode.getType(), (node, ctx) => {
+        if ($isMentionNode(node)) {
+          const attributes: { [key: string]: string } = {
+            label: node.label,
+          };
+          if (node.metadata && Object.keys(node.metadata).length > 0) {
+            attributes.metadata = JSON.stringify(node.metadata);
+          }
+          return ctx.createXmlNode('mention', attributes);
+        }
+        return false;
+      });
+
+    this.kernel.requireService(ILitexmlService)?.registerXMLReader('mention', (xmlNode) => {
+      return INodeHelper.createElementNode(MentionNode.getType(), {
+        label: xmlNode.getAttribute('label') || '',
+        metadata: xmlNode.getAttribute('metadata')
+          ? JSON.parse(xmlNode.getAttribute('metadata')!)
+          : {},
+      });
+    });
   }
 
   private registerMarkdown() {

@@ -10,6 +10,7 @@ export * from './plugins/image';
 export * from './plugins/link';
 export * from './plugins/link-highlight';
 export * from './plugins/list';
+export * from './plugins/litexml';
 export * from './plugins/markdown';
 export * from './plugins/math';
 export * from './plugins/mention';

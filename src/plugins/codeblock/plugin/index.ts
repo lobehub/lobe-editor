@@ -19,6 +19,7 @@ import {
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -150,6 +151,56 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
       ),
     );
     this.registerMarkdown();
+    this.registerLiteXml();
+  }
+
+  registerLiteXml() {
+    const litexmlService = this.kernel.requireService(ILitexmlService);
+    if (!litexmlService) {
+      return;
+    }
+
+    litexmlService.registerXMLWriter(CodeNode.getType(), (node, ctx) => {
+      const codeNode = node as CodeNode;
+      const xmlNode = ctx.createXmlNode(
+        'code',
+        {
+          lang: codeNode.getLanguage() || 'plaintext',
+        },
+        codeNode.getTextContent(),
+      );
+      return xmlNode;
+    });
+
+    litexmlService.registerXMLReader('code', (xmlElment: Element, children: any[]) => {
+      const text = children.map((v) => v.text || '').join('');
+      return INodeHelper.createElementNode(CodeNode.getType(), {
+        children: text
+          .split('\n')
+          .flatMap((text, index, arr) => {
+            const textNode = INodeHelper.createTextNode(text);
+            textNode.type = 'code-highlight';
+            if (index === arr.length - 1) {
+              return textNode;
+            }
+            return [
+              textNode,
+              {
+                type: 'linebreak',
+                version: 1,
+              },
+            ];
+          })
+          .flat(),
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        language: xmlElment.getAttribute('lang'),
+        textStyle: '--shiki-dark:var(--color-info);--shiki-light:var(--color-info)',
+        theme: `${toMarkdownTheme(this.config?.shikiTheme)} needUpdate`,
+        version: 1,
+      });
+    });
   }
 
   registerMarkdown() {
