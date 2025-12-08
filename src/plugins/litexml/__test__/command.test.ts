@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor, { moment } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
-import { LITEXML_INSERT_COMMAND, LITEXML_REMOVE_COMMAND, LitexmlPlugin } from '@/plugins/litexml';
+import {
+  LITEXML_APPLY_COMMAND,
+  LITEXML_INSERT_COMMAND,
+  LITEXML_REMOVE_COMMAND,
+  LitexmlPlugin,
+} from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 import { IEditor } from '@/types';
 
@@ -15,6 +20,21 @@ describe('Common Plugin Tests', () => {
     kernel.initNodeEditor();
   });
 
+  it('should LITEXML_APPLY_COMMAND work', async () => {
+    kernel.setDocument(
+      'markdown',
+      '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+    );
+    kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
+      litexml: ['<span id="2">ModifiedText</span>', '<span id="4">THIS IS </span>'],
+    });
+    await moment();
+    const markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe(
+      '# ModifiedText\n\nTHIS IS <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+    );
+  });
+
   it('should LITEXML_INSERT_COMMAND work', async () => {
     kernel.setDocument(
       'markdown',
@@ -22,7 +42,7 @@ describe('Common Plugin Tests', () => {
     );
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       litexml: '<p><span bold="true">InsertedText</span></p>',
-      afterId: '1',
+      afterId: '10',
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
@@ -37,7 +57,7 @@ describe('Common Plugin Tests', () => {
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
     kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-      id: '10',
+      id: '19',
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
