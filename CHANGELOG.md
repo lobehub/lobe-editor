@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.30.0](https://github.com/lobehub/lobe-editor/compare/v1.29.0...v1.30.0)
+<sup>Released on **2025-12-08**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add Litexml plugin for XML data source support.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add Litexml plugin for XML data source support, closes [#72](https://github.com/lobehub/lobe-editor/issues/72) ([fc744a8](https://github.com/lobehub/lobe-editor/commit/fc744a8))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.29.0](https://github.com/lobehub/lobe-editor/compare/v1.28.1...v1.29.0)
 <sup>Released on **2025-12-05**</sup>
 
