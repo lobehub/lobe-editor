@@ -81,7 +81,7 @@ export default defineConfig({
   apiParser: isProduction ? {} : false,
   base: '/',
   define: {
-    'process.env.DEBUG': process.env.DEBUG,
+    'process.env.DEBUG': isProduction ? undefined : process.env.DEBUG,
     'process.env.NODE_ENV': process.env.NODE_ENV,
   },
   exportStatic: {},
