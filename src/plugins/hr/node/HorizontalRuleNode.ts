@@ -61,7 +61,17 @@ export class HorizontalRuleNode extends DecoratorNode<any> {
   }
 
   decorate(editor: LexicalEditor): any {
-    return getKernelFromEditor(editor)?.getDecorator('horizontalrule')?.(this, editor) || null;
+    const decorator = getKernelFromEditor(editor)?.getDecorator('horizontalrule');
+    if (!decorator) {
+      return null;
+    }
+    if (typeof decorator === 'function') {
+      return decorator(this, editor);
+    }
+    return {
+      queryDOM: decorator.queryDOM,
+      render: decorator.render(this, editor),
+    };
   }
 }
 

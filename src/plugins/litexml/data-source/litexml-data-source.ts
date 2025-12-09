@@ -51,7 +51,7 @@ export default class LitexmlDataSource extends DataSource {
     const xml = this.parseXMLString(litexml);
     const inode = this.xmlToLexical(xml);
 
-    logger.debug('Parsed XML to Lexical State:', inode);
+    console.log('Parsed XML to Lexical State:', JSON.stringify(inode, null, 2));
 
     return inode;
   }

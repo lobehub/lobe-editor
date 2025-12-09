@@ -1,11 +1,11 @@
-import { DecoratorNode, LexicalEditor } from 'lexical';
+import { LexicalEditor, LexicalNode } from 'lexical';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Kernel } from '../kernel';
 
 describe('Decorator Registration Tests', () => {
   let kernel: Kernel;
-  let mockDecorator: (node: DecoratorNode<any>, editor: LexicalEditor) => any;
+  let mockDecorator: (node: LexicalNode, editor: LexicalEditor) => any;
 
   beforeEach(() => {
     kernel = new Kernel();

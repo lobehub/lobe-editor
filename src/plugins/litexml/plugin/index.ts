@@ -1,16 +1,18 @@
-import { LexicalEditor } from 'lexical';
+import { LexicalEditor, LexicalNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerLiteXMLCommand } from '../command';
 import LitexmlDataSource from '../data-source/litexml-data-source';
+import { DiffNode } from '../node/DiffNode';
 import { ILitexmlService, LitexmlService } from '../service/litexml-service';
 
 /**
  * LitexmlPluginOptions - Configuration options for the Litexml plugin
  */
 export interface LitexmlPluginOptions {
+  decorator: (node: DiffNode, editor: LexicalEditor) => any;
   /**
    * Enable or disable the litexml data source
    * @default true
@@ -39,6 +41,15 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     const litexmlService = new LitexmlService();
     kernel.registerService(ILitexmlService, litexmlService);
     this.datasource = new LitexmlDataSource('litexml', litexmlService);
+
+    // register diff node type
+    kernel.registerNodes([DiffNode]);
+    kernel.registerDecorator(DiffNode.getType(), {
+      queryDOM: (el: HTMLElement) => el.querySelector('.toolbar')!,
+      render: (node: LexicalNode, editor: LexicalEditor) => {
+        return config?.decorator ? config.decorator(node as DiffNode, editor) : null;
+      },
+    });
 
     // Register the litexml data source
     if (config?.enabled !== false) {

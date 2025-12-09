@@ -3,10 +3,10 @@ import type {
   CommandListener,
   CommandListenerPriority,
   CommandPayloadType,
-  DecoratorNode,
   EditorState,
   LexicalCommand,
   LexicalEditor,
+  LexicalNode,
   LexicalNodeConfig,
 } from 'lexical';
 
@@ -18,6 +18,14 @@ import type { ILocaleKeys } from './locale';
 
 export type Commands = Map<LexicalCommand<unknown>, Array<Set<CommandListener<unknown>>>>;
 export type CommandsClean = Map<LexicalCommand<unknown>, () => void>;
+
+export type IDecoratorFunc = (_node: LexicalNode, _editor: LexicalEditor) => any;
+export type IDecorator =
+  | {
+      queryDOM: (_element: HTMLElement) => HTMLElement;
+      render: IDecoratorFunc;
+    }
+  | IDecoratorFunc;
 
 /**
  * Service ID type
@@ -246,9 +254,7 @@ export interface IEditorKernel extends IEditor {
    * Get editor Node decorator for specific Node rendering
    * @param name
    */
-  getDecorator(
-    name: string,
-  ): ((_node: DecoratorNode<any>, _editor: LexicalEditor) => any) | undefined;
+  getDecorator(name: string): IDecorator | undefined;
   /**
    * Get editor history state
    */
@@ -271,10 +277,7 @@ export interface IEditorKernel extends IEditor {
    * @param name
    * @param decorator
    */
-  registerDecorator(
-    name: string,
-    decorator: (_node: DecoratorNode<any>, _editor: LexicalEditor) => any,
-  ): void;
+  registerDecorator(name: string, decorator: IDecorator): void;
   /**
    * Register Lexical Node
    * @param nodes

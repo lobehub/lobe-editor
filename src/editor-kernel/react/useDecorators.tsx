@@ -30,9 +30,16 @@ export function useDecorators(
   editor: IEditor,
   ErrorBoundary: ErrorBoundaryType,
 ): Array<JSX.Element> {
-  const [decorators, setDecorators] = useState<Record<NodeKey, JSX.Element>>(
-    () => editor.getLexicalEditor()?.getDecorators<JSX.Element>() || {},
-  );
+  const [decorators, setDecorators] = useState<
+    Record<
+      NodeKey,
+      | JSX.Element
+      | {
+          queryDom: (_element: HTMLElement) => HTMLElement;
+          render: JSX.Element;
+        }
+    >
+  >(() => editor.getLexicalEditor()?.getDecorators<JSX.Element>() || {});
 
   // Subscribe to changes
   useLayoutEffectImpl(() => {
@@ -73,15 +80,24 @@ export function useDecorators(
     const decoratorKeys = Object.keys(decorators);
 
     for (const nodeKey of decoratorKeys) {
+      const decorator = decorators[nodeKey];
       const reactDecorator = (
         <ErrorBoundary onError={(e) => editor.getLexicalEditor()?._onError(e)}>
-          <Suspense fallback={null}>{decorators[nodeKey]}</Suspense>
+          <Suspense fallback={null}>
+            {'render' in decorator ? decorator.render : decorator}
+          </Suspense>
         </ErrorBoundary>
       );
       const element = editor.getLexicalEditor()?.getElementByKey(nodeKey);
 
       if (element !== null && element !== undefined) {
-        decoratedPortals.push(createPortal(reactDecorator, element, nodeKey));
+        decoratedPortals.push(
+          createPortal(
+            reactDecorator,
+            'queryDom' in decorator ? decorator.queryDom(element) : element,
+            nodeKey,
+          ),
+        );
       }
     }
 
