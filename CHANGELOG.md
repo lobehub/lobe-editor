@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.31.0](https://github.com/lobehub/lobe-editor/compare/v1.30.0...v1.31.0)
+<sup>Released on **2025-12-09**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Enhance `LITEXML_APPLY_COMMAND` to support multiple XML inputs.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Enhance `LITEXML_APPLY_COMMAND` to support multiple XML inputs, closes [#75](https://github.com/lobehub/lobe-editor/issues/75) ([adb316d](https://github.com/lobehub/lobe-editor/commit/adb316d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.30.0](https://github.com/lobehub/lobe-editor/compare/v1.29.0...v1.30.0)
 <sup>Released on **2025-12-08**</sup>
 
