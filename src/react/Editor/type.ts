@@ -12,8 +12,7 @@ interface MentionOption extends Partial<ReactSlashOptionProps> {
 }
 
 export interface EditorProps
-  extends Partial<ReactEditorContentProps>,
-    Omit<ReactPlainTextProps, 'theme' | 'children'> {
+  extends Partial<ReactEditorContentProps>, Omit<ReactPlainTextProps, 'children'> {
   autoFocus?: boolean;
   children?: ReactNode;
   className?: string;
