@@ -1,8 +1,10 @@
 import { LexicalEditor } from 'lexical';
 import type { JSX } from 'react';
 
+import { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { INodeService } from '@/plugins/inode';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
@@ -48,6 +50,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
 
     this.registerMarkdown();
     this.registerLiteXml();
+    this.registerINode();
     this.registerUpload(editor);
   }
 
@@ -135,6 +138,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
   }
 
   private registerMarkdown() {
+    const defaultBlockImage = this.config?.defaultBlockImage ?? false;
     const markdownService = this.kernel.requireService(IMarkdownShortCutService);
     if (!markdownService) {
       return;
@@ -153,11 +157,43 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     markdownService.registerMarkdownReader('image', (node) => {
       const altText = node.alt;
       const src = node.url;
-      return INodeHelper.createTypeNode(ImageNode.getType(), {
-        altText,
-        showCaption: false,
-        src,
-        version: 1,
+      return INodeHelper.createTypeNode(
+        defaultBlockImage ? BlockImageNode.getType() : ImageNode.getType(),
+        {
+          altText,
+          showCaption: false,
+          src,
+          version: 1,
+        },
+      );
+    });
+  }
+
+  private registerINode() {
+    const service = this.kernel.requireService(INodeService);
+    if (!service) {
+      return;
+    }
+
+    service.registerProcessNodeTree(({ root }) => {
+      // Process the root node
+      const loopNodes = (node: INode) => {
+        if ('children' in node && Array.isArray(node.children)) {
+          if (
+            node.type === 'paragraph' &&
+            node.children.length === 1 &&
+            node.children[0].type === BlockImageNode.getType()
+          ) {
+            return node.children[0];
+          }
+          node.children = node.children.map((child) => {
+            return loopNodes(child);
+          });
+        }
+        return node;
+      };
+      root.children = root.children.map((child) => {
+        return loopNodes(child);
       });
     });
   }

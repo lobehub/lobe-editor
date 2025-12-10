@@ -8,6 +8,7 @@ import { type FC, useLayoutEffect } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
+import { INodePlugin } from '@/plugins/inode';
 
 import { INSERT_MARKDOWN_COMMAND } from '../command';
 import { MarkdownPlugin } from '../plugin';
@@ -18,6 +19,7 @@ const ReactMarkdownPlugin: FC<void> = () => {
   const t = useTranslation();
 
   useLayoutEffect(() => {
+    editor.registerPlugin(INodePlugin);
     editor.registerPlugin(MarkdownPlugin);
     const handleEvent = ({
       markdown,
