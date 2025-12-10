@@ -25,7 +25,6 @@ describe('Common Plugin Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
-    console.info(kernel.getDocument('litexml'));
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
       litexml: ['<span id="lqqe">ModifiedText</span>', '<span id="m1v0">THIS IS </span>'],
     });
