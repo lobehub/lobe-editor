@@ -15,7 +15,7 @@ import { $isBlockImageNode, BlockImageNode } from '../node/block-image-node';
 import { $isImageNode, ImageNode } from '../node/image-node';
 
 export interface ImagePluginOptions {
-  defaultBlockImage?: boolean;
+  defaultBlockImage?: boolean; // default: true
   handleUpload: (file: File) => Promise<{ url: string }>;
   renderImage: (node: ImageNode | BlockImageNode) => JSX.Element | null;
   theme?: {
@@ -45,7 +45,11 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     this.register(
-      registerImageCommand(editor, this.config!.handleUpload, this.config?.defaultBlockImage),
+      registerImageCommand(
+        editor,
+        this.config!.handleUpload,
+        this.config?.defaultBlockImage !== false,
+      ),
     );
 
     this.registerMarkdown();
@@ -65,7 +69,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
       const imageWidth = await this.getImageWidth(file);
 
       return editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-        block: this.config?.defaultBlockImage,
+        block: this.config?.defaultBlockImage !== false,
         file,
         maxWidth: imageWidth,
         range,
@@ -138,7 +142,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
   }
 
   private registerMarkdown() {
-    const defaultBlockImage = this.config?.defaultBlockImage ?? false;
+    const defaultBlockImage = this.config?.defaultBlockImage !== false;
     const markdownService = this.kernel.requireService(IMarkdownShortCutService);
     if (!markdownService) {
       return;
