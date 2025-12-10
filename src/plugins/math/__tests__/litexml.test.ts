@@ -30,7 +30,7 @@ describe('math litexml', () => {
     editor.setDocument('markdown', '$$E=mc^2$$');
     const xml = editor.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="3"><math id="4" code="$E=mc^2$"></math></p></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><p id="lwap"><math id="m1v0" code="$E=mc^2$"></math></p></root>`,
     );
   });
 });

@@ -40,6 +40,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
         editor.update(() => {
           arrayXml.forEach((xml) => {
             const inode = dataSource.readLiteXMLToInode(xml);
+            console.info('inode', JSON.stringify(inode, null, 2));
             let prevNode: LexicalNode | null = null;
             inode.root.children.forEach((child: any) => {
               try {
