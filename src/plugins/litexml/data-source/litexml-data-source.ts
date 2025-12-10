@@ -6,6 +6,8 @@ import { $getRoot, $getSelection, $isElementNode, $isRangeSelection } from 'lexi
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
+import { INodeService } from '@/plugins/inode';
+import { IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import type { ILitexmlService, IWriterContext, IXmlNode } from '../service/litexml-service';
@@ -38,6 +40,7 @@ export default class LitexmlDataSource extends DataSource {
 
   constructor(
     protected dataType: string = 'litexml',
+    protected getService?: <T>(serviceId: IServiceID<T>) => T | null,
     service?: ILitexmlService,
   ) {
     super(dataType);
@@ -51,6 +54,7 @@ export default class LitexmlDataSource extends DataSource {
     const xml = this.parseXMLString(litexml);
     const inode = this.xmlToLexical(xml);
 
+    this.getService?.(INodeService)?.processNodeTree(inode);
     logger.debug('Parsed XML to Lexical State:', inode);
 
     return inode;

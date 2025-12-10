@@ -3,21 +3,19 @@
 import { type FC, useLayoutEffect } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react';
-import { INodePlugin } from '@/plugins/inode';
 
-import { LitexmlPlugin } from '../plugin';
+import { INodePlugin } from '../plugin';
 
-export const ReactLiteXmlPlugin: FC<void> = () => {
+export const ReactNodePlugin: FC<void> = () => {
   const [editor] = useLexicalComposerContext();
 
   useLayoutEffect(() => {
     editor.registerPlugin(INodePlugin);
-    editor.registerPlugin(LitexmlPlugin);
   }, [editor]);
 
   return null;
 };
 
-ReactLiteXmlPlugin.displayName = 'ReactLiteXmlPlugin';
+ReactNodePlugin.displayName = 'ReactNodePlugin';
 
-export default ReactLiteXmlPlugin;
+export default ReactNodePlugin;

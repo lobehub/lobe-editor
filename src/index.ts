@@ -7,6 +7,7 @@ export * from './plugins/common';
 export * from './plugins/file';
 export * from './plugins/hr';
 export * from './plugins/image';
+export * from './plugins/inode';
 export * from './plugins/link';
 export * from './plugins/link-highlight';
 export * from './plugins/list';

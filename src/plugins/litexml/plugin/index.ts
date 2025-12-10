@@ -1,7 +1,7 @@
 import { LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 
 import { registerLiteXMLCommand } from '../command';
 import LitexmlDataSource from '../data-source/litexml-data-source';
@@ -38,7 +38,13 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     // Create and register the Litexml service
     const litexmlService = new LitexmlService();
     kernel.registerService(ILitexmlService, litexmlService);
-    this.datasource = new LitexmlDataSource('litexml', litexmlService);
+    this.datasource = new LitexmlDataSource(
+      'litexml',
+      <T>(serviceId: IServiceID<T>) => {
+        return kernel.requireService(serviceId);
+      },
+      litexmlService,
+    );
 
     // Register the litexml data source
     if (config?.enabled !== false) {
