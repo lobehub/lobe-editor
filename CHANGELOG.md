@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.33.0](https://github.com/lobehub/lobe-editor/compare/v1.32.0...v1.33.0)
+<sup>Released on **2025-12-10**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Update litexml test cases with new ID generation logic.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Update litexml test cases with new ID generation logic ([78a1488](https://github.com/lobehub/lobe-editor/commit/78a1488))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.32.0](https://github.com/lobehub/lobe-editor/compare/v1.31.2...v1.32.0)
 <sup>Released on **2025-12-10**</sup>
 
