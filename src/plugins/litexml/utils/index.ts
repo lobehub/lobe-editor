@@ -26,3 +26,18 @@ export function $parseSerializedNodeImpl(serializedNode: any, editor: LexicalEdi
 
   return node;
 }
+
+const maxId = 1_679_616; // 36^4
+const startId = 1_000_000; // to avoid short ids
+const step = 7211; // a prime number to reduce collisions
+const modInverse = 1_394_051; // modular inverse of step mod maxId
+
+export function idToChar(id: string | number): string {
+  const nId = (Number(id) * step + startId) % maxId;
+  return nId.toString(36).padStart(4, '0');
+}
+
+export function charToId(char: string): string {
+  const nId = parseInt(char, 36);
+  return String(((nId - startId + maxId) * modInverse) % maxId);
+}

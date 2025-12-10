@@ -62,7 +62,7 @@ describe('mention litexml', () => {
     editor.setDocument('markdown', '<mention>xxx[123]</mention>');
     const xml = editor.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="3"><mention id="4" label="xxx" metadata="{&quot;id&quot;:&quot;123&quot;}"></mention></p></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><p id="lwap"><mention id="m1v0" label="xxx" metadata="{&quot;id&quot;:&quot;123&quot;}"></mention></p></root>`,
     );
   });
 });
