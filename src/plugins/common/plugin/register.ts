@@ -1,5 +1,5 @@
 import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code';
-import { $isHeadingNode } from '@lexical/rich-text';
+import { $isHeadingNode, QuoteNode } from '@lexical/rich-text';
 import { mergeRegister } from '@lexical/utils';
 import {
   $createNodeSelection,
@@ -15,6 +15,7 @@ import {
   $isTextNode,
   $setSelection,
   COMMAND_PRIORITY_EDITOR,
+  COMMAND_PRIORITY_LOW,
   COMMAND_PRIORITY_NORMAL,
   ElementNode,
   FORMAT_TEXT_COMMAND,
@@ -30,6 +31,7 @@ import {
   UNDO_COMMAND,
 } from 'lexical';
 
+import { $closest } from '@/editor-kernel';
 import { IEditor } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 
@@ -305,6 +307,46 @@ export function registerRichKeydown(
         return false;
       },
       COMMAND_PRIORITY_EDITOR,
+    ),
+    kernel.registerHighCommand<KeyboardEvent>(
+      KEY_ARROW_DOWN_COMMAND,
+      (event) => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          if (!selection.isCollapsed()) {
+            return false;
+          }
+          const focusNode = selection.focus.getNode();
+          const quotaNode = $closest(
+            focusNode,
+            (node) => node.getType() === QuoteNode.getType(),
+          ) as QuoteNode | null;
+          if (!quotaNode) {
+            return false;
+          }
+
+          if (quotaNode.getNextSibling()) {
+            return false;
+          }
+
+          const lastChild = quotaNode.getLastChild();
+          if (!lastChild) {
+            return false;
+          }
+          if (!$closest(focusNode, (node) => node === lastChild)) {
+            return false;
+          }
+          event.preventDefault();
+          editor.update(() => {
+            const paragraph = $createParagraphNode();
+            quotaNode.insertAfter(paragraph);
+            paragraph.select();
+          });
+          return true;
+        }
+        return false;
+      },
+      COMMAND_PRIORITY_LOW,
     ),
     kernel.registerHighCommand<KeyboardEvent>(
       KEY_ARROW_DOWN_COMMAND,
