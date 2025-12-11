@@ -13,6 +13,64 @@
 
 #### 🐛 Bug Fixes
 
+- **misc**: Fix build, Fix publish.
+
+
+#### 💄 Styles
+
+- **misc**: Update hotkey.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add handling for arrow down key in quote nodes, closes [#79](https://github.com/lobehub/lobe-editor/issues/79) ([fd5cf57](https://github.com/lobehub/lobe-editor/commit/fd5cf57))
+* **misc**: Add INode plugin and integrate with existing plugins, closes [#80](https://github.com/lobehub/lobe-editor/issues/80) ([0e0a398](https://github.com/lobehub/lobe-editor/commit/0e0a398))
+* **misc**: Bump new --force-patch ([9e5d935](https://github.com/lobehub/lobe-editor/commit/9e5d935))
+* **misc**: Update litexml test cases with new ID generation logic ([78a1488](https://github.com/lobehub/lobe-editor/commit/78a1488))
+* **misc**: Update litexml test cases with new ID generation logic, closes [#81](https://github.com/lobehub/lobe-editor/issues/81) ([e25a881](https://github.com/lobehub/lobe-editor/commit/e25a881))
+
+
+
+#### What's fixed
+
+* **misc**: Fix build ([d0ea8e3](https://github.com/lobehub/lobe-editor/commit/d0ea8e3))
+* **misc**: Fix publish ([c67ef2a](https://github.com/lobehub/lobe-editor/commit/c67ef2a))
+
+
+
+#### Styles
+
+* **misc**: Update hotkey ([c36886d](https://github.com/lobehub/lobe-editor/commit/c36886d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;1.32.0](https://github.com/lobehub/lobe-editor/compare/v1.31.2...v1.32.0)
+<sup>Released on **2025-12-11**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add handling for arrow down key in quote nodes, Add INode plugin and integrate with existing plugins, Bump new --force-patch, Update litexml test cases with new ID generation logic, Update litexml test cases with new ID generation logic.
+
+
+#### 🐛 Bug Fixes
+
 - **misc**: Fix build.
 
 
