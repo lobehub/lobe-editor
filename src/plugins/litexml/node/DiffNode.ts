@@ -72,16 +72,13 @@ export class DiffNode extends CardLikeElementNode {
   }
 
   createDOM(config: EditorConfig, editor: LexicalEditor) {
-    console.info('__config', config);
-    /**
-     * div.ne-diff
-     *  div.toolbar
-     *  div.content
-     */
     const el = document.createElement('div');
     el.contentEditable = 'false';
     el.dataset.lexicalKey = this.getKey();
     el.classList.add('ne-diff');
+    if (config.theme.diffNode) {
+      el.classList.add(config.theme.diffNode);
+    }
     const toolbar = document.createElement('div');
     toolbar.className = 'toolbar';
     toolbar.dataset.lexicalDecorator = 'true';

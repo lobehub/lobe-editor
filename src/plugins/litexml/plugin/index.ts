@@ -4,6 +4,7 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerLiteXMLCommand } from '../command';
+import { registerLiteXMLDiffCommand } from '../command/diffCommand';
 import LitexmlDataSource from '../data-source/litexml-data-source';
 import { DiffNode } from '../node/DiffNode';
 import { ILitexmlService, LitexmlService } from '../service/litexml-service';
@@ -18,6 +19,7 @@ export interface LitexmlPluginOptions {
    * @default true
    */
   enabled?: boolean;
+  theme?: string;
 }
 
 /**
@@ -36,6 +38,10 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     public config?: LitexmlPluginOptions,
   ) {
     super();
+
+    kernel.registerThemes({
+      diffNode: config?.theme || 'editor_diffNode',
+    });
 
     // Create and register the Litexml service
     const litexmlService = new LitexmlService();
@@ -59,6 +65,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
 
   onInit(editor: LexicalEditor): void {
     // Plugin initialization logic can be added here if needed
-    registerLiteXMLCommand(editor, this.datasource);
+    this.register(registerLiteXMLCommand(editor, this.datasource));
+    this.register(registerLiteXMLDiffCommand(editor));
   }
 };
