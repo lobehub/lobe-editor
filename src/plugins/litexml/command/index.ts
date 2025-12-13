@@ -47,8 +47,8 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
                 try {
                   const oldNode = $getNodeByKey(child.id);
                   const newNode = $parseSerializedNodeImpl(child, editor);
-                  const diffNode = $createDiffNode();
                   if (oldNode) {
+                    const diffNode = $createDiffNode('modify');
                     const oldBlock = $closest(oldNode, (node) => node.isInline() === false);
                     if (!oldBlock) {
                       throw new Error('Old block node not found for diffing.');
@@ -62,22 +62,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
                     diffNode.append($cloneNode(newBlock, editor));
                     newBlock.replace(diffNode, false);
                   } else {
-                    if (prevNode) {
-                      if (!newNode.isInline()) {
-                        const prevBlock = $closest(prevNode, (node) => node.isInline() === false);
-                        if (prevBlock) {
-                          prevNode = prevBlock.insertAfter(newNode);
-                        } else {
-                          $insertNodes([newNode]);
-                          prevNode = newNode;
-                        }
-                      } else {
-                        prevNode = prevNode.insertAfter(newNode);
-                      }
-                    } else {
-                      $insertNodes([newNode]);
-                      prevNode = newNode;
-                    }
+                    console.warn(`Node with key ${child.id} not found for diffing.`);
                   }
                 } catch (error) {
                   console.error('Error replacing node:', error);
