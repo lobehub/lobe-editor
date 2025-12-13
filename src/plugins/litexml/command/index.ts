@@ -12,9 +12,10 @@ import {
 import { $closest } from '@/editor-kernel';
 
 import type LitexmlDataSource from '../data-source/litexml-data-source';
-import { $parseSerializedNodeImpl } from '../utils';
+import { $createDiffNode } from '../node/DiffNode';
+import { $cloneNode, $parseSerializedNodeImpl } from '../utils';
 
-export const LITEXML_APPLY_COMMAND = createCommand<{ litexml: string | string[] }>(
+export const LITEXML_APPLY_COMMAND = createCommand<{ delay?: boolean; litexml: string | string[] }>(
   'LITEXML_APPLY_COMMAND',
 );
 export const LITEXML_REMOVE_COMMAND = createCommand<{ id: string }>('LITEXML_REMOVE_COMMAND');
@@ -34,44 +35,92 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
     editor.registerCommand(
       LITEXML_APPLY_COMMAND,
       (payload) => {
-        const { litexml } = payload;
+        const { litexml, delay } = payload;
         const arrayXml = Array.isArray(litexml) ? litexml : [litexml];
 
-        editor.update(() => {
-          arrayXml.forEach((xml) => {
-            const inode = dataSource.readLiteXMLToInode(xml);
-            let prevNode: LexicalNode | null = null;
-            inode.root.children.forEach((child: any) => {
-              try {
-                const oldNode = $getNodeByKey(child.id);
-                const newNode = $parseSerializedNodeImpl(child, editor);
-                if (oldNode) {
-                  prevNode = oldNode.replace(newNode, $isElementNode(newNode));
-                } else {
-                  if (prevNode) {
-                    if (!newNode.isInline()) {
-                      const prevBlock = $closest(prevNode, (node) => node.isInline() === false);
-                      if (prevBlock) {
-                        prevNode = prevBlock.insertAfter(newNode);
+        if (delay) {
+          editor.update(() => {
+            arrayXml.forEach((xml) => {
+              const inode = dataSource.readLiteXMLToInode(xml);
+              let prevNode: LexicalNode | null = null;
+              inode.root.children.forEach((child: any) => {
+                try {
+                  const oldNode = $getNodeByKey(child.id);
+                  const newNode = $parseSerializedNodeImpl(child, editor);
+                  const diffNode = $createDiffNode();
+                  if (oldNode) {
+                    const oldBlock = $closest(oldNode, (node) => node.isInline() === false);
+                    if (!oldBlock) {
+                      throw new Error('Old block node not found for diffing.');
+                    }
+                    diffNode.append($cloneNode(oldBlock, editor));
+                    prevNode = oldNode.replace(newNode, $isElementNode(newNode));
+                    const newBlock = $closest(prevNode, (node) => node.isInline() === false);
+                    if (!newBlock) {
+                      throw new Error('New block node not found for diffing.');
+                    }
+                    diffNode.append($cloneNode(newBlock, editor));
+                    newBlock.replace(diffNode, false);
+                  } else {
+                    if (prevNode) {
+                      if (!newNode.isInline()) {
+                        const prevBlock = $closest(prevNode, (node) => node.isInline() === false);
+                        if (prevBlock) {
+                          prevNode = prevBlock.insertAfter(newNode);
+                        } else {
+                          $insertNodes([newNode]);
+                          prevNode = newNode;
+                        }
                       } else {
-                        $insertNodes([newNode]);
-                        prevNode = newNode;
+                        prevNode = prevNode.insertAfter(newNode);
                       }
                     } else {
-                      prevNode = prevNode.insertAfter(newNode);
+                      $insertNodes([newNode]);
+                      prevNode = newNode;
                     }
-                  } else {
-                    $insertNodes([newNode]);
-                    prevNode = newNode;
                   }
+                } catch (error) {
+                  console.error('Error replacing node:', error);
                 }
-              } catch (error) {
-                console.error('Error replacing node:', error);
-              }
+              });
             });
           });
-        });
-
+        } else {
+          editor.update(() => {
+            arrayXml.forEach((xml) => {
+              const inode = dataSource.readLiteXMLToInode(xml);
+              let prevNode: LexicalNode | null = null;
+              inode.root.children.forEach((child: any) => {
+                try {
+                  const oldNode = $getNodeByKey(child.id);
+                  const newNode = $parseSerializedNodeImpl(child, editor);
+                  if (oldNode) {
+                    prevNode = oldNode.replace(newNode, $isElementNode(newNode));
+                  } else {
+                    if (prevNode) {
+                      if (!newNode.isInline()) {
+                        const prevBlock = $closest(prevNode, (node) => node.isInline() === false);
+                        if (prevBlock) {
+                          prevNode = prevBlock.insertAfter(newNode);
+                        } else {
+                          $insertNodes([newNode]);
+                          prevNode = newNode;
+                        }
+                      } else {
+                        prevNode = prevNode.insertAfter(newNode);
+                      }
+                    } else {
+                      $insertNodes([newNode]);
+                      prevNode = newNode;
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error replacing node:', error);
+                }
+              });
+            });
+          });
+        }
         return false;
       },
       COMMAND_PRIORITY_EDITOR, // Priority

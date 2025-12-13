@@ -19,7 +19,7 @@ import { CardLikeElementNode } from '@/plugins/common/node/cursor';
 
 export type SerializedDiffNode = Spread<
   {
-    apply?: boolean;
+    diffType: 'add' | 'remove' | 'modify' | 'unchanged';
   },
   SerializedElementNode
 >;
@@ -31,7 +31,7 @@ export class DiffNode extends CardLikeElementNode {
   }
 
   static clone(node: DiffNode): DiffNode {
-    return new DiffNode(node.__key);
+    return new DiffNode(node.__diffType, node.__key);
   }
 
   static importJSON(serializedNode: SerializedDiffNode): DiffNode {
@@ -43,13 +43,26 @@ export class DiffNode extends CardLikeElementNode {
     return null;
   }
 
-  updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedDiffNode>): this {
-    return super.updateFromJSON(serializedNode);
+  private __diffType: 'add' | 'remove' | 'modify' | 'unchanged' = 'unchanged';
+
+  constructor(type: 'add' | 'remove' | 'modify' | 'unchanged', key?: string) {
+    super(key);
+    this.__diffType = type;
   }
 
-  exportJSON(): SerializedElementNode {
+  setDiffType(type: 'add' | 'remove' | 'modify' | 'unchanged'): this {
+    this.getWritable().__diffType = type;
+    return this;
+  }
+
+  updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedDiffNode>): this {
+    return super.updateFromJSON(serializedNode).setDiffType(serializedNode.diffType);
+  }
+
+  exportJSON(): SerializedDiffNode {
     return {
       ...super.exportJSON(),
+      diffType: this.__diffType,
       type: 'diff',
     };
   }
@@ -66,15 +79,18 @@ export class DiffNode extends CardLikeElementNode {
      *  div.content
      */
     const el = document.createElement('div');
+    el.contentEditable = 'false';
     el.dataset.lexicalKey = this.getKey();
     el.classList.add('ne-diff');
     const toolbar = document.createElement('div');
     toolbar.className = 'toolbar';
+    toolbar.dataset.lexicalDecorator = 'true';
     el.append(toolbar);
+
     const content = document.createElement('div');
     content.className = 'content';
-    content.contentEditable = 'false';
     el.append(content);
+
     const decorator = getKernelFromEditor(editor)?.getDecorator('diff') || null;
     if (decorator) {
       if (typeof decorator === 'function') {
@@ -121,8 +137,10 @@ export class DiffNode extends CardLikeElementNode {
   }
 }
 
-export function $createDiffNode() {
-  return $applyNodeReplacement(new DiffNode());
+export function $createDiffNode(
+  diffType: 'add' | 'remove' | 'modify' | 'unchanged' = 'unchanged',
+): DiffNode {
+  return $applyNodeReplacement(new DiffNode(diffType));
 }
 
 export function $isDiffNode(node: unknown): node is DiffNode {

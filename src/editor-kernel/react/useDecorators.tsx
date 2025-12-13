@@ -35,7 +35,7 @@ export function useDecorators(
       NodeKey,
       | JSX.Element
       | {
-          queryDom: (_element: HTMLElement) => HTMLElement;
+          queryDOM: (_element: HTMLElement) => HTMLElement;
           render: JSX.Element;
         }
     >
@@ -94,7 +94,7 @@ export function useDecorators(
         decoratedPortals.push(
           createPortal(
             reactDecorator,
-            'queryDom' in decorator ? decorator.queryDom(element) : element,
+            'queryDOM' in decorator ? decorator.queryDOM(element) : element,
             nodeKey,
           ),
         );
