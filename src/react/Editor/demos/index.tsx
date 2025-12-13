@@ -193,8 +193,8 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         label: 'Apply LiteXML',
         onSelect: (editor) => {
           editor.dispatchCommand(LITEXML_APPLY_COMMAND, {
-            litexml:
-              '<root><span id="2" bold="true">replace</span><p id="444"><span>M</span></p></root>',
+            delay: true,
+            litexml: '<root><span id="2" bold="true">replace</span></root>',
           });
           queueMicrotask(() => {
             editor.focus();
