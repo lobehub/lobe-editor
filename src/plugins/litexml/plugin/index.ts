@@ -1,7 +1,7 @@
 import { LexicalEditor, LexicalNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 
 import { registerLiteXMLCommand } from '../command';
 import { registerLiteXMLDiffCommand } from '../command/diffCommand';
@@ -46,7 +46,13 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     // Create and register the Litexml service
     const litexmlService = new LitexmlService();
     kernel.registerService(ILitexmlService, litexmlService);
-    this.datasource = new LitexmlDataSource('litexml', litexmlService);
+    this.datasource = new LitexmlDataSource(
+      'litexml',
+      <T>(serviceId: IServiceID<T>) => {
+        return kernel.requireService(serviceId);
+      },
+      litexmlService,
+    );
 
     // register diff node type
     kernel.registerNodes([DiffNode]);

@@ -135,7 +135,7 @@ export class BlockImageNode extends BaseImageNode {
 export function $createBlockImageNode({
   altText,
   height,
-  maxWidth = 500,
+  maxWidth = 4200,
   src,
   width,
   key,

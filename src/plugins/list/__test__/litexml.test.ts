@@ -30,7 +30,7 @@ describe('list litexml', () => {
     editor.setDocument('markdown', '- asdf\n- qwer');
     const xml = editor.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><ul id="6"><li id="7"><span id="8">asdf</span></li><li id="9"><span id="10">qwer</span></li></ul></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><ul id="mczm"><li id="mijx"><span id="mo48">asdf</span></li><li id="mtoj"><span id="mz8u">qwer</span></li></ul></root>`,
     );
   });
 });

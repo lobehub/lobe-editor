@@ -30,7 +30,7 @@ describe('image litexml', () => {
     editor.setDocument('markdown', '![logo](https://logo.com/logo.png)');
     const xml = editor.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="3"><img id="4" src="https://logo.com/logo.png" alt="logo"></img></p></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><p id="lwap"><img id="m1v0" block="true" src="https://logo.com/logo.png" alt="logo" width="inherit" max-width="4200"></img></p></root>`,
     );
   });
 });

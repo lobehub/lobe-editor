@@ -6,10 +6,13 @@ import { $getRoot, $getSelection, $isElementNode, $isRangeSelection } from 'lexi
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
+import { INodeService } from '@/plugins/inode';
+import { IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import type { ILitexmlService, IWriterContext, IXmlNode } from '../service/litexml-service';
 import { LitexmlService } from '../service/litexml-service';
+import { charToId, idToChar } from '../utils';
 
 const logger = createDebugLogger('plugin', 'litexml');
 
@@ -38,6 +41,7 @@ export default class LitexmlDataSource extends DataSource {
 
   constructor(
     protected dataType: string = 'litexml',
+    protected getService?: <T>(serviceId: IServiceID<T>) => T | null,
     service?: ILitexmlService,
   ) {
     super(dataType);
@@ -51,7 +55,8 @@ export default class LitexmlDataSource extends DataSource {
     const xml = this.parseXMLString(litexml);
     const inode = this.xmlToLexical(xml);
 
-    console.log('Parsed XML to Lexical State:', JSON.stringify(inode, null, 2));
+    this.getService?.(INodeService)?.processNodeTree(inode);
+    logger.debug('Parsed XML to Lexical State:', inode);
 
     return inode;
   }
@@ -172,7 +177,8 @@ export default class LitexmlDataSource extends DataSource {
           if (Array.isArray(result)) {
             INodeHelper.appendChild(parentNode, ...result);
           } else if (result) {
-            result.id = xmlElement.getAttribute('id') || undefined;
+            const attrId = xmlElement.getAttribute('id');
+            result.id = attrId ? charToId(attrId) : undefined;
             INodeHelper.appendChild(parentNode, result);
           }
           return; // Custom reader handled it
@@ -306,7 +312,7 @@ export default class LitexmlDataSource extends DataSource {
         const handled = writer(node, this.ctx, indent);
         if (handled) {
           const attrs = this.buildXMLAttributes({
-            id: node.getKey(),
+            id: idToChar(node.getKey()),
             ...handled.attributes,
           });
           const openTag = `${indentStr}<${handled.tagName}${attrs}>`;

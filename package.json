@@ -1,6 +1,6 @@
 {
   "name": "@lobehub/editor",
-  "version": "1.30.0",
+  "version": "1.32.0",
   "description": "A powerful and extensible rich text editor built on Meta's Lexical framework, providing a modern editing experience with React integration.",
   "keywords": [
     "lobehub",
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/lobehub/lobe-editor.git"
+    "url": "git+https://github.com/lobehub/lobe-editor.git"
   },
   "license": "MIT",
   "author": "LobeHub <i@lobehub.com>",

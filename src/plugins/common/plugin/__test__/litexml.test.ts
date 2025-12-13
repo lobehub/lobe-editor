@@ -28,7 +28,7 @@ describe('Common Plugin Tests', () => {
     kernel.setDocument('markdown', 'this is <ins>underline</ins> and this is <u>underline2</u>');
     const xml = kernel.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="6"><span id="7">this is </span><span id="8" underline="true">underline</span><span id="9"> and this is </span><span id="10" underline="true">underline2</span></p></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><p id="mczm"><span id="mijx">this is </span><span id="mo48" underline="true">underline</span><span id="mtoj"> and this is </span><span id="mz8u" underline="true">underline2</span></p></root>`,
     );
   });
 });

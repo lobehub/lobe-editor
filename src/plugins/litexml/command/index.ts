@@ -96,7 +96,6 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
                       }
                     } else {
                       $insertNodes([newNode]);
-                      prevNode = newNode;
                     }
                   }
                 } catch (error) {

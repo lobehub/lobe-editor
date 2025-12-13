@@ -26,7 +26,7 @@ describe('Common Plugin Tests', () => {
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: ['<span id="2">ModifiedText</span>', '<span id="4">THIS IS </span>'],
+      litexml: ['<span id="lqqe">ModifiedText</span>', '<span id="m1v0">THIS IS </span>'],
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
