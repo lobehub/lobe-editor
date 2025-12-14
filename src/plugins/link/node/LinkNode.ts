@@ -89,6 +89,7 @@ export class LinkNode extends ElementNode {
   }
 
   createDOM(config: EditorConfig, editor: LexicalEditor): LinkHTMLElementType {
+    console.info('config', config);
     const element = document.createElement('a');
     this.updateLinkDOM(null, element, config);
     addClassNamesToElement(element, config.theme.link);
@@ -362,6 +363,7 @@ export class AutoLinkNode extends LinkNode {
   }
 
   createDOM(config: EditorConfig, editor: LexicalEditor): LinkHTMLElementType {
+    console.info('config', config);
     if (this.__isUnlinked) {
       return document.createElement('span');
     } else {

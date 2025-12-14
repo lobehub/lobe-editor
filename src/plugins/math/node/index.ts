@@ -104,9 +104,17 @@ export class MathInlineNode extends DecoratorNode<unknown> {
   }
 
   decorate(editor: LexicalEditor): unknown {
-    return (
-      getKernelFromEditor(editor)?.getDecorator(MathInlineNode.getType())?.(this, editor) || null
-    );
+    const decorator = getKernelFromEditor(editor)?.getDecorator(MathInlineNode.getType());
+    if (!decorator) {
+      return null;
+    }
+    if (typeof decorator === 'function') {
+      return decorator(this, editor);
+    }
+    return {
+      queryDOM: decorator.queryDOM,
+      render: decorator.render(this, editor),
+    };
   }
 }
 
@@ -191,9 +199,17 @@ export class MathBlockNode extends DecoratorNode<unknown> {
   }
 
   decorate(editor: LexicalEditor): unknown {
-    return (
-      getKernelFromEditor(editor)?.getDecorator(MathBlockNode.getType())?.(this, editor) || null
-    );
+    const decorator = getKernelFromEditor(editor)?.getDecorator(MathBlockNode.getType());
+    if (!decorator) {
+      return null;
+    }
+    if (typeof decorator === 'function') {
+      return decorator(this, editor);
+    }
+    return {
+      queryDOM: decorator.queryDOM,
+      render: decorator.render(this, editor),
+    };
   }
 }
 
