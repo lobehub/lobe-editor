@@ -50,6 +50,10 @@ export class DiffNode extends CardLikeElementNode {
     this.__diffType = type;
   }
 
+  get diffType(): 'add' | 'remove' | 'modify' | 'unchanged' {
+    return this.__diffType;
+  }
+
   setDiffType(type: 'add' | 'remove' | 'modify' | 'unchanged'): this {
     this.getWritable().__diffType = type;
     return this;
@@ -75,6 +79,7 @@ export class DiffNode extends CardLikeElementNode {
     const el = document.createElement('div');
     el.contentEditable = 'false';
     el.dataset.lexicalKey = this.getKey();
+    el.dataset.diffType = this.__diffType;
     el.classList.add('ne-diff');
     if (config.theme.diffNode) {
       el.classList.add(config.theme.diffNode);
@@ -103,6 +108,9 @@ export class DiffNode extends CardLikeElementNode {
   }
 
   updateDOM(_prevNode: unknown, _dom: HTMLElement, _config: EditorConfig): boolean {
+    if (_dom.dataset.diffType !== this.__diffType) {
+      _dom.dataset.diffType = this.__diffType;
+    }
     const kernel = getKernelFromEditorConfig(_config);
     const editor = kernel?.getLexicalEditor();
     if (editor) {

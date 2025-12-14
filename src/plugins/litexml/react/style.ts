@@ -50,13 +50,27 @@ export const useStyles = createStyles(
       color: ${token.colorError};
     }
 
-    .content {
+    &[data-diff-type='add'] .content {
+      position: relative;
+      background-color: ${token.colorSuccessBgHover};
+    }
+
+    &[data-diff-type='remove'] .content {
+      position: relative;
+      background-color: ${token.colorErrorBgHover};
+
+      > *:first-child p,
+      > *:first-child span {
+        text-decoration: line-through;
+      }
+    }
+
+    &[data-diff-type='modify'] .content {
       position: relative;
 
       /* first child: original (deleted) */
       > *:first-child {
-        color: rgba(0, 0, 0, 45%);
-        opacity: 0.9;
+        opacity: 0.6;
       }
 
       /* visually indicate deletion with strike-through for text nodes */

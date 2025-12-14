@@ -25,11 +25,29 @@ export function registerLiteXMLDiffCommand(editor: LexicalEditor) {
           return false;
         }
         editor.update(() => {
-          const children = node.getChildren();
-          if (action === DiffAction.Accept) {
-            node.replace(children[1], false).selectEnd();
-          } else if (action === DiffAction.Reject) {
-            node.replace(children[0], false).selectEnd();
+          if (node.diffType === 'modify') {
+            const children = node.getChildren();
+            if (action === DiffAction.Accept) {
+              node.replace(children[1], false).selectEnd();
+            } else if (action === DiffAction.Reject) {
+              node.replace(children[0], false).selectEnd();
+            }
+          }
+          if (node.diffType === 'remove') {
+            if (action === DiffAction.Accept) {
+              node.remove();
+            } else if (action === DiffAction.Reject) {
+              const children = node.getChildren();
+              node.replace(children[0], false).selectEnd();
+            }
+          }
+          if (node.diffType === 'add') {
+            if (action === DiffAction.Accept) {
+              const children = node.getChildren();
+              node.replace(children[0], false).selectEnd();
+            } else if (action === DiffAction.Reject) {
+              node.remove();
+            }
           }
         });
 

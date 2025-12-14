@@ -197,7 +197,11 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
                     diffNode.append(node);
                     return diffNode;
                   });
-                  referenceNode.insertBefore(diffNodes);
+                  diffNodes.forEach((diffNode: DiffNode) => {
+                    if (referenceNode) {
+                      referenceNode = referenceNode.insertBefore(diffNode);
+                    }
+                  });
                 } else {
                   const refBlock = $closest(referenceNode, (node) => node.isInline() === false);
                   if (!refBlock) {
@@ -205,7 +209,11 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
                   }
                   const diffNode = $createDiffNode('modify');
                   diffNode.append($cloneNode(refBlock, editor));
-                  referenceNode = referenceNode.insertBefore(newNodes);
+                  newNodes.forEach((node: LexicalNode) => {
+                    if (referenceNode) {
+                      referenceNode = referenceNode.insertBefore(node);
+                    }
+                  });
                   const newBlock = $getNodeByKey(refBlock.getKey());
                   if (!newBlock) {
                     throw new Error('New block node not found for insertion.');
@@ -229,7 +237,11 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
                   }
                   const diffNode = $createDiffNode('modify');
                   diffNode.append($cloneNode(refBlock, editor));
-                  referenceNode = referenceNode.insertAfter(newNodes);
+                  newNodes.forEach((node: LexicalNode) => {
+                    if (referenceNode) {
+                      referenceNode = referenceNode.insertAfter(node);
+                    }
+                  });
                   const newBlock = $getNodeByKey(refBlock.getKey());
                   if (!newBlock) {
                     throw new Error('New block node not found for insertion.');
