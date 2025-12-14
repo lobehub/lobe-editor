@@ -15,6 +15,81 @@ import type LitexmlDataSource from '../data-source/litexml-data-source';
 import { $createDiffNode, DiffNode } from '../node/DiffNode';
 import { $cloneNode, $parseSerializedNodeImpl, charToId } from '../utils';
 
+// Helpers to reduce duplication and improve readability
+function toArrayXml(litexml: string | string[]) {
+  return Array.isArray(litexml) ? litexml : [litexml];
+}
+
+function tryParseChild(child: any, editor: LexicalEditor) {
+  try {
+    const oldNode = $getNodeByKey(child.id);
+    const newNode = $parseSerializedNodeImpl(child, editor);
+    return { newNode, oldNode } as { newNode: LexicalNode; oldNode: LexicalNode | null };
+  } catch (error) {
+    console.error('Error parsing child node:', error);
+    return { newNode: null, oldNode: null } as any;
+  }
+}
+
+function handleReplaceForApplyDelay(
+  oldNode: LexicalNode,
+  newNode: LexicalNode,
+  modifyBlockNodes: Set<string>,
+  diffNodeMap: Map<string, DiffNode>,
+  editor: LexicalEditor,
+) {
+  const oldBlock = $closest(oldNode, (node) => node.isInline() === false);
+  if (!oldBlock) {
+    throw new Error('Old block node not found for diffing.');
+  }
+  if (oldNode === oldBlock) {
+    const diffNode = $createDiffNode('modify');
+    diffNode.append($cloneNode(oldBlock, editor), newNode);
+    oldNode.replace(diffNode, false);
+  } else {
+    if (!modifyBlockNodes.has(oldBlock.getKey())) {
+      modifyBlockNodes.add(oldBlock.getKey());
+      const diffNode = $createDiffNode('modify');
+      diffNode.append($cloneNode(oldBlock, editor));
+      diffNodeMap.set(oldBlock.getKey(), diffNode);
+    }
+    oldNode.replace(newNode, false);
+  }
+}
+
+function finalizeModifyBlocks(
+  modifyBlockNodes: Set<string>,
+  diffNodeMap: Map<string, DiffNode>,
+  editor: LexicalEditor,
+) {
+  for (const blockNodeKey of modifyBlockNodes) {
+    const blockNode = $getNodeByKey(blockNodeKey);
+    const diffNode = diffNodeMap.get(blockNodeKey);
+    if (diffNode && blockNode) {
+      diffNode.append($cloneNode(blockNode, editor));
+      blockNode.replace(diffNode, false);
+    }
+  }
+}
+
+/**
+ * Wrap a block-level change with a `modify` diff: clone the old block, run the
+ * provided changeFn (which should mutate nodes inside the block), then clone
+ * the new block and replace it with the diff node. Useful for inline->block
+ * transitions where we want to show a modify diff.
+ */
+function wrapBlockModify(oldBlock: LexicalNode, editor: LexicalEditor, changeFn: () => void) {
+  const diffNode = $createDiffNode('modify');
+  diffNode.append($cloneNode(oldBlock, editor));
+  changeFn();
+  const newBlock = $getNodeByKey(oldBlock.getKey());
+  if (!newBlock) {
+    throw new Error('New block node not found for modify wrapper.');
+  }
+  diffNode.append($cloneNode(newBlock, editor));
+  newBlock.replace(diffNode, false);
+}
+
 export const LITEXML_APPLY_COMMAND = createCommand<{ delay?: boolean; litexml: string | string[] }>(
   'LITEXML_APPLY_COMMAND',
 );
@@ -40,7 +115,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
       LITEXML_APPLY_COMMAND,
       (payload) => {
         const { litexml, delay } = payload;
-        const arrayXml = Array.isArray(litexml) ? litexml : [litexml];
+        const arrayXml = toArrayXml(litexml);
 
         if (delay) {
           editor.update(() => {
@@ -50,27 +125,15 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
               const inode = dataSource.readLiteXMLToInode(xml);
               inode.root.children.forEach((child: any) => {
                 try {
-                  const oldNode = $getNodeByKey(child.id);
-                  const newNode = $parseSerializedNodeImpl(child, editor);
-                  if (oldNode) {
-                    const oldBlock = $closest(oldNode, (node) => node.isInline() === false);
-                    if (!oldBlock) {
-                      throw new Error('Old block node not found for diffing.');
-                    }
-                    if (oldNode === oldBlock) {
-                      const diffNode = $createDiffNode('modify');
-                      diffNode.append($cloneNode(oldBlock, editor), newNode);
-                      oldNode.replace(diffNode, false);
-                    } else {
-                      // record modified block nodes
-                      if (!modifyBlockNodes.has(oldBlock.getKey())) {
-                        modifyBlockNodes.add(oldBlock.getKey());
-                        const diffNode = $createDiffNode('modify');
-                        diffNode.append($cloneNode(oldBlock, editor));
-                        diffNodeMap.set(oldBlock.getKey(), diffNode);
-                      }
-                      oldNode.replace(newNode, false);
-                    }
+                  const { oldNode, newNode } = tryParseChild(child, editor);
+                  if (oldNode && newNode) {
+                    handleReplaceForApplyDelay(
+                      oldNode,
+                      newNode,
+                      modifyBlockNodes,
+                      diffNodeMap,
+                      editor,
+                    );
                   } else {
                     console.warn(`Node with key ${child.id} not found for diffing.`);
                   }
@@ -80,14 +143,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
               });
             });
             // replace modified block nodes with diff nodes
-            for (const blockNodeKey of modifyBlockNodes) {
-              const blockNode = $getNodeByKey(blockNodeKey);
-              const diffNode = diffNodeMap.get(blockNodeKey);
-              if (diffNode && blockNode) {
-                diffNode.append($cloneNode(blockNode, editor));
-                blockNode.replace(diffNode, false);
-              }
-            }
+            finalizeModifyBlocks(modifyBlockNodes, diffNodeMap, editor);
           });
         } else {
           editor.update(() => {
@@ -96,11 +152,10 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
               let prevNode: LexicalNode | null = null;
               inode.root.children.forEach((child: any) => {
                 try {
-                  const oldNode = $getNodeByKey(child.id);
-                  const newNode = $parseSerializedNodeImpl(child, editor);
-                  if (oldNode) {
+                  const { oldNode, newNode } = tryParseChild(child, editor);
+                  if (oldNode && newNode) {
                     prevNode = oldNode.replace(newNode, $isElementNode(newNode));
-                  } else {
+                  } else if (newNode) {
                     if (prevNode) {
                       if (!newNode.isInline()) {
                         const prevBlock = $closest(prevNode, (node) => node.isInline() === false);
@@ -135,30 +190,27 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
         const key = charToId(id);
         editor.update(() => {
           const node = $getNodeByKey(key);
-          if (node) {
-            if (delay) {
-              if (node.isInline() === false) {
-                const diffNode = $createDiffNode('remove');
-                diffNode.append($cloneNode(node, editor));
-                node.replace(diffNode, false);
-              } else {
-                const oldBlock = $closest(node, (node) => node.isInline() === false);
-                if (!oldBlock) {
-                  throw new Error('Old block node not found for removal.');
-                }
-                const diffNode = $createDiffNode('modify');
-                diffNode.append($cloneNode(oldBlock, editor));
-                node.remove();
-                const newBlock = $getNodeByKey(oldBlock.getKey());
-                if (!newBlock) {
-                  throw new Error('New block node not found for removal.');
-                }
-                diffNode.append($cloneNode(newBlock, editor));
-                newBlock.replace(diffNode, false);
-              }
-            } else {
-              node.remove();
+          if (!node) return;
+
+          if (!delay) {
+            node.remove();
+            return;
+          }
+
+          // delay removal: show a diff
+          if (node.isInline() === false) {
+            const diffNode = $createDiffNode('remove');
+            diffNode.append($cloneNode(node, editor));
+            node.replace(diffNode, false);
+          } else {
+            const oldBlock = $closest(node, (node) => node.isInline() === false);
+            if (!oldBlock) {
+              throw new Error('Old block node not found for removal.');
             }
+            // wrap changes inside a modify diff
+            wrapBlockModify(oldBlock, editor, () => {
+              node.remove();
+            });
           }
         });
         return false;
@@ -188,69 +240,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
             const newNodes = inode.root.children.map((child: any) =>
               $parseSerializedNodeImpl(child, editor),
             );
-
-            if (delay) {
-              if (isBefore) {
-                if (referenceNode.isInline() === false) {
-                  const diffNodes = newNodes.map((node: LexicalNode) => {
-                    const diffNode = $createDiffNode('add');
-                    diffNode.append(node);
-                    return diffNode;
-                  });
-                  diffNodes.forEach((diffNode: DiffNode) => {
-                    if (referenceNode) {
-                      referenceNode = referenceNode.insertBefore(diffNode);
-                    }
-                  });
-                } else {
-                  const refBlock = $closest(referenceNode, (node) => node.isInline() === false);
-                  if (!refBlock) {
-                    throw new Error('Reference block node not found for insertion.');
-                  }
-                  const diffNode = $createDiffNode('modify');
-                  diffNode.append($cloneNode(refBlock, editor));
-                  newNodes.forEach((node: LexicalNode) => {
-                    if (referenceNode) {
-                      referenceNode = referenceNode.insertBefore(node);
-                    }
-                  });
-                  const newBlock = $getNodeByKey(refBlock.getKey());
-                  if (!newBlock) {
-                    throw new Error('New block node not found for insertion.');
-                  }
-                  diffNode.append($cloneNode(newBlock, editor));
-                  newBlock.replace(diffNode, false);
-                }
-              } else {
-                if (referenceNode.isInline() === false) {
-                  newNodes.forEach((node: LexicalNode) => {
-                    if (referenceNode) {
-                      const diffNode = $createDiffNode('add');
-                      diffNode.append(node);
-                      referenceNode = referenceNode.insertAfter(diffNode);
-                    }
-                  });
-                } else {
-                  const refBlock = $closest(referenceNode, (node) => node.isInline() === false);
-                  if (!refBlock) {
-                    throw new Error('Reference block node not found for insertion.');
-                  }
-                  const diffNode = $createDiffNode('modify');
-                  diffNode.append($cloneNode(refBlock, editor));
-                  newNodes.forEach((node: LexicalNode) => {
-                    if (referenceNode) {
-                      referenceNode = referenceNode.insertAfter(node);
-                    }
-                  });
-                  const newBlock = $getNodeByKey(refBlock.getKey());
-                  if (!newBlock) {
-                    throw new Error('New block node not found for insertion.');
-                  }
-                  diffNode.append($cloneNode(newBlock, editor));
-                  newBlock.replace(diffNode, false);
-                }
-              }
-            } else {
+            if (!delay) {
               if (isBefore) {
                 referenceNode = referenceNode.insertBefore(newNodes);
               } else {
@@ -258,6 +248,57 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
                   if (referenceNode) {
                     referenceNode = referenceNode.insertAfter(node);
                   }
+                });
+              }
+              return;
+            }
+
+            // delay insertion: show diffs or wrap block modifications
+            if (isBefore) {
+              if (referenceNode.isInline() === false) {
+                const diffNodes = newNodes.map((node: LexicalNode) => {
+                  const diffNode = $createDiffNode('add');
+                  diffNode.append(node);
+                  return diffNode;
+                });
+                diffNodes.forEach((diffNode: DiffNode) => {
+                  if (referenceNode) {
+                    referenceNode = referenceNode.insertBefore(diffNode);
+                  }
+                });
+              } else {
+                const refBlock = $closest(referenceNode, (node) => node.isInline() === false);
+                if (!refBlock) {
+                  throw new Error('Reference block node not found for insertion.');
+                }
+                wrapBlockModify(refBlock, editor, () => {
+                  newNodes.forEach((node: LexicalNode) => {
+                    if (referenceNode) {
+                      referenceNode = referenceNode.insertBefore(node);
+                    }
+                  });
+                });
+              }
+            } else {
+              if (referenceNode.isInline() === false) {
+                newNodes.forEach((node: LexicalNode) => {
+                  if (referenceNode) {
+                    const diffNode = $createDiffNode('add');
+                    diffNode.append(node);
+                    referenceNode = referenceNode.insertAfter(diffNode);
+                  }
+                });
+              } else {
+                const refBlock = $closest(referenceNode, (node) => node.isInline() === false);
+                if (!refBlock) {
+                  throw new Error('Reference block node not found for insertion.');
+                }
+                wrapBlockModify(refBlock, editor, () => {
+                  newNodes.forEach((node: LexicalNode) => {
+                    if (referenceNode) {
+                      referenceNode = referenceNode.insertAfter(node);
+                    }
+                  });
                 });
               }
             }

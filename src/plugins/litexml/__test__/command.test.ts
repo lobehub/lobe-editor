@@ -42,7 +42,7 @@ describe('Common Plugin Tests', () => {
     );
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       litexml: '<p><span bold="true">InsertedText</span></p>',
-      afterId: '10',
+      afterId: 'mz8u',
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
@@ -57,7 +57,7 @@ describe('Common Plugin Tests', () => {
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
     kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-      id: '19',
+      id: 'odbl',
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
