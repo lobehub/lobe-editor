@@ -30,7 +30,6 @@ function tryParseChild(child: any, editor: LexicalEditor) {
     return { newNode: null, oldNode: null } as any;
   }
 }
-
 function handleReplaceForApplyDelay(
   oldNode: LexicalNode,
   newNode: LexicalNode,

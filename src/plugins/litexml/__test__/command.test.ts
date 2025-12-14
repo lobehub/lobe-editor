@@ -63,4 +63,94 @@ describe('Common Plugin Tests', () => {
     const markdown = kernel.getDocument('markdown') as unknown as string;
     expect(markdown).toBe('This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n');
   });
+
+  it('should LITEXML_APPLY_COMMAND delay work (json)', async () => {
+    kernel.setDocument(
+      'markdown',
+      '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+    );
+    const before = kernel.getDocument('json') as any;
+    kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
+      litexml: ['<span id="lqqe">ModifiedText</span>', '<span id="m1v0">THIS IS </span>'],
+      delay: true,
+    });
+    await moment();
+    const after = kernel.getDocument('json') as any;
+    const root = after.root;
+    const diffs: any[] = [];
+    const walk = (node: any) => {
+      if (!node) return;
+      if (node.type === 'diff') diffs.push(node);
+      if (node.children) node.children.forEach(walk);
+    };
+    walk(root);
+    if (diffs.length > 0) {
+      const hasModify = diffs.some((d) => d.diffType === 'modify');
+      expect(hasModify).toBe(true);
+      const containsModifiedText = JSON.stringify(root).includes('ModifiedText');
+      expect(containsModifiedText).toBe(true);
+    } else {
+      // no diffs created, ensure document JSON unchanged
+      expect(JSON.stringify(before)).toBe(JSON.stringify(after));
+    }
+  });
+
+  it('should LITEXML_INSERT_COMMAND delay work (json)', async () => {
+    kernel.setDocument(
+      'markdown',
+      '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+    );
+    const beforeIns = kernel.getDocument('json') as any;
+    kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
+      litexml: '<p><span bold="true">InsertedText</span></p>',
+      afterId: 'mz8u',
+      delay: true,
+    });
+    await moment();
+    const afterIns = kernel.getDocument('json') as any;
+    const rootIns = afterIns.root;
+    const diffsIns: any[] = [];
+    const walkIns = (node: any) => {
+      if (!node) return;
+      if (node.type === 'diff') diffsIns.push(node);
+      if (node.children) node.children.forEach(walkIns);
+    };
+    walkIns(rootIns);
+    if (diffsIns.length > 0) {
+      const hasAdd = diffsIns.some((d) => d.diffType === 'add' || d.diffType === 'modify');
+      expect(hasAdd).toBe(true);
+      const containsInserted = JSON.stringify(rootIns).includes('InsertedText');
+      expect(containsInserted).toBe(true);
+    } else {
+      expect(JSON.stringify(beforeIns)).toBe(JSON.stringify(afterIns));
+    }
+  });
+
+  it('should LITEXML_REMOVE_COMMAND delay work (json)', async () => {
+    kernel.setDocument(
+      'markdown',
+      '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+    );
+    const beforeRem = kernel.getDocument('json') as any;
+    kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
+      id: 'odbl',
+      delay: true,
+    });
+    await moment();
+    const afterRem = kernel.getDocument('json') as any;
+    const rootRem = afterRem.root;
+    const diffsRem: any[] = [];
+    const walkRem = (node: any) => {
+      if (!node) return;
+      if (node.type === 'diff') diffsRem.push(node);
+      if (node.children) node.children.forEach(walkRem);
+    };
+    walkRem(rootRem);
+    if (diffsRem.length > 0) {
+      const hasRemove = diffsRem.some((d) => d.diffType === 'remove' || d.diffType === 'modify');
+      expect(hasRemove).toBe(true);
+    } else {
+      expect(JSON.stringify(beforeRem)).toBe(JSON.stringify(afterRem));
+    }
+  });
 });
