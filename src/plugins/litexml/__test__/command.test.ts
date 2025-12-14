@@ -5,6 +5,7 @@ import { CommonPlugin } from '@/plugins/common';
 import {
   LITEXML_APPLY_COMMAND,
   LITEXML_INSERT_COMMAND,
+  LITEXML_MODIFY_COMMAND,
   LITEXML_REMOVE_COMMAND,
   LitexmlPlugin,
 } from '@/plugins/litexml';
@@ -152,5 +153,41 @@ describe('Common Plugin Tests', () => {
     } else {
       expect(JSON.stringify(beforeRem)).toBe(JSON.stringify(afterRem));
     }
+  });
+
+  it('should LITEXML_MODIFY_COMMAND work (immediate and delay)', async () => {
+    kernel.setDocument(
+      'markdown',
+      '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+    );
+
+    // immediate modify (non-delay)
+    kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, [
+      {
+        action: 'modify',
+        litexml: '<span id="t5t2">ModifiedTextDirect</span>',
+      },
+    ]);
+    await moment();
+    const markdownDirect = kernel.getDocument('markdown') as unknown as string;
+    expect(markdownDirect).toContain('ModifiedTextDirect');
+
+    // delayed modify (should produce diffs in JSON)
+    kernel.setDocument(
+      'markdown',
+      '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+    );
+    console.info(kernel.getDocument('litexml'));
+    kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, [
+      {
+        action: 'modify',
+        litexml: ['<span id="v651">ModifiedText</span>', '<span id="vh9n">THIS IS </span>'],
+      },
+    ]);
+    await moment();
+    const markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe(
+      '# This is a title\n\n# ModifiedText\n\nThis is <ins>underline</ins> and this is <ins>underline2</ins>\n\nTHIS IS <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+    );
   });
 });
