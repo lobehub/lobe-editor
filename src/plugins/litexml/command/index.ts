@@ -3,7 +3,6 @@ import { mergeRegister } from '@lexical/utils';
 import {
   $getNodeByKey,
   $insertNodes,
-  $isElementNode,
   COMMAND_PRIORITY_EDITOR,
   LexicalEditor,
   LexicalNode,
@@ -242,7 +241,7 @@ function handleModify(
           try {
             const { oldNode, newNode } = tryParseChild(child, editor);
             if (oldNode && newNode) {
-              prevNode = oldNode.replace(newNode, $isElementNode(newNode));
+              prevNode = oldNode.replace(newNode, false);
             } else if (newNode) {
               if (prevNode) {
                 if (!newNode.isInline()) {
