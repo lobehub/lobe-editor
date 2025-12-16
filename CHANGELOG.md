@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.33.0](https://github.com/lobehub/lobe-editor/compare/v1.32.0...v1.33.0)
+<sup>Released on **2025-12-16**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Enhance decorator and add diffnode.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Enhance decorator and add diffnode, closes [#78](https://github.com/lobehub/lobe-editor/issues/78) ([b7b7eef](https://github.com/lobehub/lobe-editor/commit/b7b7eef))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 1.32.0](https://github.com/lobehub/lobe-editor/compare/v1.31.2...v1.32.0)
 
 <sup>Released on **2025-12-11**</sup>
