@@ -28,7 +28,9 @@ export default {
   },
   modifier: {
     accept: 'Accept',
+    acceptAll: 'Accept All',
     reject: 'Reject',
+    rejectedAll: 'Reject All',
   },
   table: {
     delete: 'Delete table',
