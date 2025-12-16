@@ -55,11 +55,13 @@ export function registerImageCommand(
               altText: file.name,
               maxWidth: maxWidth || 800,
               src: placeholderURL,
+              status: 'loading',
             })
           : $createImageNode({
               altText: file.name,
               maxWidth: maxWidth || 800,
               src: placeholderURL,
+              status: 'loading',
             });
         $insertNodes([imageNode]); // Insert a zero-width space to ensure the image is not the last child
         if (!isBlock && $isRootOrShadowRoot(imageNode.getParentOrThrow())) {

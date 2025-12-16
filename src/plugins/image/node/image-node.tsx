@@ -1,4 +1,10 @@
-import { $applyNodeReplacement, DOMConversionMap, DOMConversionOutput, LexicalNode } from 'lexical';
+import {
+  $applyNodeReplacement,
+  DOMConversionMap,
+  DOMConversionOutput,
+  LexicalNode,
+  NodeKey,
+} from 'lexical';
 
 import { BaseImageNode, ImagePayload, SerializedImageNode } from './basie-image-node';
 
@@ -17,6 +23,19 @@ export class ImageNode extends BaseImageNode {
   private __status: 'uploaded' | 'loading' | 'error' = 'uploaded';
   private __message: string | null = null;
   private __extra: Record<string, unknown> | null = null;
+
+  constructor(opt: {
+    altText: string;
+    height?: 'inherit' | number;
+    key?: NodeKey;
+    maxWidth: number;
+    src: string;
+    status?: 'uploaded' | 'loading' | 'error';
+    width?: 'inherit' | number;
+  }) {
+    super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key);
+    this.__status = opt.status ?? 'uploaded';
+  }
 
   public get isLoading(): boolean {
     return this.__loading;
@@ -55,6 +74,11 @@ export class ImageNode extends BaseImageNode {
     writable.__maxWidth = maxWidth;
   }
 
+  public setStatus(status: 'uploaded' | 'loading' | 'error'): void {
+    const writable = this.getWritable();
+    writable.__status = status;
+  }
+
   public setWidth(width: number): void {
     const writable = this.getWritable();
     writable.__width = width;
@@ -75,24 +99,26 @@ export class ImageNode extends BaseImageNode {
   }
 
   static clone(node: ImageNode): ImageNode {
-    return new ImageNode(
-      node.__src,
-      node.__altText,
-      node.__maxWidth,
-      node.__width,
-      node.__height,
-      node.__key,
-    );
+    return new ImageNode({
+      altText: node.__altText,
+      height: node.__height,
+      key: node.__key,
+      maxWidth: node.__maxWidth,
+      src: node.__src,
+      status: node.__status,
+      width: node.__width,
+    });
   }
 
   static importJSON(serializedNode: SerializedImageNode): ImageNode {
-    const { altText, height, width, maxWidth, src } = serializedNode;
+    const { altText, height, width, maxWidth, src, status } = serializedNode;
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return $createImageNode({
       altText,
       height,
       maxWidth,
       src,
+      status,
       width,
     }).updateFromJSON(serializedNode);
   }
@@ -119,8 +145,11 @@ export function $createImageNode({
   src,
   width,
   key,
+  status,
 }: ImagePayload): ImageNode {
-  return $applyNodeReplacement(new ImageNode(src, altText, maxWidth, width, height, key));
+  return $applyNodeReplacement(
+    new ImageNode({ altText, height, key, maxWidth, src, status, width }),
+  );
 }
 
 function $convertImageElement(domNode: Node): null | DOMConversionOutput {

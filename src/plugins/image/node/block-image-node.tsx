@@ -4,6 +4,7 @@ import {
   DOMConversionOutput,
   EditorConfig,
   LexicalNode,
+  NodeKey,
 } from 'lexical';
 
 import { BaseImageNode, ImagePayload, SerializedImageNode } from './basie-image-node';
@@ -56,6 +57,19 @@ export class BlockImageNode extends BaseImageNode {
     return this.__height;
   }
 
+  constructor(opt: {
+    altText: string;
+    height?: 'inherit' | number;
+    key?: NodeKey;
+    maxWidth: number;
+    src: string;
+    status?: 'uploaded' | 'loading' | 'error';
+    width?: 'inherit' | number;
+  }) {
+    super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key);
+    this.__status = opt.status ?? 'uploaded';
+  }
+
   override isInline(): boolean {
     return false;
   }
@@ -68,6 +82,11 @@ export class BlockImageNode extends BaseImageNode {
   public setWidth(width: number): void {
     const writable = this.getWritable();
     writable.__width = width;
+  }
+
+  public setStatus(status: 'uploaded' | 'loading' | 'error'): void {
+    const writable = this.getWritable();
+    writable.__status = status;
   }
 
   public setUploaded(url: string): void {
@@ -85,24 +104,26 @@ export class BlockImageNode extends BaseImageNode {
   }
 
   static clone(node: BlockImageNode): BlockImageNode {
-    return new BlockImageNode(
-      node.__src,
-      node.__altText,
-      node.__maxWidth,
-      node.__width,
-      node.__height,
-      node.__key,
-    );
+    return new BlockImageNode({
+      altText: node.__altText,
+      height: node.__height,
+      key: node.__key,
+      maxWidth: node.__maxWidth,
+      src: node.__src,
+      status: node.__status,
+      width: node.__width,
+    });
   }
 
   static importJSON(serializedNode: SerializedImageNode): BlockImageNode {
-    const { altText, height, width, maxWidth, src } = serializedNode;
+    const { altText, height, width, maxWidth, src, status } = serializedNode;
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return $createBlockImageNode({
       altText,
       height,
       maxWidth,
       src,
+      status,
       width,
     }).updateFromJSON(serializedNode);
   }
@@ -139,8 +160,11 @@ export function $createBlockImageNode({
   src,
   width,
   key,
+  status,
 }: ImagePayload): BlockImageNode {
-  return $applyNodeReplacement(new BlockImageNode(src, altText, maxWidth, width, height, key));
+  return $applyNodeReplacement(
+    new BlockImageNode({ altText, height, key, maxWidth, src, status, width }),
+  );
 }
 
 function $convertImageElement(domNode: Node): null | DOMConversionOutput {
