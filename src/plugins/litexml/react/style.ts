@@ -22,16 +22,16 @@ export const useStyles = createStyles(
 
     &[data-diff-type='add'] .content {
       position: relative;
-      padding-inline-start: 4px;
+      padding-inline-start: 8px;
+      border-inline-start: 3px solid ${token.colorSuccess};
       background-color: ${token.colorSuccessBg};
-      box-shadow: -3px 0 0 ${token.colorSuccess};
     }
 
     &[data-diff-type='remove'] .content {
       position: relative;
-      padding-inline-start: 4px;
+      padding-inline-start: 8px;
+      border-inline-start: 3px solid ${token.colorError};
       background-color: ${token.colorErrorBg};
-      box-shadow: -3px 0 0 ${token.colorError};
     }
 
     &[data-diff-type='modify'] .content {
