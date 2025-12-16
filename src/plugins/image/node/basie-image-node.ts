@@ -16,6 +16,7 @@ export interface ImagePayload {
   key?: NodeKey;
   maxWidth?: number;
   src: string;
+  status?: 'uploaded' | 'loading' | 'error';
   width?: number;
 }
 
@@ -25,6 +26,7 @@ export type SerializedImageNode = Spread<
     height?: number;
     maxWidth: number;
     src: string;
+    status?: 'uploaded' | 'loading' | 'error';
     width?: number;
   },
   SerializedLexicalNode

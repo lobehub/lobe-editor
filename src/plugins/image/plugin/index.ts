@@ -15,8 +15,10 @@ import { $isBlockImageNode, BlockImageNode } from '../node/block-image-node';
 import { $isImageNode, ImageNode } from '../node/image-node';
 
 export interface ImagePluginOptions {
-  defaultBlockImage?: boolean; // default: true
+  defaultBlockImage?: boolean;
+  handleRehost?: (url: string) => Promise<{ url: string }>;
   handleUpload: (file: File) => Promise<{ url: string }>;
+  needRehost?: (url: string) => boolean;
   renderImage: (node: ImageNode | BlockImageNode) => JSX.Element | null;
   theme?: {
     blockImage?: string;
@@ -56,6 +58,46 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     this.registerLiteXml();
     this.registerINode();
     this.registerUpload(editor);
+    if (this.config?.needRehost && this.config?.handleRehost) {
+      const needRehost = this.config.needRehost;
+      const handleRehost = this.config.handleRehost;
+      this.register(
+        editor.registerNodeTransform(ImageNode, (node) => {
+          if (node.status === 'uploaded' && needRehost(node.src)) {
+            node.setStatus('loading');
+            handleRehost(node.src)
+              .then(({ url }) => {
+                editor.update(() => {
+                  node.setUploaded(url);
+                });
+              })
+              .catch(() => {
+                editor.update(() => {
+                  node.setError('Rehost failed');
+                });
+              });
+          }
+        }),
+      );
+      this.register(
+        editor.registerNodeTransform(BlockImageNode, (node) => {
+          if (node.status === 'uploaded' && needRehost(node.src)) {
+            node.setStatus('loading');
+            handleRehost(node.src)
+              .then(({ url }) => {
+                editor.update(() => {
+                  node.setUploaded(url);
+                });
+              })
+              .catch(() => {
+                editor.update(() => {
+                  node.setError('Rehost failed');
+                });
+              });
+          }
+        }),
+      );
+    }
   }
 
   private registerUpload(editor: LexicalEditor) {

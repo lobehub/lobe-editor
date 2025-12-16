@@ -10,7 +10,22 @@ import Image from './components/Image';
 import { useStyles } from './style';
 import { ReactImagePluginProps } from './type';
 
-const ReactImagePlugin: FC<ReactImagePluginProps> = ({ theme, className, defaultBlockImage }) => {
+const defaultUpload = (file: File) => {
+  return new Promise<{ url: string }>((resolve) => {
+    setTimeout(() => {
+      resolve({ url: URL.createObjectURL(file) });
+    }, 1000);
+  });
+};
+
+const ReactImagePlugin: FC<ReactImagePluginProps> = ({
+  theme,
+  className,
+  defaultBlockImage,
+  handleUpload,
+  needRehost,
+  handleRehost,
+}) => {
   const [editor] = useLexicalComposerContext();
   const { styles } = useStyles();
 
@@ -18,13 +33,9 @@ const ReactImagePlugin: FC<ReactImagePluginProps> = ({ theme, className, default
     editor.registerPlugin(UploadPlugin);
     editor.registerPlugin(ImagePlugin, {
       defaultBlockImage,
-      handleUpload(file) {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({ url: URL.createObjectURL(file) });
-          }, 1000);
-        });
-      },
+      handleRehost,
+      handleUpload: handleUpload || defaultUpload,
+      needRehost,
       renderImage: (node) => {
         return <Image className={className} node={node} />;
       },
