@@ -1,7 +1,12 @@
 import { Collapse, CollapseProps, Highlighter } from '@lobehub/ui';
 import { type PropsWithChildren, memo } from 'react';
 
+import { IEditor } from '@/types';
+
+import XmlModifier from './XmlModifier';
+
 interface ContainerProps extends Omit<CollapseProps, 'items'> {
+  editor?: IEditor;
   json: string;
   markdown: string;
   shouldShowXml?: boolean;
@@ -17,6 +22,7 @@ const Container = memo<PropsWithChildren<ContainerProps>>(
     collapsible = false,
     shouldShowXml = false,
     defaultActiveKey = ['editor', 'text', 'json'],
+    editor,
   }) => {
     return (
       <Collapse
@@ -28,22 +34,15 @@ const Container = memo<PropsWithChildren<ContainerProps>>(
             key: 'editor',
             label: 'Playground',
           },
-          {
-            children: (
-              <Highlighter language={'markdown'} style={{ fontSize: 12 }} variant={'borderless'}>
-                {markdown}
-              </Highlighter>
-            ),
-            key: 'text',
-            label: 'Text Output',
-          },
           ...(shouldShowXml
             ? [
                 {
                   children: (
-                    <Highlighter language={'xml'} style={{ fontSize: 12 }} variant={'borderless'}>
-                      {xml || ''}
-                    </Highlighter>
+                    <XmlModifier editor={editor}>
+                      <Highlighter language={'xml'} style={{ fontSize: 12 }} variant={'borderless'}>
+                        {xml || ''}
+                      </Highlighter>
+                    </XmlModifier>
                   ),
                   key: 'xml',
                   label: 'Litexml Output',
@@ -52,7 +51,24 @@ const Container = memo<PropsWithChildren<ContainerProps>>(
             : []),
           {
             children: (
-              <Highlighter language={'json'} style={{ fontSize: 12 }} variant={'borderless'}>
+              <Highlighter
+                language={'markdown'}
+                style={{ fontSize: 12, padding: 16 }}
+                variant={'borderless'}
+              >
+                {markdown}
+              </Highlighter>
+            ),
+            key: 'text',
+            label: 'Text Output',
+          },
+          {
+            children: (
+              <Highlighter
+                language={'json'}
+                style={{ fontSize: 12, padding: 16 }}
+                variant={'borderless'}
+              >
                 {json}
               </Highlighter>
             ),
@@ -60,6 +76,9 @@ const Container = memo<PropsWithChildren<ContainerProps>>(
             label: 'JSON Output',
           },
         ]}
+        padding={{
+          body: 0,
+        }}
         style={{
           width: '100%',
         }}

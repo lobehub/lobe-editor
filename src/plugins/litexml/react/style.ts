@@ -3,65 +3,39 @@ import { createStyles } from 'antd-style';
 export const useStyles = createStyles(
   ({ css, token }) => css`
     position: relative;
-    border: 1px solid ${token.colorBorderSecondary};
 
     .toolbar {
       position: absolute;
       z-index: 10;
-      inset-block-start: 0;
+      inset-block-start: -4px;
       inset-inline-end: 0;
+      transform: translateY(-100%);
 
-      display: flex;
-      gap: 4px;
-      align-items: center;
-
-      padding: 4px;
-      border: 1px solid #eee;
-      border-radius: 4px;
-
-      background: #fff;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 10%);
+      opacity: 0;
     }
 
-    .toolbarButton {
-      cursor: pointer;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      padding: 2px;
-      border: none;
-
-      background: none;
-    }
-
-    .toolbarButton:focus {
-      border-radius: 3px;
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: 2px;
-    }
-
-    .accept {
-      color: ${token.colorSuccess};
-    }
-
-    .reject {
-      color: ${token.colorError};
+    &:hover {
+      .toolbar {
+        opacity: 1;
+      }
     }
 
     &[data-diff-type='add'] .content {
       position: relative;
+      padding-inline-start: 16px;
+      border-inline-start: 3px solid ${token.colorSuccess};
       background-color: ${token.colorSuccessBgHover};
     }
 
     &[data-diff-type='remove'] .content {
       position: relative;
+      padding-inline-start: 16px;
+      border-inline-start: 3px solid ${token.colorError};
       background-color: ${token.colorErrorBgHover};
 
-      > *:first-child p,
-      > *:first-child span {
-        text-decoration: line-through;
+      /* first child: original (deleted) */
+      > *:first-child {
+        opacity: 0.8;
       }
     }
 
@@ -74,9 +48,9 @@ export const useStyles = createStyles(
       }
 
       /* visually indicate deletion with strike-through for text nodes */
-      > *:first-child p,
-      > *:first-child span {
-        text-decoration: line-through;
+      > *:first-child * {
+        color: ${token.colorTextQuaternary} !important;
+        text-decoration: line-through !important;
       }
 
       /* second child: modified/new - normal appearance */

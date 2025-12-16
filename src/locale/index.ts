@@ -26,6 +26,10 @@ export default {
   math: {
     placeholder: 'Enter TeX formula',
   },
+  modifier: {
+    accept: 'Accept',
+    reject: 'Reject',
+  },
   table: {
     delete: 'Delete table',
     deleteColumn: 'Delete column',

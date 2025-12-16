@@ -8,9 +8,6 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
-  LITEXML_APPLY_COMMAND,
-  LITEXML_INSERT_COMMAND,
-  LITEXML_REMOVE_COMMAND,
   ReactAutoCompletePlugin,
   ReactCodePlugin,
   ReactCodeblockPlugin,
@@ -192,78 +189,6 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           });
         },
       },
-
-      {
-        key: 'apply-litexml',
-        label: 'Apply LiteXML',
-        onSelect: (editor) => {
-          editor.dispatchCommand(LITEXML_APPLY_COMMAND, {
-            delay: true,
-            litexml: [
-              '<span id="mczm" bold="true">The playground is a demo environment built with </span>',
-              '<span id="n4t5" bold="true">@lobehub/replace</span>',
-            ],
-          });
-          queueMicrotask(() => {
-            editor.focus();
-          });
-        },
-      },
-      {
-        key: 'apply-litexml-remove',
-        label: 'Apply LiteXML Remove',
-        onSelect: (editor) => {
-          editor.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-            delay: true,
-            id: 'lwap',
-          });
-          queueMicrotask(() => {
-            editor.focus();
-          });
-        },
-      },
-      {
-        key: 'apply-litexml-insert',
-        label: 'Apply LiteXML Insert',
-        onSelect: (editor) => {
-          editor.dispatchCommand(LITEXML_INSERT_COMMAND, {
-            afterId: 'nfxr',
-            delay: true,
-            litexml: '<span bold="true">(DESCRIPTION) </span>',
-          });
-          queueMicrotask(() => {
-            editor.focus();
-          });
-        },
-      },
-      {
-        key: 'apply-litexml-insert-before',
-        label: 'Apply LiteXML Insert Before',
-        onSelect: (editor) => {
-          editor.dispatchCommand(LITEXML_INSERT_COMMAND, {
-            beforeId: 'nfxr',
-            delay: true,
-            litexml: '<span bold="true">(DESCRIPTION) </span>',
-          });
-          queueMicrotask(() => {
-            editor.focus();
-          });
-        },
-      },
-      {
-        key: 'apply-litexml-insert-block',
-        label: 'Apply LiteXML Insert Before Block',
-        onSelect: (editor) => {
-          editor.dispatchCommand(LITEXML_INSERT_COMMAND, {
-            beforeId: 'm7fb',
-            delay: true,
-            litexml: '<p><span bold="true">(DESCRIPTION) </span></p>',
-          });
-          queueMicrotask(() => {
-            editor.focus();
-          });
-        },
-      },
     ];
     return data.map((item) => {
       if (item.type === 'divider') return item;
@@ -279,7 +204,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
   }, []);
 
   return (
-    <Container json={json} markdown={markdown} shouldShowXml xml={xml} {...props}>
+    <Container editor={editor} json={json} markdown={markdown} shouldShowXml xml={xml} {...props}>
       <Toolbar editor={editor} />
       <Editor
         content={content}
@@ -368,6 +293,9 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         ]}
         slashOption={{
           items: slashItems,
+        }}
+        style={{
+          padding: 16,
         }}
       />
     </Container>
