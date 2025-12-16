@@ -6,13 +6,19 @@ import { useLexicalComposerContext } from '@/editor-kernel/react';
 import { INodePlugin } from '@/plugins/inode';
 
 import { LitexmlPlugin } from '../plugin';
+import ReactDiffNodeToolbar from './DiffNodeToolbar';
+import { useStyles } from './style';
 
 export const ReactLiteXmlPlugin: FC<void> = () => {
   const [editor] = useLexicalComposerContext();
+  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(INodePlugin);
-    editor.registerPlugin(LitexmlPlugin);
+    editor.registerPlugin(LitexmlPlugin, {
+      decorator: (node, editor) => <ReactDiffNodeToolbar editor={editor} node={node} />,
+      theme: styles,
+    });
   }, [editor]);
 
   return null;
