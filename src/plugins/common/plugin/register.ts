@@ -441,11 +441,7 @@ export function registerRichKeydown(
   );
 }
 
-const NEEDS_FOLLOWING_PARAGRAPH_TYPES = new Set<string | undefined>([
-  'code',
-  'table',
-  'block-image',
-]);
+const NEEDS_FOLLOWING_PARAGRAPH_TYPES = new Set<string | undefined>(['code', 'block-image', 'table', 'codemirror', 'mathBlock']);
 
 export function registerLastElement(editor: LexicalEditor) {
   let isProcessing = false;
