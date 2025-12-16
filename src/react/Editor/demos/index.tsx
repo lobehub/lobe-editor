@@ -348,6 +348,21 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
           }),
           Editor.withProps(ReactImagePlugin, {
             defaultBlockImage: true,
+            handleRehost: async (url) => {
+              const res = await fetch(url);
+              const blob = await res.blob();
+              return await new Promise<{ url: string }>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve({ url: reader.result as string });
+                // eslint-disable-next-line unicorn/prefer-add-event-listener
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+            },
+            needRehost: (url) => {
+              console.info('needRehost', url);
+              return url.startsWith('blob:');
+            },
           }),
           Editor.withProps(ReactFilePlugin, {
             handleUpload: async (file) => {
