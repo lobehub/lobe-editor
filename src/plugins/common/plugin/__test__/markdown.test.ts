@@ -12,10 +12,10 @@ describe('Common Plugin Tests', () => {
   beforeEach(() => {
     kernel = Editor.createEditor();
     kernel.registerPlugins([CommonPlugin, MarkdownPlugin]);
+    kernel.initNodeEditor();
   });
 
   it('should markdown reader work', () => {
-    kernel.setRootElement(document.createElement('div'));
     kernel.setDocument('markdown', 'this is <ins>underline</ins> and this is <u>underline2</u>');
     const { root } = kernel.getDocument('json') as any;
 
@@ -37,7 +37,6 @@ describe('Common Plugin Tests', () => {
   });
 
   it('should markdown html mix markdown work', () => {
-    kernel.setRootElement(document.createElement('div'));
     kernel.setDocument('markdown', 'this is <ins>**strong**</ins>');
     const { root } = kernel.getDocument('json') as any;
 

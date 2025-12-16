@@ -51,7 +51,7 @@ export const HOTKEYS_REGISTRATION: HotkeyRegistration = [
   },
   {
     id: HotkeyEnum.Link,
-    keys: combineKeys([KeyEnum.Mod, 'k']),
+    keys: combineKeys([KeyEnum.Mod, KeyEnum.Shift, 'k']),
     priority: COMMAND_PRIORITY_EDITOR,
     scopes: [HotkeyScopeEnum.Format, HotkeyScopeEnum.Plugin],
   },

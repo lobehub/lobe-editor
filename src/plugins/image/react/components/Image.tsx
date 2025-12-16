@@ -201,7 +201,7 @@ const Image = memo<ImageProps>(({ node, className, showScaleInfo = false }) => {
       )}
 
       {/* Resize handles - only left and right */}
-      {isHovered && (
+      {isHovered && node.status === 'uploaded' && (
         <>
           <ResizeHandle
             imageRef={imageRef}

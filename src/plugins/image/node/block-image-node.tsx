@@ -91,21 +91,17 @@ export class BlockImageNode extends BaseImageNode {
       node.__maxWidth,
       node.__width,
       node.__height,
-      node.__showCaption,
-      node.__caption,
-      node.__captionsEnabled,
       node.__key,
     );
   }
 
   static importJSON(serializedNode: SerializedImageNode): BlockImageNode {
-    const { altText, height, width, maxWidth, src, showCaption } = serializedNode;
+    const { altText, height, width, maxWidth, src } = serializedNode;
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return $createBlockImageNode({
       altText,
       height,
       maxWidth,
-      showCaption,
       src,
       width,
     }).updateFromJSON(serializedNode);
@@ -139,27 +135,12 @@ export class BlockImageNode extends BaseImageNode {
 export function $createBlockImageNode({
   altText,
   height,
-  maxWidth = 500,
-  captionsEnabled,
+  maxWidth = 4200,
   src,
   width,
-  showCaption,
-  caption,
   key,
 }: ImagePayload): BlockImageNode {
-  return $applyNodeReplacement(
-    new BlockImageNode(
-      src,
-      altText,
-      maxWidth,
-      width,
-      height,
-      showCaption,
-      caption,
-      captionsEnabled,
-      key,
-    ),
-  );
+  return $applyNodeReplacement(new BlockImageNode(src, altText, maxWidth, width, height, key));
 }
 
 function $convertImageElement(domNode: Node): null | DOMConversionOutput {

@@ -59,7 +59,7 @@ describe('Math plugin', () => {
     });
 
     const markdown = editor.getDocument('markdown');
-    expect(markdown).toBe('This is a math test: $E=mc^2$\n');
+    expect(markdown).toBe('This is a math test: $E=mc^2$\n\n');
   });
 
   it('should math block markdown writer work', () => {
@@ -106,6 +106,6 @@ describe('Math plugin', () => {
     });
 
     const markdown = editor.getDocument('markdown');
-    expect(markdown).toBe('this is block\n$$\nE=mc^2\n$$\n');
+    expect(markdown).toBe('this is block\n\n$$\nE=mc^2\n$$\n');
   });
 });

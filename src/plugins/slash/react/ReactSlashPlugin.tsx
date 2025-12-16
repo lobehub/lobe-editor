@@ -11,6 +11,7 @@ import {
 } from 'lexical';
 import { Children, type FC, useCallback, useLayoutEffect, useRef, useState } from 'react';
 
+import { noop } from '@/editor-kernel';
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
@@ -37,7 +38,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
   const cancelRef = useRef<{
     cancel: () => void;
   }>({
-    cancel: () => {},
+    cancel: noop,
   });
   const triggerMapRef = useRef<Map<string, ReactSlashOptionProps>>(new Map());
 

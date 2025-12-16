@@ -28,6 +28,7 @@ export class LinkHighlightNode extends ElementNode {
   }
 
   createDOM(config: EditorConfig): HTMLElement {
+    console.info('config', config);
     const element = document.createElement('a');
 
     // Set link attributes

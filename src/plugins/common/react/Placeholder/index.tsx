@@ -10,6 +10,7 @@ import {
 } from 'lexical';
 import { type CSSProperties, type ReactNode, memo, useRef, useState } from 'react';
 
+import { $closestNodeType } from '@/editor-kernel';
 import { useLexicalEditor } from '@/editor-kernel/react';
 
 import { $canShowPlaceholderCurry } from '../../utils';
@@ -66,7 +67,8 @@ const Placeholder = memo<PlaceholderProps>(({ children, style, lineEmptyPlacehol
               while (node && !$isBlockElementNode(node)) {
                 node = node.getParent();
               }
-              if (node) {
+              const tableNode = $closestNodeType(node, ['tablecell', 'heading']);
+              if (node && !tableNode) {
                 const dom = editor.getElementByKey(node.getKey()) as HTMLElement | null;
                 if (dom && hasOnlyBrChild(dom)) {
                   if (currentPlaceHolderRef.current && currentPlaceHolderRef.current !== dom) {

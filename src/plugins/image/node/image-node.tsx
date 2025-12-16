@@ -81,21 +81,17 @@ export class ImageNode extends BaseImageNode {
       node.__maxWidth,
       node.__width,
       node.__height,
-      node.__showCaption,
-      node.__caption,
-      node.__captionsEnabled,
       node.__key,
     );
   }
 
   static importJSON(serializedNode: SerializedImageNode): ImageNode {
-    const { altText, height, width, maxWidth, src, showCaption } = serializedNode;
+    const { altText, height, width, maxWidth, src } = serializedNode;
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return $createImageNode({
       altText,
       height,
       maxWidth,
-      showCaption,
       src,
       width,
     }).updateFromJSON(serializedNode);
@@ -120,26 +116,11 @@ export function $createImageNode({
   altText,
   height,
   maxWidth = 500,
-  captionsEnabled,
   src,
   width,
-  showCaption,
-  caption,
   key,
 }: ImagePayload): ImageNode {
-  return $applyNodeReplacement(
-    new ImageNode(
-      src,
-      altText,
-      maxWidth,
-      width,
-      height,
-      showCaption,
-      caption,
-      captionsEnabled,
-      key,
-    ),
-  );
+  return $applyNodeReplacement(new ImageNode(src, altText, maxWidth, width, height, key));
 }
 
 function $convertImageElement(domNode: Node): null | DOMConversionOutput {

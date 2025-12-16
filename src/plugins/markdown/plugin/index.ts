@@ -13,7 +13,7 @@ import {
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import { registerMarkdownCommand } from '../command';
@@ -45,8 +45,11 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     super();
     this.service = new MarkdownShortCutService(kernel);
     kernel.registerService(IMarkdownShortCutService, this.service);
-    // @todo To be implemented
-    kernel.registerDataSource(new MarkdownDataSource('markdown', this.service));
+    kernel.registerDataSource(
+      new MarkdownDataSource('markdown', this.service, <T>(serviceId: IServiceID<T>) => {
+        return kernel.requireService(serviceId);
+      }),
+    );
   }
 
   onInit(editor: LexicalEditor): void {

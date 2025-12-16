@@ -28,6 +28,7 @@ import {
 import { debounce } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { noop } from '@/editor-kernel';
 import { INSERT_CODEINLINE_COMMAND } from '@/plugins/code';
 import { $isSelectionInCodeInline } from '@/plugins/code/node/code';
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
@@ -452,7 +453,7 @@ export function useEditorState(editor?: IEditor): EditorState {
   useEffect(() => {
     if (!editor) return;
     const lexicalEditor = editor.getLexicalEditor();
-    let cleanup: () => void = () => {};
+    let cleanup: () => void = noop;
     const debounceUpdate = debounce(() => {
       lexicalEditor?.read(() => {
         $updateToolbar();

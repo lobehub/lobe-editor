@@ -7,7 +7,6 @@ import {
   CommandListener,
   CommandListenerPriority,
   CommandPayloadType,
-  DecoratorNode,
   KEY_DOWN_COMMAND,
   LexicalCommand,
   LexicalEditor,
@@ -21,6 +20,7 @@ import { $isRootTextContentEmpty } from '@/plugins/common/utils';
 import { HotkeyId } from '@/types/hotkey';
 import {
   Commands,
+  IDecorator,
   IEditor,
   IEditorKernel,
   IEditorPlugin,
@@ -40,7 +40,14 @@ import {
 import DataSource from './data-source';
 import { registerEvent } from './event';
 import { KernelPlugin } from './plugin';
-import { createEmptyEditorState } from './utils';
+import {
+  EDITOR_THEME_KEY,
+  createEmptyEditorState,
+  generateEditorId,
+  noop,
+  registerEditorKernel,
+  unregisterEditorKernel,
+} from './utils';
 
 templateSettings.interpolate = /{{([\S\s]+?)}}/g;
 
@@ -48,12 +55,14 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   // Global hot reload flag
   private static globalHotReloadMode: boolean | undefined = undefined;
   private dataTypeMap: Map<string, DataSource>;
-  private plugins: Array<IEditorPluginConstructor<any> & { __config: any }> = [];
+  private plugins: Array<IEditorPluginConstructor<any>> = [];
+  private pluginsConfig: Map<IEditorPluginConstructor<any>, any> = new Map();
   private pluginsInstances: Array<IEditorPlugin<any>> = [];
   private nodes: Array<LexicalNodeConfig> = [];
-  private themes: Record<string, any> = {}; // Used to store theme configuration
-  private decorators: Record<string, (_node: DecoratorNode<any>, _editor: LexicalEditor) => any> =
-    {};
+  private themes: Record<string, any> = {
+    [EDITOR_THEME_KEY]: generateEditorId(),
+  }; // Used to store theme configuration
+  private decorators: Record<string, IDecorator> = {};
   private serviceMap: Map<string, any> = new Map();
   private localeMap: Record<keyof ILocaleKeys, string> = defaultLocale as unknown as Record<
     keyof ILocaleKeys,
@@ -141,6 +150,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   destroy() {
+    unregisterEditorKernel(this.themes[EDITOR_THEME_KEY]);
     this.logger.info(`🗑️ Destroying editor with ${this.pluginsInstances.length} plugins`);
     this.editor?.setEditorState(createEmptyEditorState());
     this.dataTypeMap.clear();
@@ -154,6 +164,8 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.serviceMap.clear();
     // Clear decorators to prevent memory leaks
     this.decorators = {};
+    // Clear themes
+    this.themes = {};
     this.logger.info('✅ Editor destroyed');
   }
 
@@ -173,12 +185,13 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     if (this.pluginsInstances.length === 0) {
       this.logger.info(`🔌 Initializing ${this.plugins.length} plugins`);
       for (const plugin of this.plugins) {
-        const instance = new plugin(this, plugin.__config);
+        const instance = new plugin(this, this.pluginsConfig.get(plugin));
         this.pluginsInstances.push(instance);
       }
     }
 
     this.logger.info(`📝 Creating editor with ${this.nodes.length} nodes`);
+    registerEditorKernel(this.themes[EDITOR_THEME_KEY], this);
     const editor = (this.editor = createEditor({
       // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
@@ -220,7 +233,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     if (this.pluginsInstances.length === 0) {
       this.logger.info(`🔌 Initializing ${this.plugins.length} plugins`);
       for (const plugin of this.plugins) {
-        const instance = new plugin(this, plugin.__config);
+        const instance = new plugin(this, this.pluginsConfig.get(plugin));
         this.pluginsInstances.push(instance);
       }
     }
@@ -296,10 +309,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     });
   }
 
-  registerDecorator(
-    name: string,
-    decorator: (_node: DecoratorNode<any>, _editor: LexicalEditor) => any,
-  ) {
+  registerDecorator(name: string, decorator: IDecorator) {
     if (this.decorators[name]) {
       if (this.hotReloadMode) {
         // In hot reload mode, allow decorator override with warning
@@ -330,9 +340,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     return this;
   }
 
-  getDecorator(
-    name: string,
-  ): ((_node: DecoratorNode<any>, _editor: LexicalEditor) => any) | undefined {
+  getDecorator(name: string): IDecorator | undefined {
     return this.decorators[name];
   }
 
@@ -409,15 +417,12 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       } else {
         // Same plugin, just update config if provided
         if (config !== undefined) {
-          // @ts-expect-error not error
-          plugin.__config = config;
+          this.pluginsConfig.set(plugin, config);
         }
         return this; // If plugin already exists, don't register again
       }
     }
-    // @ts-expect-error not error
-    plugin.__config = config || {};
-    // @ts-expect-error not error
+    this.pluginsConfig.set(plugin, config || {});
     this.plugins.push(plugin);
     this.logger.debug(`🔌 Plugin: ${plugin.pluginName}`);
     return this;
@@ -660,7 +665,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     const listenersInPriorityOrder = commandsMap.get(command);
 
     if (listenersInPriorityOrder === undefined) {
-      return () => {};
+      return noop;
     }
 
     const listeners = listenersInPriorityOrder[priority];

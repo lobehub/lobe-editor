@@ -1,4 +1,12 @@
-import { $getNodeByKey, LexicalEditor, LexicalNode, NodeKey, createEditor } from 'lexical';
+import {
+  $getNodeByKey,
+  EditorConfig,
+  ElementNode,
+  LexicalEditor,
+  LexicalNode,
+  NodeKey,
+  createEditor,
+} from 'lexical';
 
 import type { IEditorKernel, IServiceID } from '@/types';
 
@@ -89,6 +97,29 @@ export function getKernelFromEditor(editor: LexicalEditor): IEditorKernel {
   return editor._createEditorArgs?.__kernel || editor._kernel;
 }
 
+let EditorId = 0;
+export const EDITOR_THEME_KEY = '__editorId';
+
+export function generateEditorId(): string {
+  EditorId += 1;
+  return `editor-${EditorId}`;
+}
+
+const EditorMap = new Map<string, IEditorKernel>();
+
+export function registerEditorKernel(id: string, kernel: IEditorKernel): void {
+  EditorMap.set(id, kernel);
+}
+
+export function unregisterEditorKernel(id: string): void {
+  EditorMap.delete(id);
+}
+
+export function getKernelFromEditorConfig(config: EditorConfig): IEditorKernel | null {
+  const id = config.theme[EDITOR_THEME_KEY];
+  return EditorMap.get(id) || null;
+}
+
 /**
  *
  * @param nodeA
@@ -130,4 +161,59 @@ export function compareNodeOrder(nodeA: LexicalNode, nodeB: LexicalNode): number
 
   // This case should not happen as we checked for equality at the start
   return 0;
+}
+
+export function $closest(
+  node: LexicalNode | ElementNode | null,
+  test: (node: LexicalNode) => boolean,
+): LexicalNode | null {
+  let current: LexicalNode | null = node;
+  while (current) {
+    if (test(current)) {
+      return current;
+    }
+    current = current.getParent();
+  }
+  return null;
+}
+
+export function $closestNodeType(
+  node: LexicalNode | ElementNode | null,
+  type: string | string[],
+): LexicalNode | null {
+  return $closest(node, (n) =>
+    Array.isArray(type) ? type.includes(n.getType()) : n.getType() === type,
+  );
+}
+
+export function moment() {
+  return new Promise((resolve) => {
+    queueMicrotask(() => resolve(true));
+  });
+}
+
+function cloneDecorators(editor: LexicalEditor): Record<NodeKey, unknown> {
+  const currentDecorators = editor._decorators;
+  const pendingDecorators = Object.assign({}, currentDecorators);
+  editor._pendingDecorators = pendingDecorators;
+  return pendingDecorators;
+}
+
+export function reconcileDecorator(
+  activeEditor: LexicalEditor,
+  key: NodeKey,
+  decorator: unknown,
+): void {
+  let pendingDecorators = activeEditor._pendingDecorators;
+  const currentDecorators = activeEditor._decorators;
+
+  if (pendingDecorators === null) {
+    if (currentDecorators[key] === decorator) {
+      return;
+    }
+
+    pendingDecorators = cloneDecorators(activeEditor);
+  }
+
+  pendingDecorators[key] = decorator;
 }

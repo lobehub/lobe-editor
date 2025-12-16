@@ -106,7 +106,17 @@ export class MentionNode extends DecoratorNode<any> {
   }
 
   decorate(editor: LexicalEditor): any {
-    return getKernelFromEditor(editor)?.getDecorator('mention')?.(this, editor) || null;
+    const decorator = getKernelFromEditor(editor)?.getDecorator(MentionNode.getType());
+    if (!decorator) {
+      return null;
+    }
+    if (typeof decorator === 'function') {
+      return decorator(this, editor);
+    }
+    return {
+      queryDOM: decorator.queryDOM,
+      render: decorator.render(this, editor),
+    };
   }
 }
 

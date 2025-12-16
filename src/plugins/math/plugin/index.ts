@@ -2,6 +2,7 @@ import { $createNodeSelection, $setSelection, DecoratorNode, LexicalEditor } fro
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
@@ -58,6 +59,48 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
   onInit(editor: LexicalEditor): void {
     this.register(registerMathCommand(editor));
     this.registerMarkdown();
+    this.registerLiteXml();
+  }
+
+  registerLiteXml() {
+    const litexmlService = this.kernel.requireService(ILitexmlService);
+    if (!litexmlService) {
+      return;
+    }
+
+    litexmlService.registerXMLWriter(MathInlineNode.getType(), (node, ctx) => {
+      if (node instanceof MathInlineNode) {
+        const attributes: { [key: string]: string } = {
+          code: node.getTextContent(),
+        };
+        return ctx.createXmlNode('math', attributes);
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLWriter(MathBlockNode.getType(), (node, ctx) => {
+      if (node instanceof MathBlockNode) {
+        const attributes: { [key: string]: string } = {
+          code: node.getTextContent(),
+        };
+        return ctx.createXmlNode('mathBlock', attributes);
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLReader('math', (xmlNode) => {
+      return INodeHelper.createElementNode(MathInlineNode.getType(), {
+        code: xmlNode.getAttribute('code') || '',
+        version: 1,
+      });
+    });
+
+    litexmlService.registerXMLReader('mathBlock', (xmlNode) => {
+      return INodeHelper.createElementNode(MathBlockNode.getType(), {
+        code: xmlNode.getAttribute('code') || '',
+        version: 1,
+      });
+    });
   }
 
   registerMarkdown() {

@@ -12,6 +12,7 @@ import { $isRootNode, LexicalEditor } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -75,6 +76,70 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
       }),
     );
     this.registerMarkdown();
+    this.registerLiteXml();
+  }
+
+  registerLiteXml() {
+    const litexmlService = this.kernel.requireService(ILitexmlService);
+    if (!litexmlService) {
+      return;
+    }
+
+    litexmlService.registerXMLWriter(ListNode.getType(), (node, ctx) => {
+      if ($isListNode(node)) {
+        const tagName = node.getListType() === 'number' ? 'ol' : 'ul';
+        const attributes: { [key: string]: string } = {};
+        if (node.getListType() === 'number' && node.getStart() !== 1) {
+          attributes.start = node.getStart().toString();
+        }
+        return ctx.createXmlNode(tagName, attributes);
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLWriter(ListItemNode.getType(), (node, ctx) => {
+      if ($isListItemNode(node)) {
+        return ctx.createXmlNode('li');
+      }
+      return false;
+    });
+
+    litexmlService.registerXMLReader('ol', (xmlNode, children) => {
+      return INodeHelper.createElementNode('list', {
+        children: children,
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        listType: 'number',
+        start: xmlNode.getAttribute('start')
+          ? parseInt(xmlNode.getAttribute('start') as string, 10)
+          : 1,
+        tag: 'ol',
+        version: 1,
+      });
+    });
+    litexmlService.registerXMLReader('ul', (xmlNode, children) => {
+      return INodeHelper.createElementNode('list', {
+        children: children,
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        listType: 'bullet',
+        start: 1,
+        tag: 'ul',
+        version: 1,
+      });
+    });
+    litexmlService.registerXMLReader('li', (xmlNode, children) => {
+      return INodeHelper.createElementNode('listitem', {
+        children: children,
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        type: 'listitem',
+        version: 1,
+      });
+    });
   }
 
   registerMarkdown() {

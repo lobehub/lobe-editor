@@ -20,6 +20,8 @@ import {
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
+import { INodeService } from '@/plugins/inode';
+import type { IServiceID } from '@/types';
 
 import type { MarkdownShortCutService } from '../service/shortcut';
 import { logger } from '../utils/logger';
@@ -30,6 +32,7 @@ export default class MarkdownDataSource extends DataSource {
   constructor(
     protected dataType: string,
     protected markdownService: MarkdownShortCutService,
+    protected getService?: <T>(serviceId: IServiceID<T>) => T | null,
   ) {
     super(dataType);
   }
@@ -38,6 +41,8 @@ export default class MarkdownDataSource extends DataSource {
     const inode = {
       root: parseMarkdownToLexical(data, this.markdownService.markdownReaders),
     };
+
+    this.getService?.(INodeService)?.processNodeTree(inode);
 
     logger.debug('Parsed Lexical State:', inode);
 

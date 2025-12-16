@@ -48,7 +48,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     const isChat = variant === 'chat';
     const {
       fontSize = isChat ? 14 : 16,
-      headerMultiple = isChat ? 0.25 : 1,
+      headerMultiple = isChat ? 0.25 : 0.6,
       lineHeight = isChat ? 1.6 : 1.8,
       marginMultiple = isChat ? 1 : 2,
       ...restTheme

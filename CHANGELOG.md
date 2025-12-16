@@ -2,13 +2,13 @@
 
 # Changelog
 
-## [Version&nbsp;1.26.0](https://github.com/lobehub/lobe-editor/compare/v1.25.0...v1.26.0)
-<sup>Released on **2025-12-01**</sup>
+### [Version&nbsp;1.33.3](https://github.com/lobehub/lobe-editor/compare/v1.33.2...v1.33.3)
+<sup>Released on **2025-12-16**</sup>
 
 
-#### ✨ Features
+#### 💄 Styles
 
-- **misc**: Add ReactToolbarPlugin and integrate it into the editor demo.
+- **misc**: Update style.
 
 
 <br/>
@@ -20,9 +20,9 @@
 
 
 
-#### What's improved
+#### Styles
 
-* **misc**: Add ReactToolbarPlugin and integrate it into the editor demo, closes [#62](https://github.com/lobehub/lobe-editor/issues/62) ([2da5cb6](https://github.com/lobehub/lobe-editor/commit/2da5cb6))
+* **misc**: Update style ([743f832](https://github.com/lobehub/lobe-editor/commit/743f832))
 
 </details>
 
@@ -33,18 +33,75 @@
 
 </div>
 
-## [Version&nbsp;1.25.0](https://github.com/lobehub/lobe-editor/compare/v1.24.0...v1.25.0)
-<sup>Released on **2025-12-01**</sup>
+### [Version&nbsp;1.33.2](https://github.com/lobehub/lobe-editor/compare/v1.33.1...v1.33.2)
+<sup>Released on **2025-12-16**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Update diffnode style.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Update diffnode style ([4c37f53](https://github.com/lobehub/lobe-editor/commit/4c37f53))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;1.33.1](https://github.com/lobehub/lobe-editor/compare/v1.33.0...v1.33.1)
+<sup>Released on **2025-12-16**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Update diffNode style.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Update diffNode style ([42b21b8](https://github.com/lobehub/lobe-editor/commit/42b21b8))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;1.33.0](https://github.com/lobehub/lobe-editor/compare/v1.32.0...v1.33.0)
+<sup>Released on **2025-12-16**</sup>
 
 
 #### ✨ Features
 
-- **misc**: Add AutoComplete plugin with React integration and placeholder nodes, Add editable state management to the editor and related compo…, Add image resizing functionality with new ResizeHandle compon….
-
-
-#### 🐛 Bug Fixes
-
-- **misc**: Fix error.
+- **misc**: Enhance decorator and add diffnode.
 
 
 <br/>
@@ -58,18 +115,647 @@
 
 #### What's improved
 
-* **misc**: Add AutoComplete plugin with React integration and placeholder nodes, closes [#53](https://github.com/lobehub/lobe-editor/issues/53) ([e9dc1a7](https://github.com/lobehub/lobe-editor/commit/e9dc1a7))
-* **misc**: Add editable state management to the editor and related compo…, closes [#67](https://github.com/lobehub/lobe-editor/issues/67) ([5851459](https://github.com/lobehub/lobe-editor/commit/5851459))
-* **misc**: Add image resizing functionality with new ResizeHandle compon…, closes [#66](https://github.com/lobehub/lobe-editor/issues/66) ([8e749d2](https://github.com/lobehub/lobe-editor/commit/8e749d2))
-
-
-
-#### What's fixed
-
-* **misc**: Fix error ([2273811](https://github.com/lobehub/lobe-editor/commit/2273811))
+* **misc**: Enhance decorator and add diffnode, closes [#78](https://github.com/lobehub/lobe-editor/issues/78) ([b7b7eef](https://github.com/lobehub/lobe-editor/commit/b7b7eef))
 
 </details>
 
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.32.0](https://github.com/lobehub/lobe-editor/compare/v1.31.2...v1.32.0)
+
+<sup>Released on **2025-12-11**</sup>
+
+#### ✨ Features
+
+- **misc**: Add handling for arrow down key in quote nodes, Add INode plugin and integrate with existing plugins, Bump new --force-patch, Update litexml test cases with new ID generation logic, Update litexml test cases with new ID generation logic.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix build, Fix build, Fix publish, Fix publish, Fix publish.
+
+#### 💄 Styles
+
+- **misc**: Update hotkey.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add handling for arrow down key in quote nodes, closes [#79](https://github.com/lobehub/lobe-editor/issues/79) ([fd5cf57](https://github.com/lobehub/lobe-editor/commit/fd5cf57))
+- **misc**: Add INode plugin and integrate with existing plugins, closes [#80](https://github.com/lobehub/lobe-editor/issues/80) ([0e0a398](https://github.com/lobehub/lobe-editor/commit/0e0a398))
+- **misc**: Bump new --force-patch ([9e5d935](https://github.com/lobehub/lobe-editor/commit/9e5d935))
+- **misc**: Update litexml test cases with new ID generation logic ([78a1488](https://github.com/lobehub/lobe-editor/commit/78a1488))
+- **misc**: Update litexml test cases with new ID generation logic, closes [#81](https://github.com/lobehub/lobe-editor/issues/81) ([e25a881](https://github.com/lobehub/lobe-editor/commit/e25a881))
+
+#### What's fixed
+
+- **misc**: Fix build ([3c3fd83](https://github.com/lobehub/lobe-editor/commit/3c3fd83))
+- **misc**: Fix build ([d0ea8e3](https://github.com/lobehub/lobe-editor/commit/d0ea8e3))
+- **misc**: Fix publish ([f4f7876](https://github.com/lobehub/lobe-editor/commit/f4f7876))
+- **misc**: Fix publish ([66d8aca](https://github.com/lobehub/lobe-editor/commit/66d8aca))
+- **misc**: Fix publish ([c67ef2a](https://github.com/lobehub/lobe-editor/commit/c67ef2a))
+
+#### Styles
+
+- **misc**: Update hotkey ([c36886d](https://github.com/lobehub/lobe-editor/commit/c36886d))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.32.0](https://github.com/lobehub/lobe-editor/compare/v1.31.2...v1.32.0)
+
+<sup>Released on **2025-12-11**</sup>
+
+#### ✨ Features
+
+- **misc**: Add handling for arrow down key in quote nodes, Add INode plugin and integrate with existing plugins, Bump new --force-patch, Update litexml test cases with new ID generation logic, Update litexml test cases with new ID generation logic.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix build, Fix build, Fix publish, Fix publish.
+
+#### 💄 Styles
+
+- **misc**: Update hotkey.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add handling for arrow down key in quote nodes, closes [#79](https://github.com/lobehub/lobe-editor/issues/79) ([fd5cf57](https://github.com/lobehub/lobe-editor/commit/fd5cf57))
+- **misc**: Add INode plugin and integrate with existing plugins, closes [#80](https://github.com/lobehub/lobe-editor/issues/80) ([0e0a398](https://github.com/lobehub/lobe-editor/commit/0e0a398))
+- **misc**: Bump new --force-patch ([9e5d935](https://github.com/lobehub/lobe-editor/commit/9e5d935))
+- **misc**: Update litexml test cases with new ID generation logic ([78a1488](https://github.com/lobehub/lobe-editor/commit/78a1488))
+- **misc**: Update litexml test cases with new ID generation logic, closes [#81](https://github.com/lobehub/lobe-editor/issues/81) ([e25a881](https://github.com/lobehub/lobe-editor/commit/e25a881))
+
+#### What's fixed
+
+- **misc**: Fix build ([3c3fd83](https://github.com/lobehub/lobe-editor/commit/3c3fd83))
+- **misc**: Fix build ([d0ea8e3](https://github.com/lobehub/lobe-editor/commit/d0ea8e3))
+- **misc**: Fix publish ([66d8aca](https://github.com/lobehub/lobe-editor/commit/66d8aca))
+- **misc**: Fix publish ([c67ef2a](https://github.com/lobehub/lobe-editor/commit/c67ef2a))
+
+#### Styles
+
+- **misc**: Update hotkey ([c36886d](https://github.com/lobehub/lobe-editor/commit/c36886d))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.32.1](https://github.com/lobehub/lobe-editor/compare/v1.32.0...v1.32.1)
+
+<sup>Released on **2025-12-11**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix build.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix build ([3c3fd83](https://github.com/lobehub/lobe-editor/commit/3c3fd83))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.32.0](https://github.com/lobehub/lobe-editor/compare/v1.31.2...v1.32.0)
+
+<sup>Released on **2025-12-11**</sup>
+
+#### ✨ Features
+
+- **misc**: Add handling for arrow down key in quote nodes, Add INode plugin and integrate with existing plugins, Bump new --force-patch, Update litexml test cases with new ID generation logic, Update litexml test cases with new ID generation logic.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix build, Fix publish.
+
+#### 💄 Styles
+
+- **misc**: Update hotkey.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add handling for arrow down key in quote nodes, closes [#79](https://github.com/lobehub/lobe-editor/issues/79) ([fd5cf57](https://github.com/lobehub/lobe-editor/commit/fd5cf57))
+- **misc**: Add INode plugin and integrate with existing plugins, closes [#80](https://github.com/lobehub/lobe-editor/issues/80) ([0e0a398](https://github.com/lobehub/lobe-editor/commit/0e0a398))
+- **misc**: Bump new --force-patch ([9e5d935](https://github.com/lobehub/lobe-editor/commit/9e5d935))
+- **misc**: Update litexml test cases with new ID generation logic ([78a1488](https://github.com/lobehub/lobe-editor/commit/78a1488))
+- **misc**: Update litexml test cases with new ID generation logic, closes [#81](https://github.com/lobehub/lobe-editor/issues/81) ([e25a881](https://github.com/lobehub/lobe-editor/commit/e25a881))
+
+#### What's fixed
+
+- **misc**: Fix build ([d0ea8e3](https://github.com/lobehub/lobe-editor/commit/d0ea8e3))
+- **misc**: Fix publish ([c67ef2a](https://github.com/lobehub/lobe-editor/commit/c67ef2a))
+
+#### Styles
+
+- **misc**: Update hotkey ([c36886d](https://github.com/lobehub/lobe-editor/commit/c36886d))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.32.0](https://github.com/lobehub/lobe-editor/compare/v1.31.2...v1.32.0)
+
+<sup>Released on **2025-12-11**</sup>
+
+#### ✨ Features
+
+- **misc**: Add handling for arrow down key in quote nodes, Add INode plugin and integrate with existing plugins, Bump new --force-patch, Update litexml test cases with new ID generation logic, Update litexml test cases with new ID generation logic.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix build.
+
+#### 💄 Styles
+
+- **misc**: Update hotkey.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add handling for arrow down key in quote nodes, closes [#79](https://github.com/lobehub/lobe-editor/issues/79) ([fd5cf57](https://github.com/lobehub/lobe-editor/commit/fd5cf57))
+- **misc**: Add INode plugin and integrate with existing plugins, closes [#80](https://github.com/lobehub/lobe-editor/issues/80) ([0e0a398](https://github.com/lobehub/lobe-editor/commit/0e0a398))
+- **misc**: Bump new --force-patch ([9e5d935](https://github.com/lobehub/lobe-editor/commit/9e5d935))
+- **misc**: Update litexml test cases with new ID generation logic ([78a1488](https://github.com/lobehub/lobe-editor/commit/78a1488))
+- **misc**: Update litexml test cases with new ID generation logic, closes [#81](https://github.com/lobehub/lobe-editor/issues/81) ([e25a881](https://github.com/lobehub/lobe-editor/commit/e25a881))
+
+#### What's fixed
+
+- **misc**: Fix build ([d0ea8e3](https://github.com/lobehub/lobe-editor/commit/d0ea8e3))
+
+#### Styles
+
+- **misc**: Update hotkey ([c36886d](https://github.com/lobehub/lobe-editor/commit/c36886d))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.32.0](https://github.com/lobehub/lobe-editor/compare/v1.31.2...v1.32.0)
+
+<sup>Released on **2025-12-11**</sup>
+
+#### ✨ Features
+
+- **misc**: Add handling for arrow down key in quote nodes, Add INode plugin and integrate with existing plugins, Bump new --force-patch, Update litexml test cases with new ID generation logic, Update litexml test cases with new ID generation logic.
+
+#### 💄 Styles
+
+- **misc**: Update hotkey.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add handling for arrow down key in quote nodes, closes [#79](https://github.com/lobehub/lobe-editor/issues/79) ([fd5cf57](https://github.com/lobehub/lobe-editor/commit/fd5cf57))
+- **misc**: Add INode plugin and integrate with existing plugins, closes [#80](https://github.com/lobehub/lobe-editor/issues/80) ([0e0a398](https://github.com/lobehub/lobe-editor/commit/0e0a398))
+- **misc**: Bump new --force-patch ([9e5d935](https://github.com/lobehub/lobe-editor/commit/9e5d935))
+- **misc**: Update litexml test cases with new ID generation logic ([78a1488](https://github.com/lobehub/lobe-editor/commit/78a1488))
+- **misc**: Update litexml test cases with new ID generation logic, closes [#81](https://github.com/lobehub/lobe-editor/issues/81) ([e25a881](https://github.com/lobehub/lobe-editor/commit/e25a881))
+
+#### Styles
+
+- **misc**: Update hotkey ([c36886d](https://github.com/lobehub/lobe-editor/commit/c36886d))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.33.1](https://github.com/lobehub/lobe-editor/compare/v1.33.0...v1.33.1)
+
+<sup>Released on **2025-12-11**</sup>
+
+#### 💄 Styles
+
+- **misc**: Update hotkey.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Styles
+
+- **misc**: Update hotkey ([c36886d](https://github.com/lobehub/lobe-editor/commit/c36886d))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.33.0](https://github.com/lobehub/lobe-editor/compare/v1.32.0...v1.33.0)
+
+<sup>Released on **2025-12-10**</sup>
+
+#### ✨ Features
+
+- **misc**: Update litexml test cases with new ID generation logic.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Update litexml test cases with new ID generation logic ([78a1488](https://github.com/lobehub/lobe-editor/commit/78a1488))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.32.0](https://github.com/lobehub/lobe-editor/compare/v1.31.2...v1.32.0)
+
+<sup>Released on **2025-12-10**</sup>
+
+#### ✨ Features
+
+- **misc**: Add handling for arrow down key in quote nodes, Add INode plugin and integrate with existing plugins, Update litexml test cases with new ID generation logic.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add handling for arrow down key in quote nodes, closes [#79](https://github.com/lobehub/lobe-editor/issues/79) ([fd5cf57](https://github.com/lobehub/lobe-editor/commit/fd5cf57))
+- **misc**: Add INode plugin and integrate with existing plugins, closes [#80](https://github.com/lobehub/lobe-editor/issues/80) ([0e0a398](https://github.com/lobehub/lobe-editor/commit/0e0a398))
+- **misc**: Update litexml test cases with new ID generation logic, closes [#81](https://github.com/lobehub/lobe-editor/issues/81) ([e25a881](https://github.com/lobehub/lobe-editor/commit/e25a881))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.31.2](https://github.com/lobehub/lobe-editor/compare/v1.31.1...v1.31.2)
+
+<sup>Released on **2025-12-10**</sup>
+
+#### 💄 Styles
+
+- **misc**: Update editor theme.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Styles
+
+- **misc**: Update editor theme ([6ae77af](https://github.com/lobehub/lobe-editor/commit/6ae77af))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.31.1](https://github.com/lobehub/lobe-editor/compare/v1.31.0...v1.31.1)
+
+<sup>Released on **2025-12-09**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix build.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix build ([0905018](https://github.com/lobehub/lobe-editor/commit/0905018))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.31.0](https://github.com/lobehub/lobe-editor/compare/v1.30.0...v1.31.0)
+
+<sup>Released on **2025-12-09**</sup>
+
+#### ✨ Features
+
+- **misc**: Enhance `LITEXML_APPLY_COMMAND` to support multiple XML inputs.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Enhance `LITEXML_APPLY_COMMAND` to support multiple XML inputs, closes [#75](https://github.com/lobehub/lobe-editor/issues/75) ([adb316d](https://github.com/lobehub/lobe-editor/commit/adb316d))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.30.0](https://github.com/lobehub/lobe-editor/compare/v1.29.0...v1.30.0)
+
+<sup>Released on **2025-12-08**</sup>
+
+#### ✨ Features
+
+- **misc**: Add Litexml plugin for XML data source support.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add Litexml plugin for XML data source support, closes [#72](https://github.com/lobehub/lobe-editor/issues/72) ([fc744a8](https://github.com/lobehub/lobe-editor/commit/fc744a8))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.29.0](https://github.com/lobehub/lobe-editor/compare/v1.28.1...v1.29.0)
+
+<sup>Released on **2025-12-05**</sup>
+
+#### ✨ Features
+
+- **misc**: Line placeholder should not show in table.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Line placeholder should not show in table, closes [#74](https://github.com/lobehub/lobe-editor/issues/74) ([4fa9c21](https://github.com/lobehub/lobe-editor/commit/4fa9c21))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.28.1](https://github.com/lobehub/lobe-editor/compare/v1.28.0...v1.28.1)
+
+<sup>Released on **2025-12-04**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Block image selection.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Block image selection, closes [#73](https://github.com/lobehub/lobe-editor/issues/73) ([760d030](https://github.com/lobehub/lobe-editor/commit/760d030))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.28.0](https://github.com/lobehub/lobe-editor/compare/v1.27.1...v1.28.0)
+
+<sup>Released on **2025-12-04**</sup>
+
+#### ✨ Features
+
+- **misc**: Add FloatActions.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add FloatActions ([bf6315c](https://github.com/lobehub/lobe-editor/commit/bf6315c))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.27.1](https://github.com/lobehub/lobe-editor/compare/v1.27.0...v1.27.1)
+
+<sup>Released on **2025-12-02**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Prevent plugin config from being overwritten in multi-instance….
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Prevent plugin config from being overwritten in multi-instance…, closes [#71](https://github.com/lobehub/lobe-editor/issues/71) ([44e39e2](https://github.com/lobehub/lobe-editor/commit/44e39e2))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.27.0](https://github.com/lobehub/lobe-editor/compare/v1.26.1...v1.27.0)
+
+<sup>Released on **2025-12-02**</sup>
+
+#### ✨ Features
+
+- **misc**: Implement mouse down/up handling for floating toolbar visibility.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Implement mouse down/up handling for floating toolbar visibility, closes [#70](https://github.com/lobehub/lobe-editor/issues/70) ([4b90ff2](https://github.com/lobehub/lobe-editor/commit/4b90ff2))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 1.26.1](https://github.com/lobehub/lobe-editor/compare/v1.26.0...v1.26.1)
+
+<sup>Released on **2025-12-01**</sup>
+
+#### 💄 Styles
+
+- **misc**: Update image resize handle style.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Styles
+
+- **misc**: Update image resize handle style ([d867161](https://github.com/lobehub/lobe-editor/commit/d867161))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.26.0](https://github.com/lobehub/lobe-editor/compare/v1.25.0...v1.26.0)
+
+<sup>Released on **2025-12-01**</sup>
+
+#### ✨ Features
+
+- **misc**: Add ReactToolbarPlugin and integrate it into the editor demo.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add ReactToolbarPlugin and integrate it into the editor demo, closes [#62](https://github.com/lobehub/lobe-editor/issues/62) ([2da5cb6](https://github.com/lobehub/lobe-editor/commit/2da5cb6))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 1.25.0](https://github.com/lobehub/lobe-editor/compare/v1.24.0...v1.25.0)
+
+<sup>Released on **2025-12-01**</sup>
+
+#### ✨ Features
+
+- **misc**: Add AutoComplete plugin with React integration and placeholder nodes, Add editable state management to the editor and related compo…, Add image resizing functionality with new ResizeHandle compon….
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix error.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add AutoComplete plugin with React integration and placeholder nodes, closes [#53](https://github.com/lobehub/lobe-editor/issues/53) ([e9dc1a7](https://github.com/lobehub/lobe-editor/commit/e9dc1a7))
+- **misc**: Add editable state management to the editor and related compo…, closes [#67](https://github.com/lobehub/lobe-editor/issues/67) ([5851459](https://github.com/lobehub/lobe-editor/commit/5851459))
+- **misc**: Add image resizing functionality with new ResizeHandle compon…, closes [#66](https://github.com/lobehub/lobe-editor/issues/66) ([8e749d2](https://github.com/lobehub/lobe-editor/commit/8e749d2))
+
+#### What's fixed
+
+- **misc**: Fix error ([2273811](https://github.com/lobehub/lobe-editor/commit/2273811))
+
+</details>
 
 <div align="right">
 

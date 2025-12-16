@@ -17,6 +17,7 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
+  ReactLiteXmlPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
   ReactToolbarPlugin,
@@ -46,12 +47,15 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
   const editor = useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
+  const [xml, setXml] = useState('');
 
   const handleChange = debounce((editor: IEditor) => {
     const markdownContent = editor.getDocument('markdown') as unknown as string;
     const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
+    const xmlContent = editor.getDocument('litexml') as unknown as string;
     setMarkdown(markdownContent || '');
     setJson(JSON.stringify(jsonContent || {}, null, 2));
+    setXml(xmlContent || '');
   }, 200);
 
   const handleInit = (editor: IEditor) => {
@@ -201,7 +205,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
   }, []);
 
   return (
-    <Container json={json} markdown={markdown} {...props}>
+    <Container editor={editor} json={json} markdown={markdown} shouldShowXml xml={xml} {...props}>
       <Toolbar editor={editor} />
       <Editor
         content={content}
@@ -224,6 +228,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         onTextChange={handleChange}
         placeholder={'Type something...'}
         plugins={[
+          ReactLiteXmlPlugin,
           ReactListPlugin,
           ReactLinkPlugin,
           ReactImagePlugin,
@@ -291,6 +296,9 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
         ]}
         slashOption={{
           items: slashItems,
+        }}
+        style={{
+          padding: 16,
         }}
       />
     </Container>
