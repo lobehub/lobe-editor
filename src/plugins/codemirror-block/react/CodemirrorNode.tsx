@@ -1,11 +1,13 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { Button, InputNumber, Popover, Select, Space, Switch, message } from 'antd';
+import { ActionIcon, Block, InputNumber, Select } from '@lobehub/ui';
+import { Popover, Space, Switch, message } from 'antd';
 import { $getSelection, COMMAND_PRIORITY_CRITICAL, KEY_DOWN_COMMAND, LexicalEditor } from 'lexical';
 import { debounce } from 'lodash';
 import { Copy, Settings } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Flexbox } from 'react-layout-kit';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 
@@ -254,25 +256,28 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
   }, [clearSelection, editor, isSelected, node, setSelected]);
 
   return (
-    <div
+    <Block
       className={cx(styles, isSelected && !isNodeSelected && 'selected', className)}
       onMouseDown={(e) => e.stopPropagation()}
       onMouseUp={(e) => e.stopPropagation()}
       onSelect={(e) => e.stopPropagation()}
+      variant={'filled'}
     >
       {/* 工具条 */}
-      <div className="toolbar">
-        <div
+      <Flexbox align={'center'} horizontal justify={'space-between'} padding={8}>
+        <Flexbox
+          align={'center'}
+          gap={8}
+          horizontal
           style={{
-            alignItems: 'center',
-            display: 'flex',
-            gap: '8px',
             visibility: isFocused || isSelectFocused ? 'visible' : 'hidden',
           }}
         >
           <Select
             filterOption={(input, option) =>
-              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              String(option?.label ?? '')
+                .toLowerCase()
+                .includes(input.toLowerCase())
             }
             onBlur={() => setSelectFocused(false)}
             onChange={handleLanguageChange}
@@ -294,16 +299,16 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
             style={{ minWidth: '120px' }}
             value={selectedTheme}
           />
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Button
-            icon={<Copy size={14} />}
+        </Flexbox>
+        <Flexbox gap={8} horizontal>
+          <ActionIcon
+            icon={Copy}
             onClick={handleCopy}
             onMouseDown={(e) => e.preventDefault()}
             size="small"
-            type="text"
           />
           <Popover
+            arrow={false}
             content={
               <Space direction="vertical">
                 <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
@@ -311,7 +316,7 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
                   <InputNumber
                     max={8}
                     min={1}
-                    onChange={handleTabSizeChange}
+                    onChange={handleTabSizeChange as any}
                     size="small"
                     value={tabSize}
                   />
@@ -333,21 +338,16 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
             placement="bottomRight"
             trigger="click"
           >
-            <Button
-              icon={<Settings size={14} />}
-              onMouseDown={(e) => e.preventDefault()}
-              size="small"
-              type="text"
-            />
+            <ActionIcon icon={Settings} onMouseDown={(e) => e.preventDefault()} size="small" />
           </Popover>
-        </div>
-      </div>
+        </Flexbox>
+      </Flexbox>
 
       {/* CodeMirror 编辑器容器 */}
       <div style={{ position: 'relative', width: '100%' }}>
         <textarea ref={ref} />
       </div>
-    </div>
+    </Block>
   );
 });
 

@@ -12,21 +12,6 @@ export const useStyles = createStyles(
     align-items: center;
 
     width: 100%;
-    border-start-start-radius: ${token.borderRadius}px;
-    border-start-end-radius: ${token.borderRadius}px;
-
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      width: 100%;
-      padding-block: 8px;
-      padding-inline: 12px;
-      border-block-end: 1px solid #363b45ff;
-
-      background-color: #272c35;
-    }
 
     .cm-editor {
       width: 100%;

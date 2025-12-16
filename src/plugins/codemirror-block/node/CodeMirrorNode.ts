@@ -277,7 +277,15 @@ export class CodeMirrorNode extends DecoratorNode<any> {
   }
 
   decorate(editor: LexicalEditor): any {
-    return getKernelFromEditor(editor)?.getDecorator('codemirror')?.(this, editor) || null;
+    const decorator = getKernelFromEditor(editor)?.getDecorator('codemirror');
+    if (!decorator) return null;
+
+    // Handle both function and object decorator types
+    if (typeof decorator === 'function') {
+      return decorator(this, editor);
+    } else {
+      return decorator.render(this, editor);
+    }
   }
 }
 
