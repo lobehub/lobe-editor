@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.33.3](https://github.com/lobehub/lobe-editor/compare/v1.33.2...v1.33.3)
+<sup>Released on **2025-12-16**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Update style.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Update style ([743f832](https://github.com/lobehub/lobe-editor/commit/743f832))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.33.2](https://github.com/lobehub/lobe-editor/compare/v1.33.1...v1.33.2)
 <sup>Released on **2025-12-16**</sup>
 
