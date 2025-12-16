@@ -285,7 +285,7 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
               });
             },
             needRehost: (url) => {
-              console.info('needRehost', url);
+              devConsole.log('needRehost', url);
               return url.startsWith('blob:');
             },
           }),

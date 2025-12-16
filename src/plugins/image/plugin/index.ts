@@ -81,7 +81,6 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
       );
       this.register(
         editor.registerNodeTransform(BlockImageNode, (node) => {
-          console.info('change', node.status, node.src);
           if (node.status === 'uploaded' && needRehost(node.src)) {
             node.setStatus('loading');
             handleRehost(node.src)
