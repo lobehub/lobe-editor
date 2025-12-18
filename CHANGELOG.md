@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.34.1](https://github.com/lobehub/lobe-editor/compare/v1.34.0...v1.34.1)
+<sup>Released on **2025-12-18**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Use minimum display width to the image.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Use minimum display width to the image, closes [#84](https://github.com/lobehub/lobe-editor/issues/84) ([a79c403](https://github.com/lobehub/lobe-editor/commit/a79c403))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.34.0](https://github.com/lobehub/lobe-editor/compare/v1.33.3...v1.34.0)
 <sup>Released on **2025-12-16**</sup>
 
