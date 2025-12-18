@@ -2,6 +2,7 @@ import { mergeRegister } from '@lexical/utils';
 import { Block } from '@lobehub/ui';
 import {
   $getSelection,
+  BLUR_COMMAND,
   COMMAND_PRIORITY_LOW,
   LexicalEditor,
   SELECTION_CHANGE_COMMAND,
@@ -139,6 +140,15 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
           if (!isMouseDownRef.current) {
             $updateTextFormatFloatingToolbar(editor);
           }
+          return false;
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+
+      editor.registerCommand(
+        BLUR_COMMAND,
+        () => {
+          $hideFloatingToolbar();
           return false;
         },
         COMMAND_PRIORITY_LOW,
