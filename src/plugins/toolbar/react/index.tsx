@@ -2,7 +2,6 @@ import { mergeRegister } from '@lexical/utils';
 import { Block } from '@lobehub/ui';
 import {
   $getSelection,
-  BLUR_COMMAND,
   COMMAND_PRIORITY_LOW,
   LexicalEditor,
   SELECTION_CHANGE_COMMAND,
@@ -13,6 +12,7 @@ import { FC, useCallback, useRef } from 'react';
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
 import { ILinkService } from '@/plugins/link';
 
+import { HIDE_TOOLBAR_COMMAND, registerToolbarCommand } from '../command';
 import { getDOMRangeRect } from '../utils/getDOMRangeRect';
 import { setFloatingElemPosition } from '../utils/setFloatingElemPosition';
 import { useStyles } from './style';
@@ -109,7 +109,7 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
 
   useLexicalEditor((editor) => {
     const handleMouseDown = handleMouseDownFactory(() => {
-      $hideFloatingToolbar();
+      editor.dispatchCommand(HIDE_TOOLBAR_COMMAND, undefined);
     });
     const handleMouseUp = handleMouseUpFactory(() => {
       editor.update(() => {
@@ -124,6 +124,10 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
     }
 
     return mergeRegister(
+      registerToolbarCommand(editor, {
+        onHide: $hideFloatingToolbar,
+      }),
+
       editor.registerUpdateListener(({ editorState }) => {
         // Only update when mouse is not pressed
         if (!isMouseDownRef.current) {
@@ -140,15 +144,6 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
           if (!isMouseDownRef.current) {
             $updateTextFormatFloatingToolbar(editor);
           }
-          return false;
-        },
-        COMMAND_PRIORITY_LOW,
-      ),
-
-      editor.registerCommand(
-        BLUR_COMMAND,
-        () => {
-          $hideFloatingToolbar();
           return false;
         },
         COMMAND_PRIORITY_LOW,
