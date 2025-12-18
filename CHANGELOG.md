@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;1.34.4](https://github.com/lobehub/lobe-editor/compare/v1.34.3...v1.34.4)
+<sup>Released on **2025-12-18**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Update diffnode style.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Update diffnode style ([7114660](https://github.com/lobehub/lobe-editor/commit/7114660))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.34.3](https://github.com/lobehub/lobe-editor/compare/v1.34.2...v1.34.3)
 <sup>Released on **2025-12-18**</sup>
 
