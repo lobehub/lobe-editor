@@ -12,6 +12,10 @@ export const LITEXML_DIFFNODE_COMMAND = createCommand<{ action: DiffAction; node
   'LITEXML_DIFFNODE_COMMAND',
 );
 
+export const LITEXML_DIFFNODE_ALL_COMMAND = createCommand<{ action: DiffAction }>(
+  'LITEXML_DIFFNODE_ALL_COMMAND',
+);
+
 export function registerLiteXMLDiffCommand(editor: LexicalEditor) {
   return mergeRegister(
     editor.registerCommand(
@@ -49,6 +53,51 @@ export function registerLiteXMLDiffCommand(editor: LexicalEditor) {
               node.remove();
             }
           }
+        });
+
+        return false;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    ),
+    editor.registerCommand(
+      LITEXML_DIFFNODE_ALL_COMMAND,
+      (payload) => {
+        const { action } = payload;
+        const nodes = editor.read(() => {
+          return Array.from(editor._editorState._nodeMap.values()).filter(
+            (n) => n instanceof DiffNode && !!n.getParent(),
+          ) as DiffNode[];
+        });
+        if (!nodes.length) {
+          return false;
+        }
+        editor.update(() => {
+          nodes.forEach((node) => {
+            if (node.diffType === 'modify') {
+              const children = node.getChildren();
+              if (action === DiffAction.Accept) {
+                node.replace(children[1], false).selectEnd();
+              } else if (action === DiffAction.Reject) {
+                node.replace(children[0], false).selectEnd();
+              }
+            }
+            if (node.diffType === 'remove') {
+              if (action === DiffAction.Accept) {
+                node.remove();
+              } else if (action === DiffAction.Reject) {
+                const children = node.getChildren();
+                node.replace(children[0], false).selectEnd();
+              }
+            }
+            if (node.diffType === 'add') {
+              if (action === DiffAction.Accept) {
+                const children = node.getChildren();
+                node.replace(children[0], false).selectEnd();
+              } else if (action === DiffAction.Reject) {
+                node.remove();
+              }
+            }
+          });
         });
 
         return false;
