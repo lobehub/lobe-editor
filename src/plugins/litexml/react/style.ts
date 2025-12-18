@@ -7,9 +7,8 @@ export const useStyles = createStyles(
     .toolbar {
       position: absolute;
       z-index: 10;
-      inset-block-end: -4px;
-      inset-inline-end: 0;
-      transform: translateY(100%);
+      inset-block-end: 0;
+      inset-inline-end: 8px;
 
       opacity: 0;
     }
@@ -22,14 +21,14 @@ export const useStyles = createStyles(
 
     &[data-diff-type='add'] .content {
       position: relative;
-      margin-block: 4px;
+      margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
       padding-inline-end: 4px;
       border-inline-end: 3px solid ${token.colorSuccess};
     }
 
     &[data-diff-type='remove'] .content {
       position: relative;
-      margin-block: 4px;
+      margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
       padding-inline-end: 4px;
       border-inline-end: 3px solid ${token.colorError};
 
@@ -41,7 +40,7 @@ export const useStyles = createStyles(
 
     &[data-diff-type='modify'] .content {
       position: relative;
-      margin-block: 4px;
+      margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
       padding-inline-end: 4px;
       border-inline-end: 3px solid ${token.colorWarning};
 
