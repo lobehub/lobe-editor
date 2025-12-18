@@ -7,9 +7,9 @@ export const useStyles = createStyles(
     .toolbar {
       position: absolute;
       z-index: 10;
-      inset-block-start: -4px;
+      inset-block-end: -4px;
       inset-inline-end: 0;
-      transform: translateY(-100%);
+      transform: translateY(100%);
 
       opacity: 0;
     }
@@ -22,25 +22,32 @@ export const useStyles = createStyles(
 
     &[data-diff-type='add'] .content {
       position: relative;
-      padding-inline-start: 8px;
-      border-inline-start: 3px solid ${token.colorSuccess};
-      background-color: ${token.colorSuccessBg};
+      margin-block: 4px;
+      padding-inline-end: 4px;
+      border-inline-end: 3px solid ${token.colorSuccess};
     }
 
     &[data-diff-type='remove'] .content {
       position: relative;
-      padding-inline-start: 8px;
-      border-inline-start: 3px solid ${token.colorError};
-      background-color: ${token.colorErrorBg};
+      margin-block: 4px;
+      padding-inline-end: 4px;
+      border-inline-end: 3px solid ${token.colorError};
+
+      > *:first-child * {
+        color: ${token.colorTextQuaternary} !important;
+        text-decoration: line-through !important;
+      }
     }
 
     &[data-diff-type='modify'] .content {
       position: relative;
+      margin-block: 4px;
+      padding-inline-end: 4px;
+      border-inline-end: 3px solid ${token.colorWarning};
 
       /* first child: original (deleted) */
-      > *:first-child {
-        opacity: 0.6;
-      }
+
+      /*  > *:first-child {}  */
 
       /* visually indicate deletion with strike-through for text nodes */
       > *:first-child * {
