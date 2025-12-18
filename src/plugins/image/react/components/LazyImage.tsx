@@ -83,15 +83,16 @@ const LazyImage = memo<{
       onError={onError}
       onLoad={(e) => {
         const img = e.currentTarget;
+        const width = Math.min(img.naturalWidth, img.getBoundingClientRect().width);
         if (isSVGImage) {
           setDimensions({
             height: img.naturalHeight,
-            width: img.naturalWidth,
+            width,
           });
         }
         onLoad?.({
           height: img.naturalHeight,
-          width: img.naturalWidth,
+          width,
         });
       }}
       src={src}
