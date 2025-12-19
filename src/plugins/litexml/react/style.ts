@@ -38,6 +38,37 @@ export const useStyles = createStyles(
       }
     }
 
+    &[data-diff-type='listItemModify'] {
+      display: inline-block;
+
+      p {
+        display: block !important;
+      }
+    }
+
+    &[data-diff-type='listItemModify'] .content {
+      position: relative;
+      margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+      padding-inline-end: 4px;
+      border-inline-end: 3px solid ${token.colorWarning};
+
+      /* first child: original (deleted) */
+
+      /*  > *:first-child {}  */
+
+      /* visually indicate deletion with strike-through for text nodes */
+      > *:first-child * {
+        color: ${token.colorTextQuaternary} !important;
+        text-decoration: line-through !important;
+      }
+
+      /* second child: modified/new - normal appearance */
+      > *:nth-child(2) {
+        color: inherit;
+        opacity: 1;
+      }
+    }
+
     &[data-diff-type='modify'] .content {
       position: relative;
       margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);

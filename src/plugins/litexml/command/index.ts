@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { mergeRegister } from '@lexical/utils';
 import {
+  $createParagraphNode,
   $getNodeByKey,
   $insertNodes,
+  $isElementNode,
   COMMAND_PRIORITY_EDITOR,
   LexicalEditor,
   LexicalNode,
@@ -65,8 +67,26 @@ function finalizeModifyBlocks(
     const blockNode = $getNodeByKey(blockNodeKey);
     const diffNode = diffNodeMap.get(blockNodeKey);
     if (diffNode && blockNode) {
-      diffNode.append($cloneNode(blockNode, editor));
-      blockNode.replace(diffNode, false);
+      // 如果是列表项，可能需要特殊处理
+      if (blockNode.getType() === 'listitem' && $isElementNode(blockNode)) {
+        const newDiffNode = $createDiffNode('listItemModify');
+        const firstChild = diffNode.getFirstChild();
+        if (firstChild && $isElementNode(firstChild)) {
+          newDiffNode.append(firstChild);
+        }
+        const children = blockNode.getChildren();
+        const p = $createParagraphNode();
+        children.forEach((child) => {
+          child.remove();
+          p.append(child);
+        });
+        newDiffNode.append(p);
+        blockNode.append(newDiffNode);
+        continue;
+      } else {
+        diffNode.append($cloneNode(blockNode, editor));
+        blockNode.replace(diffNode, false);
+      }
     }
   }
 }

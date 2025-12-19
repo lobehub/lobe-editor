@@ -17,9 +17,11 @@ import {
 } from '@/editor-kernel/utils';
 import { CardLikeElementNode } from '@/plugins/common/node/cursor';
 
+export type DiffType = 'add' | 'remove' | 'modify' | 'unchanged' | 'listItemModify';
+
 export type SerializedDiffNode = Spread<
   {
-    diffType: 'add' | 'remove' | 'modify' | 'unchanged';
+    diffType: DiffType;
   },
   SerializedElementNode
 >;
@@ -43,18 +45,18 @@ export class DiffNode extends CardLikeElementNode {
     return null;
   }
 
-  private __diffType: 'add' | 'remove' | 'modify' | 'unchanged' = 'unchanged';
+  private __diffType: DiffType = 'unchanged';
 
-  constructor(type: 'add' | 'remove' | 'modify' | 'unchanged', key?: string) {
+  constructor(type: DiffType, key?: string) {
     super(key);
     this.__diffType = type;
   }
 
-  get diffType(): 'add' | 'remove' | 'modify' | 'unchanged' {
+  get diffType(): DiffType {
     return this.__diffType;
   }
 
-  setDiffType(type: 'add' | 'remove' | 'modify' | 'unchanged'): this {
+  setDiffType(type: DiffType): this {
     this.getWritable().__diffType = type;
     return this;
   }
@@ -142,9 +144,7 @@ export class DiffNode extends CardLikeElementNode {
   }
 }
 
-export function $createDiffNode(
-  diffType: 'add' | 'remove' | 'modify' | 'unchanged' = 'unchanged',
-): DiffNode {
+export function $createDiffNode(diffType: DiffType = 'unchanged'): DiffNode {
   return $applyNodeReplacement(new DiffNode(diffType));
 }
 

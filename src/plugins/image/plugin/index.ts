@@ -157,6 +157,18 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
       return false;
     });
     litexmlService.registerXMLReader('img', (xmlNode) => {
+      if (this.config?.defaultBlockImage !== false) {
+        return INodeHelper.createElementNode(BlockImageNode.getType(), {
+          altText: xmlNode.getAttribute('alt') || '',
+          maxWidth: xmlNode.getAttribute('max-width')
+            ? parseInt(xmlNode.getAttribute('max-width') as string, 10)
+            : undefined,
+          src: xmlNode.getAttribute('src') || '',
+          width: xmlNode.getAttribute('width')
+            ? parseInt(xmlNode.getAttribute('width') as string, 10)
+            : undefined,
+        });
+      }
       if (xmlNode.getAttribute('block') === 'true') {
         return INodeHelper.createElementNode(BlockImageNode.getType(), {
           altText: xmlNode.getAttribute('alt') || '',

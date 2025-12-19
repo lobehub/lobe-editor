@@ -4,7 +4,9 @@ import { button } from 'leva';
 import { ReactNode, memo } from 'react';
 
 import {
+  DiffAction,
   LITEXML_APPLY_COMMAND,
+  LITEXML_DIFFNODE_ALL_COMMAND,
   LITEXML_INSERT_COMMAND,
   LITEXML_REMOVE_COMMAND,
 } from '@/plugins/litexml';
@@ -51,6 +53,14 @@ const XmlModifier = memo<{ children?: ReactNode; editor?: IEditor }>(({ children
           delay: get('delay'),
           litexml: get('content'),
         });
+      }),
+      acceptAllDiffs: button(() => {
+        if (!editor) return;
+        editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Accept });
+      }),
+      rejectAllDiffs: button(() => {
+        if (!editor) return;
+        editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Reject });
       }),
     },
     {
