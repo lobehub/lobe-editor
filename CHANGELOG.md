@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.35.0](https://github.com/lobehub/lobe-editor/compare/v1.34.5...v1.35.0)
+<sup>Released on **2025-12-19**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Support accept all and reject all.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Support accept all and reject all, closes [#85](https://github.com/lobehub/lobe-editor/issues/85) ([0ced592](https://github.com/lobehub/lobe-editor/commit/0ced592))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;1.34.5](https://github.com/lobehub/lobe-editor/compare/v1.34.4...v1.34.5)
 <sup>Released on **2025-12-18**</sup>
 
