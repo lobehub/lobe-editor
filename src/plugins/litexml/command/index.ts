@@ -43,6 +43,14 @@ function handleReplaceForApplyDelay(
   if (!oldBlock) {
     throw new Error('Old block node not found for diffing.');
   }
+  const originDiffNode = $closest(
+    oldNode,
+    (node) => node.getType() === DiffNode.getType(),
+  ) as DiffNode;
+  if (originDiffNode) {
+    oldNode.replace(newNode, false);
+    return;
+  }
   if (oldNode === oldBlock) {
     const diffNode = $createDiffNode('modify');
     diffNode.append($cloneNode(oldBlock, editor), newNode);
@@ -300,6 +308,30 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
 
     // delay removal: show a diff
     if (node.isInline() === false) {
+      const originDiffNode = $closest(
+        node,
+        (node) => node.getType() === DiffNode.getType(),
+      ) as DiffNode;
+      if (originDiffNode) {
+        switch (originDiffNode.diffType) {
+          case 'add': {
+            originDiffNode.remove();
+            return;
+          }
+          case 'listItemModify':
+          case 'modify': {
+            const children = originDiffNode.getChildren();
+            originDiffNode.replace(children[0], false).selectEnd();
+            return;
+          }
+          case 'remove':
+          case 'unchanged': {
+            // do nothing special
+            break;
+          }
+        }
+        return;
+      }
       const diffNode = $createDiffNode('remove');
       diffNode.append($cloneNode(node, editor));
       node.replace(diffNode, false);
@@ -307,6 +339,14 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
       const oldBlock = $closest(node, (node) => node.isInline() === false);
       if (!oldBlock) {
         throw new Error('Old block node not found for removal.');
+      }
+      const originDiffNode = $closest(
+        node,
+        (node) => node.getType() === DiffNode.getType(),
+      ) as DiffNode;
+      if (originDiffNode) {
+        node.remove();
+        return;
       }
       // wrap changes inside a modify diff
       wrapBlockModify(oldBlock, editor, () => {
@@ -367,6 +407,13 @@ function handleInsert(
       // delay insertion: show diffs or wrap block modifications
       if (isBefore) {
         if (referenceNode.isInline() === false) {
+          const originDiffNode = $closest(
+            referenceNode,
+            (node) => node.getType() === DiffNode.getType(),
+          );
+          if (originDiffNode) {
+            referenceNode = originDiffNode;
+          }
           const diffNodes = newNodes.map((node: LexicalNode) => {
             const diffNode = $createDiffNode('add');
             diffNode.append(node);
@@ -382,16 +429,36 @@ function handleInsert(
           if (!refBlock) {
             throw new Error('Reference block node not found for insertion.');
           }
-          wrapBlockModify(refBlock, editor, () => {
+          const originDiffNode = $closest(
+            referenceNode,
+            (node) => node.getType() === DiffNode.getType(),
+          );
+          if (originDiffNode) {
+            // 可能是 modify / add，那么直接修改就好了
             newNodes.forEach((node: LexicalNode) => {
               if (referenceNode) {
                 referenceNode = referenceNode.insertBefore(node);
               }
             });
-          });
+          } else {
+            wrapBlockModify(refBlock, editor, () => {
+              newNodes.forEach((node: LexicalNode) => {
+                if (referenceNode) {
+                  referenceNode = referenceNode.insertBefore(node);
+                }
+              });
+            });
+          }
         }
       } else {
         if (referenceNode.isInline() === false) {
+          const originDiffNode = $closest(
+            referenceNode,
+            (node) => node.getType() === DiffNode.getType(),
+          );
+          if (originDiffNode) {
+            referenceNode = originDiffNode;
+          }
           newNodes.forEach((node: LexicalNode) => {
             if (referenceNode) {
               const diffNode = $createDiffNode('add');
@@ -404,13 +471,26 @@ function handleInsert(
           if (!refBlock) {
             throw new Error('Reference block node not found for insertion.');
           }
-          wrapBlockModify(refBlock, editor, () => {
+          const originDiffNode = $closest(
+            referenceNode,
+            (node) => node.getType() === DiffNode.getType(),
+          );
+          if (originDiffNode) {
+            // 可能是 modify / add，那么直接修改就好了
             newNodes.forEach((node: LexicalNode) => {
               if (referenceNode) {
                 referenceNode = referenceNode.insertAfter(node);
               }
             });
-          });
+          } else {
+            wrapBlockModify(refBlock, editor, () => {
+              newNodes.forEach((node: LexicalNode) => {
+                if (referenceNode) {
+                  referenceNode = referenceNode.insertAfter(node);
+                }
+              });
+            });
+          }
         }
       }
     } catch (error) {

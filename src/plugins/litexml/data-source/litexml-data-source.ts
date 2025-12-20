@@ -309,8 +309,12 @@ export default class LitexmlDataSource extends DataSource {
       const writers = Array.isArray(writerOrWriters) ? writerOrWriters : [writerOrWriters];
 
       for (const writer of writers) {
-        const handled = writer(node, this.ctx, indent);
+        const handled = writer(node, this.ctx, indent, this.nodesToXML.bind(this));
         if (handled) {
+          if ('lines' in handled) {
+            lines.push(...handled.lines);
+            return;
+          }
           const attrs = this.buildXMLAttributes({
             id: idToChar(node.getKey()),
             ...handled.attributes,
@@ -318,8 +322,7 @@ export default class LitexmlDataSource extends DataSource {
           const openTag = `${indentStr}<${handled.tagName}${attrs}>`;
           const closeTag = `</${handled.tagName}>`;
           if (handled.textContent) {
-            childLines.push(handled.textContent);
-            lines.push(`${openTag}${childLines.join('')}${closeTag}`);
+            lines.push(`${openTag}${handled.textContent}${closeTag}`);
           } else if ($isElementNode(node)) {
             const children = node.getChildren();
             children.forEach((child) => {
@@ -337,7 +340,7 @@ export default class LitexmlDataSource extends DataSource {
     if ($isElementNode(node)) {
       const children = node.getChildren();
       children.forEach((child) => {
-        this.nodesToXML(child, childLines, indent + 1);
+        this.nodesToXML(child, childLines, indent);
       });
     }
     lines.push(...childLines);
