@@ -14,7 +14,8 @@ export type XMLWriterFunc = (
   node: LexicalNode,
   ctx: IWriterContext,
   indent: number,
-) => IXmlNode | false; // return IXmlNode if handled, false to continue with default
+  nodeToXML: (node: any, lines: string[], indent?: number) => void,
+) => IXmlNode | HandleChildrenResult | false; // return IXmlNode if handled, false to continue with default
 
 /**
  * Record of XML readers indexed by tag name
@@ -35,6 +36,10 @@ export interface IXmlNode {
   children?: IXmlNode[];
   tagName: string;
   textContent?: string;
+}
+
+export interface HandleChildrenResult {
+  lines: string[];
 }
 
 export interface IWriterContext {

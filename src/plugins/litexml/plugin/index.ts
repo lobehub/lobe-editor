@@ -1,4 +1,4 @@
-import { LexicalEditor, LexicalNode } from 'lexical';
+import { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
@@ -32,6 +32,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
 {
   static pluginName = 'LitexmlPlugin';
   datasource: LitexmlDataSource;
+  service: ILitexmlService;
 
   constructor(
     protected kernel: IEditorKernel,
@@ -45,6 +46,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
 
     // Create and register the Litexml service
     const litexmlService = new LitexmlService();
+    this.service = litexmlService;
     kernel.registerService(ILitexmlService, litexmlService);
     this.datasource = new LitexmlDataSource(
       'litexml',
@@ -73,5 +75,39 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     // Plugin initialization logic can be added here if needed
     this.register(registerLiteXMLCommand(editor, this.datasource));
     this.register(registerLiteXMLDiffCommand(editor));
+
+    this.regiserLiteXml();
+  }
+
+  private regiserLiteXml() {
+    this.service.registerXMLWriter(DiffNode.getType(), (node, ctx, indent, nodeToXML) => {
+      const diffNode = node as DiffNode;
+      const lines: string[] = [];
+      switch (diffNode.diffType) {
+        case 'modify': {
+          nodeToXML(diffNode.getChildAtIndex(1), lines, indent);
+          break;
+        }
+        case 'add': {
+          nodeToXML(diffNode.getChildAtIndex(0), lines, indent);
+          break;
+        }
+        case 'remove': {
+          break;
+        }
+        case 'listItemModify': {
+          (diffNode.getChildAtIndex(1) as ElementNode).getChildren().forEach((child) => {
+            nodeToXML(child, lines, indent);
+          });
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+      return {
+        lines: lines,
+      };
+    });
   }
 };
