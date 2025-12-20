@@ -21,7 +21,7 @@ const CollapsedActions = memo<ChatInputActionsCollapseProps>(
             </Flexbox>
           }
           styles={{
-            body: {
+            content: {
               padding: 4,
             },
           }}

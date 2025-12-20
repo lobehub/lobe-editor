@@ -21,7 +21,7 @@ const CollapsedActions = memo<FloatActionsCollapseProps>(
             </Flexbox>
           }
           styles={{
-            body: {
+            content: {
               padding: 4,
             },
           }}

@@ -80,8 +80,11 @@ const Container = memo<PropsWithChildren<ContainerProps>>(
           body: 0,
         }}
         style={{
+          border: 'none',
+          borderRadius: 0,
           width: '100%',
         }}
+        variant={'outlined'}
       />
     );
   },
