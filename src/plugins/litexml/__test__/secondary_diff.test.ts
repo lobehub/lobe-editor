@@ -215,14 +215,15 @@ describe('Secondary Diff Tests', () => {
       id: 'nadg',
     });
     await moment();
-    const secondLiteXML = kernel.getDocument('litexml') as unknown as string;
 
     const json = kernel.getDocument('json') as unknown as any;
     const root = json.root;
 
     // 第一步的 modify
-    expect(root.children[0].tag).toBe('h1');
-    expect(root.children[0].children[0].text).toBe('This is a title');
+    expect(root.children[0].type).toBe('diff');
+    expect(root.children[0].diffType).toBe('remove');
+    expect(root.children[0].children[0].tag).toBe('h1');
+    expect(root.children[0].children[0].children[0].text).toBe('This is a title');
     // 未动节点
     expect(root.children[1].type).toBe('paragraph');
   });
