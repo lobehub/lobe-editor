@@ -2,8 +2,8 @@
 
 import { ActionIcon } from '@lobehub/ui';
 import { Popover } from 'antd';
-import { motion } from 'framer-motion';
 import { CircleChevronLeftIcon, CircleChevronRightIcon, CircleChevronUpIcon } from 'lucide-react';
+import { motion } from 'motion/react';
 import { memo } from 'react';
 import { Flexbox } from 'react-layout-kit';
 
