@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;1.36.0](https://github.com/lobehub/lobe-editor/compare/v1.35.0...v1.36.0)
+<sup>Released on **2025-12-20**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Support second modify diff node.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Support second modify diff node, closes [#86](https://github.com/lobehub/lobe-editor/issues/86) ([c760d53](https://github.com/lobehub/lobe-editor/commit/c760d53))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;1.35.0](https://github.com/lobehub/lobe-editor/compare/v1.34.5...v1.35.0)
 <sup>Released on **2025-12-19**</sup>
 
