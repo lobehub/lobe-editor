@@ -18,10 +18,10 @@ const ActionRender = memo<ActionRenderProps>(({ item, onActionClick, disabled })
     return (
       <Divider
         className={styles.divider}
+        orientation={'vertical'}
         style={{
           height: 20,
         }}
-        type={'vertical'}
       />
     );
   }
