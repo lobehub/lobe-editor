@@ -11,6 +11,7 @@ interface ActionRenderProps {
   onActionClick: FloatActionsProps['onActionClick'];
 }
 
+// Keep memo: List rendering component with conditional wrapper logic
 const ActionRender = memo<ActionRenderProps>(({ item, onActionClick, disabled }) => {
   const { styles } = useStyles();
 

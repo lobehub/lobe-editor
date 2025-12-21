@@ -1,10 +1,12 @@
 import { useTheme } from 'antd-style';
-import { type CSSProperties, memo } from 'react';
+import { type CSSProperties, type FC } from 'react';
 
-const StopIcon = memo<{
+interface StopIconProps {
   size?: string | number;
   style?: CSSProperties;
-}>(({ size = '1.5em', style }) => {
+}
+
+const StopIcon: FC<StopIconProps> = ({ size = '1.5em', style }) => {
   const theme = useTheme();
   return (
     <svg
@@ -37,6 +39,6 @@ const StopIcon = memo<{
       </g>
     </svg>
   );
-});
+};
 
 export default StopIcon;

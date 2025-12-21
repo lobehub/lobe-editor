@@ -1,5 +1,5 @@
+import type { FlexboxProps } from '@lobehub/ui';
 import type { CSSProperties, ReactNode, Ref } from 'react';
-import { FlexboxProps } from 'react-layout-kit';
 
 export interface ChatInputProps extends Omit<FlexboxProps, 'height'> {
   classNames?: {

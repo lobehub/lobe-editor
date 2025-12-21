@@ -1,5 +1,5 @@
 import { Collapse, CollapseProps, Highlighter } from '@lobehub/ui';
-import { type PropsWithChildren, memo } from 'react';
+import { type FC, type PropsWithChildren } from 'react';
 
 import { IEditor } from '@/types';
 
@@ -13,81 +13,79 @@ interface ContainerProps extends Omit<CollapseProps, 'items'> {
   xml?: string;
 }
 
-const Container = memo<PropsWithChildren<ContainerProps>>(
-  ({
-    children,
-    json,
-    markdown,
-    xml,
-    collapsible = false,
-    shouldShowXml = false,
-    defaultActiveKey = ['editor', 'text', 'json'],
-    editor,
-  }) => {
-    return (
-      <Collapse
-        collapsible={collapsible}
-        defaultActiveKey={defaultActiveKey}
-        items={[
-          {
-            children: children,
-            key: 'editor',
-            label: 'Playground',
-          },
-          ...(shouldShowXml
-            ? [
-                {
-                  children: (
-                    <XmlModifier editor={editor}>
-                      <Highlighter language={'xml'} style={{ fontSize: 12 }} variant={'borderless'}>
-                        {xml || ''}
-                      </Highlighter>
-                    </XmlModifier>
-                  ),
-                  key: 'xml',
-                  label: 'Litexml Output',
-                },
-              ]
-            : []),
-          {
-            children: (
-              <Highlighter
-                language={'markdown'}
-                style={{ fontSize: 12, padding: 16 }}
-                variant={'borderless'}
-              >
-                {markdown}
-              </Highlighter>
-            ),
-            key: 'text',
-            label: 'Text Output',
-          },
-          {
-            children: (
-              <Highlighter
-                language={'json'}
-                style={{ fontSize: 12, padding: 16 }}
-                variant={'borderless'}
-              >
-                {json}
-              </Highlighter>
-            ),
-            key: 'json',
-            label: 'JSON Output',
-          },
-        ]}
-        padding={{
-          body: 0,
-        }}
-        style={{
-          border: 'none',
-          borderRadius: 0,
-          width: '100%',
-        }}
-        variant={'outlined'}
-      />
-    );
-  },
-);
+const Container: FC<PropsWithChildren<ContainerProps>> = ({
+  children,
+  json,
+  markdown,
+  xml,
+  collapsible = false,
+  shouldShowXml = false,
+  defaultActiveKey = ['editor', 'text', 'json'],
+  editor,
+}) => {
+  return (
+    <Collapse
+      collapsible={collapsible}
+      defaultActiveKey={defaultActiveKey}
+      items={[
+        {
+          children: children,
+          key: 'editor',
+          label: 'Playground',
+        },
+        ...(shouldShowXml
+          ? [
+              {
+                children: (
+                  <XmlModifier editor={editor}>
+                    <Highlighter language={'xml'} style={{ fontSize: 12 }} variant={'borderless'}>
+                      {xml || ''}
+                    </Highlighter>
+                  </XmlModifier>
+                ),
+                key: 'xml',
+                label: 'Litexml Output',
+              },
+            ]
+          : []),
+        {
+          children: (
+            <Highlighter
+              language={'markdown'}
+              style={{ fontSize: 12, padding: 16 }}
+              variant={'borderless'}
+            >
+              {markdown}
+            </Highlighter>
+          ),
+          key: 'text',
+          label: 'Text Output',
+        },
+        {
+          children: (
+            <Highlighter
+              language={'json'}
+              style={{ fontSize: 12, padding: 16 }}
+              variant={'borderless'}
+            >
+              {json}
+            </Highlighter>
+          ),
+          key: 'json',
+          label: 'JSON Output',
+        },
+      ]}
+      padding={{
+        body: 0,
+      }}
+      style={{
+        border: 'none',
+        borderRadius: 0,
+        width: '100%',
+      }}
+      variant={'outlined'}
+    />
+  );
+};
 
 export default Container;

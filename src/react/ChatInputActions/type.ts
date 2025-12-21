@@ -1,6 +1,5 @@
-import type { MenuInfo, MenuItemType, TooltipProps } from '@lobehub/ui';
+import type { FlexboxProps, MenuInfo, MenuItemType, TooltipProps } from '@lobehub/ui';
 import type { ReactNode } from 'react';
-import type { FlexboxProps } from 'react-layout-kit';
 
 export type ChatInputActionEvent = Pick<MenuInfo, 'key' | 'keyPath' | 'domEvent'>;
 

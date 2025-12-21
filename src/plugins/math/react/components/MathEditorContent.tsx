@@ -1,9 +1,8 @@
-import { Button, Hotkey, Text, TextArea } from '@lobehub/ui';
+import { Button, Hotkey, Text, TextArea , Flexbox } from '@lobehub/ui';
 import { type TextAreaRef } from 'antd/es/input/TextArea';
 import { renderToString } from 'katex';
 import { isModifierMatch } from 'lexical';
 import { type KeyboardEvent, memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Flexbox } from 'react-layout-kit';
 
 import { CONTROL_OR_META } from '@/common/sys';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';

@@ -1,7 +1,7 @@
 'use client';
 
+import { Flexbox } from '@lobehub/ui';
 import { memo, useMemo } from 'react';
-import { Flexbox } from 'react-layout-kit';
 import useMergeState from 'use-merge-value';
 
 import ActionItem from './components/ActionItem';
@@ -9,6 +9,7 @@ import { useDisplayActionCount } from './components/useDisplayActionCount';
 import { useStyles } from './style';
 import type { ChatInputActionsProps, CollapseItem } from './type';
 
+// Keep memo: Complex calcItem computation and list rendering with state management
 const ChatInputActions = memo<ChatInputActionsProps>(
   ({
     gap = 2,

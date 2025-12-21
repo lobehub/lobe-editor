@@ -1,14 +1,14 @@
 'use client';
 
-import { ActionIcon } from '@lobehub/ui';
+import { ActionIcon , Flexbox } from '@lobehub/ui';
 import { Popover } from 'antd';
 import { CircleChevronLeftIcon, CircleChevronRightIcon, CircleChevronUpIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { memo } from 'react';
-import { Flexbox } from 'react-layout-kit';
 
 import type { ChatInputActionsCollapseProps } from '../type';
 
+// Keep memo: Complex animation and state management with motion.div and mode switching
 const CollapsedActions = memo<ChatInputActionsCollapseProps>(
   ({ children, groupCollapse = false, onGroupCollapseChange, gap, mode }) => {
     if (mode === 'popup') {

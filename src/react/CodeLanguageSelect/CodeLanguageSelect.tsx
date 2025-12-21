@@ -1,13 +1,13 @@
 'use client';
 
-import { MaterialFileTypeIcon, Select, Text } from '@lobehub/ui';
+import { MaterialFileTypeIcon, Select, Text , Flexbox } from '@lobehub/ui';
 import { memo, useMemo } from 'react';
-import { Flexbox } from 'react-layout-kit';
 import { bundledLanguagesInfo } from 'shiki';
 
 import { useStyles } from './style';
 import type { CodeLanguageSelectProps } from './type';
 
+// Keep memo: UseMemo calculation of large language options array (100+ items from bundledLanguagesInfo)
 const CodeLanguageSelect = memo<CodeLanguageSelectProps>(({ className, ...rest }) => {
   const { cx, styles } = useStyles();
 

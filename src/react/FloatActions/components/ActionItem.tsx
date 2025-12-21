@@ -16,6 +16,7 @@ interface FloatActionsItemProps {
   setGroupCollapsed?: (collapse: boolean) => void;
 }
 
+// Keep memo: Rendered as list item with conditional logic for collapse/dropdown types
 const ActionItem = memo<FloatActionsItemProps>(
   ({ item, disabled, onActionClick, groupCollapsed, gap, setGroupCollapsed }) => {
     if (item.type === 'collapse') {

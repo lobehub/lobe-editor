@@ -1,7 +1,6 @@
 import { SendButton, type SendButtonProps } from '@lobehub/editor/react';
-import { Grid } from '@lobehub/ui';
+import { Grid , Flexbox } from '@lobehub/ui';
 import { useTheme } from 'antd-style';
-import { Flexbox } from 'react-layout-kit';
 
 const menu: SendButtonProps['menu'] = {
   items: [

@@ -1,7 +1,7 @@
 import { ActionIcon, Block } from '@lobehub/ui';
 import { LexicalEditor } from 'lexical';
 import { Check, X } from 'lucide-react';
-import { memo } from 'react';
+import type { FC } from 'react';
 
 import { LexicalPortalContainer } from '@/editor-kernel/react';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
@@ -16,7 +16,7 @@ interface ReactDiffNodeToolbarProps {
   node: DiffNode;
 }
 
-const ReactDiffNodeToolbar = memo<ReactDiffNodeToolbarProps>(({ editor, node }) => {
+const ReactDiffNodeToolbar: FC<ReactDiffNodeToolbarProps> = ({ editor, node }) => {
   const t = useTranslation();
   const { styles } = useStyles();
   return (
@@ -58,7 +58,7 @@ const ReactDiffNodeToolbar = memo<ReactDiffNodeToolbarProps>(({ editor, node }) 
       </Block>
     </LexicalPortalContainer>
   );
-});
+};
 
 ReactDiffNodeToolbar.displayName = 'ReactDiffNodeToolbar';
 

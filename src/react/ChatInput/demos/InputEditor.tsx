@@ -17,16 +17,18 @@ import {
 import { Editor, FloatMenu, SlashMenu } from '@lobehub/editor/react';
 import { Avatar, Text } from '@lobehub/ui';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
-import { Ref, memo, useMemo } from 'react';
+import { type FC, type Ref, useMemo } from 'react';
 
 import { content } from './data';
 
-const InputEditor = memo<{
+interface InputEditorProps {
   editor: IEditor;
   fullscreen?: boolean;
   onSend?: () => void;
   slashMenuRef: Ref<HTMLDivElement>;
-}>(({ editor, slashMenuRef, onSend, fullscreen }) => {
+}
+
+const InputEditor: FC<InputEditorProps> = ({ editor, slashMenuRef, onSend, fullscreen }) => {
   const mentionItems: SlashOptions['items'] = useMemo(
     () => [
       {
@@ -184,6 +186,6 @@ const InputEditor = memo<{
       variant={'chat'}
     />
   );
-});
+};
 
 export default InputEditor;

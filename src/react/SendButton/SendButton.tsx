@@ -10,6 +10,7 @@ import StopIcon from './components/StopIcon';
 import { useStyles } from './style';
 import type { SendButtonProps } from './type';
 
+// Keep memo: Multiple state transitions and conditional rendering logic
 const SendButton = memo<SendButtonProps>(
   ({
     type = 'primary',

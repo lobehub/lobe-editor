@@ -17,6 +17,7 @@ interface ChatInputActionItemProps {
   setGroupCollapsed?: (collapse: boolean) => void;
 }
 
+// Keep memo: Rendered as list item with conditional logic and mode switching
 const ActionItem = memo<ChatInputActionItemProps>(
   ({ item, disabled, onActionClick, groupCollapsed, collapsed, gap, setGroupCollapsed }) => {
     if (item.type === 'collapse') {
