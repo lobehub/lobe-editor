@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;2.0.4](https://github.com/lobehub/lobe-editor/compare/v2.0.3...v2.0.4)
+<sup>Released on **2025-12-22**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Modify diffNode add remove diffNode should be remove diffNode.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Modify diffNode add remove diffNode should be remove diffNode, closes [#87](https://github.com/lobehub/lobe-editor/issues/87) ([0115478](https://github.com/lobehub/lobe-editor/commit/0115478))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 1.36.0](https://github.com/lobehub/lobe-editor/compare/v1.35.0...v1.36.0)
 ### [Version&nbsp;2.0.3](https://github.com/lobehub/lobe-editor/compare/v2.0.2...v2.0.3)
 <sup>Released on **2025-12-21**</sup>
