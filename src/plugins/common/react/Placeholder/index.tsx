@@ -40,6 +40,7 @@ function hasOnlyBrChild(element: HTMLElement): boolean {
   );
 }
 
+// Keep memo: Complex editor state monitoring with update listeners and DOM manipulation
 const Placeholder = memo<PlaceholderProps>(({ children, style, lineEmptyPlaceholder }) => {
   const currentPlaceHolderRef = useRef<HTMLElement | null>(null);
   const [canShowPlaceholder, setCanShowPlaceholder] = useState(() => false);

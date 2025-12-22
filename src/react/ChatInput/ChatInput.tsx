@@ -1,8 +1,8 @@
 'use client';
 
+import { Flexbox } from '@lobehub/ui';
 import { Resizable } from 're-resizable';
 import { memo, useCallback } from 'react';
-import { Flexbox } from 'react-layout-kit';
 import useMergeState from 'use-merge-value';
 
 import { useHeight } from '@/react/hooks/useSize';
@@ -10,6 +10,7 @@ import { useHeight } from '@/react/hooks/useSize';
 import { useStyles } from './style';
 import type { ChatInputProps } from './type';
 
+// Keep memo: Complex resize logic and state management
 const ChatInput = memo<ChatInputProps>((props) => {
   const {
     defaultHeight = props.defaultHeight || props.minHeight || 64,

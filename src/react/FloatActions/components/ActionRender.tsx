@@ -11,6 +11,7 @@ interface ActionRenderProps {
   onActionClick: FloatActionsProps['onActionClick'];
 }
 
+// Keep memo: List rendering component with conditional wrapper logic
 const ActionRender = memo<ActionRenderProps>(({ item, onActionClick, disabled }) => {
   const { styles } = useStyles();
 
@@ -18,10 +19,10 @@ const ActionRender = memo<ActionRenderProps>(({ item, onActionClick, disabled })
     return (
       <Divider
         className={styles.divider}
+        orientation={'vertical'}
         style={{
           height: 20,
         }}
-        type={'vertical'}
       />
     );
   }

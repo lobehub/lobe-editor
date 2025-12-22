@@ -3,6 +3,132 @@
 # Changelog
 
 ## [Version 1.36.0](https://github.com/lobehub/lobe-editor/compare/v1.35.0...v1.36.0)
+### [Version&nbsp;2.0.3](https://github.com/lobehub/lobe-editor/compare/v2.0.2...v2.0.3)
+<sup>Released on **2025-12-21**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Remove react layout kit.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Remove react layout kit ([f3c0c08](https://github.com/lobehub/lobe-editor/commit/f3c0c08))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;2.0.2](https://github.com/lobehub/lobe-editor/compare/v2.0.1...v2.0.2)
+<sup>Released on **2025-12-21**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix type.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix type ([07276e5](https://github.com/lobehub/lobe-editor/commit/07276e5))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;2.0.1](https://github.com/lobehub/lobe-editor/compare/v2.0.0...v2.0.1)
+<sup>Released on **2025-12-20**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Update deps.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Update deps ([504c40e](https://github.com/lobehub/lobe-editor/commit/504c40e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;2.0.0](https://github.com/lobehub/lobe-editor/compare/v1.36.0...v2.0.0)
+<sup>Released on **2025-12-20**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Bump v2 [force major].
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Bump v2 [force major] ([8930afe](https://github.com/lobehub/lobe-editor/commit/8930afe))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;1.36.0](https://github.com/lobehub/lobe-editor/compare/v1.35.0...v1.36.0)
+<sup>Released on **2025-12-20**</sup>
 
 <sup>Released on **2025-12-20**</sup>
 

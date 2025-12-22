@@ -8,6 +8,7 @@ import type { SlashMenuProps } from '../type';
 
 type DefaultSlashMenuProps = Omit<SlashMenuProps, 'customRender' | 'onActiveKeyChange' | 'editor'>;
 
+// Keep memo: Menu list rendering with item selection handling
 const DefaultSlashMenu = memo<DefaultSlashMenuProps>(
   ({
     activeKey,

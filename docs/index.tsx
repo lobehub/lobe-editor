@@ -1,7 +1,6 @@
-import { Block } from '@lobehub/ui';
+import { Block, Center } from '@lobehub/ui';
 import { Features, FeaturesProps } from '@lobehub/ui/awesome';
 import { Puzzle, Slash, Zap } from 'lucide-react';
-import { Center } from 'react-layout-kit';
 
 import Editor from '@/react/Editor/demos/index';
 

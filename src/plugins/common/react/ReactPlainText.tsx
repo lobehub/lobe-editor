@@ -23,6 +23,7 @@ import Placeholder from './Placeholder';
 import { useStyles, useThemeStyles } from './style';
 import type { ReactPlainTextProps } from './type';
 
+// Keep memo: Core editor rendering layer with complex event handling and decorator management
 const ReactPlainText = memo<ReactPlainTextProps>(
   ({
     style,

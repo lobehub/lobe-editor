@@ -1,7 +1,6 @@
-import { MaterialFileTypeIcon } from '@lobehub/ui';
+import { MaterialFileTypeIcon , Center } from '@lobehub/ui';
 import { CLICK_COMMAND, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
-import { memo, useCallback, useEffect, useRef } from 'react';
-import { Center } from 'react-layout-kit';
+import { type FC, useCallback, useEffect, useRef } from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
@@ -14,7 +13,7 @@ interface ReactFileProps {
   node: FileNode;
 }
 
-const ReactFile = memo<ReactFileProps>(({ className, editor, node }) => {
+const ReactFile: FC<ReactFileProps> = ({ className, editor, node }) => {
   const spanRef = useRef<HTMLSpanElement>(null);
   const t = useTranslation();
   const [, setSelected, clearSelection] = useLexicalNodeSelection(node.getKey());
@@ -54,7 +53,7 @@ const ReactFile = memo<ReactFileProps>(({ className, editor, node }) => {
       {node.name}
     </Center>
   );
-});
+};
 
 ReactFile.displayName = 'ReactFile';
 

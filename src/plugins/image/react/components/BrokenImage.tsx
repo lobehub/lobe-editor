@@ -1,10 +1,10 @@
-import { memo } from 'react';
+import { type FC } from 'react';
 
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { imageBroken } from '../style';
 
-const BrokenImage = memo(() => {
+const BrokenImage: FC = () => {
   const t = useTranslation();
 
   return (
@@ -18,7 +18,7 @@ const BrokenImage = memo(() => {
       }}
     />
   );
-});
+};
 
 BrokenImage.displayName = 'BrokenImage';
 

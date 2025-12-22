@@ -1,10 +1,13 @@
-import { Text } from '@lobehub/ui';
-import { memo } from 'react';
-import { Center } from 'react-layout-kit';
+import { Text , Center } from '@lobehub/ui';
+import { type FC } from 'react';
 
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
-const Placeholder = memo<{ mathBlock?: boolean }>(({ mathBlock }) => {
+interface PlaceholderProps {
+  mathBlock?: boolean;
+}
+
+const Placeholder: FC<PlaceholderProps> = ({ mathBlock }) => {
   const t = useTranslation();
 
   const node = (
@@ -29,6 +32,6 @@ const Placeholder = memo<{ mathBlock?: boolean }>(({ mathBlock }) => {
       {node}
     </Center>
   );
-});
+};
 
 export default Placeholder;

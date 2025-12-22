@@ -1,5 +1,5 @@
 import { mergeRegister } from '@lexical/utils';
-import { Block, Button, Hotkey, Icon, Input, Text } from '@lobehub/ui';
+import { Block, Button, Hotkey, Icon, Input, Text , Flexbox } from '@lobehub/ui';
 import type { InputRef } from 'antd';
 import {
   COMMAND_PRIORITY_EDITOR,
@@ -19,7 +19,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Flexbox } from 'react-layout-kit';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useEditable } from '@/editor-kernel/react/useEditable';

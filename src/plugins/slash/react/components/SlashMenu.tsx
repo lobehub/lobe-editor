@@ -10,6 +10,7 @@ import DefaultSlashMenu from './DefaultSlashMenu';
  * SlashMenu component - Only responsible for rendering the menu UI
  * All state management and plugin registration is handled by ReactSlashPlugin
  */
+// Keep memo: Menu rendering with keyboard navigation and selection state
 const SlashMenu = memo<SlashMenuProps>(
   ({
     activeKey,

@@ -9,6 +9,7 @@ import {
   ChatInputActions,
   ChatInputActionsProps,
   CodeLanguageSelect,
+  FloatActions,
   useEditorState,
 } from '@lobehub/editor/react';
 import { Block } from '@lobehub/ui';
@@ -208,9 +209,7 @@ const Toolbar = memo<ToolbarProps>(({ floating, editor, style, className }) => {
     [editor, editorState],
   );
 
-  const content = <ChatInputActions items={items} />;
-
-  if (floating) return content;
+  if (floating) return <FloatActions items={items} />;
 
   return (
     <Block
@@ -227,7 +226,7 @@ const Toolbar = memo<ToolbarProps>(({ floating, editor, style, className }) => {
       }}
       variant={'outlined'}
     >
-      {content}
+      <ChatInputActions items={items} />
     </Block>
   );
 });

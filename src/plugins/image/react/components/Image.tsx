@@ -18,6 +18,7 @@ export interface ImageProps {
   showScaleInfo?: boolean;
 }
 
+// Keep memo: Complex resize logic, state management, and multiple event handlers
 const Image = memo<ImageProps>(({ node, className, showScaleInfo = false }) => {
   const { styles, cx } = useStyles();
   const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());

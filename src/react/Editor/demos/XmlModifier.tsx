@@ -1,7 +1,7 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix */
 import { StoryBook, useControls, useCreateStore } from '@lobehub/ui/storybook';
 import { button } from 'leva';
-import { ReactNode, memo } from 'react';
+import { type FC, type ReactNode } from 'react';
 
 import {
   DiffAction,
@@ -12,7 +12,12 @@ import {
 } from '@/plugins/litexml';
 import { IEditor } from '@/types';
 
-const XmlModifier = memo<{ children?: ReactNode; editor?: IEditor }>(({ children, editor }) => {
+interface XmlModifierProps {
+  children?: ReactNode;
+  editor?: IEditor;
+}
+
+const XmlModifier: FC<XmlModifierProps> = ({ children, editor }) => {
   const store = useCreateStore();
   useControls(
     {
@@ -72,6 +77,6 @@ const XmlModifier = memo<{ children?: ReactNode; editor?: IEditor }>(({ children
       {children}
     </StoryBook>
   );
-});
+};
 
 export default XmlModifier;

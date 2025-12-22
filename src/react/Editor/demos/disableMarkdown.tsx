@@ -21,14 +21,14 @@ import {
   SigmaIcon,
   Table2Icon,
 } from 'lucide-react';
-import { memo, useMemo, useState } from 'react';
+import { type FC, useMemo, useState } from 'react';
 
 import Container from './Container';
 import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
 import content from './disableMakrdownData.json';
 
-const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((props) => {
+const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
   const editor = useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
@@ -216,6 +216,6 @@ const Demo = memo<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>>((prop
       />
     </Container>
   );
-});
+};
 
 export default Demo;

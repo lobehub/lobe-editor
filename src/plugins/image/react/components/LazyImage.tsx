@@ -9,6 +9,7 @@ function isSVG(src: string): boolean {
   return src.toLowerCase().endsWith('.svg');
 }
 
+// Keep memo: Lazy loading with dimension calculation and SVG handling
 const LazyImage = memo<{
   className?: string | null;
   newWidth?: number | null;

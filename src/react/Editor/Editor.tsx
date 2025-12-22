@@ -11,6 +11,7 @@ import { useEditorContent } from '@/react/EditorProvider';
 
 import { EditorPlugin, EditorProps } from './type';
 
+// Keep memo: Core editor component with complex useMemo calculations and plugin system
 const Editor = memo<EditorProps>(
   ({
     content,

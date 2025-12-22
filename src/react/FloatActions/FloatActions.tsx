@@ -1,13 +1,14 @@
 'use client';
 
+import { Flexbox } from '@lobehub/ui';
 import { memo } from 'react';
-import { Flexbox } from 'react-layout-kit';
 import useMergeState from 'use-merge-value';
 
 import ActionItem from './components/ActionItem';
 import { useStyles } from './style';
 import type { FloatActionsProps } from './type';
 
+// Keep memo: List rendering with state management for collapsed/expanded states
 const FloatActions = memo<FloatActionsProps>(
   ({
     gap = 2,

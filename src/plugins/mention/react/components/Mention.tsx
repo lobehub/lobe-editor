@@ -1,15 +1,17 @@
 import { CLICK_COMMAND, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
-import { memo, useCallback, useEffect, useRef } from 'react';
+import { type FC, useCallback, useEffect, useRef } from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 
 import { MentionNode } from '../../node/MentionNode';
 
-const Mention = memo<{
+interface MentionProps {
   className?: string;
   editor: LexicalEditor;
   node: MentionNode;
-}>(({ node, editor, className }) => {
+}
+
+const Mention: FC<MentionProps> = ({ node, editor, className }) => {
   const spanRef = useRef<HTMLSpanElement>(null);
   const [, setSelected, clearSelection] = useLexicalNodeSelection(node.getKey());
 
@@ -35,7 +37,7 @@ const Mention = memo<{
       @{node.label}
     </span>
   );
-});
+};
 
 Mention.displayName = 'Mention';
 
