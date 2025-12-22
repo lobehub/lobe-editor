@@ -88,15 +88,17 @@ export default defineConfig({
   favicons: ['https://lobehub.com/favicon.ico'],
   jsMinifier: 'swc',
   locales: [{ id: 'en-US', name: 'English' }],
-  mfsu: isWin ? undefined : {},
+  mfsu: isWin || isProduction ? undefined : {},
   npmClient: 'pnpm',
-  proxy: {
-    '/nodeserver': {
-      changeOrigin: true,
-      pathRewrite: (path: string) => path.replace(/^\/nodeserver/, ''),
-      target: 'http://localhost:3000',
-    },
-  },
+  proxy: isProduction
+    ? {}
+    : {
+        '/nodeserver': {
+          changeOrigin: true,
+          pathRewrite: (path: string) => path.replace(/^\/nodeserver/, ''),
+          target: 'http://localhost:3000',
+        },
+      },
   publicPath: '/',
   resolve: {
     atomDirs: packages.map((pkg) => ({ dir: `src/${pkg}`, subType: pkg, type: 'component' })),
