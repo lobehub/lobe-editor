@@ -392,7 +392,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       editor.registerCommand(
         INSERT_LINE_BREAK_COMMAND,
         () => {
-          // editor.read(() => {
+          // editor.getEditorState().read(() => {
           const selection = $getSelection();
           if (!$isRangeSelection(selection)) {
             return false;

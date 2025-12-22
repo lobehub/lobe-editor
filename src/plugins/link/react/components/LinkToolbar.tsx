@@ -91,7 +91,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable }) => {
 
   const handleOpenLink = useCallback(() => {
     if (!linkNode) return;
-    const url = editor.read(() => linkNode.getURL());
+    const url = editor.getEditorState().read(() => linkNode.getURL());
     window.open(url, '_blank');
   }, [editor, linkNode]);
 
@@ -100,11 +100,11 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable }) => {
       if (!editable) return;
       return mergeRegister(
         editor.registerUpdateListener(() => {
-          const selection = editor.read(() => $getSelection());
+          const selection = editor.getEditorState().read(() => $getSelection());
           if (!selection) return;
           if ($isRangeSelection(selection)) {
             // Update links for UI components
-            editor.read(() => {
+            editor.getEditorState().read(() => {
               const node = getSelectedNode(selection);
               const parent = node.getParent();
               const isLink = $isLinkNode(parent) || $isLinkNode(node);

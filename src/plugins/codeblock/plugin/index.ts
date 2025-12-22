@@ -121,7 +121,7 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
           const clipboardData = event.clipboardData;
           if (!clipboardData) return false;
 
-          const isInHighlightNodeSelection = editor.read(() => {
+          const isInHighlightNodeSelection = editor.getEditorState().read(() => {
             const sel = $getSelection();
             if (!$isRangeSelection(sel)) {
               return false;

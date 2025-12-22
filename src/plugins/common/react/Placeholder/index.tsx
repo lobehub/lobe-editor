@@ -60,7 +60,7 @@ const Placeholder = memo<PlaceholderProps>(({ children, style, lineEmptyPlacehol
       editor.registerUpdateListener(() => {
         const show = resetCanShowPlaceholder();
         if (!show && lineEmptyPlaceholder) {
-          editor.read(() => {
+          editor.getEditorState().read(() => {
             const sel = $getSelection();
             if ($isRangeSelection(sel) && sel.isCollapsed()) {
               const anchor = sel.anchor;

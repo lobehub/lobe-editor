@@ -25,7 +25,7 @@ export default class TextDataSource extends DataSource {
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {
     if (options?.selection) {
-      return editor.read(() => {
+      return editor.getEditorState().read(() => {
         const selection = $getSelection();
         return selection ? selection.getTextContent().replaceAll('\uFEFF', '') : null;
       });

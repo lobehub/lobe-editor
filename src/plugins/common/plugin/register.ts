@@ -139,7 +139,7 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
     KEY_BACKSPACE_COMMAND,
     (payload) => {
       // Handle backspace key press for heading nodes
-      const headingNode = editor.read(() => {
+      const headingNode = editor.getEditorState().read(() => {
         const selection = $getSelection();
         // Do not handle non-collapsed selection
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
@@ -467,7 +467,7 @@ export function registerLastElement(editor: LexicalEditor) {
 
     if (isProcessing) return;
 
-    const needsParagraph = editor.read(() => {
+    const needsParagraph = editor.getEditorState().read(() => {
       const root = $getRoot();
       const lastChild = root.getLastChild();
 

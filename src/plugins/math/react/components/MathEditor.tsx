@@ -158,7 +158,7 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
           }
 
           // Handle editor state updates
-          const canEdit = editor.read(() => {
+          const canEdit = editor.getEditorState().read(() => {
             const selection = $getSelection();
             if (!$isNodeSelection(selection)) {
               return false;
@@ -193,7 +193,7 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
               const node = sel.anchor.key;
               return node;
             });
-            editor.read(() => {
+            editor.getEditorState().read(() => {
               const anchorNode = anchorNodeKey ? $getNodeByKey(anchorNodeKey) : null;
               const isPrev = anchorNode && compareNodeOrder(anchorNode, canEdit) < 0;
               if (isPrev) {

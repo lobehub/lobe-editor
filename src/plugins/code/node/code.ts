@@ -126,7 +126,7 @@ export function getCodeInlineNode(node: LexicalNode) {
 }
 
 export function $isSelectionInCodeInline(editor: LexicalEditor): boolean {
-  return editor.read(() => {
+  return editor.getEditorState().read(() => {
     const selection = $getSelection();
     if (!selection) {
       return false;

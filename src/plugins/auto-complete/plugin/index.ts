@@ -176,7 +176,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     editor: LexicalEditor,
     position: { key: string; offset: number; type: string },
   ): void {
-    editor.read(() => {
+    editor.getEditorState().read(() => {
       if (editor.isComposing()) {
         return;
       }

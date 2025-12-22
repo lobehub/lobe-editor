@@ -24,7 +24,7 @@ export function registerCodeInline(
       const codeChanged = mutatedNodes?.get(CodeNode);
       const keys = codeChanged?.keys() || [];
       const needAddBefore = new Set<CodeNode>();
-      editor.read(() => {
+      editor.getEditorState().read(() => {
         for (const key of keys) {
           const node = $getNodeByKey(key);
           if (!node) {

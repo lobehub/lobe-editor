@@ -112,7 +112,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
       editor.registerCommand(
         KEY_ENTER_COMMAND,
         (payload) => {
-          const ret = editor.read(() => {
+          const ret = editor.getEditorState().read(() => {
             const selection = $getSelection();
 
             if (!$isRangeSelection(selection) || !selection.isCollapsed()) {

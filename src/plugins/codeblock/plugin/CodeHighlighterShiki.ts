@@ -275,7 +275,7 @@ function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tok
           if (!next) return;
           waitingNodesCurrentlyHighlighting.delete(next);
           requestAnimationFrame(() => {
-            editor.read(() => {
+            editor.getEditorState().read(() => {
               codeNodeTransform($getNodeByKey(next) as CodeNode, editor, tokenizer);
             });
           });

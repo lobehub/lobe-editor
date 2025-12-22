@@ -51,7 +51,7 @@ export function registerCodeCommand(editor: LexicalEditor) {
     UPDATE_CODEBLOCK_LANG,
     (payload) => {
       CustomShikiTokenizer.defaultLanguage = payload.lang;
-      const codeNode = editor.read(() => {
+      const codeNode = editor.getEditorState().read(() => {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
           if (selection.isCollapsed()) {
