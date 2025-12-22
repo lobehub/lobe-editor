@@ -88,7 +88,7 @@ export default defineConfig({
   favicons: ['https://lobehub.com/favicon.ico'],
   jsMinifier: 'swc',
   locales: [{ id: 'en-US', name: 'English' }],
-  mfsu: isWin || isProduction ? undefined : {},
+  mfsu: isWin ? undefined : {},
   npmClient: 'pnpm',
   proxy: isProduction
     ? {}

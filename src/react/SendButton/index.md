@@ -2,11 +2,6 @@
 nav: Components
 group: General
 title: SendButton
-description: SendButton is a specialized button component for sending messages, supporting loading states, generation states, and dropdown menus. It provides visual feedback for different interaction states and integrates with Ant Design's dropdown functionality.
-apiHeader:
-  pkg: '@lobehub/editor/react'
-  docUrl: 'https://github.com/lobehub/lobe-editor/tree/master/src/react/SendButton/index.md'
-  sourceUrl: 'https://github.com/lobehub/lobe-editor/tree/master/src/react/SendButton/index.ts'
 ---
 
 ## Introduction

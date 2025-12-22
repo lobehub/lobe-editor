@@ -2,7 +2,7 @@ import { Block, Center } from '@lobehub/ui';
 import { Features, FeaturesProps } from '@lobehub/ui/awesome';
 import { Puzzle, Slash, Zap } from 'lucide-react';
 
-import Editor from '@/react/Editor/demos/index';
+import Editor from '../src/react/Editor/demos/index';
 
 const items: FeaturesProps['items'] = [
   {
