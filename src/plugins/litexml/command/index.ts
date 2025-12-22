@@ -318,8 +318,14 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
             originDiffNode.remove();
             return;
           }
-          case 'listItemModify':
           case 'modify': {
+            const children = originDiffNode.getChildren();
+            const newDiff = $createDiffNode('remove');
+            newDiff.append(children[0]);
+            originDiffNode.replace(newDiff, false);
+            return;
+          }
+          case 'listItemModify': {
             const children = originDiffNode.getChildren();
             originDiffNode.replace(children[0], false).selectEnd();
             return;

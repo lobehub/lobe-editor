@@ -2,6 +2,7 @@
 
 # Changelog
 
+## [Version 1.36.0](https://github.com/lobehub/lobe-editor/compare/v1.35.0...v1.36.0)
 ### [Version&nbsp;2.0.3](https://github.com/lobehub/lobe-editor/compare/v2.0.2...v2.0.3)
 <sup>Released on **2025-12-21**</sup>
 
@@ -129,27 +130,22 @@
 ## [Version&nbsp;1.36.0](https://github.com/lobehub/lobe-editor/compare/v1.35.0...v1.36.0)
 <sup>Released on **2025-12-20**</sup>
 
+<sup>Released on **2025-12-20**</sup>
 
 #### ✨ Features
 
 - **misc**: Support second modify diff node.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### What's improved
 
-* **misc**: Support second modify diff node, closes [#86](https://github.com/lobehub/lobe-editor/issues/86) ([c760d53](https://github.com/lobehub/lobe-editor/commit/c760d53))
+- **misc**: Support second modify diff node, closes [#86](https://github.com/lobehub/lobe-editor/issues/86) ([c760d53](https://github.com/lobehub/lobe-editor/commit/c760d53))
 
 </details>
-
 
 <div align="right">
 
@@ -157,30 +153,24 @@
 
 </div>
 
-## [Version&nbsp;1.35.0](https://github.com/lobehub/lobe-editor/compare/v1.34.5...v1.35.0)
-<sup>Released on **2025-12-19**</sup>
+## [Version 1.35.0](https://github.com/lobehub/lobe-editor/compare/v1.34.5...v1.35.0)
 
+<sup>Released on **2025-12-19**</sup>
 
 #### ✨ Features
 
 - **misc**: Support accept all and reject all.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### What's improved
 
-* **misc**: Support accept all and reject all, closes [#85](https://github.com/lobehub/lobe-editor/issues/85) ([0ced592](https://github.com/lobehub/lobe-editor/commit/0ced592))
+- **misc**: Support accept all and reject all, closes [#85](https://github.com/lobehub/lobe-editor/issues/85) ([0ced592](https://github.com/lobehub/lobe-editor/commit/0ced592))
 
 </details>
-
 
 <div align="right">
 
@@ -188,30 +178,24 @@
 
 </div>
 
-### [Version&nbsp;1.34.5](https://github.com/lobehub/lobe-editor/compare/v1.34.4...v1.34.5)
-<sup>Released on **2025-12-18**</sup>
+### [Version 1.34.5](https://github.com/lobehub/lobe-editor/compare/v1.34.4...v1.34.5)
 
+<sup>Released on **2025-12-18**</sup>
 
 #### 💄 Styles
 
 - **misc**: Update diff node style.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### Styles
 
-* **misc**: Update diff node style ([352bb09](https://github.com/lobehub/lobe-editor/commit/352bb09))
+- **misc**: Update diff node style ([352bb09](https://github.com/lobehub/lobe-editor/commit/352bb09))
 
 </details>
-
 
 <div align="right">
 
@@ -219,30 +203,24 @@
 
 </div>
 
-### [Version&nbsp;1.34.4](https://github.com/lobehub/lobe-editor/compare/v1.34.3...v1.34.4)
-<sup>Released on **2025-12-18**</sup>
+### [Version 1.34.4](https://github.com/lobehub/lobe-editor/compare/v1.34.3...v1.34.4)
 
+<sup>Released on **2025-12-18**</sup>
 
 #### 💄 Styles
 
 - **misc**: Update diffnode style.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### Styles
 
-* **misc**: Update diffnode style ([7114660](https://github.com/lobehub/lobe-editor/commit/7114660))
+- **misc**: Update diffnode style ([7114660](https://github.com/lobehub/lobe-editor/commit/7114660))
 
 </details>
-
 
 <div align="right">
 
@@ -250,30 +228,24 @@
 
 </div>
 
-### [Version&nbsp;1.34.3](https://github.com/lobehub/lobe-editor/compare/v1.34.2...v1.34.3)
-<sup>Released on **2025-12-18**</sup>
+### [Version 1.34.3](https://github.com/lobehub/lobe-editor/compare/v1.34.2...v1.34.3)
 
+<sup>Released on **2025-12-18**</sup>
 
 #### 🐛 Bug Fixes
 
 - **misc**: Fix toolbar.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### What's fixed
 
-* **misc**: Fix toolbar ([fce76f1](https://github.com/lobehub/lobe-editor/commit/fce76f1))
+- **misc**: Fix toolbar ([fce76f1](https://github.com/lobehub/lobe-editor/commit/fce76f1))
 
 </details>
-
 
 <div align="right">
 
@@ -281,30 +253,24 @@
 
 </div>
 
-### [Version&nbsp;1.34.2](https://github.com/lobehub/lobe-editor/compare/v1.34.1...v1.34.2)
-<sup>Released on **2025-12-18**</sup>
+### [Version 1.34.2](https://github.com/lobehub/lobe-editor/compare/v1.34.1...v1.34.2)
 
+<sup>Released on **2025-12-18**</sup>
 
 #### 🐛 Bug Fixes
 
 - **misc**: Toolbar hide in blur.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### What's fixed
 
-* **misc**: Toolbar hide in blur ([b69a6ca](https://github.com/lobehub/lobe-editor/commit/b69a6ca))
+- **misc**: Toolbar hide in blur ([b69a6ca](https://github.com/lobehub/lobe-editor/commit/b69a6ca))
 
 </details>
-
 
 <div align="right">
 
@@ -312,30 +278,24 @@
 
 </div>
 
-### [Version&nbsp;1.34.1](https://github.com/lobehub/lobe-editor/compare/v1.34.0...v1.34.1)
-<sup>Released on **2025-12-18**</sup>
+### [Version 1.34.1](https://github.com/lobehub/lobe-editor/compare/v1.34.0...v1.34.1)
 
+<sup>Released on **2025-12-18**</sup>
 
 #### 🐛 Bug Fixes
 
 - **misc**: Use minimum display width to the image.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### What's fixed
 
-* **misc**: Use minimum display width to the image, closes [#84](https://github.com/lobehub/lobe-editor/issues/84) ([a79c403](https://github.com/lobehub/lobe-editor/commit/a79c403))
+- **misc**: Use minimum display width to the image, closes [#84](https://github.com/lobehub/lobe-editor/issues/84) ([a79c403](https://github.com/lobehub/lobe-editor/commit/a79c403))
 
 </details>
-
 
 <div align="right">
 
@@ -343,30 +303,24 @@
 
 </div>
 
-## [Version&nbsp;1.34.0](https://github.com/lobehub/lobe-editor/compare/v1.33.3...v1.34.0)
-<sup>Released on **2025-12-16**</sup>
+## [Version 1.34.0](https://github.com/lobehub/lobe-editor/compare/v1.33.3...v1.34.0)
 
+<sup>Released on **2025-12-16**</sup>
 
 #### ✨ Features
 
 - **misc**: Image rehost logic.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### What's improved
 
-* **misc**: Image rehost logic, closes [#83](https://github.com/lobehub/lobe-editor/issues/83) ([b1410b4](https://github.com/lobehub/lobe-editor/commit/b1410b4))
+- **misc**: Image rehost logic, closes [#83](https://github.com/lobehub/lobe-editor/issues/83) ([b1410b4](https://github.com/lobehub/lobe-editor/commit/b1410b4))
 
 </details>
-
 
 <div align="right">
 
@@ -374,30 +328,24 @@
 
 </div>
 
-### [Version&nbsp;1.33.3](https://github.com/lobehub/lobe-editor/compare/v1.33.2...v1.33.3)
-<sup>Released on **2025-12-16**</sup>
+### [Version 1.33.3](https://github.com/lobehub/lobe-editor/compare/v1.33.2...v1.33.3)
 
+<sup>Released on **2025-12-16**</sup>
 
 #### 💄 Styles
 
 - **misc**: Update style.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### Styles
 
-* **misc**: Update style ([743f832](https://github.com/lobehub/lobe-editor/commit/743f832))
+- **misc**: Update style ([743f832](https://github.com/lobehub/lobe-editor/commit/743f832))
 
 </details>
-
 
 <div align="right">
 
@@ -405,30 +353,24 @@
 
 </div>
 
-### [Version&nbsp;1.33.2](https://github.com/lobehub/lobe-editor/compare/v1.33.1...v1.33.2)
-<sup>Released on **2025-12-16**</sup>
+### [Version 1.33.2](https://github.com/lobehub/lobe-editor/compare/v1.33.1...v1.33.2)
 
+<sup>Released on **2025-12-16**</sup>
 
 #### 💄 Styles
 
 - **misc**: Update diffnode style.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### Styles
 
-* **misc**: Update diffnode style ([4c37f53](https://github.com/lobehub/lobe-editor/commit/4c37f53))
+- **misc**: Update diffnode style ([4c37f53](https://github.com/lobehub/lobe-editor/commit/4c37f53))
 
 </details>
-
 
 <div align="right">
 
@@ -436,30 +378,24 @@
 
 </div>
 
-### [Version&nbsp;1.33.1](https://github.com/lobehub/lobe-editor/compare/v1.33.0...v1.33.1)
-<sup>Released on **2025-12-16**</sup>
+### [Version 1.33.1](https://github.com/lobehub/lobe-editor/compare/v1.33.0...v1.33.1)
 
+<sup>Released on **2025-12-16**</sup>
 
 #### 💄 Styles
 
 - **misc**: Update diffNode style.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### Styles
 
-* **misc**: Update diffNode style ([42b21b8](https://github.com/lobehub/lobe-editor/commit/42b21b8))
+- **misc**: Update diffNode style ([42b21b8](https://github.com/lobehub/lobe-editor/commit/42b21b8))
 
 </details>
-
 
 <div align="right">
 
@@ -467,30 +403,24 @@
 
 </div>
 
-## [Version&nbsp;1.33.0](https://github.com/lobehub/lobe-editor/compare/v1.32.0...v1.33.0)
-<sup>Released on **2025-12-16**</sup>
+## [Version 1.33.0](https://github.com/lobehub/lobe-editor/compare/v1.32.0...v1.33.0)
 
+<sup>Released on **2025-12-16**</sup>
 
 #### ✨ Features
 
 - **misc**: Enhance decorator and add diffnode.
 
-
 <br/>
-
-
 
 <details>
 <summary><kbd>Improvements and Fixes</kbd></summary>
 
-
-
 #### What's improved
 
-* **misc**: Enhance decorator and add diffnode, closes [#78](https://github.com/lobehub/lobe-editor/issues/78) ([b7b7eef](https://github.com/lobehub/lobe-editor/commit/b7b7eef))
+- **misc**: Enhance decorator and add diffnode, closes [#78](https://github.com/lobehub/lobe-editor/issues/78) ([b7b7eef](https://github.com/lobehub/lobe-editor/commit/b7b7eef))
 
 </details>
-
 
 <div align="right">
 
