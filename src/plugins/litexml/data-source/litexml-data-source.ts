@@ -86,7 +86,7 @@ export default class LitexmlDataSource extends DataSource {
   write(editor: LexicalEditor, options?: IWriteOptions): any {
     try {
       if (options?.selection) {
-        return editor.read(() => {
+        return editor.getEditorState().read(() => {
           const selection = $getSelection();
           if (!selection) {
             return null;

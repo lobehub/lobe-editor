@@ -63,7 +63,7 @@ export function $isCursorNode(node: LexicalNode | null | undefined): node is Cur
 export function registerCursorNode(editor: LexicalEditor) {
   return mergeRegister(
     editor.registerUpdateListener(({ mutatedNodes }) => {
-      editor.read(() => {
+      editor.getEditorState().read(() => {
         if (!mutatedNodes) return;
         const needAddCursor: Array<LexicalNode> = [];
         for (const [kClass, nodeMaps] of mutatedNodes) {
@@ -89,7 +89,7 @@ export function registerCursorNode(editor: LexicalEditor) {
       });
     }),
     editor.registerUpdateListener(({ mutatedNodes }) => {
-      editor.read(() => {
+      editor.getEditorState().read(() => {
         const cursorNodes = mutatedNodes?.get(CursorNode);
         const needRemove = new Set<CursorNode>();
         if (cursorNodes) {
@@ -130,7 +130,7 @@ export function registerCursorNode(editor: LexicalEditor) {
       });
     }),
     editor.registerUpdateListener(() => {
-      editor.read(() => {
+      editor.getEditorState().read(() => {
         const selection = $getSelection();
         const isComposing = editor.isComposing();
         if (isComposing) {

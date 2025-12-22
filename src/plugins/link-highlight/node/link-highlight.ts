@@ -139,7 +139,7 @@ export function getLinkHighlightNode(node: LexicalNode): LinkHighlightNode | nul
 }
 
 export function $isSelectionInLinkHighlight(editor: LexicalEditor): boolean {
-  return editor.read(() => {
+  return editor.getEditorState().read(() => {
     const selection = $getSelection();
     if (!selection) {
       return false;

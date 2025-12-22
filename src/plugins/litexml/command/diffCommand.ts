@@ -83,7 +83,7 @@ export function registerLiteXMLDiffCommand(editor: LexicalEditor) {
       LITEXML_DIFFNODE_COMMAND,
       (payload) => {
         const { action, nodeKey } = payload;
-        const node = editor.read(() => {
+        const node = editor.getEditorState().read(() => {
           return $getNodeByKey(nodeKey) as DiffNode | null;
         });
         if (!node) {
@@ -101,7 +101,7 @@ export function registerLiteXMLDiffCommand(editor: LexicalEditor) {
       LITEXML_DIFFNODE_ALL_COMMAND,
       (payload) => {
         const { action } = payload;
-        const nodes = editor.read(() => {
+        const nodes = editor.getEditorState().read(() => {
           return Array.from(editor._editorState._nodeMap.values()).filter(
             (n) => n instanceof DiffNode && !!n.getParent(),
           ) as DiffNode[];

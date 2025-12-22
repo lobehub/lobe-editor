@@ -96,7 +96,7 @@ const MathInline = memo<MathInlineProps>(({ editor, node, className }) => {
   useLexicalEditor(
     (editor) => {
       return editor.registerUpdateListener(() => {
-        editor.read(() => {
+        editor.getEditorState().read(() => {
           const selection = $getSelection();
           if (!$isNodeSelection(selection)) {
             setIsEditing(false);

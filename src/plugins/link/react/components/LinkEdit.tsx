@@ -1,5 +1,5 @@
 import { mergeRegister } from '@lexical/utils';
-import { Block, Button, Hotkey, Icon, Input, Text , Flexbox } from '@lobehub/ui';
+import { Block, Button, Flexbox, Hotkey, Icon, Input, Text } from '@lobehub/ui';
 import type { InputRef } from 'antd';
 import {
   COMMAND_PRIORITY_EDITOR,
@@ -74,7 +74,7 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
     const textInputDOM = textInput.input as HTMLInputElement;
 
     // 更新链接URL
-    const currentURL = editor.read(() => linkNode.getURL());
+    const currentURL = editor.getEditorState().read(() => linkNode.getURL());
     if (currentURL !== inputDOM.value) {
       editor.update(() => {
         linkNode.setURL(inputDOM.value);
@@ -82,7 +82,7 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
     }
 
     // 更新链接文本
-    const currentText = editor.read(() => linkNode.getTextContent());
+    const currentText = editor.getEditorState().read(() => linkNode.getTextContent());
     if (currentText !== textInputDOM.value) {
       editor.dispatchCommand(UPDATE_LINK_TEXT_COMMAND, {
         key: linkNode.getKey(),
@@ -112,7 +112,7 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
         case 'Enter': {
           event.preventDefault();
           if (event.currentTarget === textInputDOM) {
-            const currentText = editor.read(() => linkNode.getTextContent());
+            const currentText = editor.getEditorState().read(() => linkNode.getTextContent());
             if (currentText !== textInputDOM.value) {
               editor.dispatchCommand(UPDATE_LINK_TEXT_COMMAND, {
                 key: linkNode.getKey(),

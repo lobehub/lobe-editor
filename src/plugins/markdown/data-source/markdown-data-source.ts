@@ -69,7 +69,7 @@ export default class MarkdownDataSource extends DataSource {
     };
 
     if (options?.selection) {
-      return editor.read(() => {
+      return editor.getEditorState().read(() => {
         const selection = $getSelection();
         if (!selection) {
           return null;

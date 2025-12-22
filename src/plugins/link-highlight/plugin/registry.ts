@@ -25,7 +25,7 @@ export function registerLinkHighlight(
       const linkHighlightChanged = mutatedNodes?.get(LinkHighlightNode);
       const keys = linkHighlightChanged?.keys() || [];
       const needAddBefore = new Set<LinkHighlightNode>();
-      editor.read(() => {
+      editor.getEditorState().read(() => {
         for (const key of keys) {
           const node = $getNodeByKey(key);
           if (!node) {
