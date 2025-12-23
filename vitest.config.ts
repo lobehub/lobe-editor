@@ -15,11 +15,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       [name]: path.resolve(__dirname, './src'),
     },
-    environment: 'jsdom',
-    globals: true,
     coverage: {
-      reporter: ['text', 'json-summary', 'lcov'],
-      include: ['src/common/**/*.ts', 'src/editor-kernel/**/*.ts'],
+      branches: 70,
       exclude: [
         ...coverageConfigDefaults.exclude,
         'src/**/__tests__/**',
@@ -33,10 +30,18 @@ export default defineConfig({
         'src/index.ts',
         'src/utils/**',
       ],
-      lines: 80,
-      statements: 80,
       functions: 80,
-      branches: 70,
+      include: ['src/common/**/*.ts', 'src/editor-kernel/**/*.ts'],
+      lines: 80,
+      reporter: ['text', 'json-summary', 'lcov'],
+      statements: 80,
+    },
+    environment: 'jsdom',
+    globals: true,
+    server: {
+      deps: {
+        inline: ['@lobehub/ui'],
+      },
     },
   },
 });
