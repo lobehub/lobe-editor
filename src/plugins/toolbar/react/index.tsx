@@ -49,6 +49,8 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
       ) {
         const rangeRect = getDOMRangeRect(nativeSelection, rootElement);
 
+        console.info('rangeRect', rangeRect);
+
         setFloatingElemPosition(rangeRect, popupCharStylesEditorElem, anchorElemRef.current, false);
       } else {
         popupCharStylesEditorElem.style.opacity = '0';
