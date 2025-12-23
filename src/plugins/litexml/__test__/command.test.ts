@@ -2,7 +2,7 @@ import { resetRandomKey } from 'lexical';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor, { moment } from '@/editor-kernel';
-import { CommonPlugin } from '@/plugins/common';
+import { CommonPlugin } from '@/plugins/common/plugin';
 import {
   LITEXML_APPLY_COMMAND,
   LITEXML_INSERT_COMMAND,
