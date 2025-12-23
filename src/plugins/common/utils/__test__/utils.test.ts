@@ -6,39 +6,72 @@ import {
   $createTextNode,
   $getRoot,
   $setSelection,
+  LexicalEditor,
   createEditor,
 } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
+import Editor from '@/editor-kernel';
+import { CommonPlugin, MarkdownPlugin, TablePlugin } from '@/index';
+import { IEditor } from '@/types';
+
 import { $isCursorInQuote, $isCursorInTable } from '..';
 
+async function update(editor: LexicalEditor, callback: () => void): Promise<void> {
+  return new Promise((resolve) => {
+    editor.update(() => {
+      callback();
+      resolve();
+    });
+  });
+}
+
 describe('Cursor Position Detection Utils', () => {
+  let kernel: IEditor;
+
+  beforeEach(() => {
+    kernel = Editor.createEditor();
+    kernel.registerPlugins([CommonPlugin, MarkdownPlugin, TablePlugin]);
+    kernel.initNodeEditor();
+  });
+
   describe('$isCursorInTable', () => {
-    it('should return false when cursor is not in table', () => {
-      const editor = createEditor();
+    it('should return false when cursor is not in table', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
-        const root = $getRoot();
-        const paragraph = $createParagraphNode();
-        const text = $createTextNode('Hello world');
-        paragraph.append(text);
-        root.append(paragraph);
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
 
-        const selection = $createRangeSelection();
-        selection.anchor.set(text.getKey(), 0, 'text');
-        selection.focus.set(text.getKey(), 5, 'text');
-        $setSelection(selection);
+      await new Promise((resolve) => {
+        editor.update(() => {
+          const root = $getRoot();
+          const paragraph = $createParagraphNode();
+          const text = $createTextNode('Hello world');
+          paragraph.append(text);
+          root.append(paragraph);
 
-        const result = $isCursorInTable(selection);
-        expect(result.inCell).toBe(false);
-        expect(result.inTable).toBe(false);
+          const selection = $createRangeSelection();
+          selection.anchor.set(text.getKey(), 0, 'text');
+          selection.focus.set(text.getKey(), 5, 'text');
+          $setSelection(selection);
+
+          const result = $isCursorInTable(selection);
+          expect(result.inCell).toBe(false);
+          expect(result.inTable).toBe(false);
+          resolve(true);
+        });
       });
     });
 
-    it('should return true for inCell when cursor is in table cell', () => {
-      const editor = createEditor();
+    it('should return true for inCell when cursor is in table cell', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
 
         // Create table structure
@@ -65,10 +98,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should return true for inTable but false for inCell when cursor is in table but not in cell', () => {
-      const editor = createEditor();
+    it('should return true for inTable but false for inCell when cursor is in table but not in cell', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
 
         // Create table structure with direct text in table (edge case)
@@ -88,22 +125,38 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle null selection gracefully', () => {
-      const result = $isCursorInTable(null);
-      expect(result.inCell).toBe(false);
-      expect(result.inTable).toBe(false);
+    it('should handle null selection gracefully', async () => {
+      const editor = kernel.getLexicalEditor();
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+      await update(editor, () => {
+        const result = $isCursorInTable(null);
+        expect(result.inCell).toBe(false);
+        expect(result.inTable).toBe(false);
+      });
     });
 
-    it('should handle selection without focus gracefully', () => {
-      const result = $isCursorInTable({});
-      expect(result.inCell).toBe(false);
-      expect(result.inTable).toBe(false);
+    it('should handle selection without focus gracefully', async () => {
+      const editor = kernel.getLexicalEditor();
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+      await update(editor, () => {
+        const result = $isCursorInTable({});
+        expect(result.inCell).toBe(false);
+        expect(result.inTable).toBe(false);
+      });
     });
 
-    it('should handle multiple table cells correctly', () => {
-      const editor = createEditor();
+    it('should handle multiple table cells correctly', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
 
         // Create table with multiple cells
@@ -146,10 +199,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle nested table structures', () => {
-      const editor = createEditor();
+    it('should handle nested table structures', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
 
         // Create nested table (table inside table cell)
@@ -183,10 +240,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle table with multiple rows', () => {
-      const editor = createEditor();
+    it('should handle table with multiple rows', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
 
         // Create table with multiple rows
@@ -231,10 +292,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle empty table cell', () => {
-      const editor = createEditor();
+    it('should handle empty table cell', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
 
         // Create table with empty cell
@@ -260,11 +325,15 @@ describe('Cursor Position Detection Utils', () => {
     });
   });
 
-  describe('$isCursorInQuote', () => {
-    it('should return false when cursor is not in quote', () => {
-      const editor = createEditor();
+  describe('$isCursorInQuote', async () => {
+    it('should return false when cursor is not in quote', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
         const paragraph = $createParagraphNode();
         const text = $createTextNode('Normal text');
@@ -281,10 +350,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should return true when cursor is in quote block', () => {
-      const editor = createEditor();
+    it('should return true when cursor is in quote block', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
         const quote = $createQuoteNode();
         const paragraph = $createParagraphNode();
@@ -304,10 +377,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle nested quotes correctly', () => {
-      const editor = createEditor();
+    it('should handle nested quotes correctly', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
         const outerQuote = $createQuoteNode();
         const innerQuote = $createQuoteNode();
@@ -329,10 +406,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should return true for cursor in quote with multiple paragraphs', () => {
-      const editor = createEditor();
+    it('should return true for cursor in quote with multiple paragraphs', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
         const quote = $createQuoteNode();
         const paragraph1 = $createParagraphNode();
@@ -365,10 +446,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle quote with mixed content types', () => {
-      const editor = createEditor();
+    it('should handle quote with mixed content types', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
         const quote = $createQuoteNode();
         const paragraph = $createParagraphNode();
@@ -408,10 +493,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle empty quote block', () => {
-      const editor = createEditor();
+    it('should handle empty quote block', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
         const quote = $createQuoteNode();
         const paragraph = $createParagraphNode();
@@ -429,10 +518,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle quote followed by normal content', () => {
-      const editor = createEditor();
+    it('should handle quote followed by normal content', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
 
         // Create quote block
@@ -469,10 +562,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle multiple quote blocks', () => {
-      const editor = createEditor();
+    it('should handle multiple quote blocks', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
 
         // Create first quote block
@@ -525,36 +622,64 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle null selection gracefully', () => {
-      const result = $isCursorInQuote(null);
-      expect(result).toBe(false);
-    });
-
-    it('should handle selection without focus gracefully', () => {
-      const result = $isCursorInQuote({});
-      expect(result).toBe(false);
-    });
-
-    it('should handle invalid selection object gracefully', () => {
-      const result = $isCursorInQuote({ focus: null });
-      expect(result).toBe(false);
-    });
-
-    it('should handle selection with invalid focus node', () => {
-      const result = $isCursorInQuote({
-        focus: {
-          getNode: () => null,
-        },
+    it('should handle null selection gracefully', async () => {
+      const editor = kernel.getLexicalEditor();
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+      await update(editor, () => {
+        const result = $isCursorInQuote(null);
+        expect(result).toBe(false);
       });
-      expect(result).toBe(false);
+    });
+
+    it('should handle selection without focus gracefully', async () => {
+      const editor = kernel.getLexicalEditor();
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+      await update(editor, () => {
+        const result = $isCursorInQuote({});
+        expect(result).toBe(false);
+      });
+    });
+
+    it('should handle invalid selection object gracefully', async () => {
+      const editor = kernel.getLexicalEditor();
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+      await update(editor, () => {
+        const result = $isCursorInQuote({ focus: null });
+        expect(result).toBe(false);
+      });
+    });
+
+    it('should handle selection with invalid focus node', async () => {
+      const editor = kernel.getLexicalEditor();
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+      await update(editor, () => {
+        const result = $isCursorInQuote({
+          focus: {
+            getNode: () => null,
+          },
+        });
+        expect(result).toBe(false);
+      });
     });
   });
 
-  describe('Complex scenarios', () => {
-    it('should handle table inside quote correctly', () => {
-      const editor = createEditor();
+  describe('Complex scenarios', async () => {
+    it('should handle table inside quote correctly', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
         const quote = $createQuoteNode();
         const table = $createTableNode();
@@ -584,10 +709,14 @@ describe('Cursor Position Detection Utils', () => {
       });
     });
 
-    it('should handle quote inside table cell correctly', () => {
-      const editor = createEditor();
+    it('should handle quote inside table cell correctly', async () => {
+      const editor = kernel.getLexicalEditor();
 
-      editor.update(() => {
+      if (!editor) {
+        throw new Error('Editor not found');
+      }
+
+      await update(editor, () => {
         const root = $getRoot();
         const table = $createTableNode();
         const row = $createTableRowNode();
