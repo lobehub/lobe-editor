@@ -49,6 +49,8 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
       ) {
         const rangeRect = getDOMRangeRect(nativeSelection, rootElement);
 
+        console.info('rangeRect', rangeRect);
+
         setFloatingElemPosition(rangeRect, popupCharStylesEditorElem, anchorElemRef.current, false);
       } else {
         popupCharStylesEditorElem.style.opacity = '0';
@@ -120,7 +122,7 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
     const rootElement = editor.getRootElement();
     if (rootElement) {
       rootElement.addEventListener('mousedown', handleMouseDown);
-      rootElement.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('mouseup', handleMouseUp);
     }
 
     return mergeRegister(
@@ -152,7 +154,7 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
       () => {
         if (rootElement) {
           rootElement.removeEventListener('mousedown', handleMouseDown);
-          rootElement.removeEventListener('mouseup', handleMouseUp);
+          document.removeEventListener('mouseup', handleMouseUp);
         }
       },
     );

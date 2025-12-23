@@ -8,6 +8,20 @@
 const VERTICAL_GAP = 4;
 const HORIZONTAL_OFFSET = 0;
 
+function getScrollParent(element: HTMLElement): HTMLElement | null {
+  let parent = element.parentElement;
+
+  while (parent) {
+    const { overflow, overflowY, overflowX } = window.getComputedStyle(parent);
+    if (/(auto|scroll)/.test(overflow + overflowY + overflowX)) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+
+  return document.documentElement;
+}
+
 export function setFloatingElemPosition(
   targetRect: DOMRect | null,
   floatingElem: HTMLElement,
@@ -16,7 +30,7 @@ export function setFloatingElemPosition(
   verticalGap: number = VERTICAL_GAP,
   horizontalOffset: number = HORIZONTAL_OFFSET,
 ): void {
-  const scrollerElem = anchorElem.parentElement;
+  const scrollerElem = getScrollParent(anchorElem);
 
   if (targetRect === null || !scrollerElem) {
     floatingElem.style.opacity = '0';

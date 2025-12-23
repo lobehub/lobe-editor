@@ -1,7 +1,8 @@
+import { resetRandomKey } from 'lexical';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor, { moment } from '@/editor-kernel';
-import { CommonPlugin } from '@/plugins/common';
+import { CommonPlugin } from '@/plugins/common/plugin';
 import {
   LITEXML_APPLY_COMMAND,
   LITEXML_INSERT_COMMAND,
@@ -16,6 +17,7 @@ describe('Common Plugin Tests', () => {
   let kernel: IEditor;
 
   beforeEach(() => {
+    resetRandomKey();
     kernel = Editor.createEditor();
     kernel.registerPlugins([CommonPlugin, MarkdownPlugin, LitexmlPlugin]);
     kernel.initNodeEditor();
@@ -43,7 +45,7 @@ describe('Common Plugin Tests', () => {
     );
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       litexml: '<p><span bold="true">InsertedText</span></p>',
-      afterId: 'mz8u',
+      afterId: 'll63',
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
@@ -58,7 +60,7 @@ describe('Common Plugin Tests', () => {
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
     kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-      id: 'odbl',
+      id: 'll63',
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
@@ -104,7 +106,7 @@ describe('Common Plugin Tests', () => {
     const beforeIns = kernel.getDocument('json') as any;
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       litexml: '<p><span bold="true">InsertedText</span></p>',
-      afterId: 'mz8u',
+      afterId: 'll63',
       delay: true,
     });
     await moment();
@@ -134,7 +136,7 @@ describe('Common Plugin Tests', () => {
     );
     const beforeRem = kernel.getDocument('json') as any;
     kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-      id: 'odbl',
+      id: 'll63',
       delay: true,
     });
     await moment();
@@ -160,12 +162,11 @@ describe('Common Plugin Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
-
     // immediate modify (non-delay)
     kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, [
       {
         action: 'modify',
-        litexml: '<span id="t5t2">ModifiedTextDirect</span>',
+        litexml: '<span id="lqqe">ModifiedTextDirect</span>',
       },
     ]);
     await moment();
@@ -177,11 +178,10 @@ describe('Common Plugin Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
-    console.info(kernel.getDocument('litexml'));
     kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, [
       {
         action: 'modify',
-        litexml: ['<span id="v651">ModifiedText</span>', '<span id="vh9n">THIS IS </span>'],
+        litexml: ['<span id="nr2d">ModifiedText</span>', '<span id="o26z">THIS IS </span>'],
       },
     ]);
     await moment();
