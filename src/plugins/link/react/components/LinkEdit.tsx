@@ -181,46 +181,49 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
     };
   }, [linkDom]);
 
-  useLexicalEditor((editor) => {
-    return mergeRegister(
-      editor.registerCommand(
-        EDIT_LINK_COMMAND,
-        (payload) => {
-          if (!payload.linkNode || !payload.linkNodeDOM) {
-            handleCancel();
-            return false;
-          }
-          linkNodeRef.current = payload.linkNode;
-          setLinkUrl(payload.linkNode.getURL());
-          setLinkText(payload.linkNode.getTextContent());
-          setLinkDom(payload.linkNodeDOM);
-          return true;
-        },
-        COMMAND_PRIORITY_EDITOR,
-      ),
-      editor.registerCommand(
-        KEY_ESCAPE_COMMAND,
-        () => {
-          handleCancel();
-          return true;
-        },
-        COMMAND_PRIORITY_EDITOR,
-      ),
-      editor.registerCommand(
-        KEY_TAB_COMMAND,
-        (payload) => {
-          if (linkNodeRef.current && linkTextInputRef.current) {
-            payload.stopImmediatePropagation();
-            payload.preventDefault();
-            linkTextInputRef.current.focus();
+  useLexicalEditor(
+    (editor) => {
+      return mergeRegister(
+        editor.registerCommand(
+          EDIT_LINK_COMMAND,
+          (payload) => {
+            if (!payload.linkNode || !payload.linkNodeDOM) {
+              handleCancel();
+              return false;
+            }
+            linkNodeRef.current = payload.linkNode;
+            setLinkUrl(payload.linkNode.getURL());
+            setLinkText(payload.linkNode.getTextContent());
+            setLinkDom(payload.linkNodeDOM);
             return true;
-          }
-          return false;
-        },
-        COMMAND_PRIORITY_NORMAL,
-      ),
-    );
-  }, []);
+          },
+          COMMAND_PRIORITY_EDITOR,
+        ),
+        editor.registerCommand(
+          KEY_ESCAPE_COMMAND,
+          () => {
+            handleCancel();
+            return true;
+          },
+          COMMAND_PRIORITY_EDITOR,
+        ),
+        editor.registerCommand(
+          KEY_TAB_COMMAND,
+          (payload) => {
+            if (linkNodeRef.current && linkTextInputRef.current) {
+              payload.stopImmediatePropagation();
+              payload.preventDefault();
+              linkTextInputRef.current.focus();
+              return true;
+            }
+            return false;
+          },
+          COMMAND_PRIORITY_NORMAL,
+        ),
+      );
+    },
+    [editor],
+  );
 
   if (!linkNodeRef.current || !editable) return null;
 
