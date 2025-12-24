@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.0.0](https://github.com/lobehub/lobe-editor/compare/v2.2.0...v3.0.0)
+<sup>Released on **2025-12-24**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Bump v3 [force major].
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Bump v3 [force major] ([ebb8c51](https://github.com/lobehub/lobe-editor/commit/ebb8c51))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;2.2.0](https://github.com/lobehub/lobe-editor/compare/v2.1.1...v2.2.0)
 <sup>Released on **2025-12-23**</sup>
 
