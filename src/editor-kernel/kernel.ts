@@ -1,4 +1,5 @@
 import { HistoryState, createEmptyHistoryState } from '@lexical/history';
+import { get, merge, template, templateSettings } from 'es-toolkit/compat';
 import EventEmitter from 'eventemitter3';
 import {
   $getSelection,
@@ -13,7 +14,6 @@ import {
   LexicalNodeConfig,
   createEditor,
 } from 'lexical';
-import { get, merge, template, templateSettings } from 'lodash-es';
 
 import defaultLocale from '@/locale';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';

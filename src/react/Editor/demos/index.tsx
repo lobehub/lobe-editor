@@ -24,7 +24,7 @@ import {
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
-import { debounce } from 'lodash-es';
+import { debounce } from 'es-toolkit';
 import {
   Heading1Icon,
   Heading2Icon,

@@ -28,6 +28,9 @@ import {
 } from 'lexical';
 
 import { assert } from '@/editor-kernel/utils';
+import { createDebugLogger } from '@/utils/debug';
+
+const logger = createDebugLogger('plugin', 'link');
 
 export type LinkAttributes = {
   rel?: null | string;
@@ -89,7 +92,7 @@ export class LinkNode extends ElementNode {
   }
 
   createDOM(config: EditorConfig, editor: LexicalEditor): LinkHTMLElementType {
-    console.info('config', config);
+    logger.debug('🔍 config', config);
     const element = document.createElement('a');
     this.updateLinkDOM(null, element, config);
     addClassNamesToElement(element, config.theme.link);
@@ -363,7 +366,7 @@ export class AutoLinkNode extends LinkNode {
   }
 
   createDOM(config: EditorConfig, editor: LexicalEditor): LinkHTMLElementType {
-    console.info('config', config);
+    logger.debug('🔍 config', config);
     if (this.__isUnlinked) {
       return document.createElement('span');
     } else {

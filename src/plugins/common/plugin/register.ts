@@ -34,6 +34,9 @@ import {
 import { $closest } from '@/editor-kernel';
 import { IEditor } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
+import { createDebugLogger } from '@/utils/debug';
+
+const logger = createDebugLogger('plugin', 'common');
 
 function resolveElement(
   element: ElementNode,
@@ -211,7 +214,7 @@ export function registerRichKeydown(
             selection.insertText(text);
           });
         } catch (error) {
-          console.error('Failed to paste as plain text:', error);
+          logger.error('❌ Failed to paste as plain text:', error);
         }
       },
       {

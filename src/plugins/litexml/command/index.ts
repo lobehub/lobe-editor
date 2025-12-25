@@ -12,10 +12,13 @@ import {
 } from 'lexical';
 
 import { $closest } from '@/editor-kernel';
+import { createDebugLogger } from '@/utils/debug';
 
 import type LitexmlDataSource from '../data-source/litexml-data-source';
 import { $createDiffNode, DiffNode } from '../node/DiffNode';
 import { $cloneNode, $parseSerializedNodeImpl, charToId } from '../utils';
+
+const logger = createDebugLogger('plugin', 'litexml');
 
 // Helpers to reduce duplication and improve readability
 function toArrayXml(litexml: string | string[]) {
@@ -28,7 +31,7 @@ function tryParseChild(child: any, editor: LexicalEditor) {
     const newNode = $parseSerializedNodeImpl(child, editor);
     return { newNode, oldNode } as { newNode: LexicalNode; oldNode: LexicalNode | null };
   } catch (error) {
-    console.error('Error parsing child node:', error);
+    logger.error('❌ Error parsing child node:', error);
     return { newNode: null, oldNode: null } as any;
   }
 }
@@ -193,7 +196,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
               break;
             }
             default: {
-              console.warn(`Unknown action type: ${action}`);
+              logger.warn(`⚠️ Unknown action type: ${action}`);
             }
           }
         });
@@ -250,10 +253,10 @@ function handleModify(
             if (oldNode && newNode) {
               handleReplaceForApplyDelay(oldNode, newNode, modifyBlockNodes, diffNodeMap, editor);
             } else {
-              console.warn(`Node with key ${child.id} not found for diffing.`);
+              logger.warn(`⚠️ Node with key ${child.id} not found for diffing.`);
             }
           } catch (error) {
-            console.error('Error replacing node:', error);
+            logger.error('❌ Error replacing node:', error);
           }
         });
       });
@@ -288,7 +291,7 @@ function handleModify(
               }
             }
           } catch (error) {
-            console.error('Error replacing node:', error);
+            logger.error('❌ Error replacing node:', error);
           }
         });
       });
@@ -500,7 +503,7 @@ function handleInsert(
         }
       }
     } catch (error) {
-      console.error('Error inserting node:', error);
+      logger.error('❌ Error inserting node:', error);
     }
   });
 }

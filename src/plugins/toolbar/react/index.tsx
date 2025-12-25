@@ -11,6 +11,7 @@ import { FC, useCallback, useRef } from 'react';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
 import { ILinkService } from '@/plugins/link';
+import { createDebugLogger } from '@/utils/debug';
 
 import { HIDE_TOOLBAR_COMMAND, registerToolbarCommand } from '../command';
 import { getDOMRangeRect } from '../utils/getDOMRangeRect';
@@ -24,6 +25,7 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
   const [kernelEditor] = useLexicalComposerContext();
   const { cx, styles } = useStyles();
   const isMouseDownRef = useRef(false);
+  const logger = createDebugLogger('plugin', 'toolbar');
 
   const $updateTextFormatFloatingToolbar = useCallback(
     (editor: LexicalEditor) => {
@@ -49,7 +51,7 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
       ) {
         const rangeRect = getDOMRangeRect(nativeSelection, rootElement);
 
-        console.info('rangeRect', rangeRect);
+        logger.debug('🔍 rangeRect', rangeRect);
 
         setFloatingElemPosition(rangeRect, popupCharStylesEditorElem, anchorElemRef.current, false);
       } else {

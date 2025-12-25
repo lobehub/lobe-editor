@@ -12,6 +12,10 @@ import {
   SerializedElementNode,
 } from 'lexical';
 
+import { createDebugLogger } from '@/utils/debug';
+
+const logger = createDebugLogger('plugin', 'link-highlight');
+
 export type SerializedLinkHighlightNode = SerializedElementNode;
 
 export class LinkHighlightNode extends ElementNode {
@@ -28,7 +32,7 @@ export class LinkHighlightNode extends ElementNode {
   }
 
   createDOM(config: EditorConfig): HTMLElement {
-    console.info('config', config);
+    logger.debug('🔍 config', config);
     const element = document.createElement('a');
 
     // Set link attributes

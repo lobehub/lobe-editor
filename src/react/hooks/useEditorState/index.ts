@@ -8,6 +8,7 @@ import {
 import { $createQuoteNode, $isHeadingNode, $isQuoteNode } from '@lexical/rich-text';
 import { $setBlocksType } from '@lexical/selection';
 import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
+import { debounce } from 'es-toolkit';
 import {
   $createNodeSelection,
   $getSelection,
@@ -25,7 +26,6 @@ import {
   TextFormatType,
   UNDO_COMMAND,
 } from 'lexical';
-import { debounce } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { noop } from '@/editor-kernel';

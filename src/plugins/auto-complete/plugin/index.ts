@@ -15,6 +15,7 @@ import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import { createDebugLogger } from '@/utils/debug';
 
 import { PlaceholderBlockNode, PlaceholderNode } from '../node/placeholderNode';
 
@@ -40,6 +41,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 {
   static pluginName = 'AutoCompletePlugin';
 
+  private logger = createDebugLogger('plugin', 'auto-complete');
   private lastCursorPosition: { key: string; offset: number; type: string } | null = null;
   private cursorStableTimer: number | null = null;
   private abortController: AbortController | null = null;
@@ -66,7 +68,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     this.markdownService = this.kernel.requireService(IMarkdownShortCutService);
 
     if (!this.markdownService) {
-      console.error('MarkdownShortCutService is required for AutoCompletePlugin');
+      this.logger.error('❌ MarkdownShortCutService is required for AutoCompletePlugin');
       return;
     }
 
@@ -231,7 +233,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
               this.currentSuggestion = result;
               this.showPlaceholderNodes(editor, result);
 
-              console.log('Auto-complete triggered:', {
+              this.logger.debug('🔍 Auto-complete triggered:', {
                 afterText: textRet.textAfter,
                 input: textRet.textBefore,
                 position: currentPosition,
@@ -269,7 +271,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
       return ret;
     }
 
-    console.info('Paragraph Node Type:', paragraphNode, anchorNode);
+    this.logger.debug('🔍 Paragraph Node Type:', paragraphNode, anchorNode);
 
     let founded = false;
 
@@ -330,11 +332,11 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     editor.update(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-        console.warn('No valid selection for placeholder');
+        this.logger.warn('⚠️ No valid selection for placeholder');
         return;
       }
       if (!this.markdownService) {
-        console.warn('No valid markdown service for placeholder');
+        this.logger.warn('⚠️ No valid markdown service for placeholder');
         return;
       }
 

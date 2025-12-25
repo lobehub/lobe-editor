@@ -1,5 +1,5 @@
 // hooks/useContainerSize.ts
-import { debounce } from 'lodash-es';
+import { debounce } from 'es-toolkit';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseContainerSizeOptions {
