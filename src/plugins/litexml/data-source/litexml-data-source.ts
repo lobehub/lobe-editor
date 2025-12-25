@@ -175,6 +175,10 @@ export default class LitexmlDataSource extends DataSource {
 
         if (result !== false) {
           if (Array.isArray(result)) {
+            if (result.length > 0) {
+              const attrId = xmlElement.getAttribute('id');
+              result[0].id = attrId ? charToId(attrId) : undefined;
+            }
             INodeHelper.appendChild(parentNode, ...result);
           } else if (result) {
             const attrId = xmlElement.getAttribute('id');
