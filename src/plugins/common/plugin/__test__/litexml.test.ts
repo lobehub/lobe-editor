@@ -31,4 +31,48 @@ describe('Common Plugin Tests', () => {
       `<?xml version="1.0" encoding="UTF-8"?><root><p id="mczm"><span id="mijx">this is </span><span id="mo48" underline="true">underline</span><span id="mtoj"> and this is </span><span id="mz8u" underline="true">underline2</span></p></root>`,
     );
   });
+
+  it('should litexml support b u i', () => {
+    kernel.setDocument('litexml', '<?xml version="1.0" encoding="UTF-8"?><p><b>bold</b></p>');
+    let markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe('**bold**\n\n');
+
+    kernel.setDocument(
+      'litexml',
+      '<?xml version="1.0" encoding="UTF-8"?><p><strong>bold</strong></p>',
+    );
+    markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe('**bold**\n\n');
+
+    kernel.setDocument('litexml', '<?xml version="1.0" encoding="UTF-8"?><p><i>italic</i></p>');
+    markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe('_italic_\n\n');
+
+    kernel.setDocument(
+      'litexml',
+      '<?xml version="1.0" encoding="UTF-8"?><p><emphasis>italic</emphasis></p>',
+    );
+    markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe('_italic_\n\n');
+
+    kernel.setDocument('litexml', '<?xml version="1.0" encoding="UTF-8"?><p><u>underline</u></p>');
+    markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe('<ins>underline</ins>\n\n');
+
+    kernel.setDocument(
+      'litexml',
+      '<?xml version="1.0" encoding="UTF-8"?><p><ins>underline</ins></p>',
+    );
+    markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe('<ins>underline</ins>\n\n');
+  });
+
+  it('should litexml support span embed b u i', () => {
+    kernel.setDocument(
+      'litexml',
+      '<?xml version="1.0" encoding="UTF-8"?><p><span>this is <b>bold</b> text.</span></p>',
+    );
+    let markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe('this is **bold** text. \n\n');
+  });
 });

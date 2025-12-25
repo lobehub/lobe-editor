@@ -39,7 +39,7 @@ import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { CursorNode, registerCursorNode } from '../node/cursor';
-import { $isCursorInQuote, $isCursorInTable, createBlockNode } from '../utils';
+import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
 import { registerMDReader } from './mdReader';
 import { registerHeaderBackspace, registerLastElement, registerRichKeydown } from './register';
 
@@ -466,8 +466,28 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       return false;
     });
 
-    litexmlService.registerXMLReader('span', (xmlElement: Element) => {
-      const textContent = xmlElement.textContent || '';
+    litexmlService.registerXMLReader('b', sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['bold']));
+    litexmlService.registerXMLReader(
+      'strong',
+      sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['bold']),
+    );
+
+    litexmlService.registerXMLReader('i', sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['italic']));
+    litexmlService.registerXMLReader(
+      'emphasis',
+      sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['italic']),
+    );
+
+    litexmlService.registerXMLReader(
+      'u',
+      sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['underline']),
+    );
+    litexmlService.registerXMLReader(
+      'ins',
+      sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['underline']),
+    );
+
+    litexmlService.registerXMLReader('span', (xmlElement: Element, children: any[]) => {
       const bold = xmlElement.getAttribute('bold');
       const italic = xmlElement.getAttribute('italic');
       const underline = xmlElement.getAttribute('underline');
@@ -496,12 +516,13 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         format |= TEXT_TYPE_TO_FORMAT['superscript'];
       }
 
-      return INodeHelper.createTextNode(textContent, {
-        detail: 0,
-        format: format,
-        mode: 'normal',
-        style: '',
+      children.forEach((child) => {
+        if (INodeHelper.isTextNode(child)) {
+          child.format = (child.format || 0) | format;
+        }
       });
+
+      return children;
     });
 
     litexmlService.registerXMLWriter('quote', (node, ctx) => {

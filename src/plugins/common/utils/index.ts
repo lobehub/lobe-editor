@@ -10,7 +10,18 @@ import {
   $isTextNode,
 } from 'lexical';
 
+import { INodeHelper } from '@/editor-kernel/inode/helper';
 import type { ElementTransformer } from '@/plugins/markdown/service/transformers';
+
+export const sampleReader = (format: number, xmlElement: Element, children: any[]) => {
+  children.forEach((child) => {
+    if (INodeHelper.isTextNode(child)) {
+      child.format = (child.format || 0) | format;
+    }
+  });
+
+  return children;
+};
 
 export const createBlockNode = (
   createNode: (match: Array<string>, parentNode: ElementNode) => ElementNode,
