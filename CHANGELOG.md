@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.2.0](https://github.com/lobehub/lobe-editor/compare/v3.1.1...v3.2.0)
+<sup>Released on **2025-12-25**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add support for bold, italic, and underline in litexml plugin.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add support for bold, italic, and underline in litexml plugin, closes [#92](https://github.com/lobehub/lobe-editor/issues/92) ([f465b2f](https://github.com/lobehub/lobe-editor/commit/f465b2f))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.1.1](https://github.com/lobehub/lobe-editor/compare/v3.1.0...v3.1.1)
 <sup>Released on **2025-12-25**</sup>
 
