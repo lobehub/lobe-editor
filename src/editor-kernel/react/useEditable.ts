@@ -13,9 +13,14 @@ export const useEditable = () => {
     const updateEditable = (newEditable: boolean) => {
       setEditable(newEditable);
     };
+    const handleInitialized = () => {
+      setEditable(editor.isEditable());
+    };
     editor.on('editableChange', updateEditable);
+    editor.on('initialized', handleInitialized);
     return () => {
       editor.off('editableChange', updateEditable);
+      editor.off('initialized', handleInitialized);
     };
   }, [editor]);
 

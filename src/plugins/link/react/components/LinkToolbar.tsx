@@ -108,6 +108,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable }) => {
               const node = getSelectedNode(selection);
               const parent = node.getParent();
               const isLink = $isLinkNode(parent) || $isLinkNode(node);
+              if (isLink === state.current.isLink) return;
               state.current.isLink = isLink;
               if (isLink) {
                 const linkNode = $isLinkNode(parent) ? (parent as LinkNode) : (node as LinkNode);
