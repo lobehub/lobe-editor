@@ -30,7 +30,6 @@ export function $parseSerializedNodeImpl(
   if (keepId && serializedNode.id) {
     node.__key = serializedNode.id;
     state?._nodeMap.set(node.__key, node);
-    console.info('keepId', node.getType(), node.__key);
   }
   const children = serializedNode.children;
 
