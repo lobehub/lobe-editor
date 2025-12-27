@@ -1,5 +1,5 @@
-import { Collapse, CollapseProps, Highlighter } from '@lobehub/ui';
-import { type FC, type PropsWithChildren } from 'react';
+import { CodeEditor, Collapse, CollapseProps, Highlighter } from '@lobehub/ui';
+import { type FC, type PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
 
 import { IEditor } from '@/types';
 
@@ -9,6 +9,7 @@ interface ContainerProps extends Omit<CollapseProps, 'items'> {
   editor?: IEditor;
   json: string;
   markdown: string;
+  onJSONChange?: (json: any) => void;
   shouldShowXml?: boolean;
   xml?: string;
 }
@@ -22,7 +23,22 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({
   shouldShowXml = false,
   defaultActiveKey = ['editor', 'text', 'json'],
   editor,
+  onJSONChange,
 }) => {
+  const [value, setValue] = useState(json);
+  const jsonValueRef = useRef(json);
+
+  useEffect(() => {
+    if (json === jsonValueRef.current) return;
+    setValue(json);
+    jsonValueRef.current = json;
+  }, [json]);
+
+  const handleJSONChange = useCallback((value: string) => {
+    jsonValueRef.current = value;
+    setValue(value);
+  }, []);
+
   return (
     <Collapse
       collapsible={collapsible}
@@ -63,13 +79,22 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({
         },
         {
           children: (
-            <Highlighter
+            <CodeEditor
               language={'json'}
-              style={{ fontSize: 12, padding: 16 }}
+              onBlur={() => {
+                if (json !== jsonValueRef.current) {
+                  try {
+                    const json = JSON.parse(jsonValueRef.current || '');
+                    onJSONChange?.(json);
+                  } catch (error) {
+                    console.error('Invalid JSON:', error);
+                  }
+                }
+              }}
+              onValueChange={handleJSONChange}
+              value={value}
               variant={'borderless'}
-            >
-              {json}
-            </Highlighter>
+            />
           ),
           key: 'json',
           label: 'JSON Output',

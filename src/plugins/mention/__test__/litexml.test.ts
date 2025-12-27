@@ -52,7 +52,7 @@ describe('mention litexml', () => {
   it('reader should work', () => {
     editor.setDocument(
       'litexml',
-      '<?xml version="1.0" encoding="UTF-8"?><root><p id="1"><mention id="2" label="xxx"></mention></p></root>',
+      '<?xml version="1.0" encoding="UTF-8"?><root><p><mention label="xxx"></mention></p></root>',
     );
     const markdown = editor.getDocument('markdown') as unknown as string;
     expect(markdown).toBe('<mention>xxx</mention>\n\n');

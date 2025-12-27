@@ -1,3 +1,4 @@
+import type { EditorState } from 'lexical';
 import {
   $isElementNode,
   LexicalEditor,
@@ -6,7 +7,12 @@ import {
   SerializedLexicalNode,
 } from 'lexical';
 
-export function $parseSerializedNodeImpl(serializedNode: any, editor: LexicalEditor): LexicalNode {
+export function $parseSerializedNodeImpl(
+  serializedNode: any,
+  editor: LexicalEditor,
+  keepId = false,
+  state: EditorState | null = null,
+): LexicalNode {
   const type = serializedNode.type;
   const registeredNode = editor._nodes.get(type);
 
@@ -21,11 +27,15 @@ export function $parseSerializedNodeImpl(serializedNode: any, editor: LexicalEdi
   }
 
   const node = nodeClass.importJSON(serializedNode);
+  if (keepId && serializedNode.id) {
+    node.__key = serializedNode.id;
+    state?._nodeMap.set(node.__key, node);
+  }
   const children = serializedNode.children;
 
   if ($isElementNode(node) && Array.isArray(children)) {
     for (const serializedJSONChildNode of children) {
-      const childNode = $parseSerializedNodeImpl(serializedJSONChildNode, editor);
+      const childNode = $parseSerializedNodeImpl(serializedJSONChildNode, editor, keepId, state);
       node.append(childNode);
     }
   }

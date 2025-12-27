@@ -30,3 +30,6 @@ logs
 # misc
 # add other ignore file below
 .next
+
+# lexical overrides
+src/editor-kernel/lexical
