@@ -75,7 +75,7 @@ export default class LitexmlDataSource extends DataSource {
           root: INodeHelper.createRootNode(),
         },
         (state) => {
-          const root = $parseSerializedNodeImpl(inode.root, editor);
+          const root = $parseSerializedNodeImpl(inode.root, editor, true);
           state._nodeMap.set(root.getKey(), root);
         },
       );

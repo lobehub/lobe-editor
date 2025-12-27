@@ -1,6 +1,11 @@
 import { $isQuoteNode } from '@lexical/rich-text';
 import { $isTableCellNode, $isTableNode } from '@lexical/table';
-import type { ElementNode } from 'lexical';
+import type {
+  ElementNode,
+  LexicalNode,
+  SerializedElementNode,
+  SerializedLexicalNode,
+} from 'lexical';
 import {
   $getRoot,
   $isDecoratorNode,
@@ -180,4 +185,38 @@ export function $isCursorInQuote(selection: any): boolean {
   }
 
   return false;
+}
+
+export function exportNodeToJSON<SerializedNode extends SerializedLexicalNode>(
+  node: LexicalNode,
+): SerializedNode {
+  const serializedNode = node.exportJSON();
+  const nodeClass = node.constructor;
+  // @ts-expect-error not error
+  serializedNode.id = node.getKey();
+
+  if (serializedNode.type !== nodeClass.getType()) {
+    throw new Error(
+      `LexicalNode: Node ${nodeClass.name} does not match the serialized type. Check if .exportJSON() is implemented and it is returning the correct type.`,
+    );
+  }
+
+  if ($isElementNode(node)) {
+    const serializedChildren = (serializedNode as SerializedElementNode).children;
+    if (!Array.isArray(serializedChildren)) {
+      throw new Error(
+        `LexicalNode: Node ${nodeClass.name} is an element but .exportJSON() does not have a children array.`,
+      );
+    }
+
+    const children = node.getChildren();
+
+    for (const child of children) {
+      const serializedChildNode = exportNodeToJSON(child);
+      serializedChildren.push(serializedChildNode);
+    }
+  }
+
+  // @ts-expect-error not error
+  return serializedNode;
 }

@@ -1,3 +1,4 @@
+/* eslint-disable import/no-duplicates */
 /* eslint-disable unicorn/no-for-loop */
 import { $isTableSelection } from '@lexical/table';
 import type {
@@ -15,11 +16,15 @@ import {
   $isTextNode,
   IS_CODE,
 } from 'lexical';
+import { $getRoot } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
+import { INodeHelper } from '@/editor-kernel/inode/helper';
+import { $parseSerializedNodeImpl } from '@/plugins/litexml/utils';
 
 import { cursorNodeSerialized } from '../node/cursor';
+import { exportNodeToJSON } from '../utils';
 
 export default class JSONDataSource extends DataSource {
   read(editor: LexicalEditor, data: any) {
@@ -59,7 +64,16 @@ export default class JSONDataSource extends DataSource {
       }
     };
     process(dataObj.root);
-    editor.setEditorState(editor.parseEditorState(dataObj));
+    const state = editor.parseEditorState(
+      {
+        root: INodeHelper.createRootNode(),
+      },
+      (state) => {
+        const root = $parseSerializedNodeImpl(dataObj.root, editor, true);
+        state._nodeMap.set(root.getKey(), root);
+      },
+    );
+    editor.setEditorState(state);
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {
@@ -179,9 +193,9 @@ export default class JSONDataSource extends DataSource {
         } else if ($isTableSelection(selection)) {
           // todo
         }
-        return selection.getNodes().map((node) => node.exportJSON());
+        return selection.getNodes().map((node) => exportNodeToJSON(node));
       });
     }
-    return editor.getEditorState().toJSON();
+    return editor.read(() => exportNodeToJSON($getRoot()));
   }
 }
