@@ -1,30 +1,31 @@
-import { createStyles } from 'antd-style';
-import { rgba } from 'polished';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css, token, prefixCls }, size: number) => ({
+const prefixCls = 'ant';
+
+export const styles = createStaticStyles(({ css, cssVar }) => ({
   button: css`
     &.${prefixCls}-btn {
       flex: none;
-      width: ${size}px !important;
-      height: ${size}px;
+      width: var(--send-button-size, 32px) !important;
+      height: var(--send-button-size, 32px);
       padding-inline: 0 !important;
     }
   `,
   disabled: css`
     &.${prefixCls}-btn {
       cursor: default;
-      border-color: ${token.colorBorderSecondary};
+      border-color: ${cssVar.colorBorderSecondary};
       background: transparent;
     }
 
     .${prefixCls}-btn-compact-first-item {
       cursor: default;
-      border-color: ${token.colorBorderSecondary};
+      border-color: ${cssVar.colorBorderSecondary};
       background: transparent;
     }
     .${prefixCls}-dropdown-trigger {
       cursor: default;
-      border-color: ${token.colorBorderSecondary};
+      border-color: ${cssVar.colorBorderSecondary};
       border-inline-start-color: transparent;
       background: transparent;
     }
@@ -33,33 +34,33 @@ export const useStyles = createStyles(({ css, token, prefixCls }, size: number) 
     flex: none;
     width: fit-content;
     .${prefixCls}-btn {
-      width: ${size * 1.2}px;
-      height: ${size}px;
+      width: calc(var(--send-button-size, 32px) * 1.2);
+      height: var(--send-button-size, 32px);
     }
     .${prefixCls}-dropdown-trigger {
-      width: ${size * 0.8}px;
+      width: calc(var(--send-button-size, 32px) * 0.8);
       &.${prefixCls}-btn-primary {
         &::before {
-          background-color: ${rgba(token.colorBgLayout, 0.1)} !important;
+          background-color: color-mix(in srgb, ${cssVar.colorBgLayout} 10%, transparent) !important;
         }
       }
     }
   `,
   dropdownButtonRound: css`
     .${prefixCls}-btn-compact-first-item {
-      border-start-start-radius: ${size / 2}px;
-      border-end-start-radius: ${size / 2}px;
+      border-start-start-radius: calc(var(--send-button-size, 32px) / 2);
+      border-end-start-radius: calc(var(--send-button-size, 32px) / 2);
     }
     .${prefixCls}-dropdown-trigger {
-      width: ${size}px;
-      border-start-end-radius: ${size / 2}px;
-      border-end-end-radius: ${size / 2}px;
+      width: var(--send-button-size, 32px);
+      border-start-end-radius: calc(var(--send-button-size, 32px) / 2);
+      border-end-end-radius: calc(var(--send-button-size, 32px) / 2);
     }
   `,
   loadingButton: css`
     &.${prefixCls}-btn {
       flex: none;
-      height: ${size}px;
+      height: var(--send-button-size, 32px);
       padding-inline: 0 !important;
     }
   `,

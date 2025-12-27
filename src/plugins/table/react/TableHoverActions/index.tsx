@@ -13,6 +13,7 @@ import {
 } from '@lexical/table';
 import { $findMatchingParent, mergeRegister } from '@lexical/utils';
 import { ActionIcon } from '@lobehub/ui';
+import { cx } from 'antd-style';
 import { $getNearestNodeFromDOMNode, LexicalEditor, NodeKey } from 'lexical';
 import { PlusIcon } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
@@ -20,7 +21,7 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useLexicalComposerContext } from '@/editor-kernel/react';
 import { useAnchor } from '@/editor-kernel/react/useAnchor';
 
-import { useStyles } from './style';
+import { styles } from './style';
 import { getMouseInfo, useDebounce } from './utils';
 
 const TableHoverActions = memo<{
@@ -34,7 +35,6 @@ const TableHoverActions = memo<{
   const [position, setPosition] = useState({});
   const tableSetRef = useRef<Set<NodeKey>>(new Set());
   const tableCellDOMNodeRef = useRef<HTMLElement | null>(null);
-  const { cx, styles } = useStyles();
 
   const debouncedOnMouseMove = useDebounce(
     (event: MouseEvent) => {

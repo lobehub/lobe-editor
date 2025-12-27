@@ -1,5 +1,6 @@
 import { mergeRegister } from '@lexical/utils';
 import { Block } from '@lobehub/ui';
+import { cx, useThemeMode } from 'antd-style';
 import {
   $getSelection,
   COMMAND_PRIORITY_LOW,
@@ -16,14 +17,14 @@ import { createDebugLogger } from '@/utils/debug';
 import { HIDE_TOOLBAR_COMMAND, registerToolbarCommand } from '../command';
 import { getDOMRangeRect } from '../utils/getDOMRangeRect';
 import { setFloatingElemPosition } from '../utils/setFloatingElemPosition';
-import { useStyles } from './style';
+import { styles } from './style';
 import { ReactToolbarPluginProps } from './type';
 
 export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, children }) => {
   const popupCharStylesEditorRef = useRef<HTMLDivElement | null>(null);
   const anchorElemRef = useRef<HTMLDivElement | null>(null);
   const [kernelEditor] = useLexicalComposerContext();
-  const { cx, styles } = useStyles();
+  const { isDarkMode } = useThemeMode();
   const isMouseDownRef = useRef(false);
   const logger = createDebugLogger('plugin', 'toolbar');
 
@@ -163,9 +164,9 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
   });
 
   return (
-    <div ref={anchorElemRef} style={{ position: 'relative' }}>
+    <div className={styles.anchor} ref={anchorElemRef}>
       <Block
-        className={cx(styles, className)}
+        className={cx(isDarkMode ? styles.toolbarDark : styles.toolbarLight, className)}
         padding={4}
         ref={popupCharStylesEditorRef}
         variant={'outlined'}

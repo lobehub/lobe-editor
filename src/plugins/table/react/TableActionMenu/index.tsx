@@ -32,7 +32,7 @@ import { useAnchor } from '@/editor-kernel/react/useAnchor';
 import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
 import ActionMenu from './ActionMenu';
-import { useStyles } from './style';
+import { styles } from './style';
 
 const TableActionMenu = memo<{
   cellMerge?: boolean;
@@ -198,19 +198,15 @@ const TableActionMenu = memo<{
     prevTableCellDOM.current = tableCellNode;
   }, [prevTableCellDOM, tableCellNode]);
 
-  const { styles } = useStyles();
-
   return (
-    <div className={styles} ref={menuButtonRef}>
+    <div className={styles.root} ref={menuButtonRef}>
       {tableCellNode && (
         <ActionMenu cellMerge={cellMerge} editor={editor} tableCellNode={tableCellNode}>
           <ActionIcon
+            className={styles.actionIcon}
             glass
             icon={ChevronDown}
             size={12}
-            style={{
-              transform: 'postionX(2px)',
-            }}
             variant={'filled'}
           />
         </ActionMenu>

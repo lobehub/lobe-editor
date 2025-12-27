@@ -7,7 +7,7 @@ import {
   COMMAND_PRIORITY_NORMAL,
   LexicalEditor,
 } from 'lexical';
-import { memo, useEffect, useRef, useState } from 'react';
+import { type FC, useEffect, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
@@ -24,7 +24,7 @@ export interface MathInlineProps {
   node: MathInlineNode | MathBlockNode;
 }
 
-const MathInline = memo<MathInlineProps>(({ editor, node, className }) => {
+const MathInline: FC<MathInlineProps> = ({ editor, node, className }) => {
   const ref = useRef<HTMLSpanElement>(null);
   const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -124,6 +124,6 @@ const MathInline = memo<MathInlineProps>(({ editor, node, className }) => {
       {node.code ? node.code : <Placeholder mathBlock={isMathBlock} />}
     </span>
   );
-});
+};
 
 export default MathInline;

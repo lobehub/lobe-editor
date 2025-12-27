@@ -11,7 +11,7 @@ import { LinkPlugin } from '../plugin';
 import { ILinkService, LinkService } from '../service/i-link-service';
 import LinkEdit from './components/LinkEdit';
 import LinkToolbar from './components/LinkToolbar';
-import { useStyles } from './style';
+import { styles } from './style';
 import { ReactLinkPluginProps } from './type';
 
 export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
@@ -22,7 +22,6 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
 }) => {
   const [enableToolbar, setEnableToolbar] = useState(false);
   const [editor] = useLexicalComposerContext();
-  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);

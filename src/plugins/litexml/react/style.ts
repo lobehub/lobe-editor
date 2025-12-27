@@ -1,7 +1,7 @@
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(
-  ({ css, token }) => css`
+export const styles = createStaticStyles(
+  ({ css, cssVar }) => css`
     position: relative;
 
     .toolbar {
@@ -23,17 +23,17 @@ export const useStyles = createStyles(
       position: relative;
       margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
       padding-inline-end: 4px;
-      border-inline-end: 3px solid ${token.colorSuccess};
+      border-inline-end: 3px solid ${cssVar.colorSuccess};
     }
 
     &[data-diff-type='remove'] .content {
       position: relative;
       margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
       padding-inline-end: 4px;
-      border-inline-end: 3px solid ${token.colorError};
+      border-inline-end: 3px solid ${cssVar.colorError};
 
       > *:first-child * {
-        color: ${token.colorTextQuaternary} !important;
+        color: ${cssVar.colorTextQuaternary} !important;
         text-decoration: line-through !important;
       }
     }
@@ -50,7 +50,7 @@ export const useStyles = createStyles(
       position: relative;
       margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
       padding-inline-end: 4px;
-      border-inline-end: 3px solid ${token.colorWarning};
+      border-inline-end: 3px solid ${cssVar.colorWarning};
 
       /* first child: original (deleted) */
 
@@ -58,7 +58,7 @@ export const useStyles = createStyles(
 
       /* visually indicate deletion with strike-through for text nodes */
       > *:first-child * {
-        color: ${token.colorTextQuaternary} !important;
+        color: ${cssVar.colorTextQuaternary} !important;
         text-decoration: line-through !important;
       }
 
@@ -73,7 +73,7 @@ export const useStyles = createStyles(
       position: relative;
       margin-block-start: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
       padding-inline-end: 4px;
-      border-inline-end: 3px solid ${token.colorWarning};
+      border-inline-end: 3px solid ${cssVar.colorWarning};
 
       /* first child: original (deleted) */
 
@@ -81,7 +81,7 @@ export const useStyles = createStyles(
 
       /* visually indicate deletion with strike-through for text nodes */
       > *:first-child * {
-        color: ${token.colorTextQuaternary} !important;
+        color: ${cssVar.colorTextQuaternary} !important;
         text-decoration: line-through !important;
       }
 

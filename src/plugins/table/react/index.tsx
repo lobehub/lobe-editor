@@ -1,6 +1,7 @@
 'use client';
 
 import { $findTableNode, $getElementForTableNode, $isTableSelection } from '@lexical/table';
+import { cx } from 'antd-style';
 import EventEmitter from 'eventemitter3';
 import { $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
 import { type FC, useLayoutEffect, useMemo, useState } from 'react';
@@ -14,11 +15,10 @@ import { $updateDOMForSelection } from '../utils';
 import TableActionMenuPlugin from './TableActionMenu';
 import TableHoverActionsPlugin from './TableHoverActions';
 import TableCellResizePlugin from './TableResize';
-import { useStyles } from './style';
+import { styles } from './style';
 import { ReactTablePluginProps } from './type';
 
 export const ReactTablePlugin: FC<ReactTablePluginProps> = ({ className, locale }) => {
-  const { cx, styles } = useStyles();
   const [editor] = useLexicalComposerContext();
   const [lexicalEditor, setLexicalEditor] = useState<LexicalEditor | null>(null);
   const eventEmitter = useMemo(() => {

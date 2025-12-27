@@ -1,6 +1,6 @@
-import { createStyles } from 'antd-style';
+import { createStaticStyles , cx } from 'antd-style';
 
-export const useStyles = createStyles(({ cx, css, token }) => {
+export const styles = createStaticStyles(({ css, cssVar }) => {
   const position = css`
     position: absolute;
     z-index: 999;
@@ -21,19 +21,19 @@ export const useStyles = createStyles(({ cx, css, token }) => {
       css`
         min-width: 320px;
         max-width: 100%;
-        background: ${token.colorBgElevated};
+        background: ${cssVar.colorBgElevated};
       `,
     ),
 
     linkEditFooter: css`
-      border-block-start: 1px solid ${token.colorBorderSecondary};
-      background: ${token.colorFillQuaternary};
+      border-block-start: 1px solid ${cssVar.colorBorderSecondary};
+      background: ${cssVar.colorFillQuaternary};
     `,
 
     linkToolbar: cx(
       position,
       css`
-        background: ${token.colorBgElevated};
+        background: ${cssVar.colorBgElevated};
       `,
     ),
   };

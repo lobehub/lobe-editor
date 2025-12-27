@@ -1,7 +1,7 @@
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
 export const BUTTON_WIDTH_PX = 20;
-export const useStyles = createStyles(({ css }) => {
+export const styles = createStaticStyles(({ css }) => {
   return {
     tableAddColumns: css`
       position: absolute;

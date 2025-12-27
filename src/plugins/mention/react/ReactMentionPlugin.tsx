@@ -7,12 +7,11 @@ import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { MentionPlugin } from '../plugin';
 import Mention from './components/Mention';
-import { useStyles } from './style';
+import { styles } from './style';
 import type { ReactMentionPluginProps } from './type';
 
 const ReactMentionPlugin: FC<ReactMentionPluginProps> = ({ className, theme, markdownWriter }) => {
   const [editor] = useLexicalComposerContext();
-  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);

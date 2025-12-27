@@ -1,13 +1,14 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
+import { cx } from 'antd-style';
 import { CLICK_COMMAND, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
-import { memo, useEffect } from 'react';
+import { type FC, useEffect } from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 
 import { HorizontalRuleNode } from '../../node/HorizontalRuleNode';
-import { useStyles } from '../style';
+import { styles } from '../style';
 
 interface HRNodeProps {
   className?: string;
@@ -15,9 +16,8 @@ interface HRNodeProps {
   node: HorizontalRuleNode;
 }
 
-const HRNode = memo<HRNodeProps>(({ node, className, editor }) => {
+const HRNode: FC<HRNodeProps> = ({ node, className, editor }) => {
   const [isSelected, setSelected, clearSelection] = useLexicalNodeSelection(node.getKey());
-  const { cx, styles } = useStyles();
 
   useEffect(() => {
     return mergeRegister(
@@ -46,7 +46,7 @@ const HRNode = memo<HRNodeProps>(({ node, className, editor }) => {
       <hr />
     </div>
   );
-});
+};
 
 HRNode.displayName = 'HRNode';
 

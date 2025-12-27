@@ -1,7 +1,7 @@
 'use client';
 
 import { ActionIcon, Dropdown } from '@lobehub/ui';
-import { memo } from 'react';
+import { type FC } from 'react';
 
 import type { FloatActionsItem, FloatActionsProps } from '../type';
 import ActionRender from './ActionRender';
@@ -16,60 +16,64 @@ interface FloatActionsItemProps {
   setGroupCollapsed?: (collapse: boolean) => void;
 }
 
-// Keep memo: Rendered as list item with conditional logic for collapse/dropdown types
-const ActionItem = memo<FloatActionsItemProps>(
-  ({ item, disabled, onActionClick, groupCollapsed, gap, setGroupCollapsed }) => {
-    if (item.type === 'collapse') {
-      return (
-        <CollapsedActions
-          gap={gap}
-          groupCollapse={groupCollapsed}
-          mode={'default'}
-          onGroupCollapseChange={setGroupCollapsed}
-        >
-          {item.children.map((child, childIndex) => (
-            <ActionRender
-              disabled={disabled}
-              item={child}
-              key={(child as any)?.key || `action-${childIndex}`}
-              onActionClick={onActionClick}
-            />
-          ))}
-        </CollapsedActions>
-      );
-    }
-
-    if (item.type === 'dropdown') {
-      return (
-        <Dropdown
-          key={item.key}
-          menu={{
-            items: item.children,
-          }}
-        >
-          <ActionIcon
-            active={item.active}
-            danger={item.danger}
-            disabled={disabled || item.loading || item?.disabled}
-            icon={item.icon}
-            loading={item.loading}
-            size={{
-              blockSize: 36,
-              size: 20,
-            }}
-            title={item.label}
-            tooltipProps={{
-              placement: 'top',
-              ...item.tooltipProps,
-            }}
+const ActionItem: FC<FloatActionsItemProps> = ({
+  item,
+  disabled,
+  onActionClick,
+  groupCollapsed,
+  gap,
+  setGroupCollapsed,
+}) => {
+  if (item.type === 'collapse') {
+    return (
+      <CollapsedActions
+        gap={gap}
+        groupCollapse={groupCollapsed}
+        mode={'default'}
+        onGroupCollapseChange={setGroupCollapsed}
+      >
+        {item.children.map((child, childIndex) => (
+          <ActionRender
+            disabled={disabled}
+            item={child}
+            key={(child as any)?.key || `action-${childIndex}`}
+            onActionClick={onActionClick}
           />
-        </Dropdown>
-      );
-    }
+        ))}
+      </CollapsedActions>
+    );
+  }
 
-    return <ActionRender disabled={disabled} item={item} onActionClick={onActionClick} />;
-  },
-);
+  if (item.type === 'dropdown') {
+    return (
+      <Dropdown
+        key={item.key}
+        menu={{
+          items: item.children,
+        }}
+      >
+        <ActionIcon
+          active={item.active}
+          danger={item.danger}
+          disabled={disabled || item.loading || item?.disabled}
+          icon={item.icon}
+          loading={item.loading}
+          size={{
+            blockSize: 36,
+            size: 20,
+          }}
+          title={item.label}
+          tooltipProps={{
+            placement: 'top',
+            ...item.tooltipProps,
+          }}
+        />
+      </Dropdown>
+    );
+  }
+
+  return <ActionRender disabled={disabled} item={item} onActionClick={onActionClick} />;
+};
 
 ActionItem.displayName = 'FloatActionsItem';
 

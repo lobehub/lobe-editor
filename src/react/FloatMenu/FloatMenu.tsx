@@ -1,10 +1,11 @@
 'use client';
 
-import { Block , Flexbox } from '@lobehub/ui';
+import { Block, Flexbox } from '@lobehub/ui';
+import { cx } from 'antd-style';
 import { type FC } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useStyles } from './style';
+import { styles } from './style';
 import type { FloatMenuProps } from './type';
 
 const FloatMenu: FC<FloatMenuProps> = ({
@@ -17,7 +18,6 @@ const FloatMenu: FC<FloatMenuProps> = ({
   styles: customStyles,
   classNames,
 }) => {
-  const { cx, styles } = useStyles();
   const parent = getPopupContainer();
 
   if (!parent) return;

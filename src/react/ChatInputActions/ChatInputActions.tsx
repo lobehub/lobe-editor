@@ -1,12 +1,13 @@
 'use client';
 
-import { Flexbox } from '@lobehub/ui';
+import { Flexbox, TooltipGroup } from '@lobehub/ui';
+import { cx } from 'antd-style';
 import { memo, useMemo } from 'react';
 import useMergeState from 'use-merge-value';
 
 import ActionItem from './components/ActionItem';
 import { useDisplayActionCount } from './components/useDisplayActionCount';
-import { useStyles } from './style';
+import { styles } from './style';
 import type { ChatInputActionsProps, CollapseItem } from './type';
 
 // Keep memo: Complex calcItem computation and list rendering with state management
@@ -24,7 +25,6 @@ const ChatInputActions = memo<ChatInputActionsProps>(
     groupCollapse,
     ...rest
   }) => {
-    const { cx, styles } = useStyles();
     const [groupCollapsed, setGroupCollapsed] = useMergeState(defaultGroupCollapse, {
       defaultValue: defaultGroupCollapse,
       onChange: onGroupCollapseChange,
@@ -64,28 +64,30 @@ const ChatInputActions = memo<ChatInputActionsProps>(
     }, [collapsed, items, maxCount]);
 
     return (
-      <Flexbox
-        align={'center'}
-        className={cx(styles.container, className)}
-        flex={1}
-        gap={gap}
-        horizontal
-        ref={ref}
-        {...rest}
-      >
-        {calcItem.map((item: any, index) => (
-          <ActionItem
-            collapsed={collapsed}
-            disabled={disabled}
-            gap={gap}
-            groupCollapsed={groupCollapsed}
-            item={item}
-            key={item.key || index}
-            onActionClick={onActionClick}
-            setGroupCollapsed={setGroupCollapsed}
-          />
-        ))}
-      </Flexbox>
+      <TooltipGroup>
+        <Flexbox
+          align={'center'}
+          className={cx(styles.container, className)}
+          flex={1}
+          gap={gap}
+          horizontal
+          ref={ref}
+          {...rest}
+        >
+          {calcItem.map((item: any, index) => (
+            <ActionItem
+              collapsed={collapsed}
+              disabled={disabled}
+              gap={gap}
+              groupCollapsed={groupCollapsed}
+              item={item}
+              key={item.key || index}
+              onActionClick={onActionClick}
+              setGroupCollapsed={setGroupCollapsed}
+            />
+          ))}
+        </Flexbox>
+      </TooltipGroup>
     );
   },
 );

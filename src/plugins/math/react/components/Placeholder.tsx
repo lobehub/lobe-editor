@@ -1,7 +1,10 @@
-import { Text , Center } from '@lobehub/ui';
+import { Center, Text } from '@lobehub/ui';
+import { cx } from 'antd-style';
 import { type FC } from 'react';
 
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
+
+import { styles } from '../style';
 
 interface PlaceholderProps {
   mathBlock?: boolean;
@@ -13,12 +16,8 @@ const Placeholder: FC<PlaceholderProps> = ({ mathBlock }) => {
   const node = (
     <Text
       as={'span'}
-      className={'katex'}
+      className={cx('katex', styles.mathPlaceholder)}
       fontSize={mathBlock ? '1.2em' : '1em'}
-      style={{
-        fontStyle: 'italic',
-        paddingInline: '0.2em',
-      }}
       type={'secondary'}
     >
       {t('math.placeholder')}

@@ -1,3 +1,4 @@
+import { cx } from 'antd-style';
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 
@@ -9,7 +10,7 @@ import { ImageNode } from '../../node/image-node';
 import BrokenImage from './BrokenImage';
 import LazyImage from './LazyImage';
 import { ResizeHandle } from './ResizeHandle';
-import { useStyles } from './style';
+import { styles } from './style';
 
 export interface ImageProps {
   className?: string;
@@ -20,7 +21,6 @@ export interface ImageProps {
 
 // Keep memo: Complex resize logic, state management, and multiple event handlers
 const Image = memo<ImageProps>(({ node, className, showScaleInfo = false }) => {
-  const { styles, cx } = useStyles();
   const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
   const [isHovered, setIsHovered] = useState(false);
   const [scale, setScale] = useState(1);

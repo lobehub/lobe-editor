@@ -1,5 +1,6 @@
 'use client';
 
+import { cx } from 'antd-style';
 import { COMMAND_PRIORITY_EDITOR, KEY_DOWN_COMMAND } from 'lexical';
 import {
   Children,
@@ -12,6 +13,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useMemo } from 'react';
 
 import { LexicalErrorBoundary } from '@/editor-kernel/react/LexicalErrorBoundary';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
@@ -20,7 +22,7 @@ import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { CommonPlugin } from '../plugin';
 import Placeholder from './Placeholder';
-import { useStyles, useThemeStyles } from './style';
+import { styles, themeStyles } from './style';
 import type { ReactPlainTextProps } from './type';
 
 // Keep memo: Core editor rendering layer with complex event handling and decorator management
@@ -57,8 +59,48 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const [editor] = useLexicalComposerContext();
     const decorators = useDecorators(editor, LexicalErrorBoundary);
-    const { styles: themeStyles } = useThemeStyles(markdownOption);
-    const { cx, styles } = useStyles({ fontSize, headerMultiple, lineHeight, marginMultiple });
+
+    const cssVariables = useMemo<Record<string, string>>(
+      () => ({
+        '--common-font-size': `${fontSize}px`,
+        '--common-header-multiple': String(headerMultiple),
+        '--common-line-height': String(lineHeight),
+        '--common-margin-multiple': String(marginMultiple),
+      }),
+      [fontSize, headerMultiple, marginMultiple, lineHeight],
+    );
+
+    const computedThemeStyles = useMemo(() => {
+      const bold =
+        markdownOption === true ||
+        (typeof markdownOption === 'object' && markdownOption.bold === true);
+      const italic =
+        markdownOption === true ||
+        (typeof markdownOption === 'object' && markdownOption.italic === true);
+      const strikethrough =
+        markdownOption === true ||
+        (typeof markdownOption === 'object' && markdownOption.strikethrough === true);
+      const underline =
+        markdownOption === true ||
+        (typeof markdownOption === 'object' && markdownOption.underline === true);
+      const underlineStrikethrough =
+        markdownOption === true ||
+        (typeof markdownOption === 'object' && markdownOption.underlineStrikethrough === true);
+
+      return {
+        quote: themeStyles.quote,
+        textBold: bold ? themeStyles.textBold_true : themeStyles.textBold_false,
+        textCode: themeStyles.textCode,
+        textItalic: italic ? themeStyles.textItalic_true : themeStyles.textItalic_false,
+        textStrikethrough: strikethrough
+          ? themeStyles.textStrikethrough_true
+          : themeStyles.textStrikethrough_false,
+        textUnderline: underline ? themeStyles.textUnderline_true : themeStyles.textUnderline_false,
+        textUnderlineStrikethrough: underlineStrikethrough
+          ? themeStyles.textUnderlineStrikethrough_true
+          : themeStyles.textUnderlineStrikethrough_false,
+      };
+    }, [markdownOption]);
     const [isInitialized, setIsInitialized] = useState(false);
 
     const {
@@ -72,9 +114,9 @@ const ReactPlainText = memo<ReactPlainTextProps>(
       editor.registerPlugin(CommonPlugin, {
         enableHotkey,
         markdownOption,
-        theme: restTheme ? { ...themeStyles, ...restTheme } : themeStyles,
+        theme: restTheme ? { ...computedThemeStyles, ...restTheme } : computedThemeStyles,
       });
-    }, [editor, enableHotkey, enablePasteMarkdown, markdownOption, restTheme, themeStyles]);
+    }, [editor, enableHotkey, enablePasteMarkdown, markdownOption, restTheme, computedThemeStyles]);
 
     useEffect(() => {
       const container = editorContainerRef.current;
@@ -178,9 +220,13 @@ const ReactPlainText = memo<ReactPlainTextProps>(
           typeof markdownOption === 'object' && markdownOption.quote === true && styles.blockquote,
           className,
         )}
-        style={style}
+        style={{
+          ...cssVariables,
+          ...style,
+        }}
       >
         <div
+          className={styles.editorContent}
           contentEditable={editable ?? true}
           onBlur={handleBlur}
           onCompositionEnd={handleCompositionEnd}
@@ -188,7 +234,6 @@ const ReactPlainText = memo<ReactPlainTextProps>(
           onContextMenu={handleContextMenu}
           onFocus={handleFocus}
           ref={editorContainerRef}
-          style={{ flex: 1, minHeight: 0, outline: 'none' }}
         />
         <Placeholder lineEmptyPlaceholder={lineEmptyPlaceholder} style={style}>
           {placeholder}

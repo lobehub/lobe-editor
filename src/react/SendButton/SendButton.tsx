@@ -2,129 +2,146 @@
 
 import { Button, Icon } from '@lobehub/ui';
 import { Dropdown, Space } from 'antd';
+import { cx } from 'antd-style';
 import { ChevronDownIcon } from 'lucide-react';
-import { memo } from 'react';
+import { type FC, useMemo } from 'react';
 
 import SendIcon from './components/SendIcon';
 import StopIcon from './components/StopIcon';
-import { useStyles } from './style';
+import { styles } from './style';
 import type { SendButtonProps } from './type';
 
-// Keep memo: Multiple state transitions and conditional rendering logic
-const SendButton = memo<SendButtonProps>(
-  ({
-    type = 'primary',
-    menu,
-    className,
-    style,
-    loading,
-    generating,
-    size = 32,
-    shape,
-    onSend,
-    onStop,
-    disabled,
-    onClick,
-    ...rest
-  }) => {
-    const { cx, styles } = useStyles(size);
+const SendButton: FC<SendButtonProps> = ({
+  type = 'primary',
+  menu,
+  className,
+  style,
+  loading,
+  generating,
+  size = 32,
+  shape,
+  onSend,
+  onStop,
+  disabled,
+  onClick,
+  ...rest
+}) => {
+  const cssVariables = useMemo<Record<string, string>>(
+    () => ({
+      '--send-button-size': `${size}px`,
+    }),
+    [size],
+  );
 
-    if (generating)
-      return (
-        <Button
-          className={cx(styles.loadingButton, className)}
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (onStop) onStop(e);
-            if (onClick) onClick(e);
-          }}
-          shape={shape}
-          style={{
-            ...style,
-            width: menu ? size * 2 : size,
-          }}
-          {...rest}
-        >
-          <StopIcon size={size * 0.75} />
-        </Button>
-      );
-
-    if (loading)
-      return (
-        <Button
-          className={cx(styles.loadingButton, className)}
-          disabled
-          loading={loading}
-          shape={shape}
-          style={{
-            ...style,
-            width: menu ? size * 2 : size,
-          }}
-          type={type}
-          {...rest}
-        />
-      );
-
-    if (!menu)
-      return (
-        <Button
-          className={cx(styles.button, disabled && styles.disabled, className)}
-          disabled={disabled}
-          icon={<SendIcon />}
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (onSend) onSend(e);
-            if (onClick) onClick(e);
-          }}
-          shape={shape}
-          style={style}
-          type={type}
-          {...rest}
-        />
-      );
-
+  if (generating)
     return (
-      <Space.Compact
-        className={cx(
-          styles.dropdownButton,
-          disabled && styles.disabled,
-          shape === 'round' && styles.dropdownButtonRound,
-          className,
-        )}
-        style={style}
+      <Button
+        className={cx(styles.loadingButton, className)}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (onStop) onStop(e);
+          if (onClick) onClick(e);
+        }}
+        shape={shape}
+        style={{
+          ...cssVariables,
+          ...style,
+          width: menu ? size * 2 : size,
+        }}
         {...rest}
       >
+        <StopIcon size={size * 0.75} />
+      </Button>
+    );
+
+  if (loading)
+    return (
+      <Button
+        className={cx(styles.loadingButton, className)}
+        disabled
+        loading={loading}
+        shape={shape}
+        style={{
+          ...cssVariables,
+          ...style,
+          width: menu ? size * 2 : size,
+        }}
+        type={type}
+        {...rest}
+      />
+    );
+
+  if (!menu)
+    return (
+      <Button
+        className={cx(styles.button, disabled && styles.disabled, className)}
+        disabled={disabled}
+        icon={<SendIcon />}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (onSend) onSend(e);
+          if (onClick) onClick(e);
+        }}
+        shape={shape}
+        style={{
+          ...cssVariables,
+          ...style,
+        }}
+        type={type}
+        {...rest}
+      />
+    );
+
+  return (
+    <Space.Compact
+      className={cx(
+        styles.dropdownButton,
+        disabled && styles.disabled,
+        shape === 'round' && styles.dropdownButtonRound,
+        className,
+      )}
+      style={{
+        ...cssVariables,
+        ...style,
+      }}
+      {...rest}
+    >
+      <Button
+        className={cx(styles.button, disabled && styles.disabled, className)}
+        disabled={disabled}
+        icon={<SendIcon />}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (onSend) onSend(e);
+          if (onClick) onClick(e);
+        }}
+        shape={shape}
+        style={{
+          ...cssVariables,
+          ...style,
+        }}
+        type={type}
+        {...rest}
+      />
+      <Dropdown menu={menu} placement={'topRight'} {...rest}>
         <Button
           className={cx(styles.button, disabled && styles.disabled, className)}
           disabled={disabled}
-          icon={<SendIcon />}
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (onSend) onSend(e);
-            if (onClick) onClick(e);
-          }}
+          icon={<Icon icon={ChevronDownIcon} />}
           shape={shape}
-          style={style}
+          style={{
+            ...cssVariables,
+            cursor: 'pointer',
+          }}
           type={type}
-          {...rest}
         />
-        <Dropdown menu={menu} placement={'topRight'} {...rest}>
-          <Button
-            className={cx(styles.button, disabled && styles.disabled, className)}
-            disabled={disabled}
-            icon={<Icon icon={ChevronDownIcon} />}
-            shape={shape}
-            style={{ cursor: 'pointer' }}
-            type={type}
-          />
-        </Dropdown>
-      </Space.Compact>
-    );
-  },
-);
+      </Dropdown>
+    </Space.Compact>
+  );
+};
 
 SendButton.displayName = 'SendButton';
 

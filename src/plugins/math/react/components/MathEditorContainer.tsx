@@ -3,7 +3,7 @@ import { type ReactNode, memo, useEffect, useRef } from 'react';
 
 import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
-import { useStyles } from '../style';
+import { styles } from '../style';
 
 export interface MathEditorContainerProps {
   /** 子组件内容 */
@@ -21,7 +21,6 @@ export interface MathEditorContainerProps {
 const MathEditorContainer = memo<MathEditorContainerProps>(
   ({ children, isBlockMode, mathDOM, onFocus, prev }) => {
     const divRef = useRef<HTMLDivElement>(null);
-    const { styles } = useStyles();
 
     const updateMathPosition = () => {
       return updatePosition({

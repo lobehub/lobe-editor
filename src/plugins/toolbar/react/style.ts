@@ -1,7 +1,10 @@
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(
-  ({ css, token, isDarkMode }) => css`
+export const styles = createStaticStyles(({ css, cssVar }) => ({
+  anchor: css`
+    position: relative;
+  `,
+  toolbarDark: css`
     will-change: transform;
 
     position: absolute;
@@ -12,16 +15,39 @@ export const useStyles = createStyles(
 
     display: flex;
 
-    border-color: ${token.colorFillSecondary};
+    border-color: ${cssVar.colorFillSecondary};
 
     vertical-align: middle;
 
     opacity: 0;
-    background: ${token.colorBgElevated};
-    box-shadow: ${isDarkMode
-      ? '0px 14px 28px -6px #0003,0px 2px 4px -1px #0000001f'
-      : '0 14px 28px -6px #0000001a, 0 2px 4px -1px #0000000f'};
+    background: ${cssVar.colorBgElevated};
+    box-shadow:
+      0 14px 28px -6px color-mix(in srgb, #000 18.75%, transparent),
+      0 2px 4px -1px color-mix(in srgb, #000 12.19%, transparent);
 
-    transition: opacity 0.12s ${token.motionEaseOut};
+    transition: opacity 0.12s ${cssVar.motionEaseOut};
   `,
-);
+  toolbarLight: css`
+    will-change: transform;
+
+    position: absolute;
+    z-index: 10;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    transform: translate(-10000px, -10000px);
+
+    display: flex;
+
+    border-color: ${cssVar.colorFillSecondary};
+
+    vertical-align: middle;
+
+    opacity: 0;
+    background: ${cssVar.colorBgElevated};
+    box-shadow:
+      0 14px 28px -6px color-mix(in srgb, #000 10.2%, transparent),
+      0 2px 4px -1px color-mix(in srgb, #000 5.88%, transparent);
+
+    transition: opacity 0.12s ${cssVar.motionEaseOut};
+  `,
+}));

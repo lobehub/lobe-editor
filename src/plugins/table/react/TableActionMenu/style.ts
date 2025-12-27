@@ -1,7 +1,10 @@
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css }) => {
-  return css`
+export const styles = createStaticStyles(({ css }) => ({
+  actionIcon: css`
+    transform: translateX(2px);
+  `,
+  root: css`
     will-change: transform;
 
     position: absolute;
@@ -11,5 +14,5 @@ export const useStyles = createStyles(({ css }) => {
     transform: translateY(100%);
 
     padding: 2px;
-  `;
-});
+  `,
+}));

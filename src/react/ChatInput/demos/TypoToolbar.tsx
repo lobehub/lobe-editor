@@ -6,7 +6,7 @@ import {
   CodeLanguageSelect,
   useEditorState,
 } from '@lobehub/editor/react';
-import { useTheme } from 'antd-style';
+import { createStaticStyles, cx } from 'antd-style';
 import {
   BoldIcon,
   CodeXmlIcon,
@@ -21,16 +21,26 @@ import {
   StrikethroughIcon,
   UnderlineIcon,
 } from 'lucide-react';
-import { memo, useMemo } from 'react';
+import { type FC, useMemo } from 'react';
+
+const styles = createStaticStyles(({ css, cssVar }) => ({
+  actionBar: css`
+    border-start-start-radius: 8px;
+    border-start-end-radius: 8px;
+    background: ${cssVar.colorFillQuaternary};
+  `,
+  actionBarHidden: css`
+    display: none;
+  `,
+}));
 
 export interface ToolbarProps {
   editor: IEditor;
   show?: boolean;
 }
 
-const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
+const TypoToolbar: FC<ToolbarProps> = ({ show, editor }) => {
   const editorState = useEditorState(editor);
-  const theme = useTheme();
 
   const items: ChatInputActionsProps['items'] = useMemo(
     () =>
@@ -148,15 +158,10 @@ const TypoToolbar = memo<ToolbarProps>(({ show, editor }) => {
 
   return (
     <ChatInputActionBar
+      className={cx(styles.actionBar, !show && styles.actionBarHidden)}
       left={<ChatInputActions items={items} />}
-      style={{
-        background: theme.colorFillQuaternary,
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        display: show ? undefined : 'none',
-      }}
     />
   );
-});
+};
 
 export default TypoToolbar;

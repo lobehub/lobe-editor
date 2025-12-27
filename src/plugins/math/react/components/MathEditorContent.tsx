@@ -1,4 +1,4 @@
-import { Button, Hotkey, Text, TextArea , Flexbox } from '@lobehub/ui';
+import { Button, Flexbox, Hotkey, Text, TextArea } from '@lobehub/ui';
 import { type TextAreaRef } from 'antd/es/input/TextArea';
 import { renderToString } from 'katex';
 import { isModifierMatch } from 'lexical';
@@ -8,7 +8,7 @@ import { CONTROL_OR_META } from '@/common/sys';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { MathBlockNode, MathInlineNode } from '../../node';
-import { useStyles } from '../style';
+import { styles } from '../style';
 
 export interface MathEditorContentProps {
   /** 焦点引用 */
@@ -52,7 +52,6 @@ const MathEditorContent = memo<MathEditorContentProps>(
     const t = useTranslation();
     const textareaRef = useRef<TextAreaRef>(null);
     const [latexError, setLatexError] = useState<string>('');
-    const { styles } = useStyles();
 
     // 将 ref 暴露给父组件
     useEffect(() => {
@@ -146,6 +145,7 @@ const MathEditorContent = memo<MathEditorContentProps>(
         <TextArea
           autoFocus
           autoSize={{ maxRows: 6, minRows: 1 }}
+          className={styles.mathEditorTextArea}
           onChange={(e) => {
             onValueChange(e.target.value);
           }}
@@ -153,9 +153,6 @@ const MathEditorContent = memo<MathEditorContentProps>(
           placeholder={`${t('math.placeholder')}...`}
           ref={textareaRef}
           resize={false}
-          style={{
-            marginBlock: 4,
-          }}
           value={value}
           variant={'borderless'}
         />

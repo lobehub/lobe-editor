@@ -74,6 +74,15 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
+                "text": "﻿",
+                "type": "cursor",
+                "version": 1
+              },
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
                 "text": "@lobehub/editor",
                 "type": "text",
                 "version": 1
@@ -386,7 +395,7 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "--shiki-dark:var(--color-info);--shiki-light:var(--color-info)",
+            "style": "color: var(--ant-color-info);",
             "text": "import",
             "type": "code-highlight",
             "version": 1
@@ -395,43 +404,7 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "--shiki-dark:var(--color-text);--shiki-light:var(--color-text)",
-            "text": " { ",
-            "type": "code-highlight",
-            "version": 1
-          },
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "--shiki-dark:var(--color-text);--shiki-light:var(--color-text)",
-            "text": "Editor",
-            "type": "code-highlight",
-            "version": 1
-          },
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "--shiki-dark:var(--color-text);--shiki-light:var(--color-text)",
-            "text": " } ",
-            "type": "code-highlight",
-            "version": 1
-          },
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "--shiki-dark:var(--color-info);--shiki-light:var(--color-info)",
-            "text": "from",
-            "type": "code-highlight",
-            "version": 1
-          },
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "--shiki-dark:var(--color-text);--shiki-light:var(--color-text)",
+            "style": "color: var(--ant-color-text);",
             "text": " ",
             "type": "code-highlight",
             "version": 1
@@ -440,8 +413,8 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "--shiki-dark:var(--color-success);--shiki-light:var(--color-success)",
-            "text": "'@lobehub/editor'",
+            "style": "color: var(--ant-color-info);",
+            "text": "{",
             "type": "code-highlight",
             "version": 1
           },
@@ -449,27 +422,125 @@
             "detail": 0,
             "format": 0,
             "mode": "normal",
-            "style": "--shiki-dark:var(--color-text);--shiki-light:var(--color-text)",
+            "style": "color: var(--ant-color-error);",
+            "text": " ",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color: var(--ant-color-text);",
+            "text": "Editor",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color: var(--ant-color-error);",
+            "text": " ",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color: var(--ant-color-info);",
+            "text": "}",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color: var(--ant-color-text);",
+            "text": " ",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color: var(--ant-color-info);",
+            "text": "from",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color: var(--ant-color-text);",
+            "text": " ",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color: var(--ant-color-info);",
+            "text": "'",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color: var(--ant-color-success);",
+            "text": "@lobehub/editor",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color: var(--ant-color-info);",
+            "text": "'",
+            "type": "code-highlight",
+            "version": 1
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "color: var(--ant-color-info);",
             "text": ";",
             "type": "code-highlight",
             "version": 1
           }
         ],
-        "direction": "ltr",
+        "direction": null,
         "format": "",
         "indent": 0,
         "type": "code",
         "version": 1,
-        "textStyle": "--shiki-dark:var(--color-info);--shiki-light:var(--color-info)",
-        "language": "tsx",
-        "theme": "slack-ochin slack-dark"
+        "language": "typescript",
+        "theme": "lobe-theme"
+      },
+      {
+        "children": [],
+        "direction": null,
+        "format": "",
+        "indent": 0,
+        "type": "paragraph",
+        "version": 1,
+        "textFormat": 0,
+        "textStyle": ""
       }
     ],
     "direction": "ltr",
     "format": "",
     "indent": 0,
     "type": "root",
-    "version": 1,
-    "textStyle": "--shiki-dark:var(--color-info);--shiki-light:var(--color-info)"
+    "version": 1
   }
 }

@@ -1,16 +1,14 @@
 'use client';
 
-import { MaterialFileTypeIcon, Select, Text , Flexbox } from '@lobehub/ui';
-import { memo, useMemo } from 'react';
+import { Flexbox, MaterialFileTypeIcon, Select, Text } from '@lobehub/ui';
+import { cx } from 'antd-style';
+import { type FC, useMemo } from 'react';
 import { bundledLanguagesInfo } from 'shiki';
 
-import { useStyles } from './style';
+import { styles } from './style';
 import type { CodeLanguageSelectProps } from './type';
 
-// Keep memo: UseMemo calculation of large language options array (100+ items from bundledLanguagesInfo)
-const CodeLanguageSelect = memo<CodeLanguageSelectProps>(({ className, ...rest }) => {
-  const { cx, styles } = useStyles();
-
+const CodeLanguageSelect: FC<CodeLanguageSelectProps> = ({ className, ...rest }) => {
   const options = useMemo(
     () => [
       {
@@ -73,7 +71,7 @@ const CodeLanguageSelect = memo<CodeLanguageSelectProps>(({ className, ...rest }
       {...rest}
     />
   );
-});
+};
 
 CodeLanguageSelect.displayName = 'CodeLanguageSelect';
 

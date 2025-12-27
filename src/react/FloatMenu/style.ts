@@ -1,10 +1,13 @@
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css, token }) => ({
+export const styles = createStaticStyles(({ css, cssVar }) => ({
   container: css`
     position: relative;
     overflow: hidden auto;
-    background: ${token.colorBgElevated};
+    background: ${cssVar.colorBgElevated};
+  `,
+  containerWithMaxHeight: css`
+    /* maxHeight is set via inline style as it's dynamic */
   `,
   root: css`
     position: absolute;

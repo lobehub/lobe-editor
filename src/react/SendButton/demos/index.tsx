@@ -1,6 +1,12 @@
 import { SendButton, type SendButtonProps } from '@lobehub/editor/react';
-import { Grid , Flexbox } from '@lobehub/ui';
-import { useTheme } from 'antd-style';
+import { Flexbox, Grid } from '@lobehub/ui';
+import { createStaticStyles } from 'antd-style';
+
+const styles = createStaticStyles(({ css, cssVar }) => ({
+  container: css`
+    background-color: ${cssVar.colorBgContainer};
+  `,
+}));
 
 const menu: SendButtonProps['menu'] = {
   items: [
@@ -21,16 +27,8 @@ const menu: SendButtonProps['menu'] = {
   ],
 };
 export default () => {
-  const theme = useTheme();
   return (
-    <Flexbox
-      gap={24}
-      padding={24}
-      style={{
-        backgroundColor: theme.colorBgContainer,
-      }}
-      width={'100%'}
-    >
+    <Flexbox className={styles.container} gap={24} padding={24} width={'100%'}>
       <Grid gap={16} maxItemWidth={64} rows={4} width={'100%'}>
         <SendButton />
         <SendButton disabled />

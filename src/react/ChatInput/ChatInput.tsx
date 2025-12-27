@@ -1,17 +1,17 @@
 'use client';
 
 import { Flexbox } from '@lobehub/ui';
+import { cx, useThemeMode } from 'antd-style';
 import { Resizable } from 're-resizable';
-import { memo, useCallback } from 'react';
+import { type FC, useCallback } from 'react';
 import useMergeState from 'use-merge-value';
 
 import { useHeight } from '@/react/hooks/useSize';
 
-import { useStyles } from './style';
+import { styles } from './style';
 import type { ChatInputProps } from './type';
 
-// Keep memo: Complex resize logic and state management
-const ChatInput = memo<ChatInputProps>((props) => {
+const ChatInput: FC<ChatInputProps> = (props) => {
   const {
     defaultHeight = props.defaultHeight || props.minHeight || 64,
     height,
@@ -34,7 +34,7 @@ const ChatInput = memo<ChatInputProps>((props) => {
     styles: customStyles,
     ...rest
   } = props;
-  const { cx, styles } = useStyles();
+  const { isDarkMode } = useThemeMode();
   const { ref: headerRef, height: headerHeight = 0 } = useHeight();
 
   // 使用 useMergeState 管理高度状态
@@ -64,15 +64,13 @@ const ChatInput = memo<ChatInputProps>((props) => {
 
   const bodyNode = (
     <div
-      className={cx(styles.editor, classNames?.body)}
+      className={cx(styles.editor, styles.bodyEditor, classNames?.body)}
       draggable={false}
       onClick={onBodyClick}
       style={{
         ...customStyles?.body,
-        flex: 1,
         maxHeight: fullscreen ? '100%' : maxHeight,
         minHeight: resize ? currentHeight : minHeight,
-        zIndex: 0,
       }}
     >
       {children}
@@ -81,24 +79,21 @@ const ChatInput = memo<ChatInputProps>((props) => {
 
   return (
     <Flexbox
-      className={cx(styles.container, className)}
+      className={cx(
+        isDarkMode ? styles.containerDark : styles.containerLight,
+        styles.root,
+        className,
+      )}
       height={fullscreen ? '100%' : undefined}
-      style={{
-        position: 'relative',
-        ...style,
-      }}
+      style={style}
       width="100%"
       {...rest}
     >
       {slashMenuRef && <div ref={slashMenuRef} />}
       <div
-        className={classNames?.header}
+        className={cx(styles.header, classNames?.header)}
         ref={headerRef}
-        style={{
-          width: '100%',
-          zIndex: 1,
-          ...customStyles?.header,
-        }}
+        style={customStyles?.header}
       >
         {header}
       </div>
@@ -133,7 +128,7 @@ const ChatInput = memo<ChatInputProps>((props) => {
                   overflow: 'hidden',
                   position: 'relative',
                 }
-              : {}
+              : undefined
           }
         >
           {bodyNode}
@@ -141,19 +136,12 @@ const ChatInput = memo<ChatInputProps>((props) => {
       ) : (
         bodyNode
       )}
-      <div
-        className={classNames?.footer}
-        style={{
-          width: '100%',
-          zIndex: 1,
-          ...customStyles?.footer,
-        }}
-      >
+      <div className={cx(styles.footer, classNames?.footer)} style={customStyles?.footer}>
         {footer}
       </div>
     </Flexbox>
   );
-});
+};
 
 ChatInput.displayName = 'ChatInput';
 

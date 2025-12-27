@@ -1,8 +1,8 @@
 import { ActionIcon } from '@lobehub/ui';
 import { Divider } from 'antd';
-import { isValidElement, memo } from 'react';
+import { type FC, isValidElement } from 'react';
 
-import { useStyles } from '../style';
+import { styles } from '../style';
 import type { ActionItem, FloatActionsItem, FloatActionsProps } from '../type';
 
 interface ActionRenderProps {
@@ -11,20 +11,9 @@ interface ActionRenderProps {
   onActionClick: FloatActionsProps['onActionClick'];
 }
 
-// Keep memo: List rendering component with conditional wrapper logic
-const ActionRender = memo<ActionRenderProps>(({ item, onActionClick, disabled }) => {
-  const { styles } = useStyles();
-
+const ActionRender: FC<ActionRenderProps> = ({ item, onActionClick, disabled }) => {
   if (item.type === 'divider') {
-    return (
-      <Divider
-        className={styles.divider}
-        orientation={'vertical'}
-        style={{
-          height: 20,
-        }}
-      />
-    );
+    return <Divider className={styles.divider} orientation={'vertical'} />;
   }
 
   const { wrapper, icon, key, label, onClick, danger, loading, active, tooltipProps, ...itemRest } =
@@ -64,6 +53,6 @@ const ActionRender = memo<ActionRenderProps>(({ item, onActionClick, disabled })
 
   if (!wrapper) return action;
   return wrapper(action);
-});
+};
 
 export default ActionRender;

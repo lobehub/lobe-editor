@@ -1,7 +1,11 @@
-import { createStyles } from 'antd-style';
-import { rgba } from 'polished';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css, token }) => ({
+export const styles = createStaticStyles(({ css, cssVar }) => ({
+  brokenImage: css`
+    width: 200px;
+    height: auto;
+  `,
+
   imageContainer: css`
     cursor: default;
     user-select: none;
@@ -14,7 +18,7 @@ export const useStyles = createStyles(({ css, token }) => ({
     width: auto;
     max-width: 100%;
     height: auto;
-    border-radius: ${token.borderRadiusSM}px;
+    border-radius: ${cssVar.borderRadiusSM};
 
     transition: border-color 0.2s ease;
 
@@ -30,9 +34,13 @@ export const useStyles = createStyles(({ css, token }) => ({
         z-index: 10;
         inset: 0;
 
-        background-color: ${rgba(token.yellow, 0.1)};
+        background-color: color-mix(in srgb, ${cssVar.yellow} 10%, transparent);
       }
     }
+  `,
+
+  lazyImage: css`
+    cursor: default;
   `,
 
   resizeHandle: css`
@@ -57,10 +65,10 @@ export const useStyles = createStyles(({ css, token }) => ({
 
       width: 6px;
       height: min(80px, 80%);
-      border: 1px solid rgba(255, 255, 255, 75%);
+      border: 1px solid color-mix(in srgb, rgb(255, 255, 255) 75%, transparent);
       border-radius: 3px;
 
-      background-color: rgba(0, 0, 0, 50%);
+      background-color: color-mix(in srgb, rgb(0, 0, 0) 50%, transparent);
     }
   `,
 
@@ -82,11 +90,11 @@ export const useStyles = createStyles(({ css, token }) => ({
 
     padding-block: 2px;
     padding-inline: 6px;
-    border-radius: ${token.borderRadiusSM}px;
+    border-radius: ${cssVar.borderRadiusSM};
 
     font-size: 12px;
     color: white;
 
-    background-color: rgba(0, 0, 0, 50%);
+    background-color: color-mix(in srgb, rgb(0, 0, 0) 50%, transparent);
   `,
 }));

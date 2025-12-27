@@ -1,7 +1,7 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix */
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css, token }) => ({
+export const styles = createStaticStyles(({ css, cssVar }) => ({
   mention: css`
     user-select: none;
 
@@ -12,20 +12,20 @@ export const useStyles = createStyles(({ css, token }) => ({
     margin-inline: 0.25em;
     padding-block: 0.2em;
     padding-inline: 0.4em;
-    border: 1px solid ${token.colorInfoFillTertiary};
+    border: 1px solid ${cssVar.colorFillTertiary};
     border-radius: 0.25em;
 
     font-size: 0.875em;
     line-height: 1;
-    color: ${token.colorInfo};
+    color: ${cssVar.colorInfo};
     word-break: break-word;
     white-space: break-spaces;
 
-    background: ${token.colorInfoFillTertiary};
+    background: ${cssVar.colorFillTertiary};
 
     &.selected {
       color: #000;
-      background: ${token.yellow};
+      background: ${cssVar.yellow};
     }
   `,
 }));

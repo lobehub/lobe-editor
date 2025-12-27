@@ -14,7 +14,7 @@ import { $closestNodeType } from '@/editor-kernel';
 import { useLexicalEditor } from '@/editor-kernel/react';
 
 import { $canShowPlaceholderCurry } from '../../utils';
-import { useStyles } from './style';
+import { styles } from './style';
 
 export interface PlaceholderProps {
   children: ReactNode;
@@ -44,8 +44,6 @@ function hasOnlyBrChild(element: HTMLElement): boolean {
 const Placeholder = memo<PlaceholderProps>(({ children, style, lineEmptyPlaceholder }) => {
   const currentPlaceHolderRef = useRef<HTMLElement | null>(null);
   const [canShowPlaceholder, setCanShowPlaceholder] = useState(() => false);
-
-  const { styles } = useStyles();
 
   useLexicalEditor((editor) => {
     setCanShowPlaceholder(() => canShowPlaceholderFromCurrentEditorState(editor));

@@ -1,8 +1,8 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix */
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(
-  ({ css, token }) => css`
-    background: ${token.colorBgElevated};
+export const styles = createStaticStyles(
+  ({ css, cssVar }) => css`
+    background: ${cssVar.colorBgElevated};
   `,
 );

@@ -26,7 +26,6 @@ import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types'
 import { CustomShikiTokenizer, registerCodeCommand } from '../command';
 import { getCodeLanguageByInput } from '../utils/language';
 import { registerCodeHighlighting, toCodeTheme } from './CodeHighlighterShiki';
-import { AllColorReplacements } from './FacadeShiki';
 
 const origin = CodeNode.importDOM;
 
@@ -54,8 +53,6 @@ CodeNode.importDOM = () => {
 };
 
 export interface CodeblockPluginOptions {
-  /** Color replacements configuration for customizing theme colors */
-  colorReplacements?: { current?: AllColorReplacements };
   /** Shiki theme name to use for syntax highlighting */
   shikiTheme?:
     | string
@@ -98,10 +95,6 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
 
     if (this.config?.shikiTheme) {
       CustomShikiTokenizer.defaultTheme = this.config?.shikiTheme;
-    }
-
-    if (this.config?.colorReplacements) {
-      CustomShikiTokenizer.defaultColorReplacements = this.config?.colorReplacements;
     }
   }
 

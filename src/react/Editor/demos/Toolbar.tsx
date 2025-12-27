@@ -13,7 +13,7 @@ import {
   useEditorState,
 } from '@lobehub/editor/react';
 import { Block } from '@lobehub/ui';
-import { useTheme } from 'antd-style';
+import { createStaticStyles, cx } from 'antd-style';
 import {
   BoldIcon,
   CodeXmlIcon,
@@ -32,9 +32,21 @@ import {
   UnderlineIcon,
   Undo2Icon,
 } from 'lucide-react';
-import { CSSProperties, memo, useMemo } from 'react';
+import { type CSSProperties, type FC, useMemo } from 'react';
 
 import { openFileSelector } from './actions';
+
+const styles = createStaticStyles(({ css, cssVar }) => ({
+  block: css`
+    position: sticky;
+    z-index: 10;
+    inset-block-start: 12px;
+
+    margin-block-end: 16px;
+
+    background: ${cssVar.colorBgElevated};
+  `,
+}));
 
 export interface ToolbarProps {
   className?: string;
@@ -43,9 +55,8 @@ export interface ToolbarProps {
   style?: CSSProperties;
 }
 
-const Toolbar = memo<ToolbarProps>(({ floating, editor, style, className }) => {
+const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
   const editorState = useEditorState(editor);
-  const theme = useTheme();
 
   const items = useMemo(
     () =>
@@ -213,22 +224,15 @@ const Toolbar = memo<ToolbarProps>(({ floating, editor, style, className }) => {
 
   return (
     <Block
-      className={className}
+      className={cx(styles.block, className)}
       padding={4}
       shadow
-      style={{
-        background: theme.colorBgElevated,
-        marginBottom: 16,
-        position: 'sticky',
-        top: 12,
-        zIndex: 10,
-        ...style,
-      }}
+      style={style}
       variant={'outlined'}
     >
       <ChatInputActions items={items} />
     </Block>
   );
-});
+};
 
 export default Toolbar;

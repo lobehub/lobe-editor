@@ -1,6 +1,6 @@
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css, token }) => ({
+export const styles = createStaticStyles(({ css, cssVar }) => ({
   codeInline: css`
     display: inline;
 
@@ -10,12 +10,12 @@ export const useStyles = createStyles(({ css, token }) => ({
     border: 1px solid var(--lobe-markdown-border-color);
     border-radius: 0.25em;
 
-    font-family: ${token.fontFamilyCode};
+    font-family: ${cssVar.fontFamilyCode};
     font-size: 0.875em;
     line-height: 1;
     word-break: break-word;
     white-space: break-spaces;
 
-    background: ${token.colorFillSecondary};
+    background: ${cssVar.colorFillSecondary};
   `,
 }));

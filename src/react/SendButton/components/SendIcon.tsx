@@ -1,6 +1,14 @@
 'use client';
 
+import { createStaticStyles, cx } from 'antd-style';
 import { type CSSProperties, type FC } from 'react';
+
+const styles = createStaticStyles(({ css }) => ({
+  icon: css`
+    flex: none;
+    line-height: 1;
+  `,
+}));
 
 interface SendIconProps {
   size?: string | number;
@@ -10,11 +18,11 @@ interface SendIconProps {
 const SendIcon: FC<SendIconProps> = ({ size = '1em', style }) => {
   return (
     <svg
-      className={'anticon'}
+      className={cx('anticon', styles.icon)}
       fill="currentColor"
       fillRule="evenodd"
       height={size}
-      style={{ flex: 'none', lineHeight: 1, ...style }}
+      style={style}
       viewBox="0 0 14 14"
       width={size}
       xmlns="http://www.w3.org/2000/svg"

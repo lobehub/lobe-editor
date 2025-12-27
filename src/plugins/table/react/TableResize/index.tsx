@@ -11,6 +11,7 @@ import {
   getTableElement,
 } from '@lexical/table';
 import { calculateZoomLevel, mergeRegister } from '@lexical/utils';
+import { cssVar , cx } from 'antd-style';
 import EventEmitter from 'eventemitter3';
 import {
   $getNearestNodeFromDOMNode,
@@ -30,7 +31,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
-import { MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT, useStyles } from './style';
+import { MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT, styles } from './style';
 import { getCellColumnIndex, getCellNodeHeight } from './utils';
 
 export interface ReactTableResizeHandleProps {
@@ -46,7 +47,6 @@ type PointerPosition = {
 type PointerDraggingDirection = 'right' | 'bottom';
 
 export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, eventEmitter }) => {
-  const { cx, styles, theme } = useStyles();
   const targetRef = useRef<HTMLElement | null>(null);
   const resizerRef = useRef<HTMLDivElement | null>(null);
   // eslint-disable-next-line no-undef
@@ -394,7 +394,7 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
           styles[draggingDirection].height = `${tableRect.height}px`;
         }
 
-        styles[draggingDirection].backgroundColor = theme.colorPrimary;
+        styles[draggingDirection].backgroundColor = cssVar.colorPrimary;
         styles[draggingDirection].mixBlendMode = 'unset';
       }
 
@@ -407,7 +407,7 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
       right: null,
       top: null,
     };
-  }, [activeCell, draggingDirection, pointerCurrentPos, theme.colorPrimary]);
+  }, [activeCell, draggingDirection, pointerCurrentPos]);
 
   const resizerStyles = getResizers();
 

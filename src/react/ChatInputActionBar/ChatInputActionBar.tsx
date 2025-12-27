@@ -1,9 +1,10 @@
 'use client';
 
 import { Flexbox } from '@lobehub/ui';
+import { cx } from 'antd-style';
 import { type FC } from 'react';
 
-import { useStyles } from './style';
+import { styles } from './style';
 import type { ChatInputActionBarProps } from './type';
 
 const ChatInputActionBar: FC<ChatInputActionBarProps> = ({
@@ -13,7 +14,6 @@ const ChatInputActionBar: FC<ChatInputActionBarProps> = ({
   right,
   ...rest
 }) => {
-  const { cx, styles } = useStyles();
   return (
     <Flexbox
       align={'center'}

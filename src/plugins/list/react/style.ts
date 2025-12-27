@@ -1,8 +1,7 @@
-import { createStyles } from 'antd-style';
-import { readableColor } from 'polished';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(
-  ({ css, token }) => css`
+export const styles = createStaticStyles(
+  ({ css, cssVar }) => css`
     .editor_listUnordered&,
     .editor_listOrdered& {
       margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
@@ -66,12 +65,12 @@ export const useStyles = createStyles(
 
     .editor_listItemChecked::before,
     .editor_listItemUnchecked::before {
-      border: 1px solid ${token.colorBorder};
+      border: 1px solid ${cssVar.colorBorder};
       border-radius: 4px;
     }
 
     .editor_listItemChecked::before {
-      background: ${token.colorPrimary};
+      background: ${cssVar.colorPrimary};
     }
 
     .editor_listItemChecked:not(:has(ul))::after {
@@ -88,7 +87,7 @@ export const useStyles = createStyles(
       width: 0.3em;
       height: 0.6em;
       margin-inline: -1.35em 0.5em;
-      border: 2px solid ${readableColor(token.colorPrimary)};
+      border: 2px solid ${cssVar.colorTextLightSolid};
       border-block-start: 0;
       border-inline-start: 0;
 

@@ -24,6 +24,7 @@ import {
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
+import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
   Heading1Icon,
@@ -41,6 +42,12 @@ import Container from './Container';
 import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
 import content from './data.json';
+
+const styles = createStaticStyles(({ css }) => ({
+  editor: css`
+    padding: 16px;
+  `,
+}));
 
 const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
   const editor = useEditor();
@@ -207,6 +214,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
     <Container editor={editor} json={json} markdown={markdown} shouldShowXml xml={xml} {...props}>
       <Toolbar editor={editor} />
       <Editor
+        className={styles.editor}
         content={content}
         editor={editor}
         lineEmptyPlaceholder={'Start typing here...'}
@@ -308,9 +316,6 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         ]}
         slashOption={{
           items: slashItems,
-        }}
-        style={{
-          padding: 16,
         }}
       />
     </Container>

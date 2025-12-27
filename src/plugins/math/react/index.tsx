@@ -8,12 +8,11 @@ import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 import { MathPlugin } from '../plugin';
 import MathEdit from './components/MathEditor';
 import MathInline from './components/MathInline';
-import { useStyles } from './style';
+import { styles } from './style';
 import { ReactMathPluginProps } from './type';
 
 export const ReactMathPlugin: FC<ReactMathPluginProps> = ({ className, renderComp, theme }) => {
   const [editor] = useLexicalComposerContext();
-  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);

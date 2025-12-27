@@ -61,7 +61,6 @@ import { INode } from '@/editor-kernel/inode';
 
 import {
   $getHighlightNodes,
-  AllColorReplacements,
   getHighlightSerializeNode,
   isCodeLanguageLoaded,
   isCodeThemeLoaded,
@@ -81,9 +80,7 @@ export interface Tokenizer {
           dark: string;
           light: string;
         },
-    defaultColorReplacements?: { current?: AllColorReplacements },
   ): INode[];
-  defaultColorReplacements?: { current?: AllColorReplacements };
   defaultLanguage: string;
   defaultTheme:
     | string
@@ -93,15 +90,11 @@ export interface Tokenizer {
       };
 }
 
-const DEFAULT_CODE_THEME = 'slack-ochin';
+const DEFAULT_CODE_THEME = 'lobe-theme';
 
 export const ShikiTokenizer: Tokenizer = {
   $tokenize(codeNode: CodeNode, language?: string): LexicalNode[] {
-    return $getHighlightNodes(
-      codeNode,
-      language || this.defaultLanguage,
-      this.defaultColorReplacements,
-    );
+    return $getHighlightNodes(codeNode, language || this.defaultLanguage);
   },
   $tokenizeSerialized(
     code: string,
@@ -112,7 +105,6 @@ export const ShikiTokenizer: Tokenizer = {
           dark: string;
           light: string;
         },
-    defaultColorReplacements?: { current?: AllColorReplacements },
   ): INode[] {
     return getHighlightSerializeNode(
       code,
@@ -121,10 +113,8 @@ export const ShikiTokenizer: Tokenizer = {
       toCodeTheme({
         defaultTheme: theme || this.defaultTheme,
       } as Tokenizer),
-      defaultColorReplacements || ShikiTokenizer.defaultColorReplacements,
     );
   },
-  defaultColorReplacements: undefined,
   defaultLanguage: DEFAULT_CODE_LANGUAGE,
   defaultTheme: DEFAULT_CODE_THEME,
 };

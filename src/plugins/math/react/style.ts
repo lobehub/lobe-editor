@@ -1,14 +1,14 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix */
-import { createStyles } from 'antd-style';
+import { createStaticStyles, cx } from 'antd-style';
 
-export const useStyles = createStyles(({ cx, css, token }) => {
+export const styles = createStaticStyles(({ css, cssVar }) => {
   const latex = css`
     cursor: pointer;
     user-select: none;
     font-size: 1em;
 
     .katex-error {
-      color: ${token.colorError} !important;
+      color: ${cssVar.colorError} !important;
     }
 
     .katex-html {
@@ -29,19 +29,19 @@ export const useStyles = createStyles(({ cx, css, token }) => {
 
     &.selected {
       color: #000;
-      background: ${token.yellow};
+      background: ${cssVar.yellow};
     }
 
     &:hover {
-      background: ${token.colorFillTertiary};
+      background: ${cssVar.colorFillTertiary};
     }
 
     &.editing {
-      background: ${token.colorFillTertiary};
+      background: ${cssVar.colorFillTertiary};
     }
 
     &:has(.katex-error) {
-      background: ${token.colorErrorBg};
+      background: ${cssVar.colorErrorBg};
     }
   `;
   return {
@@ -66,12 +66,12 @@ export const useStyles = createStyles(({ cx, css, token }) => {
       position: absolute;
       z-index: 999;
       width: 320px;
-      background: ${token.colorBgElevated};
+      background: ${cssVar.colorBgElevated};
 
       textarea {
         width: 100%;
 
-        font-family: ${token.fontFamilyCode};
+        font-family: ${cssVar.fontFamilyCode};
         font-size: 13px;
 
         background: transparent !important;
@@ -80,8 +80,15 @@ export const useStyles = createStyles(({ cx, css, token }) => {
       }
     `,
     mathEditorFooter: css`
-      border-block-start: 1px solid ${token.colorBorderSecondary};
-      background: ${token.colorFillQuaternary};
+      border-block-start: 1px solid ${cssVar.colorBorderSecondary};
+      background: ${cssVar.colorFillQuaternary};
+    `,
+    mathEditorTextArea: css`
+      margin-block: 4px;
+    `,
+    mathPlaceholder: css`
+      padding-inline: 0.2em;
+      font-style: italic;
     `,
   };
 });

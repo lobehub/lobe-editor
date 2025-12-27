@@ -7,7 +7,7 @@ import { UploadPlugin } from '@/plugins/upload';
 
 import { FilePlugin } from '../plugin';
 import ReactFile from './components/ReactFile';
-import { useStyles } from './style';
+import { styles } from './style';
 import { ReactFilePluginProps } from './type';
 
 const ReactFilePlugin: FC<ReactFilePluginProps> = ({
@@ -18,7 +18,6 @@ const ReactFilePlugin: FC<ReactFilePluginProps> = ({
   theme,
 }) => {
   const [editor] = useLexicalComposerContext();
-  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     if (locale) {

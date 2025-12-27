@@ -1,4 +1,5 @@
 import { ActionIcon, Block } from '@lobehub/ui';
+import { useThemeMode } from 'antd-style';
 import { LexicalEditor } from 'lexical';
 import { Check, X } from 'lucide-react';
 import type { FC } from 'react';
@@ -8,7 +9,7 @@ import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { DiffAction, LITEXML_DIFFNODE_COMMAND } from '../../command/diffCommand';
 import { DiffNode } from '../../node/DiffNode';
-import { useStyles } from './style';
+import { styles } from './style';
 
 interface ReactDiffNodeToolbarProps {
   className?: string;
@@ -18,10 +19,17 @@ interface ReactDiffNodeToolbarProps {
 
 const ReactDiffNodeToolbar: FC<ReactDiffNodeToolbarProps> = ({ editor, node }) => {
   const t = useTranslation();
-  const { styles } = useStyles();
+  const { isDarkMode } = useThemeMode();
   return (
     <LexicalPortalContainer editor={editor} node={node}>
-      <Block className={styles.toolbar} gap={2} horizontal padding={2} shadow variant={'outlined'}>
+      <Block
+        className={isDarkMode ? styles.toolbarDark : styles.toolbarLight}
+        gap={2}
+        horizontal
+        padding={2}
+        shadow
+        variant={'outlined'}
+      >
         <ActionIcon
           aria-label="Reject change"
           className={styles.reject}

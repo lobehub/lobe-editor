@@ -1,16 +1,16 @@
 'use client';
 
+import { cx } from 'antd-style';
 import { type FC, useLayoutEffect } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
 import { AutoCompletePlugin } from '../plugin';
-import { useStyles } from './style';
+import { styles } from './style';
 import { ReactAutoCompletePluginProps } from './type';
 
 const ReactAutoCompletePlugin: FC<ReactAutoCompletePluginProps> = ({ onAutoComplete, delay }) => {
   const [editor] = useLexicalComposerContext();
-  const { cx, styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(AutoCompletePlugin, {

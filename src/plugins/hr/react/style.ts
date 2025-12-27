@@ -1,7 +1,7 @@
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(
-  ({ css, token }) => css`
+export const styles = createStaticStyles(
+  ({ css, cssVar }) => css`
     cursor: pointer;
 
     display: flex;
@@ -13,7 +13,7 @@ export const useStyles = createStyles(
 
     hr {
       width: 100%;
-      border-color: ${token.colorBorder};
+      border-color: ${cssVar.colorBorder};
       border-style: dashed;
       border-width: 1px;
       border-block-start: none;
@@ -22,7 +22,7 @@ export const useStyles = createStyles(
     }
 
     &.selected {
-      background: ${token.yellow};
+      background: ${cssVar.yellow};
 
       hr {
         border-color: #000;

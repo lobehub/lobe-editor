@@ -1,6 +1,7 @@
 import { mergeRegister } from '@lexical/utils';
 import { Block, Button, Flexbox, Hotkey, Icon, Input, Text } from '@lobehub/ui';
 import type { InputRef } from 'antd';
+import { cssVar } from 'antd-style';
 import {
   COMMAND_PRIORITY_EDITOR,
   COMMAND_PRIORITY_NORMAL,
@@ -12,8 +13,8 @@ import {
 import { BaselineIcon, LinkIcon } from 'lucide-react';
 import {
   type ChangeEvent,
+  type FC,
   type KeyboardEvent,
-  memo,
   useCallback,
   useEffect,
   useRef,
@@ -27,7 +28,7 @@ import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
 import { UPDATE_LINK_TEXT_COMMAND } from '../../command';
 import { LinkNode } from '../../node/LinkNode';
-import { useStyles } from '../style';
+import { styles } from '../style';
 
 export const EDIT_LINK_COMMAND = createCommand<{
   linkNode: LinkNode | null;
@@ -38,7 +39,7 @@ interface LinkEditProps {
   editor: LexicalEditor;
 }
 
-const LinkEdit = memo<LinkEditProps>(({ editor }) => {
+const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const linkNodeRef = useRef<LinkNode | null>(null);
   const linkInputRef = useRef<InputRef | null>(null);
@@ -49,7 +50,6 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
   const { editable } = useEditable();
 
   const t = useTranslation();
-  const { styles, theme } = useStyles();
 
   // 取消编辑，不保存更改
   const handleCancel = useCallback(() => {
@@ -237,7 +237,7 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
             setLinkText(e.target.value);
           }}
           onKeyDown={handleKeyDown}
-          prefix={<Icon color={theme.colorTextDescription} icon={BaselineIcon} />}
+          prefix={<Icon color={cssVar.colorTextDescription} icon={BaselineIcon} />}
           ref={linkTextInputRef}
           value={linkText}
         />
@@ -249,7 +249,7 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
           }}
           onKeyDown={handleKeyDown}
           placeholder="https://enter-link-url"
-          prefix={<Icon color={theme.colorTextDescription} icon={LinkIcon} />}
+          prefix={<Icon color={cssVar.colorTextDescription} icon={LinkIcon} />}
           ref={linkInputRef}
           value={linkUrl}
         />
@@ -276,7 +276,7 @@ const LinkEdit = memo<LinkEditProps>(({ editor }) => {
       </Flexbox>
     </Block>
   );
-});
+};
 
 LinkEdit.displayName = 'LinkEdit';
 

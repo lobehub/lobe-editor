@@ -1,7 +1,24 @@
 import { Flexbox } from '@lobehub/ui';
 import { ChatActionsBar, ChatList, type ChatMessage } from '@lobehub/ui/chat';
-import { useTheme } from 'antd-style';
+import { createStaticStyles, cx } from 'antd-style';
 import { type FC, type PropsWithChildren, useEffect, useRef } from 'react';
+
+const styles = createStaticStyles(({ css, cssVar }) => ({
+  fullscreenContainer: css`
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  `,
+  root: css`
+    position: relative;
+    overflow: hidden;
+    background: ${cssVar.colorBgContainer};
+  `,
+  scrollContainer: css`
+    overflow-y: auto;
+  `,
+}));
 
 interface ContainerProps {
   fullscreen?: boolean;
@@ -9,7 +26,6 @@ interface ContainerProps {
 }
 
 const Container: FC<PropsWithChildren<ContainerProps>> = ({ children, messages, fullscreen }) => {
-  const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -18,22 +34,8 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({ children, messages, 
   }, [messages]);
 
   return (
-    <Flexbox
-      height={'100vh'}
-      style={{
-        background: theme.colorBgContainer,
-        overflow: 'hidden',
-        position: 'relative',
-      }}
-      width={'100%'}
-    >
-      <Flexbox
-        flex={1}
-        ref={ref}
-        style={{
-          overflowY: 'auto',
-        }}
-      >
+    <Flexbox className={styles.root} height={'100vh'} width={'100%'}>
+      <Flexbox className={styles.scrollContainer} flex={1} ref={ref}>
         <ChatList
           data={messages}
           renderActions={{
@@ -46,18 +48,9 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({ children, messages, 
         />
       </Flexbox>
       <Flexbox
+        className={cx(fullscreen && styles.fullscreenContainer)}
         paddingBlock={fullscreen ? 8 : '0 8px'}
         paddingInline={8}
-        style={
-          fullscreen
-            ? {
-                height: '100%',
-                inset: 0,
-                position: 'absolute',
-                width: '100%',
-              }
-            : {}
-        }
       >
         {children}
       </Flexbox>

@@ -7,7 +7,7 @@ import { UploadPlugin } from '@/plugins/upload';
 
 import { ImagePlugin } from '../plugin';
 import Image from './components/Image';
-import { useStyles } from './style';
+import { styles } from './style';
 import { ReactImagePluginProps } from './type';
 
 const defaultUpload = (file: File) => {
@@ -27,7 +27,6 @@ const ReactImagePlugin: FC<ReactImagePluginProps> = ({
   handleRehost,
 }) => {
   const [editor] = useLexicalComposerContext();
-  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(UploadPlugin);

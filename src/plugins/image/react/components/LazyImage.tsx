@@ -1,23 +1,26 @@
-import { memo, useEffect, useState } from 'react';
+import { cx } from 'antd-style';
+import { type FC, useEffect, useState } from 'react';
 
 import { BlockImageNode } from '../../node/block-image-node';
 import { ImageNode } from '../../node/image-node';
 import BrokenImage from './BrokenImage';
+import { styles } from './style';
 import { useSuspenseImage } from './useSupenseImage';
 
 function isSVG(src: string): boolean {
   return src.toLowerCase().endsWith('.svg');
 }
 
-// Keep memo: Lazy loading with dimension calculation and SVG handling
-const LazyImage = memo<{
+interface LazyImageProps {
   className?: string | null;
   newWidth?: number | null;
   node: ImageNode | BlockImageNode;
   onError?: () => void;
   // eslint-disable-next-line unused-imports/no-unused-vars
   onLoad?: (dimensions: { height: number; width: number }) => void;
-}>(({ className, node, newWidth, onError, onLoad }) => {
+}
+
+const LazyImage: FC<LazyImageProps> = ({ className, node, newWidth, onError, onLoad }) => {
   const { src, altText, maxWidth, width } = node;
   const [dimensions, setDimensions] = useState<{
     height: number;
@@ -79,7 +82,7 @@ const LazyImage = memo<{
   return (
     <img
       alt={altText}
-      className={className || undefined}
+      className={cx(styles.lazyImage, className || undefined)}
       draggable="false"
       onError={onError}
       onLoad={(e) => {
@@ -99,13 +102,12 @@ const LazyImage = memo<{
       src={src}
       style={{
         ...imageStyle,
-        cursor: 'default',
         maxWidth: `calc(min(${newWidth || imageStyle.maxWidth}px, 100%))`,
         width: newWidth || imageStyle.width,
       }}
     />
   );
-});
+};
 
 LazyImage.displayName = 'LazyImage';
 

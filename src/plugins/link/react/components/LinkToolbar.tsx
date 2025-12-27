@@ -26,7 +26,7 @@ import {
   LinkNode,
   TOGGLE_LINK_COMMAND,
 } from '../../node/LinkNode';
-import { useStyles } from '../style';
+import { styles } from '../style';
 import { EDIT_LINK_COMMAND } from './LinkEdit';
 
 interface LinkToolbarProps {
@@ -37,7 +37,6 @@ interface LinkToolbarProps {
 const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const LinkRef = useRef<HTMLDivElement>(null);
-  const { styles } = useStyles();
   const [linkNode, setLinkNode] = useState<LinkNode | null>(null);
   const state = useRef<{ isLink: boolean }>({ isLink: false });
   const t = useTranslation();

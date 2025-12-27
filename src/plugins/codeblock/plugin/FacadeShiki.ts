@@ -7,6 +7,7 @@
  */
 import type { CodeNode } from '@lexical/code';
 import { $createCodeHighlightNode, $isCodeNode } from '@lexical/code';
+import { ShikiLobeTheme } from '@lobehub/ui';
 import {
   createHighlighterCoreSync,
   isSpecialLang,
@@ -40,42 +41,13 @@ const shiki = createHighlighterCoreSync({
   themes: [],
 });
 
+// Load ShikiLobeTheme immediately after initialization
+shiki.loadTheme(ShikiLobeTheme as any);
+
 function getDiffedLanguage(language: string) {
   const DIFF_LANGUAGE_REGEX = /^diff-([\w-]+)/i;
   const diffLanguageMatch = DIFF_LANGUAGE_REGEX.exec(language);
   return diffLanguageMatch ? diffLanguageMatch[1] : null;
-}
-
-/**
- * Type guard to check if color replacements are scoped by theme
- */
-function isScopedColorReplacements(
-  colorReplacements: AllColorReplacements,
-): colorReplacements is ScopedColorReplacements {
-  // Check if any of the keys correspond to known theme names
-  // or if the values are objects rather than strings
-  const firstValue = Object.values(colorReplacements)[0];
-  return typeof firstValue === 'object' && firstValue !== null;
-}
-
-/**
- * Resolves color replacements for a specific theme
- * @param colorReplacements - The color replacements configuration
- * @param theme - The current theme name
- * @returns The resolved color replacements for the current theme
- */
-function resolveColorReplacements(
-  colorReplacements: AllColorReplacements,
-  theme: string,
-): ColorReplacements {
-  // Check if this is a scoped color replacements object
-  if (isScopedColorReplacements(colorReplacements)) {
-    // Return the color replacements for the specific theme, or empty object if not found
-    return colorReplacements[theme] || {};
-  }
-
-  // Return the simple color replacements object as-is
-  return colorReplacements;
 }
 
 /**
@@ -183,6 +155,20 @@ export function isCodeThemeLoaded(theme: string) {
 
 async function _loadCodeTheme(theme: string, editor?: LexicalEditor, codeNodeKey?: NodeKey) {
   if (!isCodeThemeLoaded(theme)) {
+    // Handle lobe-theme from @lobehub/ui
+    if (theme === 'lobe-theme') {
+      // ShikiLobeTheme is already loaded in shiki instance initialization
+      if (editor && codeNodeKey) {
+        editor.update(() => {
+          const codeNode = $getNodeByKey(codeNodeKey);
+          if ($isCodeNode(codeNode)) {
+            codeNode.markDirty();
+          }
+        });
+      }
+      return;
+    }
+
     const themeInfo = bundledThemesInfo.find((info) => info.id === theme);
     if (themeInfo) {
       shiki.loadTheme(themeInfo.import()).then(() => {
@@ -233,11 +219,7 @@ function getTokenStyleObject(token: ThemedToken): string {
   return style;
 }
 
-function mapTokensToLexicalSerialized(
-  tokens: ThemedToken[][],
-  diff: boolean,
-  colorReplacements?: AllColorReplacements,
-): INode[] {
+function mapTokensToLexicalSerialized(tokens: ThemedToken[][], diff: boolean): INode[] {
   const nodes: INode[] = [];
 
   tokens.forEach((line, idx) => {
@@ -272,22 +254,6 @@ function mapTokensToLexicalSerialized(
         }
         if (part !== '') {
           const node = INodeHelper.createLikeTextNode('code-highlight', part);
-          if (token.htmlStyle?.['--shiki-light'] && colorReplacements?.['light']) {
-            const newColor = (colorReplacements['light'] as any)[
-              token.htmlStyle['--shiki-light'].toLowerCase()
-            ];
-            if (newColor) {
-              token.htmlStyle['--shiki-light'] = newColor;
-            }
-          }
-          if (token.htmlStyle?.['--shiki-dark'] && colorReplacements?.['dark']) {
-            const newColor = (colorReplacements['dark'] as any)[
-              token.htmlStyle['--shiki-dark'].toLowerCase()
-            ];
-            if (newColor) {
-              token.htmlStyle['--shiki-dark'] = newColor;
-            }
-          }
           const style = stringifyTokenStyle(token.htmlStyle || getTokenStyleObject(token));
           node.style = style;
           nodes.push(node);
@@ -299,11 +265,7 @@ function mapTokensToLexicalSerialized(
   return nodes;
 }
 
-function mapTokensToLexicalStructure(
-  tokens: ThemedToken[][],
-  diff: boolean,
-  colorReplacements?: AllColorReplacements,
-): LexicalNode[] {
+function mapTokensToLexicalStructure(tokens: ThemedToken[][], diff: boolean): LexicalNode[] {
   const nodes: LexicalNode[] = [];
 
   tokens.forEach((line, idx) => {
@@ -331,22 +293,6 @@ function mapTokensToLexicalStructure(
         }
         if (part !== '') {
           const node = $createCodeHighlightNode(part);
-          if (token.htmlStyle?.['--shiki-light'] && colorReplacements?.['light']) {
-            const newColor = (colorReplacements['light'] as any)[
-              token.htmlStyle['--shiki-light'].toLowerCase()
-            ];
-            if (newColor) {
-              token.htmlStyle['--shiki-light'] = newColor;
-            }
-          }
-          if (token.htmlStyle?.['--shiki-dark'] && colorReplacements?.['dark']) {
-            const newColor = (colorReplacements['dark'] as any)[
-              token.htmlStyle['--shiki-dark'].toLowerCase()
-            ];
-            if (newColor) {
-              token.htmlStyle['--shiki-dark'] = newColor;
-            }
-          }
           const style = stringifyTokenStyle(token.htmlStyle || getTokenStyleObject(token));
           node.setStyle(style);
           nodes.push(node);
@@ -363,8 +309,7 @@ const DIFF_LANGUAGE_REGEX = /^diff-([\w-]+)/i;
 export function getHighlightSerializeNode(
   code: string,
   language: string,
-  theme = 'poimandres',
-  colorReplacements?: { current?: AllColorReplacements },
+  theme = 'lobe-theme',
 ): INode[] {
   // Implementation goes here
 
@@ -388,34 +333,17 @@ export function getHighlightSerializeNode(
           theme: themes[0],
         };
 
-  const newColorReplacements: AllColorReplacements = {};
-
-  if (colorReplacements?.current && themes.length > 1) {
-    if (colorReplacements.current[themes[0]]) {
-      newColorReplacements['light'] = colorReplacements.current[themes[0]];
-    }
-    if (colorReplacements.current[themes[1]]) {
-      newColorReplacements['dark'] = colorReplacements.current[themes[1]];
-    }
-  } else if (colorReplacements?.current) {
-    options.colorReplacements = resolveColorReplacements(colorReplacements.current, themes[0]);
-  }
-
   const tokensResult: TokensResult = shiki.codeToTokens(code, options);
 
   const { tokens } = tokensResult;
 
-  return mapTokensToLexicalSerialized(tokens, !!diffLanguageMatch, newColorReplacements);
+  return mapTokensToLexicalSerialized(tokens, !!diffLanguageMatch);
 }
 
-export function $getHighlightNodes(
-  codeNode: CodeNode,
-  language: string,
-  colorReplacements?: { current?: AllColorReplacements },
-): LexicalNode[] {
+export function $getHighlightNodes(codeNode: CodeNode, language: string): LexicalNode[] {
   const diffLanguageMatch = DIFF_LANGUAGE_REGEX.exec(language);
   const code: string = codeNode.getTextContent();
-  const theme = codeNode.getTheme() || 'poimandres';
+  const theme = codeNode.getTheme() || 'lobe-theme';
 
   const themes = theme.split(' ');
 
@@ -435,19 +363,6 @@ export function $getHighlightNodes(
           theme: themes[0],
         };
 
-  const newColorReplacements: AllColorReplacements = {};
-
-  if (colorReplacements?.current && themes.length > 1) {
-    if (colorReplacements.current[themes[0]]) {
-      newColorReplacements['light'] = colorReplacements.current[themes[0]];
-    }
-    if (colorReplacements.current[themes[1]]) {
-      newColorReplacements['dark'] = colorReplacements.current[themes[1]];
-    }
-  } else if (colorReplacements?.current) {
-    options.colorReplacements = resolveColorReplacements(colorReplacements.current, themes[0]);
-  }
-
   const tokensResult: TokensResult = shiki.codeToTokens(code, options);
 
   const { tokens } = tokensResult;
@@ -461,7 +376,7 @@ export function $getHighlightNodes(
   // if (codeNode.getStyle() !== style) {
   //   codeNode.setStyle(style);
   // }
-  return mapTokensToLexicalStructure(tokens, !!diffLanguageMatch, newColorReplacements);
+  return mapTokensToLexicalStructure(tokens, !!diffLanguageMatch);
 }
 
 /**
@@ -471,7 +386,6 @@ export function $getHighlightNodes(
  * @param options - Additional highlighting options
  */
 export interface HighlightOptions {
-  colorReplacements?: AllColorReplacements;
   theme?: string;
 }
 
@@ -487,7 +401,7 @@ export function $getHighlightNodesWithOptions(
   }
 
   try {
-    return $getHighlightNodes(codeNode, language, { current: options?.colorReplacements });
+    return $getHighlightNodes(codeNode, language);
   } finally {
     // Restore original getTheme method
     if (options?.theme) {

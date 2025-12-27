@@ -1,7 +1,7 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix */
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css, token }) => ({
+export const styles = createStaticStyles(({ css, cssVar }) => ({
   image: css`
     cursor: default;
     user-select: none;
@@ -9,7 +9,7 @@ export const useStyles = createStyles(({ css, token }) => ({
     display: inline-block;
 
     &.selected {
-      background-color: ${token.colorPrimaryBg};
+      background-color: ${cssVar.colorPrimaryBg};
     }
   `,
 
@@ -24,7 +24,7 @@ export const useStyles = createStyles(({ css, token }) => ({
     text-align: center;
 
     &.selected {
-      background-color: ${token.colorPrimaryBg};
+      background-color: ${cssVar.colorPrimaryBg};
     }
   `,
 }));

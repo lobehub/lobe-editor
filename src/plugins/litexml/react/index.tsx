@@ -7,11 +7,10 @@ import { INodePlugin } from '@/plugins/inode';
 
 import { LitexmlPlugin } from '../plugin';
 import ReactDiffNodeToolbar from './DiffNodeToolbar';
-import { useStyles } from './style';
+import { styles } from './style';
 
 export const ReactLiteXmlPlugin: FC<void> = () => {
   const [editor] = useLexicalComposerContext();
-  const { styles } = useStyles();
 
   useLayoutEffect(() => {
     editor.registerPlugin(INodePlugin);
