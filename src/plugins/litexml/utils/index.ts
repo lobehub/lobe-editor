@@ -6,7 +6,11 @@ import {
   SerializedLexicalNode,
 } from 'lexical';
 
-export function $parseSerializedNodeImpl(serializedNode: any, editor: LexicalEditor): LexicalNode {
+export function $parseSerializedNodeImpl(
+  serializedNode: any,
+  editor: LexicalEditor,
+  keepId = false,
+): LexicalNode {
   const type = serializedNode.type;
   const registeredNode = editor._nodes.get(type);
 
@@ -21,6 +25,9 @@ export function $parseSerializedNodeImpl(serializedNode: any, editor: LexicalEdi
   }
 
   const node = nodeClass.importJSON(serializedNode);
+  if (keepId && serializedNode.id) {
+    node.__key = serializedNode.id;
+  }
   const children = serializedNode.children;
 
   if ($isElementNode(node) && Array.isArray(children)) {

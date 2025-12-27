@@ -163,5 +163,10 @@
     "access": "public",
     "provenance": true,
     "registry": "https://registry.npmjs.org"
+  },
+  "pnpm": {
+    "overrides": {
+      "chalk": "^4.1.2"
+    }
   }
 }

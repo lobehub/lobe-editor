@@ -12,7 +12,7 @@ import { createDebugLogger } from '@/utils/debug';
 
 import type { ILitexmlService, IWriterContext, IXmlNode } from '../service/litexml-service';
 import { LitexmlService } from '../service/litexml-service';
-import { charToId, idToChar } from '../utils';
+import { $parseSerializedNodeImpl, charToId, idToChar } from '../utils';
 
 const logger = createDebugLogger('plugin', 'litexml');
 
@@ -70,7 +70,17 @@ export default class LitexmlDataSource extends DataSource {
     try {
       const inode = this.readLiteXMLToInode(data);
 
-      editor.setEditorState(editor.parseEditorState(inode));
+      const newState = editor.parseEditorState(
+        {
+          root: INodeHelper.createRootNode(),
+        },
+        (state) => {
+          const root = $parseSerializedNodeImpl(inode.root, editor);
+          state._nodeMap.set(root.getKey(), root);
+        },
+      );
+
+      editor.setEditorState(newState);
     } catch (error) {
       logger.error('Failed to parse XML:', error);
       throw error;
