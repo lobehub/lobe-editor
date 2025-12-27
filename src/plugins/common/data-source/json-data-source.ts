@@ -69,8 +69,12 @@ export default class JSONDataSource extends DataSource {
         root: INodeHelper.createRootNode(),
       },
       (state) => {
-        const root = $parseSerializedNodeImpl(dataObj.root, editor, true);
-        state._nodeMap.set(root.getKey(), root);
+        try {
+          const root = $parseSerializedNodeImpl(dataObj.root, editor, true, state);
+          state._nodeMap.set(root.getKey(), root);
+        } catch (error) {
+          console.error(error);
+        }
       },
     );
     editor.setEditorState(state);

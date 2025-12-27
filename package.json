@@ -102,7 +102,6 @@
     "eventemitter3": "^5.0.1",
     "fuse.js": "^7.1.0",
     "katex": "^0.16.27",
-    "lexical": "^0.39.0",
     "lucide-react": "^0.562.0",
     "polished": "^4.3.1",
     "re-resizable": "^6.11.2",
