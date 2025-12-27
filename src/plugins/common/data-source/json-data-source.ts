@@ -196,6 +196,6 @@ export default class JSONDataSource extends DataSource {
         return selection.getNodes().map((node) => exportNodeToJSON(node));
       });
     }
-    return editor.read(() => exportNodeToJSON($getRoot()));
+    return editor.read(() => ({ root: exportNodeToJSON($getRoot()) }));
   }
 }
