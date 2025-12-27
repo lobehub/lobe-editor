@@ -37,14 +37,18 @@ export type IServiceID<Service> = {
 
 export interface IKernelEventMap {
   /**
+   * Document change event
+   */
+  documentChange: (type: string, content: any) => void;
+  /**
    * Editor editable state change event
    */
   editableChange: (editable: boolean) => void;
+
   /**
    * Editor error event
    */
   error: (error: Error) => void;
-
   /**
    * Initialization event
    * @param editor Lexical editor instance

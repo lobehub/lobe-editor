@@ -271,6 +271,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       throw new Error(`Editor is not initialized.`);
     }
     datasource.read(this.editor, content);
+    this.emit('documentChange', type, content);
     this.logger.debug(`📥 Set ${type} document`);
   }
 
