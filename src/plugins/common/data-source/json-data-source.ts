@@ -64,20 +64,25 @@ export default class JSONDataSource extends DataSource {
       }
     };
     process(dataObj.root);
-    const state = editor.parseEditorState(
-      {
-        root: INodeHelper.createRootNode(),
-      },
-      (state) => {
-        try {
-          const root = $parseSerializedNodeImpl(dataObj.root, editor, true, state);
-          state._nodeMap.set(root.getKey(), root);
-        } catch (error) {
-          console.error(error);
-        }
-      },
-    );
-    editor.setEditorState(state);
+    // @ts-expect-error add id option
+    if (dataObj.keepId) {
+      const state = editor.parseEditorState(
+        {
+          root: INodeHelper.createRootNode(),
+        },
+        (state) => {
+          try {
+            const root = $parseSerializedNodeImpl(dataObj.root, editor, true, state);
+            state._nodeMap.set(root.getKey(), root);
+          } catch (error) {
+            console.error(error);
+          }
+        },
+      );
+      editor.setEditorState(state);
+    } else {
+      editor.setEditorState(editor.parseEditorState({ root: dataObj.root }));
+    }
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {
