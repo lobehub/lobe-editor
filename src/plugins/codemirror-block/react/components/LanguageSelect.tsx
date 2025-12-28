@@ -4,6 +4,8 @@ import { Flexbox, MaterialFileTypeIcon, Select, Text } from '@lobehub/ui';
 import { cx } from 'antd-style';
 import { type FC, useMemo } from 'react';
 
+import { useTranslation } from '@/editor-kernel/react/useTranslation';
+
 import { MODES } from '../../lib/mode';
 import { styles } from './style';
 
@@ -15,6 +17,7 @@ export interface LanguageSelectProps {
 }
 
 export const LanguageSelect: FC<LanguageSelectProps> = ({ selectedLang, onLanguageChange }) => {
+  const t = useTranslation();
   // 语言选项，使用 useMemo 优化性能
   const languageOptions = useMemo(
     () =>
@@ -63,7 +66,7 @@ export const LanguageSelect: FC<LanguageSelectProps> = ({ selectedLang, onLangua
         }}
         onChange={onLanguageChange}
         options={languageOptions}
-        placeholder="选择语言"
+        placeholder={t('codemirror.selectLanguage')}
         showSearch
         size="small"
         value={selectedLang}

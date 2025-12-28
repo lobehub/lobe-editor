@@ -5,6 +5,8 @@ import { Popover, Switch } from 'antd';
 import { MoreHorizontalIcon } from 'lucide-react';
 import { type FC, useCallback } from 'react';
 
+import { useTranslation } from '@/editor-kernel/react/useTranslation';
+
 import { THEMES } from '../../lib/mode';
 
 export interface MoreOptionsProps {
@@ -38,6 +40,7 @@ export const MoreOptions: FC<MoreOptionsProps> = ({
   onShowLineNumbersChange,
   className,
 }) => {
+  const t = useTranslation();
   // 主题选项
   const themeOptions = THEMES.map((theme) => ({
     label: theme.name,
@@ -58,18 +61,18 @@ export const MoreOptions: FC<MoreOptionsProps> = ({
       content={
         <Flexbox gap={8} style={{ minWidth: 240 }}>
           <Flexbox align={'center'} gap={8} horizontal justify={'space-between'}>
-            <Text>Theme</Text>
+            <Text>{t('codemirror.theme')}</Text>
             <Select
               onChange={onThemeChange}
               options={themeOptions}
-              placeholder="选择主题"
+              placeholder={t('codemirror.selectTheme')}
               size="small"
               style={{ minWidth: '120px' }}
               value={selectedTheme}
             />
           </Flexbox>
           <Flexbox align={'center'} gap={8} horizontal justify={'space-between'}>
-            <Text>Tab Size</Text>
+            <Text>{t('codemirror.tabSize')}</Text>
             <InputNumber
               max={8}
               min={1}
@@ -79,11 +82,11 @@ export const MoreOptions: FC<MoreOptionsProps> = ({
             />
           </Flexbox>
           <Flexbox align={'center'} gap={8} horizontal justify={'space-between'}>
-            <Text>Use Tabs</Text>
+            <Text>{t('codemirror.useTabs')}</Text>
             <Switch checked={useTabs} onChange={onUseTabsChange} size="small" />
           </Flexbox>
           <Flexbox align={'center'} gap={8} horizontal justify={'space-between'}>
-            <Text>Show Line Numbers</Text>
+            <Text>{t('codemirror.showLineNumbers')}</Text>
             <Switch checked={showLineNumbers} onChange={onShowLineNumbersChange} size="small" />
           </Flexbox>
         </Flexbox>

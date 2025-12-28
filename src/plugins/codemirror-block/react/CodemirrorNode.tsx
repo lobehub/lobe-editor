@@ -9,6 +9,7 @@ import { $getSelection, COMMAND_PRIORITY_CRITICAL, KEY_DOWN_COMMAND, LexicalEdit
 import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
+import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
@@ -26,6 +27,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   const ref = useRef<HTMLTextAreaElement>(null);
   const keydownRef = useRef('');
   const instanceRef = useRef<any>(null);
+  const t = useTranslation();
   const [isSelected, setSelected, clearSelection, isNodeSelected] = useLexicalNodeSelection(
     node.getKey(),
   );
@@ -45,12 +47,12 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       const code = instanceRef.current.getValue();
       try {
         await navigator.clipboard.writeText(code);
-        message.success('代码已复制到剪贴板');
+        message.success(t('codemirror.copySuccess'));
       } catch {
-        message.error('复制失败');
+        message.error(t('codemirror.copyFailed'));
       }
     }
-  }, []);
+  }, [t]);
 
   // 更改语言
   const handleLanguageChange = useCallback(
