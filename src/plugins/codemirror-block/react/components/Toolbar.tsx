@@ -1,9 +1,10 @@
 'use client';
 
 import { ActionIcon, Flexbox } from '@lobehub/ui';
-import { ChevronDown, ChevronRight, Copy } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { type FC } from 'react';
 
+import CopyButton from './CopyButton';
 import { LanguageSelect } from './LanguageSelect';
 import { MoreOptions } from './MoreOptions';
 
@@ -48,7 +49,6 @@ export const Toolbar: FC<ToolbarProps> = ({
       <LanguageSelect onLanguageChange={onLanguageChange} selectedLang={selectedLang} />
       <Flexbox gap={4} horizontal onClick={(e) => e.stopPropagation()}>
         <MoreOptions
-          className={'cm-hidden-actions'}
           onShowLineNumbersChange={onShowLineNumbersChange}
           onTabSizeChange={onTabSizeChange}
           onUseTabsChange={onUseTabsChange}
@@ -56,7 +56,7 @@ export const Toolbar: FC<ToolbarProps> = ({
           tabSize={tabSize}
           useTabs={useTabs}
         />
-        <ActionIcon className={'cm-hidden-actions'} icon={Copy} onClick={onCopy} size="small" />
+        <CopyButton onCopy={onCopy} />
         <ActionIcon
           icon={expand ? ChevronDown : ChevronRight}
           onClick={toggleExpand}

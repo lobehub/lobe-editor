@@ -8,7 +8,6 @@ import { type FC, useCallback } from 'react';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 export interface MoreOptionsProps {
-  className?: string;
   /** 行号显示变更回调 */
   onShowLineNumbersChange: (checked: boolean) => void;
   /** Tab 大小变更回调 */
@@ -30,7 +29,6 @@ export const MoreOptions: FC<MoreOptionsProps> = ({
   onUseTabsChange,
   showLineNumbers,
   onShowLineNumbersChange,
-  className,
 }) => {
   const t = useTranslation();
 
@@ -70,7 +68,7 @@ export const MoreOptions: FC<MoreOptionsProps> = ({
       placement="bottomRight"
       trigger="click"
     >
-      <ActionIcon className={className} icon={MoreHorizontalIcon} size="small" />
+      <ActionIcon className={'cm-hidden-actions'} icon={MoreHorizontalIcon} size="small" />
     </Popover>
   );
 };

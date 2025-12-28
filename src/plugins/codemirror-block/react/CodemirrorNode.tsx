@@ -47,7 +47,6 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       const code = instanceRef.current.getValue();
       try {
         await navigator.clipboard.writeText(code);
-        message.success(t('codemirror.copySuccess'));
       } catch {
         message.error(t('codemirror.copyFailed'));
       }
