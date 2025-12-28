@@ -85,6 +85,7 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({
                 if (json !== jsonValueRef.current) {
                   try {
                     const json = JSON.parse(jsonValueRef.current || '');
+                    json.keepId = true;
                     onJSONChange?.(json);
                   } catch (error) {
                     console.error('Invalid JSON:', error);
