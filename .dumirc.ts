@@ -81,8 +81,7 @@ export default defineConfig({
   apiParser: isProduction ? {} : false,
   base: '/',
   define: {
-    'process.env.DEBUG': isProduction ? undefined : process.env.DEBUG,
-    'process.env.NODE_ENV': process.env.NODE_ENV,
+    'process.env': process.env,
   },
   extraBabelPlugins: ['babel-plugin-antd-style'],
   favicons: ['https://lobehub.com/favicon.ico'],
@@ -90,15 +89,15 @@ export default defineConfig({
   locales: [{ id: 'en-US', name: 'English' }],
   mfsu: isWin ? undefined : {},
   npmClient: 'pnpm',
-  proxy: isProduction
-    ? {}
-    : {
-        '/nodeserver': {
-          changeOrigin: true,
-          pathRewrite: (path: string) => path.replace(/^\/nodeserver/, ''),
-          target: 'http://localhost:3000',
-        },
-      },
+  // proxy: isProduction
+  //   ? undefined
+  //   : {
+  //       '/nodeserver': {
+  //         changeOrigin: true,
+  //         pathRewrite: (path: string) => path.replace(/^\/nodeserver/, ''),
+  //         target: 'http://localhost:3000',
+  //       },
+  //     },
   publicPath: '/',
   resolve: {
     atomDirs: packages.map((pkg) => ({ dir: `src/${pkg}`, subType: pkg, type: 'component' })),

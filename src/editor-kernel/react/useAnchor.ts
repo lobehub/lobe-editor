@@ -12,6 +12,9 @@ export const useAnchor = () => {
     if (typeof document === 'undefined' || !editor) return;
     const root = editor.getRootElement();
     const anchor = root ? root.parentElement : null;
-    return anchor || document.body;
+    if (anchor) return anchor;
+    // Fallback to .ant-app if exists, otherwise document.body
+    const antApp = document.querySelector('.ant-app') as HTMLElement;
+    return antApp || document.body;
   }, [editor]);
 };
