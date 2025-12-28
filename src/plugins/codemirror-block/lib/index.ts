@@ -13,7 +13,7 @@ export interface Options {
   preventCopy?: boolean;
   readOnly?: boolean;
   tabSize?: number;
-  theme?: 'default' | 'One Dark Pro';
+  theme?: 'default';
   value?: string;
 }
 

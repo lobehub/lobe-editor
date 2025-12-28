@@ -10,6 +10,7 @@ import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
+import { lobeTheme } from '@/plugins/codemirror-block/react/theme';
 
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
@@ -31,7 +32,6 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   const [isSelected, setSelected, clearSelection, isNodeSelected] = useLexicalNodeSelection(
     node.getKey(),
   );
-  const [selectedTheme, setSelectedTheme] = useState('One Dark Pro');
   const [selectedLang, setSelectedLang] = useState(node.lang || 'javascript');
   // use any to avoid strict typing on optional persistence fields
   const [tabSize, setTabSize] = useState<number>(node.options.tabSize ?? 2);
@@ -63,20 +63,6 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       }
       editor.update(() => {
         node.setLang(value);
-      });
-    },
-    [editor, node],
-  );
-
-  // 更改主题
-  const handleThemeChange = useCallback(
-    (value: string) => {
-      setSelectedTheme(value);
-      if (instanceRef.current) {
-        instanceRef.current.setOption('theme', value);
-      }
-      editor.update(() => {
-        node.setCodeTheme(value);
       });
     },
     [editor, node],
@@ -160,7 +146,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           lineNumbers: showLineNumbers,
           mode: node.lang,
           tabSize,
-          theme: 'One Dark Pro',
+          theme: 'default',
           value: node.code,
         });
 
@@ -168,113 +154,9 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
 
         instance.view.dispatch({
           effects: instance.optionHelper.theme.reconfigure(
-            instance.view.constructor.theme(
-              {
-                '&': {
-                  '& .cm-cursor': {
-                    'border-left-color': '#286ada',
-                  },
-                  '& .cm-gutters': {
-                    'background-color': '#fafafa',
-                    'border': 'none',
-                  },
-                  '& .cm-line': {
-                    '& .box-css .cm-tag': {
-                      color: '#22863a',
-                    },
-                    '& .box-html .cm-atom': {
-                      color: '#004fb4',
-                    },
-                    '& .cm-atom': {
-                      color: '#905',
-                    },
-                    '& .cm-attribute': {
-                      color: '#6f42c1',
-                    },
-                    '& .cm-builtin': {
-                      color: '#6f42c1',
-                    },
-                    '& .cm-comment': {
-                      color: '#6a737d',
-                    },
-                    '& .cm-foldPlaceholder': {
-                      'background': `url("data:image/svg+xml,%3Csvg width='16' height='16' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Crect fill='%23E8E8E8' width='16' height='16' rx='2'/%3E%3Cpath d='M2.75 7.984a.875.875 0 1 0 1.75 0 .875.875 0 0 0-1.75 0Zm4.375 0a.875.875 0 1 0 1.75 0 .875.875 0 0 0-1.75 0Zm4.375 0a.875.875 0 1 0 1.75 0 .875.875 0 0 0-1.75 0Z' fill='%232A3238'/%3E%3C/g%3E%3C/svg%3E") no-repeat`,
-                      'border': 'none',
-                      'color': 'transparent',
-                      'display': 'inline-block',
-                      'height': '16px',
-                      'padding': 0,
-                      'vertical-align': 'middle',
-                      'width': '16px',
-                    },
-                    '& .cm-header': {
-                      color: 'blue',
-                    },
-                    '& .cm-keyword': {
-                      color: '#d73a49',
-                    },
-                    '& .cm-meta': {
-                      color: '#1f7f9a',
-                    },
-                    '& .cm-number': {
-                      color: '#005cc5',
-                    },
-                    '& .cm-operator': {
-                      color: '#e10023',
-                    },
-                    '& .cm-property': {
-                      color: '#005cc5',
-                    },
-                    '& .cm-qualifier': {
-                      color: '#555',
-                    },
-                    '& .cm-string': {
-                      color: '#690',
-                    },
-                    '& .cm-string-2': {
-                      color: '#690',
-                    },
-                    '& .cm-tag': {
-                      color: '#22863a',
-                    },
-                    '& .cm-tag.cm-bracket': {
-                      color: '#997',
-                    },
-                    '& .cm-variable': {
-                      color: '#232930',
-                    },
-                    '& .cm-variable-2': {
-                      color: '#005cc5',
-                    },
-                    '& .cm-variable-3': {
-                      color: '#22863a',
-                    },
-                    '& .cm-variable.cm-callee': {
-                      color: '#3ef231',
-                    },
-                    '& .cm-variable.cm-def': {
-                      color: '#a13000',
-                    },
-                    'color': '#262626',
-                  },
-                },
-                '& .cm-selectionMatch': {
-                  background: 'rgba(80, 153, 236, 0.5)',
-                },
-                '&.cm-editor': {
-                  background: '#fafafa',
-                },
-                '&.cm-editor.cm-focused .cm-selectionBackground': {
-                  background: 'rgba(80, 153, 236, 0.5)',
-                },
-                '&.cm-editor.cm-focused .cm-selectionLineGutter': {
-                  color: '#000',
-                },
-              },
-              {
-                dark: false,
-              },
-            ),
+            instance.view.constructor.theme(lobeTheme, {
+              dark: false,
+            }),
           ),
         });
 
@@ -369,10 +251,8 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         onLanguageChange={handleLanguageChange}
         onShowLineNumbersChange={handleShowLineNumbersChange}
         onTabSizeChange={handleTabSizeChange}
-        onThemeChange={handleThemeChange}
         onUseTabsChange={handleUseTabsChange}
         selectedLang={selectedLang}
-        selectedTheme={selectedTheme}
         showLineNumbers={showLineNumbers}
         tabSize={tabSize}
         toggleExpand={() => setExpand(!expand)}

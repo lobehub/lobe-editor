@@ -218,67 +218,30 @@ export function modeMatch(mode = '') {
   return findMode?.value || 'plain';
 }
 
-export const DEFAULT_THEME = 'default';
-export const DEFAULT_DARDK_THEME = 'dark-default';
-export const DARCULAR_THEME = 'Darcula';
-export const NIGHT_OWL_THEME = 'Night Owl';
-export const ONE_DARK_PRO_THEME = 'One Dark Pro';
-export const GITHUB_THEME = 'Github Light';
-export const BRACKET_LIGHTS_PRO_THEME = 'Bracket Lights Pro';
+export const LOBE_THEME = 'default';
 
 export enum CODE_THEME_ENUM {
-  BRACKET_LIGHTS_PRO = 'Bracket Lights Pro',
-  DARCULAR = 'Darcula',
-  DEFAULT = 'default',
-  DEFAULT_DARDK = 'dark-default',
-  GITHUB = 'Github Light',
-  NIGHT_OWL = 'Night Owl',
-  ONE_DARK_PRO = 'One Dark Pro',
+  LOBE = 'default',
 }
 
 export const THEMES = [
   {
     isDark: false,
-    name: 'Yuque Light Pro',
-    value: CODE_THEME_ENUM.GITHUB, // 是否是深色主题
-  },
-  {
-    isDark: false,
-    name: 'Yuque Light',
-    value: CODE_THEME_ENUM.DEFAULT,
-  },
-  {
-    isDark: false,
-    name: CODE_THEME_ENUM.BRACKET_LIGHTS_PRO,
-    value: CODE_THEME_ENUM.BRACKET_LIGHTS_PRO,
-  },
-  {
-    isDark: true,
-    name: CODE_THEME_ENUM.ONE_DARK_PRO,
-    value: CODE_THEME_ENUM.ONE_DARK_PRO,
-  },
-  {
-    isDark: true,
-    name: CODE_THEME_ENUM.NIGHT_OWL,
-    value: CODE_THEME_ENUM.NIGHT_OWL,
-  },
-  {
-    isDark: true,
-    name: CODE_THEME_ENUM.DARCULAR,
-    value: CODE_THEME_ENUM.DARCULAR,
+    name: CODE_THEME_ENUM.LOBE,
+    value: CODE_THEME_ENUM.LOBE,
   },
 ];
 
 // 默认主题下 codeblock 首选风格名
-export const DEFAULT_CODEBLOCK_THEME_NAME = CODE_THEME_ENUM.DEFAULT;
+export const DEFAULT_CODEBLOCK_THEME_NAME = CODE_THEME_ENUM.LOBE;
 
 // dark主题下 codeblock 首选风格名
-export const DARK_CODEBLOCK_THEME_NAME = CODE_THEME_ENUM.DARCULAR;
+export const DARK_CODEBLOCK_THEME_NAME = CODE_THEME_ENUM.LOBE;
 
-export function getValidTheme(theme: string, isDark?: boolean) {
+export function getValidTheme(theme: string) {
   const find = THEMES.find((v) => v.value === theme || v.name === theme);
   if (find) {
     return find.value;
   }
-  return isDark ? DARK_CODEBLOCK_THEME_NAME : DEFAULT_CODEBLOCK_THEME_NAME;
+  return DEFAULT_CODEBLOCK_THEME_NAME;
 }

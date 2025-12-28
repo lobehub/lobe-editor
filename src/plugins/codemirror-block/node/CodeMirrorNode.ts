@@ -292,7 +292,7 @@ export class CodeMirrorNode extends DecoratorNode<any> {
 export function $createCodeMirrorNode(
   lang: string,
   code = '',
-  codeTheme = 'One Dark Pro',
+  codeTheme = 'default',
   options: CodeMirrorOptions = DEFAULT_OPTIONS,
 ): CodeMirrorNode {
   return $applyNodeReplacement(new CodeMirrorNode(lang, code, codeTheme, options));

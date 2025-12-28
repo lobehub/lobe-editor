@@ -14,10 +14,8 @@ export interface ToolbarProps {
   onLanguageChange: (value: string) => void;
   onShowLineNumbersChange: (checked: boolean) => void;
   onTabSizeChange: (value: number | null) => void;
-  onThemeChange: (value: string) => void;
   onUseTabsChange: (checked: boolean) => void;
   selectedLang: string;
-  selectedTheme: string;
   showLineNumbers: boolean;
   tabSize: number;
   toggleExpand?: () => void;
@@ -27,8 +25,6 @@ export interface ToolbarProps {
 export const Toolbar: FC<ToolbarProps> = ({
   selectedLang,
   onLanguageChange,
-  selectedTheme,
-  onThemeChange,
   onCopy,
   tabSize,
   onTabSizeChange,
@@ -55,9 +51,7 @@ export const Toolbar: FC<ToolbarProps> = ({
           className={'cm-hidden-actions'}
           onShowLineNumbersChange={onShowLineNumbersChange}
           onTabSizeChange={onTabSizeChange}
-          onThemeChange={onThemeChange}
           onUseTabsChange={onUseTabsChange}
-          selectedTheme={selectedTheme}
           showLineNumbers={showLineNumbers}
           tabSize={tabSize}
           useTabs={useTabs}

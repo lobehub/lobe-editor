@@ -32,40 +32,6 @@ export const styles = createStaticStyles(
         grayscale 0.2s ease-in-out;
     }
 
-    .cm-editor {
-      cursor: text;
-      width: 100%;
-      padding-block: 12px;
-      background: transparent;
-
-      span {
-        font-family: ${cssVar.fontFamilyCode};
-        font-size: calc(var(--lobe-markdown-font-size) * 0.8);
-      }
-    }
-
-    .cm-line {
-      padding-inline: 12px;
-    }
-
-    .cm-gutters {
-      cursor: default;
-      color: ${cssVar.colorTextQuaternary};
-      background: transparent;
-    }
-
-    .cm-cursor.cm-cursor-primary {
-      border-inline-start: 2px solid ${cssVar.colorPrimary} !important;
-    }
-
-    .cm-selectionBackground {
-      background: transparent;
-    }
-
-    .ͼ3.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
-      background: ${cssVar.yellow};
-    }
-
     &.selected {
       user-select: none;
     }
