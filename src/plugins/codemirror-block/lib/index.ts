@@ -45,6 +45,11 @@ export interface ICodeMirrorInstance {
       | 'leftOut',
     handler: (...args: any[]) => void,
   ): void;
+  optionHelper: {
+    theme: {
+      reconfigure: (theme: any) => void;
+    };
+  };
   redoSelection(): void;
   replaceSelection(text: string): void;
   setOption(option: keyof Options, value: any): void;
@@ -53,6 +58,12 @@ export interface ICodeMirrorInstance {
   setSelectionToStart(): void;
   setValue(value: string): void;
   undoSelection(): void;
+  view: {
+    constructor: {
+      theme: (options: any, settings: any) => any;
+    };
+    dispatch: (params: { effects: any }) => void;
+  };
 }
 
 export interface ICodeMirror {

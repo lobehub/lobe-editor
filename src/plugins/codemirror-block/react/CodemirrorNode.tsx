@@ -164,6 +164,23 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           value: node.code,
         });
 
+        console.info(instance);
+
+        instance.view.dispatch({
+          effects: instance.optionHelper.theme.reconfigure(
+            instance.view.constructor.theme(
+              {
+                '&.cm-editor': {
+                  background: 'red',
+                },
+              },
+              {
+                dark: false,
+              },
+            ),
+          ),
+        });
+
         instance.on('keydown', (instance, e) => {
           e.stopPropagation();
         });
