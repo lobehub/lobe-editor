@@ -43,6 +43,14 @@ export interface IMarkdownWriterContext {
   appendLine: (line: string) => void;
 
   /**
+   * Control child node to markdown
+   * @param parentCtx
+   * @param child
+   * @returns
+   */
+  processChild: (parentCtx: IMarkdownWriterContext, child: LexicalNode) => void;
+
+  /**
    * Wrap child elements
    * @param before
    * @param after

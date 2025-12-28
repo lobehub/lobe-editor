@@ -187,7 +187,7 @@ describe('Common Plugin Tests', () => {
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
     expect(markdown).toBe(
-      '# This is a title\n\n# ModifiedText\n\nThis is <ins>underline</ins> and this is <ins>underline2</ins>\n\nTHIS IS <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+      '# ModifiedText\n\nTHIS IS <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
   });
 });

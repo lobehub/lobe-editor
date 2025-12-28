@@ -1,6 +1,7 @@
 import { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { IMarkdownShortCutService } from '@/plugins/markdown';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 
 import { registerLiteXMLCommand } from '../command';
@@ -76,10 +77,11 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     this.register(registerLiteXMLCommand(editor, this.datasource));
     this.register(registerLiteXMLDiffCommand(editor));
 
-    this.regiserLiteXml();
+    this.registerLiteXml();
+    this.registerMarkdown();
   }
 
-  private regiserLiteXml() {
+  private registerLiteXml() {
     this.service.registerXMLWriter(DiffNode.getType(), (node, ctx, indent, nodeToXML) => {
       const diffNode = node as DiffNode;
       const lines: string[] = [];
@@ -108,6 +110,36 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
       return {
         lines: lines,
       };
+    });
+  }
+
+  private registerMarkdown() {
+    const markdownService = this.kernel.requireService(IMarkdownShortCutService);
+    markdownService?.registerMarkdownWriter(DiffNode.getType(), (ctx, node) => {
+      const diffNode = node as DiffNode;
+      switch (diffNode.diffType) {
+        case 'modify': {
+          ctx.processChild(ctx, diffNode.getChildAtIndex(1) as LexicalNode);
+          break;
+        }
+        case 'add': {
+          ctx.processChild(ctx, diffNode.getChildAtIndex(0) as LexicalNode);
+          break;
+        }
+        case 'remove': {
+          break;
+        }
+        case 'listItemModify': {
+          (diffNode.getChildAtIndex(1) as ElementNode).getChildren().forEach((child) => {
+            ctx.processChild(ctx, child);
+          });
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+      return true;
     });
   }
 };

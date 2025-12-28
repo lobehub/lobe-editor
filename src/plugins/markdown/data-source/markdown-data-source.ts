@@ -3,7 +3,6 @@ import { $isTableSelection } from '@lexical/table';
 import type {
   ElementNode,
   LexicalEditor,
-  LexicalNode,
   SerializedElementNode,
   SerializedLexicalNode,
 } from 'lexical';
@@ -50,24 +49,6 @@ export default class MarkdownDataSource extends DataSource {
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {
-    const processChild = (parentCtx: MarkdownWriterContext, child: LexicalNode) => {
-      const writer = this.markdownService.markdownWriters[child.getType()];
-      let currentCtx = parentCtx;
-      if ($isElementNode(child)) {
-        currentCtx = currentCtx.newChild();
-      }
-      let skipChildren: boolean | undefined = false;
-      if (writer) {
-        skipChildren = writer(currentCtx, child) as boolean | undefined;
-      }
-      if (skipChildren) {
-        return;
-      }
-      if ($isElementNode(child)) {
-        child.getChildren().forEach((child) => processChild(currentCtx, child));
-      }
-    };
-
     if (options?.selection) {
       return editor.getEditorState().read(() => {
         const selection = $getSelection();
@@ -192,10 +173,10 @@ export default class MarkdownDataSource extends DataSource {
           const editorState = editor.parseEditorState({ root: rootNode });
 
           const lexicalRootNode = editorState._nodeMap.get('root') as ElementNode;
-          const rootCtx = new MarkdownWriterContext();
+          const rootCtx = new MarkdownWriterContext(this.markdownService);
 
           return editorState.read(() => {
-            lexicalRootNode.getChildren().forEach((child) => processChild(rootCtx, child));
+            lexicalRootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
             return rootCtx.toString();
           });
         } else if ($isTableSelection(selection)) {
@@ -214,19 +195,19 @@ export default class MarkdownDataSource extends DataSource {
         const editorState = editor.parseEditorState({ root: rootNode });
 
         const lexicalRootNode = editorState._nodeMap.get('root') as ElementNode;
-        const rootCtx = new MarkdownWriterContext();
+        const rootCtx = new MarkdownWriterContext(this.markdownService);
 
         return editorState.read(() => {
-          lexicalRootNode.getChildren().forEach((child) => processChild(rootCtx, child));
+          lexicalRootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
           return rootCtx.toString();
         });
       });
     }
     return editor.getEditorState().read(() => {
       const rootNode = $getRoot();
-      const rootCtx = new MarkdownWriterContext();
+      const rootCtx = new MarkdownWriterContext(this.markdownService);
 
-      rootNode.getChildren().forEach((child) => processChild(rootCtx, child));
+      rootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
       return rootCtx.toString();
     });
   }
