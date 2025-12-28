@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;3.2.2](https://github.com/lobehub/lobe-editor/compare/v3.2.1...v3.2.2)
+<sup>Released on **2025-12-28**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix portal render.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix portal render ([1ce4e93](https://github.com/lobehub/lobe-editor/commit/1ce4e93))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.2.1](https://github.com/lobehub/lobe-editor/compare/v3.2.0...v3.2.1)
 <sup>Released on **2025-12-27**</sup>
 

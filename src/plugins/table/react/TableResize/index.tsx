@@ -11,7 +11,7 @@ import {
   getTableElement,
 } from '@lexical/table';
 import { calculateZoomLevel, mergeRegister } from '@lexical/utils';
-import { cssVar , cx } from 'antd-style';
+import { cssVar, cx } from 'antd-style';
 import EventEmitter from 'eventemitter3';
 import {
   $getNearestNodeFromDOMNode,
@@ -437,8 +437,8 @@ export default memo<ReactTableResizeHandleProps>(({ editor, eventEmitter }) => {
     return null;
   }
 
-  return createPortal(
-    <TableCellResize editor={editor} eventEmitter={eventEmitter} />,
-    document.body,
-  );
+  // Mount to .ant-app if exists, otherwise document.body
+  const container = (document.querySelector('.ant-app') as HTMLElement) || document.body;
+
+  return createPortal(<TableCellResize editor={editor} eventEmitter={eventEmitter} />, container);
 });
