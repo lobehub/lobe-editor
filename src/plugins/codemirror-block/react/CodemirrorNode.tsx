@@ -1,21 +1,20 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { ActionIcon, Block, InputNumber, Select } from '@lobehub/ui';
-import { Popover, Space, Switch, message } from 'antd';
+import { Block } from '@lobehub/ui';
+import { message } from 'antd';
+import { cx } from 'antd-style';
+import { debounce } from 'es-toolkit/compat';
 import { $getSelection, COMMAND_PRIORITY_CRITICAL, KEY_DOWN_COMMAND, LexicalEditor } from 'lexical';
-import { debounce } from 'lodash';
-import { Copy, Settings } from 'lucide-react';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Flexbox } from 'react-layout-kit';
+import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
-import { MODES, THEMES } from '../lib/mode';
 import { CodeMirrorNode } from '../node/CodeMirrorNode';
-import { useStyles } from './style';
+import { Toolbar } from './components/Toolbar';
+import { styles } from './style';
 
 interface ReactCodemirrorNodeProps {
   className?: string;
@@ -23,12 +22,10 @@ interface ReactCodemirrorNodeProps {
   node: CodeMirrorNode;
 }
 
-const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, editor }) => {
+const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, editor }) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   const keydownRef = useRef('');
   const instanceRef = useRef<any>(null);
-  const [isSelectFocused, setSelectFocused] = useState(false);
-  const [isFocused, setFocused] = useState(false);
   const [isSelected, setSelected, clearSelection, isNodeSelected] = useLexicalNodeSelection(
     node.getKey(),
   );
@@ -37,20 +34,10 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
   // use any to avoid strict typing on optional persistence fields
   const [tabSize, setTabSize] = useState<number>(node.options.tabSize ?? 2);
   const [useTabs, setUseTabs] = useState<boolean>(node.options.indentWithTabs ?? false);
-  const [showLineNumbers, setShowLineNumbers] = useState<boolean>(node.options.lineNumbers ?? true);
-  const { cx, styles } = useStyles();
-
-  // 语言选项
-  const languageOptions = MODES.map((mode) => ({
-    label: mode.name,
-    value: mode.value,
-  }));
-
-  // 主题选项
-  const themeOptions = THEMES.map((theme) => ({
-    label: theme.name,
-    value: theme.value,
-  }));
+  const [showLineNumbers, setShowLineNumbers] = useState<boolean>(
+    node.options.lineNumbers ?? false,
+  );
+  const [expand, setExpand] = useState<boolean>(true);
 
   // 复制代码
   const handleCopy = useCallback(async () => {
@@ -136,7 +123,7 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
   );
 
   useEffect(() => {
-    const sel = editor.read(() => $getSelection());
+    const sel = editor.getEditorState().read(() => $getSelection());
     // 鼠标主动点击导致的选中，不处理
     if (instanceRef.current?.view.hasFocus && sel === null) {
       return;
@@ -168,7 +155,7 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
         const instance = CodeMirror.fromTextArea(dom, {
           // keep options alphabetically ordered
           indentWithTabs: useTabs,
-          lineNumbers: true,
+          lineNumbers: showLineNumbers,
           mode: node.lang,
           tabSize,
           theme: 'One Dark Pro',
@@ -202,14 +189,9 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
             });
           }),
         );
-
-        instance.on('blur', () => {
-          setFocused(false);
-        });
         instance.on('focus', () => {
-          setFocused(true);
           if (
-            editor.read(() => {
+            editor.getEditorState().read(() => {
               const sel = $getSelection();
               if (!sel) return false;
               if (sel?.getNodes().length > 1 || !sel?.getNodes().includes(node)) {
@@ -264,92 +246,30 @@ const ReactCodemirrorNode = memo<ReactCodemirrorNodeProps>(({ node, className, e
       variant={'filled'}
     >
       {/* 工具条 */}
-      <Flexbox align={'center'} horizontal justify={'space-between'} padding={8}>
-        <Flexbox
-          align={'center'}
-          gap={8}
-          horizontal
-          style={{
-            visibility: isFocused || isSelectFocused ? 'visible' : 'hidden',
-          }}
-        >
-          <Select
-            filterOption={(input, option) =>
-              String(option?.label ?? '')
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
-            onBlur={() => setSelectFocused(false)}
-            onChange={handleLanguageChange}
-            onFocus={() => setSelectFocused(true)}
-            options={languageOptions}
-            placeholder="选择语言"
-            showSearch
-            size="small"
-            style={{ minWidth: '120px' }}
-            value={selectedLang}
-          />
-          <Select
-            onBlur={() => setSelectFocused(false)}
-            onChange={handleThemeChange}
-            onFocus={() => setSelectFocused(true)}
-            options={themeOptions}
-            placeholder="选择主题"
-            size="small"
-            style={{ minWidth: '120px' }}
-            value={selectedTheme}
-          />
-        </Flexbox>
-        <Flexbox gap={8} horizontal>
-          <ActionIcon
-            icon={Copy}
-            onClick={handleCopy}
-            onMouseDown={(e) => e.preventDefault()}
-            size="small"
-          />
-          <Popover
-            arrow={false}
-            content={
-              <Space direction="vertical">
-                <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
-                  <span>Tab Size</span>
-                  <InputNumber
-                    max={8}
-                    min={1}
-                    onChange={handleTabSizeChange as any}
-                    size="small"
-                    value={tabSize}
-                  />
-                </div>
-                <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
-                  <span>Use Tabs</span>
-                  <Switch checked={useTabs} onChange={handleUseTabsChange} size="small" />
-                </div>
-                <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
-                  <span>Show Line Numbers</span>
-                  <Switch
-                    checked={showLineNumbers}
-                    onChange={handleShowLineNumbersChange}
-                    size="small"
-                  />
-                </div>
-              </Space>
-            }
-            placement="bottomRight"
-            trigger="click"
-          >
-            <ActionIcon icon={Settings} onMouseDown={(e) => e.preventDefault()} size="small" />
-          </Popover>
-        </Flexbox>
-      </Flexbox>
+      <Toolbar
+        expand={expand}
+        onClick={() => setExpand(!expand)}
+        onCopy={handleCopy}
+        onLanguageChange={handleLanguageChange}
+        onShowLineNumbersChange={handleShowLineNumbersChange}
+        onTabSizeChange={handleTabSizeChange}
+        onThemeChange={handleThemeChange}
+        onUseTabsChange={handleUseTabsChange}
+        selectedLang={selectedLang}
+        selectedTheme={selectedTheme}
+        showLineNumbers={showLineNumbers}
+        tabSize={tabSize}
+        toggleExpand={() => setExpand(!expand)}
+        useTabs={useTabs}
+      />
 
       {/* CodeMirror 编辑器容器 */}
-      <div style={{ position: 'relative', width: '100%' }}>
-        <textarea ref={ref} />
+      <div className={cx('cm-container', !expand && 'cm-container-collapsed')}>
+        <textarea className={'cm-textarea'} ref={ref} />
       </div>
     </Block>
   );
-});
+};
 
 ReactCodemirrorNode.displayName = 'ReactCodemirrorNode';
 

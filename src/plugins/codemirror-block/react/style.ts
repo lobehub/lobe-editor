@@ -1,7 +1,7 @@
-import { createStyles } from 'antd-style';
+import { createStaticStyles } from 'antd-style';
 
-export const useStyles = createStyles(
-  ({ css, token, isDarkMode }) => css`
+export const styles = createStaticStyles(
+  ({ css, cssVar }) => css`
     cursor: pointer;
 
     position: relative;
@@ -13,18 +13,49 @@ export const useStyles = createStyles(
 
     width: 100%;
 
+    background: ${cssVar.colorFillQuaternary};
+
+    .cm-hidden-actions {
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    .cm-header-toolbar {
+      border-block-end: 1px solid ${cssVar.colorFillQuaternary};
+    }
+
+    .cm-language-select {
+      opacity: 0.5;
+      filter: grayscale(100%);
+      transition:
+        opacity,
+        grayscale 0.2s ease-in-out;
+    }
+
     .cm-editor {
+      cursor: text;
       width: 100%;
-      border-color: ${token.colorBorder};
-      border-style: dashed;
-      border-width: 1px;
-      border-block-start: none;
-      border-inline-start: none;
-      border-inline-end: none;
+      padding-block: 12px;
+      background: transparent;
+
+      span {
+        font-family: ${cssVar.fontFamilyCode};
+        font-size: calc(var(--lobe-markdown-font-size) * 0.8);
+      }
+    }
+
+    .cm-line {
+      padding-inline: 12px;
+    }
+
+    .cm-gutters {
+      cursor: default;
+      color: ${cssVar.colorTextQuaternary};
+      background: transparent;
     }
 
     .cm-cursor.cm-cursor-primary {
-      border-inline-start: 2px solid ${token.colorPrimary} !important;
+      border-inline-start: 2px solid ${cssVar.colorPrimary} !important;
     }
 
     .cm-selectionBackground {
@@ -32,7 +63,7 @@ export const useStyles = createStyles(
     }
 
     .ͼ3.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
-      background: ${isDarkMode ? token.yellow : token.colorBgContainer};
+      background: ${cssVar.yellow};
     }
 
     &.selected {
@@ -51,9 +82,35 @@ export const useStyles = createStyles(
       height: 100%;
 
       opacity: 0.2;
-      background: ${token.yellow};
+      background: ${cssVar.yellow};
 
       transition: all 0.3s;
+    }
+
+    .cm-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .cm-container-collapsed {
+      overflow: hidden;
+      height: 0;
+    }
+
+    .cm-textarea {
+      height: 44px;
+      opacity: 0;
+    }
+
+    &:hover {
+      .cm-hidden-actions {
+        opacity: 1;
+      }
+
+      .cm-language-select {
+        opacity: 1;
+        filter: grayscale(0);
+      }
     }
   `,
 );

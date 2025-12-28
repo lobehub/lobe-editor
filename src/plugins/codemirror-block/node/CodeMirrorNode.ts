@@ -41,7 +41,7 @@ const THEME_DATA_ATTRIBUTE = 'data-theme';
 
 const DEFAULT_OPTIONS: CodeMirrorOptions = {
   indentWithTabs: false,
-  lineNumbers: true,
+  lineNumbers: false,
   tabSize: 2,
 };
 
