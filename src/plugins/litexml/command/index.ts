@@ -167,7 +167,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
     editor.registerCommand(
       LITEXML_MODIFY_COMMAND,
       (payload) => {
-        payload.forEach((item) => {
+        payload.reverse().forEach((item) => {
           const { action } = item;
           switch (action) {
             case 'modify': {
