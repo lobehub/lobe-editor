@@ -18,16 +18,22 @@ if (!fs.existsSync(realSourceDir)) {
   process.exit(0);
 }
 
-const files = fs.readdirSync(realSourceDir);
+function copyToLexical(dir, target) {
+  const files = fs.readdirSync(dir);
 
-files.forEach((file) => {
-  if (file.endsWith('.js') || file.endsWith('.mjs')) {
-    const sourceFile = path.join(realSourceDir, file);
-    const targetFile = path.join(targetDir, file);
+  files.forEach((file) => {
+    const sourceFile = path.join(dir, file);
+    const targetFile = path.join(target, file);
+    if (fs.statSync(sourceFile).isDirectory()) {
+      copyToLexical(sourceFile, targetFile);
+      return;
+    }
 
-    if (fs.existsSync(targetFile)) {
+    if (fs.existsSync(sourceFile)) {
       fs.copyFileSync(sourceFile, targetFile);
       console.log(`Overwrote ${file} in node_modules/lexical/`);
     }
-  }
-});
+  });
+}
+
+copyToLexical(realSourceDir, targetDir);

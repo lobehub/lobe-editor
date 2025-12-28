@@ -17,7 +17,6 @@
     "paths": {
       "@@/*": [".dumi/tmp/*"],
       "@/*": ["./src/*"],
-      "lexical": ["./src/editor-kernel/lexical/index.d.ts"],
       "@lobehub/editor": ["./src"],
       "@lobehub/editor/*": ["./src/*"],
       "@lobehub/editor/react": ["./src/react"],
