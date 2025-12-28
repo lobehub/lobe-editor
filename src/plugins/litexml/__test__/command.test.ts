@@ -190,4 +190,28 @@ describe('Common Plugin Tests', () => {
       '# ModifiedText\n\nTHIS IS <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
   });
+
+  it('should LITEXML_MODIFY_COMMAND work (immediate and delay)', async () => {
+    kernel.setDocument(
+      'markdown',
+      '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+    );
+    // immediate modify (non-delay)
+    kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, [
+      {
+        action: 'insert',
+        afterId: 'll63',
+        litexml: '<p>New Contents</p>',
+      },
+      {
+        action: 'modify',
+        litexml: '<h1 id="ll63"><b>ModifiedTextDirect</b></h1>',
+      },
+    ]);
+    await moment();
+    const markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe(
+      '# **ModifiedTextDirect**\n\nNew Contents\n\nThis is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+    );
+  });
 });
