@@ -32,4 +32,4 @@ logs
 .next
 
 # codemirror
-src/plugins/codemirror-block/lib/codemirror.js
+packages/codemirror/src

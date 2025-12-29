@@ -1,0 +1,14 @@
+{
+  "name": "@lobehub/codemirror",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "LobeHub <i@lobehub.com>",
+  "main": "es/index.js",
+  "files": [
+    "es"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.js --outdir=es --minify",
+    "prepare": "npm run build"
+  }
+}

@@ -77,7 +77,7 @@ export async function loadCodeMirror() {
     CodeMirrorLoading = true;
     try {
       // @ts-expect-error not error
-      await import('./codemirror.js');
+      await import('@lobehub/codemirror');
     } catch (error) {
       CodeMirrorLoading = false;
       throw error;
