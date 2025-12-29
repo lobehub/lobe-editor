@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;3.3.1](https://github.com/lobehub/lobe-editor/compare/v3.3.0...v3.3.1)
+<sup>Released on **2025-12-29**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: Refactor cdn codemirror.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: Refactor cdn codemirror ([70dd21e](https://github.com/lobehub/lobe-editor/commit/70dd21e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.3.0](https://github.com/lobehub/lobe-editor/compare/v3.2.2...v3.3.0)
 <sup>Released on **2025-12-29**</sup>
 
