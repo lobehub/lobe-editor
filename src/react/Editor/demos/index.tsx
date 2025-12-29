@@ -10,7 +10,6 @@ import {
   INSERT_TABLE_COMMAND,
   ReactAutoCompletePlugin,
   ReactCodePlugin,
-  ReactCodeblockPlugin,
   ReactCodemirrorPlugin,
   ReactFilePlugin,
   ReactHRPlugin,

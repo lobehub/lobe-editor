@@ -30,6 +30,3 @@ logs
 # misc
 # add other ignore file below
 .next
-
-# codemirror
-packages/codemirror/src
