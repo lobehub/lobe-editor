@@ -32,6 +32,11 @@ import { noop } from '@/editor-kernel';
 import { INSERT_CODEINLINE_COMMAND } from '@/plugins/code';
 import { $isSelectionInCodeInline } from '@/plugins/code/node/code';
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
+import {
+  $createCodeMirrorNode,
+  $isCodeMirrorNode,
+  CodeMirrorNode,
+} from '@/plugins/codemirror-block/node/CodeMirrorNode';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
 import { INSERT_LINK_HIGHLIGHT_COMMAND } from '@/plugins/link-highlight/command';
 import { $isLinkHighlightNode } from '@/plugins/link-highlight/node/link-highlight';
@@ -176,10 +181,23 @@ export function useEditorState(editor?: IEditor): EditorState {
           $isLinkHighlightNode(parent) ||
           $isLinkHighlightNode(node),
       );
-      const isCodeBlock =
+      // Support both CodeNode (from codeblock plugin) and CodeMirrorNode (from codemirror-block plugin)
+      const isLexicalCodeBlock =
         $isCodeNode(element) && $isCodeNode(focusElement) && elementKey === focusElement.getKey();
+      const isCodeMirrorBlock =
+        $isCodeMirrorNode(element) &&
+        $isCodeMirrorNode(focusElement) &&
+        elementKey === focusElement.getKey();
+      const isCodeBlock = isLexicalCodeBlock || isCodeMirrorBlock;
       setIsInCodeblok(isCodeBlock);
-      setCodeblockLang(isCodeBlock ? element.getLanguage() : '');
+
+      if (isLexicalCodeBlock) {
+        setCodeblockLang(element.getLanguage());
+      } else if (isCodeMirrorBlock) {
+        setCodeblockLang((element as CodeMirrorNode).lang);
+      } else {
+        setCodeblockLang('');
+      }
 
       const isBlockquote =
         $isQuoteNode(element) && $isQuoteNode(focusElement) && elementKey === focusElement.getKey();
@@ -286,15 +304,43 @@ export function useEditorState(editor?: IEditor): EditorState {
         if (!selection) {
           return;
         }
-        if (!$isRangeSelection(selection) || selection.isCollapsed()) {
-          $setBlocksType(selection, () => $createCodeNode());
+
+        // Try to use CodeMirrorNode if available, otherwise fall back to CodeNode
+        const lexicalEditor = editor?.getLexicalEditor();
+        const hasCodeMirrorNode = lexicalEditor
+          ? lexicalEditor._nodes.has('code') &&
+            lexicalEditor._nodes.get('code')?.klass.name === 'CodeMirrorNode'
+          : false;
+
+        if (hasCodeMirrorNode) {
+          // Use CodeMirrorNode
+          if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+            const textContent = selection.getTextContent();
+            const codeMirrorNode = $createCodeMirrorNode('plain', textContent);
+            const nodeSelection = $createNodeSelection();
+            nodeSelection.add(codeMirrorNode.getKey());
+            selection.insertNodes([codeMirrorNode]);
+            $setSelection(nodeSelection);
+          } else {
+            const textContent = selection.getTextContent();
+            const codeMirrorNode = $createCodeMirrorNode('plain', textContent);
+            selection.insertNodes([codeMirrorNode]);
+            const nodeSelection = $createNodeSelection();
+            nodeSelection.add(codeMirrorNode.getKey());
+            $setSelection(nodeSelection);
+          }
         } else {
-          const textContent = selection.getTextContent();
-          const codeNode = $createCodeNode();
-          selection.insertNodes([codeNode]);
-          selection = $getSelection();
-          if ($isRangeSelection(selection)) {
-            selection.insertRawText(textContent);
+          // Use original CodeNode
+          if (!$isRangeSelection(selection) || selection.isCollapsed()) {
+            $setBlocksType(selection, () => $createCodeNode());
+          } else {
+            const textContent = selection.getTextContent();
+            const codeNode = $createCodeNode();
+            selection.insertNodes([codeNode]);
+            selection = $getSelection();
+            if ($isRangeSelection(selection)) {
+              selection.insertRawText(textContent);
+            }
           }
         }
       });

@@ -2,6 +2,112 @@
 
 # Changelog
 
+### [Version&nbsp;3.3.2](https://github.com/lobehub/lobe-editor/compare/v3.3.1...v3.3.2)
+<sup>Released on **2025-12-29**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix codemirror command.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix codemirror command ([27d1ee9](https://github.com/lobehub/lobe-editor/commit/27d1ee9))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;3.3.1](https://github.com/lobehub/lobe-editor/compare/v3.3.0...v3.3.1)
+<sup>Released on **2025-12-29**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: Refactor cdn codemirror.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: Refactor cdn codemirror ([70dd21e](https://github.com/lobehub/lobe-editor/commit/70dd21e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;3.3.0](https://github.com/lobehub/lobe-editor/compare/v3.2.2...v3.3.0)
+<sup>Released on **2025-12-29**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add codemirror plugin.
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix build, Fix build, Fix typo.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add codemirror plugin, closes [#56](https://github.com/lobehub/lobe-editor/issues/56) ([9bf4f07](https://github.com/lobehub/lobe-editor/commit/9bf4f07))
+
+
+
+#### What's fixed
+
+* **misc**: Fix build ([e8df563](https://github.com/lobehub/lobe-editor/commit/e8df563))
+* **misc**: Fix build ([740c319](https://github.com/lobehub/lobe-editor/commit/740c319))
+* **misc**: Fix typo ([fe43f8f](https://github.com/lobehub/lobe-editor/commit/fe43f8f))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.2.2](https://github.com/lobehub/lobe-editor/compare/v3.2.1...v3.2.2)
 <sup>Released on **2025-12-28**</sup>
 
