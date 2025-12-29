@@ -1,6 +1,14 @@
 {
   "name": "@lobehub/codemirror",
   "version": "1.0.0",
+  "homepage": "https://github.com/lobehub/lobe-editor",
+  "bugs": {
+    "url": "https://github.com/lobehub/lobe-editor/issues/new/choose"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lobehub/lobe-editor.git"
+  },
   "license": "MIT",
   "author": "LobeHub <i@lobehub.com>",
   "main": "es/index.js",
@@ -8,12 +16,11 @@
     "es"
   ],
   "scripts": {
-    "build": "bun build ./src/index.js --outdir=es --minify",
-    "prepare": "npm run build"
+    "build": "bun build ./src/index.js --outdir=es --minify"
   },
   "publishConfig": {
     "access": "public",
-    "provenance": true,
+    "provenance": false,
     "registry": "https://registry.npmjs.org"
   }
 }

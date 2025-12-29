@@ -253,7 +253,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
 
     return () => {
       if (instanceRef.current) {
-        instanceRef.current.destory();
+        instanceRef.current.destroy();
         instanceRef.current = null;
       }
     };
