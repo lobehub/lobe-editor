@@ -10,5 +10,10 @@
   "scripts": {
     "build": "bun build ./src/index.js --outdir=es --minify",
     "prepare": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org"
   }
 }

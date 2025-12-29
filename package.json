@@ -28,6 +28,9 @@
     "react.d.ts",
     "react.js"
   ],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "npm run build:clean && father build && npm run build:packages",
     "build:clean": "tsx ./scripts/clean.ts",
