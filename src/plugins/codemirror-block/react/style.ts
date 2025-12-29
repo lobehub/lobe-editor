@@ -20,10 +20,6 @@ export const styles = createStaticStyles(
       transition: opacity 0.2s ease-in-out;
     }
 
-    .cm-header-toolbar {
-      border-block-end: 1px solid ${cssVar.colorFillQuaternary};
-    }
-
     .cm-language-select {
       opacity: 0.5;
       filter: grayscale(100%);
@@ -56,11 +52,13 @@ export const styles = createStaticStyles(
     .cm-container {
       position: relative;
       width: 100%;
+      border-block-start: 1px solid ${cssVar.colorFillQuaternary};
     }
 
     .cm-container-collapsed {
       overflow: hidden;
       height: 0;
+      border-block-start: none;
     }
 
     .cm-textarea {

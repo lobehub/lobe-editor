@@ -5,7 +5,13 @@ import { Block } from '@lobehub/ui';
 import { message } from 'antd';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
-import { $getSelection, COMMAND_PRIORITY_CRITICAL, KEY_DOWN_COMMAND, LexicalEditor } from 'lexical';
+import {
+  $getSelection,
+  $setSelection,
+  COMMAND_PRIORITY_CRITICAL,
+  KEY_DOWN_COMMAND,
+  LexicalEditor,
+} from 'lexical';
 import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
@@ -28,6 +34,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   const ref = useRef<HTMLTextAreaElement>(null);
   const keydownRef = useRef('');
   const instanceRef = useRef<any>(null);
+  const isEmptyRef = useRef<boolean>(false);
   const t = useTranslation();
   const [isSelected, setSelected, clearSelection, isNodeSelected] = useLexicalNodeSelection(
     node.getKey(),
@@ -159,8 +166,36 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           ),
         });
 
+        // 初始化 isEmptyRef 的值
+        isEmptyRef.current = !node.code.trim();
+
         instance.on('keydown', (instance, e) => {
           e.stopPropagation();
+
+          // 当代码块为空且按退格键时，删除代码块节点
+          if (e.key === 'Backspace' || e.keyCode === 8) {
+            // 检查代码内容是否为空（使用 ref 中存储的状态）
+            if (!isEmptyRef.current) {
+              return;
+            }
+
+            e.preventDefault();
+            editor.update(() => {
+              const prevNode = node.getPreviousSibling();
+              node.remove();
+              // 如果有前一个节点，选择它的末尾
+              if (prevNode) {
+                const prevSelection = prevNode.selectEnd();
+                if (prevSelection) {
+                  $setSelection(prevSelection);
+                }
+              }
+            });
+            // 将焦点返回到编辑器
+            queueMicrotask(() => {
+              editor.focus();
+            });
+          }
         });
 
         instance.on('leftOut', () => {
@@ -178,11 +213,19 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           });
         });
 
+        instance.on('change', () => {
+          const currentValue = instance.getValue();
+          // 立即检查代码是否为空（trim 后为空），用于 keydown 事件判断
+          isEmptyRef.current = !currentValue.trim();
+        });
+
         instance.on(
           'change',
           debounce(() => {
+            const currentValue = instance.getValue();
+            // 更新代码内容
             editor.update(() => {
-              node.setCode(instance.getValue());
+              node.setCode(currentValue);
             });
           }),
         );
