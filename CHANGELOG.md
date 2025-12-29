@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.4.0](https://github.com/lobehub/lobe-editor/compare/v3.3.2...v3.4.0)
+<sup>Released on **2025-12-29**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Override lexical source support keep id.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Override lexical source support keep id, closes [#95](https://github.com/lobehub/lobe-editor/issues/95) ([9e96484](https://github.com/lobehub/lobe-editor/commit/9e96484))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.3.2](https://github.com/lobehub/lobe-editor/compare/v3.3.1...v3.3.2)
 <sup>Released on **2025-12-29**</sup>
 
