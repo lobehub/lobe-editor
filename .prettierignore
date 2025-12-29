@@ -64,3 +64,6 @@ Dockerfile*
 *.mdc
 *.sql
 *.toml
+
+# codemirror
+src/plugins/codemirror-block/lib/codemirror.js

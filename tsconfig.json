@@ -15,8 +15,8 @@
     "typeRoots": ["./src/types", "./node_modules"],
     "types": ["vitest/globals"],
     "paths": {
-      "@@/*": [".dumi/tmp/*"],
       "@/*": ["./src/*"],
+      "@@/*": [".dumi/tmp/*"],
       "@lobehub/editor": ["./src"],
       "@lobehub/editor/*": ["./src/*"],
       "@lobehub/editor/react": ["./src/react"],

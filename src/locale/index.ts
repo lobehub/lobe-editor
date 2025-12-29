@@ -1,5 +1,15 @@
 export default {
   cancel: 'Cancel',
+  codemirror: {
+    copyFailed: 'Copy failed',
+    copySuccess: 'Code copied to clipboard',
+    selectLanguage: 'Select language',
+    selectTheme: 'Select theme',
+    showLineNumbers: 'Show Line Numbers',
+    tabSize: 'Tab Size',
+    theme: 'Theme',
+    useTabs: 'Use Tabs',
+  },
   confirm: 'Confirm',
   file: {
     error: 'Error: {{message}}',
