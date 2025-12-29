@@ -92,7 +92,6 @@
     "@lexical/selection": "^0.39.0",
     "@lexical/table": "^0.39.0",
     "@lexical/utils": "^0.39.0",
-    "@lobehub/codemirror": "^1.0.0",
     "@shikijs/core": "^3.20.0",
     "@shikijs/engine-javascript": "^3.20.0",
     "@xmldom/xmldom": "^0.8.11",
