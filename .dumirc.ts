@@ -71,7 +71,9 @@ const themeConfig: SiteThemeConfig = {
   title: 'Lobe Editor',
 };
 
-const alias: Record<string, string> = {};
+const alias: Record<string, string> = {
+  lexical: resolve(__dirname, './src/editor-kernel/lexical/Lexical.dev.js'),
+};
 for (const pkg of packages) alias[`@lobehub/editor/${pkg}`] = resolve(__dirname, `./src/${pkg}`);
 // // 覆盖原始 lexical 框架
 // alias['lexical'] = resolve(__dirname, './src/editor-kernel/override/index');

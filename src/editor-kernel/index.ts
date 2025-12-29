@@ -17,3 +17,5 @@ const Editor = {
 export default Editor;
 
 export { HOVER_COMMAND } from './event';
+// export other utils from lexical
+export { resetRandomKey } from 'lexical';

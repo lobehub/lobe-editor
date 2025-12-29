@@ -25,6 +25,7 @@
   "types": "es/index.d.ts",
   "files": [
     "es",
+    "scripts/patch-lexical.js",
     "react.d.ts",
     "react.js"
   ],
@@ -40,6 +41,7 @@
     "docs:build-analyze": "ANALYZE=1 dumi build",
     "docs:dev": "dumi dev",
     "doctor": "father doctor",
+    "postinstall": "node scripts/patch-lexical.js",
     "lint": "eslint \"{src,tests}/**/*.{js,jsx,ts,tsx}\" --fix",
     "lint:circular": "dpdm src/**/*.{ts,tsx}  --warning false  --tree false  --exit-code circular:1  -T true",
     "lint:md": "remark . --quiet --frail --output",
@@ -164,5 +166,10 @@
     "access": "public",
     "provenance": true,
     "registry": "https://registry.npmjs.org"
+  },
+  "pnpm": {
+    "overrides": {
+      "chalk": "^4.1.2"
+    }
   }
 }

@@ -64,6 +64,13 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
     setXml(xmlContent || '');
   }, 200);
 
+  const handleJSONChange = debounce((value: any) => {
+    if (editor) {
+      console.info('handleJSONChange', value);
+      editor.setDocument('json', value);
+    }
+  }, 200);
+
   const handleInit = (editor: IEditor) => {
     // @ts-expect-error not error：
     window.editor = editor;
@@ -211,7 +218,15 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
   }, []);
 
   return (
-    <Container editor={editor} json={json} markdown={markdown} shouldShowXml xml={xml} {...props}>
+    <Container
+      editor={editor}
+      json={json}
+      markdown={markdown}
+      onJSONChange={handleJSONChange}
+      shouldShowXml
+      xml={xml}
+      {...props}
+    >
       <Toolbar editor={editor} />
       <Editor
         className={styles.editor}
