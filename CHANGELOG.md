@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;3.3.2](https://github.com/lobehub/lobe-editor/compare/v3.3.1...v3.3.2)
+<sup>Released on **2025-12-29**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix codemirror command.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Fix codemirror command ([27d1ee9](https://github.com/lobehub/lobe-editor/commit/27d1ee9))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.3.1](https://github.com/lobehub/lobe-editor/compare/v3.3.0...v3.3.1)
 <sup>Released on **2025-12-29**</sup>
 
