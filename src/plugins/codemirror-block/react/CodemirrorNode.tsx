@@ -143,9 +143,19 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   }, [isSelected, isNodeSelected, editor]);
 
   useEffect(() => {
+    // 防止重复初始化：如果已经有实例，直接返回
+    if (instanceRef.current) {
+      return;
+    }
+
     if (ref.current) {
       const dom = ref.current;
       loadCodeMirror().then((CodeMirror) => {
+        // 双重检查：在异步操作后再次确认没有重复初始化
+        if (instanceRef.current) {
+          return;
+        }
+
         const instance = CodeMirror.fromTextArea(dom, {
           // keep options alphabetically ordered
           indentWithTabs: useTabs,

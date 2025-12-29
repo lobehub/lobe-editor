@@ -12,6 +12,8 @@ export const styles = createStaticStyles(
     align-items: center;
 
     width: 100%;
+    margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
+    border-radius: var(--lobe-markdown-border-radius);
 
     background: ${cssVar.colorFillQuaternary};
 
