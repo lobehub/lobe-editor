@@ -34,10 +34,12 @@ export function $parseSerializedNodeImpl(
   const children = serializedNode.children;
 
   if ($isElementNode(node) && Array.isArray(children)) {
+    const childNodes = [];
     for (const serializedJSONChildNode of children) {
       const childNode = $parseSerializedNodeImpl(serializedJSONChildNode, editor, keepId, state);
-      node.append(childNode);
+      childNodes.push(childNode);
     }
+    node.append(...childNodes);
   }
 
   return node;
