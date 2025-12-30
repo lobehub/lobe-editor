@@ -2,6 +2,40 @@
 
 # Changelog
 
+### [Version&nbsp;3.4.1](https://github.com/lobehub/lobe-editor/compare/v3.4.0...v3.4.1)
+<sup>Released on **2025-12-30**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Add onPaste event handler to IKernelEventMap and update CommonPlugin, change command priority for onPaste event to critical, keep id bugs, optimize child node appending in $parseSerializedNodeImpl.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Add onPaste event handler to IKernelEventMap and update CommonPlugin ([4d886ae](https://github.com/lobehub/lobe-editor/commit/4d886ae))
+* **misc**: Change command priority for onPaste event to critical ([a231222](https://github.com/lobehub/lobe-editor/commit/a231222))
+* **misc**: Keep id bugs, closes [#96](https://github.com/lobehub/lobe-editor/issues/96) ([18f130d](https://github.com/lobehub/lobe-editor/commit/18f130d))
+* **misc**: Optimize child node appending in $parseSerializedNodeImpl ([9116c3b](https://github.com/lobehub/lobe-editor/commit/9116c3b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.4.0](https://github.com/lobehub/lobe-editor/compare/v3.3.2...v3.4.0)
 <sup>Released on **2025-12-29**</sup>
 
