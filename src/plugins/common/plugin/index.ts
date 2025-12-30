@@ -17,7 +17,7 @@ import {
   $getSelection,
   $isRangeSelection,
   $isTextNode,
-  COMMAND_PRIORITY_EDITOR,
+  COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
   INSERT_LINE_BREAK_COMMAND,
   INSERT_PARAGRAPH_COMMAND,
@@ -389,7 +389,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
           this.kernel.emit('onPaste', event);
           return false;
         },
-        COMMAND_PRIORITY_EDITOR,
+        COMMAND_PRIORITY_CRITICAL,
       ),
     );
     this.registerClears(
