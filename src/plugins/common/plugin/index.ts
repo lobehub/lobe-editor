@@ -17,9 +17,11 @@ import {
   $getSelection,
   $isRangeSelection,
   $isTextNode,
+  COMMAND_PRIORITY_EDITOR,
   COMMAND_PRIORITY_HIGH,
   INSERT_LINE_BREAK_COMMAND,
   INSERT_PARAGRAPH_COMMAND,
+  PASTE_COMMAND,
   ParagraphNode,
   TEXT_TYPE_TO_FORMAT,
   TextNode,
@@ -375,6 +377,21 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    this.register(
+      this.kernel.registerHighCommand(
+        PASTE_COMMAND,
+        (event) => {
+          if (!(event instanceof ClipboardEvent)) return false;
+
+          const clipboardData = event.clipboardData;
+          if (!clipboardData) return false;
+
+          this.kernel.emit('onPaste', event);
+          return false;
+        },
+        COMMAND_PRIORITY_EDITOR,
+      ),
+    );
     this.registerClears(
       registerRichText(editor),
       CAN_USE_DOM ? registerDragonSupport(editor) : noop,

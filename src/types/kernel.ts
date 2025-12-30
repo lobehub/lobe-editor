@@ -63,6 +63,11 @@ export interface IKernelEventMap {
     historyState: HistoryStateEntry | null;
     markdown: string;
   }) => void;
+
+  /**
+   * handle paste event
+   */
+  onPaste: (event: ClipboardEvent) => void;
 }
 
 /**
