@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;3.4.2](https://github.com/lobehub/lobe-editor/compare/v3.4.1...v3.4.2)
+<sup>Released on **2025-12-31**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Add try catch.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Add try catch, closes [#97](https://github.com/lobehub/lobe-editor/issues/97) ([574d71f](https://github.com/lobehub/lobe-editor/commit/574d71f))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.4.1](https://github.com/lobehub/lobe-editor/compare/v3.4.0...v3.4.1)
 <sup>Released on **2025-12-30**</sup>
 
