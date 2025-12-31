@@ -26,7 +26,7 @@ const XmlModifier: FC<XmlModifierProps> = ({ children, editor }) => {
         value: '<span id="n4t5" bold="true">@lobehub/replace</span>',
         rows: 4,
       },
-      apply: button((get) => {
+      modify: button((get) => {
         if (!editor) return;
         editor.dispatchCommand(LITEXML_APPLY_COMMAND, {
           delay: get('delay'),
