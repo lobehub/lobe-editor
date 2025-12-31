@@ -178,40 +178,45 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
           },
           [] as typeof payload,
         );
-        resultPayload.forEach((item) => {
-          const { action } = item;
-          switch (action) {
-            case 'modify': {
-              const { litexml } = item;
-              const arrayXml = toArrayXml(litexml);
-              // handle modfy action
-              handleModify(editor, dataSource, arrayXml, true);
-              break;
+        try {
+          resultPayload.forEach((item) => {
+            const { action } = item;
+            switch (action) {
+              case 'modify': {
+                const { litexml } = item;
+                const arrayXml = toArrayXml(litexml);
+                // handle modfy action
+                handleModify(editor, dataSource, arrayXml, true);
+                break;
+              }
+              case 'remove': {
+                const { id } = item;
+                const key = charToId(id);
+                // handle remove action
+                handleRemove(editor, key, true);
+                break;
+              }
+              case 'insert': {
+                handleInsert(
+                  editor,
+                  {
+                    ...item,
+                    delay: true,
+                  },
+                  dataSource,
+                );
+                break;
+              }
+              default: {
+                logger.warn(`⚠️ Unknown action type: ${action}`);
+              }
             }
-            case 'remove': {
-              const { id } = item;
-              const key = charToId(id);
-              // handle remove action
-              handleRemove(editor, key, true);
-              break;
-            }
-            case 'insert': {
-              handleInsert(
-                editor,
-                {
-                  ...item,
-                  delay: true,
-                },
-                dataSource,
-              );
-              break;
-            }
-            default: {
-              logger.warn(`⚠️ Unknown action type: ${action}`);
-            }
-          }
-        });
-        return false;
+          });
+          return false;
+        } catch (error) {
+          logger.error('❌ Error processing LITEXML_MODIFY_COMMAND:', error);
+          return false;
+        }
       },
       COMMAND_PRIORITY_EDITOR,
     ),
