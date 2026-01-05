@@ -75,6 +75,18 @@ function doAction(node: DiffNode, action: DiffAction) {
       parent.selectEnd();
     }
   }
+
+  if(node.diffType === 'listItemRemove') {
+    if (action === DiffAction.Accept) {
+      node.getParentOrThrow().remove();
+    } else if (action === DiffAction.Reject) {
+      node.getChildren().forEach((child) => {
+        node.getParentOrThrow().append(child);
+      });
+      node.getParentOrThrow().selectEnd();
+      node.remove();
+    }
+  }
 }
 
 export function registerLiteXMLDiffCommand(editor: LexicalEditor) {
