@@ -76,7 +76,7 @@ function doAction(node: DiffNode, action: DiffAction) {
     }
   }
 
-  if(node.diffType === 'listItemRemove') {
+  if (node.diffType === 'listItemRemove') {
     if (action === DiffAction.Accept) {
       node.getParentOrThrow().remove();
     } else if (action === DiffAction.Reject) {
