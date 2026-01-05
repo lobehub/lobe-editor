@@ -17,6 +17,7 @@ import { createDebugLogger } from '@/utils/debug';
 import type LitexmlDataSource from '../data-source/litexml-data-source';
 import { $createDiffNode, DiffNode } from '../node/DiffNode';
 import { $cloneNode, $parseSerializedNodeImpl, charToId } from '../utils';
+import { $isListItemNode } from '@lexical/list';
 
 const logger = createDebugLogger('plugin', 'litexml');
 
@@ -123,23 +124,23 @@ function wrapBlockModify(oldBlock: LexicalNode, editor: LexicalEditor, changeFn:
 export const LITEXML_MODIFY_COMMAND = createCommand<
   Array<
     | {
-        action: 'insert';
-        beforeId: string;
-        litexml: string;
-      }
+      action: 'insert';
+      beforeId: string;
+      litexml: string;
+    }
     | {
-        action: 'insert';
-        afterId: string;
-        litexml: string;
-      }
+      action: 'insert';
+      afterId: string;
+      litexml: string;
+    }
     | {
-        action: 'remove';
-        id: string;
-      }
+      action: 'remove';
+      id: string;
+    }
     | {
-        action: 'modify';
-        litexml: string | string[];
-      }
+      action: 'modify';
+      litexml: string | string[];
+    }
   >
 >('LITEXML_MODIFY_COMMAND');
 
@@ -151,15 +152,15 @@ export const LITEXML_REMOVE_COMMAND = createCommand<{ delay?: boolean; id: strin
 );
 export const LITEXML_INSERT_COMMAND = createCommand<
   | {
-      beforeId: string;
-      delay?: boolean;
-      litexml: string;
-    }
+    beforeId: string;
+    delay?: boolean;
+    litexml: string;
+  }
   | {
-      afterId: string;
-      delay?: boolean;
-      litexml: string;
-    }
+    afterId: string;
+    delay?: boolean;
+    litexml: string;
+  }
 >('LITEXML_INSERT_COMMAND');
 
 export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: LitexmlDataSource) {
@@ -357,9 +358,19 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
         }
         return;
       }
-      const diffNode = $createDiffNode('remove');
-      diffNode.append($cloneNode(node, editor));
-      node.replace(diffNode, false);
+
+      if ($isListItemNode(node)) {
+        const diffNode = $createDiffNode('listItemRemove');
+        node.getChildren().forEach((child) => {
+          diffNode.append($cloneNode(child, editor));
+        });
+        node.clear();
+        node.append(diffNode);
+      } else {
+        const diffNode = $createDiffNode('remove');
+        diffNode.append($cloneNode(node, editor));
+        node.replace(diffNode, false);
+      }
     } else {
       const oldBlock = $closest(node, (node) => node.isInline() === false);
       if (!oldBlock) {
@@ -385,15 +396,15 @@ function handleInsert(
   editor: LexicalEditor,
   payload:
     | {
-        beforeId: string;
-        delay?: boolean;
-        litexml: string;
-      }
+      beforeId: string;
+      delay?: boolean;
+      litexml: string;
+    }
     | {
-        afterId: string;
-        delay?: boolean;
-        litexml: string;
-      },
+      afterId: string;
+      delay?: boolean;
+      litexml: string;
+    },
   dataSource: LitexmlDataSource,
 ) {
   const { litexml, delay } = payload;
