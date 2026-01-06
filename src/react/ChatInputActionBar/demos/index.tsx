@@ -1,5 +1,5 @@
+import { Popover } from '@lobehub/ui';
 import { TokenTag } from '@lobehub/ui/chat';
-import { Popover } from 'antd';
 import {
   GlobeIcon,
   LibraryBigIcon,
@@ -21,11 +21,7 @@ export default () => {
               icon: GlobeIcon,
               key: 'search',
               wrapper: (node) => {
-                return (
-                  <Popover arrow={false} content={'Test Popover'}>
-                    {node}
-                  </Popover>
-                );
+                return <Popover content={'Test Popover'}>{node}</Popover>;
               },
             },
             {

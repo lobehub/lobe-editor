@@ -1,7 +1,6 @@
 'use client';
 
-import { ActionIcon, Flexbox } from '@lobehub/ui';
-import { Popover } from 'antd';
+import { ActionIcon, Flexbox, Popover } from '@lobehub/ui';
 import { CircleChevronLeftIcon, CircleChevronRightIcon, CircleChevronUpIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { type FC } from 'react';
