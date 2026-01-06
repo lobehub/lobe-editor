@@ -33,7 +33,7 @@ export declare function $parseSerializedNode(serializedNode: SerializedLexicalNo
 export declare function parseEditorState(
   serializedEditorState: SerializedEditorState,
   editor: LexicalEditor,
-  updateFn: void | ((editorState: EditorState) => void),
+  updateFn: void | ((state: EditorState) => void),
 ): EditorState;
 export declare function readEditorState<V>(
   editor: LexicalEditor | null,
