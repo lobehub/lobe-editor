@@ -497,9 +497,18 @@ function handleInsert(
           }
           newNodes.forEach((node: LexicalNode) => {
             if (referenceNode) {
-              const diffNode = $createDiffNode('add');
-              diffNode.append(node);
-              referenceNode = referenceNode.insertAfter(diffNode);
+              if ($isListItemNode(node)) {
+                const diffNode = $createDiffNode('listItemAdd');
+                node.getChildren().forEach((child) => {
+                  diffNode.append(child);
+                });
+                node.append(diffNode);
+                referenceNode = referenceNode.insertAfter(node);
+              } else {
+                const diffNode = $createDiffNode('add');
+                diffNode.append(node);
+                referenceNode = referenceNode.insertAfter(diffNode);
+              }
             }
           });
         } else {
