@@ -12,7 +12,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     margin-inline: 0.25em;
     padding-block: 0.2em;
     padding-inline: 0.4em;
-    border: 1px solid ${cssVar.colorFillTertiary};
+    border: 1px solid ${cssVar.colorInfoBgHover};
     border-radius: 0.25em;
 
     font-size: 0.875em;
@@ -21,7 +21,11 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     word-break: break-word;
     white-space: break-spaces;
 
-    background: ${cssVar.colorFillTertiary};
+    background: ${cssVar.colorInfoBg};
+
+    .editor_mention {
+      padding: 0;
+    }
 
     &.selected {
       color: #000;

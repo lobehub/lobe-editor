@@ -1,5 +1,4 @@
-import { createStaticStyles, keyframes , cx } from 'antd-style';
-
+import { createStaticStyles, cx, keyframes } from 'antd-style';
 
 const cursorBlink = keyframes`
   to {
@@ -48,7 +47,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     --lobe-markdown-font-size: var(--common-font-size, 16px);
     --lobe-markdown-header-multiple: var(--common-header-multiple, 1);
     --lobe-markdown-margin-multiple: var(--common-margin-multiple, 2);
-    --lobe-markdown-line-height: var(--common-line-height, 1.8);
+    --lobe-markdown-line-height: var(--common-line-height, 1.6);
     --lobe-markdown-border-radius: ${cssVar.borderRadiusLG};
     --lobe-markdown-border-color: ${cssVar.colorFillQuaternary};
 
@@ -207,28 +206,6 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     code,
     editorContent,
     header,
-    noHeader: css`
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6 {
-        margin-block: 0;
-        font-size: var(--lobe-markdown-font-size);
-        font-weight: normal;
-        line-height: var(--lobe-markdown-line-height);
-      }
-    `,
-    noStyle: css`
-      --lobe-markdown-header-multiple: 0;
-      --lobe-markdown-margin-multiple: 0;
-      --lobe-markdown-line-height: 1.5;
-
-      p {
-        margin-block: 4px;
-      }
-    `,
     p,
     root: __root,
     variant: cx(header, p, blockquote, code),

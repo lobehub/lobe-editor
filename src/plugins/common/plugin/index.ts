@@ -87,11 +87,43 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 {
   static pluginName = 'CommonPlugin';
 
+  private formats = {
+    bold: true,
+    header: true,
+    italic: true,
+    quote: true,
+    strikethrough: true,
+    subscript: false,
+    superscript: false,
+  };
+
   constructor(
     protected kernel: IEditorKernel,
     public config: CommonPluginOptions = {},
   ) {
     super();
+
+    // Parse markdown options and update formats
+    const markdownOption = config.markdownOption ?? true;
+    if (typeof markdownOption === 'object') {
+      this.formats.bold = markdownOption.bold ?? true;
+      this.formats.header = markdownOption.header ?? true;
+      this.formats.italic = markdownOption.italic ?? true;
+      this.formats.quote = markdownOption.quote ?? true;
+      this.formats.strikethrough = markdownOption.strikethrough ?? true;
+      this.formats.subscript = markdownOption.subscript ?? false;
+      this.formats.superscript = markdownOption.superscript ?? false;
+    } else if (markdownOption === false) {
+      // Disable all formats if markdown is disabled
+      this.formats.bold = false;
+      this.formats.header = false;
+      this.formats.italic = false;
+      this.formats.quote = false;
+      this.formats.strikethrough = false;
+      this.formats.subscript = false;
+      this.formats.superscript = false;
+    }
+
     // Register the JSON data source
     kernel.registerDataSource(new JSONDataSource('json'));
     // Register the text data source
@@ -127,28 +159,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     const isMarkdownEnabled = markdownOption !== false;
 
     const breakMark = isMarkdownEnabled ? '\n\n' : '\n';
-
-    // Determine which formats are enabled
-    const formats = {
-      bold: true,
-      header: true,
-      italic: true,
-      quote: true,
-      strikethrough: true,
-      subscript: false, // Disabled by default
-      superscript: false, // Disabled by default
-      // Note: code, underline, underlineStrikethrough are handled by other plugins/writers
-    };
-
-    if (typeof markdownOption === 'object') {
-      formats.bold = markdownOption.bold ?? true;
-      formats.header = markdownOption.header ?? true;
-      formats.italic = markdownOption.italic ?? true;
-      formats.quote = markdownOption.quote ?? true;
-      formats.strikethrough = markdownOption.strikethrough ?? true;
-      formats.subscript = markdownOption.subscript ?? false;
-      formats.superscript = markdownOption.superscript ?? false;
-    }
+    const formats = this.formats;
 
     // Register quote shortcut if enabled
     if (formats.quote) {
@@ -257,58 +268,67 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     }
 
     markdownService.registerMarkdownWriter('paragraph', (ctx) => {
-      ctx.wrap('', '\n\n');
-    });
-    markdownService.registerMarkdownWriter('quote', (ctx, node) => {
-      if ($isQuoteNode(node)) {
-        ctx.wrap('> ', breakMark);
-      }
+      ctx.wrap('', breakMark);
     });
 
-    markdownService.registerMarkdownWriter('heading', (ctx, node) => {
-      if ($isHeadingNode(node)) {
-        switch (node.getTag()) {
-          case 'h1': {
-            ctx.wrap('# ', breakMark);
-            break;
-          }
-          case 'h2': {
-            ctx.wrap('## ', breakMark);
-            break;
-          }
-          case 'h3': {
-            ctx.wrap('### ', breakMark);
-            break;
-          }
-          case 'h4': {
-            ctx.wrap('#### ', breakMark);
-            break;
-          }
-          case 'h5': {
-            ctx.wrap('##### ', breakMark);
-            break;
-          }
-          case 'h6': {
-            ctx.wrap('###### ', breakMark);
-            break;
-          }
-          default: {
-            ctx.wrap('', '\n');
-            break;
+    // Register quote writer only if quote format is enabled
+    if (formats.quote) {
+      markdownService.registerMarkdownWriter('quote', (ctx, node) => {
+        if ($isQuoteNode(node)) {
+          ctx.wrap('> ', breakMark);
+        }
+      });
+    }
+
+    // Register heading writer only if header format is enabled
+    if (formats.header) {
+      markdownService.registerMarkdownWriter('heading', (ctx, node) => {
+        if ($isHeadingNode(node)) {
+          switch (node.getTag()) {
+            case 'h1': {
+              ctx.wrap('# ', '\n\n');
+              break;
+            }
+            case 'h2': {
+              ctx.wrap('## ', '\n\n');
+              break;
+            }
+            case 'h3': {
+              ctx.wrap('### ', '\n\n');
+              break;
+            }
+            case 'h4': {
+              ctx.wrap('#### ', '\n\n');
+              break;
+            }
+            case 'h5': {
+              ctx.wrap('##### ', '\n\n');
+              break;
+            }
+            case 'h6': {
+              ctx.wrap('###### ', '\n\n');
+              break;
+            }
+            default: {
+              ctx.wrap('', '\n\n');
+              break;
+            }
           }
         }
-      }
-    });
+      });
+    }
+
+    // Register text writer with conditional format handling
     markdownService.registerMarkdownWriter('text', (ctx, node) => {
       if (!$isTextNode(node)) {
         return;
       }
-      const isBold = node.hasFormat('bold');
-      const isItalic = node.hasFormat('italic');
+      const isBold = formats.bold && node.hasFormat('bold');
+      const isItalic = formats.italic && node.hasFormat('italic');
       const isUnderline = node.hasFormat('underline');
-      const isStrikethrough = node.hasFormat('strikethrough');
-      const isSuperscript = node.hasFormat('superscript');
-      const isSubscript = node.hasFormat('subscript');
+      const isStrikethrough = formats.strikethrough && node.hasFormat('strikethrough');
+      const isSuperscript = formats.superscript && node.hasFormat('superscript');
+      const isSubscript = formats.subscript && node.hasFormat('subscript');
 
       if (isBold) {
         ctx.appendLine('**');
@@ -368,7 +388,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     // Register markdown writer for linebreak nodes (soft line breaks)
     markdownService.registerMarkdownWriter('linebreak', (ctx) => {
       // In markdown, soft line breaks are represented as two spaces followed by a newline
-      ctx.appendLine('  \n');
+      ctx.appendLine('\n');
     });
 
     // 注册 markdown reader
@@ -457,25 +477,27 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       return;
     }
 
+    const formats = this.formats;
+
     litexmlService.registerXMLWriter(TextNode.getType(), (node, ctx) => {
       const attr = {} as Record<string, string>;
       if ($isTextNode(node)) {
-        if (node.hasFormat('bold')) {
+        if (formats.bold && node.hasFormat('bold')) {
           attr['bold'] = 'true';
         }
-        if (node.hasFormat('italic')) {
+        if (formats.italic && node.hasFormat('italic')) {
           attr['italic'] = 'true';
         }
         if (node.hasFormat('underline')) {
           attr['underline'] = 'true';
         }
-        if (node.hasFormat('strikethrough')) {
+        if (formats.strikethrough && node.hasFormat('strikethrough')) {
           attr['strikethrough'] = 'true';
         }
-        if (node.hasFormat('subscript')) {
+        if (formats.subscript && node.hasFormat('subscript')) {
           attr['subscript'] = 'true';
         }
-        if (node.hasFormat('superscript')) {
+        if (formats.superscript && node.hasFormat('superscript')) {
           attr['superscript'] = 'true';
         }
         return ctx.createXmlNode('span', attr, node.getTextContent());
@@ -483,17 +505,23 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       return false;
     });
 
-    litexmlService.registerXMLReader('b', sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['bold']));
-    litexmlService.registerXMLReader(
-      'strong',
-      sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['bold']),
-    );
+    // Register bold readers only if bold format is enabled
+    if (formats.bold) {
+      litexmlService.registerXMLReader('b', sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['bold']));
+      litexmlService.registerXMLReader(
+        'strong',
+        sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['bold']),
+      );
+    }
 
-    litexmlService.registerXMLReader('i', sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['italic']));
-    litexmlService.registerXMLReader(
-      'emphasis',
-      sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['italic']),
-    );
+    // Register italic readers only if italic format is enabled
+    if (formats.italic) {
+      litexmlService.registerXMLReader('i', sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['italic']));
+      litexmlService.registerXMLReader(
+        'emphasis',
+        sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['italic']),
+      );
+    }
 
     litexmlService.registerXMLReader(
       'u',
@@ -514,22 +542,22 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
       let format = 0;
 
-      if (bold === 'true') {
+      if (formats.bold && bold === 'true') {
         format |= TEXT_TYPE_TO_FORMAT['bold'];
       }
-      if (italic === 'true') {
+      if (formats.italic && italic === 'true') {
         format |= TEXT_TYPE_TO_FORMAT['italic'];
       }
       if (underline === 'true') {
         format |= TEXT_TYPE_TO_FORMAT['underline'];
       }
-      if (strikethrough === 'true') {
+      if (formats.strikethrough && strikethrough === 'true') {
         format |= TEXT_TYPE_TO_FORMAT['strikethrough'];
       }
-      if (subscript === 'true') {
+      if (formats.subscript && subscript === 'true') {
         format |= TEXT_TYPE_TO_FORMAT['subscript'];
       }
-      if (superscript === 'true') {
+      if (formats.superscript && superscript === 'true') {
         format |= TEXT_TYPE_TO_FORMAT['superscript'];
       }
 
@@ -542,43 +570,49 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       return children;
     });
 
-    litexmlService.registerXMLWriter('quote', (node, ctx) => {
-      if ($isQuoteNode(node)) {
-        return ctx.createXmlNode('quote', {});
-      }
-      return false;
-    });
+    // Register quote writer/reader only if quote format is enabled
+    if (formats.quote) {
+      litexmlService.registerXMLWriter('quote', (node, ctx) => {
+        if ($isQuoteNode(node)) {
+          return ctx.createXmlNode('quote', {});
+        }
+        return false;
+      });
 
-    litexmlService.registerXMLWriter('heading', (node, ctx) => {
-      if ($isHeadingNode(node)) {
-        return ctx.createXmlNode(node.getTag(), {});
-      }
-      return false;
-    });
+      litexmlService.registerXMLReader('quote', (xmlElement: Element, children: any[]) => {
+        return INodeHelper.createElementNode(QuoteNode.getType(), {
+          children,
+        });
+      });
+    }
+
+    // Register heading writer/reader only if header format is enabled
+    if (formats.header) {
+      litexmlService.registerXMLWriter('heading', (node, ctx) => {
+        if ($isHeadingNode(node)) {
+          return ctx.createXmlNode(node.getTag(), {});
+        }
+        return false;
+      });
+
+      const headingTags: HeadingTagType[] = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+      headingTags.forEach((tag) => {
+        litexmlService.registerXMLReader(tag, (xmlElement: Element, children: any[]) => {
+          return INodeHelper.createElementNode(HeadingNode.getType(), {
+            children,
+            tag,
+          });
+        });
+      });
+    }
 
     litexmlService.registerXMLWriter(ParagraphNode.getType(), (node, ctx) => {
       return ctx.createXmlNode('p', {});
     });
 
-    litexmlService.registerXMLReader('quote', (xmlElement: Element, children: any[]) => {
-      return INodeHelper.createElementNode(QuoteNode.getType(), {
-        children,
-      });
-    });
-
     litexmlService.registerXMLReader('p', (xmlElement: Element, children: any[]) => {
       return INodeHelper.createElementNode(ParagraphNode.getType(), {
         children,
-      });
-    });
-
-    const headingTags: HeadingTagType[] = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
-    headingTags.forEach((tag) => {
-      litexmlService.registerXMLReader(tag, (xmlElement: Element, children: any[]) => {
-        return INodeHelper.createElementNode(HeadingNode.getType(), {
-          children,
-          tag,
-        });
       });
     });
   }

@@ -1,3 +1,4 @@
+import { cx } from 'antd-style';
 import { CLICK_COMMAND, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
 import { type FC, useCallback, useEffect, useRef } from 'react';
 
@@ -33,7 +34,7 @@ const Mention: FC<MentionProps> = ({ node, editor, className }) => {
   }, [editor, node, onClick]);
 
   return (
-    <span className={className} ref={spanRef}>
+    <span className={cx('editor_mention', className)} ref={spanRef}>
       @{node.label}
     </span>
   );

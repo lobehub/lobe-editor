@@ -52,7 +52,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     const {
       fontSize = isChat ? 14 : 16,
       headerMultiple = isChat ? 0.25 : 0.6,
-      lineHeight = isChat ? 1.6 : 1.8,
+      lineHeight = isChat ? 1.4 : 1.6,
       marginMultiple = isChat ? 1 : 2,
       ...restTheme
     } = theme;
@@ -219,17 +219,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
 
     return (
       <div
-        className={cx(
-          styles.root,
-          markdownOption === true && styles.variant,
-          markdownOption === false && styles.noStyle,
-          markdownOption === false && styles.noHeader,
-          typeof markdownOption === 'object' && markdownOption.header === true && styles.header,
-          typeof markdownOption === 'object' && markdownOption.header === false && styles.noHeader,
-          typeof markdownOption === 'object' && markdownOption.code === true && styles.code,
-          typeof markdownOption === 'object' && markdownOption.quote === true && styles.blockquote,
-          className,
-        )}
+        className={cx(styles.root, styles.variant, className)}
         style={{
           ...cssVariables,
           ...style,

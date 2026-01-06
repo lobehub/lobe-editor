@@ -15,6 +15,7 @@ import {
   $isRangeSelection,
   $isTextNode,
 } from 'lexical';
+import { remark } from 'remark';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
@@ -28,6 +29,25 @@ import { MarkdownWriterContext } from './markdown-writer-context';
 import { parseMarkdownToLexical } from './markdown/parse';
 
 export default class MarkdownDataSource extends DataSource {
+  private formatMarkdown(markdown: string): string {
+    try {
+      const result = remark()
+        .data('settings', {
+          bullet: '-',
+          emphasis: '*',
+          fences: true,
+          rule: '-',
+          strong: '*',
+          tightDefinitions: true,
+        })
+        .processSync(markdown);
+      return String(result);
+    } catch (error) {
+      logger.error('Failed to format markdown:', error);
+      return markdown;
+    }
+  }
+
   constructor(
     protected dataType: string,
     protected markdownService: MarkdownShortCutService,
@@ -177,7 +197,7 @@ export default class MarkdownDataSource extends DataSource {
 
           return editorState.read(() => {
             lexicalRootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
-            return rootCtx.toString();
+            return this.formatMarkdown(rootCtx.toString());
           });
         } else if ($isTableSelection(selection)) {
           // todo
@@ -199,7 +219,7 @@ export default class MarkdownDataSource extends DataSource {
 
         return editorState.read(() => {
           lexicalRootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
-          return rootCtx.toString();
+          return this.formatMarkdown(rootCtx.toString());
         });
       });
     }
@@ -208,7 +228,7 @@ export default class MarkdownDataSource extends DataSource {
       const rootCtx = new MarkdownWriterContext(this.markdownService);
 
       rootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
-      return rootCtx.toString();
+      return this.formatMarkdown(rootCtx.toString());
     });
   }
 }
