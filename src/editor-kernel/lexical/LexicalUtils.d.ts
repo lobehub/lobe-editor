@@ -28,8 +28,8 @@ import { type TextFormatType, TextNode } from './nodes/LexicalTextNode';
 export declare const emptyFunction: () => void;
 export declare function setPendingNodeToClone(pendingNode: null | LexicalNode): void;
 export declare function getPendingNodeToClone(): null | LexicalNode;
-export declare function resetRandomKey(): void;
-export declare function generateRandomKey(): string;
+export declare function resetRandomKey(targetId?: number): void;
+export declare function generateRandomKey(targetId?: number): string;
 /**
  * @internal
  */

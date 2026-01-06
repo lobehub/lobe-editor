@@ -7190,8 +7190,8 @@ function el(t, e) {
   (exports.isSelectionWithinEditor = Fo),
   (exports.makeStepwiseIterator = Is),
   (exports.removeFromParent = Ho),
-  (exports.resetRandomKey = function () {
-    Ao = 1;
+  (exports.resetRandomKey = function (t) {
+    Ao = void 0 !== t ? t : 1;
   }),
   (exports.safeCast = function (t) {
     return t;
