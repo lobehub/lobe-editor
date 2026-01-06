@@ -12,11 +12,15 @@ interface MentionOption extends Partial<ReactSlashOptionProps> {
 }
 
 export interface EditorProps
-  extends Partial<ReactEditorContentProps>,
-    Omit<ReactPlainTextProps, 'children'> {
+  extends Partial<ReactEditorContentProps>, Omit<ReactPlainTextProps, 'children'> {
   autoFocus?: boolean;
   children?: ReactNode;
   className?: string;
+  /**
+   * Debounce wait time in milliseconds for onChange and onTextChange callbacks
+   * @default 100
+   */
+  debounceWait?: number;
   editable?: boolean;
   editor?: IEditor;
   /**

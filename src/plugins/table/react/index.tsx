@@ -37,7 +37,7 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({ className, locale 
   useLexicalEditor((editor) => {
     setLexicalEditor(editor);
     editor.registerUpdateListener(() => {
-      editor.getEditorState().read(() => {
+      editor.read(() => {
         const selection = $getSelection();
         if (!$isTableSelection(selection) && !$isRangeSelection(selection)) {
           return null;

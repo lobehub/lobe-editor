@@ -1,5 +1,6 @@
 'use client';
 
+import { debounce } from 'es-toolkit';
 import { createElement, memo, useMemo } from 'react';
 
 import { ReactEditor } from '@/editor-kernel/react/react-editor';
@@ -17,6 +18,7 @@ const Editor = memo<EditorProps>(
     content,
     style,
     className,
+    debounceWait = 100,
     editable,
     editor,
     onInit,
@@ -45,6 +47,17 @@ const Editor = memo<EditorProps>(
     const enableSlash = Boolean(slashOption?.items && slashOption.items.length > 0);
     const enableMention = Boolean(mentionOption?.items && mentionOption.items.length > 0);
     const { markdownWriter, ...restMentionOption } = mentionOption;
+
+    // Create debounced versions of onChange and onTextChange
+    const debouncedOnChange = useMemo(
+      () => (onChange ? debounce(onChange, debounceWait) : undefined),
+      [onChange, debounceWait],
+    );
+
+    const debouncedOnTextChange = useMemo(
+      () => (onTextChange ? debounce(onTextChange, debounceWait) : undefined),
+      [onTextChange, debounceWait],
+    );
 
     const memoPlugins = useMemo(
       () =>
@@ -93,14 +106,14 @@ const Editor = memo<EditorProps>(
           enablePasteMarkdown={enablePasteMarkdown}
           markdownOption={markdownOption}
           onBlur={onBlur}
-          onChange={onChange}
+          onChange={debouncedOnChange}
           onCompositionEnd={onCompositionEnd}
           onCompositionStart={onCompositionStart}
           onContextMenu={onContextMenu}
           onFocus={onFocus}
           onKeyDown={onKeyDown}
           onPressEnter={onPressEnter}
-          onTextChange={onTextChange}
+          onTextChange={debouncedOnTextChange}
           style={style}
           variant={variant}
         >
