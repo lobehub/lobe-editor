@@ -5,6 +5,7 @@ import {
   LexicalNode,
   SerializedElementNode,
   SerializedLexicalNode,
+  resetRandomKey,
 } from 'lexical';
 
 export function $parseSerializedNodeImpl(
@@ -26,11 +27,10 @@ export function $parseSerializedNodeImpl(
     throw new Error(`LexicalNode: Node ${nodeClass.name} does not implement .importJSON().`);
   }
 
-  const node = nodeClass.importJSON(serializedNode);
   if (keepId && serializedNode.id) {
-    node.__key = serializedNode.id;
-    state?._nodeMap.set(node.__key, node);
+    resetRandomKey(Number(serializedNode.id));
   }
+  const node = nodeClass.importJSON(serializedNode);
   const children = serializedNode.children;
 
   if ($isElementNode(node) && Array.isArray(children)) {

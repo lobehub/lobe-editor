@@ -11816,10 +11816,14 @@ function getPendingNodeToClone() {
   return node;
 }
 let keyCounter = 1;
-function resetRandomKey() {
-  keyCounter = 1;
+function resetRandomKey(targetId) {
+  if (targetId !== undefined) {
+    keyCounter = targetId;
+  } else {
+    keyCounter = 1;
+  }
 }
-function generateRandomKey() {
+function generateRandomKey(targetId) {
   return '' + keyCounter++;
 }
 

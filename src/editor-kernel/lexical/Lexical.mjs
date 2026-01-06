@@ -5680,8 +5680,8 @@ function no(t) {
   eo = t;
 }
 let ro = 1;
-function io() {
-  ro = 1;
+function io(t) {
+  ro = void 0 !== t ? t : 1;
 }
 function oo(e, n) {
   const r = so(e, n);

@@ -615,7 +615,7 @@ export declare class LexicalEditor {
    */
   parseEditorState(
     maybeStringifiedEditorState: string | SerializedEditorState,
-    updateFn?: (editorState: EditorState) => void,
+    updateFn?: (state: EditorState) => void,
   ): EditorState;
   /**
    * Executes a read of the editor's state, with the
