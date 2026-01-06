@@ -21,7 +21,7 @@ describe('Common Plugin Tests', () => {
       '<?xml version="1.0" encoding="UTF-8"?><p id="1"><span id="2">this is </span><span id="3" underline="true">underline</span><span id="4"> and this is </span><span id="5" underline="true">underline2</span></p>',
     );
     const markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('this is <ins>underline</ins> and this is <ins>underline2</ins>\n\n');
+    expect(markdown).toBe('this is <ins>underline</ins> and this is <ins>underline2</ins>\n');
   });
 
   it('should litexml writer work', () => {
@@ -35,36 +35,36 @@ describe('Common Plugin Tests', () => {
   it('should litexml support b u i', () => {
     kernel.setDocument('litexml', '<?xml version="1.0" encoding="UTF-8"?><p><b>bold</b></p>');
     let markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('**bold**\n\n');
+    expect(markdown).toBe('**bold**\n');
 
     kernel.setDocument(
       'litexml',
       '<?xml version="1.0" encoding="UTF-8"?><p><strong>bold</strong></p>',
     );
     markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('**bold**\n\n');
+    expect(markdown).toBe('**bold**\n');
 
     kernel.setDocument('litexml', '<?xml version="1.0" encoding="UTF-8"?><p><i>italic</i></p>');
     markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('_italic_\n\n');
+    expect(markdown).toBe('*italic*\n');
 
     kernel.setDocument(
       'litexml',
       '<?xml version="1.0" encoding="UTF-8"?><p><emphasis>italic</emphasis></p>',
     );
     markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('_italic_\n\n');
+    expect(markdown).toBe('*italic*\n');
 
     kernel.setDocument('litexml', '<?xml version="1.0" encoding="UTF-8"?><p><u>underline</u></p>');
     markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('<ins>underline</ins>\n\n');
+    expect(markdown).toBe('<ins>underline</ins>\n');
 
     kernel.setDocument(
       'litexml',
       '<?xml version="1.0" encoding="UTF-8"?><p><ins>underline</ins></p>',
     );
     markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('<ins>underline</ins>\n\n');
+    expect(markdown).toBe('<ins>underline</ins>\n');
   });
 
   it('should litexml support span embed b u i', () => {
@@ -73,6 +73,6 @@ describe('Common Plugin Tests', () => {
       '<?xml version="1.0" encoding="UTF-8"?><p><span>this is <b>bold</b> text.</span></p>',
     );
     let markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('this is **bold** text. \n\n');
+    expect(markdown).toBe('this is **bold** text.\n');
   });
 });

@@ -23,7 +23,7 @@ describe('link litexml', () => {
       '<?xml version="1.0" encoding="UTF-8"?><root><p id="1"><a id="2" href="https://logo.com/logo.png"><span id="3">logo</span></a></p></root>',
     );
     const markdown = editor.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('[logo](https://logo.com/logo.png)\n\n');
+    expect(markdown).toBe('[logo](https://logo.com/logo.png)\n');
   });
 
   it('writer should work', async () => {

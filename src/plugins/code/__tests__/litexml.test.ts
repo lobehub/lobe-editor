@@ -20,7 +20,7 @@ describe('codeblock litexml', () => {
   it('reader should work', () => {
     editor.setDocument('litexml', '<codeInline id="1"><span>123</span></codeInline>');
     const markdown = editor.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('`123`');
+    expect(markdown).toBe('`123`\n');
   });
 
   it('writer should work', () => {

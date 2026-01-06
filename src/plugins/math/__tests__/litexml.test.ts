@@ -23,7 +23,7 @@ describe('math litexml', () => {
       '<?xml version="1.0" encoding="UTF-8"?><root><p id="1"><math id="2" code="$E=mc^2$"></math></p></root>',
     );
     const markdown = editor.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('$$E=mc^2$$\n\n');
+    expect(markdown).toBe('$$E=mc^2$$\n');
   });
 
   it('writer should work', async () => {

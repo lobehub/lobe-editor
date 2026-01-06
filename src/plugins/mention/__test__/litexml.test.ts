@@ -55,7 +55,7 @@ describe('mention litexml', () => {
       '<?xml version="1.0" encoding="UTF-8"?><root><p><mention label="xxx"></mention></p></root>',
     );
     const markdown = editor.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('<mention>xxx</mention>\n\n');
+    expect(markdown).toBe('<mention>xxx</mention>\n');
   });
 
   it('writer should work', async () => {

@@ -34,7 +34,7 @@ describe('Common Plugin Tests', () => {
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
     expect(markdown).toBe(
-      '# ModifiedText\n\nTHIS IS <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+      '# ModifiedText\n\nTHIS IS <ins>underline</ins> and this is <ins>underline2</ins>\n',
     );
   });
 
@@ -50,7 +50,7 @@ describe('Common Plugin Tests', () => {
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
     expect(markdown).toBe(
-      '# This is a title\n\n**InsertedText**\n\nThis is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+      '# This is a title\n\n**InsertedText**\n\nThis is <ins>underline</ins> and this is <ins>underline2</ins>\n',
     );
   });
 
@@ -64,7 +64,7 @@ describe('Common Plugin Tests', () => {
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n');
+    expect(markdown).toBe('This is <ins>underline</ins> and this is <ins>underline2</ins>\n');
   });
 
   it('should LITEXML_APPLY_COMMAND delay work (json)', async () => {
@@ -187,7 +187,7 @@ describe('Common Plugin Tests', () => {
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
     expect(markdown).toBe(
-      '# ModifiedText\n\nTHIS IS <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+      '# ModifiedText\n\nTHIS IS <ins>underline</ins> and this is <ins>underline2</ins>\n',
     );
   });
 
@@ -211,7 +211,7 @@ describe('Common Plugin Tests', () => {
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
     expect(markdown).toBe(
-      '# **ModifiedTextDirect**\n\nNew Contents\n\nThis is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
+      '# **ModifiedTextDirect**\n\nNew Contents\n\nThis is <ins>underline</ins> and this is <ins>underline2</ins>\n',
     );
   });
 });

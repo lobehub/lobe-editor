@@ -16,6 +16,7 @@ import {
   $isTextNode,
 } from 'lexical';
 import { remark } from 'remark';
+import remarkGfm from 'remark-gfm';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
@@ -32,6 +33,7 @@ export default class MarkdownDataSource extends DataSource {
   private formatMarkdown(markdown: string): string {
     try {
       const result = remark()
+        .use([[remarkGfm, { singleTilde: false }]])
         .data('settings', {
           bullet: '-',
           emphasis: '*',
@@ -219,7 +221,7 @@ export default class MarkdownDataSource extends DataSource {
 
         return editorState.read(() => {
           lexicalRootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
-          return this.formatMarkdown(rootCtx.toString());
+          return rootCtx.toString();
         });
       });
     }

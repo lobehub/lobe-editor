@@ -22,11 +22,11 @@ describe('table litexml', () => {
     editor.setDocument('litexml', xml);
     const markdown = editor.getDocument('markdown') as unknown as string;
     expect(markdown).toBe(
-      '|Name|Age|City|Country|\n' +
-        '|:--|:--|:--|:--|\n' +
-        '|Alice|25|New York|USA|\n' +
-        '|Bob|30|London|UK|\n' +
-        '|Charlie|28|Tokyo|Japan|\n\n',
+      '| Name    | Age | City     | Country |\n' +
+        '| :------ | :-- | :------- | :------ |\n' +
+        '| Alice   | 25  | New York | USA     |\n' +
+        '| Bob     | 30  | London   | UK      |\n' +
+        '| Charlie | 28  | Tokyo    | Japan   |\n',
     );
   });
 

@@ -23,7 +23,7 @@ describe('list litexml', () => {
       '<?xml version="1.0" encoding="UTF-8"?><root><ul id="1"><li id="2"><span id="3">asdf</span></li><li id="4"><span id="5">qwer</span></li></ul></root>',
     );
     const markdown = editor.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('- asdf\n- qwer\n\n');
+    expect(markdown).toBe('- asdf\n- qwer\n');
   });
 
   it('writer should work', async () => {
