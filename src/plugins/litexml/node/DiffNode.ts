@@ -17,7 +17,7 @@ import {
 } from '@/editor-kernel/utils';
 import { CardLikeElementNode } from '@/plugins/common/node/cursor';
 
-export type DiffType = 'add' | 'remove' | 'modify' | 'unchanged' | 'listItemModify';
+export type DiffType = 'add' | 'remove' | 'modify' | 'unchanged' | 'listItemModify' | 'listItemRemove' | 'listItemAdd';
 
 export type SerializedDiffNode = Spread<
   {
