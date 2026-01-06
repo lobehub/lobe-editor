@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor, { moment } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common/plugin';
+import { ListPlugin } from '@/plugins/list/plugin';
 import {
   DiffAction,
   LITEXML_APPLY_COMMAND,
@@ -13,7 +14,6 @@ import {
   LitexmlPlugin,
 } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
-import { ListPlugin } from '@/plugins/list/plugin';
 import { IEditor } from '@/types';
 
 describe('Common Plugin Tests', () => {
@@ -219,17 +219,14 @@ describe('Common Plugin Tests', () => {
   });
 
   it('should list item remove work', async () => {
-    kernel.setDocument(
-      'markdown',
-      '- Item 1\n- Item 2\n- Item 3\n\n',
-    );
+    kernel.setDocument('markdown', '- Item 1\n- Item 2\n- Item 3\n\n');
     kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
       delay: true,
       id: 'm1v0', // id of 'Item 2'
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('- Item 1\n- \n- Item 3\n\n');
+    expect(markdown).toBe('- Item 1\n-\n- Item 3\n');
     const { root } = kernel.getDocument('json') as unknown as any;
 
     expect(root.children[0].children[1].type).toBe('listitem');
@@ -241,14 +238,11 @@ describe('Common Plugin Tests', () => {
     });
     await moment();
     const markdownAfter = kernel.getDocument('markdown') as unknown as string;
-    expect(markdownAfter).toBe('- Item 1\n- Item 3\n\n');
+    expect(markdownAfter).toBe('- Item 1\n- Item 3\n');
   });
 
   it('should list item add work', async () => {
-    kernel.setDocument(
-      'markdown',
-      '- Item 1\n- Item 2\n- Item 3\n\n',
-    );
+    kernel.setDocument('markdown', '- Item 1\n- Item 2\n- Item 3\n\n');
     console.info(kernel.getDocument('litexml'));
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       delay: true,
@@ -257,7 +251,7 @@ describe('Common Plugin Tests', () => {
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('- Item 1\n- Item 2\n- \n- Item 3\n\n');
+    expect(markdown).toBe('- Item 1\n- Item 2\n-\n- Item 3\n');
     const { root } = kernel.getDocument('json') as unknown as any;
 
     expect(root.children[0].children[2].type).toBe('listitem');
@@ -269,6 +263,6 @@ describe('Common Plugin Tests', () => {
     });
     await moment();
     const markdownAfter = kernel.getDocument('markdown') as unknown as string;
-    expect(markdownAfter).toBe('- Item 1\n- Item 2\n- New Item\n- Item 3\n\n');
+    expect(markdownAfter).toBe('- Item 1\n- Item 2\n- New Item\n- Item 3\n');
   });
 });
