@@ -2,6 +2,61 @@
 
 # Changelog
 
+## [Version&nbsp;3.5.0](https://github.com/lobehub/lobe-editor/compare/v3.4.2...v3.5.0)
+<sup>Released on **2026-01-06**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Implement list item removal handling in diff commands and styles.
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix disable markdown format, Fix test, Fix test.
+
+
+#### 💄 Styles
+
+- **misc**: Add default editor change debounce.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Implement list item removal handling in diff commands and styles, closes [#99](https://github.com/lobehub/lobe-editor/issues/99) ([71feacb](https://github.com/lobehub/lobe-editor/commit/71feacb))
+
+
+
+#### What's fixed
+
+* **misc**: Fix disable markdown format ([b6e3242](https://github.com/lobehub/lobe-editor/commit/b6e3242))
+* **misc**: Fix test ([60e9cb9](https://github.com/lobehub/lobe-editor/commit/60e9cb9))
+* **misc**: Fix test ([3b1f8b4](https://github.com/lobehub/lobe-editor/commit/3b1f8b4))
+
+
+
+#### Styles
+
+* **misc**: Add default editor change debounce ([3d5299b](https://github.com/lobehub/lobe-editor/commit/3d5299b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.4.2](https://github.com/lobehub/lobe-editor/compare/v3.4.1...v3.4.2)
 <sup>Released on **2025-12-31**</sup>
 
