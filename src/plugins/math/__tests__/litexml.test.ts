@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import Editor from '@/editor-kernel';
+import Editor, { resetRandomKey } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
@@ -12,6 +12,7 @@ describe('math litexml', () => {
   let editor: IEditor;
 
   beforeEach(() => {
+    resetRandomKey();
     editor = Editor.createEditor();
     editor.registerPlugins([LitexmlPlugin, MarkdownPlugin, CommonPlugin, MathPlugin]);
     editor.initNodeEditor();
@@ -30,7 +31,7 @@ describe('math litexml', () => {
     editor.setDocument('markdown', '$$E=mc^2$$');
     const xml = editor.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="lwap"><math id="m1v0" code="$E=mc^2$"></math></p></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><p id="ll63"><math id="lqqe" code="$E=mc^2$"></math></p></root>`,
     );
   });
 });
