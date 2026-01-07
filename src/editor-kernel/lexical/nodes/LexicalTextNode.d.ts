@@ -306,6 +306,6 @@ export declare class TextNode extends LexicalNode {
    */
   isTextEntity(): boolean;
 }
-export declare function findParentPreDOMNode(node: Node): Node | null;
+export declare function findParentPreDOMNode(node: Node): any;
 export declare function $createTextNode(text?: string): TextNode;
 export declare function $isTextNode(node: LexicalNode | null | undefined): node is TextNode;

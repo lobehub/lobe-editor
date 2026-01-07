@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import Editor from '@/editor-kernel';
+import Editor, { resetRandomKey } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
@@ -12,6 +12,7 @@ describe('table litexml', () => {
   let editor: IEditor;
 
   beforeEach(() => {
+    resetRandomKey();
     editor = Editor.createEditor();
     editor.registerPlugins([LitexmlPlugin, MarkdownPlugin, CommonPlugin, TablePlugin]);
     editor.initNodeEditor();
@@ -41,7 +42,7 @@ describe('table litexml', () => {
     );
     const xml = editor.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><table id="rglp" colWidths="187.5,187.5,187.5,187.5"><tr id="rm60"><td id="rrqb"><span id="rxam">Name</span></td><td id="s2ux"><span id="s8f8">Age</span></td><td id="sdzj"><span id="sjju">City</span></td><td id="sp45"><span id="suog">Country</span></td></tr><tr id="t08r"><td id="t5t2"><span id="tbdd">Alice</span></td><td id="tgxo"><span id="tmhz">25</span></td><td id="ts2a"><span id="txml">New York</span></td><td id="u36w"><span id="u8r7">USA</span></td></tr><tr id="uebi"><td id="ujvt"><span id="upg4">Bob</span></td><td id="uv0f"><span id="v0kq">30</span></td><td id="v651"><span id="vbpc">London</span></td><td id="vh9n"><span id="vmty">UK</span></td></tr><tr id="vse9"><td id="vxyk"><span id="w3iv">Charlie</span></td><td id="w936"><span id="wenh">28</span></td><td id="wk7s"><span id="wps3">Tokyo</span></td><td id="wvce"><span id="x0wp">Japan</span></td></tr></table></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><table id="ll63" colWidths="187.5,187.5,187.5,187.5"><tr id="lqqe"><td id="lwap"><span id="m1v0">Name</span></td><td id="m7fb"><span id="mczm">Age</span></td><td id="mijx"><span id="mo48">City</span></td><td id="mtoj"><span id="mz8u">Country</span></td></tr><tr id="n4t5"><td id="nadg"><span id="nfxr">Alice</span></td><td id="nli2"><span id="nr2d">25</span></td><td id="nwmo"><span id="o26z">New York</span></td><td id="o7ra"><span id="odbl">USA</span></td></tr><tr id="oivw"><td id="oog7"><span id="ou0i">Bob</span></td><td id="ozkt"><span id="p554">30</span></td><td id="papf"><span id="pg9q">London</span></td><td id="plu1"><span id="prec">UK</span></td></tr><tr id="pwyn"><td id="q2iy"><span id="q839">Charlie</span></td><td id="qdnk"><span id="qj7v">28</span></td><td id="qos6"><span id="quch">Tokyo</span></td><td id="qzws"><span id="r5h3">Japan</span></td></tr></table></root>`,
     );
   });
 });

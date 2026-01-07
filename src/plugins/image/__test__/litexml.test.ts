@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import Editor, { moment } from '@/editor-kernel';
+import Editor, { moment, resetRandomKey } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
@@ -12,6 +12,7 @@ describe('image litexml', () => {
   let editor: IEditor;
 
   beforeEach(() => {
+    resetRandomKey();
     editor = Editor.createEditor();
     editor.registerPlugins([LitexmlPlugin, MarkdownPlugin, CommonPlugin, ImagePlugin]);
     editor.initNodeEditor();
@@ -30,7 +31,7 @@ describe('image litexml', () => {
     editor.setDocument('markdown', '![logo](https://logo.com/logo.png)');
     const xml = editor.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="lwap"><img id="m1v0" block="true" src="https://logo.com/logo.png" alt="logo" width="inherit" max-width="4200"></img></p></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><p id="ll63"><img id="lqqe" block="true" src="https://logo.com/logo.png" alt="logo" width="inherit" max-width="4200"></img></p></root>`,
     );
   });
 });

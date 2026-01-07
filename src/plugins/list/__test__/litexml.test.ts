@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import Editor from '@/editor-kernel';
+import Editor, { resetRandomKey } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
@@ -12,6 +12,7 @@ describe('list litexml', () => {
   let editor: IEditor;
 
   beforeEach(() => {
+    resetRandomKey();
     editor = Editor.createEditor();
     editor.registerPlugins([LitexmlPlugin, MarkdownPlugin, CommonPlugin, ListPlugin]);
     editor.initNodeEditor();
@@ -30,7 +31,7 @@ describe('list litexml', () => {
     editor.setDocument('markdown', '- asdf\n- qwer');
     const xml = editor.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><ul id="mczm"><li id="mijx"><span id="mo48">asdf</span></li><li id="mtoj"><span id="mz8u">qwer</span></li></ul></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><ul id="ll63"><li id="lqqe"><span id="lwap">asdf</span></li><li id="m1v0"><span id="m7fb">qwer</span></li></ul></root>`,
     );
   });
 });
