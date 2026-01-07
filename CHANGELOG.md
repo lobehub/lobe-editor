@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.8.0](https://github.com/lobehub/lobe-editor/compare/v3.7.0...v3.8.0)
+<sup>Released on **2026-01-07**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Enhance wrapBlockModify to handle list item modifications.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Enhance wrapBlockModify to handle list item modifications, closes [#102](https://github.com/lobehub/lobe-editor/issues/102) ([c068e8f](https://github.com/lobehub/lobe-editor/commit/c068e8f))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.7.0](https://github.com/lobehub/lobe-editor/compare/v3.6.0...v3.7.0)
 <sup>Released on **2026-01-07**</sup>
 
