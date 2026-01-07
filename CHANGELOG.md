@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.6.0](https://github.com/lobehub/lobe-editor/compare/v3.5.0...v3.6.0)
+<sup>Released on **2026-01-07**</sup>
+
+
+#### ✨ Features
+
+- **misc**: KeepId with resetRandomKey.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: KeepId with resetRandomKey, closes [#100](https://github.com/lobehub/lobe-editor/issues/100) ([7b006b8](https://github.com/lobehub/lobe-editor/commit/7b006b8))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.5.0](https://github.com/lobehub/lobe-editor/compare/v3.4.2...v3.5.0)
 <sup>Released on **2026-01-06**</sup>
 
