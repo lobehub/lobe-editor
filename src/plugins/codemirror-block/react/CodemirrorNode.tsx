@@ -182,6 +182,17 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         instance.on('keydown', (instance, e) => {
           e.stopPropagation();
 
+          // Cmd+Enter / Ctrl+Enter: exit codeblock (move caret after the block)
+          if ((e.key === 'Enter' || e.keyCode === 13) && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            instanceRef.current?.blur();
+            editor.dispatchCommand(SELECT_AFTER_CODEMIRROR_COMMAND, { key: node.getKey() });
+            queueMicrotask(() => {
+              editor.focus();
+            });
+            return;
+          }
+
           // 当代码块为空且按退格键时，删除代码块节点
           if (e.key === 'Backspace' || e.keyCode === 8) {
             // 检查代码内容是否为空（使用 ref 中存储的状态）

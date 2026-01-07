@@ -1,6 +1,7 @@
 import {
   IEditor,
   INSERT_CODEINLINE_COMMAND,
+  INSERT_CODEMIRROR_COMMAND,
   INSERT_FILE_COMMAND,
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
@@ -198,6 +199,16 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         label: 'InsertCodeInline',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined);
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
+      {
+        key: 'insert-codeBlock',
+        label: 'InsertCodeBlock',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_CODEMIRROR_COMMAND, undefined);
           queueMicrotask(() => {
             editor.focus();
           });

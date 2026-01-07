@@ -1,5 +1,7 @@
 import { $findMatchingParent, mergeRegister } from '@lexical/utils';
 import {
+  $createNodeSelection,
+  $createParagraphNode,
   $getNodeByKey,
   $getSelection,
   $insertNodes,
@@ -32,6 +34,12 @@ export function registerCodeMirrorCommand(editor: LexicalEditor) {
         editor.update(() => {
           const codeMirrorNode = $createCodeMirrorNode('', '');
           $insertNodes([codeMirrorNode]);
+
+          // Select the inserted CodeMirror node so the React decorator can
+          // focus into the CodeMirror instance (caret stays "inside" the block).
+          const selection = $createNodeSelection();
+          selection.add(codeMirrorNode.getKey());
+          $setSelection(selection);
         });
         return true;
       },
@@ -101,10 +109,19 @@ export function registerCodeMirrorCommand(editor: LexicalEditor) {
             return;
           }
           const nextNode = node.getNextSibling();
-          const sel = nextNode?.selectStart();
-          console.info('SELECT_AFTER_CODEMIRROR_COMMAND', sel, nextNode, node);
-          if (sel) {
-            $setSelection(sel);
+          const selection = nextNode?.selectStart();
+
+          // If there is no next sibling (e.g. codeblock at end), create a new paragraph
+          // after the codeblock and move caret into it.
+          if (selection) {
+            $setSelection(selection);
+          } else {
+            const paragraph = $createParagraphNode();
+            node.insertAfter(paragraph);
+            const paragraphSelection = paragraph.selectStart();
+            if (paragraphSelection) {
+              $setSelection(paragraphSelection);
+            }
           }
           editor.focus();
         });
