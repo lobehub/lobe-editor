@@ -38,9 +38,9 @@ export const styles = createStaticStyles(
       }
     }
 
-
     &[data-diff-type='listItemRemove'] {
       display: inline-block;
+      min-width: 100%;
     }
 
     &[data-diff-type='listItemRemove'] .content {
@@ -68,6 +68,7 @@ export const styles = createStaticStyles(
 
     &[data-diff-type='listItemModify'] {
       display: inline-block;
+      min-width: 100%;
 
       p {
         display: block !important;

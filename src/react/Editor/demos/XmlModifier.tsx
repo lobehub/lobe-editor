@@ -8,6 +8,7 @@ import {
   LITEXML_APPLY_COMMAND,
   LITEXML_DIFFNODE_ALL_COMMAND,
   LITEXML_INSERT_COMMAND,
+  LITEXML_MODIFY_COMMAND,
   LITEXML_REMOVE_COMMAND,
 } from '@/plugins/litexml';
 import { IEditor } from '@/types';
@@ -21,6 +22,24 @@ const XmlModifier: FC<XmlModifierProps> = ({ children, editor }) => {
   const store = useCreateStore();
   useControls(
     {
+      modifyContent: {
+        value: JSON.stringify(
+          [
+            {
+              action: 'insert',
+              afterId: 'n4t5',
+              litexml: '<h2>佐玩的研发流程</h2>',
+            },
+          ],
+          null,
+          2,
+        ),
+        rows: 6,
+      },
+      apply: button((get) => {
+        if (!editor) return;
+        editor.dispatchCommand(LITEXML_MODIFY_COMMAND, JSON.parse(get('modifyContent')));
+      }),
       delay: true,
       content: {
         value: '<span id="n4t5" bold="true">@lobehub/replace</span>',
