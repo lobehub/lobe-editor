@@ -2,6 +2,38 @@
 
 # Changelog
 
+## [Version&nbsp;3.7.0](https://github.com/lobehub/lobe-editor/compare/v3.6.0...v3.7.0)
+<sup>Released on **2026-01-07**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add TypeScript declaration for 'lexical' module and update resetRandomKey usage, Enhance CodeMirror integration with new commands and selection handling.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add TypeScript declaration for 'lexical' module and update resetRandomKey usage ([f355a05](https://github.com/lobehub/lobe-editor/commit/f355a05))
+* **misc**: Enhance CodeMirror integration with new commands and selection handling ([6ca0f10](https://github.com/lobehub/lobe-editor/commit/6ca0f10))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.6.0](https://github.com/lobehub/lobe-editor/compare/v3.5.0...v3.6.0)
 <sup>Released on **2026-01-07**</sup>
 
