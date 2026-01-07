@@ -15,6 +15,7 @@ import {
   $isRangeSelection,
   $isTextNode,
   IS_CODE,
+  resetRandomKey,
 } from 'lexical';
 import { $getRoot } from 'lexical';
 
@@ -73,6 +74,13 @@ export default class JSONDataSource extends DataSource {
         (state) => {
           try {
             const root = $parseSerializedNodeImpl(dataObj.root, editor, true, state);
+            let maxId = -1;
+            state._nodeMap.keys().forEach((key) => {
+              if (key === 'root') return;
+              maxId = Math.max(maxId, Number(key));
+            });
+            // make sure to reset random key to avoid id conflicts
+            resetRandomKey(maxId + 1);
             state._nodeMap.set(root.getKey(), root);
           } catch (error) {
             console.error(error);
