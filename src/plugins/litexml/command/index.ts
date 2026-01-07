@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
+import { $isListItemNode } from '@lexical/list';
 import { mergeRegister } from '@lexical/utils';
 import {
   $createParagraphNode,
@@ -17,7 +18,6 @@ import { createDebugLogger } from '@/utils/debug';
 import type LitexmlDataSource from '../data-source/litexml-data-source';
 import { $createDiffNode, DiffNode } from '../node/DiffNode';
 import { $cloneNode, $parseSerializedNodeImpl, charToId } from '../utils';
-import { $isListItemNode } from '@lexical/list';
 
 const logger = createDebugLogger('plugin', 'litexml');
 
@@ -110,6 +110,22 @@ function finalizeModifyBlocks(
  * transitions where we want to show a modify diff.
  */
 function wrapBlockModify(oldBlock: LexicalNode, editor: LexicalEditor, changeFn: () => void) {
+  if ($isListItemNode(oldBlock)) {
+    const diffNode = $createDiffNode('listItemModify');
+    const p = $createParagraphNode();
+    oldBlock.getChildren().forEach((child) => {
+      p.append($cloneNode(child, editor));
+    });
+    changeFn();
+    diffNode.append(p);
+    const pNew = $createParagraphNode();
+    oldBlock.getChildren().forEach((child) => {
+      pNew.append(child);
+    });
+    diffNode.append(pNew);
+    oldBlock.append(diffNode);
+    return;
+  }
   const diffNode = $createDiffNode('modify');
   diffNode.append($cloneNode(oldBlock, editor));
   changeFn();
@@ -124,23 +140,23 @@ function wrapBlockModify(oldBlock: LexicalNode, editor: LexicalEditor, changeFn:
 export const LITEXML_MODIFY_COMMAND = createCommand<
   Array<
     | {
-      action: 'insert';
-      beforeId: string;
-      litexml: string;
-    }
+        action: 'insert';
+        beforeId: string;
+        litexml: string;
+      }
     | {
-      action: 'insert';
-      afterId: string;
-      litexml: string;
-    }
+        action: 'insert';
+        afterId: string;
+        litexml: string;
+      }
     | {
-      action: 'remove';
-      id: string;
-    }
+        action: 'remove';
+        id: string;
+      }
     | {
-      action: 'modify';
-      litexml: string | string[];
-    }
+        action: 'modify';
+        litexml: string | string[];
+      }
   >
 >('LITEXML_MODIFY_COMMAND');
 
@@ -152,15 +168,15 @@ export const LITEXML_REMOVE_COMMAND = createCommand<{ delay?: boolean; id: strin
 );
 export const LITEXML_INSERT_COMMAND = createCommand<
   | {
-    beforeId: string;
-    delay?: boolean;
-    litexml: string;
-  }
+      beforeId: string;
+      delay?: boolean;
+      litexml: string;
+    }
   | {
-    afterId: string;
-    delay?: boolean;
-    litexml: string;
-  }
+      afterId: string;
+      delay?: boolean;
+      litexml: string;
+    }
 >('LITEXML_INSERT_COMMAND');
 
 export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: LitexmlDataSource) {
@@ -396,15 +412,15 @@ function handleInsert(
   editor: LexicalEditor,
   payload:
     | {
-      beforeId: string;
-      delay?: boolean;
-      litexml: string;
-    }
+        beforeId: string;
+        delay?: boolean;
+        litexml: string;
+      }
     | {
-      afterId: string;
-      delay?: boolean;
-      litexml: string;
-    },
+        afterId: string;
+        delay?: boolean;
+        litexml: string;
+      },
   dataSource: LitexmlDataSource,
 ) {
   const { litexml, delay } = payload;
