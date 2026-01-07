@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import Editor from '@/editor-kernel';
+import Editor, { resetRandomKey } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
@@ -10,6 +10,7 @@ describe('Common Plugin Tests', () => {
   let kernel: IEditor;
 
   beforeEach(() => {
+    resetRandomKey();
     kernel = Editor.createEditor();
     kernel.registerPlugins([CommonPlugin, MarkdownPlugin, LitexmlPlugin]);
     kernel.initNodeEditor();
@@ -28,7 +29,7 @@ describe('Common Plugin Tests', () => {
     kernel.setDocument('markdown', 'this is <ins>underline</ins> and this is <u>underline2</u>');
     const xml = kernel.getDocument('litexml') as unknown as string;
     expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="mczm"><span id="mijx">this is </span><span id="mo48" underline="true">underline</span><span id="mtoj"> and this is </span><span id="mz8u" underline="true">underline2</span></p></root>`,
+      `<?xml version="1.0" encoding="UTF-8"?><root><p id="ll63"><span id="lqqe">this is </span><span id="lwap" underline="true">underline</span><span id="m1v0"> and this is </span><span id="m7fb" underline="true">underline2</span></p></root>`,
     );
   });
 
