@@ -28,7 +28,7 @@ export function $parseSerializedNodeImpl(
   }
 
   if (keepId && serializedNode.id) {
-    resetRandomKey();
+    resetRandomKey(Number(serializedNode.id));
   }
   const node = nodeClass.importJSON(serializedNode);
   const children = serializedNode.children;
