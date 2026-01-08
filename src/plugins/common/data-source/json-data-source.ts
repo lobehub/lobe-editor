@@ -75,7 +75,7 @@ export default class JSONDataSource extends DataSource {
           try {
             const root = $parseSerializedNodeImpl(dataObj.root, editor, true, state);
             let maxId = -1;
-            state._nodeMap.keys().forEach((key) => {
+            Array.from(state._nodeMap.keys()).forEach((key: string) => {
               if (key === 'root') return;
               maxId = Math.max(maxId, Number(key));
             });
