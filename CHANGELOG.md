@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.9.0](https://github.com/lobehub/lobe-editor/compare/v3.8.0...v3.9.0)
+<sup>Released on **2026-01-08**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Reset random key to avoid ID conflicts during state parsing.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Reset random key to avoid ID conflicts during state parsing, closes [#103](https://github.com/lobehub/lobe-editor/issues/103) ([7119713](https://github.com/lobehub/lobe-editor/commit/7119713))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.8.0](https://github.com/lobehub/lobe-editor/compare/v3.7.0...v3.8.0)
 <sup>Released on **2026-01-07**</sup>
 
