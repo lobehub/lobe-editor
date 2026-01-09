@@ -13,6 +13,7 @@ export { default as LitexmlDataSource } from './data-source/litexml-data-source'
 export type { LitexmlPluginOptions } from './plugin';
 export { LitexmlPlugin } from './plugin';
 export { ReactLiteXmlPlugin } from './react';
+export { useHasDiffNode } from './react/hooks/useHasDiffNode';
 export type {
   XMLReaderFunc,
   XMLReaderRecord,
