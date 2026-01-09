@@ -4,7 +4,7 @@ const path = require('node:path');
 
 const sourceDir = path.resolve(__dirname, '../src/editor-kernel/lexical');
 const esSourceDir = path.resolve(__dirname, '../es/editor-kernel/lexical');
-const targetDir = path.resolve(__dirname, '../node_modules/lexical');
+const targetDir = path.dirname(require.resolve('lexical'));
 
 if (!fs.existsSync(targetDir)) {
   console.warn('node_modules/lexical not found, skipping patch.');
