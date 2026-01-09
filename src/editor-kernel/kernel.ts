@@ -260,7 +260,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     return editor || null;
   }
 
-  setDocument(type: string, content: any) {
+  setDocument(type: string, content: any, options?: Record<string, unknown>): void {
     const datasource = this.dataTypeMap.get(type);
     if (!datasource) {
       this.logger.error(`❌ DataSource for type "${type}" not found`);
@@ -270,7 +270,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       this.logger.error('❌ Editor not initialized');
       throw new Error(`Editor is not initialized.`);
     }
-    datasource.read(this.editor, content);
+    datasource.read(this.editor, content, options);
     this.emit('documentChange', type, content);
     this.logger.debug(`📥 Set ${type} document`);
   }

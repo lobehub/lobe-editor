@@ -226,7 +226,7 @@ export interface IEditor {
    * @param type
    * @param content
    */
-  setDocument(type: string, content: any): void;
+  setDocument(type: string, content: any, options?: Record<string, unknown>): void;
 
   /**
    * Enable or disable editor editing capability

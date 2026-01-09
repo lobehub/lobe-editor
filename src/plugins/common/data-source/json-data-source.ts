@@ -28,7 +28,7 @@ import { cursorNodeSerialized } from '../node/cursor';
 import { exportNodeToJSON } from '../utils';
 
 export default class JSONDataSource extends DataSource {
-  read(editor: LexicalEditor, data: any) {
+  read(editor: LexicalEditor, data: any, options: Record<string, unknown> = {}) {
     let dataObj: SerializedEditorState<SerializedLexicalNode>;
     if (typeof data === 'string') {
       dataObj = JSON.parse(data) as SerializedEditorState<SerializedLexicalNode>;
@@ -66,7 +66,7 @@ export default class JSONDataSource extends DataSource {
     };
     process(dataObj.root);
     // @ts-expect-error add id option
-    if (dataObj.keepId) {
+    if (dataObj.keepId || options.keepId) {
       const state = editor.parseEditorState(
         {
           root: INodeHelper.createRootNode(),
