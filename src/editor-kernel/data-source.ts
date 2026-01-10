@@ -14,7 +14,7 @@ export default class DataSource {
     return this.dataType;
   }
 
-  read(editor: LexicalEditor, data: any) {}
+  read(editor: LexicalEditor, data: any, options?: Record<string, unknown>) {}
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {
     return null;
