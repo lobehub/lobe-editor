@@ -38,6 +38,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     enableHotkey = true,
     enablePasteMarkdown = true,
     markdownOption = true,
+    pasteAsPlainText = false,
     onKeyDown,
     onFocus,
     onBlur,
@@ -114,9 +115,18 @@ const ReactPlainText = memo<ReactPlainTextProps>(
       editor.registerPlugin(CommonPlugin, {
         enableHotkey,
         markdownOption,
+        pasteAsPlainText,
         theme: restTheme ? { ...computedThemeStyles, ...restTheme } : computedThemeStyles,
       });
-    }, [editor, enableHotkey, enablePasteMarkdown, markdownOption, restTheme, computedThemeStyles]);
+    }, [
+      editor,
+      enableHotkey,
+      enablePasteMarkdown,
+      markdownOption,
+      pasteAsPlainText,
+      restTheme,
+      computedThemeStyles,
+    ]);
 
     useEffect(() => {
       const container = editorContainerRef.current;

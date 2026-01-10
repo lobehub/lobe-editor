@@ -32,6 +32,12 @@ Editor is a powerful and extensible rich text editor component designed for mode
 
 <code src="./demos/disableMarkdown.tsx" nopadding iframe></code>
 
+## Paste as Plain Text
+
+Force all pasted content to be inserted as plain text, stripping any rich text formatting (bold, italic, links, etc).
+
+<code src="./demos/pasteAsPlainText.tsx" nopadding iframe></code>
+
 ## APIs
 
 ### Editor
@@ -45,6 +51,7 @@ Editor is a powerful and extensible rich text editor component designed for mode
 | editor              | Editor instance to use                                                   | `IEditor`                                                                               | -        |
 | enablePasteMarkdown | Enable automatic markdown formatting for pasted content                  | `boolean`                                                                               | `true`   |
 | markdownOption      | Enable/disable markdown shortcuts granularly                             | `boolean \| MarkdownFormatOptions`                                                      | `true`   |
+| pasteAsPlainText    | Force paste as plain text, stripping all rich text formatting            | `boolean`                                                                               | `false`  |
 | onInit              | Callback called when editor is initialized                               | `(editor: IEditor) => void`                                                             | -        |
 | mentionOption       | Configuration for mention functionality                                  | `MentionOption`                                                                         | `{}`     |
 | onBlur              | Blur event handler                                                       | `FocusEventHandler<HTMLDivElement>`                                                     | -        |

@@ -49,6 +49,11 @@ export interface ReactPlainTextProps {
    * Unlike onChange, this won't trigger on cursor movement or selection changes
    */
   onTextChange?: (editor: IEditor) => void;
+  /**
+   * Force paste as plain text, stripping all rich text formatting
+   * @default false
+   */
+  pasteAsPlainText?: boolean;
   style?: CSSProperties;
   theme?: CommonPluginOptions['theme'] & {
     fontSize?: number;
