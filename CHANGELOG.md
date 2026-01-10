@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.10.0](https://github.com/lobehub/lobe-editor/compare/v3.9.1...v3.10.0)
+<sup>Released on **2026-01-10**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add options for data source.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add options for data source, closes [#105](https://github.com/lobehub/lobe-editor/issues/105) ([715f72d](https://github.com/lobehub/lobe-editor/commit/715f72d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.9.1](https://github.com/lobehub/lobe-editor/compare/v3.9.0...v3.9.1)
 <sup>Released on **2026-01-09**</sup>
 
