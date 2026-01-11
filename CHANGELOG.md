@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.12.0](https://github.com/lobehub/lobe-editor/compare/v3.11.0...v3.12.0)
+<sup>Released on **2026-01-11**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add Virtual Block plugin and React integration.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add Virtual Block plugin and React integration, closes [#111](https://github.com/lobehub/lobe-editor/issues/111) ([3451954](https://github.com/lobehub/lobe-editor/commit/3451954))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.11.0](https://github.com/lobehub/lobe-editor/compare/v3.10.0...v3.11.0)
 <sup>Released on **2026-01-11**</sup>
 
