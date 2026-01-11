@@ -21,6 +21,7 @@ import {
   ReactMathPlugin,
   ReactTablePlugin,
   ReactToolbarPlugin,
+  ReactVirtualBlockPlugin,
   type SlashOptions,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
@@ -56,21 +57,29 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
   const [markdown, setMarkdown] = useState('');
   const [xml, setXml] = useState('');
 
-  const handleChange = debounce((editor: IEditor) => {
-    const markdownContent = editor.getDocument('markdown') as unknown as string;
-    const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
-    const xmlContent = editor.getDocument('litexml') as unknown as string;
-    setMarkdown(markdownContent || '');
-    setJson(JSON.stringify(jsonContent || {}, null, 2));
-    setXml(xmlContent || '');
-  }, 200);
+  const handleChange = useMemo(
+    () =>
+      debounce((editor: IEditor) => {
+        const markdownContent = editor.getDocument('markdown') as unknown as string;
+        const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
+        const xmlContent = editor.getDocument('litexml') as unknown as string;
+        setMarkdown(markdownContent || '');
+        setJson(JSON.stringify(jsonContent || {}, null, 2));
+        setXml(xmlContent || '');
+      }, 200),
+    [],
+  );
 
-  const handleJSONChange = debounce((value: any) => {
-    if (editor) {
-      console.info('handleJSONChange', value);
-      editor.setDocument('json', value);
-    }
-  }, 200);
+  const handleJSONChange = useMemo(
+    () =>
+      debounce((value: any) => {
+        if (editor) {
+          console.info('handleJSONChange', value);
+          editor.setDocument('json', value);
+        }
+      }, 200),
+    [],
+  );
 
   const handleInit = (editor: IEditor) => {
     // @ts-expect-error not error：
@@ -266,6 +275,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
           ReactLinkPlugin,
           ReactImagePlugin,
           // ReactCodeblockPlugin,
+          ReactVirtualBlockPlugin,
           ReactCodemirrorPlugin,
           ReactHRPlugin,
           ReactTablePlugin,
