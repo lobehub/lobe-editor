@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.11.0](https://github.com/lobehub/lobe-editor/compare/v3.10.0...v3.11.0)
+<sup>Released on **2026-01-11**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add pasteAsPlainText option to force plain text paste.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add pasteAsPlainText option to force plain text paste, closes [#110](https://github.com/lobehub/lobe-editor/issues/110) ([d52387e](https://github.com/lobehub/lobe-editor/commit/d52387e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.10.0](https://github.com/lobehub/lobe-editor/compare/v3.9.1...v3.10.0)
 <sup>Released on **2026-01-10**</sup>
 
