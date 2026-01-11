@@ -4,6 +4,7 @@ import { mergeRegister } from '@lexical/utils';
 import {
   $createParagraphNode,
   $getNodeByKey,
+  $getRoot,
   $insertNodes,
   $isElementNode,
   COMMAND_PRIORITY_EDITOR,
@@ -431,9 +432,17 @@ function handleInsert(
     try {
       let referenceNode: LexicalNode | null = null;
       if (isBefore) {
-        referenceNode = $getNodeByKey(charToId(payload.beforeId));
+        if (payload.beforeId === 'root') {
+          referenceNode = $getRoot().getFirstChild();
+        } else {
+          referenceNode = $getNodeByKey(charToId(payload.beforeId));
+        }
       } else {
-        referenceNode = $getNodeByKey(charToId(payload.afterId));
+        if (payload.afterId === 'root') {
+          referenceNode = $getRoot().getLastChild();
+        } else {
+          referenceNode = $getNodeByKey(charToId(payload.afterId));
+        }
       }
 
       if (!referenceNode) {
@@ -445,7 +454,9 @@ function handleInsert(
       );
       if (!delay) {
         if (isBefore) {
-          referenceNode = referenceNode.insertBefore(newNodes);
+          newNodes.reverse().forEach((node: LexicalNode) => {
+            referenceNode = referenceNode!.insertBefore(node);
+          });
         } else {
           newNodes.forEach((node: LexicalNode) => {
             if (referenceNode) {
@@ -471,7 +482,7 @@ function handleInsert(
             diffNode.append(node);
             return diffNode;
           });
-          diffNodes.forEach((diffNode: DiffNode) => {
+          diffNodes.reverse().forEach((diffNode: DiffNode) => {
             if (referenceNode) {
               referenceNode = referenceNode.insertBefore(diffNode);
             }
