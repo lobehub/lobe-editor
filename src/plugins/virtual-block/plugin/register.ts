@@ -2,6 +2,7 @@ import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code';
 import { mergeRegister } from '@lexical/utils';
 import {
   $createParagraphNode,
+  $getNodeByKey,
   $getRoot,
   $getSelection,
   $isDecoratorNode,
@@ -21,6 +22,10 @@ import {
 } from 'lexical';
 
 import { $closest } from '@/editor-kernel';
+import {
+  SELECT_AFTER_CODEMIRROR_COMMAND,
+  SELECT_BEFORE_CODEMIRROR_COMMAND,
+} from '@/plugins/codemirror-block';
 import { IEditor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
@@ -277,6 +282,44 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
           return true;
         }
         return false;
+      },
+      COMMAND_PRIORITY_NORMAL,
+    ),
+    editor.registerCommand(
+      SELECT_BEFORE_CODEMIRROR_COMMAND,
+      (payload) => {
+        editor.update(() => {
+          const node = $getNodeByKey(payload.key);
+          if (!node) {
+            return;
+          }
+          const p = $createParagraphNode();
+          needRemoveOnFocusNode = p;
+          node.insertBefore(p);
+          p.selectEnd();
+          editor.focus();
+          return true;
+        });
+        return true;
+      },
+      COMMAND_PRIORITY_NORMAL,
+    ),
+    editor.registerCommand(
+      SELECT_AFTER_CODEMIRROR_COMMAND,
+      (payload) => {
+        editor.update(() => {
+          const node = $getNodeByKey(payload.key);
+          if (!node) {
+            return;
+          }
+          const p = $createParagraphNode();
+          needRemoveOnFocusNode = p;
+          node.insertAfter(p);
+          p.selectEnd();
+          editor.focus();
+          return true;
+        });
+        return true;
       },
       COMMAND_PRIORITY_NORMAL,
     ),
