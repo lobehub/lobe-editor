@@ -19,6 +19,7 @@ import {
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
+  CONTROLLED_TEXT_INSERTION_COMMAND,
   INSERT_LINE_BREAK_COMMAND,
   INSERT_PARAGRAPH_COMMAND,
   PASTE_COMMAND,
@@ -67,6 +68,11 @@ export interface CommonPluginOptions {
         underline?: boolean;
         underlineStrikethrough?: boolean;
       };
+  /**
+   * Force paste as plain text, stripping all rich text formatting
+   * @default false
+   */
+  pasteAsPlainText?: boolean;
   theme?: {
     quote?: string;
     textBold?: string;
@@ -407,6 +413,27 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
           if (!clipboardData) return false;
 
           this.kernel.emit('onPaste', event);
+
+          // If pasteAsPlainText is enabled, intercept and paste as plain text
+          if (this.config?.pasteAsPlainText) {
+            // Check if it's a file paste - don't interfere with file uploads
+            const items = clipboardData.items;
+            for (const item of items) {
+              if (item.kind === 'file') {
+                return false; // Let file paste be handled normally
+              }
+            }
+
+            // Get plain text from clipboard
+            const text = clipboardData.getData('text/plain');
+            if (!text) return false;
+
+            // Prevent default paste behavior and insert plain text
+            event.preventDefault();
+            editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, text);
+            return true;
+          }
+
           return false;
         },
         COMMAND_PRIORITY_CRITICAL,

@@ -38,6 +38,7 @@ const Editor = memo<EditorProps>(
     autoFocus,
     enablePasteMarkdown = true,
     markdownOption = true,
+    pasteAsPlainText = false,
     onCompositionStart,
     onCompositionEnd,
     onContextMenu,
@@ -114,6 +115,7 @@ const Editor = memo<EditorProps>(
           onKeyDown={onKeyDown}
           onPressEnter={onPressEnter}
           onTextChange={debouncedOnTextChange}
+          pasteAsPlainText={pasteAsPlainText}
           style={style}
           variant={variant}
         >
