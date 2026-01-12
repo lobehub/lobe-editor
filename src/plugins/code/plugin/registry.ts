@@ -1,5 +1,5 @@
 import { mergeRegister } from '@lexical/utils';
-import { $getNodeByKey, LexicalEditor } from 'lexical';
+import { $getNodeByKey, HISTORY_MERGE_TAG, LexicalEditor } from 'lexical';
 
 import { $createCursorNode } from '@/plugins/common';
 import { IEditorKernel } from '@/types';
@@ -38,14 +38,19 @@ export function registerCodeInline(
       });
 
       if (needAddBefore.size > 0) {
-        editor.update(() => {
-          needAddBefore.forEach((node) => {
-            const prev = node.getPreviousSibling();
-            if (!prev) {
-              node.insertBefore($createCursorNode());
-            }
-          });
-        });
+        editor.update(
+          () => {
+            needAddBefore.forEach((node) => {
+              const prev = node.getPreviousSibling();
+              if (!prev) {
+                node.insertBefore($createCursorNode());
+              }
+            });
+          },
+          {
+            tag: HISTORY_MERGE_TAG,
+          },
+        );
       }
     }),
     kernel.registerHotkey(
