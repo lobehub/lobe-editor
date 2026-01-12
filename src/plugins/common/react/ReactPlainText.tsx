@@ -39,6 +39,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     enablePasteMarkdown = true,
     markdownOption = true,
     pasteAsPlainText = false,
+    pasteVSCodeAsCodeBlock = true,
     onKeyDown,
     onFocus,
     onBlur,
@@ -116,6 +117,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
         enableHotkey,
         markdownOption,
         pasteAsPlainText,
+        pasteVSCodeAsCodeBlock,
         theme: restTheme ? { ...computedThemeStyles, ...restTheme } : computedThemeStyles,
       });
     }, [
@@ -124,6 +126,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
       enablePasteMarkdown,
       markdownOption,
       pasteAsPlainText,
+      pasteVSCodeAsCodeBlock,
       restTheme,
       computedThemeStyles,
     ]);

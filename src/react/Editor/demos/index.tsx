@@ -268,6 +268,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         }}
         onInit={handleInit}
         onTextChange={handleChange}
+        pasteVSCodeAsCodeBlock
         placeholder={'Type something...'}
         plugins={[
           ReactLiteXmlPlugin,

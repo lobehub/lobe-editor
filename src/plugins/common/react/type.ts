@@ -54,6 +54,13 @@ export interface ReactPlainTextProps {
    * @default false
    */
   pasteAsPlainText?: boolean;
+  /**
+   * When pasting VS Code content (detected via vscode-editor-data clipboard type),
+   * create a code block with the language from VS Code instead of pasting as plain text.
+   * This option only takes effect when pasteAsPlainText is enabled.
+   * @default true
+   */
+  pasteVSCodeAsCodeBlock?: boolean;
   style?: CSSProperties;
   theme?: CommonPluginOptions['theme'] & {
     fontSize?: number;

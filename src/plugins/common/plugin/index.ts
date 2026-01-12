@@ -19,7 +19,6 @@ import {
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
-  CONTROLLED_TEXT_INSERTION_COMMAND,
   INSERT_LINE_BREAK_COMMAND,
   INSERT_PARAGRAPH_COMMAND,
   PASTE_COMMAND,
@@ -44,11 +43,19 @@ import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { CursorNode, registerCursorNode } from '../node/cursor';
 import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
 import { registerMDReader } from './mdReader';
+import {
+  type PasteContext,
+  type PasteHandlerConfig,
+  handleFilePaste,
+  handlePlainTextPaste,
+  handleVSCodePaste,
+  runPasteHandlers,
+} from './paste-handler';
 import { registerHeaderBackspace, registerLastElement, registerRichKeydown } from './register';
 
 patchBreakLine();
 
-export interface CommonPluginOptions {
+export interface CommonPluginOptions extends PasteHandlerConfig {
   enableHotkey?: boolean;
   /**
    * Enable/disable markdown shortcuts
@@ -73,6 +80,7 @@ export interface CommonPluginOptions {
    * @default false
    */
   pasteAsPlainText?: boolean;
+
   theme?: {
     quote?: string;
     textBold?: string;
@@ -414,24 +422,25 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
           this.kernel.emit('onPaste', event);
 
-          // If pasteAsPlainText is enabled, intercept and paste as plain text
-          if (this.config?.pasteAsPlainText) {
-            // Check if it's a file paste - don't interfere with file uploads
-            const items = clipboardData.items;
-            for (const item of items) {
-              if (item.kind === 'file') {
-                return false; // Let file paste be handled normally
-              }
+          const ctx: PasteContext = {
+            clipboardData,
+            config: this.config,
+            editor,
+            event,
+          };
+
+          // VS Code paste handling is independent of pasteAsPlainText
+          // This ensures code blocks get proper language even in rich text mode
+          if (this.config?.pasteVSCodeAsCodeBlock) {
+            const result = handleVSCodePaste(ctx);
+            if (result === 'handled') {
+              return true;
             }
+          }
 
-            // Get plain text from clipboard
-            const text = clipboardData.getData('text/plain');
-            if (!text) return false;
-
-            // Prevent default paste behavior and insert plain text
-            event.preventDefault();
-            editor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, text);
-            return true;
+          // If pasteAsPlainText is enabled, run the plain text handlers chain
+          if (this.config?.pasteAsPlainText) {
+            return runPasteHandlers(ctx, [handleFilePaste, handlePlainTextPaste]);
           }
 
           return false;
