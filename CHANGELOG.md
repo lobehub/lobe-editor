@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.13.0](https://github.com/lobehub/lobe-editor/compare/v3.12.1...v3.13.0)
+<sup>Released on **2026-01-12**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Enhance paste handling with VS Code integration.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Enhance paste handling with VS Code integration ([31f3c37](https://github.com/lobehub/lobe-editor/commit/31f3c37))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.12.1](https://github.com/lobehub/lobe-editor/compare/v3.12.0...v3.12.1)
 <sup>Released on **2026-01-12**</sup>
 
