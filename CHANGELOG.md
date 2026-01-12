@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;3.12.1](https://github.com/lobehub/lobe-editor/compare/v3.12.0...v3.12.1)
+<sup>Released on **2026-01-12**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Update anchor selection logic to use LOBE_THEME_APP_ID for improved element targeting.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Update anchor selection logic to use LOBE_THEME_APP_ID for improved element targeting ([07d2f6d](https://github.com/lobehub/lobe-editor/commit/07d2f6d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.12.0](https://github.com/lobehub/lobe-editor/compare/v3.11.0...v3.12.0)
 <sup>Released on **2026-01-11**</sup>
 
