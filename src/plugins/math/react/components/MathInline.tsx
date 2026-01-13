@@ -1,13 +1,7 @@
 import { addClassNamesToElement, removeClassNamesFromElement } from '@lexical/utils';
 import Katex from 'katex';
-import {
-  $getSelection,
-  $isNodeSelection,
-  CLICK_COMMAND,
-  COMMAND_PRIORITY_NORMAL,
-  LexicalEditor,
-} from 'lexical';
-import { type FC, useEffect, useRef, useState } from 'react';
+import { $getSelection, $isNodeSelection, LexicalEditor } from 'lexical';
+import React, { type FC, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
@@ -26,7 +20,7 @@ export interface MathInlineProps {
 
 const MathInline: FC<MathInlineProps> = ({ editor, node, className }) => {
   const ref = useRef<HTMLSpanElement>(null);
-  const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
+  const [isSelected, setIsSelected] = useLexicalNodeSelection(node.getKey());
   const [isEditing, setIsEditing] = useState<boolean>(false);
 
   const isMathBlock = node instanceof MathBlockNode;
@@ -63,34 +57,34 @@ const MathInline: FC<MathInlineProps> = ({ editor, node, className }) => {
     }
   }, [isSelected, isEditing, editor, node]);
 
-  useLexicalEditor(
-    (editor) => {
-      return editor.registerCommand(
-        CLICK_COMMAND,
-        (payload) => {
-          logger.debug('📊 Math click event:', payload.target === ref.current);
-          if (payload.target && payload.target instanceof Node) {
-            // 获取节点对应的 DOM 元素
-            const nodeElement = editor.getElementByKey(node.getKey());
+  // useLexicalEditor(
+  //   (editor) => {
+  //     return editor.registerCommand(
+  //       CLICK_COMMAND,
+  //       (payload) => {
+  //         logger.debug('📊 Math click event:', payload.target === ref.current);
+  //         if (payload.target && payload.target instanceof Node) {
+  //           // 获取节点对应的 DOM 元素
+  //           const nodeElement = editor.getElementByKey(node.getKey());
 
-            // 对于 block 模式，检查是否点击在整个节点容器内
-            // 对于 inline 模式，仍然检查是否点击在渲染内容内
-            const isClickInNode =
-              node instanceof MathBlockNode
-                ? nodeElement?.contains(payload.target)
-                : ref.current?.contains(payload.target);
+  //           // 对于 block 模式，检查是否点击在整个节点容器内
+  //           // 对于 inline 模式，仍然检查是否点击在渲染内容内
+  //           const isClickInNode =
+  //             node instanceof MathBlockNode
+  //               ? nodeElement?.contains(payload.target)
+  //               : ref.current?.contains(payload.target);
 
-            if (isClickInNode) {
-              setSelected(true);
-            }
-          }
-          return false;
-        },
-        COMMAND_PRIORITY_NORMAL,
-      );
-    },
-    [node],
-  );
+  //           if (isClickInNode) {
+  //             setSelected(true);
+  //           }
+  //         }
+  //         return false;
+  //       },
+  //       COMMAND_PRIORITY_NORMAL,
+  //     );
+  //   },
+  //   [node],
+  // );
 
   // 监听编辑器状态变化来检测编辑状态
   useLexicalEditor(
@@ -119,8 +113,18 @@ const MathInline: FC<MathInlineProps> = ({ editor, node, className }) => {
     [node],
   );
 
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      logger.debug('📊 Math click event:', e.target === ref.current);
+      e.preventDefault();
+      e.stopPropagation();
+      setIsSelected(true);
+    },
+    [editor, node],
+  );
+
   return (
-    <span className={className} ref={ref}>
+    <span className={className} onClick={handleClick} ref={ref}>
       {node.code ? node.code : <Placeholder mathBlock={isMathBlock} />}
     </span>
   );
