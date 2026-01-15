@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;3.13.2](https://github.com/lobehub/lobe-editor/compare/v3.13.1...v3.13.2)
+<sup>Released on **2026-01-15**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Refactor MathEditorContainer to use Popover for improved positioning and styling.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Refactor MathEditorContainer to use Popover for improved positioning and styling ([0e5ae08](https://github.com/lobehub/lobe-editor/commit/0e5ae08))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.13.1](https://github.com/lobehub/lobe-editor/compare/v3.13.0...v3.13.1)
 <sup>Released on **2026-01-13**</sup>
 
