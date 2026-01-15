@@ -63,8 +63,6 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     ),
 
     mathEditor: css`
-      position: absolute;
-      z-index: 999;
       width: 320px;
       background: ${cssVar.colorBgElevated};
 
@@ -82,6 +80,16 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     mathEditorFooter: css`
       border-block-start: 1px solid ${cssVar.colorBorderSecondary};
       background: ${cssVar.colorFillQuaternary};
+    `,
+    mathEditorAnchor: css`
+      pointer-events: none;
+
+      position: absolute;
+      inset-block-start: -9999px;
+      inset-inline-start: -9999px;
+
+      width: 0;
+      height: 0;
     `,
     mathEditorTextArea: css`
       margin-block: 4px;

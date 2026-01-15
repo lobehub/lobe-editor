@@ -1,5 +1,5 @@
-import { Block } from '@lobehub/ui';
-import { type ReactNode, memo, useEffect, useRef } from 'react';
+import { Flexbox, Popover } from '@lobehub/ui';
+import { type ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
@@ -20,36 +20,42 @@ export interface MathEditorContainerProps {
 
 const MathEditorContainer = memo<MathEditorContainerProps>(
   ({ children, isBlockMode, mathDOM, onFocus, prev }) => {
-    const divRef = useRef<HTMLDivElement>(null);
+    const anchorRef = useRef<HTMLSpanElement>(null);
+    const [blockWidth, setBlockWidth] = useState<number | undefined>(undefined);
 
-    const updateMathPosition = () => {
+    const updateBlockWidth = useCallback(() => {
+      if (!isBlockMode) {
+        setBlockWidth(undefined);
+        return;
+      }
+      const editorContainer = mathDOM?.closest('[contenteditable="true"]') as HTMLElement | null;
+      if (editorContainer) {
+        setBlockWidth(editorContainer.getBoundingClientRect().width);
+      }
+    }, [isBlockMode, mathDOM]);
+
+    const updateAnchorPosition = useCallback(() => {
       return updatePosition({
         callback: () => {
-          if (!divRef.current || !mathDOM) return;
+          if (!anchorRef.current || !mathDOM) return;
           // 展示的时候聚焦
           onFocus?.();
-          if (!isBlockMode) {
-            divRef.current.style.width = '';
-            return;
-          }
-          const editorContainer = mathDOM.closest('[contenteditable="true"]') as HTMLElement | null;
-          if (editorContainer) {
-            const containerRect = editorContainer.getBoundingClientRect();
-            divRef.current.style.width = `${containerRect.width}px`;
-          }
+          updateBlockWidth();
         },
-        floating: divRef.current,
+        floating: anchorRef.current,
+        placement: isBlockMode ? 'bottom-start' : 'bottom',
         reference: mathDOM,
       });
-    };
+    }, [isBlockMode, mathDOM, onFocus, updateBlockWidth]);
 
     useEffect(() => {
-      if (!mathDOM || !divRef.current) return;
-      const floating = divRef.current;
+      if (!mathDOM || !anchorRef.current) return;
+      const floating = anchorRef.current;
 
-      // 监听尺寸变化，随内容变化重新定位
-      const resizeObserver = new ResizeObserver(() => updateMathPosition());
-      resizeObserver.observe(mathDOM);
+      // 监听尺寸变化，仅更新宽度/位置（不跟随 trigger 尺寸变化）
+      const resizeObserver = new ResizeObserver(() => {
+        updateBlockWidth();
+      });
       resizeObserver.observe(floating);
 
       let editorContainer: HTMLElement | null = null;
@@ -58,34 +64,45 @@ const MathEditorContainer = memo<MathEditorContainerProps>(
         if (editorContainer) resizeObserver.observe(editorContainer);
       }
 
+      updateAnchorPosition();
+
       // 窗口尺寸变化时也重新定位
-      window.addEventListener('resize', updateMathPosition);
+      window.addEventListener('resize', updateAnchorPosition);
 
       return () => {
         resizeObserver.disconnect();
-        window.removeEventListener('resize', updateMathPosition);
+        window.removeEventListener('resize', updateAnchorPosition);
       };
-    }, [mathDOM, prev, isBlockMode, onFocus]);
+    }, [mathDOM, prev, isBlockMode, updateAnchorPosition]);
 
     // 当没有 mathDOM 时，隐藏容器
     useEffect(() => {
-      if (mathDOM || !divRef.current) return;
-      cleanPosition(divRef.current);
+      if (mathDOM || !anchorRef.current) return;
+      cleanPosition(anchorRef.current);
     }, [mathDOM]);
 
     return (
-      <Block
-        className={styles.mathEditor}
-        data-math-editor-container
-        onClick={(e) => {
-          e.preventDefault();
+      <Popover
+        arrow={false}
+        content={
+          <Flexbox
+            className={styles.mathEditor}
+            data-math-editor-container
+            style={blockWidth ? { width: blockWidth } : undefined}
+          >
+            {children}
+          </Flexbox>
+        }
+        open={!!mathDOM}
+        placement={isBlockMode ? 'bottomLeft' : 'bottom'}
+        styles={{
+          content: {
+            padding: 0,
+          },
         }}
-        ref={divRef}
-        shadow
-        variant={'outlined'}
       >
-        {children}
-      </Block>
+        <span className={styles.mathEditorAnchor} ref={anchorRef} />
+      </Popover>
     );
   },
 );
