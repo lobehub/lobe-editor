@@ -34,26 +34,14 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
   // 实时更新节点内容（仅当输入可渲染时才同步到 document）
   useEffect(() => {
     if (!mathNode) return;
+    // 输入无效时不同步到文档，避免无限循环；提交时会使用 lastValidRef 作为回退
+    if (!isInputValidRef.current) return;
 
     // 使用防抖来避免过于频繁的更新
     const timeoutId = setTimeout(() => {
       // 直接更新节点内容
       const lexicalEditor = editor.getLexicalEditor();
       if (lexicalEditor && !isUpdatingRef.current) {
-        if (!isInputValidRef.current) {
-          const currentNode = lexicalEditor.getEditorState().read(() => {
-            return lexicalEditor.getElementByKey(mathNode.getKey());
-          });
-
-          if (currentNode) {
-            lexicalEditor.update(() => {
-              const writableNode = mathNode.getWritable();
-              writableNode.__code = value;
-            });
-          }
-          return;
-        }
-
         // 检查当前值是否与节点中的值不同，避免不必要的更新
         const currentCode = mathNode.code;
         if (value && currentCode && currentCode === value) {

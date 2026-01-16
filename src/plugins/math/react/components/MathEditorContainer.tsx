@@ -22,17 +22,25 @@ const MathEditorContainer = memo<MathEditorContainerProps>(
   ({ children, isBlockMode, mathDOM, onFocus, prev }) => {
     const anchorRef = useRef<HTMLSpanElement>(null);
     const [blockWidth, setBlockWidth] = useState<number | undefined>(undefined);
+    const lastBlockWidthRef = useRef<number | undefined>(undefined);
+
+    const setBlockWidthIfNeeded = useCallback((nextWidth?: number) => {
+      const normalizedWidth = typeof nextWidth === 'number' ? Math.round(nextWidth) : undefined;
+      if (lastBlockWidthRef.current === normalizedWidth) return;
+      lastBlockWidthRef.current = normalizedWidth;
+      setBlockWidth(normalizedWidth);
+    }, []);
 
     const updateBlockWidth = useCallback(() => {
       if (!isBlockMode) {
-        setBlockWidth(undefined);
+        setBlockWidthIfNeeded(undefined);
         return;
       }
       const editorContainer = mathDOM?.closest('[contenteditable="true"]') as HTMLElement | null;
       if (editorContainer) {
-        setBlockWidth(editorContainer.getBoundingClientRect().width);
+        setBlockWidthIfNeeded(editorContainer.getBoundingClientRect().width);
       }
-    }, [isBlockMode, mathDOM]);
+    }, [isBlockMode, mathDOM, setBlockWidthIfNeeded]);
 
     const updateAnchorPosition = useCallback(() => {
       return updatePosition({
@@ -47,6 +55,11 @@ const MathEditorContainer = memo<MathEditorContainerProps>(
         reference: mathDOM,
       });
     }, [isBlockMode, mathDOM, onFocus, updateBlockWidth]);
+
+    const handleAnchorClick = useCallback(() => {
+      if (!mathDOM) return;
+      updateAnchorPosition();
+    }, [mathDOM, updateAnchorPosition]);
 
     useEffect(() => {
       if (!mathDOM || !anchorRef.current) return;
@@ -97,11 +110,12 @@ const MathEditorContainer = memo<MathEditorContainerProps>(
         placement={isBlockMode ? 'bottomLeft' : 'bottom'}
         styles={{
           content: {
+            borderRadius: '6px',
             padding: 0,
           },
         }}
       >
-        <span className={styles.mathEditorAnchor} ref={anchorRef} />
+        <span className={styles.mathEditorAnchor} onClick={handleAnchorClick} ref={anchorRef} />
       </Popover>
     );
   },

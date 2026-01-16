@@ -20,7 +20,7 @@ export interface MathInlineProps {
 
 const MathInline: FC<MathInlineProps> = ({ editor, node, className }) => {
   const ref = useRef<HTMLSpanElement>(null);
-  const [isSelected, setIsSelected] = useLexicalNodeSelection(node.getKey());
+  const [isSelected, setIsSelected, clearSelected] = useLexicalNodeSelection(node.getKey());
   const [isEditing, setIsEditing] = useState<boolean>(false);
 
   const isMathBlock = node instanceof MathBlockNode;
@@ -118,9 +118,15 @@ const MathInline: FC<MathInlineProps> = ({ editor, node, className }) => {
       logger.debug('📊 Math click event:', e.target === ref.current);
       e.preventDefault();
       e.stopPropagation();
+
+      if (isSelected) {
+        // 强制触发一次 selection 更新，确保打开编辑器面板
+        clearSelected();
+      }
       setIsSelected(true);
+      editor.focus();
     },
-    [editor, node],
+    [clearSelected, editor, isSelected, setIsSelected],
   );
 
   return (
