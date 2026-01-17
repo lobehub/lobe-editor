@@ -10,6 +10,7 @@ import {
   COMMAND_PRIORITY_HIGH,
   DecoratorNode,
   ElementNode,
+  HISTORY_MERGE_TAG,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_BACKSPACE_COMMAND,
@@ -79,11 +80,16 @@ export function registerCursorNode(editor: LexicalEditor) {
           }
         }
         if (needAddCursor.length > 0) {
-          editor.update(() => {
-            needAddCursor.forEach((node) => {
-              node.insertAfter($createCursorNode());
-            });
-          });
+          editor.update(
+            () => {
+              needAddCursor.forEach((node) => {
+                node.insertAfter($createCursorNode());
+              });
+            },
+            {
+              tag: HISTORY_MERGE_TAG,
+            },
+          );
         }
         return false;
       });
@@ -120,11 +126,16 @@ export function registerCursorNode(editor: LexicalEditor) {
           }
         }
         if (needRemove.size > 0) {
-          editor.update(() => {
-            needRemove.forEach((node) => {
-              node.remove();
-            });
-          });
+          editor.update(
+            () => {
+              needRemove.forEach((node) => {
+                node.remove();
+              });
+            },
+            {
+              tag: HISTORY_MERGE_TAG,
+            },
+          );
         }
         return false;
       });
@@ -142,15 +153,20 @@ export function registerCursorNode(editor: LexicalEditor) {
         const node = selection.anchor.getNode();
         if (node instanceof CursorNode) {
           if (node.__text !== '\uFEFF') {
-            editor.update(() => {
-              node.setTextContent('\uFEFF');
-              const data = node.__text.replace('\uFEFF', '');
-              if (data) {
-                const textNode = $createTextNode(data);
-                node.insertAfter(textNode);
-                textNode.selectEnd();
-              }
-            });
+            editor.update(
+              () => {
+                node.setTextContent('\uFEFF');
+                const data = node.__text.replace('\uFEFF', '');
+                if (data) {
+                  const textNode = $createTextNode(data);
+                  node.insertAfter(textNode);
+                  textNode.selectEnd();
+                }
+              },
+              {
+                tag: HISTORY_MERGE_TAG,
+              },
+            );
           }
           return false;
         }
