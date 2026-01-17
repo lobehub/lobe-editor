@@ -21,7 +21,7 @@ const useLayoutEffectImpl: typeof useLayoutEffect = CAN_USE_DOM ? useLayoutEffec
 
 type ErrorBoundaryProps = {
   children: JSX.Element;
-  onError: (error: Error) => void;
+  onError: (error: unknown) => void;
 };
 
 export type ErrorBoundaryType = ComponentClass<ErrorBoundaryProps> | FC<ErrorBoundaryProps>;
@@ -82,7 +82,7 @@ export function useDecorators(
     for (const nodeKey of decoratorKeys) {
       const decorator = decorators[nodeKey];
       const reactDecorator = (
-        <ErrorBoundary onError={(e) => editor.getLexicalEditor()?._onError(e)}>
+        <ErrorBoundary onError={(e) => editor.getLexicalEditor()?._onError(e as Error)}>
           <Suspense fallback={null}>
             {'render' in decorator ? decorator.render : decorator}
           </Suspense>
