@@ -243,7 +243,6 @@ describe('Common Plugin Tests', () => {
 
   it('should list item add work', async () => {
     kernel.setDocument('markdown', '- Item 1\n- Item 2\n- Item 3\n\n');
-    console.info(kernel.getDocument('litexml'));
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       delay: true,
       afterId: 'm1v0', // id of 'Item 2'
@@ -264,5 +263,57 @@ describe('Common Plugin Tests', () => {
     await moment();
     const markdownAfter = kernel.getDocument('markdown') as unknown as string;
     expect(markdownAfter).toBe('- Item 1\n- Item 2\n- New Item\n- Item 3\n');
+  });
+
+  it('should insert after root work', async () => {
+    kernel.setDocument('markdown', 'Paragraph 1\nParagraph 2\n');
+    kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
+      litexml: '<p id="newpara">Inserted Paragraph</p>',
+      afterId: 'root',
+    });
+    await moment();
+    const markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe('Paragraph 1\nParagraph 2\n\nInserted Paragraph\n');
+  });
+
+  it('should insert before root work', async () => {
+    kernel.setDocument('markdown', 'Paragraph 1\nParagraph 2\n');
+    kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
+      litexml:
+        '<root><p id="newpara">Inserted Paragraph</p><p id="newpara">Inserted Paragraph2</p></root>',
+      beforeId: 'root',
+    });
+    await moment();
+    const markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe(
+      'Inserted Paragraph\n\nInserted Paragraph2\n\nParagraph 1\nParagraph 2\n',
+    );
+  });
+
+  it('should insert after delay root work', async () => {
+    kernel.setDocument('markdown', 'Paragraph 1\nParagraph 2\n');
+    kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
+      litexml: '<p id="newpara">Inserted Paragraph</p>',
+      afterId: 'root',
+      delay: true,
+    });
+    await moment();
+    const markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe('Paragraph 1\nParagraph 2\n\nInserted Paragraph\n');
+  });
+
+  it('should insert before delay root work', async () => {
+    kernel.setDocument('markdown', 'Paragraph 1\nParagraph 2\n');
+    kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
+      litexml:
+        '<root><p id="newpara">Inserted Paragraph</p><p id="newpara">Inserted Paragraph2</p></root>',
+      beforeId: 'root',
+      delay: true,
+    });
+    await moment();
+    const markdown = kernel.getDocument('markdown') as unknown as string;
+    expect(markdown).toBe(
+      'Inserted Paragraph\n\nInserted Paragraph2\n\nParagraph 1\nParagraph 2\n',
+    );
   });
 });
