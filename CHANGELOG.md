@@ -2,6 +2,51 @@
 
 # Changelog
 
+## [Version&nbsp;3.14.0](https://github.com/lobehub/lobe-editor/compare/v3.13.2...v3.14.0)
+<sup>Released on **2026-01-17**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add support for inserting elements before and after the root …, reset history state on document change to ensure clean redo/un….
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Add HISTORY_MERGE_TAG to cursor and code inline registration f…, katex render loop, update hasDiffNode and useHasDiffNode to handle optional edito….
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add support for inserting elements before and after the root …, closes [#109](https://github.com/lobehub/lobe-editor/issues/109) ([f46a4dc](https://github.com/lobehub/lobe-editor/commit/f46a4dc))
+* **misc**: Reset history state on document change to ensure clean redo/un…, closes [#114](https://github.com/lobehub/lobe-editor/issues/114) ([7bf5406](https://github.com/lobehub/lobe-editor/commit/7bf5406))
+
+
+
+#### What's fixed
+
+* **misc**: Add HISTORY_MERGE_TAG to cursor and code inline registration f…, closes [#112](https://github.com/lobehub/lobe-editor/issues/112) ([b60336a](https://github.com/lobehub/lobe-editor/commit/b60336a))
+* **misc**: Katex render loop ([3dcda16](https://github.com/lobehub/lobe-editor/commit/3dcda16))
+* **misc**: Update hasDiffNode and useHasDiffNode to handle optional edito…, closes [#115](https://github.com/lobehub/lobe-editor/issues/115) ([e4b3e51](https://github.com/lobehub/lobe-editor/commit/e4b3e51))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.13.2](https://github.com/lobehub/lobe-editor/compare/v3.13.1...v3.13.2)
 <sup>Released on **2026-01-15**</sup>
 
