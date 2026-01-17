@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 
 import { IEditor } from '@/types';
 
-function hasDiffNode(editor: IEditor): boolean {
+function hasDiffNode(editor?: IEditor): boolean {
+  if (!editor) {
+    return false;
+  }
   const values = editor.getLexicalEditor()?.getEditorState()._nodeMap.values();
   if (!values) {
     return false;
@@ -15,11 +18,14 @@ function hasDiffNode(editor: IEditor): boolean {
   return false;
 }
 
-export function useHasDiffNode(editor: IEditor) {
-  const [hasInit, setHasInit] = useState(!!editor.getLexicalEditor());
+export function useHasDiffNode(editor?: IEditor) {
+  const [hasInit, setHasInit] = useState(!!editor?.getLexicalEditor());
   const [hasDiff, setHasDiff] = useState(hasDiffNode(editor));
 
   useEffect(() => {
+    if (!editor) {
+      return;
+    }
     const handle = () => {
       setHasInit(true);
     };
@@ -30,6 +36,9 @@ export function useHasDiffNode(editor: IEditor) {
   }, [editor]);
 
   useEffect(() => {
+    if (!editor || !hasInit) {
+      return;
+    }
     const unregister = editor.getLexicalEditor()?.registerUpdateListener(() => {
       setHasDiff(hasDiffNode(editor));
     });
