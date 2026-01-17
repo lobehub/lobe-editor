@@ -165,16 +165,6 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     }, [editor, type, content, onChange, onTextChange, isInitialized]);
 
     useEffect(() => {
-      const handleDocumentChange = () => {
-        onTextChange?.(editor);
-      };
-      editor.on('documentChange', handleDocumentChange);
-      return () => {
-        editor.off('documentChange', handleDocumentChange);
-      };
-    }, [editor, onTextChange]);
-
-    useEffect(() => {
       if (!isInitialized) return;
       if (typeof editable === 'boolean') {
         editor.setEditable(editable);
