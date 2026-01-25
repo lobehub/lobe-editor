@@ -1,9 +1,16 @@
 import { HistoryState, createEmptyHistoryState } from '@lexical/history';
+import { $createTableSelection, $isTableNode, $isTableSelection } from '@lexical/table';
 import { get, merge, template, templateSettings } from 'es-toolkit/compat';
 import EventEmitter from 'eventemitter3';
 import {
+  $createNodeSelection,
+  $createRangeSelection,
+  $getNodeByKey,
   $getSelection,
+  $isElementNode,
+  $isNodeSelection,
   $isRangeSelection,
+  $setSelection,
   COMMAND_PRIORITY_CRITICAL,
   CommandListener,
   CommandListenerPriority,
@@ -26,6 +33,7 @@ import {
   IEditorPlugin,
   IEditorPluginConstructor,
   IPlugin,
+  ISelectionObject,
   IServiceID,
 } from '@/types/kernel';
 import { ILocaleKeys } from '@/types/locale';
@@ -41,6 +49,7 @@ import DataSource from './data-source';
 import { registerEvent } from './event';
 import { KernelPlugin } from './plugin';
 import {
+  $closest,
   EDITOR_THEME_KEY,
   createEmptyEditorState,
   generateEditorId,
@@ -276,6 +285,126 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     datasource.read(this.editor, content, options);
     this.emit('documentChange', type, content);
     this.logger.debug(`📥 Set ${type} document`);
+  }
+
+  setSelection(selection: ISelectionObject): Promise<boolean> {
+    if (!this.editor) {
+      this.logger.error('❌ Editor not initialized');
+      throw new Error(`Editor is not initialized.`);
+    }
+    const editor = this.editor;
+    return new Promise((resolve) => {
+      editor.update(() => {
+        try {
+          if (selection.type === 'range') {
+            const anchorNode = $getNodeByKey(selection.startNodeId);
+            const focusNode = $getNodeByKey(selection.endNodeId);
+            if (!anchorNode || !focusNode) {
+              this.logger.error('❌ Nodes for selection not found');
+              resolve(false);
+              return;
+            }
+            const rng = $createRangeSelection();
+            rng.anchor.set(
+              anchorNode.getKey(),
+              selection.startOffset,
+              $isElementNode(anchorNode) ? 'element' : 'text',
+            );
+            rng.focus.set(
+              focusNode.getKey(),
+              selection.endOffset,
+              $isElementNode(focusNode) ? 'element' : 'text',
+            );
+            $setSelection(rng);
+            resolve(true);
+            return;
+          }
+          if (selection.type === 'node') {
+            const node = $getNodeByKey(selection.startNodeId);
+            if (!node) {
+              this.logger.error('❌ Node for selection not found');
+              resolve(false);
+              return;
+            }
+            const nodeSel = $createNodeSelection();
+            nodeSel.add(selection.startNodeId);
+            $setSelection(nodeSel);
+            resolve(true);
+            return;
+          }
+          if (selection.type === 'table') {
+            const startNode = $getNodeByKey(selection.startNodeId);
+            if (!startNode) {
+              this.logger.error('❌ Node for selection not found');
+              resolve(false);
+              return;
+            }
+            const endNode = $getNodeByKey(selection.endNodeId);
+            if (!endNode) {
+              this.logger.error('❌ Node for selection not found');
+              resolve(false);
+              return;
+            }
+            const table1 = $closest(startNode, (n) => $isTableNode(n));
+            const table2 = $closest(endNode, (n) => $isTableNode(n));
+            if (!table1 || !table2 || table1 !== table2) {
+              this.logger.error('❌ Table nodes for selection not found or do not match');
+              resolve(false);
+              return;
+            }
+
+            const rng = $createTableSelection();
+            rng.set(table1.getKey(), selection.startNodeId, selection.endNodeId);
+            $setSelection(rng);
+            resolve(true);
+            return;
+          }
+          resolve(false);
+        } catch (error) {
+          this.logger.error('❌ Error setting selection:', error);
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  getSelection(): ISelectionObject | null {
+    if (!this.editor) {
+      this.logger.error('❌ Editor not initialized');
+      throw new Error(`Editor is not initialized.`);
+    }
+    return this.editor.read(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        return {
+          endNodeId: selection.focus.getNode().getKey(),
+          endOffset: selection.focus.offset,
+          startNodeId: selection.anchor.getNode().getKey(),
+          startOffset: selection.anchor.offset,
+          type: 'range',
+        };
+      }
+      if ($isNodeSelection(selection)) {
+        return {
+          endNodeId: selection.getNodes()[0].getKey(),
+          endOffset: 0,
+          startNodeId: selection.getNodes()[0].getKey(),
+          startOffset: 0,
+          type: 'node',
+        };
+      }
+      if ($isTableSelection(selection)) {
+        const [start, end] = selection.getStartEndPoints();
+        return {
+          endNodeId: end.getNode().getKey(),
+          endOffset: end.offset,
+          startNodeId: start.getNode().getKey(),
+          startOffset: start.offset,
+          type: 'table',
+        };
+      }
+      return null;
+    });
   }
 
   focus() {

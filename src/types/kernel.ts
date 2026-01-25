@@ -35,6 +35,14 @@ export type IServiceID<Service> = {
   __serviceType?: Service;
 };
 
+export interface ISelectionObject {
+  endNodeId: string;
+  endOffset: number;
+  startNodeId: string;
+  startOffset: number;
+  type: 'range' | 'node' | 'table';
+}
+
 export interface IKernelEventMap {
   /**
    * Document change event
@@ -113,6 +121,11 @@ export interface IEditor {
    */
   getRootElement(): HTMLElement | null;
   /**
+   * Get editor selection information
+   */
+  getSelection(): ISelectionObject | null;
+
+  /**
    * Get document editor selection content of specified type
    * @param type
    */
@@ -125,7 +138,6 @@ export interface IEditor {
    * Get node editor instance
    */
   initNodeEditor(): LexicalEditor | null;
-
   /**
    * Check if editor is editable
    */
@@ -136,6 +148,7 @@ export interface IEditor {
    * @returns true if editor content is empty, false otherwise
    */
   get isEmpty(): boolean;
+
   /**
    * Check if editor has active selection
    * @returns true if editor has selection, false otherwise
@@ -159,7 +172,6 @@ export interface IEditor {
    * @param listener
    */
   once<T extends keyof IKernelEventMap>(event: T, listener: IKernelEventMap[T]): this;
-
   /**
    * Extends the priority level of Lexical commands.
    * Registers a listener that triggers when the provided command is dispatched
@@ -187,6 +199,7 @@ export interface IEditor {
     listener: CommandListener<P>,
     priority: CommandListenerPriority,
   ): () => void;
+
   /**
    * Register keyboard shortcut
    * @param hotkey
@@ -198,7 +211,6 @@ export interface IEditor {
     callback: (event: KeyboardEvent, handler: HotkeysEvent) => void,
     options?: HotkeyOptions,
   ): () => void;
-
   /**
    * Register internationalization text
    * @param locale Internationalization text object
@@ -239,6 +251,12 @@ export interface IEditor {
    * @param dom
    */
   setRootElement(dom: HTMLElement, editable?: boolean): LexicalEditor;
+
+  /**
+   * set editor selection
+   * @param selection
+   */
+  setSelection(selection: ISelectionObject): Promise<boolean>;
 
   /**
    * Get translation text
