@@ -287,7 +287,13 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.logger.debug(`📥 Set ${type} document`);
   }
 
-  setSelection(selection: ISelectionObject): Promise<boolean> {
+  setSelection(
+    selection: ISelectionObject,
+    opt?: {
+      collapseToEnd?: boolean;
+      collapseToStart?: boolean;
+    },
+  ): Promise<boolean> {
     if (!this.editor) {
       this.logger.error('❌ Editor not initialized');
       throw new Error(`Editor is not initialized.`);
@@ -297,8 +303,12 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       editor.update(() => {
         try {
           if (selection.type === 'range') {
-            const anchorNode = $getNodeByKey(selection.startNodeId);
-            const focusNode = $getNodeByKey(selection.endNodeId);
+            const startNodeId = opt?.collapseToEnd ? selection.endNodeId : selection.startNodeId;
+            const endNodeId = opt?.collapseToStart ? selection.startNodeId : selection.endNodeId;
+            const startOffset = opt?.collapseToEnd ? selection.endOffset : selection.startOffset;
+            const endOffset = opt?.collapseToStart ? selection.startOffset : selection.endOffset;
+            const anchorNode = $getNodeByKey(startNodeId);
+            const focusNode = $getNodeByKey(endNodeId);
             if (!anchorNode || !focusNode) {
               this.logger.error('❌ Nodes for selection not found');
               resolve(false);
@@ -307,12 +317,12 @@ export class Kernel extends EventEmitter implements IEditorKernel {
             const rng = $createRangeSelection();
             rng.anchor.set(
               anchorNode.getKey(),
-              selection.startOffset,
+              startOffset,
               $isElementNode(anchorNode) ? 'element' : 'text',
             );
             rng.focus.set(
               focusNode.getKey(),
-              selection.endOffset,
+              endOffset,
               $isElementNode(focusNode) ? 'element' : 'text',
             );
             $setSelection(rng);

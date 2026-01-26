@@ -256,7 +256,13 @@ export interface IEditor {
    * set editor selection
    * @param selection
    */
-  setSelection(selection: ISelectionObject): Promise<boolean>;
+  setSelection(
+    selection: ISelectionObject,
+    opt?: {
+      collapseToEnd?: boolean;
+      collapseToStart?: boolean;
+    },
+  ): Promise<boolean>;
 
   /**
    * Get translation text
