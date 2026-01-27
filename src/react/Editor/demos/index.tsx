@@ -23,6 +23,7 @@ import {
   ReactToolbarPlugin,
   ReactVirtualBlockPlugin,
   type SlashOptions,
+  scrollIntoView,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
@@ -44,6 +45,9 @@ import Container from './Container';
 import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
 import content from './data.json';
+
+// @ts-expect-error not error
+window.__scrollIntoView = scrollIntoView;
 
 const styles = createStaticStyles(({ css }) => ({
   editor: css`

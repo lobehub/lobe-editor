@@ -35,6 +35,21 @@ export type IServiceID<Service> = {
   __serviceType?: Service;
 };
 
+export interface ISelectionObject {
+  endNodeId: string;
+  endOffset: number;
+  startNodeId: string;
+  startOffset: number;
+  type: 'range' | 'node' | 'table';
+}
+
+export interface IDocumentOptions {
+  [key: string]: unknown;
+  keepHistory?: boolean;
+  /** only work for json datasource */
+  keepId?: boolean;
+}
+
 export interface IKernelEventMap {
   /**
    * Document change event
@@ -113,6 +128,11 @@ export interface IEditor {
    */
   getRootElement(): HTMLElement | null;
   /**
+   * Get editor selection information
+   */
+  getSelection(): ISelectionObject | null;
+
+  /**
    * Get document editor selection content of specified type
    * @param type
    */
@@ -125,7 +145,6 @@ export interface IEditor {
    * Get node editor instance
    */
   initNodeEditor(): LexicalEditor | null;
-
   /**
    * Check if editor is editable
    */
@@ -136,6 +155,7 @@ export interface IEditor {
    * @returns true if editor content is empty, false otherwise
    */
   get isEmpty(): boolean;
+
   /**
    * Check if editor has active selection
    * @returns true if editor has selection, false otherwise
@@ -159,7 +179,6 @@ export interface IEditor {
    * @param listener
    */
   once<T extends keyof IKernelEventMap>(event: T, listener: IKernelEventMap[T]): this;
-
   /**
    * Extends the priority level of Lexical commands.
    * Registers a listener that triggers when the provided command is dispatched
@@ -187,6 +206,7 @@ export interface IEditor {
     listener: CommandListener<P>,
     priority: CommandListenerPriority,
   ): () => void;
+
   /**
    * Register keyboard shortcut
    * @param hotkey
@@ -198,7 +218,6 @@ export interface IEditor {
     callback: (event: KeyboardEvent, handler: HotkeysEvent) => void,
     options?: HotkeyOptions,
   ): () => void;
-
   /**
    * Register internationalization text
    * @param locale Internationalization text object
@@ -226,7 +245,7 @@ export interface IEditor {
    * @param type
    * @param content
    */
-  setDocument(type: string, content: any, options?: Record<string, unknown>): void;
+  setDocument(type: string, content: any, options?: IDocumentOptions): void;
 
   /**
    * Enable or disable editor editing capability
@@ -239,6 +258,18 @@ export interface IEditor {
    * @param dom
    */
   setRootElement(dom: HTMLElement, editable?: boolean): LexicalEditor;
+
+  /**
+   * set editor selection
+   * @param selection
+   */
+  setSelection(
+    selection: ISelectionObject,
+    opt?: {
+      collapseToEnd?: boolean;
+      collapseToStart?: boolean;
+    },
+  ): Promise<boolean>;
 
   /**
    * Get translation text
@@ -258,6 +289,10 @@ export interface IEditor {
  * API provided to plugins
  */
 export interface IEditorKernel extends IEditor {
+  /**
+   * Clone the current editor kernel instance
+   */
+  cloneNodeEditor(): IEditorKernel;
   emit<T extends keyof IKernelEventMap>(event: T, params: Parameters<IKernelEventMap[T]>[0]): void;
   /**
    * Get editor Node decorator for specific Node rendering
@@ -304,6 +339,7 @@ export interface IEditorKernel extends IEditor {
    * @param service Service instance
    */
   registerServiceHotReload<T>(serviceId: IServiceID<T>, service: T): void;
+
   /**
    * Register theme
    * @param themes
