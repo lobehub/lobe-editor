@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;3.14.1](https://github.com/lobehub/lobe-editor/compare/v3.14.0...v3.14.1)
+<sup>Released on **2026-01-27**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Litexml th reader.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Litexml th reader, closes [#117](https://github.com/lobehub/lobe-editor/issues/117) ([2012c0f](https://github.com/lobehub/lobe-editor/commit/2012c0f))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.14.0](https://github.com/lobehub/lobe-editor/compare/v3.13.2...v3.14.0)
 <sup>Released on **2026-01-17**</sup>
 
