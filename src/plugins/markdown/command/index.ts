@@ -28,9 +28,6 @@ export const GET_MARKDOWN_SELECTION_COMMAND = createCommand<{
   onResult: (startLine: number, endLine: number) => void;
 }>('GET_MARKDOWN_SELECTION_COMMAND');
 
-// @ts-expect-error not error
-window.GET_MARKDOWN_SELECTION_COMMAND = GET_MARKDOWN_SELECTION_COMMAND;
-
 function undoToEntry(
   editor: LexicalEditor,
   historyState: HistoryState,
