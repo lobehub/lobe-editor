@@ -109,10 +109,16 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       const colWidths = colWidthsAttr
         ? colWidthsAttr.split(',').map((width) => parseInt(width, 10))
         : [];
+      let maxTdlen = 1;
+      for (const child of children) {
+        if ((child.children?.length || -1) > maxTdlen) {
+          maxTdlen = child.children.length;
+        }
+      }
       return INodeHelper.createElementNode(TableNode.getType(), {
         children,
         // eslint-disable-next-line unicorn/no-new-array
-        colWidths: colWidths.length > 0 ? colWidths : [750],
+        colWidths: colWidths.length > 0 ? colWidths : new Array(maxTdlen).fill(750 / maxTdlen),
         direction: null,
         format: '',
         indent: 0,
@@ -131,7 +137,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       });
     });
 
-    litexmlService.registerXMLReader('td', (xmlNode, children) => {
+    const tdReader = (xmlNode: Element, children: any[]) => {
       return INodeHelper.createElementNode(TableCellNode.getType(), {
         backgroundColor: xmlNode.getAttribute('backgroundColor') || null,
         children,
@@ -147,7 +153,9 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
           : 1,
         version: 1,
       });
-    });
+    };
+    litexmlService.registerXMLReader('th', tdReader);
+    litexmlService.registerXMLReader('td', tdReader);
   }
 
   registerMarkdown() {
