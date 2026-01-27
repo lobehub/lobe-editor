@@ -28,6 +28,7 @@ import { HotkeyId } from '@/types/hotkey';
 import {
   Commands,
   IDecorator,
+  IDocumentOptions,
   IEditor,
   IEditorKernel,
   IEditorPlugin,
@@ -269,7 +270,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     return editor || null;
   }
 
-  setDocument(type: string, content: any, options?: Record<string, unknown>): void {
+  setDocument(type: string, content: any, options?: IDocumentOptions): void {
     const datasource = this.dataTypeMap.get(type);
     if (!datasource) {
       this.logger.error(`❌ DataSource for type "${type}" not found`);
@@ -279,9 +280,12 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       this.logger.error('❌ Editor not initialized');
       throw new Error(`Editor is not initialized.`);
     }
-    this.historyState.redoStack = [];
-    this.historyState.undoStack = [];
-    this.historyState.current = null;
+    // Clear history if not keeping history
+    if (!options?.keepHistory) {
+      this.historyState.redoStack = [];
+      this.historyState.undoStack = [];
+      this.historyState.current = null;
+    }
     datasource.read(this.editor, content, options);
     this.emit('documentChange', type, content);
     this.logger.debug(`📥 Set ${type} document`);

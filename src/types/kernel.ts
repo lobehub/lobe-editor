@@ -43,6 +43,13 @@ export interface ISelectionObject {
   type: 'range' | 'node' | 'table';
 }
 
+export interface IDocumentOptions {
+  [key: string]: unknown;
+  keepHistory?: boolean;
+  /** only work for json datasource */
+  keepId?: boolean;
+}
+
 export interface IKernelEventMap {
   /**
    * Document change event
@@ -238,7 +245,7 @@ export interface IEditor {
    * @param type
    * @param content
    */
-  setDocument(type: string, content: any, options?: Record<string, unknown>): void;
+  setDocument(type: string, content: any, options?: IDocumentOptions): void;
 
   /**
    * Enable or disable editor editing capability
