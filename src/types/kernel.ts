@@ -289,6 +289,10 @@ export interface IEditor {
  * API provided to plugins
  */
 export interface IEditorKernel extends IEditor {
+  /**
+   * Clone the current editor kernel instance
+   */
+  cloneNodeEditor(): IEditorKernel;
   emit<T extends keyof IKernelEventMap>(event: T, params: Parameters<IKernelEventMap[T]>[0]): void;
   /**
    * Get editor Node decorator for specific Node rendering
@@ -335,6 +339,7 @@ export interface IEditorKernel extends IEditor {
    * @param service Service instance
    */
   registerServiceHotReload<T>(serviceId: IServiceID<T>, service: T): void;
+
   /**
    * Register theme
    * @param themes

@@ -213,7 +213,9 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
       ),
     );
 
-    this.register(registerMarkdownCommand(editor, this.service, this.kernel.getHistoryState()));
+    this.register(
+      registerMarkdownCommand(editor, this.kernel, this.service, this.kernel.getHistoryState()),
+    );
   }
 
   /**

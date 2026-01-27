@@ -93,6 +93,14 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.logger.info(`🚀 Kernel initialized (hot reload: ${this.hotReloadMode})`);
   }
 
+  cloneNodeEditor(): IEditorKernel {
+    const newKernel = new Kernel();
+    newKernel.registerPlugins(this.plugins);
+    newKernel.initNodeEditor();
+    newKernel.setDocument('json', this.getDocument('json') || '{}', { keepId: true });
+    return newKernel;
+  }
+
   getHistoryState(): HistoryState {
     return this.historyState;
   }
