@@ -5,7 +5,6 @@ import {
   FilePlugin,
   HRPlugin,
   ImagePlugin,
-  Kernel,
   LinkHighlightPlugin,
   LinkPlugin,
   ListPlugin,
@@ -13,8 +12,7 @@ import {
   MentionPlugin,
   TablePlugin,
 } from '@lobehub/editor';
-import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import Editor from '@/editor-kernel';
 
