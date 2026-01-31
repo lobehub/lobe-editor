@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.15.0](https://github.com/lobehub/lobe-editor/compare/v3.14.1...v3.15.0)
+<sup>Released on **2026-01-31**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Implement selection management with setSelection and getSelection methods.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Implement selection management with setSelection and getSelection methods, closes [#116](https://github.com/lobehub/lobe-editor/issues/116) ([2b7f12a](https://github.com/lobehub/lobe-editor/commit/2b7f12a))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;3.14.1](https://github.com/lobehub/lobe-editor/compare/v3.14.0...v3.14.1)
 <sup>Released on **2026-01-27**</sup>
 
