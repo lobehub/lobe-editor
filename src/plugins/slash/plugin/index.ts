@@ -69,7 +69,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
   }
 
   private triggerClose() {
-    this.config?.triggerClose();
+    this.config?.triggerClose?.();
     this.currentSlashTrigger = null;
     this.currentSlashTriggerIndex = -1;
     // After an explicit close, suppress reopening until next typing input

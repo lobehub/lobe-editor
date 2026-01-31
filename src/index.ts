@@ -42,6 +42,7 @@ export {
 
 // Hot reload utilities
 export { Kernel } from './editor-kernel/kernel';
+export { scrollIntoView } from './utils/scrollIntoView';
 
 /**
  * Enable hot reload mode globally for all editor instances
