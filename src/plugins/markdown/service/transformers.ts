@@ -326,6 +326,7 @@ export function $runTextFormatTransformers(
 
     if (matcher.process) {
       if (matcher.process(nextSelection) === false) {
+        openNode.setTextContent(prevOpenNodeText);
         // If process function returns false, cancel the transform and set selection to original position
         $setSelection(anchorNode.selectEnd());
         continue;
