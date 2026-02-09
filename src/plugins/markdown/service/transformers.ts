@@ -14,7 +14,7 @@ import { PUNCTUATION_OR_SPACE, getOpenTagStartIndex, isEqualSubString } from '..
 export type TextFormatTransformer = Readonly<{
   format?: ReadonlyArray<TextFormatType>;
   intraword?: boolean;
-  process?: (selection: RangeSelection) => void;
+  process?: (selection: RangeSelection) => boolean | void;
   tag: string;
   type: 'text-format';
 }>;
@@ -325,7 +325,11 @@ export function $runTextFormatTransformers(
     nextSelection.focus.set(closeNode.__key, newOffset, 'text');
 
     if (matcher.process) {
-      matcher.process(nextSelection);
+      if (!matcher.process(nextSelection)) {
+        // If process function returns false, cancel the transform and set selection to original position
+        $setSelection(anchorNode.selectEnd());
+        continue;
+      }
       return true;
     } else if (matcher.format) {
       // Apply formatting to selected text
