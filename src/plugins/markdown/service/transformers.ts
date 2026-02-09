@@ -1,6 +1,7 @@
 import type { ElementNode, LexicalNode, RangeSelection, TextFormatType, TextNode } from 'lexical';
 import {
   $createRangeSelection,
+  $getNodeByKey,
   $getSelection,
   $isLineBreakNode,
   $isRangeSelection,
@@ -326,9 +327,13 @@ export function $runTextFormatTransformers(
 
     if (matcher.process) {
       if (matcher.process(nextSelection) === false) {
-        openNode.setTextContent(prevOpenNodeText);
-        if (openNode !== closeNode) {
-          closeNode.setTextContent(prevCloseNodeText);
+        const currentOpenNode = $getNodeByKey(openNode.__key);
+        const currentCloseNode = $getNodeByKey(closeNode.__key);
+        if ($isTextNode(currentOpenNode)) {
+          currentOpenNode.setTextContent(prevOpenNodeText);
+        }
+        if (currentCloseNode !== currentOpenNode && $isTextNode(currentCloseNode)) {
+          currentCloseNode.setTextContent(prevCloseNodeText);
         }
         // If process function returns false, cancel the transform and set selection to original position
         $setSelection(anchorNode.selectEnd());
