@@ -325,7 +325,7 @@ export function $runTextFormatTransformers(
     nextSelection.focus.set(closeNode.__key, newOffset, 'text');
 
     if (matcher.process) {
-      if (!matcher.process(nextSelection)) {
+      if (matcher.process(nextSelection) === false) {
         // If process function returns false, cancel the transform and set selection to original position
         $setSelection(anchorNode.selectEnd());
         continue;
