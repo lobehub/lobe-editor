@@ -1,5 +1,7 @@
+import { Icon } from '@lobehub/ui';
 import { cx } from 'antd-style';
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
+import { LoaderCircleIcon } from 'lucide-react';
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
@@ -185,7 +187,10 @@ const Image = memo<ImageProps>(({ node, className, showScaleInfo = false, handle
   return (
     <ImageEditPopover handleUpload={handleUpload} node={node}>
       <div
-        className={cx(styles.imageContainer, { selected: isSelected })}
+        className={cx(styles.imageContainer, {
+          loading: node.status === 'loading',
+          selected: isSelected,
+        })}
         draggable={false}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -197,6 +202,12 @@ const Image = memo<ImageProps>(({ node, className, showScaleInfo = false, handle
         }}
       >
         {children}
+
+        {node.status === 'loading' && (
+          <div className={styles.loadingIcon}>
+            <Icon icon={LoaderCircleIcon} size={24} spin />
+          </div>
+        )}
 
         {/* Scale info display */}
         {showScaleInfo && isSelected && scale !== 1 && (

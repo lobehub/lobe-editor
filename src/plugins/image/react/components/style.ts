@@ -37,10 +37,50 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
         background-color: color-mix(in srgb, ${cssVar.yellow} 10%, transparent);
       }
     }
+
+    &.loading {
+      &::after {
+        pointer-events: none;
+        content: '';
+
+        position: absolute;
+        z-index: 10;
+        inset: 0;
+
+        background-color: color-mix(in srgb, ${cssVar.colorBgContainer} 40%, transparent);
+
+        animation: image-loading-pulse 1.5s ease-in-out infinite;
+      }
+
+      @keyframes image-loading-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+
+        50% {
+          opacity: 0.4;
+        }
+      }
+    }
   `,
 
   lazyImage: css`
     cursor: default;
+  `,
+
+  loadingIcon: css`
+    pointer-events: none;
+
+    position: absolute;
+    z-index: 11;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: ${cssVar.colorTextSecondary};
   `,
 
   resizeHandle: css`
