@@ -36,7 +36,9 @@ const ReactImagePlugin: FC<ReactImagePluginProps> = ({
       handleUpload: handleUpload || defaultUpload,
       needRehost,
       renderImage: (node) => {
-        return <Image className={className} node={node} />;
+        return (
+          <Image className={className} handleUpload={handleUpload || defaultUpload} node={node} />
+        );
       },
       theme: theme || styles,
     });

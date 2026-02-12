@@ -8,19 +8,20 @@ import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSel
 import { $isBlockImageNode, BlockImageNode } from '../../node/block-image-node';
 import { ImageNode } from '../../node/image-node';
 import BrokenImage from './BrokenImage';
+import ImageEditPopover from './ImageEditPopover';
 import LazyImage from './LazyImage';
 import { ResizeHandle } from './ResizeHandle';
 import { styles } from './style';
 
 export interface ImageProps {
   className?: string;
+  handleUpload?: (file: File) => Promise<{ url: string }>;
   node: ImageNode | BlockImageNode;
   /** Whether to show scale info when resizing. Defaults to false */
   showScaleInfo?: boolean;
 }
 
-// Keep memo: Complex resize logic, state management, and multiple event handlers
-const Image = memo<ImageProps>(({ node, className, showScaleInfo = false }) => {
+const Image = memo<ImageProps>(({ node, className, showScaleInfo = false, handleUpload }) => {
   const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
   const [isHovered, setIsHovered] = useState(false);
   const [scale, setScale] = useState(1);
@@ -182,47 +183,49 @@ const Image = memo<ImageProps>(({ node, className, showScaleInfo = false }) => {
   );
 
   return (
-    <div
-      className={cx(styles.imageContainer, { selected: isSelected })}
-      draggable={false}
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      ref={imageRef}
-      style={{
-        width: size.width || 'auto',
-      }}
-    >
-      {children}
+    <ImageEditPopover handleUpload={handleUpload} node={node}>
+      <div
+        className={cx(styles.imageContainer, { selected: isSelected })}
+        draggable={false}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        ref={imageRef}
+        style={{
+          width: size.width || 'auto',
+        }}
+      >
+        {children}
 
-      {/* Scale info display */}
-      {showScaleInfo && isSelected && scale !== 1 && (
-        <div className={styles.scaleInfo}>{Math.round(scale * 100)}%</div>
-      )}
+        {/* Scale info display */}
+        {showScaleInfo && isSelected && scale !== 1 && (
+          <div className={styles.scaleInfo}>{Math.round(scale * 100)}%</div>
+        )}
 
-      {/* Resize handles - only left and right */}
-      {isHovered && node.status === 'uploaded' && (
-        <>
-          <ResizeHandle
-            imageRef={imageRef}
-            isBlock={isBlock}
-            onResize={handleResize}
-            onResizeEnd={handleResizeEnd}
-            onResizeStart={handleResizeStart}
-            position="left"
-          />
-          <ResizeHandle
-            imageRef={imageRef}
-            isBlock={isBlock}
-            onResize={handleResize}
-            onResizeEnd={handleResizeEnd}
-            onResizeStart={handleResizeStart}
-            position="right"
-          />
-        </>
-      )}
-    </div>
+        {/* Resize handles - only left and right */}
+        {isHovered && node.status === 'uploaded' && (
+          <>
+            <ResizeHandle
+              imageRef={imageRef}
+              isBlock={isBlock}
+              onResize={handleResize}
+              onResizeEnd={handleResizeEnd}
+              onResizeStart={handleResizeStart}
+              position="left"
+            />
+            <ResizeHandle
+              imageRef={imageRef}
+              isBlock={isBlock}
+              onResize={handleResize}
+              onResizeEnd={handleResizeEnd}
+              onResizeStart={handleResizeStart}
+              position="right"
+            />
+          </>
+        )}
+      </div>
+    </ImageEditPopover>
   );
 });
 
