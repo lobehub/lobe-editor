@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;3.16.1](https://github.com/lobehub/lobe-editor/compare/v3.16.0...v3.16.1)
+<sup>Released on **2026-02-12**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **image**: Add onPickFile prop for custom file picker support.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **image**: Add onPickFile prop for custom file picker support, closes [#123](https://github.com/lobehub/lobe-editor/issues/123) ([267cd65](https://github.com/lobehub/lobe-editor/commit/267cd65))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.16.0](https://github.com/lobehub/lobe-editor/compare/v3.15.0...v3.16.0)
 <sup>Released on **2026-02-12**</sup>
 
