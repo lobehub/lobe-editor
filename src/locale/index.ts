@@ -17,6 +17,7 @@ export default {
   },
   image: {
     broken: 'Broken image',
+    replace: 'Replace',
   },
   link: {
     edit: 'Edit Link',

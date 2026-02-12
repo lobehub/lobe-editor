@@ -1,6 +1,8 @@
+import { Icon } from '@lobehub/ui';
 import { cx } from 'antd-style';
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { LoaderCircleIcon } from 'lucide-react';
+import React, { Suspense, memo, useCallback, useMemo, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
@@ -8,19 +10,20 @@ import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSel
 import { $isBlockImageNode, BlockImageNode } from '../../node/block-image-node';
 import { ImageNode } from '../../node/image-node';
 import BrokenImage from './BrokenImage';
+import ImageEditPopover from './ImageEditPopover';
 import LazyImage from './LazyImage';
 import { ResizeHandle } from './ResizeHandle';
 import { styles } from './style';
 
 export interface ImageProps {
   className?: string;
+  handleUpload?: (file: File) => Promise<{ url: string }>;
   node: ImageNode | BlockImageNode;
   /** Whether to show scale info when resizing. Defaults to false */
   showScaleInfo?: boolean;
 }
 
-// Keep memo: Complex resize logic, state management, and multiple event handlers
-const Image = memo<ImageProps>(({ node, className, showScaleInfo = false }) => {
+const Image = memo<ImageProps>(({ node, className, showScaleInfo = false, handleUpload }) => {
   const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
   const [isHovered, setIsHovered] = useState(false);
   const [scale, setScale] = useState(1);
@@ -30,6 +33,7 @@ const Image = memo<ImageProps>(({ node, className, showScaleInfo = false }) => {
   const originalSizeRef = useRef({ height: 0, width: 0 });
   const editorRef = useRef<any>(null);
   const startWidthRef = useRef<number>(0);
+  const lastLoadedSrcRef = useRef<string | null>(null);
   const isBlock = useMemo(() => {
     return $isBlockImageNode(node);
   }, [node]);
@@ -131,17 +135,30 @@ const Image = memo<ImageProps>(({ node, className, showScaleInfo = false }) => {
       }
       case 'uploaded':
       case 'loading': {
-        return (
-          <LazyImage
-            className={className}
-            newWidth={newWidth}
-            node={node}
-            onLoad={(size) => {
-              originalSizeRef.current.width = size.width;
-              originalSizeRef.current.height = size.height;
-              setSize(size);
-            }}
+        const fallback = lastLoadedSrcRef.current ? (
+          <img
+            alt={node.altText}
+            className={cx(styles.lazyImage, className || undefined)}
+            draggable="false"
+            src={lastLoadedSrcRef.current}
+            style={{ width: '100%' }}
           />
+        ) : null;
+
+        return (
+          <Suspense fallback={fallback}>
+            <LazyImage
+              className={className}
+              newWidth={newWidth}
+              node={node}
+              onLoad={(loadedSize) => {
+                lastLoadedSrcRef.current = node.src;
+                originalSizeRef.current.width = loadedSize.width;
+                originalSizeRef.current.height = loadedSize.height;
+                setSize(loadedSize);
+              }}
+            />
+          </Suspense>
         );
       }
       default: {
@@ -182,47 +199,58 @@ const Image = memo<ImageProps>(({ node, className, showScaleInfo = false }) => {
   );
 
   return (
-    <div
-      className={cx(styles.imageContainer, { selected: isSelected })}
-      draggable={false}
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      ref={imageRef}
-      style={{
-        width: size.width || 'auto',
-      }}
-    >
-      {children}
+    <ImageEditPopover handleUpload={handleUpload} node={node}>
+      <div
+        className={cx(styles.imageContainer, {
+          loading: node.status === 'loading',
+          selected: isSelected,
+        })}
+        draggable={false}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        ref={imageRef}
+        style={{
+          width: size.width || 'auto',
+        }}
+      >
+        {children}
 
-      {/* Scale info display */}
-      {showScaleInfo && isSelected && scale !== 1 && (
-        <div className={styles.scaleInfo}>{Math.round(scale * 100)}%</div>
-      )}
+        {node.status === 'loading' && (
+          <div className={styles.loadingIcon}>
+            <Icon icon={LoaderCircleIcon} size={24} spin />
+          </div>
+        )}
 
-      {/* Resize handles - only left and right */}
-      {isHovered && node.status === 'uploaded' && (
-        <>
-          <ResizeHandle
-            imageRef={imageRef}
-            isBlock={isBlock}
-            onResize={handleResize}
-            onResizeEnd={handleResizeEnd}
-            onResizeStart={handleResizeStart}
-            position="left"
-          />
-          <ResizeHandle
-            imageRef={imageRef}
-            isBlock={isBlock}
-            onResize={handleResize}
-            onResizeEnd={handleResizeEnd}
-            onResizeStart={handleResizeStart}
-            position="right"
-          />
-        </>
-      )}
-    </div>
+        {/* Scale info display */}
+        {showScaleInfo && isSelected && scale !== 1 && (
+          <div className={styles.scaleInfo}>{Math.round(scale * 100)}%</div>
+        )}
+
+        {/* Resize handles - only left and right */}
+        {isHovered && node.status === 'uploaded' && (
+          <>
+            <ResizeHandle
+              imageRef={imageRef}
+              isBlock={isBlock}
+              onResize={handleResize}
+              onResizeEnd={handleResizeEnd}
+              onResizeStart={handleResizeStart}
+              position="left"
+            />
+            <ResizeHandle
+              imageRef={imageRef}
+              isBlock={isBlock}
+              onResize={handleResize}
+              onResizeEnd={handleResizeEnd}
+              onResizeStart={handleResizeStart}
+              position="right"
+            />
+          </>
+        )}
+      </div>
+    </ImageEditPopover>
   );
 });
 
