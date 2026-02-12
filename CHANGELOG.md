@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;3.16.0](https://github.com/lobehub/lobe-editor/compare/v3.15.0...v3.16.0)
+<sup>Released on **2026-02-12**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add image edit popover for modifying src and replacing image.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add image edit popover for modifying src and replacing image, closes [#122](https://github.com/lobehub/lobe-editor/issues/122) ([eb08212](https://github.com/lobehub/lobe-editor/commit/eb08212))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;3.15.0](https://github.com/lobehub/lobe-editor/compare/v3.14.1...v3.15.0)
 <sup>Released on **2026-01-31**</sup>
 
