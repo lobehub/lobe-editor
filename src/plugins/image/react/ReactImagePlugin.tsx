@@ -25,6 +25,7 @@ const ReactImagePlugin: FC<ReactImagePluginProps> = ({
   handleUpload,
   needRehost,
   handleRehost,
+  onPickFile,
 }) => {
   const [editor] = useLexicalComposerContext();
 
@@ -37,7 +38,12 @@ const ReactImagePlugin: FC<ReactImagePluginProps> = ({
       needRehost,
       renderImage: (node) => {
         return (
-          <Image className={className} handleUpload={handleUpload || defaultUpload} node={node} />
+          <Image
+            className={className}
+            handleUpload={handleUpload || defaultUpload}
+            node={node}
+            onPickFile={onPickFile}
+          />
         );
       },
       theme: theme || styles,
