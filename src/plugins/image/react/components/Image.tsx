@@ -2,7 +2,7 @@ import { Icon } from '@lobehub/ui';
 import { cx } from 'antd-style';
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
 import { LoaderCircleIcon } from 'lucide-react';
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import React, { Suspense, memo, useCallback, useMemo, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
@@ -33,6 +33,7 @@ const Image = memo<ImageProps>(({ node, className, showScaleInfo = false, handle
   const originalSizeRef = useRef({ height: 0, width: 0 });
   const editorRef = useRef<any>(null);
   const startWidthRef = useRef<number>(0);
+  const lastLoadedSrcRef = useRef<string | null>(null);
   const isBlock = useMemo(() => {
     return $isBlockImageNode(node);
   }, [node]);
@@ -134,17 +135,30 @@ const Image = memo<ImageProps>(({ node, className, showScaleInfo = false, handle
       }
       case 'uploaded':
       case 'loading': {
-        return (
-          <LazyImage
-            className={className}
-            newWidth={newWidth}
-            node={node}
-            onLoad={(size) => {
-              originalSizeRef.current.width = size.width;
-              originalSizeRef.current.height = size.height;
-              setSize(size);
-            }}
+        const fallback = lastLoadedSrcRef.current ? (
+          <img
+            alt={node.altText}
+            className={cx(styles.lazyImage, className || undefined)}
+            draggable="false"
+            src={lastLoadedSrcRef.current}
+            style={{ width: '100%' }}
           />
+        ) : null;
+
+        return (
+          <Suspense fallback={fallback}>
+            <LazyImage
+              className={className}
+              newWidth={newWidth}
+              node={node}
+              onLoad={(loadedSize) => {
+                lastLoadedSrcRef.current = node.src;
+                originalSizeRef.current.width = loadedSize.width;
+                originalSizeRef.current.height = loadedSize.height;
+                setSize(loadedSize);
+              }}
+            />
+          </Suspense>
         );
       }
       default: {

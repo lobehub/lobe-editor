@@ -56,10 +56,11 @@ const ImageEditPopover: FC<ImageEditPopoverProps> = memo(({ children, node, hand
   const handleUrlSubmit = useCallback(() => {
     const editor = editorRef.current;
     if (!editor || !url.trim()) return;
-    editor.update(() => {
-      node.setUploaded(url.trim());
-    });
+    const trimmedUrl = url.trim();
     handleClose();
+    editor.update(() => {
+      node.setUploaded(trimmedUrl);
+    });
   }, [node, url, handleClose]);
 
   const handleFileChange = useCallback(
