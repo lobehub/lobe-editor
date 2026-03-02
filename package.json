@@ -120,7 +120,7 @@
     "@commitlint/cli": "^19.8.1",
     "@emotion/is-prop-valid": "^1.4.0",
     "@lobehub/lint": "^1.26.3",
-    "@lobehub/ui": "^4.11.1",
+    "@lobehub/ui": "^5.0.0",
     "@shikijs/types": "^3.20.0",
     "@types/debug": "^4.1.12",
     "@types/katex": "^0.16.7",
