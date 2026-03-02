@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.0.1](https://github.com/lobehub/lobe-editor/compare/v4.0.0...v4.0.1)
+<sup>Released on **2026-03-02**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Update @lobehub/ui to version 5.0.0 in package.json.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Update @lobehub/ui to version 5.0.0 in package.json ([a72e7b3](https://github.com/lobehub/lobe-editor/commit/a72e7b3))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.0.0](https://github.com/lobehub/lobe-editor/compare/v3.16.1...v4.0.0)
 <sup>Released on **2026-03-02**</sup>
 
