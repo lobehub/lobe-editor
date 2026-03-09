@@ -14,6 +14,7 @@ import {
   MathBlockNode,
   MathInlineNode,
 } from '../node';
+import { isLikelyMathContent } from '../utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface MathPluginOptions {
@@ -110,6 +111,9 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
       regExp: /\$([^\s$](?:[^$]*[^\s$])?)\$\s?$/,
       replace: (textNode, match) => {
         const [, code] = match;
+
+        if (!isLikelyMathContent(code)) return;
+
         const mathNode = $createMathInlineNode(code);
         this.logger.debug('Math node inserted:', mathNode);
         // textNode.replace(mathNode);
