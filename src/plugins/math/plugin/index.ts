@@ -107,7 +107,7 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
     const markdownService = this.kernel.requireService(IMarkdownShortCutService);
 
     markdownService?.registerMarkdownShortCut({
-      regExp: /\$([^$]+)\$\s?$/,
+      regExp: /\$([^\s$](?:[^$]*[^\s$])?)\$\s?$/,
       replace: (textNode, match) => {
         const [, code] = match;
         const mathNode = $createMathInlineNode(code);
