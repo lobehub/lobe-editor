@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.0.2](https://github.com/lobehub/lobe-editor/compare/v4.0.1...v4.0.2)
+<sup>Released on **2026-03-09**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **math**: Prevent dollar-space-dollar from being misidentified as inline math.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **math**: Prevent dollar-space-dollar from being misidentified as inline math, closes [#125](https://github.com/lobehub/lobe-editor/issues/125) ([e742978](https://github.com/lobehub/lobe-editor/commit/e742978))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.0.1](https://github.com/lobehub/lobe-editor/compare/v4.0.0...v4.0.1)
 <sup>Released on **2026-03-02**</sup>
 
