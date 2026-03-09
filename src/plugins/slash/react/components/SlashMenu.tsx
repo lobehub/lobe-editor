@@ -14,11 +14,13 @@ const SlashMenu: FC<SlashMenuProps> = ({
   activeKey,
   anchorClassName,
   customRender: CustomRender,
+  getPopupContainer,
   loading,
   onActiveKeyChange,
   onSelect,
   open,
   options,
+  placement,
   position,
   // onClose is passed through but not used directly in this component
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -52,11 +54,13 @@ const SlashMenu: FC<SlashMenuProps> = ({
     <DefaultSlashMenu
       activeKey={activeKey}
       anchorClassName={anchorClassName}
+      getPopupContainer={getPopupContainer}
       loading={loading}
       onClose={onClose}
       onSelect={onSelect}
       open={open}
       options={options}
+      placement={placement}
       position={position}
     />
   );

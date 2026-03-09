@@ -27,6 +27,8 @@ const Editor = memo<EditorProps>(
     lineEmptyPlaceholder,
     plugins = [],
     slashOption = {},
+    slashPlacement,
+    getPopupContainer,
     mentionOption = {},
     variant,
     onKeyDown,
@@ -85,7 +87,7 @@ const Editor = memo<EditorProps>(
       if (!enableSlash && !enableMention) return null;
 
       return (
-        <ReactSlashPlugin>
+        <ReactSlashPlugin getPopupContainer={getPopupContainer} placement={slashPlacement}>
           {enableSlash ? (
             <ReactSlashOption maxLength={8} trigger="/" {...slashOption} />
           ) : undefined}
@@ -94,7 +96,14 @@ const Editor = memo<EditorProps>(
           ) : undefined}
         </ReactSlashPlugin>
       );
-    }, [enableSlash, enableMention, slashOption, restMentionOption]);
+    }, [
+      enableSlash,
+      enableMention,
+      slashOption,
+      slashPlacement,
+      getPopupContainer,
+      restMentionOption,
+    ]);
 
     return (
       <ReactEditor config={config} editor={editor} onInit={onInit}>
