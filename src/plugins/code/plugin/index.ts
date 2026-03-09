@@ -82,6 +82,10 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
     markdownService.registerMarkdownShortCuts([
       {
         process: (selection) => {
+          // If selection already contains a code node, do not process the shortcut to avoid nesting code nodes
+          if (selection.getNodes().some((node) => node.getType() === CodeNode.getType())) {
+            return false;
+          }
           const text = selection.getTextContent();
           selection.removeText();
           selection.insertNodes([$createCodeNode(text), $createCursorNode()]);
