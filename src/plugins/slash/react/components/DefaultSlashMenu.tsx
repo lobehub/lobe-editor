@@ -133,18 +133,27 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
   }, [position.rect, refs]);
 
   // Listen to scroll events to update floating position.
-  // Use capture phase on window to catch scroll from any container (including <html>).
+  // capture phase on window catches scroll from any ancestor (scroll events don't bubble,
+  // but do propagate during capture). Also listen on getPopupContainer for edge cases
+  // like shadow DOM where capture on window may not reach.
   useEffect(() => {
     if (!open) return;
 
     const onScroll = () => update();
+    const container = getPopupContainer?.();
 
     window.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    if (container) {
+      container.addEventListener('scroll', onScroll, { passive: true });
+    }
 
     return () => {
       window.removeEventListener('scroll', onScroll, { capture: true });
+      if (container) {
+        container.removeEventListener('scroll', onScroll);
+      }
     };
-  }, [open, update]);
+  }, [open, getPopupContainer, update]);
 
   const handleMenuClick: MenuProps['onClick'] = useCallback(
     ({ key }: { key: string }) => {
