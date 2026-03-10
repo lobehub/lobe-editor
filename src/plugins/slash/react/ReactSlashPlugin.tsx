@@ -40,6 +40,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
   const [resolution, setResolution] = useState<ITriggerContext | null>(null);
   const [options, setOptions] = useState<Array<ISlashOption>>([]);
   const [dropdownPosition, setDropdownPosition] = useState<{
+    getRect?: () => DOMRect;
     rect?: DOMRect;
     x: number;
     y: number;
@@ -109,7 +110,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
           };
         }
         const rect = ctx.getRect();
-        setDropdownPosition({ rect, x: rect.left, y: rect.bottom });
+        setDropdownPosition({ getRect: ctx.getRect, rect, x: rect.left, y: rect.bottom });
         setIsOpen(true);
       },
     });

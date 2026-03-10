@@ -98,7 +98,7 @@ export interface SlashMenuProps {
   /** Force menu placement direction, skipping auto-flip detection */
   placement?: 'bottom' | 'top';
   /** Menu position */
-  position: { rect?: DOMRect; x: number; y: number };
+  position: { getRect?: () => DOMRect; rect?: DOMRect; x: number; y: number };
 }
 
 export interface ReactSlashPluginProps {

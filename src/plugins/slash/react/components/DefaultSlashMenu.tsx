@@ -1,9 +1,9 @@
 'use client';
 
-import { type Placement, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
-import { Block, Menu, type MenuProps } from '@lobehub/ui';
+import { type Placement, flip, offset, shift, useFloating } from '@floating-ui/react';
+import { Menu, type MenuProps } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
-import { type FC, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
+import { type FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { ISlashMenuOption } from '../../service/i-slash-service';
@@ -11,22 +11,74 @@ import type { SlashMenuProps } from '../type';
 
 const LOBE_THEME_APP_ID = 'lobe-ui-theme-app';
 
-const styles = createStaticStyles(({ css }) => ({
-  container: css`
+const styles = createStaticStyles(({ css, cssVar }) => ({
+  menu: css`
+    z-index: 9999;
+    width: max-content;
+  `,
+  popup: css`
+    scrollbar-width: none;
+
     overflow-y: auto;
+
+    min-width: 120px;
     max-height: min(50vh, 400px);
+    padding: 4px;
+    border-radius: ${cssVar.borderRadius};
+
+    background: ${cssVar.colorBgElevated};
+    outline: none;
+    box-shadow:
+      0 0 15px 0 #00000008,
+      0 2px 30px 0 #00000014,
+      0 0 0 1px ${cssVar.colorBorder} inset;
 
     .ant-menu {
       min-width: 200px;
+      padding: 0 !important;
+      border-inline-end: none !important;
+
+      color: ${cssVar.colorText} !important;
+
+      background: transparent !important;
+      background-color: transparent !important;
     }
 
     .ant-menu-item {
-      display: flex;
+      overflow: hidden;
+      display: flex !important;
       align-items: center;
+
+      width: 100% !important;
+      min-height: 36px;
+      margin: 0 !important;
+      padding-block: 8px !important;
+      padding-inline: 12px !important;
+      border-radius: ${cssVar.borderRadiusSM} !important;
+
+      font-size: 14px;
+      line-height: 20px;
+      color: ${cssVar.colorText} !important;
+
+      background: transparent !important;
+
+      transition: all 150ms ${cssVar.motionEaseOut};
+
+      &:hover,
+      &.ant-menu-item-active {
+        background: ${cssVar.colorFillTertiary} !important;
+      }
+
+      &:active {
+        background: ${cssVar.colorFillSecondary} !important;
+      }
     }
 
-    .ant-menu-item-active {
-      background-color: var(--ant-menu-item-hover-bg) !important;
+    .ant-menu-item-divider {
+      height: 1px;
+      margin-block: 4px !important;
+      margin-inline: 0 !important;
+      background: ${cssVar.colorBorder} !important;
     }
 
     .ant-menu-title-content,
@@ -41,10 +93,6 @@ const styles = createStaticStyles(({ css }) => ({
       text-overflow: unset;
     }
   `,
-  menu: css`
-    z-index: 9999;
-    width: max-content;
-  `,
 }));
 
 type DefaultSlashMenuProps = Omit<SlashMenuProps, 'customRender' | 'onActiveKeyChange' | 'editor'>;
@@ -58,10 +106,6 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
   options,
   placement: forcePlacement,
   position,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onClose: _onClose,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  anchorClassName: _anchorClassName,
 }) => {
   const resolvedPlacement: Placement = forcePlacement ? `${forcePlacement}-start` : 'top-start';
 
@@ -70,30 +114,37 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
     [forcePlacement],
   );
 
+  // Keep getRect in a ref so the virtual reference always calls the latest version
+  const getRectRef = useRef(position.getRect);
+  getRectRef.current = position.getRect;
+
   const { refs, floatingStyles, update } = useFloating({
     middleware,
     open,
     placement: resolvedPlacement,
     strategy: 'fixed',
-    whileElementsMounted: autoUpdate,
   });
 
   useLayoutEffect(() => {
     if (!position.rect) return;
     refs.setPositionReference({
-      getBoundingClientRect: () => position.rect!,
+      getBoundingClientRect: () => getRectRef.current?.() ?? position.rect!,
     });
   }, [position.rect, refs]);
 
-  // Listen to scroll events on the custom container to update position
+  // Listen to scroll events to update floating position.
+  // Use capture phase on window to catch scroll from any container (including <html>).
   useEffect(() => {
-    const container = getPopupContainer?.();
-    if (!container || !open) return;
+    if (!open) return;
 
     const onScroll = () => update();
-    container.addEventListener('scroll', onScroll, { passive: true });
-    return () => container.removeEventListener('scroll', onScroll);
-  }, [getPopupContainer, open, update]);
+
+    window.addEventListener('scroll', onScroll, { capture: true, passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', onScroll, { capture: true });
+    };
+  }, [open, update]);
 
   const handleMenuClick: MenuProps['onClick'] = useCallback(
     ({ key }: { key: string }) => {
@@ -112,7 +163,7 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
 
   const node = (
     <div className={styles.menu} ref={refs.setFloating} style={floatingStyles}>
-      <Block className={styles.container} shadow variant={'outlined'}>
+      <div className={styles.popup}>
         <Menu
           // @ts-ignore - activeKey is a valid antd Menu prop passed via ...rest
           activeKey={activeKey}
@@ -130,7 +181,7 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
           onClick={handleMenuClick}
           selectable={false}
         />
-      </Block>
+      </div>
     </div>
   );
 
