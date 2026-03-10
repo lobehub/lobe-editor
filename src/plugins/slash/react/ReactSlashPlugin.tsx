@@ -9,7 +9,7 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
 } from 'lexical';
-import { Children, type FC, useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { Children, type FC, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { noop } from '@/editor-kernel';
 import { useLexicalEditor } from '@/editor-kernel/react';
@@ -58,6 +58,9 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
     setResolution(null);
     setActiveKey(null);
   }, []);
+
+  // Close menu on unmount to prevent orphaned portal at (0,0)
+  useEffect(() => close, [close]);
 
   const handleActiveKeyChange = useCallback((key: string | null) => {
     setActiveKey(key);

@@ -132,6 +132,15 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
     });
   }, [position.rect, refs]);
 
+  // Force position recalculation after reference is set.
+  // useFloating computes before useLayoutEffect sets the reference,
+  // so the first frame has wrong position. rAF ensures a correct update.
+  useEffect(() => {
+    if (!open || !position.rect) return;
+    const frame = requestAnimationFrame(() => update());
+    return () => cancelAnimationFrame(frame);
+  }, [open, position.rect, update]);
+
   // Listen to scroll events to update floating position.
   // capture phase on window catches scroll from any ancestor (scroll events don't bubble,
   // but do propagate during capture). Also listen on getPopupContainer for edge cases
@@ -165,13 +174,21 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
     [options, onSelect],
   );
 
-  if (!open) return null;
+  const hasVisibleItems = options?.some(
+    (item) => !('type' in item && item.type === 'divider'),
+  );
+  if (!open || !hasVisibleItems) return null;
 
   const portalContainer =
     getPopupContainer?.() || document.getElementById(LOBE_THEME_APP_ID) || document.body;
 
   const node = (
-    <div className={styles.menu} ref={refs.setFloating} style={floatingStyles}>
+    <div
+      className={styles.menu}
+      data-resloved-placement={resolvedPlacement}
+      ref={refs.setFloating}
+      style={floatingStyles}
+    >
       <div className={styles.popup}>
         <Menu
           // @ts-ignore - activeKey is a valid antd Menu prop passed via ...rest
