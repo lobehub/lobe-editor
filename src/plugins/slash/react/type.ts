@@ -81,6 +81,8 @@ export interface SlashMenuProps {
   anchorClassName?: string;
   /** Custom render component if provided */
   customRender?: FC<MenuRenderProps>;
+  /** Custom popup container for portal rendering and scroll tracking */
+  getPopupContainer?: () => HTMLElement | null;
   /** Loading state */
   loading: boolean;
   /** Callback to set active key */
@@ -93,8 +95,10 @@ export interface SlashMenuProps {
   open: boolean;
   /** Available options to display */
   options: Array<ISlashOption>;
+  /** Force menu placement direction, skipping auto-flip detection */
+  placement?: 'bottom' | 'top';
   /** Menu position */
-  position: { x: number; y: number };
+  position: { getRect?: () => DOMRect; rect?: DOMRect; x: number; y: number };
 }
 
 export interface ReactSlashPluginProps {
@@ -102,4 +106,8 @@ export interface ReactSlashPluginProps {
   children?:
     | (ReactElement<ReactSlashOptionProps> | undefined)
     | (ReactElement<ReactSlashOptionProps> | undefined)[];
+  /** Custom popup container for portal rendering and scroll tracking */
+  getPopupContainer?: () => HTMLElement | null;
+  /** Force menu placement direction, skipping auto-flip detection */
+  placement?: 'bottom' | 'top';
 }

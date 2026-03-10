@@ -12,6 +12,8 @@ export interface FloatMenuProps {
   getPopupContainer: () => HTMLDivElement | null;
   maxHeight?: string | number;
   open?: boolean;
+  /** Menu placement direction: 'top' (default) or 'bottom' */
+  placement?: 'bottom' | 'top';
   style?: CSSProperties;
   styles?: {
     container?: CSSProperties;

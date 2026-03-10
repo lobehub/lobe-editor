@@ -28,6 +28,8 @@ export interface EditorProps
    * @default true
    */
   enablePasteMarkdown?: boolean;
+  /** Custom popup container for slash menu portal rendering and scroll tracking */
+  getPopupContainer?: () => HTMLElement | null;
   markdownOption?:
     | boolean
     | {
@@ -49,5 +51,7 @@ export interface EditorProps
   onTextChange?: (editor: IEditor) => void;
   plugins?: EditorPlugin[];
   slashOption?: Partial<ReactSlashOptionProps>;
+  /** Force slash menu placement direction, skipping auto-flip detection */
+  slashPlacement?: 'bottom' | 'top';
   style?: CSSProperties;
 }

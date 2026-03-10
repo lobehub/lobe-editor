@@ -15,6 +15,7 @@ const FloatMenu: FC<FloatMenuProps> = ({
   children,
   maxHeight = 'min(50vh, 640px)',
   open,
+  placement = 'top',
   styles: customStyles,
   classNames,
 }) => {
@@ -23,9 +24,11 @@ const FloatMenu: FC<FloatMenuProps> = ({
   if (!parent) return;
   if (!open) return;
 
+  const rootClassName = placement === 'bottom' ? styles.rootBottom : styles.rootTop;
+
   const node = (
     <Flexbox
-      className={cx(styles.root, classNames?.root)}
+      className={cx(rootClassName, classNames?.root)}
       paddingInline={8}
       style={customStyles?.root}
       width={'100%'}

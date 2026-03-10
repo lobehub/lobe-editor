@@ -9,7 +9,7 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
 } from 'lexical';
-import { Children, type FC, useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { Children, type FC, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { noop } from '@/editor-kernel';
 import { useLexicalEditor } from '@/editor-kernel/react';
@@ -27,14 +27,24 @@ import SlashMenu from './components/SlashMenu';
 import type { ReactSlashOptionProps, ReactSlashPluginProps } from './type';
 import { setCancelablePromise } from './utils';
 
-const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName }) => {
+const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
+  children,
+  anchorClassName,
+  getPopupContainer,
+  placement,
+}) => {
   const [editor] = useLexicalComposerContext();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [resolution, setResolution] = useState<ITriggerContext | null>(null);
   const [options, setOptions] = useState<Array<ISlashOption>>([]);
-  const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    getRect?: () => DOMRect;
+    rect?: DOMRect;
+    x: number;
+    y: number;
+  }>({ x: 0, y: 0 });
   const cancelRef = useRef<{
     cancel: () => void;
   }>({
@@ -48,6 +58,9 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
     setResolution(null);
     setActiveKey(null);
   }, []);
+
+  // Close menu on unmount to prevent orphaned portal at (0,0)
+  useEffect(() => close, [close]);
 
   const handleActiveKeyChange = useCallback((key: string | null) => {
     setActiveKey(key);
@@ -100,7 +113,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
           };
         }
         const rect = ctx.getRect();
-        setDropdownPosition({ x: rect.left, y: rect.bottom });
+        setDropdownPosition({ getRect: ctx.getRect, rect, x: rect.left, y: rect.bottom });
         setIsOpen(true);
       },
     });
@@ -261,12 +274,14 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({ children, anchorClassName
       activeKey={activeKey}
       anchorClassName={anchorClassName}
       customRender={CustomRender}
+      getPopupContainer={getPopupContainer}
       loading={loading}
       onActiveKeyChange={handleActiveKeyChange}
       onClose={close}
       onSelect={handleMenuSelect}
       open={isOpen}
       options={options}
+      placement={placement}
       position={dropdownPosition}
     />
   );
