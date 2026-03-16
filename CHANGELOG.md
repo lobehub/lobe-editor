@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.1.0](https://github.com/lobehub/lobe-editor/compare/v4.0.2...v4.1.0)
+<sup>Released on **2026-03-16**</sup>
+
+
+#### ✨ Features
+
+- **mention, slash**: Enhance demo items with additional options and improved structure.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **mention, slash**: Enhance demo items with additional options and improved structure ([41f428d](https://github.com/lobehub/lobe-editor/commit/41f428d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.0.2](https://github.com/lobehub/lobe-editor/compare/v4.0.1...v4.0.2)
 <sup>Released on **2026-03-09**</sup>
 
