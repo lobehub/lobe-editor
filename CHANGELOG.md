@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.1.1](https://github.com/lobehub/lobe-editor/compare/v4.1.0...v4.1.1)
+<sup>Released on **2026-03-18**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Prevent nesting of code nodes in selection processing.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Prevent nesting of code nodes in selection processing, closes [#119](https://github.com/lobehub/lobe-editor/issues/119) ([a5f59e5](https://github.com/lobehub/lobe-editor/commit/a5f59e5))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.1.0](https://github.com/lobehub/lobe-editor/compare/v4.0.2...v4.1.0)
 <sup>Released on **2026-03-16**</sup>
 
