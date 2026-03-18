@@ -17,6 +17,34 @@ function sanitizeUrl(url: string): string {
   return url;
 }
 
+function formatLinkHighlightUrl(url: string): string {
+  if (/^[a-z][\d+.a-z-]*:/i.test(url)) {
+    return url;
+  }
+
+  if (/^[#./]/.test(url)) {
+    return url;
+  }
+
+  if (url.includes('@') && !url.startsWith('mailto:')) {
+    return `mailto:${url}`;
+  }
+
+  if (/^\+?[\d\s()-]{5,}$/.test(url)) {
+    return `tel:${url}`;
+  }
+
+  if (url.startsWith('www.')) {
+    return `https://${url}`;
+  }
+
+  if (!url.includes('://')) {
+    return `https://${url}`;
+  }
+
+  return url;
+}
+
 function textToSlug(text: string): string {
   return text
     .toLowerCase()
@@ -106,6 +134,15 @@ export function renderBuiltinNode(
           rel={node.rel || 'noopener noreferrer'}
           target={node.target || undefined}
         >
+          {children}
+        </a>
+      );
+    }
+    case 'linkHighlight': {
+      const url = textContent ? sanitizeUrl(formatLinkHighlightUrl(textContent)) : undefined;
+
+      return (
+        <a href={url} key={key} rel="noopener noreferrer" target="_blank">
           {children}
         </a>
       );

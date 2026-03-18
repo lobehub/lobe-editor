@@ -62,6 +62,19 @@ describe('renderBuiltinNode', () => {
     expect(html).toContain('link text');
   });
 
+  it('renders linkHighlight as external link', () => {
+    const html = toHTML({ type: 'linkHighlight' }, ['example'], 'https://example.com');
+    expect(html).toContain('href="https://example.com"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain('example');
+  });
+
+  it('formats linkHighlight urls without protocol', () => {
+    const html = toHTML({ type: 'linkHighlight' }, ['www.example.com'], 'www.example.com');
+    expect(html).toContain('href="https://www.example.com"');
+  });
+
   it('renders table with classes', () => {
     const html = toHTML({ type: 'table' }, ['row']);
     expect(html).toContain('editor_table');
