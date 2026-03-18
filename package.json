@@ -27,7 +27,9 @@
     "es",
     "scripts/patch-lexical.js",
     "react.d.ts",
-    "react.js"
+    "react.js",
+    "renderer.d.ts",
+    "renderer.js"
   ],
   "scripts": {
     "build": "npm run build:clean && father build && npm run build:packages",
@@ -87,6 +89,7 @@
     "@lexical/code": "^0.39.0",
     "@lexical/code-shiki": "^0.39.0",
     "@lexical/dragon": "^0.39.0",
+    "@lexical/headless": "^0.39.0",
     "@lexical/history": "^0.39.0",
     "@lexical/link": "^0.39.0",
     "@lexical/list": "^0.39.0",

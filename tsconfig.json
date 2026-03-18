@@ -20,7 +20,9 @@
       "@lobehub/editor": ["./src"],
       "@lobehub/editor/*": ["./src/*"],
       "@lobehub/editor/react": ["./src/react"],
-      "@lobehub/editor/react/*": ["./src/react/*"]
+      "@lobehub/editor/react/*": ["./src/react/*"],
+      "@lobehub/editor/renderer": ["./src/renderer"],
+      "@lobehub/editor/renderer/*": ["./src/renderer/*"]
     }
   },
   "exclude": ["./react.d.ts"],
