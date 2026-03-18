@@ -1,19 +1,28 @@
-import { createHeadlessEditor } from '@lexical/headless';
-import { $getRoot } from 'lexical';
+import {
+  ReactCodePlugin,
+  ReactCodemirrorPlugin,
+  ReactFilePlugin,
+  ReactHRPlugin,
+  ReactImagePlugin,
+  ReactLinkPlugin,
+  ReactListPlugin,
+  ReactLiteXmlPlugin,
+  ReactMathPlugin,
+  ReactTablePlugin,
+  ReactVirtualBlockPlugin,
+} from '@lobehub/editor';
+import { Editor, useEditor } from '@lobehub/editor/react';
 import type { SerializedEditorState } from 'lexical';
-import { createElement } from 'react';
-import { renderToString } from 'react-dom/server';
+import { type ReactNode, createElement } from 'react';
+import { flushSync } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { bench, describe } from 'vitest';
 
 import { LexicalRenderer } from '../LexicalRenderer';
 import fixture from '../LexicalRenderer/demos/fixture.json';
-import { renderNode } from '../engine/render-tree';
-import { rendererNodes } from '../nodes';
-import { createDefaultRenderers } from '../renderers';
 
 const value = fixture as unknown as SerializedEditorState;
 
-// Pre-build a larger fixture by repeating the content N times
 function makeRepeatedFixture(times: number): SerializedEditorState {
   const children = (fixture as any).root.children;
   const repeated = [];
@@ -28,87 +37,50 @@ function makeRepeatedFixture(times: number): SerializedEditorState {
 const smallFixture = value;
 const largeFixture = makeRepeatedFixture(10);
 
-describe('LexicalRenderer — renderToString (small fixture)', () => {
-  bench('LexicalRenderer', () => {
-    renderToString(createElement(LexicalRenderer, { value: smallFixture }));
+const editorPlugins = [
+  ReactLiteXmlPlugin,
+  ReactListPlugin,
+  ReactLinkPlugin,
+  ReactImagePlugin,
+  ReactVirtualBlockPlugin,
+  ReactCodemirrorPlugin,
+  ReactHRPlugin,
+  ReactTablePlugin,
+  ReactMathPlugin,
+  ReactCodePlugin,
+  ReactFilePlugin,
+];
+
+function EditorReadonly({ content, plugins }: { content: any; plugins: any[] }) {
+  const editor = useEditor();
+  return createElement(Editor, { content, editable: false, editor, plugins });
+}
+
+function mount(element: ReactNode) {
+  const container = document.createElement('div');
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(element);
+  });
+  root.unmount();
+}
+
+describe('Client render — small fixture', () => {
+  bench('LexicalRenderer (headless)', () => {
+    mount(createElement(LexicalRenderer, { value: smallFixture }));
+  });
+
+  bench('Editor (editable=false)', () => {
+    mount(createElement(EditorReadonly, { content: smallFixture, plugins: editorPlugins }));
   });
 });
 
-describe('LexicalRenderer — renderToString (large fixture, 10x)', () => {
-  bench('LexicalRenderer', () => {
-    renderToString(createElement(LexicalRenderer, { value: largeFixture }));
-  });
-});
-
-describe('Core engine — headless parse + tree walk (no React)', () => {
-  const registry = createDefaultRenderers();
-
-  bench('parse + render tree (small)', () => {
-    const editor = createHeadlessEditor({
-      editable: false,
-      nodes: rendererNodes,
-      onError: () => {},
-    });
-    const state = editor.parseEditorState(smallFixture);
-    editor.setEditorState(state);
-    const headingSlugs = new Map<string, number>();
-    state.read(() => {
-      $getRoot()
-        .getChildren()
-        .map((child, i) => renderNode(child, registry, headingSlugs, undefined, `r-${i}`));
-    });
+describe('Client render — large fixture (10x)', () => {
+  bench('LexicalRenderer (headless)', () => {
+    mount(createElement(LexicalRenderer, { value: largeFixture }));
   });
 
-  bench('parse + render tree (large 10x)', () => {
-    const editor = createHeadlessEditor({
-      editable: false,
-      nodes: rendererNodes,
-      onError: () => {},
-    });
-    const state = editor.parseEditorState(largeFixture);
-    editor.setEditorState(state);
-    const headingSlugs = new Map<string, number>();
-    state.read(() => {
-      $getRoot()
-        .getChildren()
-        .map((child, i) => renderNode(child, registry, headingSlugs, undefined, `r-${i}`));
-    });
-  });
-});
-
-describe('Breakdown — individual phases', () => {
-  bench('1. createHeadlessEditor', () => {
-    createHeadlessEditor({
-      editable: false,
-      nodes: rendererNodes,
-      onError: () => {},
-    });
-  });
-
-  bench('2. parseEditorState', () => {
-    const editor = createHeadlessEditor({
-      editable: false,
-      nodes: rendererNodes,
-      onError: () => {},
-    });
-    editor.parseEditorState(smallFixture);
-  });
-
-  bench('3. renderToString (React serialization)', () => {
-    // Pre-built React tree, measure only React's serialization cost
-    const el = createElement(
-      'div',
-      null,
-      createElement('h1', null, 'Test'),
-      createElement('p', null, 'Hello world'),
-      createElement(
-        'ul',
-        null,
-        createElement('li', null, 'item 1'),
-        createElement('li', null, 'item 2'),
-        createElement('li', null, 'item 3'),
-      ),
-    );
-    renderToString(el);
+  bench('Editor (editable=false)', () => {
+    mount(createElement(EditorReadonly, { content: largeFixture, plugins: editorPlugins }));
   });
 });
