@@ -12,6 +12,7 @@ export function LexicalRenderer({
   value,
   overrides,
   extraNodes,
+  renderContext,
   as: Tag = 'div',
   className,
   style,
@@ -35,10 +36,15 @@ export function LexicalRenderer({
     state.read(() => {
       result = $getRoot()
         .getChildren()
-        .map((child, i) => renderNode(child, registry, headingSlugs, overrides, `r-${i}`));
+        .map((child, i) =>
+          renderNode(child, registry, headingSlugs, overrides, `r-${i}`, {
+            ...renderContext,
+            variant,
+          }),
+        );
     });
     return result;
-  }, [value, overrides, extraNodes]);
+  }, [value, overrides, extraNodes, renderContext, variant]);
 
   const cssVars = getCSSVariables(variant);
 

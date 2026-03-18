@@ -1,8 +1,9 @@
-import type { SerializedEditorState } from 'lexical';
+import { DecoratorNode, type LexicalUpdateJSON, type SerializedEditorState } from 'lexical';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { LexicalRenderer } from '../LexicalRenderer';
+import type { HeadlessRenderContext, HeadlessRenderableNode } from '../types';
 
 function makeEditorState(children: any[]): SerializedEditorState {
   return {
@@ -19,6 +20,71 @@ function makeEditorState(children: any[]): SerializedEditorState {
 
 function toHTML(value: SerializedEditorState, props: Record<string, any> = {}) {
   return renderToStaticMarkup(<LexicalRenderer value={value} {...props} />);
+}
+
+type SerializedHeadlessTestNode = {
+  label: string;
+  type: 'headless-test';
+  version: 1;
+};
+
+class HeadlessTestNode extends DecoratorNode<any> implements HeadlessRenderableNode {
+  __label: string;
+
+  static getType(): string {
+    return 'headless-test';
+  }
+
+  static clone(node: HeadlessTestNode): HeadlessTestNode {
+    return new HeadlessTestNode(node.__label, node.__key);
+  }
+
+  static importJSON(serializedNode: SerializedHeadlessTestNode): HeadlessTestNode {
+    return new HeadlessTestNode(serializedNode.label).updateFromJSON(serializedNode);
+  }
+
+  static importDOM(): null {
+    return null;
+  }
+
+  constructor(label: string, key?: string) {
+    super(key);
+    this.__label = label;
+  }
+
+  createDOM(): HTMLElement {
+    return document.createElement('span');
+  }
+
+  updateDOM(): false {
+    return false;
+  }
+
+  exportJSON(): SerializedHeadlessTestNode {
+    return {
+      ...super.exportJSON(),
+      label: this.__label,
+      type: 'headless-test',
+      version: 1,
+    };
+  }
+
+  updateFromJSON(serializedNode: LexicalUpdateJSON<any>): this {
+    this.__label = serializedNode.label;
+    return super.updateFromJSON(serializedNode);
+  }
+
+  decorate(): null {
+    return null;
+  }
+
+  renderHeadless({ extra, key }: HeadlessRenderContext) {
+    return (
+      <span data-suffix={(extra?.suffix as string) || ''} key={key}>
+        {this.__label}
+      </span>
+    );
+  }
 }
 
 describe('LexicalRenderer', () => {
@@ -202,6 +268,18 @@ describe('LexicalRenderer', () => {
     );
     expect(html).toContain('class="custom-p"');
     expect(html).not.toContain('<p>');
+  });
+
+  it('renders nodes through headless render interface', () => {
+    const value = makeEditorState([{ label: 'custom', type: 'headless-test', version: 1 }]);
+
+    const html = toHTML(value, {
+      extraNodes: [HeadlessTestNode],
+      renderContext: { extra: { suffix: 'ctx' } },
+    });
+
+    expect(html).toContain('>custom</span>');
+    expect(html).toContain('data-suffix="ctx"');
   });
 
   it('renders with custom tag', () => {
