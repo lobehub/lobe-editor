@@ -11,7 +11,7 @@ const isWin = process.platform === 'win32';
 export const packages = ['react', 'plugins', 'renderer'];
 
 const nav: INavItem[] = [
-  { link: '/components/react/editor', title: 'Components' },
+  { link: '/components', title: 'Components' },
   { link: '/components/plugins/common', title: 'Plugins' },
   { link: 'https://ui.lobehub.com', mode: 'override', title: 'UI' },
   { link: 'https://icon.lobehub.com', mode: 'override', title: 'Icons' },
@@ -27,7 +27,7 @@ const themeConfig: SiteThemeConfig = {
       text: 'GitHub',
     },
     {
-      link: '/components/react/editor',
+      link: '/components',
       text: 'Get Started',
       type: 'primary',
     },
