@@ -1,6 +1,7 @@
 import type { ElementNode, LexicalNode, RangeSelection, TextFormatType, TextNode } from 'lexical';
 import {
   $createRangeSelection,
+  $getNodeByKey,
   $getSelection,
   $isLineBreakNode,
   $isRangeSelection,
@@ -14,7 +15,7 @@ import { PUNCTUATION_OR_SPACE, getOpenTagStartIndex, isEqualSubString } from '..
 export type TextFormatTransformer = Readonly<{
   format?: ReadonlyArray<TextFormatType>;
   intraword?: boolean;
-  process?: (selection: RangeSelection) => void;
+  process?: (selection: RangeSelection) => boolean | void;
   tag: string;
   type: 'text-format';
 }>;
@@ -325,7 +326,19 @@ export function $runTextFormatTransformers(
     nextSelection.focus.set(closeNode.__key, newOffset, 'text');
 
     if (matcher.process) {
-      matcher.process(nextSelection);
+      if (matcher.process(nextSelection) === false) {
+        const currentOpenNode = $getNodeByKey(openNode.__key);
+        const currentCloseNode = $getNodeByKey(closeNode.__key);
+        if ($isTextNode(currentOpenNode)) {
+          currentOpenNode.setTextContent(prevOpenNodeText);
+        }
+        if (currentCloseNode !== currentOpenNode && $isTextNode(currentCloseNode)) {
+          currentCloseNode.setTextContent(prevCloseNodeText);
+        }
+        // If process function returns false, cancel the transform and set selection to original position
+        $setSelection(anchorNode.selectEnd());
+        continue;
+      }
       return true;
     } else if (matcher.format) {
       // Apply formatting to selected text
