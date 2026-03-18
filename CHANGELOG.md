@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.2.0](https://github.com/lobehub/lobe-editor/compare/v4.1.1...v4.2.0)
+<sup>Released on **2026-03-18**</sup>
+
+
+#### ✨ Features
+
+- **renderer**: Add headless LexicalRenderer component.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **renderer**: Add headless LexicalRenderer component, closes [#127](https://github.com/lobehub/lobe-editor/issues/127) ([0299eea](https://github.com/lobehub/lobe-editor/commit/0299eea))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.1.1](https://github.com/lobehub/lobe-editor/compare/v4.1.0...v4.1.1)
 <sup>Released on **2026-03-18**</sup>
 
