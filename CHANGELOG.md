@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.3.0](https://github.com/lobehub/lobe-editor/compare/v4.2.0...v4.3.0)
+<sup>Released on **2026-03-19**</sup>
+
+
+#### ✨ Features
+
+- **slash**: Export ISlashMenuOption type from main package.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **slash**: Export ISlashMenuOption type from main package ([be848d9](https://github.com/lobehub/lobe-editor/commit/be848d9))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.2.0](https://github.com/lobehub/lobe-editor/compare/v4.1.1...v4.2.0)
 <sup>Released on **2026-03-18**</sup>
 
