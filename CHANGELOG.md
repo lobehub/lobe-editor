@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.3.1](https://github.com/lobehub/lobe-editor/compare/v4.3.0...v4.3.1)
+<sup>Released on **2026-03-19**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **slash**: Export ISlashOption type from main package.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **slash**: Export ISlashOption type from main package ([a2b0c3b](https://github.com/lobehub/lobe-editor/commit/a2b0c3b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.3.0](https://github.com/lobehub/lobe-editor/compare/v4.2.0...v4.3.0)
 <sup>Released on **2026-03-19**</sup>
 
