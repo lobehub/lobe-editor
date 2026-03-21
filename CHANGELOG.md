@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.3.2](https://github.com/lobehub/lobe-editor/compare/v4.3.1...v4.3.2)
+<sup>Released on **2026-03-21**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **renderer**: Preserve multiline whitespace in LexicalRenderer.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **renderer**: Preserve multiline whitespace in LexicalRenderer ([125f307](https://github.com/lobehub/lobe-editor/commit/125f307))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.3.1](https://github.com/lobehub/lobe-editor/compare/v4.3.0...v4.3.1)
 <sup>Released on **2026-03-19**</sup>
 
