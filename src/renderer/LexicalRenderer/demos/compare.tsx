@@ -14,11 +14,17 @@ import {
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { LexicalRenderer, loadLanguage } from '@lobehub/editor/renderer';
 import type { SerializedEditorState } from 'lexical';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import fixture from './fixture.json';
+import paperParagraph from './paperParagraph.json';
 
-const sharedData = fixture as unknown as SerializedEditorState;
+type SampleKey = 'fixture' | 'paper';
+
+const samples: Record<SampleKey, SerializedEditorState> = {
+  fixture: fixture as unknown as SerializedEditorState,
+  paper: paperParagraph as unknown as SerializedEditorState,
+};
 
 // Preload languages used in the fixture
 const preloadLanguages = async () => {
@@ -43,6 +49,12 @@ export default () => {
   const editor = useEditor();
   const [tab, setTab] = useState<View>('side');
   const [variant, setVariant] = useState<Variant>('default');
+  const [sample, setSample] = useState<SampleKey>('fixture');
+  const sharedData = samples[sample];
+
+  useEffect(() => {
+    editor.setDocument('json', sharedData as any);
+  }, [editor, sharedData]);
 
   return (
     <div>
@@ -63,6 +75,18 @@ export default () => {
               type="button"
             >
               {v}
+            </button>
+          ))}
+        </div>
+        <div style={{ borderLeft: '1px solid #e8e8e8', display: 'flex', gap: 4, paddingLeft: 16 }}>
+          {(['fixture', 'paper'] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setSample(s)}
+              style={btnStyle(sample === s)}
+              type="button"
+            >
+              {s === 'fixture' ? 'Full fixture' : 'Paper + code paragraph'}
             </button>
           ))}
         </div>
@@ -88,7 +112,7 @@ export default () => {
                 padding: '8px 16px',
               }}
             >
-              {'Editor (editable=false)  —  variant=' + variant}
+              {'Editor (editable=false)  —  variant=' + variant + '  —  sample=' + sample}
             </div>
             <div style={{ padding: 16 }}>
               <Editor
@@ -133,7 +157,7 @@ export default () => {
                 padding: '8px 16px',
               }}
             >
-              {'LexicalRenderer (headless)  —  variant=' + variant}
+              {'LexicalRenderer (headless)  —  variant=' + variant + '  —  sample=' + sample}
             </div>
             <LexicalRenderer style={{ padding: 16 }} value={sharedData} variant={variant} />
           </div>

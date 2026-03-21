@@ -1,0 +1,34 @@
+{
+  "root": {
+    "id": "root",
+    "type": "root",
+    "format": "",
+    "indent": 0,
+    "version": 1,
+    "children": [
+      {
+        "id": "2",
+        "type": "paragraph",
+        "format": "",
+        "indent": 0,
+        "version": 1,
+        "children": [
+          {
+            "id": "3",
+            "mode": "normal",
+            "text": "我现在有一张纸，现在我要做一个在右上角有一个角微微卷起的物理效果，它是 3D 的。\n\nimport type { JSX } from 'react'\n\nimport { clsxm } from '~/lib/helper'\n\nexport const Paper: Component<{\n  as?: keyof JSX.IntrinsicElements | Component\n}> = ({ children, className, as: As = 'main' }) => (\n  <As\n    className={clsxm(\n      'relative bg-neutral-1 dark:bg-neutral-2 md:col-start-1 lg:col-auto',\n      '-m-4 p-[2rem_1rem] md:m-0 lg:p-[30px_45px]',\n      'rounded-[0_6px_6px_0] border-neutral-3/70 lg:border',\n      'shadow-perfect perfect-sm',\n      'note-layout-main',\n      'min-w-0',\n      'print:border-none! print:bg-transparent! print:shadow-none!',\n      className,\n    )}\n  >\n    {children}\n  </As>\n)\n\n",
+            "type": "text",
+            "style": "",
+            "detail": 0,
+            "format": 0,
+            "version": 1
+          }
+        ],
+        "direction": "ltr",
+        "textStyle": "",
+        "textFormat": 0
+      }
+    ],
+    "direction": "ltr"
+  }
+}
