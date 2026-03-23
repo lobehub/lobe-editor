@@ -25,6 +25,5 @@
       "@lobehub/editor/renderer/*": ["./src/renderer/*"]
     }
   },
-  "exclude": ["./react.d.ts"],
-  "include": ["src", "./src/types", "docs", "tests", ".dumirc.ts", ".fatherrc.ts"]
+  "include": ["src", "./src/types", "docs", "tests", "scripts", ".dumirc.ts", "tsdown.config.ts"]
 }
