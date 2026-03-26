@@ -15,6 +15,13 @@ describe('renderTextNode', () => {
     expect(toHTML({ format: 0, text: 'hello' })).toBe('hello');
   });
 
+  it('preserves whitespace for multiline text', () => {
+    const html = toHTML({ format: 0, text: 'line 1\n\n  line 2' });
+    expect(html).toContain('white-space:break-spaces');
+    expect(html).toContain('line 1');
+    expect(html).toContain('  line 2');
+  });
+
   it('renders bold', () => {
     expect(toHTML({ format: 1, text: 'bold' })).toBe('<strong>bold</strong>');
   });

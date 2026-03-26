@@ -6,6 +6,7 @@ import { Check, ChevronDown, ChevronRight, CopyIcon } from 'lucide-react';
 import { type ReactNode, useCallback, useState } from 'react';
 
 import { highlightCode } from '../engine/shiki';
+import { renderMermaidBlock } from './mermaid';
 
 const useStyles = createStaticStyles(
   ({ css, cssVar }) => css`
@@ -189,5 +190,10 @@ export function renderCodeBlock(
   key: string,
   children: ReactNode[] | null,
 ): ReactNode {
+  const language = ((node.language as string) || '').toLowerCase();
+  if (language === 'mermaid') {
+    return renderMermaidBlock(node, key);
+  }
+
   return <CodeBlockRenderer codeChildren={children} key={key} node={node} />;
 }

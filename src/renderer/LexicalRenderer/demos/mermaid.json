@@ -1,0 +1,62 @@
+{
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "",
+            "text": "Mermaid Renderer Sample",
+            "type": "text",
+            "version": 1
+          }
+        ],
+        "direction": "ltr",
+        "format": "",
+        "indent": 0,
+        "tag": "h2",
+        "type": "heading",
+        "version": 1
+      },
+      {
+        "children": [
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "",
+            "text": "This sample includes a code node with language `mermaid` to verify dedicated renderer output.",
+            "type": "text",
+            "version": 1
+          }
+        ],
+        "direction": "ltr",
+        "format": "",
+        "indent": 0,
+        "textFormat": 0,
+        "textStyle": "",
+        "type": "paragraph",
+        "version": 1
+      },
+      {
+        "code": "graph TD\n  A[Start] --> B{Need render?}\n  B -->|Yes| C[Use Mermaid renderer]\n  B -->|No| D[Use normal code block]",
+        "codeTheme": "",
+        "language": "mermaid",
+        "options": {
+          "indentWithTabs": false,
+          "lineNumbers": false,
+          "tabSize": 2
+        },
+        "type": "code",
+        "version": 1
+      }
+    ],
+    "direction": "ltr",
+    "format": "",
+    "indent": 0,
+    "type": "root",
+    "version": 1
+  }
+}

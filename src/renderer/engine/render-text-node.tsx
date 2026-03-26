@@ -13,7 +13,13 @@ const FORMAT_TAGS: [number, string][] = [
   [128, 'mark'],
 ];
 
+function shouldPreserveWhitespace(text: string): boolean {
+  return /[\t\n]| {2,}|^ | $/.test(text);
+}
+
 export function renderTextNode(node: Record<string, any>, key: string): ReactNode {
+  const style = node.style ? parseCSSText(node.style as string) : undefined;
+  const preserveWhitespace = shouldPreserveWhitespace(node.text as string);
   let element: ReactNode = node.text as string;
   const format: number = (node.format as number) || 0;
 
@@ -23,8 +29,18 @@ export function renderTextNode(node: Record<string, any>, key: string): ReactNod
     }
   }
 
-  if (node.style) {
-    element = createElement('span', { key, style: parseCSSText(node.style as string) }, element);
+  if (style || preserveWhitespace) {
+    element = createElement(
+      'span',
+      {
+        key,
+        style: {
+          ...style,
+          ...(preserveWhitespace ? { whiteSpace: 'break-spaces' as const } : undefined),
+        },
+      },
+      element,
+    );
   }
 
   return element;
