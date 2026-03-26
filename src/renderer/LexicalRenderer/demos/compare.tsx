@@ -17,12 +17,14 @@ import type { SerializedEditorState } from 'lexical';
 import { useEffect, useState } from 'react';
 
 import fixture from './fixture.json';
+import mermaid from './mermaid.json';
 import paperParagraph from './paperParagraph.json';
 
-type SampleKey = 'fixture' | 'paper';
+type SampleKey = 'fixture' | 'paper' | 'mermaid';
 
 const samples: Record<SampleKey, SerializedEditorState> = {
   fixture: fixture as unknown as SerializedEditorState,
+  mermaid: mermaid as unknown as SerializedEditorState,
   paper: paperParagraph as unknown as SerializedEditorState,
 };
 
@@ -79,14 +81,18 @@ export default () => {
           ))}
         </div>
         <div style={{ borderLeft: '1px solid #e8e8e8', display: 'flex', gap: 4, paddingLeft: 16 }}>
-          {(['fixture', 'paper'] as const).map((s) => (
+          {(['fixture', 'paper', 'mermaid'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setSample(s)}
               style={btnStyle(sample === s)}
               type="button"
             >
-              {s === 'fixture' ? 'Full fixture' : 'Paper + code paragraph'}
+              {s === 'fixture'
+                ? 'Full fixture'
+                : s === 'paper'
+                  ? 'Paper + code paragraph'
+                  : 'Mermaid sample'}
             </button>
           ))}
         </div>

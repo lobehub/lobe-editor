@@ -972,6 +972,33 @@
             "format": 0,
             "mode": "normal",
             "style": "",
+            "text": "Mermaid",
+            "type": "text",
+            "version": 1
+          }
+        ],
+        "direction": "ltr",
+        "format": "",
+        "indent": 0,
+        "tag": "h2",
+        "type": "heading",
+        "version": 1
+      },
+      {
+        "code": "graph TD\n  A[Parse Lexical JSON] --> B{language === mermaid?}\n  B -->|Yes| C[Render Mermaid block]\n  B -->|No| D[Render regular code block]",
+        "codeTheme": "",
+        "language": "mermaid",
+        "options": { "indentWithTabs": false, "lineNumbers": false, "tabSize": 2 },
+        "type": "code",
+        "version": 1
+      },
+      {
+        "children": [
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "",
             "text": "Table",
             "type": "text",
             "version": 1

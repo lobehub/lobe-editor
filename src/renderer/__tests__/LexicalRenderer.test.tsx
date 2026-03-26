@@ -197,6 +197,43 @@ describe('LexicalRenderer', () => {
     expect(html).toContain('const x = 1;');
   });
 
+  it('renders mermaid code through dedicated renderer', () => {
+    const value = makeEditorState([
+      {
+        code: 'graph TD\nA-->B',
+        codeTheme: '',
+        language: 'mermaid',
+        options: { indentWithTabs: false, lineNumbers: false, tabSize: 2 },
+        type: 'code',
+        version: 1,
+      },
+    ]);
+
+    const html = toHTML(value);
+    expect(html).toContain('data-code-type="mermaid"');
+    expect(html).toContain('mermaid.svg');
+    expect(html).toContain('Loading...');
+    expect(html).not.toContain('renderer-cm-header');
+  });
+
+  it('renders mermaid loading state on server render', () => {
+    const value = makeEditorState([
+      {
+        code: 'graph TD\nA-->B',
+        codeTheme: '',
+        language: 'mermaid',
+        options: { indentWithTabs: false, lineNumbers: false, tabSize: 2 },
+        type: 'code',
+        version: 1,
+      },
+    ]);
+
+    const html = toHTML(value);
+    expect(html).toContain('data-code-type="mermaid"');
+    expect(html).toContain('mermaid.svg');
+    expect(html).toContain('Loading...');
+  });
+
   it('renders horizontal rule', () => {
     const value = makeEditorState([{ type: 'horizontalrule', version: 1 }]);
     const html = toHTML(value);
