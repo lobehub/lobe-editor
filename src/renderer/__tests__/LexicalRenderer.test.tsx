@@ -211,7 +211,7 @@ describe('LexicalRenderer', () => {
 
     const html = toHTML(value);
     expect(html).toContain('data-code-type="mermaid"');
-    expect(html).toContain('diagram.mermaid');
+    expect(html).toContain('mermaid.svg');
     expect(html).toContain('Loading...');
     expect(html).not.toContain('renderer-cm-header');
   });
@@ -230,7 +230,7 @@ describe('LexicalRenderer', () => {
 
     const html = toHTML(value);
     expect(html).toContain('data-code-type="mermaid"');
-    expect(html).toContain('diagram.mermaid');
+    expect(html).toContain('mermaid.svg');
     expect(html).toContain('Loading...');
   });
 
