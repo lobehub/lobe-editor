@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.4.0](https://github.com/lobehub/lobe-editor/compare/v4.3.2...v4.4.0)
+<sup>Released on **2026-03-26**</sup>
+
+
+#### ✨ Features
+
+- **renderer**: Add LexicalDiff viewer.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **renderer**: Add LexicalDiff viewer, closes [#128](https://github.com/lobehub/lobe-editor/issues/128) ([5ecaebd](https://github.com/lobehub/lobe-editor/commit/5ecaebd))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.3.2](https://github.com/lobehub/lobe-editor/compare/v4.3.1...v4.3.2)
 <sup>Released on **2026-03-21**</sup>
 
