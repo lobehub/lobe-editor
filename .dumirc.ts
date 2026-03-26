@@ -28,7 +28,7 @@ const themeConfig: SiteThemeConfig = {
       text: 'GitHub',
     },
     {
-      link: '/components/react/editor',
+      link: '/components',
       text: 'Get Started',
       type: 'primary',
     },
