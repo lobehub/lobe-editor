@@ -12,6 +12,7 @@ export const packages = ['react', 'plugins', 'renderer'];
 
 const nav: INavItem[] = [
   { link: '/components/react/editor', title: 'Components' },
+  { link: '/components/renderer', title: 'Renderer' },
   { link: '/components/plugins/common', title: 'Plugins' },
   { link: 'https://ui.lobehub.com', mode: 'override', title: 'UI' },
   { link: 'https://icon.lobehub.com', mode: 'override', title: 'Icons' },

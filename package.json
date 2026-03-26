@@ -109,6 +109,7 @@
     "katex": "^0.16.27",
     "lexical": "^0.39.0",
     "lucide-react": "^0.562.0",
+    "mermaid": "^11.13.0",
     "polished": "^4.3.1",
     "re-resizable": "^6.11.2",
     "react-error-boundary": "^6.0.2",
