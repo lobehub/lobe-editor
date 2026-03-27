@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.5.0](https://github.com/lobehub/lobe-editor/compare/v4.4.0...v4.5.0)
+<sup>Released on **2026-03-27**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Markdown paste auto-convert with threshold and undo/redo history.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Markdown paste auto-convert with threshold and undo/redo history ([9be14dc](https://github.com/lobehub/lobe-editor/commit/9be14dc))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.4.0](https://github.com/lobehub/lobe-editor/compare/v4.3.2...v4.4.0)
 <sup>Released on **2026-03-26**</sup>
 
