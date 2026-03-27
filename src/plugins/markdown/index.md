@@ -65,21 +65,33 @@ Handles pattern-based text replacements:
 ```typescript
 interface MarkdownPluginOptions {
   /**
-   * Enable automatic markdown formatting for pasted content
+   * Enable automatic markdown conversion for pasted content
    * @default true
    */
   enablePasteMarkdown?: boolean;
+  /**
+   * Automatically convert pasted markdown once the detection threshold is reached
+   * @default true
+   */
+  autoFormatMarkdown?: boolean;
+  /**
+   * Minimum markdown score required before auto conversion runs
+   * @default 5
+   */
+  pasteMarkdownAutoConvertThreshold?: number;
 }
 ```
 
-The plugin automatically detects markdown patterns in pasted plain text content and converts them to structured editor nodes. This feature can be disabled by setting `enablePasteMarkdown` to `false`.
+The plugin automatically detects markdown patterns in pasted plain text content and converts them to structured editor nodes once the detection score reaches the configured threshold. This feature can be disabled by setting either `enablePasteMarkdown` or `autoFormatMarkdown` to `false`.
 
 #### Paste Behavior
 
-When `enablePasteMarkdown` is enabled (default):
+When paste markdown auto conversion is enabled (default):
 
-- Plain text with markdown patterns is automatically formatted
+- Plain text with sufficiently strong markdown patterns is automatically converted
 - Detects headers, bold/italic, code blocks, links, images, lists, tables, etc.
+- Lightweight inline patterns can remain plain text if they do not reach the threshold
+- After conversion, the UI can inform users that `Command/Ctrl + Z` will undo the conversion
 - HTML content is handled by Lexical's rich text handler
 - Plain text without markdown patterns is inserted as-is
 
@@ -180,18 +192,46 @@ const markdownPlugin = new MarkdownPlugin(kernel, {
 });
 ```
 
+### Disabling Automatic Conversion While Keeping the Plugin Registered
+
+```typescript
+const markdownPlugin = new MarkdownPlugin(kernel, {
+  autoFormatMarkdown: false,
+});
+```
+
+### Adjusting the Auto-convert Threshold
+
+```typescript
+const markdownPlugin = new MarkdownPlugin(kernel, {
+  pasteMarkdownAutoConvertThreshold: 3,
+});
+```
+
 ### Using with React Editor
 
 ```typescript
 import { Editor } from '@lobehub/editor/react';
 
-// Disable paste markdown formatting
+// Disable paste markdown conversion
 <Editor
   enablePasteMarkdown={false}
   placeholder="Paste content here..."
 />
 
-// Enable paste markdown formatting (default)
+// Disable only the automatic conversion step
+<Editor
+  autoFormatMarkdown={false}
+  placeholder="Paste content here..."
+/>
+
+// Require a stronger markdown signal before auto conversion runs
+<Editor
+  pasteMarkdownAutoConvertThreshold={3}
+  placeholder="Paste markdown content here..."
+/>
+
+// Enable paste markdown auto conversion (default)
 <Editor
   enablePasteMarkdown={true}
   placeholder="Paste markdown content here..."

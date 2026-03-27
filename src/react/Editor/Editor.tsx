@@ -39,7 +39,9 @@ const Editor = memo<EditorProps>(
     onBlur,
     autoFocus,
     enablePasteMarkdown = true,
+    autoFormatMarkdown = true,
     markdownOption = true,
+    pasteMarkdownAutoConvertThreshold,
     pasteAsPlainText = false,
     pasteVSCodeAsCodeBlock = true,
     onCompositionStart,
@@ -66,7 +68,9 @@ const Editor = memo<EditorProps>(
     const memoPlugins = useMemo(
       () =>
         (
-          [enablePasteMarkdown && ReactMarkdownPlugin, ...plugins].filter(Boolean) as EditorPlugin[]
+          [enablePasteMarkdown && autoFormatMarkdown && ReactMarkdownPlugin, ...plugins].filter(
+            Boolean,
+          ) as EditorPlugin[]
         ).map((plugin, index) => {
           const withNoProps = typeof plugin === 'function';
           if (withNoProps) return createElement(plugin, { key: index });
@@ -75,7 +79,7 @@ const Editor = memo<EditorProps>(
             ...plugin[1],
           });
         }),
-      [plugins, enablePasteMarkdown, ReactMarkdownPlugin],
+      [plugins, enablePasteMarkdown, autoFormatMarkdown, ReactMarkdownPlugin],
     );
 
     const memoMention = useMemo(() => {
@@ -112,6 +116,7 @@ const Editor = memo<EditorProps>(
         {memoMention}
         <ReactPlainText
           autoFocus={autoFocus}
+          autoFormatMarkdown={autoFormatMarkdown}
           className={className}
           editable={editable}
           enablePasteMarkdown={enablePasteMarkdown}
@@ -126,6 +131,7 @@ const Editor = memo<EditorProps>(
           onPressEnter={onPressEnter}
           onTextChange={debouncedOnTextChange}
           pasteAsPlainText={pasteAsPlainText}
+          pasteMarkdownAutoConvertThreshold={pasteMarkdownAutoConvertThreshold}
           pasteVSCodeAsCodeBlock={pasteVSCodeAsCodeBlock}
           style={style}
           variant={variant}

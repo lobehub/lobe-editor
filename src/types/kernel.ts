@@ -77,6 +77,8 @@ export interface IKernelEventMap {
     cacheState: EditorState;
     historyState: HistoryStateEntry | null;
     markdown: string;
+    matchedPatterns: string[];
+    score: number;
   }) => void;
 
   /**
@@ -118,6 +120,11 @@ export interface IEditor {
    * Get editor content of specified type
    */
   getDocument(type: string): DataSource | undefined;
+  /**
+   * Lexical history state (undo stack metadata)
+   */
+  getHistoryState(): HistoryState;
+
   /**
    * Get Lexical editor instance
    */
@@ -299,10 +306,6 @@ export interface IEditorKernel extends IEditor {
    * @param name
    */
   getDecorator(name: string): IDecorator | undefined;
-  /**
-   * Get editor history state
-   */
-  getHistoryState(): HistoryState;
   /**
    * Get all registered decorator names
    */

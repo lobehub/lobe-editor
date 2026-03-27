@@ -28,6 +28,9 @@ export default {
     unlink: 'Unlink Link',
   },
   markdown: {
+    autoFormatMessage:
+      'Markdown was converted automatically. Use Command/Ctrl + Z to undo this conversion.',
+    autoFormatTitle: 'Markdown Converted',
     cancel: 'Cancel',
     confirm: 'Confirm',
     parseMessage:

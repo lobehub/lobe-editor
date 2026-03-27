@@ -14,6 +14,11 @@ interface MentionOption extends Partial<ReactSlashOptionProps> {
 export interface EditorProps
   extends Partial<ReactEditorContentProps>, Omit<ReactPlainTextProps, 'children'> {
   autoFocus?: boolean;
+  /**
+   * Automatically convert pasted markdown once the detection threshold is reached
+   * @default true
+   */
+  autoFormatMarkdown?: boolean;
   children?: ReactNode;
   className?: string;
   /**
@@ -24,7 +29,7 @@ export interface EditorProps
   editable?: boolean;
   editor?: IEditor;
   /**
-   * Enable automatic markdown formatting for pasted content
+   * Enable automatic markdown conversion for pasted content
    * @default true
    */
   enablePasteMarkdown?: boolean;
@@ -49,6 +54,11 @@ export interface EditorProps
    * Unlike onChange, this won't trigger on cursor movement or selection changes
    */
   onTextChange?: (editor: IEditor) => void;
+  /**
+   * Minimum markdown score required before auto conversion runs
+   * @default 5
+   */
+  pasteMarkdownAutoConvertThreshold?: number;
   plugins?: EditorPlugin[];
   slashOption?: Partial<ReactSlashOptionProps>;
   /** Force slash menu placement direction, skipping auto-flip detection */

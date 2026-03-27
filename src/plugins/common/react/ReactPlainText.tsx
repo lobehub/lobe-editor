@@ -37,8 +37,10 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     variant,
     enableHotkey = true,
     enablePasteMarkdown = true,
+    autoFormatMarkdown = true,
     markdownOption = true,
     pasteAsPlainText = false,
+    pasteMarkdownAutoConvertThreshold,
     pasteVSCodeAsCodeBlock = true,
     onKeyDown,
     onFocus,
@@ -111,7 +113,9 @@ const ReactPlainText = memo<ReactPlainTextProps>(
 
     useLayoutEffect(() => {
       editor.registerPlugin(MarkdownPlugin, {
+        autoFormatMarkdown,
         enablePasteMarkdown,
+        pasteMarkdownAutoConvertThreshold,
       });
       editor.registerPlugin(CommonPlugin, {
         enableHotkey,
@@ -124,8 +128,10 @@ const ReactPlainText = memo<ReactPlainTextProps>(
       editor,
       enableHotkey,
       enablePasteMarkdown,
+      autoFormatMarkdown,
       markdownOption,
       pasteAsPlainText,
+      pasteMarkdownAutoConvertThreshold,
       pasteVSCodeAsCodeBlock,
       restTheme,
       computedThemeStyles,

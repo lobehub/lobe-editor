@@ -16,18 +16,89 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
-import { registerMarkdownCommand } from '../command';
+import { INSERT_MARKDOWN_COMMAND, registerMarkdownCommand } from '../command';
 import MarkdownDataSource from '../data-source/markdown-data-source';
 import { IMarkdownShortCutService, MarkdownShortCutService } from '../service/shortcut';
 import { canContainTransformableMarkdown } from '../utils';
 import { detectCodeLanguage, detectLanguage } from '../utils/detectLanguage';
 
+const DEFAULT_PASTE_MARKDOWN_AUTO_CONVERT_THRESHOLD = 5;
+
+interface MarkdownDetectionRule {
+  name: string;
+  score: number;
+  test: (text: string) => boolean;
+}
+
+interface MarkdownDetectionResult {
+  matchedPatterns: string[];
+  score: number;
+  shouldAutoConvert: boolean;
+}
+
+const RICH_HTML_SELECTOR =
+  'strong,em,b,i,h1,h2,h3,h4,h5,h6,ul,ol,table,img,blockquote,pre>code,a[href]';
+
+const MARKDOWN_DETECTION_RULES = [
+  { name: 'headers', score: 5, test: (text) => /^#{1,6}\s+\S/m.test(text) },
+  { name: 'code-fence-start', score: 5, test: (text) => /^```[\w-]*$/m.test(text) },
+  { name: 'links', score: 4, test: (text) => /\[[^\]]+]\([^)]+\)/.test(text) },
+  { name: 'images', score: 5, test: (text) => /!\[[^\]]*]\([^)]+\)/.test(text) },
+  {
+    name: 'tables',
+    score: 5,
+    test: (text) => /^\|.+\|$/m.test(text) && /^\|[\s:|-]+\|$/m.test(text),
+  },
+  {
+    name: 'admonitions',
+    score: 5,
+    test: (text) => /^>\s*\[!(?:note|tip|warning|caution|important)]/im.test(text),
+  },
+  {
+    name: 'task-lists',
+    score: 4,
+    test: (text) => /^[*-]\s+\[[ x]]/m.test(text),
+  },
+  { name: 'bold', score: 2, test: (text) => /\*\*.+?\*\*/.test(text) },
+  {
+    name: 'italic',
+    score: 1,
+    test: (text) => /(?<!\*)\*(?!\*)(?!\s).+?(?<!\s)(?<!\*)\*(?!\*)/.test(text),
+  },
+  { name: 'unordered-lists', score: 1, test: (text) => /^[*+-]\s+\S/m.test(text) },
+  { name: 'ordered-lists', score: 1, test: (text) => /^\d+\.\s+\S/m.test(text) },
+  { name: 'blockquotes', score: 1, test: (text) => /^>\s+\S/m.test(text) },
+  { name: 'inline-code', score: 1, test: (text) => /`.+?`/.test(text) },
+  {
+    name: 'horizontal-rules',
+    score: 2,
+    test: (text) => /^[*_-]{3,}$/m.test(text),
+  },
+  {
+    name: 'multi-paragraph',
+    score: 5,
+    test: (text) => text.split(/\n{2,}/).filter(Boolean).length >= 2,
+  },
+  { name: 'short-text-penalty', score: -3, test: (text) => text.length < 20 },
+  { name: 'single-line-penalty', score: -2, test: (text) => !text.includes('\n') },
+] as const satisfies MarkdownDetectionRule[];
+
 export interface MarkdownPluginOptions {
   /**
-   * Enable automatic markdown formatting for pasted content
+   * Automatically convert pasted markdown once the detection threshold is reached
+   * @default true
+   */
+  autoFormatMarkdown?: boolean;
+  /**
+   * Enable automatic markdown conversion for pasted content
    * @default true
    */
   enablePasteMarkdown?: boolean;
+  /**
+   * Minimum markdown score required before auto conversion runs
+   * @default 5
+   */
+  pasteMarkdownAutoConvertThreshold?: number;
 }
 
 export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = class
@@ -167,6 +238,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
         PASTE_COMMAND,
         (event) => {
           if (!(event instanceof ClipboardEvent)) return false;
+          if (!this.shouldHandlePasteMarkdown()) return false;
 
           const clipboardData = event.clipboardData;
           if (!clipboardData) return false;
@@ -187,24 +259,35 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             textLength: text.length,
           });
 
-          // Check if the pasted plain text contains markdown patterns
-          const hasMarkdownContent = this.detectMarkdownContent(text);
+          if (this.hasRichHTML(clipboardData)) {
+            this.logger.debug('rich HTML detected, skipping markdown auto-convert');
+            return false;
+          }
 
-          if (hasMarkdownContent) {
-            // Markdown detected - show confirmation dialog
-            this.logger.debug('markdown patterns detected:', this.getMarkdownPatterns(text));
+          const detectionResult = this.getMarkdownDetectionResult(text);
+
+          if (detectionResult.shouldAutoConvert) {
+            this.logger.debug('markdown auto-convert detected:', detectionResult);
 
             const historyState = this.kernel.getHistoryState().current;
             setTimeout(() => {
+              editor.dispatchCommand(INSERT_MARKDOWN_COMMAND, {
+                historyState,
+                markdown: text,
+              });
               this.kernel.emit('markdownParse', {
                 cacheState: editor.getEditorState(),
                 historyState,
                 markdown: text,
+                matchedPatterns: detectionResult.matchedPatterns,
+                score: detectionResult.score,
               });
             }, 10);
           } else {
-            // No markdown detected - plain text is already inserted
-            this.logger.debug('no markdown patterns detected, keeping as plain text');
+            this.logger.debug(
+              'markdown score below auto-convert threshold, keeping as plain text:',
+              detectionResult,
+            );
           }
 
           return false;
@@ -213,22 +296,20 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
       ),
     );
 
-    this.register(
-      registerMarkdownCommand(editor, this.kernel, this.service, this.kernel.getHistoryState()),
-    );
+    this.register(registerMarkdownCommand(editor, this.kernel, this.service));
   }
 
   /**
    * Detect if content is code and should be inserted as code block
    * Uses advanced language detection with pattern matching
-   * Excludes markdown as it should be handled by markdown formatting dialog
+   * Excludes markdown because markdown content is handled by the paste auto-convert flow
    */
   private detectCodeContent(text: string): { confidence: number; language: string } | null {
     // Use the advanced language detector
     const detected = detectLanguage(text);
 
     if (detected && detected.confidence > 50) {
-      // Don't insert markdown as code block - it should trigger the formatting dialog
+      // Don't insert markdown as code block - it should use the markdown auto-convert flow
       if (detected.language === 'markdown') {
         return null;
       }
@@ -250,68 +331,65 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     return null;
   }
 
-  /**
-   * Detect if text contains markdown patterns
-   * Returns false if content is likely code (will be handled by detectCodeContent)
-   */
-  private detectMarkdownContent(text: string): boolean {
-    // If code is detected, don't treat as markdown
-    if (this.detectCodeContent(text)) {
-      return false;
-    }
+  private hasRichHTML(clipboardData: DataTransfer) {
+    const html = clipboardData.getData('text/html');
 
-    const markdownPatterns = [
-      // Headers
-      /^#{1,6}\s+/m,
-      // Bold/italic
-      /\*{1,2}[^*]+\*{1,2}/,
-      /__?[^_]+__?/,
-      // Code blocks
-      /```[\S\s]*```/,
-      // Inline code
-      /`[^`]+`/,
-      // Links
-      /\[[^\]]*]\([^)]+\)/,
-      // Images
-      /!\[[^\]]*]\([^)]+\)/,
-      // Lists
-      /^[*+-]\s+/m,
-      /^\d+\.\s+/m,
-      // Blockquotes
-      /^>\s+/m,
-      // Tables
-      /\|.*\|.*\|/,
-      // Horizontal rules
-      /^---+$/m,
-      /^\*\*\*+$/m,
-      // Strikethrough
-      /~~[^~]+~~/,
-    ];
+    if (!html) return false;
+    if (/data-vscode|vscode-/i.test(html)) return false;
+    if (typeof DOMParser === 'undefined') return false;
 
-    return markdownPatterns.some((pattern) => pattern.test(text));
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const richTags = doc.body.querySelectorAll(RICH_HTML_SELECTOR);
+
+    return richTags.length > 0;
   }
 
   /**
-   * Get specific markdown patterns found in text
+   * Analyze pasted text and determine whether it should auto convert to markdown
    */
-  private getMarkdownPatterns(text: string): string[] {
-    const patterns: { name: string; regex: RegExp }[] = [
-      { name: 'headers', regex: /^#{1,6}\s+/m },
-      { name: 'bold', regex: /\*{2}[^*]+\*{2}/ },
-      { name: 'italic', regex: /\*[^*]+\*/ },
-      { name: 'code-blocks', regex: /```[\S\s]*```/ },
-      { name: 'inline-code', regex: /`[^`]+`/ },
-      { name: 'links', regex: /\[[^\]]*]\([^)]+\)/ },
-      { name: 'images', regex: /!\[[^\]]*]\([^)]+\)/ },
-      { name: 'lists', regex: /^[*+-]\s+/m },
-      { name: 'ordered-lists', regex: /^\d+\.\s+/m },
-      { name: 'blockquotes', regex: /^>\s+/m },
-      { name: 'tables', regex: /\|.*\|.*\|/ },
-      { name: 'horizontal-rules', regex: /^---+$/m },
-      { name: 'strikethrough', regex: /~~[^~]+~~/ },
-    ];
+  private getMarkdownDetectionResult(text: string): MarkdownDetectionResult {
+    if (this.detectCodeContent(text)) {
+      return {
+        matchedPatterns: [],
+        score: 0,
+        shouldAutoConvert: false,
+      };
+    }
 
-    return patterns.filter(({ regex }) => regex.test(text)).map(({ name }) => name);
+    const matchedPatterns: string[] = [];
+    let score = 0;
+    const threshold = this.getPasteMarkdownAutoConvertThreshold();
+
+    for (const rule of MARKDOWN_DETECTION_RULES) {
+      if (!rule.test(text)) continue;
+
+      matchedPatterns.push(rule.name);
+      score += rule.score;
+    }
+
+    return {
+      matchedPatterns,
+      score,
+      shouldAutoConvert: score >= threshold,
+    };
+  }
+
+  private getPasteMarkdownAutoConvertThreshold() {
+    const threshold = this.config?.pasteMarkdownAutoConvertThreshold;
+
+    if (typeof threshold !== 'number' || Number.isNaN(threshold)) {
+      return DEFAULT_PASTE_MARKDOWN_AUTO_CONVERT_THRESHOLD;
+    }
+
+    return Math.max(1, threshold);
+  }
+
+  private shouldHandlePasteMarkdown() {
+    if (this.config?.enablePasteMarkdown === false) {
+      return false;
+    }
+
+    return this.config?.autoFormatMarkdown !== false;
   }
 
   // /**

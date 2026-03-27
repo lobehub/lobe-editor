@@ -1,11 +1,11 @@
-import { HistoryState, HistoryStateEntry } from '@lexical/history';
+import type { HistoryStateEntry } from '@lexical/history';
 import { mergeRegister } from '@lexical/utils';
 import {
   $getSelection,
   $isRangeSelection,
-  CAN_UNDO_COMMAND,
   COMMAND_PRIORITY_HIGH,
   HISTORIC_TAG,
+  HISTORY_PUSH_TAG,
   LexicalEditor,
   createCommand,
 } from 'lexical';
@@ -28,29 +28,12 @@ export const GET_MARKDOWN_SELECTION_COMMAND = createCommand<{
   onResult: (startLine: number, endLine: number) => void;
 }>('GET_MARKDOWN_SELECTION_COMMAND');
 
-function undoToEntry(
-  editor: LexicalEditor,
-  historyState: HistoryState,
-  entry: HistoryStateEntry | null,
-) {
-  const undoStack = historyState.undoStack;
+function restoreToEntry(editor: LexicalEditor, entry: HistoryStateEntry | null) {
+  if (!entry) return;
 
-  const current = historyState.current;
-
-  if (current) {
-    undoStack.push(current);
-    editor.dispatchCommand(CAN_UNDO_COMMAND, false);
-  }
-
-  historyState.current = entry || null;
-
-  if (entry) {
-    editor.setEditorState(entry.editorState, {
-      tag: HISTORIC_TAG,
-    });
-  }
-
-  return editor.getEditorState();
+  editor.setEditorState(entry.editorState, {
+    tag: HISTORIC_TAG,
+  });
 }
 
 const SPICAL_TEXT = '\uFFF0';
@@ -63,7 +46,6 @@ export function registerMarkdownCommand(
   editor: LexicalEditor,
   kernel: IEditorKernel,
   service: MarkdownShortCutService,
-  history: HistoryState,
 ) {
   return mergeRegister(
     editor.registerCommand(
@@ -71,22 +53,25 @@ export function registerMarkdownCommand(
       (payload) => {
         const { markdown } = payload;
         logger.debug('INSERT_MARKDOWN_COMMAND payload:', payload);
-        undoToEntry(editor, history, payload.historyState);
-        queueMicrotask(() => {
-          editor.update(() => {
-            try {
-              // Use the markdown data source to parse the content
-              const root = parseMarkdownToLexical(markdown, service.markdownReaders);
-              const selection = $getSelection();
-              const nodes = $generateNodesFromSerializedNodes(root.children);
-              logger.debug('INSERT_MARKDOWN_COMMAND nodes:', nodes);
-              $insertGeneratedNodes(editor, nodes, selection!);
-              return true;
-            } catch (error) {
-              logger.error('Failed to handle markdown paste:', error);
-            }
-          });
-        });
+        restoreToEntry(editor, payload.historyState);
+        setTimeout(() => {
+          editor.update(
+            () => {
+              try {
+                // Force a new history entry so undo returns to the raw pasted text.
+                const root = parseMarkdownToLexical(markdown, service.markdownReaders);
+                const selection = $getSelection();
+                const nodes = $generateNodesFromSerializedNodes(root.children);
+                logger.debug('INSERT_MARKDOWN_COMMAND nodes:', nodes);
+                $insertGeneratedNodes(editor, nodes, selection!);
+                return true;
+              } catch (error) {
+                logger.error('Failed to handle markdown paste:', error);
+              }
+            },
+            { tag: HISTORY_PUSH_TAG },
+          );
+        }, 0);
         return false;
       },
       COMMAND_PRIORITY_HIGH, // Priority

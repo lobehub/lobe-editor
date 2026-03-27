@@ -19,12 +19,17 @@ export interface ReactEditorContentProps {
 
 export interface ReactPlainTextProps {
   autoFocus?: boolean;
+  /**
+   * Automatically convert pasted markdown once the detection threshold is reached
+   * @default true
+   */
+  autoFormatMarkdown?: boolean;
   children: ReactElement<ReactEditorContentProps>;
   className?: string;
   editable?: boolean;
   enableHotkey?: boolean;
   /**
-   * Enable automatic markdown formatting for pasted content
+   * Enable automatic markdown conversion for pasted content
    * @default true
    */
   enablePasteMarkdown?: boolean;
@@ -54,6 +59,11 @@ export interface ReactPlainTextProps {
    * @default false
    */
   pasteAsPlainText?: boolean;
+  /**
+   * Minimum markdown score required before auto conversion runs
+   * @default 5
+   */
+  pasteMarkdownAutoConvertThreshold?: number;
   /**
    * When pasting VS Code content (detected via vscode-editor-data clipboard type),
    * create a code block with the language from VS Code instead of pasting as plain text.

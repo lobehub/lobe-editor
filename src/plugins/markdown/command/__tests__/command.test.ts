@@ -12,12 +12,13 @@ import {
   MentionPlugin,
   TablePlugin,
 } from '@lobehub/editor';
+import { REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import Editor from '@/editor-kernel';
 
 import { MarkdownPlugin } from '../../plugin';
-import { GET_MARKDOWN_SELECTION_COMMAND } from '../index';
+import { GET_MARKDOWN_SELECTION_COMMAND, INSERT_MARKDOWN_COMMAND } from '../index';
 
 const json = {
   root: {
@@ -495,6 +496,82 @@ const json = {
 };
 
 describe('Markdown Commands', () => {
+  describe('INSERT_MARKDOWN_COMMAND', () => {
+    it('should keep markdown auto-convert redoable after undo', async () => {
+      const editor = Editor.createEditor().registerPlugins([CommonPlugin, MarkdownPlugin]);
+      editor.setRootElement(document.createElement('div'));
+
+      editor.setDocument(
+        'json',
+        {
+          root: {
+            children: [
+              {
+                children: [],
+                direction: 'ltr',
+                format: '',
+                indent: 0,
+                type: 'paragraph',
+                version: 1,
+                textFormat: 0,
+                textStyle: '',
+                id: '1',
+              },
+            ],
+            direction: 'ltr',
+            format: '',
+            indent: 0,
+            type: 'root',
+            version: 1,
+            id: 'root',
+          },
+        },
+        { keepId: true },
+      );
+
+      await editor.setSelection({
+        endNodeId: '1',
+        endOffset: 0,
+        startNodeId: '1',
+        startOffset: 0,
+        type: 'range',
+      });
+
+      const prePasteHistoryState = editor.getHistoryState().current;
+
+      editor.setDocument('text', '# Title\n\nBody', { keepHistory: true });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const rawJson = editor.getDocument('json') as any;
+
+      editor.dispatchCommand(INSERT_MARKDOWN_COMMAND, {
+        historyState: prePasteHistoryState,
+        markdown: '# Title\n\nBody',
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const convertedJson = editor.getDocument('json') as any;
+      expect(convertedJson.root.children.map((child: any) => child.type)).toEqual([
+        'heading',
+        'paragraph',
+      ]);
+      expect(convertedJson.root.children[0].tag).toBe('h1');
+      expect(convertedJson.root.children[0].children[0].text).toBe('Title');
+      expect(convertedJson.root.children[1].children[0].text).toBe('Body');
+
+      editor.getLexicalEditor()!.dispatchCommand(UNDO_COMMAND, undefined);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(editor.getDocument('json')).toEqual(rawJson);
+
+      editor.getLexicalEditor()!.dispatchCommand(REDO_COMMAND, undefined);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(editor.getDocument('json')).toEqual(convertedJson);
+    });
+  });
+
   describe('GET_MARKDOWN_SELECTION_COMMAND', () => {
     it('should get markdown selection with correct line numbers', async () => {
       const editor = Editor.createEditor().registerPlugins([
