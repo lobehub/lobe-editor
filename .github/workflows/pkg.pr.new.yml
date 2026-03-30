@@ -12,23 +12,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
 
       - name: Install deps
-        run: bun i
+        run: pnpm install
 
       - name: CI
-        run: bun run ci
+        run: pnpm run ci
 
       - name: Test
-        run: bun run test
+        run: pnpm run test
 
       - name: Build
-        run: bun run build
+        run: pnpm run build
 
       - name: Disable git hooks in CI
         run: git config core.hooksPath /dev/null
 
       - name: Release
-        run: bunx pkg-pr-new publish --comment=update
+        run: pnpm dlx pkg-pr-new publish --comment=update
