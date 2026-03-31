@@ -1,8 +1,7 @@
 'use client';
 
-import { ActionIcon, Flexbox, Popover } from '@lobehub/ui';
+import { ActionIcon, Flexbox, Popover, useMotionComponent } from '@lobehub/ui';
 import { CircleChevronLeftIcon, CircleChevronRightIcon, CircleChevronUpIcon } from 'lucide-react';
-import { motion } from 'motion/react';
 import { type FC } from 'react';
 
 import { styles } from '../style';
@@ -15,6 +14,8 @@ const CollapsedActions: FC<FloatActionsCollapseProps> = ({
   gap,
   mode,
 }) => {
+  const Motion = useMotionComponent();
+
   if (mode === 'popup') {
     return (
       <Popover
@@ -43,7 +44,7 @@ const CollapsedActions: FC<FloatActionsCollapseProps> = ({
 
   return (
     <Flexbox align={'center'} flex={'none'} gap={gap} horizontal>
-      <motion.div
+      <Motion.div
         animate={groupCollapse ? 'closed' : 'open'}
         className={styles.collapsedContainer}
         initial={groupCollapse ? 'closed' : 'open'}
@@ -62,7 +63,7 @@ const CollapsedActions: FC<FloatActionsCollapseProps> = ({
         }}
       >
         {children}
-      </motion.div>
+      </Motion.div>
       <ActionIcon
         icon={groupCollapse ? CircleChevronRightIcon : CircleChevronLeftIcon}
         onClick={() => onGroupCollapseChange?.(!groupCollapse)}

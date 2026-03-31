@@ -20,30 +20,38 @@
   "sideEffects": [
     "**/*.css"
   ],
-  "main": "es/index.js",
-  "module": "es/index.js",
-  "types": "es/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js"
+    },
+    "./react": {
+      "types": "./es/react.d.ts",
+      "import": "./es/react.js"
+    },
+    "./renderer": {
+      "types": "./es/renderer.d.ts",
+      "import": "./es/renderer.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./es/index.js",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
   "files": [
-    "es",
-    "scripts/patch-lexical.js",
-    "react.d.ts",
-    "react.js",
-    "renderer.d.ts",
-    "renderer.js"
+    "es"
   ],
   "scripts": {
-    "build": "npm run build:clean && father build && npm run build:packages",
+    "build": "tsdown",
     "build:clean": "tsx ./scripts/clean.ts",
-    "build:packages": "tsx ./scripts/build.ts",
-    "build:watch": "father dev",
+    "build:watch": "tsdown --watch",
     "ci": "npm run lint:circular && npm run lint && npm run type-check",
     "clean": "rm -r es lib dist coverage .dumi/tmp .eslintcache node_modules/.cache",
     "dev": "dumi dev",
     "docs:build": "dumi build",
     "docs:build-analyze": "ANALYZE=1 dumi build",
     "docs:dev": "dumi dev",
-    "doctor": "father doctor",
-    "postinstall": "node scripts/patch-lexical.js",
     "lint": "eslint \"{src,tests}/**/*.{js,jsx,ts,tsx}\" --fix",
     "lint:circular": "dpdm src/**/*.{ts,tsx}  --warning false  --tree false  --exit-code circular:1  -T true",
     "lint:md": "remark . --quiet --frail --output",
@@ -86,17 +94,17 @@
   "dependencies": {
     "@floating-ui/dom": "^1.7.4",
     "@floating-ui/react": "^0.27.16",
-    "@lexical/code": "^0.39.0",
-    "@lexical/code-shiki": "^0.39.0",
-    "@lexical/dragon": "^0.39.0",
-    "@lexical/headless": "^0.39.0",
-    "@lexical/history": "^0.39.0",
-    "@lexical/link": "^0.39.0",
-    "@lexical/list": "^0.39.0",
-    "@lexical/rich-text": "^0.39.0",
-    "@lexical/selection": "^0.39.0",
-    "@lexical/table": "^0.39.0",
-    "@lexical/utils": "^0.39.0",
+    "@lexical/code": "^0.42.0",
+    "@lexical/code-shiki": "^0.42.0",
+    "@lexical/dragon": "^0.42.0",
+    "@lexical/headless": "^0.42.0",
+    "@lexical/history": "^0.42.0",
+    "@lexical/link": "^0.42.0",
+    "@lexical/list": "^0.42.0",
+    "@lexical/rich-text": "^0.42.0",
+    "@lexical/selection": "^0.42.0",
+    "@lexical/table": "^0.42.0",
+    "@lexical/utils": "^0.42.0",
     "@shikijs/core": "^3.20.0",
     "@shikijs/engine-javascript": "^3.20.0",
     "@xmldom/xmldom": "^0.8.11",
@@ -107,7 +115,7 @@
     "eventemitter3": "^5.0.1",
     "fuse.js": "^7.1.0",
     "katex": "^0.16.27",
-    "lexical": "^0.39.0",
+    "lexical": "^0.42.0",
     "lucide-react": "^0.562.0",
     "mermaid": "^11.13.0",
     "polished": "^4.3.1",
@@ -140,7 +148,6 @@
     "dumi": "^2.4.21",
     "dumi-theme-lobehub": "^4.0.1",
     "eslint": "^8.57.1",
-    "father": "^4.6.13",
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
     "leva": "^0.10.1",
@@ -154,6 +161,7 @@
     "remark-cli": "^12.0.1",
     "semantic-release": "^21.1.2",
     "stylelint": "^15.11.0",
+    "tsdown": "^0.21.4",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
@@ -174,6 +182,9 @@
   "pnpm": {
     "overrides": {
       "chalk": "^4.1.2"
+    },
+    "patchedDependencies": {
+      "lexical@0.42.0": "patches/lexical@0.42.0.patch"
     }
   }
 }

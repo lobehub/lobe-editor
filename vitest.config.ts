@@ -7,14 +7,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      'lexical': path.resolve(__dirname, './src/editor-kernel/lexical/Lexical.dev.js'),
       [name]: path.resolve(__dirname, './src'),
     },
   },
   test: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      'lexical': path.resolve(__dirname, './src/editor-kernel/lexical/Lexical.dev.js'),
       [name]: path.resolve(__dirname, './src'),
     },
     coverage: {
