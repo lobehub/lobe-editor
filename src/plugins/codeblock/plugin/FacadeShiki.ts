@@ -5,8 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-import type { CodeNode } from '@lexical/code';
-import { $createCodeHighlightNode, $isCodeNode } from '@lexical/code';
+import type { CodeNode } from '@lexical/code-core';
+import { $createCodeHighlightNode, $isCodeNode } from '@lexical/code-core';
 import { ShikiLobeTheme } from '@lobehub/ui';
 import {
   createHighlighterCoreSync,

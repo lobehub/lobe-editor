@@ -1,4 +1,4 @@
-import { $createCodeNode, $isCodeNode } from '@lexical/code';
+import { $createCodeNode, $isCodeNode } from '@lexical/code-core';
 import {
   $isListNode,
   INSERT_ORDERED_LIST_COMMAND,

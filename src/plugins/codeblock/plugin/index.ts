@@ -4,7 +4,7 @@ import {
   $isCodeNode,
   CodeHighlightNode,
   CodeNode,
-} from '@lexical/code';
+} from '@lexical/code-core';
 import {
   $getSelection,
   $isRangeSelection,

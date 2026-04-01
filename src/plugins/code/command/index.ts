@@ -1,4 +1,4 @@
-import { $isCodeHighlightNode } from '@lexical/code';
+import { $isCodeHighlightNode } from '@lexical/code-core';
 import {
   $getSelection,
   $insertNodes,

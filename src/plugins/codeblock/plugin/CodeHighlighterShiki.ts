@@ -15,7 +15,7 @@ import {
   CodeHighlightNode,
   CodeNode,
   DEFAULT_CODE_LANGUAGE,
-} from '@lexical/code';
+} from '@lexical/code-core';
 import { mergeRegister } from '@lexical/utils';
 import type {
   BaseSelection,

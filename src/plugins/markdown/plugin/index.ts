@@ -1,4 +1,4 @@
-import { $isCodeNode } from '@lexical/code';
+import { $isCodeNode } from '@lexical/code-core';
 import {
   $getNodeByKey,
   $getSelection,

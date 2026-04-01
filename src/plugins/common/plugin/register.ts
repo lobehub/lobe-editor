@@ -1,4 +1,4 @@
-import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code';
+import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code-core';
 import { $isHeadingNode, QuoteNode } from '@lexical/rich-text';
 import { mergeRegister } from '@lexical/utils';
 import {
