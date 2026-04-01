@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.6.2](https://github.com/lobehub/lobe-editor/compare/v4.6.1...v4.6.2)
+<sup>Released on **2026-04-01**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: Use @lobehub/ui Highlighter for static renderer codeblock.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: Use @lobehub/ui Highlighter for static renderer codeblock ([df4806f](https://github.com/lobehub/lobe-editor/commit/df4806f))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.6.1](https://github.com/lobehub/lobe-editor/compare/v4.6.0...v4.6.1)
 <sup>Released on **2026-04-01**</sup>
 
