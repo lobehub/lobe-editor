@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.6.1](https://github.com/lobehub/lobe-editor/compare/v4.6.0...v4.6.1)
+<sup>Released on **2026-04-01**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: Migrate @lexical/code to @lexical/code-core.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: Migrate @lexical/code to @lexical/code-core ([f3813ed](https://github.com/lobehub/lobe-editor/commit/f3813ed))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.6.0](https://github.com/lobehub/lobe-editor/compare/v4.5.0...v4.6.0)
 <sup>Released on **2026-04-01**</sup>
 
