@@ -6,6 +6,8 @@ import {
   $isTextNode,
   COLLABORATION_TAG,
   COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_LOW,
+  COPY_COMMAND,
   HISTORIC_TAG,
   KEY_ENTER_COMMAND,
   LexicalEditor,
@@ -107,6 +109,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
 {
   static pluginName = 'MarkdownPlugin';
   private logger = createDebugLogger('plugin', 'markdown');
+  private markdownDataSource: MarkdownDataSource;
   private service: MarkdownShortCutService;
 
   constructor(
@@ -116,11 +119,14 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     super();
     this.service = new MarkdownShortCutService(kernel);
     kernel.registerService(IMarkdownShortCutService, this.service);
-    kernel.registerDataSource(
-      new MarkdownDataSource('markdown', this.service, <T>(serviceId: IServiceID<T>) => {
+    this.markdownDataSource = new MarkdownDataSource(
+      'markdown',
+      this.service,
+      <T>(serviceId: IServiceID<T>) => {
         return kernel.requireService(serviceId);
-      }),
+      },
     );
+    kernel.registerDataSource(this.markdownDataSource);
   }
 
   onInit(editor: LexicalEditor): void {
@@ -297,6 +303,35 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     );
 
     this.register(registerMarkdownCommand(editor, this.kernel, this.service));
+
+    // Register COPY_COMMAND handler to add text/markdown format to clipboard
+    this.register(
+      editor.registerCommand(
+        COPY_COMMAND,
+        (event) => {
+          if (!(event instanceof ClipboardEvent)) return false;
+
+          const clipboardData = event.clipboardData;
+          if (!clipboardData) return false;
+
+          // Get the selection and convert to markdown
+          const markdown = this.markdownDataSource.write(editor, { selection: true });
+          if (!markdown) return false;
+
+          // Set the markdown format on the clipboard
+          // This will be in addition to the default text/html and text/plain formats
+          // that Lexical already sets
+          clipboardData.setData('text/markdown', markdown);
+
+          this.logger.debug('copy with text/markdown:', { markdownLength: markdown.length });
+
+          // Return false to allow Lexical's default copy behavior to continue
+          // This ensures text/html and text/plain are also set
+          return false;
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+    );
   }
 
   /**
