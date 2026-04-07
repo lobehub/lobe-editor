@@ -1,3 +1,7 @@
+import {
+  $getClipboardDataFromSelection,
+  setLexicalClipboardDataTransfer,
+} from '@lexical/clipboard';
 import { $isCodeNode } from '@lexical/code-core';
 import {
   $getNodeByKey,
@@ -304,7 +308,9 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
 
     this.register(registerMarkdownCommand(editor, this.kernel, this.service));
 
-    // Register COPY_COMMAND handler to add text/markdown format to clipboard
+    // Register COPY_COMMAND handler to set text/plain as markdown
+    // This runs before Lexical's default EDITOR handler, handles the copy fully,
+    // and returns true to prevent Lexical from overwriting text/plain with unformatted text
     this.register(
       editor.registerCommand(
         COPY_COMMAND,
@@ -314,20 +320,28 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           const clipboardData = event.clipboardData;
           if (!clipboardData) return false;
 
-          // Get the selection and convert to markdown
+          const selection = $getSelection();
+          if (!selection || selection.isCollapsed()) return false;
+
+          // Get the selection as markdown
           const markdown = this.markdownDataSource.write(editor, { selection: true });
           if (!markdown) return false;
 
-          // Set the markdown format on the clipboard
-          // This will be in addition to the default text/html and text/plain formats
-          // that Lexical already sets
+          event.preventDefault();
+
+          // Get HTML and Lexical JSON from Lexical's clipboard utilities
+          const data = $getClipboardDataFromSelection(selection);
+
+          // Set all Lexical clipboard data (text/html, application/x-lexical-editor)
+          setLexicalClipboardDataTransfer(clipboardData, data);
+
+          // Override text/plain with markdown and add text/markdown
+          clipboardData.setData('text/plain', markdown);
           clipboardData.setData('text/markdown', markdown);
 
           this.logger.debug('copy with text/markdown:', { markdownLength: markdown.length });
 
-          // Return false to allow Lexical's default copy behavior to continue
-          // This ensures text/html and text/plain are also set
-          return false;
+          return true;
         },
         COMMAND_PRIORITY_LOW,
       ),
