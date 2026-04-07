@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.7.0](https://github.com/lobehub/lobe-editor/compare/v4.6.2...v4.7.0)
+<sup>Released on **2026-04-07**</sup>
+
+
+#### ✨ Features
+
+- **clipboard**: Add text/markdown format to copy output.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **clipboard**: Add text/markdown format to copy output, closes [#131](https://github.com/lobehub/lobe-editor/issues/131) ([fc56717](https://github.com/lobehub/lobe-editor/commit/fc56717))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.6.2](https://github.com/lobehub/lobe-editor/compare/v4.6.1...v4.6.2)
 <sup>Released on **2026-04-01**</sup>
 
