@@ -66,7 +66,7 @@ export const ISlashService: IServiceID<ISlashService> = genServiceId<ISlashServi
 export class SlashService implements ISlashService {
   private triggerMap: Map<string, SlashOptions> = new Map();
   private triggerFnMap: Map<string, ReturnType<typeof getBasicTypeaheadTriggerMatch>> = new Map();
-  private triggerFuseMap: Map<string, Fuse<ISlashOption>> = new Map();
+  private triggerFuseMap: Map<string, Fuse<ISlashMenuOption>> = new Map();
   private logger = createDebugLogger('service', 'slash');
 
   constructor(private kernel: IEditorKernel) {}
@@ -128,7 +128,7 @@ export class SlashService implements ISlashService {
     return this.triggerFnMap.get(trigger);
   }
 
-  getSlashFuse(trigger: string): Fuse<ISlashOption> | undefined {
+  getSlashFuse(trigger: string): Fuse<ISlashMenuOption> | undefined {
     return this.triggerFuseMap.get(trigger);
   }
 }

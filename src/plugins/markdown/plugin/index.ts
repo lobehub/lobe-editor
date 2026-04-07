@@ -1,3 +1,7 @@
+import {
+  $getClipboardDataFromSelection,
+  setLexicalClipboardDataTransfer,
+} from '@lexical/clipboard';
 import { $isCodeNode } from '@lexical/code-core';
 import {
   $getNodeByKey,
@@ -6,6 +10,8 @@ import {
   $isTextNode,
   COLLABORATION_TAG,
   COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_LOW,
+  COPY_COMMAND,
   HISTORIC_TAG,
   KEY_ENTER_COMMAND,
   LexicalEditor,
@@ -107,6 +113,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
 {
   static pluginName = 'MarkdownPlugin';
   private logger = createDebugLogger('plugin', 'markdown');
+  private markdownDataSource: MarkdownDataSource;
   private service: MarkdownShortCutService;
 
   constructor(
@@ -116,11 +123,14 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     super();
     this.service = new MarkdownShortCutService(kernel);
     kernel.registerService(IMarkdownShortCutService, this.service);
-    kernel.registerDataSource(
-      new MarkdownDataSource('markdown', this.service, <T>(serviceId: IServiceID<T>) => {
+    this.markdownDataSource = new MarkdownDataSource(
+      'markdown',
+      this.service,
+      <T>(serviceId: IServiceID<T>) => {
         return kernel.requireService(serviceId);
-      }),
+      },
     );
+    kernel.registerDataSource(this.markdownDataSource);
   }
 
   onInit(editor: LexicalEditor): void {
@@ -297,6 +307,45 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     );
 
     this.register(registerMarkdownCommand(editor, this.kernel, this.service));
+
+    // Register COPY_COMMAND handler to set text/plain as markdown
+    // This runs before Lexical's default EDITOR handler, handles the copy fully,
+    // and returns true to prevent Lexical from overwriting text/plain with unformatted text
+    this.register(
+      editor.registerCommand(
+        COPY_COMMAND,
+        (event) => {
+          if (!(event instanceof ClipboardEvent)) return false;
+
+          const clipboardData = event.clipboardData;
+          if (!clipboardData) return false;
+
+          const selection = $getSelection();
+          if (!selection || selection.isCollapsed()) return false;
+
+          // Get the selection as markdown
+          const markdown = this.markdownDataSource.write(editor, { selection: true });
+          if (!markdown) return false;
+
+          event.preventDefault();
+
+          // Get HTML and Lexical JSON from Lexical's clipboard utilities
+          const data = $getClipboardDataFromSelection(selection);
+
+          // Set all Lexical clipboard data (text/html, application/x-lexical-editor)
+          setLexicalClipboardDataTransfer(clipboardData, data);
+
+          // Override text/plain with markdown and add text/markdown
+          clipboardData.setData('text/plain', markdown);
+          clipboardData.setData('text/markdown', markdown);
+
+          this.logger.debug('copy with text/markdown:', { markdownLength: markdown.length });
+
+          return true;
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+    );
   }
 
   /**

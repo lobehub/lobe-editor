@@ -94,6 +94,7 @@
   "dependencies": {
     "@floating-ui/dom": "^1.7.4",
     "@floating-ui/react": "^0.27.16",
+    "@lexical/clipboard": "^0.42.0",
     "@lexical/code-core": "^0.42.0",
     "@lexical/dragon": "^0.42.0",
     "@lexical/headless": "^0.42.0",
