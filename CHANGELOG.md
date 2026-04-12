@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.8.0](https://github.com/lobehub/lobe-editor/compare/v4.7.0...v4.8.0)
+<sup>Released on **2026-04-12**</sup>
+
+
+#### ✨ Features
+
+- **diff**: Add borderless appearance variant for LexicalDiff.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **diff**: Add borderless appearance variant for LexicalDiff ([f0a871b](https://github.com/lobehub/lobe-editor/commit/f0a871b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.7.0](https://github.com/lobehub/lobe-editor/compare/v4.6.2...v4.7.0)
 <sup>Released on **2026-04-07**</sup>
 
