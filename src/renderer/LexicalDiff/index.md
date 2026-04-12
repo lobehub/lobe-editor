@@ -42,6 +42,12 @@ Bullet/number list with items added, removed, modified, and list type changes.
 
 <code src="./demos/list-diff.tsx"></code>
 
+## Borderless Appearance
+
+Use `appearance="borderless"` for a clean, embedded-friendly style with no border, no border-radius, zebra-striped rows, and a lightweight header.
+
+<code src="./demos/borderless.tsx"></code>
+
 ## Features
 
 - Root-block alignment with one diff row per aligned block pair

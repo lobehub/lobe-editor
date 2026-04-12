@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 
 import { LexicalRenderer } from './LexicalRenderer';
 import { computeLexicalDiffRows } from './diff/compute';
-import { styles } from './diff/style';
+import { type DiffAppearance, diffStyles } from './diff/style';
 import type {
   LexicalDiffBlockRenderContext,
   LexicalDiffBlockRenderer,
@@ -13,6 +13,7 @@ import type {
 } from './diff/types';
 import type { LexicalRendererProps } from './types';
 
+export type { DiffAppearance } from './diff/style';
 export type {
   LexicalDiffBlockRenderContext,
   LexicalDiffBlockRenderer,
@@ -22,6 +23,7 @@ export type {
 } from './diff/types';
 
 export interface LexicalDiffProps {
+  appearance?: DiffAppearance;
   blockRenderers?: Record<string, LexicalDiffBlockRenderer>;
   className?: string;
   extraNodes?: LexicalRendererProps['extraNodes'];
@@ -59,6 +61,7 @@ export function LexicalDiff({
   oldValue,
   newValue,
   variant = 'default',
+  appearance = 'default',
   extraNodes,
   overrides,
   renderContext,
@@ -68,6 +71,7 @@ export function LexicalDiff({
   className,
   style,
 }: LexicalDiffProps) {
+  const styles = diffStyles[appearance];
   const rows = useMemo(() => computeLexicalDiffRows(oldValue, newValue), [oldValue, newValue]);
 
   const renderDefaultCell = (block: SerializedLexicalNode | null) => {
