@@ -137,7 +137,6 @@ export function LexicalDiff({
         <RowCell
           className={cx(
             styles.cell,
-            styles.cellOld,
             !row.oldCell && styles.emptyCell,
             row.kind === 'delete' && styles.deleteCell,
           )}

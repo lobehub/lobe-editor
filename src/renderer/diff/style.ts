@@ -10,8 +10,11 @@ const base = createStaticStyles(({ css, cssVar }) => ({
   `,
   cell: css`
     overflow: auto;
+
     min-width: 0;
     min-height: 24px;
+    padding-block: 8px;
+    padding-inline: 16px;
 
     > div {
       width: 100%;
@@ -34,7 +37,6 @@ const base = createStaticStyles(({ css, cssVar }) => ({
 }));
 
 const defaultOverrides = createStaticStyles(({ css, cssVar }) => ({
-  cellOld: css``,
   header: css`
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -72,11 +74,9 @@ const borderlessOverrides = createStaticStyles(({ css, cssVar }) => ({
       background: ${cssVar.colorFillQuaternary};
     }
   `,
-  cellOld: css``,
   header: css`
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 12px;
   `,
   headerCell: css`
     padding-block: 8px;
@@ -88,26 +88,21 @@ const borderlessOverrides = createStaticStyles(({ css, cssVar }) => ({
     text-transform: uppercase;
     letter-spacing: 0.05em;
   `,
-  headerOld: css``,
   root: css`
     overflow: hidden;
     font-size: 14px;
     background: ${cssVar.colorBgContainer};
-  `,
-  row: css`
-    column-gap: 12px;
   `,
 }));
 
 interface DiffStyleSet {
   body: string;
   cell: string;
-  cellOld: string;
   deleteCell: string;
   emptyCell: string;
   header: string;
   headerCell: string;
-  headerOld: string;
+  headerOld?: string;
   insertCell: string;
   root: string;
   row: string;
