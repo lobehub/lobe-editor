@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.8.2](https://github.com/lobehub/lobe-editor/compare/v4.8.1...v4.8.2)
+<sup>Released on **2026-04-13**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **diff**: Adjust padding and remove column-gap in borderless styles.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **diff**: Adjust padding and remove column-gap in borderless styles ([38d7112](https://github.com/lobehub/lobe-editor/commit/38d7112))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.8.1](https://github.com/lobehub/lobe-editor/compare/v4.8.0...v4.8.1)
 <sup>Released on **2026-04-12**</sup>
 
