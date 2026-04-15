@@ -1,4 +1,4 @@
-import { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
+import { $nodesOfType, ElementNode, LexicalEditor, LexicalNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
@@ -76,6 +76,29 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     // Plugin initialization logic can be added here if needed
     this.register(registerLiteXMLCommand(editor, this.datasource));
     this.register(registerLiteXMLDiffCommand(editor));
+
+    this.register(
+      editor.registerNodeTransform(DiffNode, (node) => {
+        if (node.diffType === 'modify' && node.getChildrenSize() === 1) {
+          node.setDiffType('remove');
+        }
+      }),
+    );
+
+    // 补充逻辑：初始化加载/重置 State 时，NodeTransform 不会触发。需要用 UpdateListener 扫一遍存量节点。
+    this.register(
+      editor.registerUpdateListener(({ editorState, prevEditorState }) => {
+        if (editorState === prevEditorState) return;
+        editor.update(() => {
+          const diffNodes = $nodesOfType(DiffNode);
+          for (const node of diffNodes) {
+            if (node.diffType === 'modify' && node.getChildrenSize() === 1) {
+              node.setDiffType('remove');
+            }
+          }
+        });
+      }),
+    );
 
     this.registerLiteXml();
     this.registerMarkdown();
