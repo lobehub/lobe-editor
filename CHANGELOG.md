@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.8.3](https://github.com/lobehub/lobe-editor/compare/v4.8.2...v4.8.3)
+<sup>Released on **2026-04-16**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Add node transformation and update listener for DiffNode handling.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Add node transformation and update listener for DiffNode handling, closes [#132](https://github.com/lobehub/lobe-editor/issues/132) ([4b17599](https://github.com/lobehub/lobe-editor/commit/4b17599))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.8.2](https://github.com/lobehub/lobe-editor/compare/v4.8.1...v4.8.2)
 <sup>Released on **2026-04-13**</sup>
 
