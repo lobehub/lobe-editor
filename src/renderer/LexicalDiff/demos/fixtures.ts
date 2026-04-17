@@ -1,5 +1,14 @@
 import type { SerializedEditorState } from 'lexical';
 
+type DemoDiffType =
+  | 'add'
+  | 'remove'
+  | 'modify'
+  | 'unchanged'
+  | 'listItemModify'
+  | 'listItemRemove'
+  | 'listItemAdd';
+
 function makeText(text: string, extra: Record<string, unknown> = {}) {
   return {
     detail: 0,
@@ -102,6 +111,18 @@ function makeCode(code: string, language = 'typescript') {
   };
 }
 
+function makeDiffNode(diffType: DemoDiffType, children: unknown[]) {
+  return {
+    children,
+    diffType,
+    direction: 'ltr',
+    format: '',
+    indent: 0,
+    type: 'diff',
+    version: 1,
+  };
+}
+
 function makeEditorState(children: unknown[]): SerializedEditorState {
   return {
     root: {
@@ -115,4 +136,13 @@ function makeEditorState(children: unknown[]): SerializedEditorState {
   } as unknown as SerializedEditorState;
 }
 
-export { makeCode, makeEditorState, makeHeading, makeList, makeParagraph, makeQuote, makeText };
+export {
+  makeCode,
+  makeDiffNode,
+  makeEditorState,
+  makeHeading,
+  makeList,
+  makeParagraph,
+  makeQuote,
+  makeText,
+};

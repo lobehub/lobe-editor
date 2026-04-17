@@ -58,6 +58,28 @@ function makeHeading(text: string, tag: 'h1' | 'h2' | 'h3' = 'h1') {
   };
 }
 
+function makeDiffNode(
+  diffType:
+    | 'add'
+    | 'remove'
+    | 'modify'
+    | 'unchanged'
+    | 'listItemModify'
+    | 'listItemRemove'
+    | 'listItemAdd',
+  children: any[],
+) {
+  return {
+    children,
+    diffType,
+    direction: 'ltr',
+    format: '',
+    indent: 0,
+    type: 'diff',
+    version: 1,
+  };
+}
+
 function makeList(items: string[], listType: 'bullet' | 'number' = 'bullet') {
   return {
     children: items.map((item, index) => ({
@@ -336,5 +358,23 @@ describe('LexicalDiff', () => {
     expect(overrideHtml).toContain('<section');
     expect(overrideHtml).toContain('override');
     expect(overrideHtml).toContain('--ant-color-success');
+  });
+
+  it('renders serialized diff nodes through the inner LexicalRenderer', () => {
+    const diffState = makeEditorState([
+      makeDiffNode('modify', [makeParagraph('Old block'), makeParagraph('New block')]),
+      makeDiffNode('add', [makeParagraph('Added block')]),
+      makeDiffNode('remove', [makeParagraph('Removed block')]),
+    ]);
+
+    const html = renderToStaticMarkup(<LexicalDiff newValue={diffState} oldValue={diffState} />);
+
+    expect(html).toContain('data-diff-type="modify"');
+    expect(html).toContain('data-diff-type="add"');
+    expect(html).toContain('data-diff-type="remove"');
+    expect(html).toContain('Old block');
+    expect(html).toContain('New block');
+    expect(html).toContain('Added block');
+    expect(html).toContain('Removed block');
   });
 });

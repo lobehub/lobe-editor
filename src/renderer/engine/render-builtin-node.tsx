@@ -1,4 +1,4 @@
-import { type ReactNode, createElement } from 'react';
+import { type CSSProperties, type ReactNode, createElement } from 'react';
 
 import { getListClassName, getTableWrapperClassName } from '../style';
 import { parseCSSText } from './utils';
@@ -52,6 +52,100 @@ function textToSlug(text: string): string {
     .replaceAll(/[^\s\w\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF-]/g, '')
     .replaceAll(/[\s_]+/g, '-')
     .replaceAll(/^-+|-+$/g, '');
+}
+
+const DIFF_ROOT_STYLE: CSSProperties = {
+  position: 'relative',
+};
+
+const DIFF_LIST_ITEM_ROOT_STYLE: CSSProperties = {
+  display: 'inline-block',
+  minWidth: '100%',
+  position: 'relative',
+};
+
+const DIFF_DELETED_STYLE: CSSProperties = {
+  color: 'var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45))',
+  textDecoration: 'line-through',
+};
+
+function renderDiffNode(
+  node: Record<string, any>,
+  key: string,
+  children: ReactNode[] | null,
+): ReactNode {
+  const diffType = typeof node.diffType === 'string' ? node.diffType : 'unchanged';
+  const renderedChildren = children ?? [];
+
+  const sharedContentStyle: CSSProperties = {
+    marginBlockStart: 'calc(var(--lobe-markdown-margin-multiple, 1) * 0.5em)',
+    paddingInlineEnd: 4,
+  };
+
+  const borderColor =
+    diffType === 'add' || diffType === 'listItemAdd'
+      ? 'var(--ant-color-success, #52c41a)'
+      : diffType === 'remove' || diffType === 'listItemRemove'
+        ? 'var(--ant-color-error, #ff4d4f)'
+        : 'var(--ant-color-warning, #faad14)';
+
+  const contentStyle: CSSProperties =
+    diffType === 'unchanged'
+      ? sharedContentStyle
+      : {
+          ...sharedContentStyle,
+          borderInlineEnd: `3px solid ${borderColor}`,
+        };
+
+  const rootStyle =
+    diffType === 'listItemAdd' || diffType === 'listItemModify' || diffType === 'listItemRemove'
+      ? DIFF_LIST_ITEM_ROOT_STYLE
+      : DIFF_ROOT_STYLE;
+
+  const wrapChild = (child: ReactNode | undefined, childKey: string, style?: CSSProperties) => {
+    if (child === undefined || child === null) return null;
+
+    return (
+      <div key={childKey} style={style}>
+        {child}
+      </div>
+    );
+  };
+
+  let content: ReactNode;
+
+  switch (diffType) {
+    case 'add':
+    case 'listItemAdd': {
+      content = wrapChild(renderedChildren[0], `${key}-add`);
+      break;
+    }
+    case 'remove':
+    case 'listItemRemove': {
+      content = wrapChild(renderedChildren[0], `${key}-remove`, DIFF_DELETED_STYLE);
+      break;
+    }
+    case 'modify':
+    case 'listItemModify': {
+      content = [
+        wrapChild(renderedChildren[0], `${key}-old`, DIFF_DELETED_STYLE),
+        wrapChild(renderedChildren[1], `${key}-new`),
+      ];
+      break;
+    }
+    default: {
+      content = renderedChildren;
+      break;
+    }
+  }
+
+  return (
+    <div className="ne-diff" data-diff-type={diffType} key={key} style={rootStyle}>
+      <div className="content" style={contentStyle}>
+        {content}
+      </div>
+    </div>
+  );
 }
 
 export function renderBuiltinNode(
@@ -201,6 +295,9 @@ export function renderBuiltinNode(
         );
       }
       return <span key={key}>{node.text as string}</span>;
+    }
+    case 'diff': {
+      return renderDiffNode(node, key, children);
     }
     case 'cursor': {
       return null;

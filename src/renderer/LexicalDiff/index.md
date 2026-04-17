@@ -36,6 +36,12 @@ Character-level diff highlighting within paragraphs. Multiple insert/delete span
 
 <code src="./demos/inline-modifications.tsx"></code>
 
+## Serialized `diff` Node
+
+Useful when an upstream pipeline has already emitted custom `diff` nodes and the result still needs to render correctly inside `LexicalDiff`.
+
+<code src="./demos/diff-node.tsx"></code>
+
 ## List Diff
 
 Bullet/number list with items added, removed, modified, and list type changes.
