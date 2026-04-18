@@ -228,6 +228,36 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             selectionType,
           })
           .then((result) => {
+            let currentSelection: any = null;
+            editor.getEditorState().read(() => {
+              currentSelection = $getSelection();
+            });
+
+            if (editor.isComposing()) {
+              this.clearPlaceholderNodes(editor);
+              return;
+            }
+
+            if (
+              !currentSelection ||
+              !$isRangeSelection(currentSelection) ||
+              !currentSelection.isCollapsed()
+            ) {
+              this.clearPlaceholderNodes(editor);
+              return;
+            }
+
+            const newPosition = {
+              key: currentSelection.anchor.key,
+              offset: currentSelection.anchor.offset,
+              type: currentSelection.anchor.type,
+            };
+
+            if (!this.isSamePosition(currentPosition, newPosition)) {
+              this.clearPlaceholderNodes(editor);
+              return;
+            }
+
             if (result) {
               // Store suggestion and show placeholder
               this.currentSuggestion = result;
