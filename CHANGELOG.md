@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.8.4](https://github.com/lobehub/lobe-editor/compare/v4.8.3...v4.8.4)
+<sup>Released on **2026-04-18**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Enhance placeholder node management during auto-complete suggestions.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Enhance placeholder node management during auto-complete suggestions, closes [#135](https://github.com/lobehub/lobe-editor/issues/135) ([4a9dfe8](https://github.com/lobehub/lobe-editor/commit/4a9dfe8))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.8.3](https://github.com/lobehub/lobe-editor/compare/v4.8.2...v4.8.3)
 <sup>Released on **2026-04-16**</sup>
 
