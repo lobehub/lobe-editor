@@ -217,3 +217,14 @@ export function reconcileDecorator(
 
   pendingDecorators[key] = decorator;
 }
+
+export function createIdGenerator(prefix: string = 'id'): () => string {
+  let idCounter = 0;
+  return () => {
+    idCounter += 1;
+    if (idCounter > Number.MAX_SAFE_INTEGER) {
+      idCounter = 1; // reset counter if it exceeds max safe integer
+    }
+    return `${prefix}${idCounter}`;
+  };
+}
