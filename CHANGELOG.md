@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.8.5](https://github.com/lobehub/lobe-editor/compare/v4.8.4...v4.8.5)
+<sup>Released on **2026-04-21**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **renderer**: Support serialized diff nodes in LexicalDiff.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **renderer**: Support serialized diff nodes in LexicalDiff ([b937cdb](https://github.com/lobehub/lobe-editor/commit/b937cdb))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.8.4](https://github.com/lobehub/lobe-editor/compare/v4.8.3...v4.8.4)
 <sup>Released on **2026-04-18**</sup>
 
