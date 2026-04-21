@@ -76,6 +76,10 @@ function toMarkdownTheme(theme: CodeblockPluginOptions['shikiTheme']) {
   return `${theme.light} ${theme.dark}`;
 }
 
+function isHeadlessEditor(editor: LexicalEditor): boolean {
+  return editor._headless === true;
+}
+
 export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> = class
   extends KernelPlugin
   implements IEditorPlugin<CodeblockPluginOptions>
@@ -99,50 +103,57 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
   }
 
   onInit(editor: LexicalEditor): void {
-    if (this.config?.shikiTheme) {
-      this.register(registerCodeHighlighting(editor, CustomShikiTokenizer));
-    } else {
-      this.register(registerCodeHighlighting(editor));
+    if (!isHeadlessEditor(editor)) {
+      if (this.config?.shikiTheme) {
+        this.register(registerCodeHighlighting(editor, CustomShikiTokenizer));
+      } else {
+        this.register(registerCodeHighlighting(editor));
+      }
     }
+
     this.register(registerCodeCommand(editor));
-    this.register(
-      editor.registerCommand(
-        PASTE_COMMAND,
-        (event) => {
-          if (!(event instanceof ClipboardEvent)) return false;
 
-          const clipboardData = event.clipboardData;
-          if (!clipboardData) return false;
+    if (!isHeadlessEditor(editor)) {
+      this.register(
+        editor.registerCommand(
+          PASTE_COMMAND,
+          (event) => {
+            if (!(event instanceof ClipboardEvent)) return false;
 
-          const isInHighlightNodeSelection = editor.getEditorState().read(() => {
-            const sel = $getSelection();
-            if (!$isRangeSelection(sel)) {
-              return false;
-            }
-            let node: TextNode | ElementNode | null = sel.focus.getNode();
-            while (node) {
-              if ($isCodeHighlightNode(node) || $isCodeNode(node)) {
-                return sel;
+            const clipboardData = event.clipboardData;
+            if (!clipboardData) return false;
+
+            const isInHighlightNodeSelection = editor.getEditorState().read(() => {
+              const sel = $getSelection();
+              if (!$isRangeSelection(sel)) {
+                return false;
               }
-              node = node.getParent();
+              let node: TextNode | ElementNode | null = sel.focus.getNode();
+              while (node) {
+                if ($isCodeHighlightNode(node) || $isCodeNode(node)) {
+                  return sel;
+                }
+                node = node.getParent();
+              }
+              return false;
+            });
+
+            if (isInHighlightNodeSelection) {
+              const rawText =
+                clipboardData.getData('text/plain').trimEnd() ||
+                clipboardData.getData('text/uri-list').trimEnd();
+              editor.update(() => {
+                isInHighlightNodeSelection.insertRawText(rawText);
+              });
+              return true;
             }
             return false;
-          });
+          },
+          COMMAND_PRIORITY_EDITOR,
+        ),
+      );
+    }
 
-          if (isInHighlightNodeSelection) {
-            const rawText =
-              clipboardData.getData('text/plain').trimEnd() ||
-              clipboardData.getData('text/uri-list').trimEnd();
-            editor.update(() => {
-              isInHighlightNodeSelection.insertRawText(rawText);
-            });
-            return true;
-          }
-          return false;
-        },
-        COMMAND_PRIORITY_EDITOR,
-      ),
-    );
     this.registerMarkdown();
     this.registerLiteXml();
   }

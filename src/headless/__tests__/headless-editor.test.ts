@@ -63,6 +63,72 @@ describe('HeadlessEditor', () => {
     editor.destroy();
   });
 
+  it('hydrates editor data with code blocks and horizontal rules', () => {
+    const editor = createHeadlessEditor();
+    const legacyEditorData = {
+      root: {
+        children: [
+          {
+            code: "console.log('hello');",
+            codeTheme: 'default',
+            id: '10',
+            language: 'javascript',
+            options: {
+              indentWithTabs: false,
+              lineNumbers: false,
+              tabSize: 2,
+            },
+            type: 'code',
+            version: 1,
+          },
+          {
+            id: '11',
+            type: 'horizontalrule',
+            version: 1,
+          },
+          {
+            children: [
+              {
+                detail: 0,
+                format: 0,
+                id: '13',
+                mode: 'normal',
+                style: '',
+                text: 'After code',
+                type: 'text',
+                version: 1,
+              },
+            ],
+            direction: 'ltr',
+            format: '',
+            id: '12',
+            indent: 0,
+            tag: 'h2',
+            type: 'heading',
+            version: 1,
+          },
+        ],
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        type: 'root',
+        version: 1,
+      },
+    } as unknown as SerializedEditorState<SerializedLexicalNode>;
+
+    editor.hydrateEditorData(legacyEditorData, { keepId: true });
+
+    const { litexml, markdown } = editor.export({ litexml: true });
+
+    expect(litexml).toContain('<code');
+    expect(litexml).toContain('<hr');
+    expect(litexml).toContain('<h2');
+    expect(markdown).toContain("console.log('hello');");
+    expect(markdown).toContain('After code');
+    expect(markdown).not.toContain("console.log('hello');\n---");
+    editor.destroy();
+  });
+
   it('hydrates JSON editor data without losing Markdown semantics', () => {
     const source = createHeadlessEditor();
     source.hydrateMarkdown('Plain **bold** text');
