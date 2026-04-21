@@ -49,6 +49,20 @@ describe('HeadlessEditor', () => {
     expect(findTextNode(editorData.root, 'Second')).not.toBeNull();
   });
 
+  it('supports Markdown tables in headless mode', () => {
+    const editor = createHeadlessEditor();
+
+    editor.hydrateMarkdown('| Feature | Status |\n| --- | --- |\n| Table | Supported |');
+
+    const { litexml, markdown } = editor.export({ litexml: true });
+
+    expect(litexml).toContain('<table');
+    expect(litexml).toContain('<td');
+    expect(markdown).toContain('Feature');
+    expect(markdown).toContain('Supported');
+    editor.destroy();
+  });
+
   it('hydrates JSON editor data without losing Markdown semantics', () => {
     const source = createHeadlessEditor();
     source.hydrateMarkdown('Plain **bold** text');

@@ -11,6 +11,7 @@ import {
 } from '@/plugins/litexml/command';
 import { LitexmlPlugin } from '@/plugins/litexml/plugin';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
+import { TablePlugin } from '@/plugins/table/plugin';
 import type { IDocumentOptions, IEditor, IPlugin } from '@/types';
 
 export type HeadlessDocumentType = 'json' | 'litexml' | 'markdown' | (string & object);
@@ -78,6 +79,7 @@ export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   [CommonPlugin, { enableHotkey: false }],
   MarkdownPlugin,
   ListPlugin,
+  TablePlugin,
   LitexmlPlugin,
 ];
 

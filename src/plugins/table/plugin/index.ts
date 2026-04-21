@@ -7,7 +7,6 @@ import {
   registerTableSelectionObserver,
   setScrollableTablesActive,
 } from '@lexical/table';
-import { cx } from 'antd-style';
 import { LexicalEditor } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -15,6 +14,7 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import { cx } from '@/utils/cx';
 
 import { registerTableCommand } from '../command';
 import { TableNode, patchTableNode } from '../node';
@@ -27,6 +27,10 @@ export interface TablePluginOptions {
 const tableCellProcessor = (before: string, content: string, after: string) => {
   return before + content.replace(/\n+$/, '').replaceAll(/\n+/g, '<br />') + after;
 };
+
+function isHeadlessEditor(editor: LexicalEditor): boolean {
+  return editor._headless === true;
+}
 
 export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   extends KernelPlugin
@@ -52,11 +56,14 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
-    setScrollableTablesActive(editor, true);
-    this.register(registerTablePlugin(editor));
-    this.register(registerTableSelectionObserver(editor));
     this.register(registerTableCellUnmergeTransform(editor));
-    this.register(registerTableCommand(editor));
+
+    if (!isHeadlessEditor(editor)) {
+      setScrollableTablesActive(editor, true);
+      this.register(registerTablePlugin(editor));
+      this.register(registerTableSelectionObserver(editor));
+      this.register(registerTableCommand(editor));
+    }
 
     this.registerMarkdown();
     this.registerLiteXml();
