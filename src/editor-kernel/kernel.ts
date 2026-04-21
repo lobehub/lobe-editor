@@ -172,7 +172,11 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   destroy() {
     unregisterEditorKernel(this.themes[EDITOR_THEME_KEY]);
     this.logger.info(`🗑️ Destroying editor with ${this.pluginsInstances.length} plugins`);
-    this.editor?.setEditorState(createEmptyEditorState());
+    try {
+      this.editor?.setEditorState(createEmptyEditorState());
+    } catch (error) {
+      this.logger.warn('Failed to reset editor state during destroy:', error);
+    }
     this.dataTypeMap.clear();
     this.pluginsInstances.forEach((plugin) => {
       if (plugin.destroy) {

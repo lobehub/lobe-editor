@@ -104,4 +104,15 @@ describe('HeadlessEditor', () => {
     expect(snapshot.litexml).toContain('italic="true"');
     expect(findTextNode(editorData.root, 'Changed body')).not.toBeNull();
   });
+
+  it('destroys a hydrated headless editor without throwing', () => {
+    const editor = createHeadlessEditor({
+      initialValue: {
+        content: 'Disposable content',
+        type: 'markdown',
+      },
+    });
+
+    expect(() => editor.destroy()).not.toThrow();
+  });
 });

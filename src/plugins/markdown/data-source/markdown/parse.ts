@@ -1,4 +1,3 @@
-import { preprocessMarkdownContent } from '@lobehub/ui';
 import type { Heading, Html, Paragraph, PhrasingContent, Root, RootContent, Text } from 'mdast';
 import { remark } from 'remark';
 import remarkCjkFriendly from 'remark-cjk-friendly';
@@ -258,7 +257,7 @@ export function parseMarkdownToLexical(
     .use(remarkCjkFriendly)
     .use(remarkMath)
     .use([[remarkGfm, { singleTilde: false }]])
-    .parse(preprocessMarkdownContent(markdown));
+    .parse(markdown);
   logger.debug('Parsed MDAST:', ast);
 
   const ctx = new MarkdownContext(ast);
