@@ -1,3 +1,4 @@
+import { createHeadlessEditor as createLexicalHeadlessEditor } from '@lexical/headless';
 import { HistoryState, createEmptyHistoryState } from '@lexical/history';
 import { $createTableSelection, $isTableNode, $isTableSelection } from '@lexical/table';
 import { get, merge, template, templateSettings } from 'es-toolkit/compat';
@@ -84,6 +85,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   private historyState = createEmptyHistoryState();
 
   private editor?: LexicalEditor;
+  private headlessEditor = false;
 
   constructor() {
     super();
@@ -184,16 +186,23 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.decorators = {};
     // Clear themes
     this.themes = {};
+    this.headlessEditor = false;
     this.logger.info('✅ Editor destroyed');
   }
 
   getRootElement(): HTMLElement | null {
+    if (this.headlessEditor) {
+      return null;
+    }
     return this.editor?.getRootElement() || null;
   }
 
   setRootElement(dom: HTMLElement, editable: boolean = true): LexicalEditor {
     // Check if editor is already initialized to prevent re-initialization
     if (this.editor) {
+      if (this.headlessEditor) {
+        throw new Error('Headless editor cannot be attached to a root element.');
+      }
       this.logger.warn('[Editor] Editor is already initialized, updating root element only');
       this.editor.setRootElement(dom);
       return this.editor;
@@ -222,6 +231,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       },
       theme: this.themes,
     }));
+    this.headlessEditor = false;
     this.editor.setRootElement(dom);
     registerEvent(editor, dom);
 
@@ -268,11 +278,48 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       },
       theme: this.themes,
     }));
+    this.headlessEditor = false;
 
     this.pluginsInstances.forEach((plugin) => {
       plugin.onInit?.(editor);
     });
     this.logger.info(`✅ Editor ready with ${this.pluginsInstances.length} plugins`);
+    this.emit('initialized', editor);
+
+    return editor || null;
+  }
+
+  initHeadlessEditor() {
+    if (this.editor) {
+      return this.editor;
+    }
+    // Initialize plugins if not already done
+    if (this.pluginsInstances.length === 0) {
+      this.logger.info(`🔌 Initializing ${this.plugins.length} plugins`);
+      for (const plugin of this.plugins) {
+        const instance = new plugin(this, this.pluginsConfig.get(plugin));
+        this.pluginsInstances.push(instance);
+      }
+    }
+
+    this.logger.info(`📝 Creating headless editor with ${this.nodes.length} nodes`);
+    const editor = (this.editor = createLexicalHeadlessEditor({
+      // @ts-expect-error Inject into lexical editor instance
+      __kernel: this,
+      namespace: 'lobehub-headless',
+      nodes: this.nodes,
+      onError: (error: Error) => {
+        this.logger.error('❌ Lexical headless editor error:', error);
+        this.emit('error', error);
+      },
+      theme: this.themes,
+    }));
+    this.headlessEditor = true;
+
+    this.pluginsInstances.forEach((plugin) => {
+      plugin.onInit?.(editor);
+    });
+    this.logger.info(`✅ Headless editor ready with ${this.pluginsInstances.length} plugins`);
     this.emit('initialized', editor);
 
     return editor || null;
@@ -430,10 +477,16 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   focus() {
+    if (this.headlessEditor) {
+      return;
+    }
     this.editor?.focus();
   }
 
   blur(): void {
+    if (this.headlessEditor) {
+      return;
+    }
     this.editor?.blur();
   }
 

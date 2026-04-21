@@ -30,6 +30,10 @@ export const INSERT_CHECK_LIST_COMMAND: LexicalCommand<void> = createCommand(
   'INSERT_CHECK_LIST_COMMAND',
 );
 
+function isHeadlessEditor(editor: LexicalEditor): boolean {
+  return editor._headless === true;
+}
+
 function handleCheckItemEvent(event: PointerEvent, callback: () => void) {
   const target = event.target;
 
@@ -175,7 +179,7 @@ function handleArrowUpOrDown(event: KeyboardEvent, editor: LexicalEditor, backwa
 }
 
 export function registerCheckList(editor: LexicalEditor) {
-  return mergeRegister(
+  const registrations = [
     editor.registerCommand(
       INSERT_CHECK_LIST_COMMAND,
       () => {
@@ -238,16 +242,23 @@ export function registerCheckList(editor: LexicalEditor) {
       },
       COMMAND_PRIORITY_LOW,
     ),
-    editor.registerRootListener((rootElement, prevElement) => {
-      if (rootElement !== null) {
-        rootElement.addEventListener('click', handleClick);
-        rootElement.addEventListener('pointerdown', handlePointerDown);
-      }
+  ];
 
-      if (prevElement !== null) {
-        prevElement.removeEventListener('click', handleClick);
-        prevElement.removeEventListener('pointerdown', handlePointerDown);
-      }
-    }),
-  );
+  if (!isHeadlessEditor(editor)) {
+    registrations.push(
+      editor.registerRootListener((rootElement, prevElement) => {
+        if (rootElement !== null) {
+          rootElement.addEventListener('click', handleClick);
+          rootElement.addEventListener('pointerdown', handlePointerDown);
+        }
+
+        if (prevElement !== null) {
+          prevElement.removeEventListener('click', handleClick);
+          prevElement.removeEventListener('pointerdown', handlePointerDown);
+        }
+      }),
+    );
+  }
+
+  return mergeRegister(...registrations);
 }
