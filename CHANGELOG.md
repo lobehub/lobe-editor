@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.9.3](https://github.com/lobehub/lobe-editor/compare/v4.9.2...v4.9.3)
+<sup>Released on **2026-04-22**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Lock lexical dependencies to 0.42.0.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Lock lexical dependencies to 0.42.0 ([17d79d5](https://github.com/lobehub/lobe-editor/commit/17d79d5))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.9.2](https://github.com/lobehub/lobe-editor/compare/v4.9.1...v4.9.2)
 <sup>Released on **2026-04-22**</sup>
 
