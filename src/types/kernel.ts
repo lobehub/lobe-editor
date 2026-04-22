@@ -149,6 +149,10 @@ export interface IEditor {
    */
   getTheme(): Record<string, string | Record<string, string>>;
   /**
+   * Get headless editor instance
+   */
+  initHeadlessEditor(): LexicalEditor | null;
+  /**
    * Get node editor instance
    */
   initNodeEditor(): LexicalEditor | null;

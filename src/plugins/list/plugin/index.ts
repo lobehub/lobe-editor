@@ -7,7 +7,6 @@ import {
   registerListStrictIndentTransform,
 } from '@lexical/list';
 import { $getNearestNodeOfType } from '@lexical/utils';
-import { cx } from 'antd-style';
 import { $isRootNode, LexicalEditor } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -15,6 +14,7 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import { cx } from '@/utils/cx';
 
 import { listReplace } from '../utils';
 import { registerCheckList } from './checkList';

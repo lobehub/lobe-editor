@@ -19,6 +19,8 @@
       "@@/*": [".dumi/tmp/*"],
       "@lobehub/editor": ["./src"],
       "@lobehub/editor/*": ["./src/*"],
+      "@lobehub/editor/headless": ["./src/headless"],
+      "@lobehub/editor/headless/*": ["./src/headless/*"],
       "@lobehub/editor/react": ["./src/react"],
       "@lobehub/editor/react/*": ["./src/react/*"],
       "@lobehub/editor/renderer": ["./src/renderer"],

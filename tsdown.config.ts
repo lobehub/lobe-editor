@@ -1,17 +1,32 @@
 import { defineConfig } from 'tsdown';
 
-export default defineConfig({
-  clean: true,
+const commonConfig = {
   deps: {
     onlyBundle: false,
   },
   dts: true,
-  entry: {
-    index: 'src/index.ts',
-    react: 'src/react/index.ts',
-    renderer: 'src/renderer/index.ts',
-  },
   format: 'esm',
   outDir: 'es',
-  platform: 'browser',
-});
+} as const;
+
+export default defineConfig([
+  {
+    ...commonConfig,
+    clean: true,
+    entry: {
+      headless: 'src/headless/index.ts',
+    },
+    outExtensions: () => ({ dts: '.d.ts', js: '.js' }),
+    platform: 'node',
+  },
+  {
+    ...commonConfig,
+    clean: false,
+    entry: {
+      index: 'src/index.ts',
+      react: 'src/react/index.ts',
+      renderer: 'src/renderer/index.ts',
+    },
+    platform: 'browser',
+  },
+]);

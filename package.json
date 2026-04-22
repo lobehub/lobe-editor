@@ -26,6 +26,10 @@
       "types": "./es/index.d.ts",
       "import": "./es/index.js"
     },
+    "./headless": {
+      "types": "./es/headless.d.ts",
+      "import": "./es/headless.js"
+    },
     "./react": {
       "types": "./es/react.d.ts",
       "import": "./es/react.js"
