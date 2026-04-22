@@ -10,19 +10,15 @@ const SUPPORTED_VERSION = '0.42.0';
 
 const FILE_HASHES = {
   'Lexical.dev.js': {
-    original: 'a7627f790028c3d6cd13b28bb0efdd8e5b48f85a1f0d62df5696e52c8b5f790d',
     patched: '7c81a9785b397dc09ce0ecc9f3126d3e4903cdfd12d5c51318965ed74b0e3ccb',
   },
   'Lexical.dev.mjs': {
-    original: '0dd55914d1f967694a77f4fa842ecbbdc9376f7832b8cca380a213e30c4153b3',
     patched: '880f22f2ec2d873e1699766de39edce5123b4730009bb88bb33d7e4da98a4ad9',
   },
   'Lexical.prod.js': {
-    original: 'dea32eb95962fa45df8251a42144f63821f7745f7dcfcc24d63f33d9cfb79a76',
     patched: '9f97867340b84853cf82bbd2d60ef9f944ee61ef058daa37007b820c2780a103',
   },
   'Lexical.prod.mjs': {
-    original: 'b4c3af0707687a7d14519233cf9d373cb62261a281be6239649a4a1b36000e4b',
     patched: 'f7b2993582b2cc0573ca468373831b17971e0bb7383f5ca8785d4b93ab967c0b',
   },
 };
@@ -55,11 +51,7 @@ function getContentHashState(content, hashes) {
     return { currentHash, normalizedContent, normalizedHash, status: 'patched' };
   }
 
-  if (normalizedHash === hashes.original) {
-    return { currentHash, normalizedContent, normalizedHash, status: 'original' };
-  }
-
-  return { currentHash, normalizedContent, normalizedHash, status: 'unknown' };
+  return { currentHash, normalizedContent, normalizedHash, status: 'needs-patch' };
 }
 
 function splitLines(text) {
@@ -218,17 +210,6 @@ function patchLexical() {
 
     if (!filePatch) {
       throw new Error(`[lobe-editor] Missing patch entry for ${filename}`);
-    }
-
-    if (currentState.status !== 'original') {
-      const normalizedHashMessage =
-        currentState.currentHash === currentState.normalizedHash
-          ? ''
-          : `; normalized content hash ${currentState.normalizedHash}`;
-
-      throw new Error(
-        `[lobe-editor] Refuse to patch ${filename}: unknown content hash ${currentState.currentHash}${normalizedHashMessage}.`,
-      );
     }
 
     const patchedContent = applyPatchToContent(currentState.normalizedContent, filePatch);
