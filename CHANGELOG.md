@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.9.2](https://github.com/lobehub/lobe-editor/compare/v4.9.1...v4.9.2)
+<sup>Released on **2026-04-22**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Relax lexical postinstall hash guard.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Relax lexical postinstall hash guard ([99c1f00](https://github.com/lobehub/lobe-editor/commit/99c1f00))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.9.1](https://github.com/lobehub/lobe-editor/compare/v4.9.0...v4.9.1)
 <sup>Released on **2026-04-22**</sup>
 
