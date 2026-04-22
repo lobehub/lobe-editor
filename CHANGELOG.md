@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.9.1](https://github.com/lobehub/lobe-editor/compare/v4.9.0...v4.9.1)
+<sup>Released on **2026-04-22**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Tolerate CRLF lexical postinstall patch.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Tolerate CRLF lexical postinstall patch ([49ef52b](https://github.com/lobehub/lobe-editor/commit/49ef52b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.9.0](https://github.com/lobehub/lobe-editor/compare/v4.8.5...v4.9.0)
 <sup>Released on **2026-04-22**</sup>
 
