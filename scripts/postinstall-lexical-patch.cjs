@@ -31,8 +31,39 @@ function sha256(content) {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
+function normalizeLineEndings(text) {
+  return text.replaceAll(/\r\n?/g, '\n');
+}
+
+function detectLineEnding(text) {
+  const crlfCount = (text.match(/\r\n/g) || []).length;
+  const lfCount = (text.match(/\n/g) || []).length - crlfCount;
+
+  return crlfCount > lfCount ? '\r\n' : '\n';
+}
+
+function restoreLineEndings(text, lineEnding) {
+  return lineEnding === '\r\n' ? text.replaceAll('\n', '\r\n') : text;
+}
+
+function getContentHashState(content, hashes) {
+  const currentHash = sha256(content);
+  const normalizedContent = normalizeLineEndings(content);
+  const normalizedHash = normalizedContent === content ? currentHash : sha256(normalizedContent);
+
+  if (normalizedHash === hashes.patched) {
+    return { currentHash, normalizedContent, normalizedHash, status: 'patched' };
+  }
+
+  if (normalizedHash === hashes.original) {
+    return { currentHash, normalizedContent, normalizedHash, status: 'original' };
+  }
+
+  return { currentHash, normalizedContent, normalizedHash, status: 'unknown' };
+}
+
 function splitLines(text) {
-  return text.split('\n');
+  return normalizeLineEndings(text).split('\n');
 }
 
 function parsePatch(patchText) {
@@ -177,9 +208,9 @@ function patchLexical() {
     }
 
     const currentContent = fs.readFileSync(targetPath, 'utf8');
-    const currentHash = sha256(currentContent);
+    const currentState = getContentHashState(currentContent, hashes);
 
-    if (currentHash === hashes.patched) {
+    if (currentState.status === 'patched') {
       continue;
     }
 
@@ -189,13 +220,18 @@ function patchLexical() {
       throw new Error(`[lobe-editor] Missing patch entry for ${filename}`);
     }
 
-    if (currentHash !== hashes.original) {
+    if (currentState.status !== 'original') {
+      const normalizedHashMessage =
+        currentState.currentHash === currentState.normalizedHash
+          ? ''
+          : `; normalized content hash ${currentState.normalizedHash}`;
+
       throw new Error(
-        `[lobe-editor] Refuse to patch ${filename}: unknown content hash ${currentHash}.`,
+        `[lobe-editor] Refuse to patch ${filename}: unknown content hash ${currentState.currentHash}${normalizedHashMessage}.`,
       );
     }
 
-    const patchedContent = applyPatchToContent(currentContent, filePatch);
+    const patchedContent = applyPatchToContent(currentState.normalizedContent, filePatch);
     const patchedHash = sha256(patchedContent);
 
     if (patchedHash !== hashes.patched) {
@@ -204,7 +240,10 @@ function patchLexical() {
       );
     }
 
-    fs.writeFileSync(targetPath, patchedContent);
+    fs.writeFileSync(
+      targetPath,
+      restoreLineEndings(patchedContent, detectLineEnding(currentContent)),
+    );
     patchedFiles.push(filename);
   }
 
