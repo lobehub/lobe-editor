@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.9.0](https://github.com/lobehub/lobe-editor/compare/v4.8.5...v4.9.0)
+<sup>Released on **2026-04-22**</sup>
+
+
+#### ✨ Features
+
+- **headless**: Add editor API for transforms without React.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **headless**: Add editor API for transforms without React, closes [#137](https://github.com/lobehub/lobe-editor/issues/137) ([28bc9ac](https://github.com/lobehub/lobe-editor/commit/28bc9ac))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.8.5](https://github.com/lobehub/lobe-editor/compare/v4.8.4...v4.8.5)
 <sup>Released on **2026-04-21**</sup>
 
