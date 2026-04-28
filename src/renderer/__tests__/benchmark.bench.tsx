@@ -6,7 +6,6 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
-  ReactLiteXmlPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
 } from '@lobehub/editor';
@@ -37,7 +36,6 @@ const smallFixture = value;
 const largeFixture = makeRepeatedFixture(10);
 
 const editorPlugins = [
-  ReactLiteXmlPlugin,
   ReactListPlugin,
   ReactLinkPlugin,
   ReactImagePlugin,

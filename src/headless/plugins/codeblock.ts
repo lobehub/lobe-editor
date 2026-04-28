@@ -4,7 +4,6 @@ import { TabNode } from 'lexical';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { getCodeLanguageByInput } from '@/plugins/codeblock/utils/language';
-import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -47,37 +46,6 @@ export const HeadlessCodeblockPlugin: IEditorPluginConstructor<HeadlessCodeblock
 
   onInit(): void {
     this.registerMarkdown();
-    this.registerLiteXml();
-  }
-
-  registerLiteXml() {
-    const litexmlService = this.kernel.requireService(ILitexmlService);
-    if (!litexmlService) {
-      return;
-    }
-
-    litexmlService.registerXMLWriter(CodeNode.getType(), (node, ctx) => {
-      const codeNode = node as CodeNode;
-      return ctx.createXmlNode(
-        'code',
-        {
-          lang: codeNode.getLanguage() || 'plaintext',
-        },
-        codeNode.getTextContent(),
-      );
-    });
-
-    litexmlService.registerXMLReader('code', (xmlElement: Element, children: any[]) => {
-      const text = children.map((value) => value.text || '').join('');
-      return INodeHelper.createElementNode(CodeNode.getType(), {
-        children: createCodeChildren(text),
-        direction: 'ltr',
-        format: '',
-        indent: 0,
-        language: xmlElement.getAttribute('lang'),
-        version: 1,
-      });
-    });
   }
 
   registerMarkdown() {

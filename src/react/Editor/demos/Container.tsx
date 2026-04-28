@@ -1,28 +1,18 @@
 import { CodeEditor, Collapse, CollapseProps, Highlighter, ToastHost } from '@lobehub/ui';
 import { type FC, type PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
 
-import { IEditor } from '@/types';
-
-import XmlModifier from './XmlModifier';
-
 interface ContainerProps extends Omit<CollapseProps, 'items'> {
-  editor?: IEditor;
   json: string;
   markdown: string;
   onJSONChange?: (json: any) => void;
-  shouldShowXml?: boolean;
-  xml?: string;
 }
 
 const Container: FC<PropsWithChildren<ContainerProps>> = ({
   children,
   json,
   markdown,
-  xml,
   collapsible = false,
-  shouldShowXml = false,
   defaultActiveKey = ['editor', 'text', 'json'],
-  editor,
   onJSONChange,
 }) => {
   const [value, setValue] = useState(json);
@@ -51,21 +41,6 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({
             key: 'editor',
             label: 'Playground',
           },
-          ...(shouldShowXml
-            ? [
-                {
-                  children: (
-                    <XmlModifier editor={editor}>
-                      <Highlighter language={'xml'} style={{ fontSize: 12 }} variant={'borderless'}>
-                        {xml || ''}
-                      </Highlighter>
-                    </XmlModifier>
-                  ),
-                  key: 'xml',
-                  label: 'Litexml Output',
-                },
-              ]
-            : []),
           {
             children: (
               <Highlighter
@@ -87,7 +62,6 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({
                   if (json !== jsonValueRef.current) {
                     try {
                       const json = JSON.parse(jsonValueRef.current || '');
-                      json.keepId = true;
                       onJSONChange?.(json);
                     } catch (error) {
                       console.error('Invalid JSON:', error);

@@ -1,24 +1,17 @@
-import type { CommandPayloadType, SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
-import Editor, { moment } from '@/editor-kernel';
+import Editor from '@/editor-kernel';
 import { CodePlugin } from '@/plugins/code/plugin';
 import { CommonPlugin } from '@/plugins/common/plugin';
 import { HRPlugin } from '@/plugins/hr/plugin';
 import { ListPlugin } from '@/plugins/list/plugin';
-import {
-  LITEXML_APPLY_COMMAND,
-  LITEXML_INSERT_COMMAND,
-  LITEXML_MODIFY_COMMAND,
-  LITEXML_REMOVE_COMMAND,
-} from '@/plugins/litexml/command';
-import { LitexmlPlugin } from '@/plugins/litexml/plugin';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 import { TablePlugin } from '@/plugins/table/plugin';
 import type { IDocumentOptions, IEditor, IPlugin } from '@/types';
 
 import { HeadlessCodeblockPlugin } from './plugins/codeblock';
 
-export type HeadlessDocumentType = 'json' | 'litexml' | 'markdown' | (string & object);
+export type HeadlessDocumentType = 'json' | 'markdown' | (string & object);
 
 export interface HeadlessEditorHydrationInput {
   content: unknown;
@@ -26,13 +19,11 @@ export interface HeadlessEditorHydrationInput {
   type: HeadlessDocumentType;
 }
 
-export interface HeadlessEditorExportOptions {
-  litexml?: boolean;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface HeadlessEditorExportOptions {}
 
 export interface HeadlessEditorExport {
   editorData: SerializedEditorState<SerializedLexicalNode>;
-  litexml?: string;
   markdown: string;
 }
 
@@ -41,43 +32,6 @@ export interface HeadlessEditorOptions {
   initialValue?: HeadlessEditorHydrationInput;
   plugins?: ReadonlyArray<IPlugin>;
 }
-
-export interface HeadlessLiteXMLReplaceOperation {
-  action: 'apply' | 'replace';
-  delay?: boolean;
-  litexml: string | string[];
-}
-
-export type HeadlessLiteXMLInsertOperation =
-  | {
-      action: 'insert';
-      afterId: string;
-      delay?: boolean;
-      litexml: string;
-    }
-  | {
-      action: 'insert';
-      beforeId: string;
-      delay?: boolean;
-      litexml: string;
-    };
-
-export interface HeadlessLiteXMLRemoveOperation {
-  action: 'remove';
-  delay?: boolean;
-  id: string;
-}
-
-export interface HeadlessLiteXMLBatchOperation {
-  action: 'batch';
-  operations: CommandPayloadType<typeof LITEXML_MODIFY_COMMAND>;
-}
-
-export type HeadlessLiteXMLOperation =
-  | HeadlessLiteXMLBatchOperation
-  | HeadlessLiteXMLInsertOperation
-  | HeadlessLiteXMLRemoveOperation
-  | HeadlessLiteXMLReplaceOperation;
 
 type SerializedRecord = Record<string, unknown>;
 
@@ -198,7 +152,6 @@ export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   HRPlugin,
   ListPlugin,
   TablePlugin,
-  LitexmlPlugin,
 ];
 
 export class HeadlessEditor {
@@ -233,48 +186,19 @@ export class HeadlessEditor {
     return this;
   }
 
-  hydrateLiteXML(litexml: string, options?: IDocumentOptions): this {
-    this.kernel.setDocument('litexml', litexml, options);
-    return this;
-  }
-
   hydrateMarkdown(markdown: string, options?: IDocumentOptions): this {
     this.kernel.setDocument('markdown', markdown, options);
     return this;
   }
 
-  async applyLiteXML(
-    operation: HeadlessLiteXMLOperation | ReadonlyArray<HeadlessLiteXMLOperation>,
-  ): Promise<this> {
-    const operations = Array.isArray(operation) ? operation : [operation];
-
-    for (const item of operations) {
-      this.applyLiteXMLOperation(item);
-    }
-
-    await moment();
-    return this;
-  }
-
-  async applyLiteXMLBatch(
-    operations: CommandPayloadType<typeof LITEXML_MODIFY_COMMAND>,
-  ): Promise<this> {
-    this.kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, operations);
-    await moment();
-    return this;
-  }
-
-  export(options: HeadlessEditorExportOptions = {}): HeadlessEditorExport {
+  export(_options?: HeadlessEditorExportOptions): HeadlessEditorExport {
+    void _options;
     const snapshot: HeadlessEditorExport = {
       editorData: this.kernel.getDocument(
         'json',
       ) as unknown as SerializedEditorState<SerializedLexicalNode>,
       markdown: this.kernel.getDocument('markdown') as unknown as string,
     };
-
-    if (options.litexml) {
-      snapshot.litexml = this.kernel.getDocument('litexml') as unknown as string;
-    }
 
     return snapshot;
   }
@@ -285,37 +209,6 @@ export class HeadlessEditor {
 
   destroy(): void {
     this.kernel.destroy();
-  }
-
-  private applyLiteXMLOperation(operation: HeadlessLiteXMLOperation): void {
-    switch (operation.action) {
-      case 'apply':
-      case 'replace': {
-        this.kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-          delay: operation.delay,
-          litexml: operation.litexml,
-        });
-        return;
-      }
-
-      case 'batch': {
-        this.kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, operation.operations);
-        return;
-      }
-
-      case 'insert': {
-        this.kernel.dispatchCommand(LITEXML_INSERT_COMMAND, operation);
-        return;
-      }
-
-      case 'remove': {
-        this.kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-          delay: operation.delay,
-          id: operation.id,
-        });
-        return;
-      }
-    }
   }
 }
 

@@ -1,12 +1,15 @@
 import type { HistoryStateEntry } from '@lexical/history';
 import { mergeRegister } from '@lexical/utils';
 import {
+  $getRoot,
   $getSelection,
-  $isRangeSelection,
+  $isElementNode,
+  $isTextNode,
   COMMAND_PRIORITY_HIGH,
   HISTORIC_TAG,
   HISTORY_PUSH_TAG,
   LexicalEditor,
+  LexicalNode,
   createCommand,
 } from 'lexical';
 
@@ -25,8 +28,12 @@ export const INSERT_MARKDOWN_COMMAND = createCommand<{
 }>('INSERT_MARKDOWN_COMMAND');
 
 export const GET_MARKDOWN_SELECTION_COMMAND = createCommand<{
-  onResult: (startLine: number, endLine: number) => void;
+  onResult: (_startLine: number, _endLine: number) => void;
 }>('GET_MARKDOWN_SELECTION_COMMAND');
+
+function getLineNumber(content: string, charIndex: number): number {
+  return content.slice(0, Math.max(0, charIndex)).split('\n').length;
+}
 
 function restoreToEntry(editor: LexicalEditor, entry: HistoryStateEntry | null) {
   if (!entry) return;
@@ -36,11 +43,60 @@ function restoreToEntry(editor: LexicalEditor, entry: HistoryStateEntry | null) 
   });
 }
 
-const SPICAL_TEXT = '\uFFF0';
+function collectTextNodesFromEditor(kernel: IEditorKernel): Array<{ key: string; text: string }> {
+  const result: Array<{ key: string; text: string }> = [];
+  const lex = kernel.getLexicalEditor();
+  if (!lex) return result;
 
-const getLineNumber = (content: string, charIndex: number): number => {
-  return content.slice(0, Math.max(0, charIndex)).split('\n').length;
-};
+  lex.getEditorState().read(() => {
+    function walk(node: LexicalNode) {
+      if ($isTextNode(node) && node.getType() !== 'cursor') {
+        result.push({ key: node.getKey(), text: node.getTextContent() });
+      }
+      if ($isElementNode(node)) {
+        node.getChildren().forEach(walk);
+      }
+    }
+    walk($getRoot());
+  });
+
+  return result;
+}
+
+function mapTextNodeToMarkdownPosition(
+  fullMarkdown: string,
+  textNodes: Array<{ key: string; text: string }>,
+  targetKey: string,
+  targetOffset: number,
+): number {
+  let markdownPos = 0;
+
+  for (const node of textNodes) {
+    const offsets: number[] = [];
+    let textPos = 0;
+    const startMarkdownPos = markdownPos;
+
+    while (textPos < node.text.length && markdownPos < fullMarkdown.length) {
+      if (fullMarkdown[markdownPos] === node.text[textPos]) {
+        offsets[textPos] = markdownPos;
+        markdownPos++;
+        textPos++;
+      } else {
+        markdownPos++;
+      }
+    }
+
+    if (node.key === targetKey) {
+      if (targetOffset < node.text.length) {
+        return offsets[targetOffset] ?? startMarkdownPos + targetOffset;
+      }
+      const lastOffset = node.text.length - 1;
+      return (offsets[lastOffset] ?? startMarkdownPos + lastOffset) + 1;
+    }
+  }
+
+  return 0;
+}
 
 export function registerMarkdownCommand(
   editor: LexicalEditor,
@@ -58,7 +114,6 @@ export function registerMarkdownCommand(
           editor.update(
             () => {
               try {
-                // Force a new history entry so undo returns to the raw pasted text.
                 const root = parseMarkdownToLexical(markdown, service.markdownReaders);
                 const selection = $getSelection();
                 const nodes = $generateNodesFromSerializedNodes(root.children);
@@ -74,55 +129,39 @@ export function registerMarkdownCommand(
         }, 0);
         return false;
       },
-      COMMAND_PRIORITY_HIGH, // Priority
+      COMMAND_PRIORITY_HIGH,
     ),
     editor.registerCommand(
       GET_MARKDOWN_SELECTION_COMMAND,
       (payload) => {
-        const newEditor = kernel.cloneNodeEditor();
-        const s = kernel.getSelection();
-        if (s) {
-          newEditor.setSelection(s);
-          newEditor.getLexicalEditor()?.update(
-            () => {
-              const sel = $getSelection();
-              if (!sel) {
-                return;
-              }
-              if ($isRangeSelection(sel)) {
-                const { key: anchorKey, offset: anchorOffset, type: anchorType } = sel.anchor;
-                const { key: focusKey, offset: focusOffset, type: focusType } = sel.focus;
-                const newRang = sel.clone();
-                newRang.anchor.set(anchorKey, anchorOffset, anchorType);
-                newRang.focus.set(anchorKey, anchorOffset, anchorType);
-                newRang.insertText(SPICAL_TEXT);
-                newRang.focus.set(focusKey, focusOffset, focusType);
-                newRang.anchor.set(focusKey, focusOffset, focusType);
-                newRang.insertText(SPICAL_TEXT);
-              }
-            },
-            {
-              onUpdate: () => {
-                const markdownContent = newEditor.getDocument('markdown') as unknown as string;
-                const startIndex = markdownContent.indexOf(SPICAL_TEXT);
-                const endIndex = markdownContent.lastIndexOf(SPICAL_TEXT);
+        const fullMarkdown = kernel.getDocument('markdown') as unknown as string | undefined;
+        if (!fullMarkdown) return false;
 
-                const startLine = getLineNumber(markdownContent, startIndex);
-                const endLine = getLineNumber(markdownContent, endIndex);
+        const selection = kernel.getSelection();
+        if (!selection || selection.type !== 'range') return false;
 
-                payload.onResult(startLine, endLine);
-                logger.debug('GET_MARKDOWN_SELECTION_COMMAND markdownContent:', markdownContent);
-                logger.debug(
-                  'GET_MARKDOWN_SELECTION_COMMAND startLine:',
-                  startLine,
-                  'endLine:',
-                  endLine,
-                );
-                return markdownContent;
-              },
-            },
-          );
-        }
+        const textNodes = collectTextNodesFromEditor(kernel);
+
+        const anchorPos = mapTextNodeToMarkdownPosition(
+          fullMarkdown,
+          textNodes,
+          selection.startNodeId,
+          selection.startOffset,
+        );
+        const focusPos = mapTextNodeToMarkdownPosition(
+          fullMarkdown,
+          textNodes,
+          selection.endNodeId,
+          selection.endOffset,
+        );
+
+        const startPos = Math.min(anchorPos, focusPos);
+        const endPos = Math.max(anchorPos, focusPos);
+
+        payload.onResult(
+          getLineNumber(fullMarkdown, startPos),
+          getLineNumber(fullMarkdown, endPos),
+        );
         return false;
       },
       COMMAND_PRIORITY_HIGH,

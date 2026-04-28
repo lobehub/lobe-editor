@@ -6,7 +6,6 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
-  ReactLiteXmlPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
 } from '@lobehub/editor';
@@ -125,7 +124,6 @@ export default () => {
                 editable={false}
                 editor={editor}
                 plugins={[
-                  ReactLiteXmlPlugin,
                   ReactListPlugin,
                   ReactLinkPlugin,
                   ReactImagePlugin,

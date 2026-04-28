@@ -14,10 +14,6 @@ export interface INodePluginOptions {
   enabled?: boolean;
 }
 
-/**
- * LitexmlPlugin - A plugin that provides XML-based data source support
- * Allows converting between Lexical editor state and XML format
- */
 export const INodePlugin: IEditorPluginConstructor<INodePluginOptions> = class
   extends KernelPlugin
   implements IEditorPlugin<INodePluginOptions>

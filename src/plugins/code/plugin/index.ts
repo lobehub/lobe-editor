@@ -3,7 +3,6 @@ import { $setSelection, LexicalEditor, TextNode } from 'lexical';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { $createCursorNode, cursorNodeSerialized } from '@/plugins/common';
-import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -49,23 +48,6 @@ export const CodePlugin: IEditorPluginConstructor<CodePluginOptions> = class
     );
 
     this.registerMarkdown();
-    this.registerLiteXml();
-  }
-
-  registerLiteXml() {
-    const litexmlService = this.kernel.requireService(ILitexmlService);
-    if (!litexmlService) {
-      return;
-    }
-
-    litexmlService.registerXMLWriter(CodeNode.getType(), (node, ctx) => {
-      return ctx.createXmlNode('codeInline', {});
-    });
-    litexmlService.registerXMLReader('codeInline', (xmlElement: Element, children: any[]) => {
-      return INodeHelper.createElementNode(CodeNode.getType(), {
-        children,
-      });
-    });
   }
 
   registerMarkdown() {

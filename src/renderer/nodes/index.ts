@@ -16,7 +16,6 @@ import { BlockImageNode } from '@/plugins/image/node/block-image-node';
 import { ImageNode } from '@/plugins/image/node/image-node';
 import { LinkHighlightNode } from '@/plugins/link-highlight/node/link-highlight';
 import { AutoLinkNode, LinkNode } from '@/plugins/link/node/LinkNode';
-import { DiffNode } from '@/plugins/litexml/node/DiffNode';
 import { MathBlockNode, MathInlineNode } from '@/plugins/math/node';
 import { MentionNode } from '@/plugins/mention/node/MentionNode';
 
@@ -40,7 +39,6 @@ export const rendererNodes: Array<Klass<LexicalNode>> = [
   LinkNode,
   AutoLinkNode,
   CursorNode,
-  DiffNode,
   LinkHighlightNode,
   PlaceholderNode,
   PlaceholderBlockNode,

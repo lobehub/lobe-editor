@@ -501,33 +501,29 @@ describe('Markdown Commands', () => {
       const editor = Editor.createEditor().registerPlugins([CommonPlugin, MarkdownPlugin]);
       editor.setRootElement(document.createElement('div'));
 
-      editor.setDocument(
-        'json',
-        {
-          root: {
-            children: [
-              {
-                children: [],
-                direction: 'ltr',
-                format: '',
-                indent: 0,
-                type: 'paragraph',
-                version: 1,
-                textFormat: 0,
-                textStyle: '',
-                id: '1',
-              },
-            ],
-            direction: 'ltr',
-            format: '',
-            indent: 0,
-            type: 'root',
-            version: 1,
-            id: 'root',
-          },
+      editor.setDocument('json', {
+        root: {
+          children: [
+            {
+              children: [],
+              direction: 'ltr',
+              format: '',
+              indent: 0,
+              type: 'paragraph',
+              version: 1,
+              textFormat: 0,
+              textStyle: '',
+              id: '1',
+            },
+          ],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          type: 'root',
+          version: 1,
+          id: 'root',
         },
-        { keepId: true },
-      );
+      });
 
       await editor.setSelection({
         endNodeId: '1',
@@ -573,6 +569,18 @@ describe('Markdown Commands', () => {
   });
 
   describe('GET_MARKDOWN_SELECTION_COMMAND', () => {
+    function findTextNodeByContent(data: any, text: string): { id: string } | null {
+      if (!data) return null;
+      if (data.type === 'text' && data.text === text) {
+        return { id: data.id };
+      }
+      for (const child of data.children || []) {
+        const found = findTextNodeByContent(child, text);
+        if (found) return found;
+      }
+      return null;
+    }
+
     it('should get markdown selection with correct line numbers', async () => {
       const editor = Editor.createEditor().registerPlugins([
         CodePlugin,
@@ -590,12 +598,22 @@ describe('Markdown Commands', () => {
         TablePlugin,
       ]);
       editor.initNodeEditor();
-      // Set up editor with multi-line content
-      editor.setDocument('json', json, { keepId: true });
+      editor.setDocument('json', json);
+
+      // Find the actual node IDs after import (keepId is no longer supported)
+      const imported = editor.getDocument('json') as any;
+      const startNode = findTextNodeByContent(
+        imported.root,
+        'The playground is a demo environment built with ',
+      );
+      const endNode = findTextNodeByContent(imported.root, 'GitHub repository');
+      expect(startNode).not.toBeNull();
+      expect(endNode).not.toBeNull();
+
       editor.setSelection({
-        endNodeId: '28',
+        endNodeId: endNode!.id,
         endOffset: 6,
-        startNodeId: '6',
+        startNodeId: startNode!.id,
         startOffset: 33,
         type: 'range',
       });

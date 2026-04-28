@@ -46,8 +46,6 @@ export interface ISelectionObject {
 export interface IDocumentOptions {
   [key: string]: unknown;
   keepHistory?: boolean;
-  /** only work for json datasource */
-  keepId?: boolean;
 }
 
 export interface IKernelEventMap {
@@ -300,10 +298,6 @@ export interface IEditor {
  * API provided to plugins
  */
 export interface IEditorKernel extends IEditor {
-  /**
-   * Clone the current editor kernel instance
-   */
-  cloneNodeEditor(): IEditorKernel;
   emit<T extends keyof IKernelEventMap>(event: T, params: Parameters<IKernelEventMap[T]>[0]): void;
   /**
    * Get editor Node decorator for specific Node rendering

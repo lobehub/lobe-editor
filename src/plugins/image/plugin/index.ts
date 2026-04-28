@@ -5,7 +5,6 @@ import { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { INodeService } from '@/plugins/inode';
-import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -55,7 +54,6 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     );
 
     this.registerMarkdown();
-    this.registerLiteXml();
     this.registerINode();
     this.registerUpload(editor);
     if (this.config?.needRehost && this.config?.handleRehost) {
@@ -117,82 +115,6 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
         range,
       });
     }, UPLOAD_PRIORITY_HIGH);
-  }
-
-  private registerLiteXml() {
-    const litexmlService = this.kernel.requireService(ILitexmlService);
-    if (!litexmlService) {
-      return;
-    }
-
-    litexmlService.registerXMLWriter(ImageNode.getType(), (node, ctx) => {
-      if ($isImageNode(node)) {
-        const attributes: { [key: string]: string } = {
-          src: node.src,
-        };
-        if (node.altText) {
-          attributes.alt = node.altText;
-        }
-        return ctx.createXmlNode('img', attributes);
-      }
-      return false;
-    });
-    litexmlService.registerXMLWriter(BlockImageNode.getType(), (node, ctx) => {
-      if ($isBlockImageNode(node)) {
-        const attributes: { [key: string]: string } = {
-          block: 'true',
-          src: node.src,
-        };
-        if (node.altText) {
-          attributes.alt = node.altText;
-        }
-        if (node.width) {
-          attributes.width = String(node.width);
-        }
-        if (node.maxWidth) {
-          attributes['max-width'] = String(node.maxWidth);
-        }
-        return ctx.createXmlNode('img', attributes);
-      }
-      return false;
-    });
-    litexmlService.registerXMLReader('img', (xmlNode) => {
-      if (this.config?.defaultBlockImage !== false) {
-        return INodeHelper.createElementNode(BlockImageNode.getType(), {
-          altText: xmlNode.getAttribute('alt') || '',
-          maxWidth: xmlNode.getAttribute('max-width')
-            ? parseInt(xmlNode.getAttribute('max-width') as string, 10)
-            : undefined,
-          src: xmlNode.getAttribute('src') || '',
-          width: xmlNode.getAttribute('width')
-            ? parseInt(xmlNode.getAttribute('width') as string, 10)
-            : undefined,
-        });
-      }
-      if (xmlNode.getAttribute('block') === 'true') {
-        return INodeHelper.createElementNode(BlockImageNode.getType(), {
-          altText: xmlNode.getAttribute('alt') || '',
-          maxWidth: xmlNode.getAttribute('max-width')
-            ? parseInt(xmlNode.getAttribute('max-width') as string, 10)
-            : undefined,
-          src: xmlNode.getAttribute('src') || '',
-          width: xmlNode.getAttribute('width')
-            ? parseInt(xmlNode.getAttribute('width') as string, 10)
-            : undefined,
-        });
-      } else {
-        return INodeHelper.createElementNode(ImageNode.getType(), {
-          altText: xmlNode.getAttribute('alt') || '',
-          maxWidth: xmlNode.getAttribute('max-width')
-            ? parseInt(xmlNode.getAttribute('max-width') as string, 10)
-            : undefined,
-          src: xmlNode.getAttribute('src') || '',
-          width: xmlNode.getAttribute('width')
-            ? parseInt(xmlNode.getAttribute('width') as string, 10)
-            : undefined,
-        });
-      }
-    });
   }
 
   private registerMarkdown() {

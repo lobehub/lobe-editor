@@ -2,7 +2,6 @@ import { $createTextNode, COMMAND_PRIORITY_NORMAL, LexicalEditor, PASTE_COMMAND 
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -87,34 +86,6 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
     );
 
     this.registerMarkdown();
-    this.registerLiteXml();
-  }
-
-  registerLiteXml() {
-    const litexmlService = this.kernel.requireService(ILitexmlService);
-    if (!litexmlService) {
-      return;
-    }
-
-    litexmlService.registerXMLWriter(LinkNode.getType(), (node, ctx) => {
-      if ($isLinkNode(node)) {
-        const attributes: Record<string, string> = { href: node.getURL() };
-        return ctx.createXmlNode('a', attributes);
-      }
-      return false;
-    });
-    litexmlService.registerXMLReader('a', (xmlNode, children) => {
-      const linkNode = INodeHelper.createElementNode('link', {
-        children,
-        direction: 'ltr',
-        format: '',
-        indent: 0,
-        type: 'link',
-        url: xmlNode.getAttribute('href') || '',
-        version: 1,
-      });
-      return [linkNode];
-    });
   }
 
   registerMarkdown() {

@@ -22,16 +22,11 @@ import {
   INSERT_LINE_BREAK_COMMAND,
   INSERT_PARAGRAPH_COMMAND,
   PASTE_COMMAND,
-  ParagraphNode,
-  TEXT_TYPE_TO_FORMAT,
-  TextNode,
 } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 
 import { noop } from '@/editor-kernel';
-import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { isPunctuationChar } from '@/plugins/markdown/utils';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -41,7 +36,7 @@ import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { CursorNode, registerCursorNode } from '../node/cursor';
-import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
+import { $isCursorInQuote, $isCursorInTable, createBlockNode } from '../utils';
 import { registerMDReader } from './mdReader';
 import {
   type PasteContext,
@@ -504,153 +499,6 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     );
 
     this.registerMarkdown(this.kernel);
-    this.registerLiteXml();
-  }
-
-  registerLiteXml() {
-    const litexmlService = this.kernel.requireService(ILitexmlService);
-    if (!litexmlService) {
-      return;
-    }
-
-    const formats = this.formats;
-
-    litexmlService.registerXMLWriter(TextNode.getType(), (node, ctx) => {
-      const attr = {} as Record<string, string>;
-      if ($isTextNode(node)) {
-        if (formats.bold && node.hasFormat('bold')) {
-          attr['bold'] = 'true';
-        }
-        if (formats.italic && node.hasFormat('italic')) {
-          attr['italic'] = 'true';
-        }
-        if (node.hasFormat('underline')) {
-          attr['underline'] = 'true';
-        }
-        if (formats.strikethrough && node.hasFormat('strikethrough')) {
-          attr['strikethrough'] = 'true';
-        }
-        if (formats.subscript && node.hasFormat('subscript')) {
-          attr['subscript'] = 'true';
-        }
-        if (formats.superscript && node.hasFormat('superscript')) {
-          attr['superscript'] = 'true';
-        }
-        return ctx.createXmlNode('span', attr, node.getTextContent());
-      }
-      return false;
-    });
-
-    // Register bold readers only if bold format is enabled
-    if (formats.bold) {
-      litexmlService.registerXMLReader('b', sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['bold']));
-      litexmlService.registerXMLReader(
-        'strong',
-        sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['bold']),
-      );
-    }
-
-    // Register italic readers only if italic format is enabled
-    if (formats.italic) {
-      litexmlService.registerXMLReader('i', sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['italic']));
-      litexmlService.registerXMLReader(
-        'emphasis',
-        sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['italic']),
-      );
-    }
-
-    litexmlService.registerXMLReader(
-      'u',
-      sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['underline']),
-    );
-    litexmlService.registerXMLReader(
-      'ins',
-      sampleReader.bind(this, TEXT_TYPE_TO_FORMAT['underline']),
-    );
-
-    litexmlService.registerXMLReader('span', (xmlElement: Element, children: any[]) => {
-      const bold = xmlElement.getAttribute('bold');
-      const italic = xmlElement.getAttribute('italic');
-      const underline = xmlElement.getAttribute('underline');
-      const strikethrough = xmlElement.getAttribute('strikethrough');
-      const subscript = xmlElement.getAttribute('subscript');
-      const superscript = xmlElement.getAttribute('superscript');
-
-      let format = 0;
-
-      if (formats.bold && bold === 'true') {
-        format |= TEXT_TYPE_TO_FORMAT['bold'];
-      }
-      if (formats.italic && italic === 'true') {
-        format |= TEXT_TYPE_TO_FORMAT['italic'];
-      }
-      if (underline === 'true') {
-        format |= TEXT_TYPE_TO_FORMAT['underline'];
-      }
-      if (formats.strikethrough && strikethrough === 'true') {
-        format |= TEXT_TYPE_TO_FORMAT['strikethrough'];
-      }
-      if (formats.subscript && subscript === 'true') {
-        format |= TEXT_TYPE_TO_FORMAT['subscript'];
-      }
-      if (formats.superscript && superscript === 'true') {
-        format |= TEXT_TYPE_TO_FORMAT['superscript'];
-      }
-
-      children.forEach((child) => {
-        if (INodeHelper.isTextNode(child)) {
-          child.format = (child.format || 0) | format;
-        }
-      });
-
-      return children;
-    });
-
-    // Register quote writer/reader only if quote format is enabled
-    if (formats.quote) {
-      litexmlService.registerXMLWriter('quote', (node, ctx) => {
-        if ($isQuoteNode(node)) {
-          return ctx.createXmlNode('quote', {});
-        }
-        return false;
-      });
-
-      litexmlService.registerXMLReader('quote', (xmlElement: Element, children: any[]) => {
-        return INodeHelper.createElementNode(QuoteNode.getType(), {
-          children,
-        });
-      });
-    }
-
-    // Register heading writer/reader only if header format is enabled
-    if (formats.header) {
-      litexmlService.registerXMLWriter('heading', (node, ctx) => {
-        if ($isHeadingNode(node)) {
-          return ctx.createXmlNode(node.getTag(), {});
-        }
-        return false;
-      });
-
-      const headingTags: HeadingTagType[] = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
-      headingTags.forEach((tag) => {
-        litexmlService.registerXMLReader(tag, (xmlElement: Element, children: any[]) => {
-          return INodeHelper.createElementNode(HeadingNode.getType(), {
-            children,
-            tag,
-          });
-        });
-      });
-    }
-
-    litexmlService.registerXMLWriter(ParagraphNode.getType(), (node, ctx) => {
-      return ctx.createXmlNode('p', {});
-    });
-
-    litexmlService.registerXMLReader('p', (xmlElement: Element, children: any[]) => {
-      return INodeHelper.createElementNode(ParagraphNode.getType(), {
-        children,
-      });
-    });
   }
 
   destroy(): void {

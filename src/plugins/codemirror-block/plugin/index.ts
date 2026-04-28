@@ -2,7 +2,6 @@ import { $createNodeSelection, $setSelection, DecoratorNode, LexicalEditor } fro
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -45,36 +44,6 @@ export const CodemirrorPlugin: IEditorPluginConstructor<CodemirrorPluginOptions>
     this.register(registerCodeMirrorCommand(editor));
 
     this.registerMarkdown();
-    this.registerLiteXml();
-  }
-
-  registerLiteXml() {
-    const litexmlService = this.kernel.requireService(ILitexmlService);
-    if (!litexmlService) {
-      return;
-    }
-
-    litexmlService.registerXMLWriter(CodeMirrorNode.getType(), (node, ctx) => {
-      const codeMirrorNode = node as CodeMirrorNode;
-      const xmlNode = ctx.createXmlNode(
-        'code',
-        {
-          lang: codeMirrorNode.lang || 'plain',
-        },
-        codeMirrorNode.code,
-      );
-      return xmlNode;
-    });
-
-    litexmlService.registerXMLReader('code', (xmlElement: Element, children: any[]) => {
-      const text = children.map((v) => v.text || '').join('');
-      const language = xmlElement.getAttribute('lang') || 'plain';
-      return INodeHelper.createTypeNode('code', {
-        code: text || xmlElement.textContent || '',
-        language: modeMatch(language),
-        version: 1,
-      });
-    });
   }
 
   registerMarkdown() {

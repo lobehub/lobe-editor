@@ -15,20 +15,18 @@ import {
   $isRangeSelection,
   $isTextNode,
   IS_CODE,
-  resetRandomKey,
 } from 'lexical';
 import { $getRoot } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
-import { INodeHelper } from '@/editor-kernel/inode/helper';
-import { $parseSerializedNodeImpl } from '@/plugins/litexml/utils';
 
 import { cursorNodeSerialized } from '../node/cursor';
 import { exportNodeToJSON } from '../utils';
 
 export default class JSONDataSource extends DataSource {
-  read(editor: LexicalEditor, data: any, options: Record<string, unknown> = {}) {
+  read(editor: LexicalEditor, data: any, _options?: Record<string, unknown>) {
+    void _options;
     let dataObj: SerializedEditorState<SerializedLexicalNode>;
     if (typeof data === 'string') {
       dataObj = JSON.parse(data) as SerializedEditorState<SerializedLexicalNode>;
@@ -65,32 +63,7 @@ export default class JSONDataSource extends DataSource {
       }
     };
     process(dataObj.root);
-    // @ts-expect-error add id option
-    if (dataObj.keepId || options.keepId) {
-      const state = editor.parseEditorState(
-        {
-          root: INodeHelper.createRootNode(),
-        },
-        (state) => {
-          try {
-            const root = $parseSerializedNodeImpl(dataObj.root, editor, true, state);
-            let maxId = -1;
-            Array.from(state._nodeMap.keys()).forEach((key) => {
-              if (key === 'root') return;
-              maxId = Math.max(maxId, Number(key));
-            });
-            // make sure to reset random key to avoid id conflicts
-            resetRandomKey(maxId + 1);
-            state._nodeMap.set(root.getKey(), root);
-          } catch (error) {
-            console.error(error);
-          }
-        },
-      );
-      editor.setEditorState(state);
-    } else {
-      editor.setEditorState(editor.parseEditorState({ root: dataObj.root }));
-    }
+    editor.setEditorState(editor.parseEditorState({ root: dataObj.root }));
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {

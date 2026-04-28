@@ -17,7 +17,6 @@ import {
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
-  ReactLiteXmlPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
   ReactToolbarPlugin,
@@ -54,17 +53,14 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
   const editor = useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
-  const [xml, setXml] = useState('');
 
   const handleChange = useMemo(
     () =>
       debounce((editor: IEditor) => {
         const markdownContent = editor.getDocument('markdown') as unknown as string;
         const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
-        const xmlContent = editor.getDocument('litexml') as unknown as string;
         setMarkdown(markdownContent || '');
         setJson(JSON.stringify(jsonContent || {}, null, 2));
-        setXml(xmlContent || '');
       }, 200),
     [],
   );
@@ -237,15 +233,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
   }, []);
 
   return (
-    <Container
-      editor={editor}
-      json={json}
-      markdown={markdown}
-      onJSONChange={handleJSONChange}
-      shouldShowXml
-      xml={xml}
-      {...props}
-    >
+    <Container json={json} markdown={markdown} onJSONChange={handleJSONChange} {...props}>
       <Toolbar editor={editor} />
       <Editor
         className={styles.editor}
@@ -271,7 +259,6 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         pasteVSCodeAsCodeBlock
         placeholder={'Type something...'}
         plugins={[
-          ReactLiteXmlPlugin,
           ReactListPlugin,
           ReactLinkPlugin,
           ReactImagePlugin,
