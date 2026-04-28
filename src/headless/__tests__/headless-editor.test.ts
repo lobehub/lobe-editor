@@ -129,6 +129,52 @@ describe('HeadlessEditor', () => {
     editor.destroy();
   });
 
+  it('hydrates editor data with non-numeric legacy ids in keepId mode', () => {
+    const editor = createHeadlessEditor();
+    const legacyEditorData = {
+      root: {
+        children: [
+          {
+            children: [
+              {
+                detail: 0,
+                format: 0,
+                id: 'title-text',
+                mode: 'normal',
+                style: '',
+                text: 'Legacy title',
+                type: 'text',
+                version: 1,
+              },
+            ],
+            direction: 'ltr',
+            format: '',
+            id: 'title-node',
+            indent: 0,
+            tag: 'h1',
+            type: 'heading',
+            version: 1,
+          },
+        ],
+        direction: 'ltr',
+        format: '',
+        id: 'root',
+        indent: 0,
+        type: 'root',
+        version: 1,
+      },
+    } as unknown as SerializedEditorState<SerializedLexicalNode>;
+
+    expect(() => editor.hydrateEditorData(legacyEditorData, { keepId: true })).not.toThrow();
+
+    const { litexml, markdown } = editor.export({ litexml: true });
+
+    expect(markdown).toBe('# Legacy title\n');
+    expect(litexml).toContain('<h1');
+    expect(litexml).toContain('Legacy title');
+    editor.destroy();
+  });
+
   it('hydrates JSON editor data without losing Markdown semantics', () => {
     const source = createHeadlessEditor();
     source.hydrateMarkdown('Plain **bold** text');

@@ -8,6 +8,13 @@ import {
   resetRandomKey,
 } from 'lexical';
 
+const getNumericId = (id: unknown): number | null => {
+  if (typeof id !== 'number' && typeof id !== 'string') return null;
+
+  const numericId = Number(id);
+  return Number.isInteger(numericId) && numericId >= 0 ? numericId : null;
+};
+
 export function $parseSerializedNodeImpl(
   serializedNode: any,
   editor: LexicalEditor,
@@ -27,8 +34,12 @@ export function $parseSerializedNodeImpl(
     throw new Error(`LexicalNode: Node ${nodeClass.name} does not implement .importJSON().`);
   }
 
-  if (keepId && serializedNode.id) {
-    resetRandomKey(Number(serializedNode.id));
+  if (keepId) {
+    const id = getNumericId(serializedNode.id);
+
+    if (id !== null) {
+      resetRandomKey(id);
+    }
   }
   const node = nodeClass.importJSON(serializedNode);
   const children = serializedNode.children;
