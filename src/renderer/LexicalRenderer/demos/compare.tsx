@@ -9,7 +9,6 @@ import {
   ReactLiteXmlPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
-  ReactVirtualBlockPlugin,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { LexicalRenderer, loadLanguage } from '@lobehub/editor/renderer';
@@ -130,7 +129,6 @@ export default () => {
                   ReactListPlugin,
                   ReactLinkPlugin,
                   ReactImagePlugin,
-                  ReactVirtualBlockPlugin,
                   ReactCodemirrorPlugin,
                   ReactHRPlugin,
                   ReactTablePlugin,

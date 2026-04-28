@@ -21,7 +21,6 @@ import {
   ReactMathPlugin,
   ReactTablePlugin,
   ReactToolbarPlugin,
-  ReactVirtualBlockPlugin,
   type SlashOptions,
   scrollIntoView,
 } from '@lobehub/editor';
@@ -280,7 +279,6 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
           ReactLinkPlugin,
           ReactImagePlugin,
           // ReactCodeblockPlugin,
-          ReactVirtualBlockPlugin,
           ReactCodemirrorPlugin,
           ReactHRPlugin,
           ReactTablePlugin,

@@ -9,7 +9,6 @@ import {
   ReactLiteXmlPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
-  ReactVirtualBlockPlugin,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import type { SerializedEditorState } from 'lexical';
@@ -42,7 +41,6 @@ const editorPlugins = [
   ReactListPlugin,
   ReactLinkPlugin,
   ReactImagePlugin,
-  ReactVirtualBlockPlugin,
   ReactCodemirrorPlugin,
   ReactHRPlugin,
   ReactTablePlugin,
