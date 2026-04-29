@@ -62,6 +62,13 @@ export const MODES = [
     syntax: 'markdown',
     value: 'markdown',
   },
+  {
+    ext: ['mermaid', 'mmd'],
+    name: 'Mermaid',
+    /** No dedicated CM mode in bundle — text-like editing; value kept for fenced ```mermaid markdown */
+    syntax: 'simplemode',
+    value: 'mermaid',
+  },
   { name: 'MATLAB', syntax: 'octave', value: 'matlab' },
   { ext: ['conf'], name: 'Nginx', syntax: 'nginx', value: 'nginx' },
   {
@@ -216,6 +223,16 @@ export function modeMatch(mode = '') {
   const findMode = MODES.find((m) => m.value === mode || m.ext?.includes(mode));
 
   return findMode?.value || 'plain';
+}
+
+/**
+ * Stored language is MODES[].value (e.g. `mermaid`); CodeMirror `mode` expects the concrete
+ * mode string (e.g. `simplemode`). Use when initializing or updating the editor instance.
+ */
+export function resolveCodeMirrorMode(langKey: string): string {
+  const key = (langKey || 'plain').toLocaleLowerCase();
+  const found = MODES.find((m) => m.value === key || m.ext?.includes(key));
+  return found?.syntax ?? 'simplemode';
 }
 
 export const LOBE_THEME = 'default';

@@ -1,7 +1,7 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { Block } from '@lobehub/ui';
+import { Block, Mermaid } from '@lobehub/ui';
 import { message } from 'antd';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
@@ -12,7 +12,15 @@ import {
   KEY_DOWN_COMMAND,
   LexicalEditor,
 } from 'lexical';
-import { type FC, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type FC,
+  type MouseEvent as ReactMouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
@@ -20,9 +28,15 @@ import { lobeTheme } from '@/plugins/codemirror-block/react/theme';
 
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
+import { resolveCodeMirrorMode } from '../lib/mode';
 import { CodeMirrorNode } from '../node/CodeMirrorNode';
 import { Toolbar } from './components/Toolbar';
 import { styles } from './style';
+
+function isLikelyInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest?.('button, a[href], [role="button"], input, textarea, select'));
+}
 
 interface ReactCodemirrorNodeProps {
   className?: string;
@@ -31,6 +45,7 @@ interface ReactCodemirrorNodeProps {
 }
 
 const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, editor }) => {
+  const blockShellRef = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLTextAreaElement>(null);
   const keydownRef = useRef('');
   const instanceRef = useRef<any>(null);
@@ -47,6 +62,80 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     node.options.lineNumbers ?? false,
   );
   const [expand, setExpand] = useState<boolean>(true);
+  /** Live text for in-editor Mermaid preview (Codemirror only shows source; diagram is rendered here). */
+  const [mermaidDiagramSource, setMermaidDiagramSource] = useState(node.code);
+  /** Mermaid：点击编辑器内别处时隐藏源码区；点击本代码块区域内再展开。不使用 document，以免误判 Ant Select 浮层等为「外部」。 */
+  const [mermaidShowSource, setMermaidShowSource] = useState(true);
+  const mermaidPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showCodeMirror = useMemo(
+    () => expand && (selectedLang !== 'mermaid' || mermaidShowSource),
+    [expand, mermaidShowSource, selectedLang],
+  );
+
+  /** Mermaid：单击图表区域切换放大预览（无悬浮按钮） */
+  const [mermaidDiagramExpanded, setMermaidDiagramExpanded] = useState(false);
+
+  useEffect(() => {
+    if (selectedLang !== 'mermaid') {
+      setMermaidShowSource(true);
+      setMermaidDiagramExpanded(false);
+    }
+  }, [selectedLang]);
+
+  useEffect(() => {
+    if (selectedLang !== 'mermaid') return;
+
+    let detach: (() => void) | undefined;
+
+    const bind = (root: HTMLElement | null) => {
+      detach?.();
+      detach = undefined;
+      if (!root) return;
+
+      const onPointerDown = (e: PointerEvent | MouseEvent) => {
+        const shell = blockShellRef.current;
+        const target = e.target;
+        if (!shell || !(target instanceof Node)) return;
+
+        if (!root.contains(target)) return;
+
+        /** 点击下方渲染区时由图表自己处理缩放，不在此恢复/收起源码 */
+        if (
+          selectedLang === 'mermaid' &&
+          target instanceof Element &&
+          target.closest('[data-cm-mermaid-chart-area="true"]')
+        ) {
+          return;
+        }
+
+        if (shell.contains(target)) {
+          setMermaidShowSource(true);
+          setExpand(true);
+          return;
+        }
+
+        setMermaidShowSource(false);
+        setMermaidDiagramExpanded(false);
+        setExpand(false);
+        instanceRef.current?.blur();
+      };
+
+      root.addEventListener('pointerdown', onPointerDown, true);
+      detach = () => root.removeEventListener('pointerdown', onPointerDown, true);
+    };
+
+    bind(editor.getRootElement());
+
+    const removeRootListener = editor.registerRootListener((rootElement) => {
+      bind(rootElement as HTMLElement | null);
+    });
+
+    return () => {
+      detach?.();
+      removeRootListener();
+    };
+  }, [editor, selectedLang]);
 
   // 复制代码
   const handleCopy = useCallback(async () => {
@@ -65,7 +154,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     (value: string) => {
       setSelectedLang(value);
       if (instanceRef.current) {
-        instanceRef.current.setOption('mode', value);
+        instanceRef.current.setOption('mode', resolveCodeMirrorMode(value));
       }
       editor.update(() => {
         node.setLang(value);
@@ -116,6 +205,26 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     [editor, node],
   );
 
+  /** Toolbar 收起/展开与 Mermaid 源码隐藏解耦：用箭头重新展开时需恢复源码区 */
+  const toggleCodePanel = useCallback(() => {
+    setExpand((prev) => {
+      const next = !prev;
+      if (selectedLang === 'mermaid' && next) {
+        setMermaidShowSource(true);
+      }
+      return next;
+    });
+  }, [selectedLang]);
+
+  /** 单击图表（非控件）切换放大预览 */
+  const handleMermaidDiagramClick = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    const el = e.target;
+    if (!(el instanceof Element)) return;
+    if (isLikelyInteractiveTarget(el)) return;
+    e.stopPropagation();
+    setMermaidDiagramExpanded((v) => !v);
+  }, []);
+
   useEffect(() => {
     const sel = editor.getEditorState().read(() => $getSelection());
     // 鼠标主动点击导致的选中，不处理
@@ -129,6 +238,10 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       }
       return;
     }
+    // Mermaid 收起源码时不高亮抢焦点 CodeMirror（用户在看图）
+    if (selectedLang === 'mermaid' && !showCodeMirror) {
+      return;
+    }
     // 选中状态下，聚焦 CodeMirror
     if (isSelected && instanceRef.current && isNodeSelected) {
       // 已经聚焦不在处理
@@ -140,7 +253,12 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         instanceRef.current.setSelectionToEnd();
       }
     }
-  }, [isSelected, isNodeSelected, editor]);
+  }, [isSelected, isNodeSelected, editor, selectedLang, showCodeMirror]);
+
+  useEffect(() => {
+    if (selectedLang !== 'mermaid' || !instanceRef.current) return;
+    setMermaidDiagramSource(instanceRef.current.getValue());
+  }, [selectedLang]);
 
   useEffect(() => {
     // 防止重复初始化：如果已经有实例，直接返回
@@ -160,13 +278,11 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           // keep options alphabetically ordered
           indentWithTabs: useTabs,
           lineNumbers: showLineNumbers,
-          mode: node.lang,
+          mode: resolveCodeMirrorMode(node.lang),
           tabSize,
           theme: 'default',
           value: node.code,
         });
-
-        console.info(instance);
 
         instance.view.dispatch({
           effects: instance.optionHelper.theme.reconfigure(
@@ -238,6 +354,14 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           const currentValue = instance.getValue();
           // 立即检查代码是否为空（trim 后为空），用于 keydown 事件判断
           isEmptyRef.current = !currentValue.trim();
+
+          if (mermaidPreviewTimerRef.current) {
+            clearTimeout(mermaidPreviewTimerRef.current);
+          }
+          mermaidPreviewTimerRef.current = setTimeout(() => {
+            setMermaidDiagramSource(currentValue);
+            mermaidPreviewTimerRef.current = null;
+          }, 220);
         });
 
         instance.on(
@@ -273,6 +397,10 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     }
 
     return () => {
+      if (mermaidPreviewTimerRef.current) {
+        clearTimeout(mermaidPreviewTimerRef.current);
+        mermaidPreviewTimerRef.current = null;
+      }
       if (instanceRef.current) {
         instanceRef.current.destroy();
         instanceRef.current = null;
@@ -299,34 +427,59 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   }, [clearSelection, editor, isSelected, node, setSelected]);
 
   return (
-    <Block
-      className={cx(styles, isSelected && !isNodeSelected && 'selected', className)}
-      onMouseDown={(e) => e.stopPropagation()}
-      onMouseUp={(e) => e.stopPropagation()}
-      onSelect={(e) => e.stopPropagation()}
-      variant={'filled'}
-    >
-      {/* 工具条 */}
-      <Toolbar
-        expand={expand}
-        onClick={() => setExpand(!expand)}
-        onCopy={handleCopy}
-        onLanguageChange={handleLanguageChange}
-        onShowLineNumbersChange={handleShowLineNumbersChange}
-        onTabSizeChange={handleTabSizeChange}
-        onUseTabsChange={handleUseTabsChange}
-        selectedLang={selectedLang}
-        showLineNumbers={showLineNumbers}
-        tabSize={tabSize}
-        toggleExpand={() => setExpand(!expand)}
-        useTabs={useTabs}
-      />
+    <div ref={blockShellRef}>
+      <Block
+        className={cx(styles, isSelected && !isNodeSelected && 'selected', className)}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onSelect={(e) => e.stopPropagation()}
+        variant={'filled'}
+      >
+        {/* 工具条 */}
+        <Toolbar
+          expand={expand}
+          onClick={toggleCodePanel}
+          onCopy={handleCopy}
+          onLanguageChange={handleLanguageChange}
+          onShowLineNumbersChange={handleShowLineNumbersChange}
+          onTabSizeChange={handleTabSizeChange}
+          onUseTabsChange={handleUseTabsChange}
+          selectedLang={selectedLang}
+          showLineNumbers={showLineNumbers}
+          tabSize={tabSize}
+          toggleExpand={toggleCodePanel}
+          useTabs={useTabs}
+        />
 
-      {/* CodeMirror 编辑器容器 */}
-      <div className={cx('cm-container', !expand && 'cm-container-collapsed')}>
-        <textarea className={'cm-textarea'} ref={ref} />
-      </div>
-    </Block>
+        {/* CodeMirror 在上方；Mermaid 预览在下方单独区域（非代码块正文内） */}
+        <div className={cx('cm-container', !showCodeMirror && 'cm-container-collapsed')}>
+          <textarea className={'cm-textarea'} ref={ref} />
+        </div>
+
+        {selectedLang === 'mermaid' && mermaidDiagramSource.trim().length > 0 && (
+          <div className={'cm-mermaid-preview'} data-cm-mermaid-chart-area="true">
+            <div className={'cm-mermaid-chart-area'} onClick={handleMermaidDiagramClick}>
+              <div
+                className={cx(
+                  'cm-mermaid-render',
+                  mermaidDiagramExpanded && 'cm-mermaid-render-expanded',
+                )}
+              >
+                <Mermaid
+                  animated={false}
+                  fullFeatured={false}
+                  showLanguage={true}
+                  theme="lobe-theme"
+                  variant="filled"
+                >
+                  {mermaidDiagramSource.trim()}
+                </Mermaid>
+              </div>
+            </div>
+          </div>
+        )}
+      </Block>
+    </div>
   );
 };
 

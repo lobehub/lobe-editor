@@ -1,3 +1,5 @@
+import { $isListItemNode } from '@lexical/list';
+import { $isQuoteNode } from '@lexical/rich-text';
 import type { ElementNode, LexicalNode, RangeSelection, TextFormatType, TextNode } from 'lexical';
 import {
   $createRangeSelection,
@@ -11,6 +13,15 @@ import {
 } from 'lexical';
 
 import { PUNCTUATION_OR_SPACE, getOpenTagStartIndex, isEqualSubString } from '../utils';
+
+/**
+ * Element markdown (e.g. ```lang + Enter) originally required the block's parent to be root.
+ * That breaks common cases: list items, blockquotes — the paragraph sits under ListItem/Quote, not Root.
+ */
+function isSupportedBlockContainerParent(node: LexicalNode | null): boolean {
+  if (node === null) return false;
+  return $isRootOrShadowRoot(node) || $isListItemNode(node) || $isQuoteNode(node);
+}
 
 export type TextFormatTransformer = Readonly<{
   format?: ReadonlyArray<TextFormatType>;
@@ -82,9 +93,10 @@ export function testElementTransformers(
   elementTransformers: ReadonlyArray<ElementTransformer>,
   fromTrigger?: 'enter',
 ): boolean {
-  const grandParentNode = parentNode.getParent();
-
-  if (!$isRootOrShadowRoot(grandParentNode) || parentNode.getFirstChild() !== anchorNode) {
+  if (
+    !isSupportedBlockContainerParent(parentNode.getParent()) ||
+    parentNode.getFirstChild() !== anchorNode
+  ) {
     return false;
   }
 
@@ -123,9 +135,10 @@ export function runElementTransformers(
   elementTransformers: ReadonlyArray<ElementTransformer>,
   fromTrigger?: 'enter',
 ): boolean {
-  const grandParentNode = parentNode.getParent();
-
-  if (!$isRootOrShadowRoot(grandParentNode) || parentNode.getFirstChild() !== anchorNode) {
+  if (
+    !isSupportedBlockContainerParent(parentNode.getParent()) ||
+    parentNode.getFirstChild() !== anchorNode
+  ) {
     return false;
   }
 

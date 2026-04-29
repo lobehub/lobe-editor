@@ -3,6 +3,8 @@ export default {
   codemirror: {
     copyFailed: 'Copy failed',
     copySuccess: 'Code copied to clipboard',
+    mermaidExpandPreview: 'Large diagram preview',
+    mermaidShrinkPreview: 'Exit large preview',
     selectLanguage: 'Select language',
     selectTheme: 'Select theme',
     showLineNumbers: 'Show Line Numbers',
