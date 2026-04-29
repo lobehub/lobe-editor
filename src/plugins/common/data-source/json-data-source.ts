@@ -77,7 +77,10 @@ export default class JSONDataSource extends DataSource {
             let maxId = -1;
             Array.from(state._nodeMap.keys()).forEach((key) => {
               if (key === 'root') return;
-              maxId = Math.max(maxId, Number(key));
+              const numericKey = Number(key);
+              if (Number.isInteger(numericKey) && numericKey >= 0) {
+                maxId = Math.max(maxId, numericKey);
+              }
             });
             // make sure to reset random key to avoid id conflicts
             resetRandomKey(maxId + 1);
