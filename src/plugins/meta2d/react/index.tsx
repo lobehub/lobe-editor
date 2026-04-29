@@ -1,11 +1,11 @@
 'use client';
 
-import type { LexicalEditor } from 'lexical';
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { $getNodeByKey, type LexicalEditor } from 'lexical';
+import { useCallback, useLayoutEffect, useState } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
-import { Meta2dNode } from '../node';
+import { $isMeta2dNode, Meta2dNode } from '../node';
 import { Meta2dPlugin } from '../plugin';
 import { DiagramEditor } from './DiagramEditor';
 import { DiagramPreview } from './DiagramPreview';
@@ -30,11 +30,22 @@ function Meta2dDecorator({
   const diagram = node.__diagram;
   const svg = node.__svg;
 
-  useEffect(() => {
-    if (!svg) {
-      setEditing(true);
+  useLayoutEffect(() => {
+    const key = node.getKey();
+    let shouldOpen = false;
+    lexicalEditor.getEditorState().read(() => {
+      const latest = $getNodeByKey(key);
+      if (latest && $isMeta2dNode(latest) && latest.__autoOpenEditor) shouldOpen = true;
+    });
+    if (shouldOpen) setEditing(true);
+    if (shouldOpen) {
+      lexicalEditor.update(() => {
+        const latest = $getNodeByKey(key);
+        if (latest && $isMeta2dNode(latest) && latest.__autoOpenEditor)
+          latest.clearAutoOpenEditor();
+      });
     }
-  }, [svg]);
+  }, [lexicalEditor, node.getKey()]);
 
   const handleDelete = useCallback(() => {
     lexicalEditor.update(() => {

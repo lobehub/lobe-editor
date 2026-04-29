@@ -11,7 +11,11 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 
 import { registerMeta2dCommand } from '../command';
 import { $createMeta2dNode, Meta2dNode } from '../node';
-import { DEFAULT_META2D_DIAGRAM_JSON } from '../utils/meta2dManager';
+import {
+  EMPTY_META2D_DIAGRAM_JSON,
+  EMPTY_META2D_PLACEHOLDER_SVG,
+  initialSvgForDiagram,
+} from '../utils/meta2dManager';
 
 const META2D_SHORTCUT = /^---meta2d---$/i;
 const META2D_BLOCK = /^---meta2d---\n([\S\s]*?)\n---\/meta2d---$/i;
@@ -71,7 +75,9 @@ export const Meta2dPlugin: IEditorPluginConstructor<Meta2dPluginOptions> = class
     markdownService.registerMarkdownShortCut({
       regExp: META2D_SHORTCUT,
       replace: (parentNode) => {
-        const node = $createMeta2dNode(DEFAULT_META2D_DIAGRAM_JSON, '');
+        const node = $createMeta2dNode(EMPTY_META2D_DIAGRAM_JSON, EMPTY_META2D_PLACEHOLDER_SVG, {
+          autoOpenEditor: true,
+        });
         parentNode.replace(node);
         const selection = $createNodeSelection();
         selection.add(node.getKey());
@@ -84,7 +90,7 @@ export const Meta2dPlugin: IEditorPluginConstructor<Meta2dPluginOptions> = class
     markdownService.registerMarkdownWriter(Meta2dNode.getType(), (ctx, node) => {
       const meta2dNode = node as Meta2dNode;
       ctx.appendLine('---meta2d---');
-      ctx.appendLine(meta2dNode.__diagram || DEFAULT_META2D_DIAGRAM_JSON);
+      ctx.appendLine(meta2dNode.__diagram || EMPTY_META2D_DIAGRAM_JSON);
       ctx.appendLine('---/meta2d---');
       return true;
     });
@@ -95,10 +101,10 @@ export const Meta2dPlugin: IEditorPluginConstructor<Meta2dPluginOptions> = class
         const paragraphText = extractParagraphText(node as Paragraph);
         const match = paragraphText.match(META2D_BLOCK);
         if (!match) return false;
-        const diagram = match[1]?.trim() || DEFAULT_META2D_DIAGRAM_JSON;
+        const diagram = match[1]?.trim() || EMPTY_META2D_DIAGRAM_JSON;
         return INodeHelper.createTypeNode(Meta2dNode.getType(), {
           diagram,
-          svg: '',
+          svg: initialSvgForDiagram(diagram),
         });
       },
       MARKDOWN_READER_LEVEL_HIGH,
@@ -109,9 +115,10 @@ export const Meta2dPlugin: IEditorPluginConstructor<Meta2dPluginOptions> = class
       (node) => {
         const codeNode = node as unknown as { lang?: string; value?: string };
         if (codeNode.lang !== 'meta' && codeNode.lang !== 'meta2d') return false;
+        const diagram = codeNode.value?.trim() ? codeNode.value : EMPTY_META2D_DIAGRAM_JSON;
         return INodeHelper.createTypeNode(Meta2dNode.getType(), {
-          diagram: codeNode.value?.trim() ? codeNode.value : DEFAULT_META2D_DIAGRAM_JSON,
-          svg: '',
+          diagram,
+          svg: initialSvgForDiagram(diagram),
         });
       },
       MARKDOWN_READER_LEVEL_HIGH,

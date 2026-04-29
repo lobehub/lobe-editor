@@ -25,7 +25,7 @@ export class Meta2dNode extends DecoratorNode<unknown> {
   }
 
   static clone(node: Meta2dNode): Meta2dNode {
-    return new Meta2dNode(node.__diagram, node.__svg, node.__key);
+    return new Meta2dNode(node.__diagram, node.__svg, node.__key, node.__autoOpenEditor);
   }
 
   static importJSON(serializedNode: SerializedMeta2dNode): Meta2dNode {
@@ -34,11 +34,19 @@ export class Meta2dNode extends DecoratorNode<unknown> {
 
   __diagram: string;
   __svg: string;
+  /** When true, decorator opens the editor once after insert (not persisted in markdown). */
+  __autoOpenEditor: boolean;
 
-  constructor(diagram = '', svg = '', key?: string) {
+  constructor(diagram = '', svg = '', key?: string, autoOpenEditor = false) {
     super(key);
     this.__diagram = diagram;
     this.__svg = svg;
+    this.__autoOpenEditor = autoOpenEditor;
+  }
+
+  clearAutoOpenEditor(): void {
+    const w = this.getWritable();
+    w.__autoOpenEditor = false;
   }
 
   createDOM(config: EditorConfig): HTMLElement {
@@ -86,8 +94,18 @@ export class Meta2dNode extends DecoratorNode<unknown> {
   }
 }
 
-export function $createMeta2dNode(diagram = '', svg = ''): Meta2dNode {
-  return $applyNodeReplacement(new Meta2dNode(diagram, svg));
+export type CreateMeta2dNodeOptions = {
+  autoOpenEditor?: boolean;
+};
+
+export function $createMeta2dNode(
+  diagram = '',
+  svg = '',
+  options?: CreateMeta2dNodeOptions,
+): Meta2dNode {
+  return $applyNodeReplacement(
+    new Meta2dNode(diagram, svg, undefined, options?.autoOpenEditor ?? false),
+  );
 }
 
 export function $isMeta2dNode(node: LexicalNode): node is Meta2dNode {

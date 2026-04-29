@@ -4,22 +4,29 @@ import C2S from 'canvas2svg';
 
 let shapesReady = false;
 
-export const DEFAULT_META2D_DIAGRAM_JSON = JSON.stringify({
-  pens: [
-    {
-      height: 60,
-      name: 'rectangle',
-      text: '开始',
-      width: 180,
-      x: 120,
-      y: 120,
-    },
-  ],
-  version: '1.0.0',
-});
-
 export function createEmptyMeta2dData(): Record<string, unknown> {
   return { pens: [] };
+}
+
+/** Canonical empty diagram JSON for new blocks and markdown defaults. */
+export const EMPTY_META2D_DIAGRAM_JSON = JSON.stringify(createEmptyMeta2dData());
+
+/** Inline SVG used when the canvas has no drawable content yet (HUD + layout need a truthy svg). */
+export const EMPTY_META2D_PLACEHOLDER_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="100%" height="100%" fill="#fafafa" stroke="#eee"/></svg>';
+
+/** When loading from markdown without cached svg, use placeholder for empty diagrams to avoid async flicker. */
+export function initialSvgForDiagram(diagram: string): string {
+  if (!diagram.trim()) return EMPTY_META2D_PLACEHOLDER_SVG;
+  try {
+    const data = JSON.parse(diagram) as { pens?: unknown[] };
+    if (data && Array.isArray(data.pens) && data.pens.length === 0) {
+      return EMPTY_META2D_PLACEHOLDER_SVG;
+    }
+  } catch {
+    // ignore
+  }
+  return '';
 }
 
 export function ensureMeta2dShapes(): void {
@@ -132,29 +139,37 @@ export async function generateSvgFromDiagram(diagramJson: string): Promise<strin
     await waitFrame();
     await waitFrame();
 
+    const pens = (engine as any).store?.data?.pens;
+    const penCount = Array.isArray(pens) ? pens.length : 0;
+
     const bounds = engine.getRect();
-    if (
+    const boundsBad =
       !bounds ||
       !Number.isFinite(bounds.width) ||
       !Number.isFinite(bounds.height) ||
       typeof bounds.width !== 'number' ||
-      typeof bounds.height !== 'number'
-    ) {
+      typeof bounds.height !== 'number' ||
+      bounds.width <= 0 ||
+      bounds.height <= 0;
+
+    if (boundsBad) {
+      if (penCount === 0) return EMPTY_META2D_PLACEHOLDER_SVG;
       console.error('[meta2d] preview failed: invalid bounds', bounds);
       return '';
     }
 
+    const rectW = bounds.width as number;
+    const rectH = bounds.height as number;
     const padding = 10;
     const x = (bounds.x ?? 0) - padding;
     const y = (bounds.y ?? 0) - padding;
-    const width = Math.ceil(bounds.width + padding * 2);
-    const height = Math.ceil(bounds.height + padding * 2);
+    const width = Math.ceil(rectW + padding * 2);
+    const height = Math.ceil(rectH + padding * 2);
 
     const ctx = new Canvas2SvgCtor(width, height);
     ctx.textBaseline = 'middle';
     patchCanvas2SvgFont(ctx);
 
-    const pens = (engine as any).store?.data?.pens;
     if (Array.isArray(pens)) {
       for (const pen of pens) {
         if (pen?.visible === false) continue;
@@ -166,11 +181,13 @@ export async function generateSvgFromDiagram(diagramJson: string): Promise<strin
       }
     }
     const svg = ctx.getSerializedSvg?.()?.replace(/--le5le--/g, '&#x') ?? '';
-    if (!svg) {
+    if (!svg.trim()) {
+      if (penCount === 0) return EMPTY_META2D_PLACEHOLDER_SVG;
       console.error('[meta2d] preview failed: serialized SVG is empty', {
         diagramJson,
-        pensCount: Array.isArray(pens) ? pens.length : -1,
+        pensCount: penCount,
       });
+      return '';
     }
     return svg;
   } catch (error) {

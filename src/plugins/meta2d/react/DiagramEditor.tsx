@@ -2,6 +2,7 @@ import { Meta2d } from '@meta2d/core';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 
 import {
+  EMPTY_META2D_PLACEHOLDER_SVG,
   createEmptyMeta2dData,
   ensureMeta2dShapes,
   generateSvgFromDiagram,
@@ -72,7 +73,7 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
     try {
       const sanitized = sanitizeMeta2dData(engine.data());
       const json = JSON.stringify(sanitized);
-      const svg = await generateSvgFromDiagram(json);
+      const svg = (await generateSvgFromDiagram(json)) || EMPTY_META2D_PLACEHOLDER_SVG;
       onSave(json, svg);
     } finally {
       setSaving(false);
