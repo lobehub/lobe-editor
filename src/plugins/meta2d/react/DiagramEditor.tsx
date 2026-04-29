@@ -1,6 +1,8 @@
 import { Meta2d } from '@meta2d/core';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 
+import { useEditorLocale } from '@/react/hooks/useEditorLocale';
+
 import {
   EMPTY_META2D_PLACEHOLDER_SVG,
   createEmptyMeta2dData,
@@ -50,6 +52,7 @@ export interface DiagramEditorProps {
 }
 
 export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) {
+  const { t } = useEditorLocale();
   const canvasRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Meta2d | null>(null);
   const [engine, setEngine] = useState<Meta2d | null>(null);
@@ -154,40 +157,40 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
             padding: '10px 14px',
           }}
         >
-          <span style={{ fontWeight: 600 }}>Flow diagram</span>
+          <span style={{ fontWeight: 600 }}>{t('meta2d.editor.title')}</span>
           <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               <button
                 onClick={() => runEngine((m) => m.undo())}
                 style={toolBtnStyle}
-                title="Undo (Ctrl+Z)"
+                title={`${t('meta2d.editor.undo')} (Ctrl+Z)`}
                 type="button"
               >
-                Undo
+                {t('meta2d.editor.undo')}
               </button>
               <button
                 onClick={() => runEngine((m) => m.redo())}
                 style={toolBtnStyle}
-                title="Redo (Ctrl+Y)"
+                title={`${t('meta2d.editor.redo')} (Ctrl+Y)`}
                 type="button"
               >
-                Redo
+                {t('meta2d.editor.redo')}
               </button>
               <button
                 onClick={() => runEngine((m) => m.delete())}
                 style={toolBtnStyle}
-                title="Delete selection"
+                title={t('meta2d.editor.delete')}
                 type="button"
               >
-                Delete
+                {t('meta2d.editor.delete')}
               </button>
               <button
                 onClick={() => runEngine((m) => m.fitView(true))}
                 style={toolBtnStyle}
-                title="Fit content to view"
+                title={t('meta2d.editor.fit')}
                 type="button"
               >
-                Fit
+                {t('meta2d.editor.fit')}
               </button>
               <button
                 onClick={() =>
@@ -197,15 +200,15 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
                   })
                 }
                 style={toolBtnStyle}
-                title="100% zoom, centered"
+                title={t('meta2d.editor.zoom100')}
                 type="button"
               >
-                100%
+                {t('meta2d.editor.zoom100')}
               </button>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={onClose} style={buttonStyle} type="button">
-                Close
+                {t('meta2d.editor.close')}
               </button>
               <button
                 disabled={saving}
@@ -213,7 +216,7 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
                 style={{ ...buttonStyle, background: '#1677ff', border: 'none', color: '#fff' }}
                 type="button"
               >
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? t('meta2d.editor.saving') : t('meta2d.editor.save')}
               </button>
             </div>
           </div>

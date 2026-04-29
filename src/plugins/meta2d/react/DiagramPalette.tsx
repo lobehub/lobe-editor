@@ -2,7 +2,9 @@ import type { Meta2d } from '@meta2d/core';
 import type { RefObject } from 'react';
 import { useMemo } from 'react';
 
-import { type PaletteItem, getPalette } from './diagram-pens';
+import { useEditorLocale } from '@/react/hooks/useEditorLocale';
+
+import { GROUP_LOCALE_MAP, type PaletteItem, getPalette, itemLabelLocaleKey } from './diagram-pens';
 
 function clonePen(pen: Record<string, unknown>): Record<string, unknown> {
   return structuredClone(pen);
@@ -96,10 +98,12 @@ function PaletteTile({
   disabled,
   engineRef,
   item,
+  t,
 }: {
   disabled?: boolean;
   engineRef: RefObject<Meta2d | null>;
   item: PaletteItem;
+  t: (key: string, params?: Record<string, any>) => string;
 }) {
   const addOnClick = () => {
     const engine = engineRef.current;
@@ -150,10 +154,10 @@ function PaletteTile({
         padding: 6,
       }}
       tabIndex={disabled ? -1 : 0}
-      title={`${item.label} — drag or click to add`}
+      title={`${t(itemLabelLocaleKey(item.key)) || item.label} — drag or click to add`}
     >
       <ShapePreview name={String(item.pen.name ?? 'rectangle')} />
-      <span style={{ fontSize: 11 }}>{item.label}</span>
+      <span style={{ fontSize: 11 }}>{t(itemLabelLocaleKey(item.key)) || item.label}</span>
     </div>
   );
 }
@@ -165,6 +169,7 @@ export function DiagramPalette({
   disabled?: boolean;
   engineRef: RefObject<Meta2d | null>;
 }) {
+  const { t } = useEditorLocale();
   const groups = useMemo(() => groupPalette(getPalette()), []);
 
   return (
@@ -181,18 +186,28 @@ export function DiagramPalette({
         width: 240,
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Components</div>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+        {t('meta2d.palette.title')}
+      </div>
       <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 12 }}>
-        Drag or click to add to canvas
+        {t('meta2d.palette.hint')}
       </div>
       {groups.map(([group, items]) => (
         <div key={group} style={{ marginBottom: 12 }}>
-          <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 6 }}>{group}</div>
+          <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 6 }}>
+            {t(GROUP_LOCALE_MAP[group] || group)}
+          </div>
           <div
             style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
           >
             {items.map((item) => (
-              <PaletteTile disabled={disabled} engineRef={engineRef} item={item} key={item.key} />
+              <PaletteTile
+                disabled={disabled}
+                engineRef={engineRef}
+                item={item}
+                key={item.key}
+                t={t}
+              />
             ))}
           </div>
         </div>

@@ -109,19 +109,5 @@ export const Meta2dPlugin: IEditorPluginConstructor<Meta2dPluginOptions> = class
       },
       MARKDOWN_READER_LEVEL_HIGH,
     );
-
-    markdownService.registerMarkdownReader(
-      'code',
-      (node) => {
-        const codeNode = node as unknown as { lang?: string; value?: string };
-        if (codeNode.lang !== 'meta' && codeNode.lang !== 'meta2d') return false;
-        const diagram = codeNode.value?.trim() ? codeNode.value : EMPTY_META2D_DIAGRAM_JSON;
-        return INodeHelper.createTypeNode(Meta2dNode.getType(), {
-          diagram,
-          svg: initialSvgForDiagram(diagram),
-        });
-      },
-      MARKDOWN_READER_LEVEL_HIGH,
-    );
   }
 };

@@ -3,10 +3,26 @@
  * meta2d.js `examples/diagram-editor-vue3` (`Graphics.vue`).
  */
 export interface PaletteItem {
+  /** Default English group name (fallback) */
   group: string;
+  /** Unique identifier — also used as locale suffix: `meta2d.palette.{key}` */
   key: string;
+  /** Default English label (fallback) */
   label: string;
   pen: Record<string, unknown>;
+}
+
+export const GROUP_LOCALE_MAP: Record<string, string> = {
+  'Activity': 'meta2d.palette.groups.activity',
+  'Basic': 'meta2d.palette.groups.basic',
+  'Fault tree': 'meta2d.palette.groups.faultTree',
+  'Flow': 'meta2d.palette.groups.flow',
+  'Sequence & class': 'meta2d.palette.groups.sequenceClass',
+};
+
+/** Derive the palette-item label locale key from the item key. */
+export function itemLabelLocaleKey(key: string): string {
+  return `meta2d.palette.${key}`;
 }
 
 const baseShape = {

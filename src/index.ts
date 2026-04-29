@@ -23,6 +23,9 @@ export * from './plugins/toolbar';
 export * from './plugins/upload';
 export type { IEditor } from './types';
 
+// Locale
+export { enUS, zhCN } from './locale';
+
 // Hotkey utilities
 export * from './types/hotkey';
 export { getHotkeyById } from './utils/hotkey/registerHotkey';

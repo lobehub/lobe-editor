@@ -16,6 +16,7 @@ export {
 export { default as FloatActions, type FloatActionsProps } from './FloatActions';
 export { default as FloatMenu, type FloatMenuProps } from './FloatMenu';
 export { useEditor } from './hooks/useEditor';
+export { useEditorLocale, type UseEditorLocaleResult } from './hooks/useEditorLocale';
 export { type EditorState, useEditorState } from './hooks/useEditorState';
 export { default as SendButton, type SendButtonProps } from './SendButton';
 export { default as SlashMenu, type SlashMenuProps } from './SlashMenu';

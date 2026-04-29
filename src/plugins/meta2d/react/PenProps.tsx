@@ -1,6 +1,8 @@
 import type { Meta2d } from '@meta2d/core';
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 
+import { useEditorLocale } from '@/react/hooks/useEditorLocale';
+
 type PenData = Record<string, unknown>;
 
 const panelStyle: CSSProperties = {
@@ -59,8 +61,9 @@ const layerBtn: CSSProperties = {
 };
 
 export function PenProps({ engine }: { engine: Meta2d | null }) {
+  const { t } = useEditorLocale();
   const [pen, setPen] = useState<PenData | null>(null);
-  const [rect, setRect] = useState<{ height: number, width: number; x: number; y: number; } | null>(
+  const [rect, setRect] = useState<{ height: number; width: number; x: number; y: number } | null>(
     null,
   );
   const localRef = useRef<PenData>({});
@@ -105,7 +108,7 @@ export function PenProps({ engine }: { engine: Meta2d | null }) {
     return (
       <aside style={panelStyle}>
         <div style={{ color: '#bbb', fontSize: 12, padding: 16, textAlign: 'center' }}>
-          Select a shape to edit its properties
+          {t('meta2d.props.empty')}
         </div>
       </aside>
     );
@@ -139,7 +142,7 @@ export function PenProps({ engine }: { engine: Meta2d | null }) {
     <aside style={panelStyle}>
       {/* Text */}
       <div style={sectionStyle}>
-        <div style={labelStyle}>Text</div>
+        <div style={labelStyle}>{t('meta2d.props.text')}</div>
         <div style={rowStyle}>
           <input
             onChange={(e) => changeValue('text', e.target.value)}
@@ -152,10 +155,10 @@ export function PenProps({ engine }: { engine: Meta2d | null }) {
 
       {/* Appearance */}
       <div style={sectionStyle}>
-        <div style={{ ...labelStyle, marginBottom: 6 }}>Appearance</div>
+        <div style={{ ...labelStyle, marginBottom: 6 }}>{t('meta2d.props.appearance')}</div>
 
         <div style={rowStyle}>
-          <span style={fieldLabel}>Color</span>
+          <span style={fieldLabel}>{t('meta2d.props.color')}</span>
           <input
             onChange={(e) => changeValue('color', e.target.value)}
             style={{ ...inputStyle, flex: 1 }}
@@ -165,7 +168,7 @@ export function PenProps({ engine }: { engine: Meta2d | null }) {
         </div>
 
         <div style={rowStyle}>
-          <span style={fieldLabel}>Bg</span>
+          <span style={fieldLabel}>{t('meta2d.props.bg')}</span>
           <input
             onChange={(e) => changeValue('background', e.target.value)}
             style={{ ...inputStyle, flex: 1 }}
@@ -175,19 +178,19 @@ export function PenProps({ engine }: { engine: Meta2d | null }) {
         </div>
 
         <div style={rowStyle}>
-          <span style={fieldLabel}>Dash</span>
+          <span style={fieldLabel}>{t('meta2d.props.dash')}</span>
           <select
             onChange={(e) => changeValue('dash', Number(e.target.value))}
             style={{ ...inputStyle, flex: 1 }}
             value={String((pen.dash as number) ?? 0)}
           >
-            <option value="0">Solid</option>
-            <option value="1">Dash</option>
+            <option value="0">{t('meta2d.props.solid')}</option>
+            <option value="1">{t('meta2d.props.dashLine')}</option>
           </select>
         </div>
 
         <div style={rowStyle}>
-          <span style={fieldLabel}>Radius</span>
+          <span style={fieldLabel}>{t('meta2d.props.radius')}</span>
           <input
             max={1}
             min={0}
@@ -203,7 +206,7 @@ export function PenProps({ engine }: { engine: Meta2d | null }) {
         </div>
 
         <div style={rowStyle}>
-          <span style={fieldLabel}>Alpha</span>
+          <span style={fieldLabel}>{t('meta2d.props.alpha')}</span>
           <input
             max={1}
             min={0}
@@ -221,7 +224,7 @@ export function PenProps({ engine }: { engine: Meta2d | null }) {
 
       {/* Position & Size */}
       <div style={sectionStyle}>
-        <div style={{ ...labelStyle, marginBottom: 6 }}>Position &amp; Size</div>
+        <div style={{ ...labelStyle, marginBottom: 6 }}>{t('meta2d.props.position')}</div>
         {(
           [
             ['X', 'x'],
@@ -244,48 +247,48 @@ export function PenProps({ engine }: { engine: Meta2d | null }) {
 
       {/* Text alignment */}
       <div style={sectionStyle}>
-        <div style={{ ...labelStyle, marginBottom: 6 }}>Text align</div>
+        <div style={{ ...labelStyle, marginBottom: 6 }}>{t('meta2d.props.textAlign')}</div>
         <div style={rowStyle}>
-          <span style={fieldLabel}>H</span>
+          <span style={fieldLabel}>{t('meta2d.props.h')}</span>
           <select
             onChange={(e) => changeValue('textAlign', e.target.value)}
             style={{ ...inputStyle, flex: 1 }}
             value={(pen.textAlign as string) || 'center'}
           >
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
+            <option value="left">{t('meta2d.props.left')}</option>
+            <option value="center">{t('meta2d.props.center')}</option>
+            <option value="right">{t('meta2d.props.right')}</option>
           </select>
         </div>
         <div style={rowStyle}>
-          <span style={fieldLabel}>V</span>
+          <span style={fieldLabel}>{t('meta2d.props.v')}</span>
           <select
             onChange={(e) => changeValue('textBaseline', e.target.value)}
             style={{ ...inputStyle, flex: 1 }}
             value={(pen.textBaseline as string) || 'middle'}
           >
-            <option value="top">Top</option>
-            <option value="middle">Middle</option>
-            <option value="bottom">Bottom</option>
+            <option value="top">{t('meta2d.props.topAlign')}</option>
+            <option value="middle">{t('meta2d.props.middle')}</option>
+            <option value="bottom">{t('meta2d.props.bottomAlign')}</option>
           </select>
         </div>
       </div>
 
       {/* Layer */}
       <div style={sectionStyle}>
-        <div style={{ ...labelStyle, marginBottom: 6 }}>Layer</div>
+        <div style={{ ...labelStyle, marginBottom: 6 }}>{t('meta2d.props.layer')}</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           <button onClick={() => changeLayer((m) => m.top())} style={layerBtn} type="button">
-            Top
+            {t('meta2d.props.top')}
           </button>
           <button onClick={() => changeLayer((m) => m.up())} style={layerBtn} type="button">
-            Up
+            {t('meta2d.props.up')}
           </button>
           <button onClick={() => changeLayer((m) => m.down())} style={layerBtn} type="button">
-            Down
+            {t('meta2d.props.down')}
           </button>
           <button onClick={() => changeLayer((m) => m.bottom())} style={layerBtn} type="button">
-            Bottom
+            {t('meta2d.props.bottom')}
           </button>
         </div>
       </div>

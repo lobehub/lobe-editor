@@ -762,6 +762,11 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.logger.debug(`🌐 Locale: ${localeKeys.length} keys`);
   }
 
+  setLocale(locale: Partial<Record<keyof ILocaleKeys, string>>): void {
+    this.localeMap = { ...this.localeMap, ...locale };
+    this.logger.debug(`🌐 Locale replaced: ${Object.keys(locale).length} keys`);
+  }
+
   t<K extends keyof ILocaleKeys>(key: K, params?: Record<string, any>): string {
     let translation = get(this.localeMap, key) || key;
     if (params) {

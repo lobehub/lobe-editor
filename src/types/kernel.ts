@@ -263,6 +263,12 @@ export interface IEditor {
   setEditable(editable: boolean): void;
 
   /**
+   * Set the locale map, replacing all translation entries at once.
+   * Unlike registerLocale() which merges, this replaces the entire locale map.
+   */
+  setLocale(locale: Partial<Record<keyof ILocaleKeys, string>>): void;
+
+  /**
    * Set document editor root node
    * @param dom
    */
@@ -286,6 +292,7 @@ export interface IEditor {
    * @param params Parameter replacement
    */
   t<K extends keyof ILocaleKeys>(key: K, params?: Record<string, any>): string;
+
   /**
    * Update editor theme
    * @param key
