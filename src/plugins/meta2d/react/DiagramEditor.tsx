@@ -9,6 +9,7 @@ import {
   sanitizeMeta2dData,
 } from '../utils/meta2dManager';
 import { DiagramPalette } from './DiagramPalette';
+import { PenProps } from './PenProps';
 
 const buttonStyle: CSSProperties = {
   background: '#fff',
@@ -219,6 +220,7 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
         <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <DiagramPalette engineRef={engineRef} />
           <div ref={canvasRef} style={{ flex: 1, minHeight: 0, minWidth: 0 }} />
+          <PenProps engine={engineRef.current} />
         </div>
       </div>
     </div>
