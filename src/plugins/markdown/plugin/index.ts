@@ -30,6 +30,30 @@ import { detectCodeLanguage, detectLanguage } from '../utils/detectLanguage';
 
 const DEFAULT_PASTE_MARKDOWN_AUTO_CONVERT_THRESHOLD = 5;
 
+/**
+ * Plain-text Mermaid / diagram snippets look like “multi-paragraph Markdown” (blank lines → high score)
+ * but must not go through markdown paste auto-convert — it breaks diagrams and fenced-code expectations.
+ */
+export function looksLikeMermaidDiagramSyntax(text: string): boolean {
+  const normalized = text.replaceAll(/[\u200B-\u200D\u2060\uFEFF]/g, '').trimStart();
+
+  if (
+    /^(?:flowchart|graph)\s+\w+/im.test(normalized) ||
+    /^(?:sequencediagram|classdiagram|statediagram(?:-v2)?|erdiagram|mindmap|timeline|pie|gitgraph|journey)\b/im.test(
+      normalized,
+    )
+  ) {
+    return true;
+  }
+
+  // subgraph blocks + diagram edge arrows strongly correlate with Mermaid DSL, not prose Markdown
+  if (/\bsubgraph\s+/i.test(text) && /\s(?:-->|-\.->|===)/.test(text)) {
+    return true;
+  }
+
+  return false;
+}
+
 interface MarkdownDetectionRule {
   name: string;
   score: number;
@@ -400,6 +424,14 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     if (this.detectCodeContent(text)) {
       return {
         matchedPatterns: [],
+        score: 0,
+        shouldAutoConvert: false,
+      };
+    }
+
+    if (looksLikeMermaidDiagramSyntax(text)) {
+      return {
+        matchedPatterns: ['mermaid-diagram-syntax'],
         score: 0,
         shouldAutoConvert: false,
       };
