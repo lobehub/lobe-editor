@@ -88,6 +88,31 @@ describe('Markdown paste auto conversion', () => {
     });
   });
 
+  it('should not auto convert plain Mermaid flowchart pasted as text', () => {
+    const plugin = new MarkdownPlugin(createKernelMock()) as any;
+
+    const mermaid = [
+      'flowchart TB',
+      '    subgraph U["上游入口"]',
+      '        BIZ["业务系统"]',
+      '        EVAL["评测平台"]',
+      '    end',
+      '',
+      '    subgraph A["Agent 应用层"]',
+      '        CFG["Agent 配置"]',
+      '        EXE["Agent 执行"]',
+      '    end',
+      '',
+      '    BIZ --> EXE',
+      '    EXE --> CFG',
+    ].join('\n');
+
+    const result = plugin.getMarkdownDetectionResult(mermaid);
+
+    expect(result.shouldAutoConvert).toBe(false);
+    expect(result.matchedPatterns).toEqual(['mermaid-diagram-syntax']);
+  });
+
   it('should disable paste markdown handling when autoFormatMarkdown is false', () => {
     const plugin = new MarkdownPlugin(createKernelMock(), {
       autoFormatMarkdown: false,
