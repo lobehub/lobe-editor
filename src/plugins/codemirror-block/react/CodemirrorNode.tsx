@@ -64,7 +64,12 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   const [expand, setExpand] = useState<boolean>(true);
   /** Live text for in-editor Mermaid preview (Codemirror only shows source; diagram is rendered here). */
   const [mermaidDiagramSource, setMermaidDiagramSource] = useState(node.code);
-  /** Mermaid：点击编辑器内别处时隐藏源码区；点击本代码块区域内再展开。不使用 document，以免误判 Ant Select 浮层等为「外部」。 */
+  /**
+   * Mermaid 模式下是否显示代码源码区。
+   * - Toolbar 展开按钮（箭头）仅控制 expand，不直接影响 mermaidShowSource
+   * - 点击代码块内部区域时恢复源码显示
+   * - 点击代码块外部区域时隐藏源码，只保留 Mermaid 图
+   */
   const [mermaidShowSource, setMermaidShowSource] = useState(true);
   const mermaidPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -83,6 +88,16 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     }
   }, [selectedLang]);
 
+  /** 点击 Toolbar 展开/收起按钮：仅切换代码面板的展开状态 */
+  const toggleCodePanel = useCallback(() => {
+    setExpand((prev) => !prev);
+  }, []);
+
+  /**
+   * Mermaid 模式下，点击代码块内部(非图表区域)恢复源码显示，
+   * 点击外部则隐藏源码只保留图。
+   * Toolbar 的展开按钮（箭头）独立控制 expand，不会和此逻辑冲突。
+   */
   useEffect(() => {
     if (selectedLang !== 'mermaid') return;
 
@@ -111,13 +126,11 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
 
         if (shell.contains(target)) {
           setMermaidShowSource(true);
-          setExpand(true);
           return;
         }
 
         setMermaidShowSource(false);
         setMermaidDiagramExpanded(false);
-        setExpand(false);
         instanceRef.current?.blur();
       };
 
@@ -204,17 +217,6 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     },
     [editor, node],
   );
-
-  /** Toolbar 收起/展开与 Mermaid 源码隐藏解耦：用箭头重新展开时需恢复源码区 */
-  const toggleCodePanel = useCallback(() => {
-    setExpand((prev) => {
-      const next = !prev;
-      if (selectedLang === 'mermaid' && next) {
-        setMermaidShowSource(true);
-      }
-      return next;
-    });
-  }, [selectedLang]);
 
   /** 单击图表（非控件）切换放大预览 */
   const handleMermaidDiagramClick = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
@@ -438,7 +440,6 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         {/* 工具条 */}
         <Toolbar
           expand={expand}
-          onClick={toggleCodePanel}
           onCopy={handleCopy}
           onLanguageChange={handleLanguageChange}
           onShowLineNumbersChange={handleShowLineNumbersChange}

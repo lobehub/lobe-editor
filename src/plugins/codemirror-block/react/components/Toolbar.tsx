@@ -10,7 +10,6 @@ import { MoreOptions } from './MoreOptions';
 
 export interface ToolbarProps {
   expand?: boolean;
-  onClick?: () => void;
   onCopy: () => void;
   onLanguageChange: (value: string) => void;
   onShowLineNumbersChange: (checked: boolean) => void;
@@ -33,7 +32,6 @@ export const Toolbar: FC<ToolbarProps> = ({
   onUseTabsChange,
   showLineNumbers,
   onShowLineNumbersChange,
-  onClick,
   expand,
   toggleExpand,
 }) => {
@@ -43,7 +41,6 @@ export const Toolbar: FC<ToolbarProps> = ({
       className={'cm-header-toolbar'}
       horizontal
       justify={'space-between'}
-      onClick={onClick}
       padding={4}
     >
       <LanguageSelect onLanguageChange={onLanguageChange} selectedLang={selectedLang} />
