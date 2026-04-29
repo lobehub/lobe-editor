@@ -52,6 +52,7 @@ export interface DiagramEditorProps {
 export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Meta2d | null>(null);
+  const [engine, setEngine] = useState<Meta2d | null>(null);
   const [saving, setSaving] = useState(false);
 
   useBodyScrollLock(true);
@@ -62,6 +63,7 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
     ensureMeta2dShapes();
     const engine = new Meta2d(canvasRef.current, { grid: true, rule: false });
     engineRef.current = engine;
+    setEngine(engine);
 
     try {
       if (diagram?.trim()) {
@@ -220,7 +222,7 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
         <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <DiagramPalette engineRef={engineRef} />
           <div ref={canvasRef} style={{ flex: 1, minHeight: 0, minWidth: 0 }} />
-          <PenProps engine={engineRef.current} />
+          <PenProps engine={engine} />
         </div>
       </div>
     </div>
