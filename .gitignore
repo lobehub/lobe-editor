@@ -1,6 +1,8 @@
 # Gitignore for LobeHub
 ################################################################
 
+CLAUDE.md
+
 # general
 .DS_Store
 .idea
