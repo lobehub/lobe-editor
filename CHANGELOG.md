@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.9.4](https://github.com/lobehub/lobe-editor/compare/v4.9.3...v4.9.4)
+<sup>Released on **2026-04-29**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Handle non-numeric legacy editor ids.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Handle non-numeric legacy editor ids, closes [#141](https://github.com/lobehub/lobe-editor/issues/141) ([7895089](https://github.com/lobehub/lobe-editor/commit/7895089))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.9.3](https://github.com/lobehub/lobe-editor/compare/v4.9.2...v4.9.3)
 <sup>Released on **2026-04-22**</sup>
 
