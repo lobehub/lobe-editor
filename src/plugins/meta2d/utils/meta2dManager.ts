@@ -1,6 +1,7 @@
-import { Meta2d, register, registerAnchors } from '@meta2d/core';
-import { flowAnchors, flowPens } from '@meta2d/flow-diagram';
+import { Meta2d } from '@meta2d/core';
 import C2S from 'canvas2svg';
+
+import { registerAllShapeLibraries } from './registerPens';
 
 let shapesReady = false;
 
@@ -31,8 +32,7 @@ export function initialSvgForDiagram(diagram: string): string {
 
 export function ensureMeta2dShapes(): void {
   if (shapesReady) return;
-  register(flowPens());
-  registerAnchors(flowAnchors());
+  registerAllShapeLibraries();
   shapesReady = true;
 }
 

@@ -19,6 +19,29 @@ const buttonStyle: CSSProperties = {
   padding: '6px 12px',
 };
 
+const toolBtnStyle: CSSProperties = {
+  ...buttonStyle,
+  fontSize: 12,
+  minWidth: 52,
+  padding: '4px 10px',
+};
+
+function useBodyScrollLock(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtml = html.style.overflow;
+    const prevBody = body.style.overflow;
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = prevHtml;
+      body.style.overflow = prevBody;
+    };
+  }, [active]);
+}
+
 export interface DiagramEditorProps {
   diagram: string;
   onClose: () => void;
@@ -29,6 +52,8 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
   const canvasRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Meta2d | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useBodyScrollLock(true);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -80,6 +105,11 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
     }
   };
 
+  const runEngine = (fn: (m: Meta2d) => void) => {
+    const m = engineRef.current;
+    if (m) fn(m);
+  };
+
   return (
     <div
       onClick={onClose}
@@ -89,12 +119,14 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
         display: 'flex',
         inset: 0,
         justifyContent: 'center',
+        overflow: 'hidden',
         position: 'fixed',
         zIndex: 1000,
       }}
     >
       <div
         onClick={(event) => event.stopPropagation()}
+        onWheel={(event) => event.stopPropagation()}
         style={{
           background: '#fff',
           borderRadius: 10,
@@ -102,6 +134,7 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
           display: 'flex',
           flexDirection: 'column',
           height: '86vh',
+          maxHeight: '100%',
           maxWidth: '1200px',
           overflow: 'hidden',
           width: '92vw',
@@ -112,29 +145,80 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
             alignItems: 'center',
             borderBottom: '1px solid #f0f0f0',
             display: 'flex',
+            flexWrap: 'wrap',
+            gap: 8,
             justifyContent: 'space-between',
-            padding: '12px 16px',
+            padding: '10px 14px',
           }}
         >
-          <span style={{ fontWeight: 600 }}>Flow Diagram</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={onClose} style={buttonStyle} type="button">
-              Close
-            </button>
-            <button
-              disabled={saving}
-              onClick={() => void handleSave()}
-              style={{ ...buttonStyle, background: '#1677ff', border: 'none', color: '#fff' }}
-              type="button"
-            >
-              {saving ? 'Saving...' : 'Save'}
-            </button>
+          <span style={{ fontWeight: 600 }}>Flow diagram</span>
+          <div style={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <button
+                onClick={() => runEngine((m) => m.undo())}
+                style={toolBtnStyle}
+                title="Undo (Ctrl+Z)"
+                type="button"
+              >
+                Undo
+              </button>
+              <button
+                onClick={() => runEngine((m) => m.redo())}
+                style={toolBtnStyle}
+                title="Redo (Ctrl+Y)"
+                type="button"
+              >
+                Redo
+              </button>
+              <button
+                onClick={() => runEngine((m) => m.delete())}
+                style={toolBtnStyle}
+                title="Delete selection"
+                type="button"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => runEngine((m) => m.fitView(true))}
+                style={toolBtnStyle}
+                title="Fit content to view"
+                type="button"
+              >
+                Fit
+              </button>
+              <button
+                onClick={() =>
+                  runEngine((m) => {
+                    m.scale(1);
+                    m.centerView();
+                  })
+                }
+                style={toolBtnStyle}
+                title="100% zoom, centered"
+                type="button"
+              >
+                100%
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={onClose} style={buttonStyle} type="button">
+                Close
+              </button>
+              <button
+                disabled={saving}
+                onClick={() => void handleSave()}
+                style={{ ...buttonStyle, background: '#1677ff', border: 'none', color: '#fff' }}
+                type="button"
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          <DiagramPalette />
-          <div ref={canvasRef} style={{ flex: 1, minHeight: 0 }} />
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <DiagramPalette engineRef={engineRef} />
+          <div ref={canvasRef} style={{ flex: 1, minHeight: 0, minWidth: 0 }} />
         </div>
       </div>
     </div>
