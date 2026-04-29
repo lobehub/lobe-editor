@@ -448,6 +448,7 @@ const NEEDS_FOLLOWING_PARAGRAPH_TYPES = new Set<string | undefined>([
   'code',
   'table',
   'block-image',
+  'meta2d',
 ]);
 
 export function registerLastElement(editor: LexicalEditor) {

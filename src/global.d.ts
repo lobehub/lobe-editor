@@ -11,4 +11,9 @@ declare module 'lexical' {
   export function resetRandomKey(targetId?: number): void;
 }
 
+declare module 'canvas2svg' {
+  const C2S: unknown;
+  export default C2S;
+}
+
 export {};

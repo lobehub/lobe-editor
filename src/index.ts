@@ -16,6 +16,7 @@ export * from './plugins/list';
 export * from './plugins/markdown';
 export * from './plugins/math';
 export * from './plugins/mention';
+export * from './plugins/meta2d';
 export * from './plugins/slash';
 export * from './plugins/table';
 export * from './plugins/toolbar';

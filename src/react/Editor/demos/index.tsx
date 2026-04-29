@@ -18,6 +18,7 @@ import {
   ReactLinkPlugin,
   ReactListPlugin,
   ReactMathPlugin,
+  ReactMeta2dPlugin,
   ReactTablePlugin,
   ReactToolbarPlugin,
   type SlashOptions,
@@ -270,6 +271,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
           ReactHRPlugin,
           ReactTablePlugin,
           ReactMathPlugin,
+          ReactMeta2dPlugin,
           ReactCodePlugin,
           Editor.withProps(ReactToolbarPlugin, {
             children: <Toolbar editor={editor} floating />,
