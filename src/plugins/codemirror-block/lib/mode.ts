@@ -226,13 +226,14 @@ export function modeMatch(mode = '') {
 }
 
 /**
- * Stored language is MODES[].value (e.g. `mermaid`); CodeMirror `mode` expects the concrete
- * mode string (e.g. `simplemode`). Use when initializing or updating the editor instance.
+ * Stored language is MODES[].value (e.g. `typescript`). `@lobehub/codemirror` keys its
+ * language map `Sq` by that short id (`java`, `typescript`, …), not by legacy CodeMirror 5
+ * MIME strings (`text/x-java`, `text/typescript`). Passing MIME here yields no highlighter.
  */
 export function resolveCodeMirrorMode(langKey: string): string {
   const key = (langKey || 'plain').toLocaleLowerCase();
   const found = MODES.find((m) => m.value === key || m.ext?.includes(key));
-  return found?.syntax ?? 'simplemode';
+  return found?.value ?? 'plain';
 }
 
 export const LOBE_THEME = 'default';
