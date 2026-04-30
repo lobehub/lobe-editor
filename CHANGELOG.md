@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.9.5](https://github.com/lobehub/lobe-editor/compare/v4.9.4...v4.9.5)
+<sup>Released on **2026-04-30**</sup>
+
+
+#### 💄 Styles
+
+- **misc**: Use filled variant for SendButton generating state.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **misc**: Use filled variant for SendButton generating state, closes [#143](https://github.com/lobehub/lobe-editor/issues/143) ([de06b67](https://github.com/lobehub/lobe-editor/commit/de06b67))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.9.4](https://github.com/lobehub/lobe-editor/compare/v4.9.3...v4.9.4)
 <sup>Released on **2026-04-29**</sup>
 
