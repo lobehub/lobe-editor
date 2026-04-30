@@ -35,6 +35,49 @@ describe('HeadlessEditor', () => {
     resetRandomKey();
   });
 
+  it('hydrates keepId editor data when the root has a non-numeric id and descendants omit ids', () => {
+    const editor = createHeadlessEditor();
+    const editorData = {
+      root: {
+        children: [
+          {
+            children: [
+              {
+                detail: 0,
+                format: 0,
+                mode: 'normal',
+                style: '',
+                text: 'Untitled document',
+                type: 'text',
+                version: 1,
+              },
+            ],
+            direction: 'ltr',
+            format: '',
+            indent: 0,
+            tag: 'h1',
+            type: 'heading',
+            version: 1,
+          },
+        ],
+        direction: 'ltr',
+        format: '',
+        id: 'root',
+        indent: 0,
+        type: 'root',
+        version: 1,
+      },
+    } as unknown as SerializedEditorState<SerializedLexicalNode>;
+
+    editor.hydrateEditorData(editorData, { keepId: true });
+
+    const snapshot = editor.export();
+
+    expect(snapshot.editorData.root.children[0].type).toBe('heading');
+    expect(snapshot.markdown).toBe('# Untitled document\n');
+    editor.destroy();
+  });
+
   it('hydrates Markdown into editor data and Markdown projection', () => {
     const editor = createHeadlessEditor();
 
