@@ -49,6 +49,7 @@ const SendButton: FC<SendButtonProps> = ({
           ...style,
           width: menu ? size * 2 : size,
         }}
+        variant={'filled'}
         {...rest}
       >
         <StopIcon size={size * 0.75} />
