@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.9.6](https://github.com/lobehub/lobe-editor/compare/v4.9.5...v4.9.6)
+<sup>Released on **2026-04-30**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Guard keepId imports against non-numeric ids.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Guard keepId imports against non-numeric ids, closes [#144](https://github.com/lobehub/lobe-editor/issues/144) ([9785112](https://github.com/lobehub/lobe-editor/commit/9785112))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.9.5](https://github.com/lobehub/lobe-editor/compare/v4.9.4...v4.9.5)
 <sup>Released on **2026-04-30**</sup>
 
