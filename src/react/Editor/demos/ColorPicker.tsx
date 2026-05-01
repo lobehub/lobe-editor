@@ -1,3 +1,4 @@
+import { ActionIcon } from '@lobehub/ui';
 import { ColorPicker } from 'antd';
 import { type FC, type MouseEvent, useCallback } from 'react';
 
@@ -24,6 +25,7 @@ const PRESETS = [
 ];
 
 interface ColorPickerBtnProps {
+  active?: boolean;
   editor?: IEditor;
   icon: any;
   label?: string;
@@ -32,6 +34,7 @@ interface ColorPickerBtnProps {
 }
 
 const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
+  active,
   editor,
   icon: Icon,
   label,
@@ -44,9 +47,6 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
 
   const handleMouseDown = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
-      // Prevent browser from clearing the native DOM Selection when clicking
-      // outside the contentEditable editor. Without this, the visual selection
-      // highlight disappears even though Lexical retains the selection internally.
       e.preventDefault();
       const lexicalEditor = editor?.getLexicalEditor();
       if (lexicalEditor) {
@@ -66,40 +66,22 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
       styles={{ popupOverlayInner: { zIndex: 10_000 } }}
       value={value || undefined}
     >
-      <div
-        onMouseDown={handleMouseDown}
-        style={{
-          alignItems: 'center',
-          borderRadius: 6,
-          cursor: 'pointer',
-          display: 'flex',
-          height: 36,
-          justifyContent: 'center',
-          width: 36,
-        }}
-        title={label}
-      >
-        <div
-          style={{
-            alignItems: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            position: 'relative',
-          }}
-        >
-          <Icon size={20} strokeWidth={1.5} />
-          {value && (
-            <div
-              style={{
-                backgroundColor: value,
-                borderRadius: 1,
-                height: 3,
-                width: 14,
-              }}
-            />
-          )}
-        </div>
+      <div onMouseDown={handleMouseDown} style={{ position: 'relative' }}>
+        <ActionIcon active={active} icon={Icon} size={{ blockSize: 36, size: 20 }} title={label} />
+        {value && (
+          <div
+            style={{
+              backgroundColor: value,
+              borderRadius: 1,
+              bottom: 3,
+              height: 3,
+              left: '50%',
+              position: 'absolute',
+              transform: 'translateX(-50%)',
+              width: 14,
+            }}
+          />
+        )}
       </div>
     </ColorPicker>
   );
