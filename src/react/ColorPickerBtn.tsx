@@ -24,7 +24,7 @@ const PRESETS = [
   },
 ];
 
-interface ColorPickerBtnProps {
+export interface ColorPickerBtnProps {
   active?: boolean;
   editor?: IEditor;
   icon: any;

@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import { type CSSProperties, type FC, useMemo } from 'react';
 
-import ColorPickerBtn from './ColorPicker';
+import ColorPickerBtn from '../../ColorPickerBtn';
 import { openFileSelector } from './actions';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({

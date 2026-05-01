@@ -6,6 +6,7 @@ export {
   type ChatInputActionsProps,
 } from './ChatInputActions';
 export { default as CodeLanguageSelect, type CodeLanguageSelectProps } from './CodeLanguageSelect';
+export { default as ColorPickerBtn, type ColorPickerBtnProps } from './ColorPickerBtn';
 export { default as Editor, type EditorProps, withProps } from './Editor';
 export {
   EditorProvider,
