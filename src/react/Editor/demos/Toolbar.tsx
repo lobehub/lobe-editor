@@ -80,9 +80,7 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
           onClick: editorState.redo,
           tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.Redo).keys },
         },
-        {
-          type: 'divider',
-        },
+        { type: 'divider' },
         {
           active: editorState.isBold,
           icon: BoldIcon,
@@ -115,9 +113,7 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
           onClick: editorState.strikethrough,
           tooltipProps: { hotkey: getHotkeyById(HotkeyEnum.Strikethrough).keys },
         },
-        {
-          type: 'divider',
-        },
+        { type: 'divider' },
         {
           children: (
             <ColorPickerBtn
@@ -146,9 +142,7 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
           key: 'bgColor',
           label: 'Background Color',
         },
-        {
-          type: 'divider',
-        },
+        { type: 'divider' },
         {
           icon: ListIcon,
           key: 'bulletList',
@@ -169,9 +163,7 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
           label: 'Task list',
           onClick: editorState.checkList,
         },
-        {
-          type: 'divider',
-        },
+        { type: 'divider' },
         {
           active: editorState.isBlockquote,
           icon: MessageSquareQuote,
@@ -192,9 +184,7 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
           label: 'TeX',
           onClick: editorState.insertMath,
         },
-        {
-          type: 'divider',
-        },
+        { type: 'divider' },
         {
           active: editorState.isCode,
           icon: CodeXmlIcon,
@@ -223,9 +213,7 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
           disabled: !editorState.isCodeblock,
           key: 'codeblockLang',
         },
-        {
-          type: 'divider',
-        },
+        { type: 'divider' },
         {
           icon: ImageIcon,
           key: 'image',
@@ -254,7 +242,71 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
     [editor, editorState],
   );
 
-  if (floating) return <FloatActions items={items} />;
+  const floatingItems = useMemo(
+    () =>
+      [
+        {
+          active: editorState.isBold,
+          icon: BoldIcon,
+          key: 'bold',
+          label: 'Bold',
+          onClick: editorState.bold,
+        },
+        {
+          active: editorState.isItalic,
+          icon: ItalicIcon,
+          key: 'italic',
+          label: 'Italic',
+          onClick: editorState.italic,
+        },
+        {
+          active: editorState.isUnderline,
+          icon: UnderlineIcon,
+          key: 'underline',
+          label: 'Underline',
+          onClick: editorState.underline,
+        },
+        {
+          active: editorState.isStrikethrough,
+          icon: StrikethroughIcon,
+          key: 'strikethrough',
+          label: 'Strikethrough',
+          onClick: editorState.strikethrough,
+        },
+        { type: 'divider' },
+        {
+          children: (
+            <ColorPickerBtn
+              active={!!editorState.textColor}
+              editor={editor}
+              icon={PaletteIcon}
+              label={'Text Color'}
+              onChange={editorState.setTextColor}
+              value={editorState.textColor}
+            />
+          ),
+          key: 'textColor',
+          label: 'Text Color',
+        },
+        {
+          children: (
+            <ColorPickerBtn
+              active={!!editorState.bgColor}
+              editor={editor}
+              icon={HighlighterIcon}
+              label={'Background Color'}
+              onChange={editorState.setBgColor}
+              value={editorState.bgColor}
+            />
+          ),
+          key: 'bgColor',
+          label: 'Background Color',
+        },
+      ] as ChatInputActionsProps['items'],
+    [editor, editorState],
+  );
+
+  if (floating) return <FloatActions items={floatingItems} />;
 
   return (
     <Block
