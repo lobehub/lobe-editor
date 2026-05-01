@@ -121,7 +121,6 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
         {
           children: (
             <ColorPickerBtn
-              active={!!editorState.textColor}
               editor={editor}
               icon={PaletteIcon}
               label={'Text Color'}
@@ -135,7 +134,6 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
         {
           children: (
             <ColorPickerBtn
-              active={!!editorState.bgColor}
               editor={editor}
               icon={HighlighterIcon}
               label={'Background Color'}

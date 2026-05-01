@@ -24,7 +24,6 @@ const PRESETS = [
 ];
 
 interface ColorPickerBtnProps {
-  active?: boolean;
   editor?: IEditor;
   icon: any;
   label?: string;
@@ -33,7 +32,6 @@ interface ColorPickerBtnProps {
 }
 
 const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
-  active,
   editor,
   icon: Icon,
   label,
@@ -72,7 +70,6 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
         onMouseDown={handleMouseDown}
         style={{
           alignItems: 'center',
-          background: active ? 'var(--color-fill-secondary)' : undefined,
           borderRadius: 6,
           cursor: 'pointer',
           display: 'flex',
