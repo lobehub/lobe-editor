@@ -11,9 +11,11 @@ import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
 import { debounce } from 'es-toolkit';
 import {
   $createNodeSelection,
+  $getPreviousSelection,
   $getSelection,
   $isParagraphNode,
   $isRangeSelection,
+  $isTextNode,
   $setSelection,
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,
@@ -24,6 +26,7 @@ import {
   REDO_COMMAND,
   SELECTION_CHANGE_COMMAND,
   TextFormatType,
+  TextNode,
   UNDO_COMMAND,
 } from 'lexical';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -52,6 +55,8 @@ import { $findTopLevelElement, formatParagraph, getSelectedNode } from './utils'
  * Editor state and toolbar methods return type
  */
 export interface EditorState {
+  /** Current background color of the selection */
+  bgColor: string;
   /** Current block type (e.g., 'paragraph', 'h1', 'h2', 'bullet', 'number', 'code') */
   blockType: string | null;
   /** Format selection as blockquote */
@@ -100,8 +105,14 @@ export interface EditorState {
   numberList: () => void;
   /** Redo last operation */
   redo: () => void;
+  /** Set background color for selection */
+  setBgColor: (color: string) => void;
+  /** Set text color for selection */
+  setTextColor: (color: string) => void;
   /** Toggle strikethrough formatting */
   strikethrough: () => void;
+  /** Current text color of the selection */
+  textColor: string;
   /** Toggle underline formatting */
   underline: () => void;
   /** Undo last operation */
@@ -133,6 +144,8 @@ export function useEditorState(editor?: IEditor): EditorState {
   const [isEmpty, setIsEmpty] = useState(true);
   const [isSelected, setIsSelected] = useState(false);
   const [blockType, setBlockType] = useState<string | null>(null);
+  const [textColor, setTextColorState] = useState('');
+  const [bgColor, setBgColorState] = useState('');
 
   const $handleHeadingNode = useCallback(
     (selectedElement: LexicalNode) => {
@@ -213,6 +226,23 @@ export function useEditorState(editor?: IEditor): EditorState {
           $handleHeadingNode(element);
         }
       }
+
+      // Parse textColor and bgColor from selection
+      let foundTextColor = '';
+      let foundBgColor = '';
+      const selectedNodes = selection.getNodes();
+      for (const textNode of selectedNodes) {
+        if ($isTextNode(textNode)) {
+          const style = textNode.getStyle();
+          const colorMatch = style.match(/color\s*:\s*([^;]+)/);
+          if (colorMatch) foundTextColor = colorMatch[1].trim();
+          const bgMatch = style.match(/background-color\s*:\s*([^;]+)/);
+          if (bgMatch) foundBgColor = bgMatch[1].trim();
+          break;
+        }
+      }
+      setTextColorState(foundTextColor);
+      setBgColorState(foundBgColor);
     } else if (!selection) {
       setIsSelected(false);
       setIsBold(false);
@@ -227,6 +257,8 @@ export function useEditorState(editor?: IEditor): EditorState {
       setIsInBlockquote(false);
       setCodeblockLang(null);
       setBlockType(null);
+      setTextColorState('');
+      setBgColorState('');
     }
   }, [editor]);
 
@@ -260,6 +292,105 @@ export function useEditorState(editor?: IEditor): EditorState {
   const italic = useCallback(() => {
     formatText('italic');
   }, [formatText]);
+
+  // Apply a CSS property (e.g. 'color' or 'background-color') to the current
+  // selection with proper node splitting — mirrors formatText's approach.
+  const $applyStyleProperty = useCallback((prop: string, value: string) => {
+    // Use $getPreviousSelection() as fallback — clicking the color button
+    // can cause the editor to lose focus, making $getSelection() return null.
+    const sel = $getSelection() || $getPreviousSelection();
+    if (!$isRangeSelection(sel) || sel.isCollapsed()) return;
+
+    const selectedNodes = sel.getNodes();
+    const selectedTextNodes: TextNode[] = [];
+    for (const node of selectedNodes) {
+      if ($isTextNode(node)) {
+        selectedTextNodes.push(node);
+      }
+    }
+    if (selectedTextNodes.length === 0) return;
+
+    const anchor = sel.anchor;
+    const focus = sel.focus;
+    const isBackward = sel.isBackward();
+    const startPoint = isBackward ? focus : anchor;
+    const endPoint = isBackward ? anchor : focus;
+
+    let firstIndex = 0;
+    let firstNode = selectedTextNodes[0];
+    let startOffset = startPoint.type === 'element' ? 0 : startPoint.offset;
+
+    if (startPoint.type === 'text' && startOffset === firstNode.getTextContentSize()) {
+      firstIndex = 1;
+      firstNode = selectedTextNodes[1];
+      startOffset = 0;
+    }
+    if (!firstNode) return;
+
+    const lastIndex = selectedTextNodes.length - 1;
+    let lastNode = selectedTextNodes[lastIndex];
+    const endOffset = endPoint.type === 'element' ? lastNode.getTextContentSize() : endPoint.offset;
+
+    // Build new style string: remove old property, optionally add new value
+    const buildStyle = (node: TextNode) => {
+      const escaped = prop.replaceAll('-', '\\-');
+      let style = node
+        .getStyle()
+        .replaceAll(new RegExp(escaped + '\\s*:\\s*[^;]+;?\\s*', 'g'), '')
+        .trim();
+      if (value) {
+        style = style ? `${style}; ${prop}: ${value}` : `${prop}: ${value}`;
+      }
+      return style;
+    };
+
+    // Single node selected
+    if (firstNode.is(lastNode)) {
+      if (startOffset === 0 && endOffset === firstNode.getTextContentSize()) {
+        firstNode.setStyle(buildStyle(firstNode));
+      } else {
+        const splitNodes = firstNode.splitText(startOffset, endOffset);
+        const target = startOffset === 0 ? splitNodes[0] : splitNodes[1];
+        target.setStyle(buildStyle(target));
+      }
+      return;
+    }
+
+    // Multiple nodes selected
+    if (startOffset !== 0) {
+      [, firstNode] = firstNode.splitText(startOffset);
+    }
+    firstNode.setStyle(buildStyle(firstNode));
+
+    if (endOffset > 0) {
+      if (endOffset !== lastNode.getTextContentSize()) {
+        [lastNode] = lastNode.splitText(endOffset);
+      }
+      lastNode.setStyle(buildStyle(lastNode));
+    }
+
+    for (let i = firstIndex + 1; i < lastIndex; i++) {
+      selectedTextNodes[i].setStyle(buildStyle(selectedTextNodes[i]));
+    }
+  }, []);
+
+  const setTextColor = useCallback(
+    (color: string) => {
+      editor?.getLexicalEditor()?.update(() => {
+        $applyStyleProperty('color', color);
+      });
+    },
+    [editor, $applyStyleProperty],
+  );
+
+  const setBgColor = useCallback(
+    (color: string) => {
+      editor?.getLexicalEditor()?.update(() => {
+        $applyStyleProperty('background-color', color);
+      });
+    },
+    [editor, $applyStyleProperty],
+  );
 
   const subscript = useCallback(() => {
     formatText('subscript');
@@ -556,6 +687,7 @@ export function useEditorState(editor?: IEditor): EditorState {
 
   return useMemo(
     () => ({
+      bgColor,
       blockType,
       blockquote,
       bold,
@@ -583,14 +715,18 @@ export function useEditorState(editor?: IEditor): EditorState {
       italic,
       numberList,
       redo,
+      setBgColor,
+      setTextColor,
       strikethrough,
       subscript,
       superscript,
+      textColor,
       underline,
       undo,
       updateCodeblockLang,
     }),
     [
+      bgColor,
       blockType,
       canRedo,
       canUndo,
@@ -607,6 +743,7 @@ export function useEditorState(editor?: IEditor): EditorState {
       isSubscript,
       isSuperscript,
       italic,
+      textColor,
     ],
   );
 }

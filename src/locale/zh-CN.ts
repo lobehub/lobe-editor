@@ -1,4 +1,5 @@
 const zhCN = {
+  bgColor: '背景颜色',
   cancel: '取消',
   codemirror: {
     copyFailed: '复制失败',
@@ -157,6 +158,7 @@ const zhCN = {
     insertRowAbove: '上方插入 {{count}} 行',
     insertRowBelow: '下方插入 {{count}} 行',
   },
+  textColor: '文字颜色',
 };
 
 export default zhCN;

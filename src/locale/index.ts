@@ -1,4 +1,5 @@
 const locale = {
+  bgColor: 'Background Color',
   cancel: 'Cancel',
   codemirror: {
     copyFailed: 'Copy failed',
@@ -159,6 +160,7 @@ const locale = {
     insertRowAbove: 'Insert {{count}} row(s) above',
     insertRowBelow: 'Insert {{count}} row(s) below',
   },
+  textColor: 'Text Color',
 };
 
 export default locale;
