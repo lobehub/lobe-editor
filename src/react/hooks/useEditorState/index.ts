@@ -8,7 +8,6 @@ import {
 import { $createQuoteNode, $isHeadingNode, $isQuoteNode } from '@lexical/rich-text';
 import { $setBlocksType } from '@lexical/selection';
 import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
-import { debounce } from 'es-toolkit';
 import {
   $createNodeSelection,
   $getPreviousSelection,
@@ -631,27 +630,22 @@ export function useEditorState(editor?: IEditor): EditorState {
     if (!editor) return;
     const lexicalEditor = editor.getLexicalEditor();
     let cleanup: () => void = noop;
-    const debounceUpdate = debounce(() => {
-      lexicalEditor?.read(() => {
-        $updateToolbar();
-      });
-    }, 500);
     const handleLexicalEditor = (lexicalEditor: LexicalEditor) => {
       cleanup = mergeRegister(
-        lexicalEditor.registerUpdateListener(
-          debounce(({ editorState }) => {
-            editorState.read(() => {
-              $updateToolbar();
-            });
-          }, 500),
-        ),
+        lexicalEditor.registerUpdateListener(({ editorState }) => {
+          editorState.read(() => {
+            $updateToolbar();
+          });
+        }),
         lexicalEditor.registerCommand(
           SELECTION_CHANGE_COMMAND,
           () => {
             if (lexicalEditor.isComposing()) {
               return false;
             }
-            debounceUpdate();
+            lexicalEditor.read(() => {
+              $updateToolbar();
+            });
             return false;
           },
           COMMAND_PRIORITY_LOW,
