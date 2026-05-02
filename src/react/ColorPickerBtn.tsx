@@ -36,6 +36,10 @@ export interface ColorPickerBtnProps {
   value?: string;
 }
 
+// Module-level storage shared across all ColorPickerBtn instances.
+// Keyed by icon presence to separate text color ("A") from bg color (HighlighterIcon).
+const lastUsedColors: Record<string, string | null> = {};
+
 const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
   active,
   defaultColor = '#000000',
@@ -45,17 +49,17 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
   onChange,
   value,
 }) => {
-  const [lastUsedColor, setLastUsedColor] = useState<string | null>(null);
+  const storageKey = Icon ? 'bg' : 'text';
   const [hovered, setHovered] = useState(false);
 
-  const displayColor = value || lastUsedColor || defaultColor;
+  const displayColor = value || lastUsedColors[storageKey] || defaultColor;
   // Color that left-click A applies (last picked, not the text's current color)
-  const appliedColor = lastUsedColor || defaultColor;
+  const appliedColor = lastUsedColors[storageKey] || defaultColor;
   // Bg color: show gray placeholder underline when no color set
-  const underlineColor = Icon && !lastUsedColor && !value ? '#D1D5DB' : appliedColor;
+  const underlineColor = Icon && !lastUsedColors[storageKey] && !value ? '#D1D5DB' : appliedColor;
 
   const handleChange = (_: any, css: string) => {
-    setLastUsedColor(css);
+    lastUsedColors[storageKey] = css;
     onChange?.(css);
   };
 
