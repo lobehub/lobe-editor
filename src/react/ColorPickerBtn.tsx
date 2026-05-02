@@ -54,17 +54,6 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
     onChange?.(css);
   };
 
-  const handleMouseDown = useCallback(
-    (e: MouseEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      const lexicalEditor = editor?.getLexicalEditor();
-      if (lexicalEditor) {
-        lexicalEditor.getRootElement()?.focus({ preventScroll: true });
-      }
-    },
-    [editor],
-  );
-
   const handleApplyColor = useCallback(() => {
     const lexicalEditor = editor?.getLexicalEditor();
     if (!lexicalEditor) return;
@@ -93,42 +82,7 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
     [editor],
   );
 
-  // Background color: keep ActionIcon inside ColorPicker
-  if (Icon) {
-    return (
-      <ColorPicker
-        format={'hex'}
-        getPopupContainer={() => document.body}
-        onChange={handleChange}
-        presets={PRESETS}
-        styles={{ popupOverlayInner: { zIndex: 10_000 } }}
-        value={displayColor}
-      >
-        <div onMouseDown={handleMouseDown} style={{ position: 'relative' }}>
-          <ActionIcon
-            active={active}
-            icon={Icon}
-            size={{ blockSize: 36, size: 20 }}
-            title={label}
-          />
-          <div
-            style={{
-              backgroundColor: displayColor,
-              borderRadius: 1,
-              bottom: 3,
-              height: 3,
-              left: '50%',
-              position: 'absolute',
-              transform: 'translateX(-50%)',
-              width: 14,
-            }}
-          />
-        </div>
-      </ColorPicker>
-    );
-  }
-
-  // Text color: split button — left A applies color, right chevron opens picker
+  // Split button: left icon + color underline, right chevron opens ColorPicker
   return (
     <div
       style={{
@@ -137,7 +91,7 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
         height: 36,
       }}
     >
-      {/* Left: A letter + color underline — click to apply current color */}
+      {/* Left: icon + color underline — click to apply current color */}
       <div
         onMouseDown={handleLeftMouseDown}
         style={{
@@ -148,13 +102,31 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
           paddingInline: 8,
         }}
       >
-        <span style={{ color: '#374151', fontSize: 18, fontWeight: 700, lineHeight: 1.2 }}>A</span>
+        {Icon ? (
+          <ActionIcon
+            active={active}
+            icon={Icon}
+            size={{ blockSize: 36, size: 20 }}
+            title={label}
+          />
+        ) : (
+          <span
+            style={{
+              color: 'rgba(0, 0, 0, 0.45)',
+              fontSize: 18,
+              fontWeight: 500,
+              lineHeight: 1.2,
+            }}
+          >
+            A
+          </span>
+        )}
         <div
           style={{
             backgroundColor: displayColor,
             borderRadius: 1,
             height: 2.5,
-            marginTop: 1,
+            marginTop: Icon ? 0 : 1,
             width: 16,
           }}
         />
