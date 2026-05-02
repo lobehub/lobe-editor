@@ -36,7 +36,6 @@ import {
 } from 'lucide-react';
 import { type CSSProperties, type FC, useMemo } from 'react';
 
-import ColorPickerBtn from '../../ColorPickerBtn';
 import { openFileSelector } from './actions';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
@@ -115,32 +114,24 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
         },
         { type: 'divider' },
         {
-          children: (
-            <ColorPickerBtn
-              active={!!editorState.textColor}
-              editor={editor}
-              icon={PaletteIcon}
-              label={'Text Color'}
-              onChange={editorState.setTextColor}
-              value={editorState.textColor}
-            />
-          ),
+          active: !!editorState.textColor,
+          editor,
+          icon: PaletteIcon,
           key: 'textColor',
           label: 'Text Color',
+          onChange: editorState.setTextColor,
+          type: 'colorPicker',
+          value: editorState.textColor,
         },
         {
-          children: (
-            <ColorPickerBtn
-              active={!!editorState.bgColor}
-              editor={editor}
-              icon={HighlighterIcon}
-              label={'Background Color'}
-              onChange={editorState.setBgColor}
-              value={editorState.bgColor}
-            />
-          ),
+          active: !!editorState.bgColor,
+          editor,
+          icon: HighlighterIcon,
           key: 'bgColor',
           label: 'Background Color',
+          onChange: editorState.setBgColor,
+          type: 'colorPicker',
+          value: editorState.bgColor,
         },
         { type: 'divider' },
         {
@@ -275,32 +266,24 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
         },
         { type: 'divider' },
         {
-          children: (
-            <ColorPickerBtn
-              active={!!editorState.textColor}
-              editor={editor}
-              icon={PaletteIcon}
-              label={'Text Color'}
-              onChange={editorState.setTextColor}
-              value={editorState.textColor}
-            />
-          ),
+          active: !!editorState.textColor,
+          editor,
+          icon: PaletteIcon,
           key: 'textColor',
           label: 'Text Color',
+          onChange: editorState.setTextColor,
+          type: 'colorPicker',
+          value: editorState.textColor,
         },
         {
-          children: (
-            <ColorPickerBtn
-              active={!!editorState.bgColor}
-              editor={editor}
-              icon={HighlighterIcon}
-              label={'Background Color'}
-              onChange={editorState.setBgColor}
-              value={editorState.bgColor}
-            />
-          ),
+          active: !!editorState.bgColor,
+          editor,
+          icon: HighlighterIcon,
           key: 'bgColor',
           label: 'Background Color',
+          onChange: editorState.setBgColor,
+          type: 'colorPicker',
+          value: editorState.bgColor,
         },
       ] as ChatInputActionsProps['items'],
     [editor, editorState],

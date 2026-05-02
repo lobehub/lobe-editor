@@ -1,6 +1,8 @@
 import type { FlexboxProps, MenuInfo, MenuItemType, TooltipProps } from '@lobehub/ui';
 import type { ReactNode } from 'react';
 
+import type { IEditor } from '@/types';
+
 export type FloatActionsEvent = Pick<MenuInfo, 'key' | 'keyPath' | 'domEvent'>;
 
 export interface ActionItem extends MenuItemType {
@@ -24,7 +26,24 @@ export type DropdownItem = Omit<ActionItem, 'children' | 'type'> & {
   type: 'dropdown';
 };
 
-export type FloatActionsItem = ActionItem | DividerItem | CollapseItem | DropdownItem;
+export type ColorPickerItem = {
+  active?: boolean;
+  editor?: IEditor;
+  icon: any;
+  key: string;
+  label: string;
+  onChange?: (color: string) => void;
+  type: 'colorPicker';
+  value?: string;
+  wrapper?: (dom: ReactNode) => ReactNode;
+};
+
+export type FloatActionsItem =
+  | ActionItem
+  | DividerItem
+  | CollapseItem
+  | DropdownItem
+  | ColorPickerItem;
 
 export interface FloatActionsProps extends Omit<FlexboxProps, 'children'> {
   defaultGroupCollapse?: boolean;

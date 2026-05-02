@@ -2,6 +2,7 @@ import { ActionIcon } from '@lobehub/ui';
 import { Divider } from 'antd';
 import { type FC, isValidElement } from 'react';
 
+import ColorPickerBtn from '../../ColorPickerBtn';
 import { styles } from '../style';
 import type { ActionItem, FloatActionsItem, FloatActionsProps } from '../type';
 
@@ -14,6 +15,21 @@ interface ActionRenderProps {
 const ActionRender: FC<ActionRenderProps> = ({ item, onActionClick, disabled }) => {
   if (item.type === 'divider') {
     return <Divider className={styles.divider} orientation={'vertical'} />;
+  }
+
+  if (item.type === 'colorPicker') {
+    const btn = (
+      <ColorPickerBtn
+        active={item.active}
+        editor={item.editor}
+        icon={item.icon}
+        label={item.label}
+        onChange={item.onChange}
+        value={item.value}
+      />
+    );
+    if (!item.wrapper) return btn;
+    return item.wrapper(btn);
   }
 
   const { wrapper, icon, key, label, onClick, danger, loading, active, tooltipProps, ...itemRest } =
