@@ -26,7 +26,6 @@ import {
   ListOrderedIcon,
   ListTodoIcon,
   MessageSquareQuote,
-  PaletteIcon,
   Redo2Icon,
   SigmaIcon,
   SquareDashedBottomCodeIcon,
@@ -116,7 +115,6 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
         {
           active: !!editorState.textColor,
           editor,
-          icon: PaletteIcon,
           key: 'textColor',
           label: 'Text Color',
           onChange: editorState.setTextColor,
@@ -268,7 +266,6 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
         {
           active: !!editorState.textColor,
           editor,
-          icon: PaletteIcon,
           key: 'textColor',
           label: 'Text Color',
           onChange: editorState.setTextColor,

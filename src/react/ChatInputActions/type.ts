@@ -30,7 +30,7 @@ export type DropdownItem = Omit<ActionItem, 'children' | 'type'> & {
 export type ColorPickerItem = {
   active?: boolean;
   editor?: IEditor;
-  icon: any;
+  icon?: any;
   key: string;
   label: string;
   onChange?: (color: string) => void;
