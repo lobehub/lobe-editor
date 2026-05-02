@@ -21,6 +21,7 @@ const ActionRender: FC<ActionRenderProps> = ({ item, onActionClick, disabled }) 
     const btn = (
       <ColorPickerBtn
         active={item.active}
+        defaultColor={item.defaultColor}
         editor={item.editor}
         icon={item.icon}
         label={item.label}

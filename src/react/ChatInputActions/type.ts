@@ -29,6 +29,7 @@ export type DropdownItem = Omit<ActionItem, 'children' | 'type'> & {
 
 export type ColorPickerItem = {
   active?: boolean;
+  defaultColor?: string;
   editor?: IEditor;
   icon?: any;
   key: string;

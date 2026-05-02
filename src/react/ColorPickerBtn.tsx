@@ -2,18 +2,14 @@ import { ActionIcon } from '@lobehub/ui';
 import { ColorPicker } from 'antd';
 import { $getPreviousSelection, $getSelection, $isRangeSelection } from 'lexical';
 import { ChevronDownIcon } from 'lucide-react';
-import { type CSSProperties, type FC, type MouseEvent, useCallback } from 'react';
+import { type CSSProperties, type FC, type MouseEvent, useCallback, useState } from 'react';
 
 import type { IEditor } from '@/types';
-
-const DEFAULT_COLOR = '#000000';
-
-let lastUsedColor: string | null = null;
 
 const PRESETS = [
   {
     colors: [
-      DEFAULT_COLOR,
+      '#000000',
       '#ffffff',
       '#dc2626',
       '#ea580c',
@@ -32,6 +28,7 @@ const PRESETS = [
 
 export interface ColorPickerBtnProps {
   active?: boolean;
+  defaultColor?: string;
   editor?: IEditor;
   icon?: any;
   label?: string;
@@ -41,16 +38,19 @@ export interface ColorPickerBtnProps {
 
 const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
   active,
+  defaultColor = '#000000',
   editor,
   icon: Icon,
   label,
   onChange,
   value,
 }) => {
-  const displayColor = value || lastUsedColor || DEFAULT_COLOR;
+  const [lastUsedColor, setLastUsedColor] = useState<string | null>(null);
+
+  const displayColor = value || lastUsedColor || defaultColor;
 
   const handleChange = (_: any, css: string) => {
-    lastUsedColor = css;
+    setLastUsedColor(css);
     onChange?.(css);
   };
 
@@ -137,6 +137,18 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
         format={'hex'}
         getPopupContainer={() => document.body}
         onChange={handleChange}
+        panelRender={(_, { components: { Picker, Presets } }) => (
+          <div>
+            <Presets />
+            <div
+              style={{
+                borderTop: '1px solid rgba(5, 5, 5, 0.06)',
+                margin: '8px 0',
+              }}
+            />
+            <Picker />
+          </div>
+        )}
         presets={PRESETS}
         styles={{ popupOverlayInner: { zIndex: 10_000 } }}
         value={displayColor}

@@ -123,6 +123,7 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
         },
         {
           active: !!editorState.bgColor,
+          defaultColor: '#ffffff',
           editor,
           icon: HighlighterIcon,
           key: 'bgColor',
@@ -274,6 +275,7 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
         },
         {
           active: !!editorState.bgColor,
+          defaultColor: '#ffffff',
           editor,
           icon: HighlighterIcon,
           key: 'bgColor',
