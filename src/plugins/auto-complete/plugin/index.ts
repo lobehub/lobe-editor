@@ -11,6 +11,7 @@ import {
   TextNode,
 } from 'lexical';
 
+import { createIdGenerator } from '@/editor-kernel';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
@@ -28,7 +29,18 @@ export interface AutoCompletePluginOptions {
     editor: IEditor;
     input: string;
     selectionType: string;
+    suggestionId?: string;
   }) => Promise<string | null>;
+  onSuggestionAccepted?: (info: {
+    acceptedText: string;
+    suggestionId: string;
+    visibleMs: number;
+  }) => void;
+  onSuggestionRejected?: (info: {
+    reason: 'cursor-move' | 'typing' | 'esc' | 'blur' | 'other';
+    suggestionId: string;
+    visibleMs: number;
+  }) => void;
   theme?: {
     placeholderBlock?: string;
     placeholderInline?: string;
@@ -48,7 +60,10 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   private delay: number;
   private placeholderNodes: TextNode[] = [];
   private currentSuggestion: string | null = null;
+  private currentSuggestionId: string | null = null;
+  private suggestionShownAt: number = 0;
   private markdownService: IMarkdownShortCutService | null = null;
+  private idGenerator = createIdGenerator('acp'); // auto-complete plugin id generator
 
   constructor(
     protected kernel: IEditorKernel,
@@ -94,6 +109,9 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
           // Check if cursor position has changed
           if (this.hasPositionChanged(currentPosition)) {
+            if (this.currentSuggestion) {
+              this.rejectSuggestion('cursor-move');
+            }
             this.clearTimer();
             this.clearPlaceholderNodes(editor);
 
@@ -114,7 +132,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         (event) => {
           if (this.currentSuggestion) {
             event?.preventDefault();
-            this.applySuggestion(editor);
+            this.acceptSuggestion(editor);
             return true;
           }
           return false;
@@ -130,7 +148,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
           if (this.currentSuggestion) {
             event?.preventDefault();
             this.clearPlaceholderNodes(editor);
-            this.currentSuggestion = null;
+            this.rejectSuggestion('esc');
             return true;
           }
           return false;
@@ -143,11 +161,24 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     this.register(
       editor.registerTextContentListener(() => {
         // If user types anything while placeholder is visible, clear it
-        if (this.placeholderNodes.length > 0) {
+        if (this.placeholderNodes.length > 0 || this.currentSuggestion) {
+          this.rejectSuggestion('typing');
           this.clearPlaceholderNodes(editor);
         }
       }),
     );
+  }
+
+  private rejectSuggestion(reason: 'cursor-move' | 'typing' | 'esc' | 'blur' | 'other'): void {
+    if (this.currentSuggestion && this.currentSuggestionId) {
+      this.config?.onSuggestionRejected?.({
+        reason,
+        suggestionId: this.currentSuggestionId,
+        visibleMs: Date.now() - this.suggestionShownAt,
+      });
+    }
+    this.currentSuggestion = null;
+    this.currentSuggestionId = null;
   }
 
   private hasPositionChanged(currentPosition: {
@@ -219,6 +250,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
       // Trigger auto-complete callback if provided
       if (this.config?.onAutoComplete) {
+        const suggestionId = this.idGenerator();
         this.config
           .onAutoComplete({
             abortSignal: this.abortController!.signal,
@@ -226,6 +258,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             editor: this.kernel as any,
             input: textRet.textBefore,
             selectionType,
+            suggestionId,
           })
           .then((result) => {
             let currentSelection: any = null;
@@ -261,6 +294,8 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             if (result) {
               // Store suggestion and show placeholder
               this.currentSuggestion = result;
+              this.currentSuggestionId = suggestionId;
+              this.suggestionShownAt = Date.now();
               this.showPlaceholderNodes(editor, result);
 
               this.logger.debug('🔍 Auto-complete triggered:', {
@@ -441,9 +476,17 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     });
   }
 
-  private applySuggestion(editor: LexicalEditor): void {
+  private acceptSuggestion(editor: LexicalEditor): void {
     if (!this.currentSuggestion) {
       return;
+    }
+
+    if (this.currentSuggestionId) {
+      this.config?.onSuggestionAccepted?.({
+        acceptedText: this.currentSuggestion,
+        suggestionId: this.currentSuggestionId,
+        visibleMs: Date.now() - this.suggestionShownAt,
+      });
     }
 
     const markdown = this.currentSuggestion;
@@ -468,6 +511,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
       this.clearPlaceholderNodes(editor);
       this.currentSuggestion = null;
+      this.currentSuggestionId = null;
     });
   }
 
