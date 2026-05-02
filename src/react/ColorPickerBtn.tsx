@@ -49,8 +49,10 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
   const [hovered, setHovered] = useState(false);
 
   const displayColor = value || lastUsedColor || defaultColor;
+  // Color that left-click A applies (last picked, not the text's current color)
+  const appliedColor = lastUsedColor || defaultColor;
   // Bg color: show gray placeholder underline when no color set
-  const underlineColor = Icon && !value && !lastUsedColor ? '#D1D5DB' : displayColor;
+  const underlineColor = Icon && !lastUsedColor && !value ? '#D1D5DB' : appliedColor;
 
   const handleChange = (_: any, css: string) => {
     setLastUsedColor(css);
@@ -64,9 +66,9 @@ const ColorPickerBtn: FC<ColorPickerBtnProps> = ({
     lexicalEditor.getEditorState().read(() => {
       const sel = $getSelection() || $getPreviousSelection();
       if (!$isRangeSelection(sel) || sel.isCollapsed()) return;
-      onChange?.(displayColor);
+      onChange?.(appliedColor);
     });
-  }, [editor, onChange, displayColor]);
+  }, [editor, onChange, appliedColor]);
 
   const handleLeftMouseDown = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
