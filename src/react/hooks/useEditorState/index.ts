@@ -232,7 +232,7 @@ export function useEditorState(editor?: IEditor): EditorState {
       const selectedNodes = selection.getNodes();
       for (const textNode of selectedNodes) {
         if ($isTextNode(textNode)) {
-          const style = textNode.getStyle();
+          const style = textNode.getStyle() || '';
           const colorMatch = style.match(/color\s*:\s*([^;]+)/);
           if (colorMatch) foundTextColor = colorMatch[1].trim();
           const bgMatch = style.match(/background-color\s*:\s*([^;]+)/);
