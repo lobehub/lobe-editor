@@ -4,6 +4,7 @@ import {
   INSERT_FILE_COMMAND,
   INSERT_IMAGE_COMMAND,
   getHotkeyById,
+  useOutlineActionItem,
 } from '@lobehub/editor';
 import {
   ChatInputActions,
@@ -53,11 +54,14 @@ export interface ToolbarProps {
   className?: string;
   editor: IEditor;
   floating?: boolean;
+  /** Appends outline toggler (requires ancestor OutlineProvider). */
+  outlineToggle?: boolean;
   style?: CSSProperties;
 }
 
-const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
+const Toolbar: FC<ToolbarProps> = ({ floating, editor, outlineToggle, style, className }) => {
   const editorState = useEditorState(editor);
+  const outlineAction = useOutlineActionItem();
 
   const items = useMemo(
     () =>
@@ -228,8 +232,9 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
             });
           },
         },
+        ...(outlineToggle && outlineAction ? [{ type: 'divider' as const }, outlineAction] : []),
       ].filter(Boolean) as ChatInputActionsProps['items'],
-    [editor, editorState],
+    [editor, editorState, outlineAction, outlineToggle],
   );
 
   const floatingItems = useMemo(
@@ -284,8 +289,9 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
           type: 'colorPicker',
           value: editorState.bgColor,
         },
+        ...(outlineToggle && outlineAction ? [{ type: 'divider' as const }, outlineAction] : []),
       ] as ChatInputActionsProps['items'],
-    [editor, editorState],
+    [editor, editorState, outlineAction, outlineToggle],
   );
 
   if (floating) return <FloatActions items={floatingItems} />;
