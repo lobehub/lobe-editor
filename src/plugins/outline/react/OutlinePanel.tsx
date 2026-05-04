@@ -8,10 +8,12 @@ import {
   $setSelection,
   LexicalEditor,
 } from 'lexical';
-import { type FC, useCallback, useEffect, useState } from 'react';
+import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { noop } from '@/editor-kernel/utils';
 import type { IEditor } from '@/types';
+
+import { useOutlineVisibilityContext } from './OutlineContext';
 
 interface HeadingItem {
   key: string;
@@ -21,9 +23,19 @@ interface HeadingItem {
 
 interface OutlinePanelProps {
   editor: IEditor;
+  /**
+   * When set, overrides {@link OutlineProvider} visibility for this panel only.
+   * Use together with matching {@link OutlineToolbar} controlled props when not using provider.
+   */
+  visible?: boolean;
 }
 
-const OutlinePanel: FC<OutlinePanelProps> = ({ editor }) => {
+const OutlinePanel: FC<OutlinePanelProps> = ({ editor, visible: controlledVisible }) => {
+  const visibilityCtx = useOutlineVisibilityContext();
+  const outlineVisible = useMemo(() => {
+    if (controlledVisible !== undefined) return controlledVisible;
+    return visibilityCtx?.visible ?? true;
+  }, [controlledVisible, visibilityCtx?.visible]);
   const [headings, setHeadings] = useState<HeadingItem[]>([]);
 
   const $buildHeadings = useCallback(() => {
@@ -99,10 +111,15 @@ const OutlinePanel: FC<OutlinePanelProps> = ({ editor }) => {
     [editor],
   );
 
-  if (headings.length === 0) return null;
+  if (!outlineVisible || headings.length === 0) return null;
 
   return (
-    <div>
+    <div
+      style={{
+        borderLeft: '1px solid rgba(0, 0, 0, 0.08)',
+        paddingLeft: 12,
+      }}
+    >
       <div
         style={{
           color: 'rgba(0,0,0,0.45)',

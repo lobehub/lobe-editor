@@ -9,6 +9,8 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  OutlinePanel,
+  OutlineProvider,
   ReactAutoCompletePlugin,
   ReactCodePlugin,
   ReactCodemirrorPlugin,
@@ -23,6 +25,7 @@ import {
   ReactToolbarPlugin,
   type SlashOptions,
   scrollIntoView,
+  useOutlineVisibility,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
@@ -38,7 +41,6 @@ import {
 } from 'lucide-react';
 import { type FC, useMemo, useState } from 'react';
 
-import { OutlinePanel } from '@/plugins/outline';
 import { devConsole } from '@/utils/debug';
 
 import Container from './Container';
@@ -54,6 +56,25 @@ const styles = createStaticStyles(({ css }) => ({
     padding: 16px;
   `,
 }));
+
+const OutlineSideRail: FC<{ editor: IEditor }> = ({ editor }) => {
+  const { visible } = useOutlineVisibility();
+
+  return (
+    <div
+      style={{
+        flexShrink: 0,
+        overflow: 'hidden',
+        transition: 'width 0.2s ease',
+        width: visible ? 200 : 0,
+      }}
+    >
+      <div style={{ width: 200 }}>
+        <OutlinePanel editor={editor} />
+      </div>
+    </div>
+  );
+};
 
 const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
   const editor = useEditor();
@@ -239,124 +260,124 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
   }, []);
 
   return (
-    <Container json={json} markdown={markdown} onJSONChange={handleJSONChange} {...props}>
-      <Toolbar editor={editor} />
-      <div style={{ display: 'flex', gap: 16 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Editor
-            className={styles.editor}
-            content={content}
-            editor={editor}
-            lineEmptyPlaceholder={'Start typing here...'}
-            mentionOption={{
-              items: mentionItems,
-              markdownWriter: (mention) => {
-                return `\n<mention>${mention.label}[${mention.metadata?.id || mention.label}]</mention>\n`;
-              },
-              onSelect: (editor, option) => {
-                editor.dispatchCommand(INSERT_MENTION_COMMAND, {
-                  label: String(option.label),
-                  metadata: { id: option.key },
-                });
-              },
-              searchKeys: ['label'],
-            }}
-            onInit={handleInit}
-            onTextChange={handleChange}
-            pasteVSCodeAsCodeBlock
-            placeholder={'Type something...'}
-            plugins={[
-              ReactListPlugin,
-              ReactLinkPlugin,
-              ReactImagePlugin,
-              // ReactCodeblockPlugin,
-              ReactCodemirrorPlugin,
-              ReactHRPlugin,
-              ReactTablePlugin,
-              ReactMathPlugin,
-              ReactMeta2dPlugin,
-              ReactCodePlugin,
-              Editor.withProps(ReactToolbarPlugin, {
-                children: <Toolbar editor={editor} floating />,
-              }),
-              Editor.withProps(ReactAutoCompletePlugin, {
-                delay: 1000,
-                onAutoComplete: async ({ input, afterText, selectionType, abortSignal }) => {
-                  // Simple example: return a fixed string for demonstration
-                  console.log('Auto-complete triggered:', {
-                    afterText,
-                    input,
-                    selectionType,
+    <OutlineProvider>
+      <Container json={json} markdown={markdown} onJSONChange={handleJSONChange} {...props}>
+        <Toolbar editor={editor} outlineToggle />
+        <div style={{ display: 'flex', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Editor
+              className={styles.editor}
+              content={content}
+              editor={editor}
+              lineEmptyPlaceholder={'Start typing here...'}
+              mentionOption={{
+                items: mentionItems,
+                markdownWriter: (mention) => {
+                  return `\n<mention>${mention.label}[${mention.metadata?.id || mention.label}]</mention>\n`;
+                },
+                onSelect: (editor, option) => {
+                  editor.dispatchCommand(INSERT_MENTION_COMMAND, {
+                    label: String(option.label),
+                    metadata: { id: option.key },
                   });
-                  const res = await fetch(`${location.origin}/nodeserver/completion`, {
-                    body: JSON.stringify({
-                      prompt: `Please complete the following text:\n\n${input}`,
-                    }),
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    method: 'POST',
-                    signal: abortSignal,
-                  });
-                  if (abortSignal.aborted) {
-                    console.log('Auto-complete aborted');
-                    return null;
-                  }
-                  const ai = await res.json();
-                  if (ai) {
-                    if (ai.content.startsWith(input)) {
-                      return ai.content.replace(input, '');
+                },
+                searchKeys: ['label'],
+              }}
+              onInit={handleInit}
+              onTextChange={handleChange}
+              pasteVSCodeAsCodeBlock
+              placeholder={'Type something...'}
+              plugins={[
+                ReactListPlugin,
+                ReactLinkPlugin,
+                ReactImagePlugin,
+                // ReactCodeblockPlugin,
+                ReactCodemirrorPlugin,
+                ReactHRPlugin,
+                ReactTablePlugin,
+                ReactMathPlugin,
+                ReactMeta2dPlugin,
+                ReactCodePlugin,
+                Editor.withProps(ReactToolbarPlugin, {
+                  children: <Toolbar editor={editor} floating outlineToggle />,
+                }),
+                Editor.withProps(ReactAutoCompletePlugin, {
+                  delay: 1000,
+                  onAutoComplete: async ({ input, afterText, selectionType, abortSignal }) => {
+                    // Simple example: return a fixed string for demonstration
+                    console.log('Auto-complete triggered:', {
+                      afterText,
+                      input,
+                      selectionType,
+                    });
+                    const res = await fetch(`${location.origin}/nodeserver/completion`, {
+                      body: JSON.stringify({
+                        prompt: `Please complete the following text:\n\n${input}`,
+                      }),
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      method: 'POST',
+                      signal: abortSignal,
+                    });
+                    if (abortSignal.aborted) {
+                      console.log('Auto-complete aborted');
+                      return null;
                     }
-                    return ai.content;
-                  }
-                  return null;
-                },
-              }),
-              Editor.withProps(ReactImagePlugin, {
-                defaultBlockImage: true,
-                handleRehost: async (url) => {
-                  const res = await fetch(url);
-                  const blob = await res.blob();
-                  return await new Promise<{ url: string }>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve({ url: reader.result as string });
-                    // eslint-disable-next-line unicorn/prefer-add-event-listener
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                  });
-                },
-                needRehost: (url) => {
-                  devConsole.log('needRehost', url);
-                  return url.startsWith('blob:');
-                },
-              }),
-              Editor.withProps(ReactFilePlugin, {
-                handleUpload: async (file) => {
-                  devConsole.log('Files uploaded:', file);
-                  return new Promise((resolve) => {
-                    setTimeout(() => {
-                      resolve({ url: URL.createObjectURL(file) });
-                    }, 1000);
-                  });
-                },
-                /**
-                 * Custom file markdown output
-                 */
-                markdownWriter: (file) => {
-                  return `\n<file>${file.fileUrl}</file>\n`;
-                },
-              }),
-            ]}
-            slashOption={{
-              items: slashItems,
-            }}
-          />
+                    const ai = await res.json();
+                    if (ai) {
+                      if (ai.content.startsWith(input)) {
+                        return ai.content.replace(input, '');
+                      }
+                      return ai.content;
+                    }
+                    return null;
+                  },
+                }),
+                Editor.withProps(ReactImagePlugin, {
+                  defaultBlockImage: true,
+                  handleRehost: async (url) => {
+                    const res = await fetch(url);
+                    const blob = await res.blob();
+                    return await new Promise<{ url: string }>((resolve, reject) => {
+                      const reader = new FileReader();
+                      reader.onloadend = () => resolve({ url: reader.result as string });
+                      // eslint-disable-next-line unicorn/prefer-add-event-listener
+                      reader.onerror = reject;
+                      reader.readAsDataURL(blob);
+                    });
+                  },
+                  needRehost: (url) => {
+                    devConsole.log('needRehost', url);
+                    return url.startsWith('blob:');
+                  },
+                }),
+                Editor.withProps(ReactFilePlugin, {
+                  handleUpload: async (file) => {
+                    devConsole.log('Files uploaded:', file);
+                    return new Promise((resolve) => {
+                      setTimeout(() => {
+                        resolve({ url: URL.createObjectURL(file) });
+                      }, 1000);
+                    });
+                  },
+                  /**
+                   * Custom file markdown output
+                   */
+                  markdownWriter: (file) => {
+                    return `\n<file>${file.fileUrl}</file>\n`;
+                  },
+                }),
+              ]}
+              slashOption={{
+                items: slashItems,
+              }}
+            />
+          </div>
+          <OutlineSideRail editor={editor} />
         </div>
-        <div style={{ flexShrink: 0, width: 200 }}>
-          <OutlinePanel editor={editor} />
-        </div>
-      </div>
-    </Container>
+      </Container>
+    </OutlineProvider>
   );
 };
 
