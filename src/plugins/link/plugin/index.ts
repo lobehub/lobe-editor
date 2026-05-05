@@ -66,11 +66,11 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
 
   registerMarkdown() {
     this.kernel.requireService(IMarkdownShortCutService)?.registerMarkdownShortCut({
-      regExp: /\[([^[]+)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)\s?$/,
+      regExp: /\[([^[]*)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)\s?$/,
       replace: (textNode, match) => {
         const [, linkText, linkUrl, linkTitle] = match;
         const linkNode = $createLinkNode(linkUrl, { title: linkTitle });
-        const linkTextNode = $createTextNode(linkText);
+        const linkTextNode = $createTextNode(linkText || linkUrl);
         linkTextNode.setFormat(textNode.getFormat());
         linkNode.append(linkTextNode);
         textNode.replace(linkNode);

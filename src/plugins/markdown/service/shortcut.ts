@@ -212,6 +212,23 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
       return true;
     }
 
+    // Also test text-match transformers (e.g. [](url), ![](url))
+    // so Enter key can trigger them even when IME blocks update listener
+    if (trigger === 'enter') {
+      const textContent = anchorNode.getTextContent();
+      const lastChar = textContent[anchorOffset - 1];
+      const transformers = this.textMatchTransformersByTrigger[lastChar];
+      if (transformers) {
+        const slice =
+          anchorOffset < textContent.length ? textContent.slice(0, anchorOffset) : textContent;
+        for (const t of transformers) {
+          if (t.regExp && t.regExp.test(slice)) {
+            return true;
+          }
+        }
+      }
+    }
+
     return false;
   }
 
