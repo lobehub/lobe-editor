@@ -33,6 +33,10 @@ fgbg-docs/
 │       └── toolbar.md
 └── references/               # 速查与索引
     ├── code-index.md         # 核心文件路径 → 功能索引表
+    ├── i18n-system.md        # 国际化系统：locale 结构、useTranslation、新增翻译键、插件级注册
+    ├── markdown-paste-confirm-design.md  # 粘贴 Markdown 确认系统：onPasteMarkdown 回调、confirmPasteMarkdown 内置弹窗
+    ├── markdown-image-transformer-design.md  # 图片 markdown transformer 设计
+    ├── markdown-shortcut-transformation-system.md  # Markdown 快捷转换系统
     └── paste-image-url-plugin-design.md       # 粘贴图片 URL 链路设计：ImagePlugin 与 LinkHighlightPlugin 的 PASTE_COMMAND 交互、优先级、useSuspenseImage 缓存
 ```
 

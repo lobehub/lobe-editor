@@ -48,6 +48,12 @@ export interface ReactPlainTextProps {
   onContextMenu?: (props: { editor: IEditor; event: MouseEvent<HTMLDivElement> }) => void;
   onFocus?: (props: { editor: IEditor; event: FocusEvent<HTMLDivElement> }) => void;
   onKeyDown?: (props: { editor: IEditor; event: KeyboardEvent }) => boolean | void;
+  /**
+   * Callback when markdown is detected in pasted text.
+   * Return `true` to convert, `false` to paste as plain text.
+   * Supports async (Promise<boolean>) for confirmation dialogs.
+   */
+  onPasteMarkdown?: (text: string) => boolean | Promise<boolean>;
   onPressEnter?: (props: { editor: IEditor; event: KeyboardEvent }) => boolean | void;
   /**
    * Callback triggered only when text content changes

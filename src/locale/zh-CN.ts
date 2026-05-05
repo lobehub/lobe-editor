@@ -37,6 +37,10 @@ const zhCN = {
     confirm: '确认',
     parseMessage: '转换为 Markdown 格式，现有内容将被覆盖，是否确认？（5 秒后自动关闭）',
     parseTitle: '解析 Markdown',
+    pasteCancel: '保留纯文本',
+    pasteConfirm: '转换',
+    pasteDescription: '粘贴的内容似乎是 Markdown 格式，是否转换为富文本？',
+    pasteTitle: '检测到 Markdown 格式',
   },
   math: {
     placeholder: '输入 TeX 公式',

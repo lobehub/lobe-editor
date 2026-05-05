@@ -1,11 +1,12 @@
 'use client';
 
 import { debounce } from 'es-toolkit';
-import { createElement, memo, useMemo } from 'react';
+import { createElement, memo, useCallback, useMemo, useRef, useState } from 'react';
 
 import { ReactEditor } from '@/editor-kernel/react/react-editor';
 import { ReactEditorContent, ReactPlainText } from '@/plugins/common';
 import ReactMarkdownPlugin from '@/plugins/markdown/react';
+import PasteMarkdownConfirm from '@/plugins/markdown/react/PasteMarkdownConfirm';
 import { ReactMentionPlugin } from '@/plugins/mention';
 import { ReactSlashOption, ReactSlashPlugin } from '@/plugins/slash';
 import { useEditorContent } from '@/react/EditorProvider';
@@ -40,6 +41,8 @@ const Editor = memo<EditorProps>(
     autoFocus,
     enablePasteMarkdown = true,
     autoFormatMarkdown = true,
+    confirmPasteMarkdown,
+    onPasteMarkdown,
     markdownOption = true,
     pasteAsPlainText = false,
     pasteVSCodeAsCodeBlock = true,
@@ -49,6 +52,32 @@ const Editor = memo<EditorProps>(
     onTextChange,
   }) => {
     const { config } = useEditorContent();
+
+    // Built-in paste confirmation dialog state
+    const pasteResolveRef = useRef<((v: boolean) => void) | null>(null);
+    const [pasteDialog, setPasteDialog] = useState<{ text: string; visible: boolean }>({
+      text: '',
+      visible: false,
+    });
+
+    const handlePasteMarkdown = useCallback((text: string): Promise<boolean> => {
+      return new Promise<boolean>((resolve) => {
+        pasteResolveRef.current = resolve;
+        setPasteDialog({ text, visible: true });
+      });
+    }, []);
+
+    const handlePasteConfirm = useCallback(() => {
+      pasteResolveRef.current?.(true);
+      pasteResolveRef.current = null;
+      setPasteDialog((p) => ({ ...p, visible: false }));
+    }, []);
+
+    const handlePasteCancel = useCallback(() => {
+      pasteResolveRef.current?.(false);
+      pasteResolveRef.current = null;
+      setPasteDialog((p) => ({ ...p, visible: false }));
+    }, []);
     const enableSlash = Boolean(slashOption?.items && slashOption.items.length > 0);
     const enableMention = Boolean(mentionOption?.items && mentionOption.items.length > 0);
     const { markdownWriter, ...restMentionOption } = mentionOption;
@@ -127,6 +156,7 @@ const Editor = memo<EditorProps>(
           onContextMenu={onContextMenu}
           onFocus={onFocus}
           onKeyDown={onKeyDown}
+          onPasteMarkdown={confirmPasteMarkdown ? handlePasteMarkdown : onPasteMarkdown}
           onPressEnter={onPressEnter}
           onTextChange={debouncedOnTextChange}
           pasteAsPlainText={pasteAsPlainText}
@@ -142,6 +172,12 @@ const Editor = memo<EditorProps>(
           />
         </ReactPlainText>
         {children}
+        <PasteMarkdownConfirm
+          onCancel={handlePasteCancel}
+          onConfirm={handlePasteConfirm}
+          text={pasteDialog.text}
+          visible={pasteDialog.visible}
+        />
       </ReactEditor>
     );
   },

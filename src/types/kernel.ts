@@ -78,6 +78,11 @@ export interface IKernelEventMap {
     matchedPatterns: string[];
     score: number;
   }) => void;
+  /**
+   * Markdown shortcut transformation event — emitted when typing or Enter triggers
+   * an auto-format (e.g. `# `→heading, `![]()`→image, `[text](url)`→link)
+   */
+  markdownTransform: (info: { trigger: 'enter' | 'type' }) => void;
 
   /**
    * handle paste event

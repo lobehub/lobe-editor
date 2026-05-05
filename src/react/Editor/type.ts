@@ -22,6 +22,12 @@ export interface EditorProps
   children?: ReactNode;
   className?: string;
   /**
+   * When true, shows a built-in confirmation dialog when markdown is detected on paste.
+   * The dialog asks the user whether to convert to rich text or keep as plain text.
+   * Supports zh-CN / en-US via editor locale.
+   */
+  confirmPasteMarkdown?: boolean;
+  /**
    * Debounce wait time in milliseconds for onChange and onTextChange callbacks
    * @default 100
    */
@@ -49,6 +55,12 @@ export interface EditorProps
       };
   mentionOption?: MentionOption;
   onInit?: (editor: IEditor) => void;
+  /**
+   * Callback when markdown is detected in pasted text.
+   * Return `true` to convert, `false` to paste as plain text.
+   * Supports async (Promise<boolean>) for confirmation dialogs.
+   */
+  onPasteMarkdown?: (text: string) => boolean | Promise<boolean>;
   /**
    * Callback triggered only when text content changes
    * Unlike onChange, this won't trigger on cursor movement or selection changes

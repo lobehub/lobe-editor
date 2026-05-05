@@ -267,6 +267,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
           <div style={{ flex: 1, minWidth: 0 }}>
             <Editor
               className={styles.editor}
+              confirmPasteMarkdown
               content={content}
               editor={editor}
               lineEmptyPlaceholder={'Start typing here...'}

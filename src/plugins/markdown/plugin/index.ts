@@ -65,6 +65,13 @@ export interface MarkdownPluginOptions {
    * @default true
    */
   enablePasteMarkdown?: boolean;
+  /**
+   * Callback when markdown is detected in pasted text.
+   * If provided, the paste is intercepted and the callback decides whether to convert.
+   * Return `true` to convert to markdown nodes, `false` to paste as plain text.
+   * Supports async (Promise<boolean>) for confirmation dialogs.
+   */
+  onPasteMarkdown?: (text: string) => boolean | Promise<boolean>;
 }
 
 export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = class
@@ -144,7 +151,9 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             return;
           }
 
-          this.service.runTransformers(parentNode, anchorNode, selection.anchor.offset);
+          if (this.service.runTransformers(parentNode, anchorNode, selection.anchor.offset)) {
+            this.kernel.emit('markdownTransform', { trigger: 'type' });
+          }
         });
       }),
     );
@@ -191,6 +200,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
               editor.update(() => {
                 this.service.runTransformers(parentNode, anchorNode, offset, 'enter');
               });
+              this.kernel.emit('markdownTransform', { trigger: 'enter' });
             });
             payload?.stopPropagation();
             payload?.stopImmediatePropagation();
@@ -217,20 +227,43 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           const rawText = clipboardData.getData('text/plain').trimEnd();
           // Remove BOM, zero-width spaces, and other invisible characters
           const text = rawText.replaceAll(/[\u200B-\u200D\u2060\uFEFF]/g, '');
-          const html = clipboardData.getData('text/html').trimEnd();
 
           // If there's no text content, let Lexical handle it
           if (!text) return false;
 
-          this.logger.debug('paste content analysis:', {
-            clipboardTypes: Array.from(clipboardData.types || []),
-            hasHTML: !!(html && html.trim()),
-            htmlLength: html?.length || 0,
-            textLength: text.length,
-          });
+          // If confirmation callback is provided, intercept paste for user decision
+          // (bypass hasRichHTML — user explicitly wants to be asked)
+          if (this.config?.onPasteMarkdown) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const historyState = this.kernel.getHistoryState().current;
+            Promise.resolve(this.config.onPasteMarkdown(text)).then((confirmed) => {
+              if (confirmed) {
+                editor.dispatchCommand(INSERT_MARKDOWN_COMMAND, {
+                  historyState,
+                  markdown: text,
+                });
+                this.kernel.emit('markdownParse', {
+                  cacheState: editor.getEditorState(),
+                  historyState,
+                  markdown: text,
+                  matchedPatterns: [],
+                  score: 0,
+                });
+              } else {
+                editor.update(() => {
+                  const selection = $getSelection();
+                  if ($isRangeSelection(selection)) {
+                    selection.insertRawText(text);
+                  }
+                });
+              }
+            });
+            return true;
+          }
 
           if (this.hasRichHTML(clipboardData)) {
-            this.logger.debug('rich HTML detected, skipping markdown auto-convert');
             return false;
           }
 
@@ -322,22 +355,4 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
 
     return this.config?.autoFormatMarkdown !== false;
   }
-
-  // /**
-  //  * Handle markdown paste by parsing and inserting as structured content
-  //  */
-  // private handleMarkdownPaste(editor: LexicalEditor, text: string): boolean {
-  //   try {
-  //     // Use the markdown data source to parse the content
-  //     const root = parseMarkdownToLexical(text, this.service.markdownReaders);
-  //     const selection = $getSelection();
-  //     const nodes = $generateNodesFromSerializedNodes(root.children);
-  //     $insertGeneratedNodes(editor, nodes, selection!);
-  //     return true;
-  //   } catch (error) {
-  //     this.logger.error('Failed to handle markdown paste:', error);
-  //   }
-
-  //   return false;
-  // }
 };

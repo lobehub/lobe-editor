@@ -82,6 +82,7 @@
 | `src/plugins/common/plugin/index.ts`                    | 插件   | 基础节点、数据源、历史、粘贴                                        | `src/editor-kernel/data-source.ts`                      |
 | `src/plugins/common/node/cursor.ts`                     | 节点   | `CursorNode`                                                        | `src/plugins/common/plugin/index.ts`                    |
 | `src/plugins/markdown/plugin/index.ts`                  | 插件   | Markdown 中枢                                                       | `src/plugins/markdown/service/shortcut.ts`              |
+| `src/plugins/markdown/react/PasteMarkdownConfirm.tsx`   | 组件   | 粘贴确认弹窗（i18n / 暗色主题）                                     | `src/react/Editor/Editor.tsx`                           |
 | `src/plugins/markdown/service/shortcut.ts`              | 服务   | `MarkdownShortCutService`                                           | 所有注册 Markdown 读写的插件                            |
 | `src/plugins/markdown/data-source/markdown/parse.ts`    | 解析   | mdast → Lexical JSON                                                | `src/plugins/markdown/plugin/index.ts`                  |
 | `src/plugins/slash/plugin/index.ts`                     | 插件   | `/` 斜杠命令                                                        | `src/plugins/slash/service/i-slash-service.ts`          |
@@ -105,12 +106,15 @@
 
 ### src/types/
 
-| 文件路径                | 类型 | 职责                                                                    |
-| ----------------------- | ---- | ----------------------------------------------------------------------- |
-| `src/types/kernel.ts`   | 类型 | `IEditor`, `IEditorKernel`, `IEditorPlugin`, `IServiceID`, `IDecorator` |
-| `src/types/locale.ts`   | 类型 | `ILocaleKeys`, `TFunction`, `LocaleType`                                |
-| `src/types/hotkey.ts`   | 类型 | `HotkeyId`, `HotkeyItem`, `ModifierCombination`                         |
-| `src/types/global.d.ts` | 声明 | mdast 扩展、antd-style、图片模块、**DEV**                               |
+| 文件路径                                    | 类型   | 职责                                                                    |
+| ------------------------------------------- | ------ | ----------------------------------------------------------------------- |
+| `src/types/kernel.ts`                       | 类型   | `IEditor`, `IEditorKernel`, `IEditorPlugin`, `IServiceID`, `IDecorator` |
+| `src/types/locale.ts`                       | 类型   | `ILocaleKeys`, `TFunction`, `LocaleType`                                |
+| `src/locale/index.ts`                       | locale | en-US 默认 locale 对象，含 100+ 翻译键                                  |
+| `src/locale/zh-CN.ts`                       | locale | zh-CN locale 对象，键结构与 en-US 完全一致                              |
+| `src/editor-kernel/react/useTranslation.ts` | hook   | `useTranslation()` → `TFunction`                                        |
+| `src/types/hotkey.ts`                       | 类型   | `HotkeyId`, `HotkeyItem`, `ModifierCombination`                         |
+| `src/types/global.d.ts`                     | 声明   | mdast 扩展、antd-style、图片模块、**DEV**                               |
 
 ### src/utils/
 
@@ -137,14 +141,15 @@
 
 ### "我想找 Markdown 相关的代码"
 
-| 功能                             | 文件                                                 |
-| -------------------------------- | ---------------------------------------------------- |
-| Markdown 实时快捷转换            | `src/plugins/markdown/plugin/index.ts`               |
-| Markdown 粘贴检测                | `src/plugins/markdown/plugin/index.ts`               |
-| Markdown 复制导出                | `src/plugins/markdown/plugin/index.ts`               |
-| Markdown 解析（mdast → Lexical） | `src/plugins/markdown/data-source/markdown/parse.ts` |
-| Markdown 服务注册中心            | `src/plugins/markdown/service/shortcut.ts`           |
-| Markdown 数据源读写              | `src/plugins/markdown/data-source/`                  |
+| 功能                             | 文件                                                  |
+| -------------------------------- | ----------------------------------------------------- |
+| Markdown 实时快捷转换            | `src/plugins/markdown/plugin/index.ts`                |
+| Markdown 粘贴检测                | `src/plugins/markdown/plugin/index.ts`                |
+| Markdown 粘贴确认弹窗            | `src/plugins/markdown/react/PasteMarkdownConfirm.tsx` |
+| Markdown 复制导出                | `src/plugins/markdown/plugin/index.ts`                |
+| Markdown 解析（mdast → Lexical） | `src/plugins/markdown/data-source/markdown/parse.ts`  |
+| Markdown 服务注册中心            | `src/plugins/markdown/service/shortcut.ts`            |
+| Markdown 数据源读写              | `src/plugins/markdown/data-source/`                   |
 
 ### "我想找插件注册相关的代码"
 
@@ -193,3 +198,16 @@
 | Headless 代码块插件 | `src/headless/plugins/codeblock.ts`             |
 | Headless 环境判断   | 各插件 `onInit` 中的 `isHeadlessEditor(editor)` |
 | 只读渲染器          | `src/renderer/LexicalRenderer.tsx`              |
+
+### "我想找 i18n / 国际化 相关的代码"
+
+| 功能                | 文件                                                             |
+| ------------------- | ---------------------------------------------------------------- |
+| en-US 默认 locale   | `src/locale/index.ts`                                            |
+| zh-CN locale        | `src/locale/zh-CN.ts`                                            |
+| 翻译函数 Hook       | `src/editor-kernel/react/useTranslation.ts`                      |
+| locale 类型定义     | `src/types/locale.ts`                                            |
+| Kernel t () 实现    | `src/editor-kernel/kernel.ts`（`t()` 方法 + `registerLocale()`） |
+| EditorProvider 配置 | `src/react/EditorProvider/index.tsx`                             |
+| 语言切换 Hook       | `src/react/hooks/useEditorLocale/index.ts`                       |
+| 新增翻译键步骤      | 见 `fgbg-docs/references/i18n-system.md`                         |

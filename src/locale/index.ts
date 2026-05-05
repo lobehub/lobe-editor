@@ -39,6 +39,10 @@ const locale = {
     parseMessage:
       'Convert to markdown format, existing content will be overwritten, confirm? (Auto close in 5 seconds)',
     parseTitle: 'Parse Markdown',
+    pasteCancel: 'Keep Plain Text',
+    pasteConfirm: 'Convert',
+    pasteDescription: 'Pasted content appears to be Markdown. Convert to rich text?',
+    pasteTitle: 'Markdown Format Detected',
   },
   math: {
     placeholder: 'Enter TeX formula',
