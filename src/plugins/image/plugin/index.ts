@@ -1,4 +1,14 @@
-import { LexicalEditor } from 'lexical';
+import { $wrapNodeInElement } from '@lexical/utils';
+import {
+  $createParagraphNode,
+  $getSelection,
+  $insertNodes,
+  $isRangeSelection,
+  $isRootOrShadowRoot,
+  COMMAND_PRIORITY_NORMAL,
+  LexicalEditor,
+  PASTE_COMMAND,
+} from 'lexical';
 import type { JSX } from 'react';
 
 import { INode } from '@/editor-kernel/inode';
@@ -8,10 +18,11 @@ import { INodeService } from '@/plugins/inode';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import { createDebugLogger } from '@/utils/debug';
 
 import { INSERT_IMAGE_COMMAND, registerImageCommand } from '../command';
-import { $isBlockImageNode, BlockImageNode } from '../node/block-image-node';
-import { $isImageNode, ImageNode } from '../node/image-node';
+import { $createBlockImageNode, $isBlockImageNode, BlockImageNode } from '../node/block-image-node';
+import { $createImageNode, $isImageNode, ImageNode } from '../node/image-node';
 
 export interface ImagePluginOptions {
   defaultBlockImage?: boolean;
@@ -30,6 +41,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
   implements IEditorPlugin<ImagePluginOptions>
 {
   static readonly pluginName = 'ImagePlugin';
+  private logger = createDebugLogger('plugin', 'image');
 
   constructor(
     protected kernel: IEditorKernel,
@@ -56,6 +68,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     this.registerMarkdown();
     this.registerINode();
     this.registerUpload(editor);
+    this.registerImageUrlPaste(editor);
     if (this.config?.needRehost && this.config?.handleRehost) {
       const needRehost = this.config.needRehost;
       const handleRehost = this.config.handleRehost;
@@ -147,6 +160,22 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
         },
       );
     });
+
+    markdownService.registerMarkdownShortCut({
+      regExp: /!\[([^\]]*)]\(([^)]*)\)/,
+      replace: (node, match) => {
+        const [, altText, src] = match;
+        const imageNode = defaultBlockImage
+          ? $createBlockImageNode({ altText, src, status: 'uploaded' })
+          : $createImageNode({ altText, src, status: 'uploaded' });
+        node.replace(imageNode);
+        if (!defaultBlockImage && $isRootOrShadowRoot(imageNode.getParentOrThrow())) {
+          $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
+        }
+      },
+      trigger: ')',
+      type: 'text-match',
+    });
   }
 
   private registerINode() {
@@ -198,5 +227,51 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
       });
       reader.readAsDataURL(file);
     });
+  }
+
+  /**
+   * Handle pasting image URLs — create ImageNode instead of LinkNode
+   */
+  private registerImageUrlPaste(editor: LexicalEditor) {
+    this.register(
+      editor.registerCommand(
+        PASTE_COMMAND,
+        (payload: ClipboardEvent) => {
+          const { clipboardData } = payload;
+          if (
+            clipboardData &&
+            clipboardData.types &&
+            clipboardData.types.length === 1 &&
+            clipboardData.types[0] === 'text/plain'
+          ) {
+            const data = clipboardData.getData('text/plain').trim();
+            // Check if URL ends in a common image extension
+            if (/^https?:\/\/\S+\.(?:jpe?g|png|gif|webp|svg|bmp|ico)(?:\?\S*)?$/i.test(data)) {
+              payload.stopImmediatePropagation();
+              payload.preventDefault();
+              this.logger.debug('Pasting image URL:', data);
+
+              editor.update(() => {
+                const selection = $getSelection();
+                if ($isRangeSelection(selection)) {
+                  const isBlock = this.config?.defaultBlockImage !== false;
+                  const imageNode = isBlock
+                    ? $createBlockImageNode({ altText: '', src: data, status: 'uploaded' })
+                    : $createImageNode({ altText: '', src: data, status: 'uploaded' });
+                  $insertNodes([imageNode]);
+                  if (!isBlock && $isRootOrShadowRoot(imageNode.getParentOrThrow())) {
+                    $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
+                  }
+                }
+              });
+
+              return true;
+            }
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+    );
   }
 };

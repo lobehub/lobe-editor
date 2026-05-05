@@ -41,7 +41,6 @@ const Editor = memo<EditorProps>(
     enablePasteMarkdown = true,
     autoFormatMarkdown = true,
     markdownOption = true,
-    pasteMarkdownAutoConvertThreshold,
     pasteAsPlainText = false,
     pasteVSCodeAsCodeBlock = true,
     onCompositionStart,
@@ -131,7 +130,6 @@ const Editor = memo<EditorProps>(
           onPressEnter={onPressEnter}
           onTextChange={debouncedOnTextChange}
           pasteAsPlainText={pasteAsPlainText}
-          pasteMarkdownAutoConvertThreshold={pasteMarkdownAutoConvertThreshold}
           pasteVSCodeAsCodeBlock={pasteVSCodeAsCodeBlock}
           style={style}
           variant={variant}

@@ -54,11 +54,6 @@ export interface EditorProps
    * Unlike onChange, this won't trigger on cursor movement or selection changes
    */
   onTextChange?: (editor: IEditor) => void;
-  /**
-   * Minimum markdown score required before auto conversion runs
-   * @default 5
-   */
-  pasteMarkdownAutoConvertThreshold?: number;
   plugins?: EditorPlugin[];
   slashOption?: Partial<ReactSlashOptionProps>;
   /** Force slash menu placement direction, skipping auto-flip detection */

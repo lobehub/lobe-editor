@@ -38,6 +38,7 @@ export default class MarkdownDataSource extends DataSource {
           bullet: '-',
           emphasis: '*',
           fences: true,
+          resourceLink: true,
           rule: '-',
           strong: '*',
           tightDefinitions: true,

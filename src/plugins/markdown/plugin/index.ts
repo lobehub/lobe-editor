@@ -26,9 +26,6 @@ import { INSERT_MARKDOWN_COMMAND, registerMarkdownCommand } from '../command';
 import MarkdownDataSource from '../data-source/markdown-data-source';
 import { IMarkdownShortCutService, MarkdownShortCutService } from '../service/shortcut';
 import { canContainTransformableMarkdown } from '../utils';
-import { detectCodeLanguage, detectLanguage } from '../utils/detectLanguage';
-
-const DEFAULT_PASTE_MARKDOWN_AUTO_CONVERT_THRESHOLD = 5;
 
 /**
  * Plain-text Mermaid / diagram snippets look like “multi-paragraph Markdown” (blank lines → high score)
@@ -54,64 +51,8 @@ export function looksLikeMermaidDiagramSyntax(text: string): boolean {
   return false;
 }
 
-interface MarkdownDetectionRule {
-  name: string;
-  score: number;
-  test: (text: string) => boolean;
-}
-
-interface MarkdownDetectionResult {
-  matchedPatterns: string[];
-  score: number;
-  shouldAutoConvert: boolean;
-}
-
 const RICH_HTML_SELECTOR =
   'strong,em,b,i,h1,h2,h3,h4,h5,h6,ul,ol,table,img,blockquote,pre>code,a[href]';
-
-const MARKDOWN_DETECTION_RULES = [
-  { name: 'headers', score: 5, test: (text) => /^#{1,6}\s+\S/m.test(text) },
-  { name: 'code-fence-start', score: 5, test: (text) => /^```[\w-]*$/m.test(text) },
-  { name: 'links', score: 4, test: (text) => /\[[^\]]+]\([^)]+\)/.test(text) },
-  { name: 'images', score: 5, test: (text) => /!\[[^\]]*]\([^)]+\)/.test(text) },
-  {
-    name: 'tables',
-    score: 5,
-    test: (text) => /^\|.+\|$/m.test(text) && /^\|[\s:|-]+\|$/m.test(text),
-  },
-  {
-    name: 'admonitions',
-    score: 5,
-    test: (text) => /^>\s*\[!(?:note|tip|warning|caution|important)]/im.test(text),
-  },
-  {
-    name: 'task-lists',
-    score: 4,
-    test: (text) => /^[*-]\s+\[[ x]]/m.test(text),
-  },
-  { name: 'bold', score: 2, test: (text) => /\*\*.+?\*\*/.test(text) },
-  {
-    name: 'italic',
-    score: 1,
-    test: (text) => /(?<!\*)\*(?!\*)(?!\s).+?(?<!\s)(?<!\*)\*(?!\*)/.test(text),
-  },
-  { name: 'unordered-lists', score: 1, test: (text) => /^[*+-]\s+\S/m.test(text) },
-  { name: 'ordered-lists', score: 1, test: (text) => /^\d+\.\s+\S/m.test(text) },
-  { name: 'blockquotes', score: 1, test: (text) => /^>\s+\S/m.test(text) },
-  { name: 'inline-code', score: 1, test: (text) => /`.+?`/.test(text) },
-  {
-    name: 'horizontal-rules',
-    score: 2,
-    test: (text) => /^[*_-]{3,}$/m.test(text),
-  },
-  {
-    name: 'multi-paragraph',
-    score: 5,
-    test: (text) => text.split(/\n{2,}/).filter(Boolean).length >= 2,
-  },
-  { name: 'short-text-penalty', score: -3, test: (text) => text.length < 20 },
-  { name: 'single-line-penalty', score: -2, test: (text) => !text.includes('\n') },
-] as const satisfies MarkdownDetectionRule[];
 
 export interface MarkdownPluginOptions {
   /**
@@ -124,11 +65,6 @@ export interface MarkdownPluginOptions {
    * @default true
    */
   enablePasteMarkdown?: boolean;
-  /**
-   * Minimum markdown score required before auto conversion runs
-   * @default 5
-   */
-  pasteMarkdownAutoConvertThreshold?: number;
 }
 
 export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = class
@@ -298,31 +234,20 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             return false;
           }
 
-          const detectionResult = this.getMarkdownDetectionResult(text);
-
-          if (detectionResult.shouldAutoConvert) {
-            this.logger.debug('markdown auto-convert detected:', detectionResult);
-
-            const historyState = this.kernel.getHistoryState().current;
-            setTimeout(() => {
-              editor.dispatchCommand(INSERT_MARKDOWN_COMMAND, {
-                historyState,
-                markdown: text,
-              });
-              this.kernel.emit('markdownParse', {
-                cacheState: editor.getEditorState(),
-                historyState,
-                markdown: text,
-                matchedPatterns: detectionResult.matchedPatterns,
-                score: detectionResult.score,
-              });
-            }, 10);
-          } else {
-            this.logger.debug(
-              'markdown score below auto-convert threshold, keeping as plain text:',
-              detectionResult,
-            );
-          }
+          const historyState = this.kernel.getHistoryState().current;
+          setTimeout(() => {
+            editor.dispatchCommand(INSERT_MARKDOWN_COMMAND, {
+              historyState,
+              markdown: text,
+            });
+            this.kernel.emit('markdownParse', {
+              cacheState: editor.getEditorState(),
+              historyState,
+              markdown: text,
+              matchedPatterns: [],
+              score: 0,
+            });
+          }, 10);
 
           return false;
         },
@@ -372,38 +297,6 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     );
   }
 
-  /**
-   * Detect if content is code and should be inserted as code block
-   * Uses advanced language detection with pattern matching
-   * Excludes markdown because markdown content is handled by the paste auto-convert flow
-   */
-  private detectCodeContent(text: string): { confidence: number; language: string } | null {
-    // Use the advanced language detector
-    const detected = detectLanguage(text);
-
-    if (detected && detected.confidence > 50) {
-      // Don't insert markdown as code block - it should use the markdown auto-convert flow
-      if (detected.language === 'markdown') {
-        return null;
-      }
-
-      this.logger.debug('language detected:', detected);
-      return detected;
-    }
-
-    // Fallback to fast detection for common formats
-    const fastDetected = detectCodeLanguage(text);
-    if (fastDetected) {
-      // Don't insert markdown as code block
-      if (fastDetected === 'markdown') {
-        return null;
-      }
-      return { confidence: 80, language: fastDetected };
-    }
-
-    return null;
-  }
-
   private hasRichHTML(clipboardData: DataTransfer) {
     const html = clipboardData.getData('text/html');
 
@@ -415,54 +308,6 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     const richTags = doc.body.querySelectorAll(RICH_HTML_SELECTOR);
 
     return richTags.length > 0;
-  }
-
-  /**
-   * Analyze pasted text and determine whether it should auto convert to markdown
-   */
-  private getMarkdownDetectionResult(text: string): MarkdownDetectionResult {
-    if (this.detectCodeContent(text)) {
-      return {
-        matchedPatterns: [],
-        score: 0,
-        shouldAutoConvert: false,
-      };
-    }
-
-    if (looksLikeMermaidDiagramSyntax(text)) {
-      return {
-        matchedPatterns: ['mermaid-diagram-syntax'],
-        score: 0,
-        shouldAutoConvert: false,
-      };
-    }
-
-    const matchedPatterns: string[] = [];
-    let score = 0;
-    const threshold = this.getPasteMarkdownAutoConvertThreshold();
-
-    for (const rule of MARKDOWN_DETECTION_RULES) {
-      if (!rule.test(text)) continue;
-
-      matchedPatterns.push(rule.name);
-      score += rule.score;
-    }
-
-    return {
-      matchedPatterns,
-      score,
-      shouldAutoConvert: score >= threshold,
-    };
-  }
-
-  private getPasteMarkdownAutoConvertThreshold() {
-    const threshold = this.config?.pasteMarkdownAutoConvertThreshold;
-
-    if (typeof threshold !== 'number' || Number.isNaN(threshold)) {
-      return DEFAULT_PASTE_MARKDOWN_AUTO_CONVERT_THRESHOLD;
-    }
-
-    return Math.max(1, threshold);
   }
 
   private shouldHandlePasteMarkdown() {

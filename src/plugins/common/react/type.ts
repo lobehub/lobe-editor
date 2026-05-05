@@ -60,11 +60,6 @@ export interface ReactPlainTextProps {
    */
   pasteAsPlainText?: boolean;
   /**
-   * Minimum markdown score required before auto conversion runs
-   * @default 5
-   */
-  pasteMarkdownAutoConvertThreshold?: number;
-  /**
    * When pasting VS Code content (detected via vscode-editor-data clipboard type),
    * create a code block with the language from VS Code instead of pasting as plain text.
    * This option only takes effect when pasteAsPlainText is enabled.
