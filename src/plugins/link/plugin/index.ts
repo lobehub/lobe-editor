@@ -1,11 +1,11 @@
-import { $createTextNode, COMMAND_PRIORITY_NORMAL, LexicalEditor, PASTE_COMMAND } from 'lexical';
+import { $createTextNode, LexicalEditor } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
-import { INSERT_LINK_COMMAND, registerLinkCommand } from '../command';
+import { registerLinkCommand } from '../command';
 import {
   $createLinkNode,
   $isLinkNode,
@@ -59,30 +59,6 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
         enableHotkey: this.config?.enableHotkey,
         validateUrl: this.config?.validateUrl,
       }),
-    );
-    this.register(
-      editor.registerCommand(
-        PASTE_COMMAND,
-        (payload: ClipboardEvent) => {
-          const { clipboardData } = payload;
-          if (
-            clipboardData &&
-            clipboardData.types &&
-            clipboardData.types.length === 1 &&
-            clipboardData.types[0] === 'text/plain'
-          ) {
-            const data = clipboardData.getData('text/plain').trim();
-            if (this.linkRegex.test(data)) {
-              payload.stopImmediatePropagation();
-              payload.preventDefault();
-              editor.dispatchCommand(INSERT_LINK_COMMAND, { url: data });
-              return true;
-            }
-          }
-          return false;
-        },
-        COMMAND_PRIORITY_NORMAL,
-      ),
     );
 
     this.registerMarkdown();

@@ -1,11 +1,4 @@
-import {
-  $createTextNode,
-  $getSelection,
-  $isRangeSelection,
-  COMMAND_PRIORITY_NORMAL,
-  LexicalEditor,
-  PASTE_COMMAND,
-} from 'lexical';
+import { $createTextNode, LexicalEditor } from 'lexical';
 
 import type { ITextNode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -69,47 +62,6 @@ export const LinkHighlightPlugin: IEditorPluginConstructor<LinkHighlightPluginOp
         enableHotkey: this.config?.enableHotkey,
       }),
     );
-
-    // Register paste handler for auto-highlighting URLs
-    if (this.config?.enablePasteAutoHighlight !== false) {
-      this.register(
-        editor.registerCommand(
-          PASTE_COMMAND,
-          (payload: ClipboardEvent) => {
-            const { clipboardData } = payload;
-            if (
-              clipboardData &&
-              clipboardData.types &&
-              clipboardData.types.length === 1 &&
-              clipboardData.types[0] === 'text/plain'
-            ) {
-              const data = clipboardData.getData('text/plain').trim();
-              // Check if the pasted content is a valid URL
-              if (this.urlRegex.test(data) && isValidUrl(data)) {
-                payload.stopImmediatePropagation();
-                payload.preventDefault();
-                this.logger.debug('Auto-highlighting pasted URL:', data);
-
-                // Insert LinkHighlightNode directly
-                editor.update(() => {
-                  const selection = $getSelection();
-                  if ($isRangeSelection(selection)) {
-                    const linkHighlightNode = $createLinkHighlightNode();
-                    const textNode = $createTextNode(data);
-                    linkHighlightNode.append(textNode);
-                    selection.insertNodes([linkHighlightNode]);
-                  }
-                });
-
-                return true;
-              }
-            }
-            return false;
-          },
-          COMMAND_PRIORITY_NORMAL,
-        ),
-      );
-    }
 
     const markdownService = this.kernel.requireService(IMarkdownShortCutService);
     if (!markdownService) {
