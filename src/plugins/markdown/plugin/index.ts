@@ -234,6 +234,11 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             return false;
           }
 
+          // Bare URLs (no markdown syntax) should stay as plain text
+          if (/^https?:\/\/\S+$/i.test(text)) {
+            return false;
+          }
+
           const historyState = this.kernel.getHistoryState().current;
           setTimeout(() => {
             editor.dispatchCommand(INSERT_MARKDOWN_COMMAND, {
