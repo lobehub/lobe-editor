@@ -4,6 +4,7 @@ import Editor, { moment } from '@/editor-kernel';
 import { CodePlugin } from '@/plugins/code/plugin';
 import { CommonPlugin } from '@/plugins/common/plugin';
 import { HRPlugin } from '@/plugins/hr/plugin';
+import { LinkPlugin } from '@/plugins/link/plugin';
 import { ListPlugin } from '@/plugins/list/plugin';
 import {
   LITEXML_APPLY_COMMAND,
@@ -193,6 +194,7 @@ const normalizeLegacyEditorData = (
 export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   [CommonPlugin, { enableHotkey: false }],
   MarkdownPlugin,
+  [LinkPlugin, { enableHotkey: false }],
   CodePlugin,
   HeadlessCodeblockPlugin,
   HRPlugin,

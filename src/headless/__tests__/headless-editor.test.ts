@@ -24,6 +24,26 @@ function findTextNode(
   return null;
 }
 
+function findNodeByType(
+  node: SerializedLexicalNode,
+  type: string,
+): (SerializedLexicalNode & Record<string, unknown>) | null {
+  if (node.type === type) {
+    return node as SerializedLexicalNode & Record<string, unknown>;
+  }
+
+  if ('children' in node && Array.isArray(node.children)) {
+    for (const child of node.children) {
+      const found = findNodeByType(child, type);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return null;
+}
+
 function getXmlTextId(xml: string, text: string): string {
   const match = xml.match(new RegExp(`<span id="([^"]+)"[^>]*>${text}</span>`));
   expect(match).not.toBeNull();
@@ -90,6 +110,24 @@ describe('HeadlessEditor', () => {
     expect(editorData.root.children[1].type).toBe('list');
     expect(findTextNode(editorData.root, 'Alpha')).not.toBeNull();
     expect(findTextNode(editorData.root, 'Second')).not.toBeNull();
+  });
+
+  it('preserves Markdown links in headless editor data and Markdown projection', () => {
+    const editor = createHeadlessEditor();
+    const url = 'https://github.com/lobehub/lobehub/pull/14436';
+
+    editor.hydrateMarkdown(`[#14436](${url})`);
+
+    const { editorData, markdown } = editor.export();
+    const linkNode = findNodeByType(editorData.root, 'link');
+
+    expect(markdown).toBe(`[#14436](${url})\n`);
+    expect(linkNode).toMatchObject({
+      children: [expect.objectContaining({ text: '#14436', type: 'text' })],
+      type: 'link',
+      url,
+    });
+    editor.destroy();
   });
 
   it('supports Markdown tables in headless mode', () => {
