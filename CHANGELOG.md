@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.9.9](https://github.com/lobehub/lobe-editor/compare/v4.9.8...v4.9.9)
+<sup>Released on **2026-05-06**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **headless**: Preserve markdown links.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **headless**: Preserve markdown links, closes [#145](https://github.com/lobehub/lobe-editor/issues/145) ([bad801a](https://github.com/lobehub/lobe-editor/commit/bad801a))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.9.8](https://github.com/lobehub/lobe-editor/compare/v4.9.7...v4.9.8)
 <sup>Released on **2026-05-06**</sup>
 
