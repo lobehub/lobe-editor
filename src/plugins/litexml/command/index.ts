@@ -230,7 +230,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
               }
             }
           });
-          return false;
+          return true;
         } catch (error) {
           logger.error('❌ Error processing LITEXML_MODIFY_COMMAND:', error);
           return false;
@@ -244,7 +244,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
         const { litexml, delay } = payload;
         const arrayXml = toArrayXml(litexml);
         handleModify(editor, dataSource, arrayXml, delay);
-        return false;
+        return true;
       },
       COMMAND_PRIORITY_EDITOR, // Priority
     ),
@@ -254,7 +254,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
         const { id, delay } = payload;
         const key = charToId(id);
         handleRemove(editor, key, delay);
-        return false;
+        return true;
       },
       COMMAND_PRIORITY_EDITOR, // Priority
     ),
@@ -262,7 +262,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
       LITEXML_INSERT_COMMAND,
       (payload) => {
         handleInsert(editor, payload, dataSource);
-        return false;
+        return true;
       },
       COMMAND_PRIORITY_EDITOR, // Priority
     ),
