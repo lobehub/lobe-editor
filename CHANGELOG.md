@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.9.7](https://github.com/lobehub/lobe-editor/compare/v4.9.6...v4.9.7)
+<sup>Released on **2026-05-06**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Report litexml commands as handled.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Report litexml commands as handled ([e41d3fa](https://github.com/lobehub/lobe-editor/commit/e41d3fa))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.9.6](https://github.com/lobehub/lobe-editor/compare/v4.9.5...v4.9.6)
 <sup>Released on **2026-04-30**</sup>
 
