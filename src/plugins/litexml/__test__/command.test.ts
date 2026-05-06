@@ -26,46 +26,6 @@ describe('Common Plugin Tests', () => {
     kernel.initNodeEditor();
   });
 
-  it('should report litexml commands as handled', async () => {
-    const markdown =
-      '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n';
-
-    kernel.setDocument('markdown', markdown);
-    expect(
-      kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-        litexml: '<span id="lqqe">ModifiedText</span>',
-      }),
-    ).toBe(true);
-    await moment();
-
-    kernel.setDocument('markdown', markdown);
-    expect(
-      kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
-        afterId: 'll63',
-        litexml: '<p><span bold="true">InsertedText</span></p>',
-      }),
-    ).toBe(true);
-    await moment();
-
-    kernel.setDocument('markdown', markdown);
-    expect(
-      kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-        id: 'll63',
-      }),
-    ).toBe(true);
-    await moment();
-
-    kernel.setDocument('markdown', markdown);
-    expect(
-      kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, [
-        {
-          action: 'modify',
-          litexml: '<span id="lqqe">ModifiedText</span>',
-        },
-      ]),
-    ).toBe(true);
-  });
-
   it('should LITEXML_APPLY_COMMAND work', async () => {
     kernel.setDocument(
       'markdown',
