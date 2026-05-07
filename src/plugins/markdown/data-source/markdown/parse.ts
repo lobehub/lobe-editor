@@ -12,6 +12,7 @@ import { logger } from '../../utils/logger';
 export type MarkdownReadNode = INode | ITextNode | IElementNode;
 
 export type MarkdownNode = Root | RootContent | PhrasingContent;
+export type MarkdownNodeType = MarkdownNode['type'];
 
 export type MarkdownReaderFunc<K> = (
   node: Extract<MarkdownNode, { type: K }>,
@@ -47,7 +48,10 @@ const selfClosingHtmlTags = new Set([
 
 class MarkdownContext {
   private stack: Array<IHTMLStack> = [];
-  constructor(public readonly root: Root) {}
+  constructor(
+    public readonly root: Root,
+    public readonly markdown: string,
+  ) {}
 
   push(html: IHTMLStack) {
     this.stack.push(html);
@@ -74,11 +78,45 @@ export interface IHTMLStack {
   tag: string;
 }
 
+const getNodeRawMarkdown = (node: Root | RootContent, markdown: string) => {
+  const start = node.position?.start.offset;
+  const end = node.position?.end.offset;
+
+  if (typeof start === 'number' && typeof end === 'number') {
+    return markdown.slice(start, end);
+  }
+
+  if ('value' in node && typeof node.value === 'string') {
+    return node.value;
+  }
+
+  return '';
+};
+
+const createFallbackRawNode = (
+  node: Root | RootContent,
+  ctx: MarkdownContext,
+  parentType: MarkdownNodeType | null,
+): MarkdownReadNode | null => {
+  const raw = getNodeRawMarkdown(node, ctx.markdown);
+  if (!raw) return null;
+
+  if (parentType === null || parentType === 'root') {
+    return {
+      ...INodeHelper.createParagraph(),
+      children: [INodeHelper.createTextNode(raw)],
+    };
+  }
+
+  return INodeHelper.createTextNode(raw);
+};
+
 function convertMdastToLexical(
   node: Root | RootContent,
   index: number,
   ctx: MarkdownContext,
   markdownReaders: TransformerRecord = {},
+  parentType: MarkdownNodeType | null = null,
 ): MarkdownReadNode | MarkdownReadNode[] | null {
   switch (node.type) {
     case 'text': {
@@ -87,6 +125,10 @@ function convertMdastToLexical(
     }
 
     default: {
+      if (!markdownReaders[node.type]) {
+        return createFallbackRawNode(node, ctx, parentType);
+      }
+
       let children: MarkdownReadNode[] = [];
       if ('children' in node && Array.isArray(node.children)) {
         let htmlStack: Array<IHTMLStack> = []; // 当前循环是否包含 HTML 标签
@@ -94,6 +136,10 @@ function convertMdastToLexical(
           .reduce(
             (ret, child, index) => {
               if (child.type === 'html') {
+                if (!markdownReaders['html']) {
+                  ret.push(INodeHelper.createTextNode(child.value));
+                  return ret;
+                }
                 const isComment = child.value.startsWith('<!--') && child.value.endsWith('-->');
                 if (isComment) {
                   return ret;
@@ -170,14 +216,26 @@ function convertMdastToLexical(
                 const top = ctx.last;
                 if (top) {
                   top.children.push(
-                    convertMdastToLexical(child as PhrasingContent, index, ctx, markdownReaders),
+                    convertMdastToLexical(
+                      child as PhrasingContent,
+                      index,
+                      ctx,
+                      markdownReaders,
+                      node.type,
+                    ),
                   );
                 }
                 return ret;
               }
 
               ret.push(
-                convertMdastToLexical(child as PhrasingContent, index, ctx, markdownReaders),
+                convertMdastToLexical(
+                  child as PhrasingContent,
+                  index,
+                  ctx,
+                  markdownReaders,
+                  node.type,
+                ),
               );
               return ret;
             },
@@ -260,7 +318,7 @@ export function parseMarkdownToLexical(
     .parse(markdown);
   logger.debug('Parsed MDAST:', ast);
 
-  const ctx = new MarkdownContext(ast);
+  const ctx = new MarkdownContext(ast, markdown);
   registerDefaultReaders(markdownReaders);
 
   return convertMdastToLexical(ast, 0, ctx, markdownReaders) as IRootNode;

@@ -89,25 +89,40 @@ describe('Markdown to Lexical Conversion', () => {
     const markdown = '* asd\n* 123\n';
     const lexical = parseMarkdownToLexical(markdown, {});
 
-    expect(lexical.children.length).toEqual(2);
+    expect(lexical.children.length).toEqual(1);
     // @ts-expect-error not error
     expect(lexical.children[0].children.length).toEqual(1);
     // @ts-expect-error not error
-    expect(lexical.children[0].children[0].text).toEqual('asd');
+    expect(lexical.children[0].children[0].text).toEqual('* asd\n* 123');
   });
 
-  it('should ignore html comment', () => {
+  it('should fallback inline node as raw text when no reader', () => {
+    const markdown = 'This is a **bold** text.';
+    const lexical = parseMarkdownToLexical(markdown, {});
+
+    expect(lexical.children.length).toEqual(1);
+
+    // @ts-expect-error not error
+    expect(lexical.children[0].children.length).toEqual(3);
+
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[1].text).toEqual('**bold**');
+  });
+
+  it('should keep html comment as raw text when no html reader', () => {
     const markdown = 'This is a <!-- comment --> text.';
     const lexical = parseMarkdownToLexical(markdown, {});
     expect(lexical.children.length).toEqual(1);
 
     // @ts-expect-error not error
-    expect(lexical.children[0].children.length).toEqual(2);
+    expect(lexical.children[0].children.length).toEqual(3);
 
     // @ts-expect-error not error
     expect(lexical.children[0].children[0].text).toEqual('This is a ');
     // @ts-expect-error not error
-    expect(lexical.children[0].children[1].text).toEqual(' text.');
+    expect(lexical.children[0].children[1].text).toEqual('<!-- comment -->');
+    // @ts-expect-error not error
+    expect(lexical.children[0].children[2].text).toEqual(' text.');
   });
 
   it('should output origin xml no reader', () => {
