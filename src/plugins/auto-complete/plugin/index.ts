@@ -19,6 +19,8 @@ import { createDebugLogger } from '@/utils/debug';
 
 import { PlaceholderBlockNode, PlaceholderNode } from '../node/placeholderNode';
 
+const AUTO_COMPLETE_GUARD_LIMIT = 50_000;
+
 export interface AutoCompletePluginOptions {
   /** Delay in milliseconds before triggering auto-complete (default: 1000ms) */
   delay?: number;
@@ -49,6 +51,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   private placeholderNodes: TextNode[] = [];
   private currentSuggestion: string | null = null;
   private markdownService: IMarkdownShortCutService | null = null;
+  private skipNextTextContentListener = false;
 
   constructor(
     protected kernel: IEditorKernel,
@@ -76,6 +79,8 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
       editor.registerUpdateListener(({ editorState }) => {
         editorState.read(() => {
           if (editor.isComposing()) {
+            this.clearTimer();
+            this.clearPlaceholderNodes(editor);
             return;
           }
           const selection = $getSelection();
@@ -142,8 +147,12 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     // Register text content listener to clear placeholder on any other input
     this.register(
       editor.registerTextContentListener(() => {
-        // If user types anything while placeholder is visible, clear it
-        if (this.placeholderNodes.length > 0) {
+        if (this.skipNextTextContentListener) {
+          this.skipNextTextContentListener = false;
+          return;
+        }
+
+        if (this.currentSuggestion) {
           this.clearPlaceholderNodes(editor);
         }
       }),
@@ -180,6 +189,8 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   ): void {
     editor.getEditorState().read(() => {
       if (editor.isComposing()) {
+        this.clearTimer();
+        this.clearPlaceholderNodes(editor);
         return;
       }
       if (!this.abortController || this.abortController.signal.aborted) {
@@ -291,7 +302,12 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
     // Find the paragraph or root container
     let paragraphNode = anchorNode;
+    let parentTraversalCount = 0;
     while (paragraphNode && paragraphNode.isInline()) {
+      parentTraversalCount++;
+      if (parentTraversalCount > AUTO_COMPLETE_GUARD_LIMIT) {
+        throw new Error(`getTextBeforeCursor: parent traversal > ${AUTO_COMPLETE_GUARD_LIMIT}`);
+      }
       const parent = paragraphNode.getParent();
       if (!parent) break;
       paragraphNode = parent;
@@ -304,6 +320,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     this.logger.debug('🔍 Paragraph Node Type:', paragraphNode, anchorNode);
 
     let founded = false;
+    let recursionDepth = 0;
 
     // Collect all text before cursor in the paragraph
     const collectTextBeforeCursor = (
@@ -311,6 +328,11 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
       targetNode: any,
       targetOffset: number,
     ): { text: string; textAfter: string } => {
+      recursionDepth++;
+      if (recursionDepth > AUTO_COMPLETE_GUARD_LIMIT) {
+        throw new Error(`collectTextBeforeCursor: recursion depth > ${AUTO_COMPLETE_GUARD_LIMIT}`);
+      }
+
       if (node === targetNode) {
         founded = true;
         // We've reached the target node, get text up to the cursor position
@@ -358,6 +380,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
   private showPlaceholderNodes(editor: LexicalEditor, suggestion: string): void {
     // this.clearPlaceholderNodes(editor); // Remove existing placeholder first
+    this.skipNextTextContentListener = true;
 
     editor.update(() => {
       const selection = $getSelection();
@@ -412,8 +435,19 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   }
 
   private clearPlaceholderNodes(editor: LexicalEditor): void {
+    this.skipNextTextContentListener = true;
+    this.currentSuggestion = null;
+    this.placeholderNodes = [];
     editor.update(() => {
+      let iterCount = 0;
       editor.getEditorState()._nodeMap.forEach((node) => {
+        iterCount++;
+        if (iterCount > AUTO_COMPLETE_GUARD_LIMIT) {
+          throw new Error(
+            `clearPlaceholderNodes: forEach loop > ${AUTO_COMPLETE_GUARD_LIMIT} iterations`,
+          );
+        }
+
         const selection = $getSelection();
         const clonedSelection = selection ? selection.clone() : null;
         if (
@@ -425,14 +459,25 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             node.getTextContent().includes('\u200B') &&
             node.getPreviousSibling() === null
           ) {
-            while (node.getNextSibling()) {
-              const next = node.getNextSibling();
-              if (next) {
-                $insertNodes([next]);
-              }
+            // 先收集所有的 next siblings，再删除，防止死循环
+            const siblings: any[] = [];
+            let sibling = node.getNextSibling();
+            let siblingLoopCount = 0;
+            while (sibling && siblingLoopCount < AUTO_COMPLETE_GUARD_LIMIT) {
+              siblings.push(sibling);
+              sibling = sibling.getNextSibling();
+              siblingLoopCount++;
+            }
+            if (siblingLoopCount >= AUTO_COMPLETE_GUARD_LIMIT) {
+              throw new Error(
+                `clearPlaceholderNodes: too many siblings (${siblingLoopCount}/${AUTO_COMPLETE_GUARD_LIMIT})`,
+              );
+            }
+            node.getParent()?.remove();
+            if (siblings.length > 0) {
+              $insertNodes(siblings);
             }
             $setSelection(clonedSelection);
-            node.getParent()?.remove();
             return;
           }
           node.remove();
