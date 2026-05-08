@@ -178,7 +178,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     // Register quote shortcut if enabled
     if (formats.quote) {
       markdownService.registerMarkdownShortCut({
-        regExp: /^>\s/,
+        regExp: /^(>|》)\s/,
         replace: (parentNode, children, _match, isImport) => {
           if (isImport) {
             const previousNode = parentNode.getPreviousSibling();
