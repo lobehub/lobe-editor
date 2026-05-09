@@ -199,6 +199,24 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     flex: 1;
     min-height: 0;
     outline: none;
+
+    &::selection,
+    *::selection {
+      color: currentcolor;
+      background-color: rgba(64, 169, 255, 18%);
+
+      -webkit-text-fill-color: currentcolor;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      &::selection,
+      *::selection {
+        color: currentcolor;
+        background-color: rgba(145, 213, 255, 12%);
+
+        -webkit-text-fill-color: currentcolor;
+      }
+    }
   `;
 
   return {
