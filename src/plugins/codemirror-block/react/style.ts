@@ -15,7 +15,7 @@ export const styles = createStaticStyles(
     margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em);
     border-radius: var(--lobe-markdown-border-radius);
 
-    background: ${cssVar.colorFillQuaternary};
+    background: ${cssVar.colorFillTertiary};
 
     &:has(.cm-mermaid-preview) {
       overflow: visible;
@@ -134,6 +134,60 @@ export const styles = createStaticStyles(
       .cm-language-select {
         opacity: 1;
         filter: grayscale(0);
+      }
+    }
+
+    /* 深色模式下代码高亮颜色更柔和 */
+    @media (prefers-color-scheme: dark) {
+      background: ${cssVar.colorFillQuaternary};
+
+      .cm-line {
+        & .cm-atom,
+        & .cm-attribute {
+          color: ${cssVar.purple7};
+        }
+
+        & .cm-builtin,
+        & .cm-number,
+        & .cm-property,
+        & .cm-tag {
+          color: ${cssVar.volcano7};
+        }
+
+        & .cm-function,
+        & .cm-keyword,
+        & .cm-modifier,
+        & .cm-operator,
+        & .cm-punctuation,
+        & .cm-tag.cm-bracket,
+        & .cm-variable-2,
+        & .cm-variable.cm-callee {
+          color: ${cssVar.geekblue7};
+        }
+
+        & .cm-qualifier,
+        & .cm-type,
+        & .cm-variable-3 {
+          color: ${cssVar.gold7};
+        }
+
+        & .cm-string,
+        & .cm-string-2 {
+          color: ${cssVar.green7};
+        }
+      }
+
+      .cm-gutters {
+        background-color: ${cssVar.colorBgElevated} !important;
+      }
+
+      .cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+        background: ${cssVar.cyan6} !important;
+      }
+
+      .cm-foldPlaceholder {
+        background: url("data:image/svg+xml,%3Csvg width='16' height='16' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Crect fill='%232A3238' width='16' height='16' rx='2'/%3E%3Cpath d='M2.75 7.984a.875.875 0 1 0 1.75 0 .875.875 0 0 0-1.75 0Zm4.375 0a.875.875 0 1 0 1.75 0 .875.875 0 0 0-1.75 0Zm4.375 0a.875.875 0 1 0 1.75 0 .875.875 0 0 0-1.75 0Z' fill='%238C8C8C'/%3E%3C/g%3E%3C/svg%3E")
+          no-repeat !important;
       }
     }
   `,

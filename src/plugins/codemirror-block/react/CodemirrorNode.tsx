@@ -1,7 +1,7 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { Block, Mermaid } from '@lobehub/ui';
+import { Block } from '@lobehub/ui';
 import { message } from 'antd';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
@@ -25,6 +25,7 @@ import {
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { lobeTheme } from '@/plugins/codemirror-block/react/theme';
+import MermaidWithErrorBoundary from '@/plugins/common/react/MermaidWithErrorBoundary';
 
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
@@ -466,7 +467,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
                   mermaidDiagramExpanded && 'cm-mermaid-render-expanded',
                 )}
               >
-                <Mermaid
+                <MermaidWithErrorBoundary
                   animated={false}
                   fullFeatured={false}
                   showLanguage={true}
@@ -474,7 +475,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
                   variant="filled"
                 >
                   {mermaidDiagramSource.trim()}
-                </Mermaid>
+                </MermaidWithErrorBoundary>
               </div>
             </div>
           </div>

@@ -212,7 +212,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       &::selection,
       *::selection {
         color: currentcolor;
-        background-color: rgba(145, 213, 255, 12%);
+        background-color: rgba(82, 196, 26, 18%);
 
         -webkit-text-fill-color: currentcolor;
       }

@@ -54,6 +54,53 @@ export function looksLikeMermaidDiagramSyntax(text: string): boolean {
 const RICH_HTML_SELECTOR =
   'strong,em,b,i,h1,h2,h3,h4,h5,h6,ul,ol,table,img,blockquote,pre>code,a[href]';
 
+/**
+ * Markdown 特征检测 - 判断文本是否看起来像 Markdown
+ * 返回检测到的 Markdown 特征数量
+ */
+function detectMarkdownFeatures(text: string): number {
+  let score = 0;
+
+  // 标题特征: #, ##, ### 等 - 单独一行标题是很强的 Markdown 特征
+  if (/^#{1,6}\s+\S+/m.test(text)) score += 3;
+
+  // 粗体/斜体特征: **text**, __text__, *text*, _text_
+  if (/(\*\*|__)[\S\s]+?\1/.test(text)) score += 2;
+  if (/([*_])[\S\s]+?\1/.test(text)) score += 1;
+
+  // 删除线: ~~text~~
+  if (/~~[\S\s]+?~~/.test(text)) score += 2;
+
+  // 行内代码: `code`
+  if (/`[^`]+`/.test(text)) score += 2;
+
+  // 代码块: ```language ... ```
+  if (/^```[\w+-]*\s*$/m.test(text) && /^```\s*$/m.test(text)) score += 4;
+
+  // 链接: [text](url)
+  if (/\[.+?]\s*\([^)]+\)/.test(text)) score += 2;
+
+  // 图片: ![alt](url)
+  if (/!\[.*?]\s*\([^)]+\)/.test(text)) score += 2;
+
+  // 无序列表: -, *, + 开头
+  if (/^[*+-]\s+\S+/m.test(text)) score += 2;
+
+  // 有序列表: 1. 2. 等
+  if (/^\d+\.\s+\S+/m.test(text)) score += 2;
+
+  // 引用: > text
+  if (/^>\s+\S+/m.test(text)) score += 2;
+
+  // 分割线: ---, ___, ***
+  if (/^[*_-]{3,}\s*$/m.test(text)) score += 2;
+
+  // 表格特征: | 列1 | 列2 |  或者 |---|
+  if (/^\|.*\|/.test(text) && /^\|[:-]+\|/.test(text)) score += 3;
+
+  return score;
+}
+
 export interface MarkdownPluginOptions {
   /**
    * Automatically convert pasted markdown once the detection threshold is reached
@@ -220,6 +267,17 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           if (!(event instanceof ClipboardEvent)) return false;
           if (!this.shouldHandlePasteMarkdown()) return false;
 
+          // 代码块内粘贴：跳过 markdown 转换（避免光标跳转）
+          const isInCodeBlock = editor.getEditorState().read(() => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection)) return false;
+            const anchorNode = selection.anchor.getNode();
+            if (!anchorNode) return false;
+            // 检查当前节点或父节点是否为代码节点
+            return $isCodeNode(anchorNode) || $isCodeNode(anchorNode.getParent());
+          });
+          if (isInCodeBlock) return false;
+
           const clipboardData = event.clipboardData;
           if (!clipboardData) return false;
 
@@ -272,6 +330,19 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
             return false;
           }
 
+          // Markdown 特征检测 - 智能处理策略
+          const score = detectMarkdownFeatures(text);
+          if (score < 2) {
+            // 明显不是 markdown，按纯文本处理
+            return false;
+          }
+
+          // 弱 markdown 特征（2~5分）：不自动转换，按纯文本（避免误转换）
+          if (score < 6) {
+            return false;
+          }
+
+          // 强 markdown 特征（≥6分）：自动转换
           const historyState = this.kernel.getHistoryState().current;
           setTimeout(() => {
             editor.dispatchCommand(INSERT_MARKDOWN_COMMAND, {
@@ -283,7 +354,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
               historyState,
               markdown: text,
               matchedPatterns: [],
-              score: 0,
+              score,
             });
           }, 10);
 

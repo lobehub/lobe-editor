@@ -1,8 +1,10 @@
 'use client';
 
-import { Highlighter, Mermaid } from '@lobehub/ui';
+import { Highlighter } from '@lobehub/ui';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
+
+import MermaidWithErrorBoundary from '@/plugins/common/react/MermaidWithErrorBoundary';
 
 function isLikelyInteractiveTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -84,7 +86,7 @@ export const MermaidPreviewBlock = memo(function MermaidPreviewBlock({
             width: '100%',
           }}
         >
-          <Mermaid
+          <MermaidWithErrorBoundary
             animated={false}
             copyable={true}
             fullFeatured={false}
@@ -95,7 +97,7 @@ export const MermaidPreviewBlock = memo(function MermaidPreviewBlock({
             variant="filled"
           >
             {trimmed}
-          </Mermaid>
+          </MermaidWithErrorBoundary>
         </div>
       </div>
     </div>
