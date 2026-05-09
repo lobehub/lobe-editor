@@ -2,7 +2,7 @@
 
 import { Mermaid } from '@lobehub/ui';
 import mermaid from 'mermaid';
-import React, { Component, type ReactNode, memo, useEffect, useState } from 'react';
+import React, { Component, type ReactNode, memo, useEffect, useId, useState } from 'react';
 
 // ============================================================================
 // Mermaid 渲染错误边界（Class 组件，才能捕获子组件渲染错误）
@@ -124,32 +124,62 @@ interface MermaidWithErrorBoundaryProps {
  */
 const MermaidWithErrorBoundary = memo<MermaidWithErrorBoundaryProps>(({ children, ...props }) => {
   const code = children.trim();
-  const [parseError, setParseError] = useState<Error | null>(null);
+  const renderId = `mermaid-validate-${useId().replaceAll(':', '')}`;
+  const [error, setError] = useState<Error | null>(null);
+  const [svg, setSvg] = useState<string>('');
 
-  // 预解析检测
+  // 自己完成渲染：@lobehub/ui 内部会吞掉 render 错误并显示空占位图。
   useEffect(() => {
-    setParseError(null);
+    let canceled = false;
+    setError(null);
+    setSvg('');
 
-    mermaid.parse(code).then(
-      () => setParseError(null),
-      (error) => setParseError(error),
-    );
-  }, [code]);
+    if (!code) return;
 
-  // 空代码不渲染
+    Promise.resolve()
+      .then(async () => {
+        await mermaid.parse(code);
+        return mermaid.render(renderId, code);
+      })
+      .then(
+        ({ svg }) => {
+          if (!canceled) setSvg(svg);
+        },
+        (error) => {
+          if (!canceled) setError(error instanceof Error ? error : new Error(String(error)));
+        },
+      );
+
+    return () => {
+      canceled = true;
+    };
+  }, [code, renderId]);
+
   if (!code) {
     return null;
   }
 
-  // 预解析失败，显示错误
-  if (parseError) {
-    return <ErrorFallback error={parseError} />;
+  if (error) {
+    return <ErrorFallback error={error} />;
   }
 
-  // 预解析通过，但渲染期间可能还是失败，用 ErrorBoundary 兜底
+  if (!svg) {
+    return null;
+  }
+
   return (
     <MermaidRenderErrorBoundary code={code} fallback={(err) => <ErrorFallback error={err} />}>
-      <Mermaid {...props}>{code}</Mermaid>
+      <Mermaid
+        {...props}
+        bodyRender={() => (
+          <div
+            dangerouslySetInnerHTML={{ __html: svg }}
+            style={{ overflow: 'auto', padding: 16, width: '100%' }}
+          />
+        )}
+      >
+        {code}
+      </Mermaid>
     </MermaidRenderErrorBoundary>
   );
 });
