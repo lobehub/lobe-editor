@@ -169,3 +169,70 @@ Lexical 节点树: 原 TextNode → BlockImageNode
 - [Markdown Plugin](/fgbg-docs/modules/plugins/markdown.md) — MarkdownShortCutService 细节
 - [Plugin System](/fgbg-docs/modules/plugin-system.md) — 插件协作模式
 - [Paste Image URL Issues](/fgbg-docs/references/paste-image-url-plugin-design.md) — 粘贴图片 URL 已知问题
+
+---
+
+## Bug 修复记录：输入 `![](url)` 显示为 "!+超链接" 而非图片
+
+### 问题现象
+
+输入完整的图片 markdown 语法 `![](https://example.com/image.jpg)` 并回车后：
+- 期望：显示为图片节点（BlockImageNode / ImageNode）
+- 实际：显示为 "! + 超链接"，`!` 保留为纯文本，`[text](url)` 部分被转换为 LinkNode
+
+### 根本原因
+
+**正则冲突 + 插件注册顺序问题**：
+
+1. **正则冲突**：ImagePlugin 和 LinkPlugin 的 text-match transformer 使用相似的正则表达式：
+   - ImagePlugin: `/!\[([^\]]*)]\(([^)]*)\)/`
+   - LinkPlugin: `/\[([^[]*)]\(([^\s()]+)...\)/`
+   
+   当输入 `![](url)` 时，LinkPlugin 的正则可以从 `index: 1` 位置开始匹配（跳过开头的 `!`），导致两个 transformer 都能匹配成功。
+
+2. **注册顺序**：LinkPlugin 先于 ImagePlugin 注册到 MarkdownShortCutService，而 `runTextMatchTransformers` 按注册顺序遍历并在第一个匹配后立即 `return true`。
+
+   结果：LinkPlugin 先执行，把 `![](url)` 从 index 1 开始切割为 `[](url)` 并创建 LinkNode，开头的 `!` 保留为独立 TextNode。
+
+### 修复方案
+
+**在 LinkPlugin 的正则中添加负向后行断言 `(?<!!)`**（前面不能是 `!`）：
+
+修改文件：`src/plugins/link/plugin/index.ts`
+
+```typescript
+// 修改前
+regExp: /\[([^[]*)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)\s?$/
+
+// 修改后
+regExp: /(?<!\!)\[([^[]*)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)\s?$/
+```
+
+**原理**：负向后行断言 `(?<!\!)` 确保 `[` 字符的前面不能是 `!`，这样：
+- `[text](url)` → 正常匹配（前面不是 `!`）
+- `![alt](url)` → 不再匹配（前面是 `!`）
+
+### 验证方法
+
+```javascript
+const imageRegex = /!\[([^\]]*)]\(([^)]*)\)/;
+const linkRegex = /(?<!\!)\[([^[]*)]\(([^\s()]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?\)\s?$/;
+
+// 图片语法：Image 匹配，Link 不匹配
+console.log(linkRegex.test('![](https://example.com/image.jpg)')); // false
+console.log(imageRegex.test('![](https://example.com/image.jpg)')); // true
+
+// 链接语法：Link 匹配，Image 不匹配
+console.log(linkRegex.test('[text](https://example.com)')); // true
+console.log(imageRegex.test('[text](https://example.com)')); // false
+
+// 带 alt 的图片语法
+console.log(linkRegex.test('![alt text](https://example.com/image.jpg)')); // false
+console.log(imageRegex.test('![alt text](https://example.com/image.jpg)')); // true
+```
+
+### 关键注意点
+
+1. **负向后行断言兼容性**：现代浏览器和 Node.js 都支持 ES2018 的负向后行断言 `(?<!pattern)`
+2. **正则转义**：在 TypeScript 字符串中，`!` 不需要转义，但在正则字面量中也不需要
+3. **修复位置**：应该在 LinkPlugin 端修复（排除图片），而不是在 ImagePlugin 端（因为问题是 Link 错误匹配了 Image 的语法）
