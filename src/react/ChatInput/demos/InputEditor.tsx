@@ -13,8 +13,8 @@ import {
   ReactMathPlugin,
   ReactTablePlugin,
   type SlashOptions,
-} from '@lobehub/editor';
-import { Editor, FloatMenu, SlashMenu } from '@lobehub/editor/react';
+} from '@/';
+import { Editor, FloatMenu, SlashMenu } from '@/react';
 import { Avatar, Text } from '@lobehub/ui';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
 import { type FC, type Ref, useMemo } from 'react';

@@ -38,6 +38,7 @@ fgbg-docs/
     ├── markdown-image-transformer-design.md  # 图片 markdown transformer 设计
     ├── markdown-shortcut-transformation-system.md  # Markdown 快捷转换系统
     ├── mermaid-render-error-boundary.md  # Mermaid parse/render 错误兜底：解决 @lobehub/ui 吞错导致灰色占位图
+    ├── mermaid-preview-overlay.md        # Mermaid 全屏预览浮层（缩放/拖拽）；为何不用 antd Image.data URL/SVG<img>
     └── paste-image-url-plugin-design.md       # 粘贴图片 URL 链路设计：ImagePlugin 与 LinkHighlightPlugin 的 PASTE_COMMAND 交互、优先级、useSuspenseImage 缓存
 ```
 
@@ -74,6 +75,7 @@ fgbg-docs/
 - **Shiki** / **Codeblock** / **高亮** → `modules/plugins/codeblock.md`
 - **Diff** / **compare** / **LCS** → `modules/renderer.md` 的 diff 章节
 - **Mermaid** / **灰色占位图** / **parse success 但渲染失败** / **ErrorBoundary 不生效** → `references/mermaid-render-error-boundary.md`
+- **Mermaid** / **大图预览** / **全屏缩放** / **foreignObject** / **antd Image 不适用 SVG** → `references/mermaid-preview-overlay.md`
 
 ## 重要约定
 

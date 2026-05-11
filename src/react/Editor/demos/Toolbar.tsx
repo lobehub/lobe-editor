@@ -5,14 +5,14 @@ import {
   INSERT_IMAGE_COMMAND,
   getHotkeyById,
   useOutlineActionItem,
-} from '@lobehub/editor';
+} from '@/';
 import {
   ChatInputActions,
   ChatInputActionsProps,
   CodeLanguageSelect,
   FloatActions,
   useEditorState,
-} from '@lobehub/editor/react';
+} from '@/react';
 import { Block } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
 import {

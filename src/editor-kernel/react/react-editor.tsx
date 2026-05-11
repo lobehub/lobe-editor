@@ -54,9 +54,8 @@ export const ReactEditor: FC<IReactEditorProps> = ({
   useEffect(() => {
     const editor = composerContext[0];
 
-    // StrictMode remount 时取消待执行的 destroy
+    // StrictMode 假卸载：取消 microtask 中的 destroy，勿同步调用 destroy（见 useEditor 注释）。
     if (pendingDestroyRef.current) {
-      pendingDestroyRef.current();
       pendingDestroyRef.current = null;
     }
 

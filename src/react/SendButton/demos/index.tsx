@@ -1,4 +1,4 @@
-import { SendButton, type SendButtonProps } from '@lobehub/editor/react';
+import { SendButton, type SendButtonProps } from '@/react';
 import { Flexbox, Grid } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
 

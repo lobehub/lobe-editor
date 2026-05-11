@@ -81,6 +81,7 @@
 | ------------------------------------------------------- | ------ | ------------------------------------------------------------------- | ------------------------------------------------------- |
 | `src/plugins/common/plugin/index.ts`                    | 插件   | 基础节点、数据源、历史、粘贴                                        | `src/editor-kernel/data-source.ts`                      |
 | `src/plugins/common/node/cursor.ts`                     | 节点   | `CursorNode`                                                        | `src/plugins/common/plugin/index.ts`                    |
+| `src/plugins/common/react/MermaidWithErrorBoundary.tsx` | React  | Mermaid parse/render + 内联 SVG + 全屏预览浮层                    | `src/plugins/codemirror-block/react/CodemirrorNode.tsx`；`src/renderer/renderers/MermaidPreviewBlock.tsx` |
 | `src/plugins/markdown/plugin/index.ts`                  | 插件   | Markdown 中枢                                                       | `src/plugins/markdown/service/shortcut.ts`              |
 | `src/plugins/markdown/react/PasteMarkdownConfirm.tsx`   | 组件   | 粘贴确认弹窗（i18n / 暗色主题）                                     | `src/react/Editor/Editor.tsx`                           |
 | `src/plugins/markdown/service/shortcut.ts`              | 服务   | `MarkdownShortCutService`                                           | 所有注册 Markdown 读写的插件                            |

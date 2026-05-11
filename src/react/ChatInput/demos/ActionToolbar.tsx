@@ -1,4 +1,4 @@
-import { ChatInputActionBar, ChatInputActions, SendButton } from '@lobehub/editor/react';
+import { ChatInputActionBar, ChatInputActions, SendButton } from '@/react';
 import { Popover } from '@lobehub/ui';
 import { TokenTag } from '@lobehub/ui/chat';
 import {

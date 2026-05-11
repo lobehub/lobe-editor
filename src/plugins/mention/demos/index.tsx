@@ -6,7 +6,7 @@ import {
   ReactPlainText,
   ReactSlashOption,
   ReactSlashPlugin,
-} from '@lobehub/editor';
+} from '@/';
 import { Avatar } from '@lobehub/ui';
 
 import content from './data.json';

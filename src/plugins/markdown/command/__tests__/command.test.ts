@@ -11,7 +11,7 @@ import {
   MathPlugin,
   MentionPlugin,
   TablePlugin,
-} from '@lobehub/editor';
+} from '@/';
 import { REDO_COMMAND, UNDO_COMMAND } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
@@ -464,7 +464,7 @@ const json = {
       {
         type: 'code',
         version: 1,
-        code: "import { Editor } from '@lobehub/editor';",
+        code: "import { Editor } from '@/';",
         codeTheme: 'default',
         language: 'typescript',
         options: {

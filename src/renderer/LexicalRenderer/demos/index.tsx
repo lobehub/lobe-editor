@@ -1,4 +1,4 @@
-import { LexicalRenderer } from '@lobehub/editor/renderer';
+import { LexicalRenderer } from '@/renderer';
 import type { SerializedEditorState } from 'lexical';
 
 import content from './data.json';

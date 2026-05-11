@@ -17,6 +17,8 @@ import { styles } from './style';
 
 export interface ImageProps {
   className?: string;
+  /** Click to open fullscreen preview (antd Image). Default `true`. */
+  enableImagePreview?: boolean;
   handleUpload?: (file: File) => Promise<{ url: string }>;
   node: ImageNode | BlockImageNode;
   onPickFile?: () => Promise<File | null>;
@@ -25,7 +27,14 @@ export interface ImageProps {
 }
 
 const Image = memo<ImageProps>(
-  ({ node, className, showScaleInfo = false, handleUpload, onPickFile }) => {
+  ({
+    node,
+    className,
+    enableImagePreview = true,
+    showScaleInfo = false,
+    handleUpload,
+    onPickFile,
+  }) => {
     const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
     const [isHovered, setIsHovered] = useState(false);
     const [scale, setScale] = useState(1);
@@ -151,6 +160,7 @@ const Image = memo<ImageProps>(
             <Suspense fallback={fallback}>
               <LazyImage
                 className={className}
+                enableImagePreview={enableImagePreview}
                 newWidth={newWidth}
                 node={node}
                 onLoad={(loadedSize) => {
@@ -159,6 +169,7 @@ const Image = memo<ImageProps>(
                   originalSizeRef.current.height = loadedSize.height;
                   setSize(loadedSize);
                 }}
+                onPreviewOpen={() => setSelected(true)}
               />
             </Suspense>
           );
@@ -167,7 +178,7 @@ const Image = memo<ImageProps>(
           return null;
         }
       }
-    }, [node.status, className, node, newWidth]);
+    }, [node.status, className, node, newWidth, enableImagePreview]);
 
     // On resize end, persist to node (set maxWidth)
     const handleResizeEnd = useCallback(

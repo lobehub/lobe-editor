@@ -1,5 +1,7 @@
 export interface ReactImagePluginProps {
   className?: string;
+  /** Click image to open antd-style fullscreen preview. Default `true`. */
+  enableImagePreview?: boolean;
   defaultBlockImage?: boolean;
   handleRehost?: (url: string) => Promise<{ url: string }>;
   handleUpload?: (file: File) => Promise<{ url: string }>;

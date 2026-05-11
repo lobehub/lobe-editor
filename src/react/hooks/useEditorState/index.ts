@@ -174,7 +174,7 @@ export function useEditorState(editor?: IEditor): EditorState {
       setIsStrikethrough(selection.hasFormat('strikethrough'));
       setIsSubscript(selection.hasFormat('subscript'));
       setIsSuperscript(selection.hasFormat('superscript'));
-      setIsCode($isSelectionInCodeInline(lexicalEditor!));
+      setIsCode(lexicalEditor ? $isSelectionInCodeInline(lexicalEditor) : false);
 
       const anchorNode = selection.anchor.getNode();
       const focusNode = selection.focus.getNode();

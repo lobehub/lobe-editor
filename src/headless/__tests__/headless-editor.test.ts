@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { createHeadlessEditor } from '@lobehub/editor/headless';
+import { createHeadlessEditor } from '@/headless';
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { resetRandomKey } from 'lexical';
 import { beforeEach, describe, expect, it } from 'vitest';

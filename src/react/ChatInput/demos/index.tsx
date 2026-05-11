@@ -1,4 +1,4 @@
-import { ChatInput, ChatInputProps, useEditor, useEditorState } from '@lobehub/editor/react';
+import { ChatInput, ChatInputProps, useEditor, useEditorState } from '@/react';
 import type { ChatMessage } from '@lobehub/ui/chat';
 import { StoryBook, useControls, useCreateStore } from '@lobehub/ui/storybook';
 import { useRef, useState } from 'react';
@@ -45,10 +45,18 @@ export default () => {
   const handleSendMessage = (asAssistant?: boolean) => {
     if (!editor || editorState.isEmpty) return;
 
+    let content = '';
+    try {
+      content = (editor.getDocument('markdown') as unknown as string) || '';
+    } catch {
+      // Fallback to text if markdown datasource not registered
+      content = (editor.getDocument('text') as unknown as string) || '';
+    }
+
     setMessages([
       ...messages,
       {
-        content: editor.getDocument('markdown') as unknown as string,
+        content,
         createAt: Date.now(),
         extra: {},
         id: String(Date.now()),

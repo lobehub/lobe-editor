@@ -1,4 +1,4 @@
-import { CodeLanguageSelect } from '@lobehub/editor/react';
+import { CodeLanguageSelect } from '@/react';
 
 export default () => {
   return <CodeLanguageSelect />;

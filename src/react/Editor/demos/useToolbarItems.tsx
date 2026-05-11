@@ -4,8 +4,8 @@ import {
   INSERT_FILE_COMMAND,
   INSERT_IMAGE_COMMAND,
   getHotkeyById,
-} from '@lobehub/editor';
-import { ChatInputActionsProps, CodeLanguageSelect, useEditorState } from '@lobehub/editor/react';
+} from '@/';
+import { ChatInputActionsProps, CodeLanguageSelect, useEditorState } from '@/react';
 import {
   BoldIcon,
   CodeXmlIcon,

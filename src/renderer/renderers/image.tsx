@@ -1,3 +1,4 @@
+import { Image as AntdImage } from 'antd';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { getBlockImageClassName, getImageClassName } from '../style';
@@ -11,7 +12,12 @@ export function renderImage(node: Record<string, any>, key: string): ReactNode {
 
   return (
     <span className={getImageClassName()} key={key}>
-      <img alt={altText || ''} src={src} style={style} />
+      <AntdImage
+        alt={altText || ''}
+        preview={{}}
+        src={src}
+        styles={{ image: { ...style, cursor: 'zoom-in' } }}
+      />
     </span>
   );
 }
@@ -25,7 +31,12 @@ export function renderBlockImage(node: Record<string, any>, key: string): ReactN
 
   return (
     <figure className={getBlockImageClassName()} key={key}>
-      <img alt={altText || ''} src={src} style={style} />
+      <AntdImage
+        alt={altText || ''}
+        preview={{}}
+        src={src}
+        styles={{ image: { ...style, cursor: 'zoom-in' } }}
+      />
     </figure>
   );
 }

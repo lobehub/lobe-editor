@@ -21,6 +21,7 @@ const defaultUpload = (file: File) => {
 const ReactImagePlugin: FC<ReactImagePluginProps> = ({
   theme,
   className,
+  enableImagePreview = true,
   defaultBlockImage,
   handleUpload,
   needRehost,
@@ -40,6 +41,7 @@ const ReactImagePlugin: FC<ReactImagePluginProps> = ({
         return (
           <Image
             className={className}
+            enableImagePreview={enableImagePreview}
             handleUpload={handleUpload || defaultUpload}
             node={node}
             onPickFile={onPickFile}

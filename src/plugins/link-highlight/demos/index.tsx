@@ -3,7 +3,7 @@ import {
   ReactEditorContent,
   ReactLinkHighlightPlugin,
   ReactPlainText,
-} from '@lobehub/editor';
+} from '@/';
 
 import content from './data.json';
 

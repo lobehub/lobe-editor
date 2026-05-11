@@ -1,4 +1,4 @@
-import { FloatActions, FloatActionsProps } from '@lobehub/editor/react';
+import { FloatActions, FloatActionsProps } from '@/react';
 import { Popover } from '@lobehub/ui';
 import { TokenTag } from '@lobehub/ui/chat';
 import {

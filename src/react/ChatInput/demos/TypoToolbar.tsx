@@ -1,11 +1,11 @@
-import { HotkeyEnum, IEditor, getHotkeyById } from '@lobehub/editor';
+import { HotkeyEnum, IEditor, getHotkeyById } from '@/';
 import {
   ChatInputActionBar,
   ChatInputActions,
   ChatInputActionsProps,
   CodeLanguageSelect,
   useEditorState,
-} from '@lobehub/editor/react';
+} from '@/react';
 import { createStaticStyles, cx } from 'antd-style';
 import {
   BoldIcon,

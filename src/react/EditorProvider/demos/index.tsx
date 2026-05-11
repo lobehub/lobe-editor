@@ -1,4 +1,4 @@
-import { EditorProvider } from '@lobehub/editor/react';
+import { EditorProvider } from '@/react';
 
 import Editor from '@/react/Editor/demos';
 

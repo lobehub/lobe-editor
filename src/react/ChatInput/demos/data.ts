@@ -1,4 +1,4 @@
-import type { EditorProps } from '@lobehub/editor/react';
+import type { EditorProps } from '@/react';
 import type { ChatMessage } from '@lobehub/ui/chat';
 
 export const chatMessages: ChatMessage[] = [

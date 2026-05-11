@@ -125,7 +125,10 @@ export function getCodeInlineNode(node: LexicalNode) {
   return null;
 }
 
-export function $isSelectionInCodeInline(editor: LexicalEditor): boolean {
+export function $isSelectionInCodeInline(editor: LexicalEditor | null | undefined): boolean {
+  if (!editor) {
+    return false;
+  }
   return editor.getEditorState().read(() => {
     const selection = $getSelection();
     if (!selection) {

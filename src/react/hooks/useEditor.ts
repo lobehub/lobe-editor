@@ -10,9 +10,9 @@ export const useEditor = (): IEditor => {
   const pendingDestroyRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    // StrictMode remount 时取消待执行的 destroy
+    // StrictMode 假卸载后会在同一轮再次 mount：只取消 microtask 里的 destroy，切勿在此调用 destroy，
+    // 否则会在子组件 setRootElement 之后执行，把刚挂好的 Lexical 实例清掉（文档站无法输入）。
     if (pendingDestroyRef.current) {
-      pendingDestroyRef.current();
       pendingDestroyRef.current = null;
     }
 

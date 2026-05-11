@@ -26,8 +26,8 @@ import {
   type SlashOptions,
   scrollIntoView,
   useOutlineVisibility,
-} from '@lobehub/editor';
-import { Editor, useEditor } from '@lobehub/editor/react';
+} from '@/';
+import { Editor, useEditor } from '@/react';
 import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
@@ -84,10 +84,19 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
   const handleChange = useMemo(
     () =>
       debounce((editor: IEditor) => {
-        const markdownContent = editor.getDocument('markdown') as unknown as string;
-        const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
-        setMarkdown(markdownContent || '');
-        setJson(JSON.stringify(jsonContent || {}, null, 2));
+        try {
+          const markdownContent = editor.getDocument('markdown') as unknown as string;
+          setMarkdown(markdownContent || '');
+        } catch {
+          // MarkdownPlugin may not be registered
+          setMarkdown('');
+        }
+        try {
+          const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
+          setJson(JSON.stringify(jsonContent || {}, null, 2));
+        } catch {
+          setJson('');
+        }
       }, 200),
     [],
   );

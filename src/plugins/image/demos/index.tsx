@@ -1,4 +1,4 @@
-import { ReactEditor, ReactEditorContent, ReactImagePlugin, ReactPlainText } from '@lobehub/editor';
+import { ReactEditor, ReactEditorContent, ReactImagePlugin, ReactPlainText } from '@/';
 
 import content from './data.json';
 

@@ -1,4 +1,4 @@
-import { CommonPlugin, Kernel } from '@lobehub/editor';
+import { CommonPlugin, Kernel } from '@/';
 import { describe, expect, it } from 'vitest';
 
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';

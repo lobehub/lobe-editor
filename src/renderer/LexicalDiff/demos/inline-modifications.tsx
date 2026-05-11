@@ -1,4 +1,4 @@
-import { LexicalDiff } from '@lobehub/editor/renderer';
+import { LexicalDiff } from '@/renderer';
 
 import { makeEditorState, makeParagraph } from './fixtures';
 

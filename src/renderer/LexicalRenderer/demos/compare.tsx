@@ -8,9 +8,9 @@ import {
   ReactListPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
-} from '@lobehub/editor';
-import { Editor, useEditor } from '@lobehub/editor/react';
-import { LexicalRenderer, loadLanguage } from '@lobehub/editor/renderer';
+} from '@/';
+import { Editor, useEditor } from '@/react';
+import { LexicalRenderer, loadLanguage } from '@/renderer';
 import type { SerializedEditorState } from 'lexical';
 import { useEffect, useState } from 'react';
 

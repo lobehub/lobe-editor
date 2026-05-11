@@ -195,3 +195,7 @@ console.warn('[MermaidWithErrorBoundary] render fallback', { error });
 - Mermaid ErrorBoundary 不生效
 - Mermaid `bodyRender` 注入 SVG
 - CodeMirror Mermaid 预览错误提示
+
+## 相关
+
+- **全屏大图预览**（缩放、拖拽、`foreignObject` 与 antd Image 不适用说明）：[`mermaid-preview-overlay.md`](./mermaid-preview-overlay.md)

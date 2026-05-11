@@ -183,6 +183,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     // Clear themes
     this.themes = {};
     this.headlessEditor = false;
+    this.editor = undefined;
     this.logger.info('✅ Editor destroyed');
   }
 

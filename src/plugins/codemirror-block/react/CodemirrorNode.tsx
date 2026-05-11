@@ -71,7 +71,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
    * - 点击代码块内部区域时恢复源码显示
    * - 点击代码块外部区域时隐藏源码，只保留 Mermaid 图
    */
-  const [mermaidShowSource, setMermaidShowSource] = useState(true);
+  const [mermaidShowSource, setMermaidShowSource] = useState(false);
   const mermaidPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showCodeMirror = useMemo(

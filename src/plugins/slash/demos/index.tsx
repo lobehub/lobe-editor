@@ -4,7 +4,7 @@ import {
   ReactPlainText,
   ReactSlashOption,
   ReactSlashPlugin,
-} from '@lobehub/editor';
+} from '@/';
 
 export default () => {
   return (

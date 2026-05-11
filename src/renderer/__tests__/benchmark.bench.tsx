@@ -8,8 +8,8 @@ import {
   ReactListPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
-} from '@lobehub/editor';
-import { Editor, useEditor } from '@lobehub/editor/react';
+} from '@/';
+import { Editor, useEditor } from '@/react';
 import type { SerializedEditorState } from 'lexical';
 import { type ReactNode, createElement } from 'react';
 import { flushSync } from 'react-dom';
