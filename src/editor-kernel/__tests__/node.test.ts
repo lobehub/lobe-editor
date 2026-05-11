@@ -61,4 +61,46 @@ describe('node kernel test', () => {
     const updatedMarkdown = editor.getDocument('markdown') as unknown as string;
     expect(updatedMarkdown).toContain('Modified Heading');
   });
+
+  it('should fallback only table block when heading paragraph list are mixed and table is last', () => {
+    const editor = Editor.createEditor().registerPlugins([
+      CodePlugin,
+      CodeblockPlugin,
+      CommonPlugin,
+      FilePlugin,
+      HRPlugin,
+      ImagePlugin,
+      LinkPlugin,
+      LinkHighlightPlugin,
+      ListPlugin,
+      MarkdownPlugin,
+      MathPlugin,
+      MentionPlugin,
+      // TablePlugin is intentionally not registered
+    ]);
+    editor.initNodeEditor();
+
+    const markdown =
+      '# Mixed Document\n\nThis paragraph should be parsed normally.\n\n- Item 1\n- Item 2\n\n| Feature | Status |\n| --- | --- |\n| Table | Fallback |';
+    editor.setDocument('markdown', markdown);
+
+    const json = editor.getDocument('json') as any;
+    const root = json.root;
+
+    expect(root.children.length).toBe(4);
+    expect(root.children[0].type).toBe('heading');
+    expect(root.children[1].type).toBe('paragraph');
+    expect(root.children[2].type).toBe('list');
+    expect(root.children[3].type).toBe('paragraph');
+
+    expect(root.children[3].children[0].type).toBe('text');
+    expect(root.children[3].children[0].text).toContain('| Feature | Status |');
+    expect(root.children[3].children[0].text).toContain('| Table | Fallback |');
+
+    const exportedMarkdown = editor.getDocument('markdown') as unknown as string;
+    expect(exportedMarkdown).toContain('# Mixed Document');
+    expect(exportedMarkdown).toContain('- Item 1');
+    expect(exportedMarkdown).toMatch(/\|\s*Feature\s*\|\s*Status\s*\|/);
+    expect(exportedMarkdown).toMatch(/\|\s*Table\s*\|\s*Fallback\s*\|/);
+  });
 });
