@@ -2,6 +2,67 @@
 
 # Changelog
 
+### [Version&nbsp;1.0.0-fork.5](https://github.com/xuhuafei/lobe-editor)
+<sup>Released on **2026-05-11**</sup>
+
+#### 🐛 Bug Fixes
+
+- **color-picker**: Fix ColorPicker value snaps to black when selection is null. `useEditorState` no longer clears `textColor`/`bgColor` when selection is null (e.g., editor loses focus to popup), preserving the last detected color value.
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **color-picker**: Fix ColorPicker value snaps to black when selection is null ([9efdfe9](https://github.com/xuhuafei/lobe-editor/commit/9efdfe9))
+
+</details>
+
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;1.0.0-fork.4](https://github.com/xuhuafei/lobe-editor)
+<sup>Released on **2026-05-10**</sup>
+
+
+#### 🚀 Features
+
+- **outline**: Add OutlinePanel, provider, toolbar toggle, and package exports
+- **color-picker**: Add text color and background color picker with antd ColorPicker, split button design (A + arrow), per-instance color memory
+- **meta2d**: Add diagram editor plugin with palette, preview, property panel and full shape library
+- **paste**: Add `confirmPasteMarkdown` prop with built-in confirmation dialog
+- **toolbar**: Limit floating toolbar to inline format buttons only, remove 500ms debounce for instant updates
+
+
+#### 🐛 Bug Fixes
+
+- **editor**: `ReactEditor` and `useEditor` now call `editor.destroy()` on unmount, with `pendingDestroyRef` + `queueMicrotask` for StrictMode compatibility
+- **meta2d**: Align SVG preview with downloadSvg rect padding, filter pens with `isShowChild`, responsive thumbnail display
+- **markdown**: Remove paste scoring system, always convert; add image text-match transformer for `![]()` syntax
+- **link**: Empty link text `[](url)` now shows URL as fallback; Enter key triggers text-match transformers
+- **toolbar**: Share `lastUsedColor` between floating and main toolbar instances; left-click "A" uses last picked color
+
+
+<br/>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.9.3](https://github.com/lobehub/lobe-editor/compare/v4.9.2...v4.9.3)
 <sup>Released on **2026-04-22**</sup>
 

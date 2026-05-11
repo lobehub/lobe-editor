@@ -256,8 +256,10 @@ export function useEditorState(editor?: IEditor): EditorState {
       setIsInBlockquote(false);
       setCodeblockLang(null);
       setBlockType(null);
-      setTextColorState('');
-      setBgColorState('');
+      // Don't clear textColor/bgColor when selection is null — a null selection
+      // just means there's no active selection (e.g., focus lost to a popup),
+      // not that the selected text has no color. Preserving these values prevents
+      // the color picker from snapping back to default when the editor loses focus.
     }
   }, [editor]);
 
