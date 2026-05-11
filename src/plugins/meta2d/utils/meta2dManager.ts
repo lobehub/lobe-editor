@@ -1,4 +1,4 @@
-import { Meta2d } from '@meta2d/core';
+import { Meta2d, isShowChild } from '@meta2d/core';
 import C2S from 'canvas2svg';
 
 import { registerAllShapeLibraries } from './registerPens';
@@ -142,39 +142,44 @@ export async function generateSvgFromDiagram(diagramJson: string): Promise<strin
     const pens = (engine as any).store?.data?.pens;
     const penCount = Array.isArray(pens) ? pens.length : 0;
 
-    const bounds = engine.getRect();
+    // Align with Meta2d `downloadSvg`: expand rect by padding on x/y only; C2S size is width+2*pad × height+2*pad;
+    // `renderPenRaw` takes the same rect object (do not pass inflated width/height — only translate uses x/y).
+    const padding = 10;
+    const rect = engine.getRect() as {
+      height: number;
+      width: number;
+      x: number;
+      y: number;
+    };
     const boundsBad =
-      !bounds ||
-      !Number.isFinite(bounds.width) ||
-      !Number.isFinite(bounds.height) ||
-      typeof bounds.width !== 'number' ||
-      typeof bounds.height !== 'number' ||
-      bounds.width <= 0 ||
-      bounds.height <= 0;
+      !rect ||
+      !Number.isFinite(rect.width) ||
+      !Number.isFinite(rect.height) ||
+      rect.width <= 0 ||
+      rect.height <= 0;
 
     if (boundsBad) {
       if (penCount === 0) return EMPTY_META2D_PLACEHOLDER_SVG;
-      console.error('[meta2d] preview failed: invalid bounds', bounds);
+      console.error('[meta2d] preview failed: invalid bounds', rect);
       return '';
     }
 
-    const rectW = bounds.width as number;
-    const rectH = bounds.height as number;
-    const padding = 10;
-    const x = (bounds.x ?? 0) - padding;
-    const y = (bounds.y ?? 0) - padding;
-    const width = Math.ceil(rectW + padding * 2);
-    const height = Math.ceil(rectH + padding * 2);
+    rect.x -= padding;
+    rect.y -= padding;
 
-    const ctx = new Canvas2SvgCtor(width, height);
+    const ctx = new Canvas2SvgCtor(
+      Math.ceil(rect.width + padding * 2),
+      Math.ceil(rect.height + padding * 2),
+    );
     ctx.textBaseline = 'middle';
     patchCanvas2SvgFont(ctx);
 
-    if (Array.isArray(pens)) {
+    const store = (engine as any).store;
+    if (Array.isArray(pens) && store) {
       for (const pen of pens) {
-        if (pen?.visible === false) continue;
+        if (pen?.visible === false || !isShowChild(pen, store)) continue;
         try {
-          (engine as any).renderPenRaw(ctx, pen, { height, width, x, y }, true);
+          (engine as any).renderPenRaw(ctx, pen, rect, true);
         } catch {
           // skip invalid pen
         }

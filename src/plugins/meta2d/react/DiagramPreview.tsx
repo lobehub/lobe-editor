@@ -1,6 +1,16 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 
 import { generateSvgFromDiagram } from '../utils/meta2dManager';
+
+/** Canvas2svg emits a large fixed width/height; without this the card clips to the top-left (overflow hidden). */
+function injectPreviewSvgLayout(svg: string): string {
+  const t = svg.trimStart();
+  if (!t.startsWith('<svg')) return svg;
+  return t.replace(
+    /^<svg\b/,
+    '<svg style="max-width:100%;height:auto;display:block;margin:0 auto" ',
+  );
+}
 
 export interface DiagramPreviewProps {
   diagram: string;
@@ -53,6 +63,8 @@ function DiagramPreviewInner({ diagram, onDelete, onEdit, onSvgReady, svg }: Dia
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [hovered, setHovered] = useState(false);
   const [generationFailed, setGenerationFailed] = useState(false);
+  /** 避免 diagram 已更新但节点仍保留旧 svg 时缩略图不刷新；与上次成功生成预览的 diagram 一致时可跳过 */
+  const previewSyncedForDiagramRef = useRef<string | null>(null);
 
   useEffect(() => {
     setGenerationError(null);
@@ -60,7 +72,8 @@ function DiagramPreviewInner({ diagram, onDelete, onEdit, onSvgReady, svg }: Dia
   }, [diagram]);
 
   useEffect(() => {
-    if (!diagram || generationFailed || svg || generating) return;
+    if (!diagram || generationFailed || generating) return;
+    if (svg && previewSyncedForDiagramRef.current === diagram) return;
     let active = true;
     const timeoutId = window.setTimeout(() => {
       if (!active) return;
@@ -75,6 +88,7 @@ function DiagramPreviewInner({ diagram, onDelete, onEdit, onSvgReady, svg }: Dia
         if (!active) return;
         window.clearTimeout(timeoutId);
         if (nextSvg) {
+          previewSyncedForDiagramRef.current = diagram;
           onSvgReady(nextSvg);
           return;
         }
@@ -88,7 +102,7 @@ function DiagramPreviewInner({ diagram, onDelete, onEdit, onSvgReady, svg }: Dia
       active = false;
       window.clearTimeout(timeoutId);
     };
-  }, [diagram, generationFailed, generating, onSvgReady, svg]);
+  }, [diagram, generationFailed, onSvgReady, svg]);
 
   return (
     <div
@@ -125,7 +139,21 @@ function DiagramPreviewInner({ diagram, onDelete, onEdit, onSvgReady, svg }: Dia
         </div>
       )}
       {svg ? (
-        <div dangerouslySetInnerHTML={{ __html: svg }} />
+        <div
+          style={{
+            alignItems: 'center',
+            display: 'flex',
+            justifyContent: 'center',
+            maxHeight: 400,
+            overflow: 'auto',
+            width: '100%',
+          }}
+        >
+          <div
+            dangerouslySetInnerHTML={{ __html: injectPreviewSvgLayout(svg) }}
+            style={{ lineHeight: 0, maxWidth: '100%', width: '100%' }}
+          />
+        </div>
       ) : (
         <div
           style={{
