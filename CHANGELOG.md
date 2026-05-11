@@ -2,6 +2,50 @@
 
 # Changelog
 
+## [Version&nbsp;4.10.0](https://github.com/lobehub/lobe-editor/compare/v4.9.9...v4.10.0)
+<sup>Released on **2026-05-11**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add fallback handling for markdown parsing and enhance contex….
+
+
+#### 🐛 Bug Fixes
+
+- **auto-complete**: Improve placeholder handling and add guard limi….
+- **misc**: Update quote shortcut regex to support additional character.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add fallback handling for markdown parsing and enhance contex…, closes [#147](https://github.com/lobehub/lobe-editor/issues/147) ([b227b9a](https://github.com/lobehub/lobe-editor/commit/b227b9a))
+
+
+
+#### What's fixed
+
+* **auto-complete**: Improve placeholder handling and add guard limi…, closes [#148](https://github.com/lobehub/lobe-editor/issues/148) ([62a12f1](https://github.com/lobehub/lobe-editor/commit/62a12f1))
+* **misc**: Update quote shortcut regex to support additional character, closes [#149](https://github.com/lobehub/lobe-editor/issues/149) ([e97172c](https://github.com/lobehub/lobe-editor/commit/e97172c))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.9.9](https://github.com/lobehub/lobe-editor/compare/v4.9.8...v4.9.9)
 <sup>Released on **2026-05-06**</sup>
 
