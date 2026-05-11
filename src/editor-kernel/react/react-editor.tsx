@@ -1,7 +1,7 @@
 /**
  * Support configuration through react children
  */
-import { type FC, type ReactNode, useEffect, useMemo } from 'react';
+import { type FC, type ReactNode, useEffect, useMemo, useRef } from 'react';
 
 import type { IEditor } from '@/types';
 
@@ -48,13 +48,35 @@ export const ReactEditor: FC<IReactEditorProps> = ({
     return [editor, theme] as LexicalComposerContextWithEditor;
   }, [editorProp]);
 
+  // 用于区分 React StrictMode 模拟卸载和真正卸载
+  const pendingDestroyRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     const editor = composerContext[0];
+
+    // StrictMode remount 时取消待执行的 destroy
+    if (pendingDestroyRef.current) {
+      pendingDestroyRef.current();
+      pendingDestroyRef.current = null;
+    }
 
     // Call onInit callback
     if (onInit) {
       onInit(editor);
     }
+
+    return () => {
+      // 延迟到 microtask 执行，给 StrictMode remount 留出时间
+      pendingDestroyRef.current = () => {
+        editor.destroy();
+      };
+      queueMicrotask(() => {
+        if (pendingDestroyRef.current) {
+          pendingDestroyRef.current();
+          pendingDestroyRef.current = null;
+        }
+      });
+    };
   }, [composerContext, onInit]);
 
   return (
