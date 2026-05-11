@@ -130,6 +130,30 @@ describe('HeadlessEditor', () => {
     editor.destroy();
   });
 
+  it('preserves fenced code line breaks in headless editor data', () => {
+    const editor = createHeadlessEditor();
+
+    editor.hydrateMarkdown('```\nconst a = 1\nconst b=  1\n```');
+
+    const { editorData, markdown } = editor.export();
+    const codeNode = findNodeByType(editorData.root, 'code');
+    const codeChildren = Array.isArray(codeNode?.children) ? codeNode.children : [];
+
+    expect(markdown).toBe('```plaintext\nconst a = 1\nconst b=  1\n```\n');
+    expect(codeNode).toMatchObject({
+      code: 'const a = 1\nconst b=  1',
+      type: 'code',
+    });
+    expect(codeChildren).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'const a = 1', type: 'code-highlight' }),
+        expect.objectContaining({ type: 'linebreak' }),
+        expect.objectContaining({ text: 'const b=  1', type: 'code-highlight' }),
+      ]),
+    );
+    editor.destroy();
+  });
+
   it('supports Markdown tables in headless mode', () => {
     const editor = createHeadlessEditor();
 
