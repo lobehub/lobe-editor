@@ -20,6 +20,8 @@ import { createDebugLogger } from '@/utils/debug';
 import { PlaceholderBlockNode, PlaceholderNode } from '../node/placeholderNode';
 
 const AUTO_COMPLETE_GUARD_LIMIT = 50_000;
+const CLEAR_PLACEHOLDER_BURST_LIMIT = 20;
+const CLEAR_PLACEHOLDER_BURST_WINDOW_MS = 1000;
 
 export interface AutoCompletePluginOptions {
   /** Delay in milliseconds before triggering auto-complete (default: 1000ms) */
@@ -52,6 +54,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   private currentSuggestion: string | null = null;
   private markdownService: IMarkdownShortCutService | null = null;
   private skipNextTextContentListener = false;
+  private clearPlaceholderCallTimestamps: number[] = [];
 
   constructor(
     protected kernel: IEditorKernel,
@@ -435,6 +438,17 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   }
 
   private clearPlaceholderNodes(editor: LexicalEditor): void {
+    const now = Date.now();
+    this.clearPlaceholderCallTimestamps = this.clearPlaceholderCallTimestamps.filter(
+      (ts) => now - ts <= CLEAR_PLACEHOLDER_BURST_WINDOW_MS,
+    );
+
+    if (this.clearPlaceholderCallTimestamps.length >= CLEAR_PLACEHOLDER_BURST_LIMIT) {
+      return;
+    }
+
+    this.clearPlaceholderCallTimestamps.push(now);
+
     this.skipNextTextContentListener = true;
     this.currentSuggestion = null;
     this.placeholderNodes = [];
