@@ -1,6 +1,5 @@
 import {
   $getSelection,
-  $insertNodes,
   $isRangeSelection,
   $setSelection,
   COMMAND_PRIORITY_CRITICAL,
@@ -11,7 +10,6 @@ import {
   TextNode,
 } from 'lexical';
 
-import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -421,15 +419,6 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         };
       }
 
-      // 创建标记节点并保存其key
-      const markerNode = INodeHelper.createTextNode('\u200B'); // 使用零宽空格
-      nodes.children.push({
-        // @ts-expect-error not error
-        children: [markerNode],
-        name: '',
-        type: 'PlaceholderInline',
-      });
-
       const saveSel = selection.clone();
       this.markdownService.insertIRootNode(editor, nodes, selection);
 
@@ -453,6 +442,8 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     this.currentSuggestion = null;
     this.placeholderNodes = [];
     editor.update(() => {
+      const selection = $getSelection();
+      const clonedSelection = selection ? selection.clone() : null;
       let iterCount = 0;
       editor.getEditorState()._nodeMap.forEach((node) => {
         iterCount++;
@@ -461,42 +452,17 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             `clearPlaceholderNodes: forEach loop > ${AUTO_COMPLETE_GUARD_LIMIT} iterations`,
           );
         }
-
-        const selection = $getSelection();
-        const clonedSelection = selection ? selection.clone() : null;
         if (
           node.isAttached() &&
           ['PlaceholderBlock', 'PlaceholderInline'].includes(node.getType())
         ) {
-          if (
-            node.getType() === 'PlaceholderInline' &&
-            node.getTextContent().includes('\u200B') &&
-            node.getPreviousSibling() === null
-          ) {
-            // 先收集所有的 next siblings，再删除，防止死循环
-            const siblings: any[] = [];
-            let sibling = node.getNextSibling();
-            let siblingLoopCount = 0;
-            while (sibling && siblingLoopCount < AUTO_COMPLETE_GUARD_LIMIT) {
-              siblings.push(sibling);
-              sibling = sibling.getNextSibling();
-              siblingLoopCount++;
-            }
-            if (siblingLoopCount >= AUTO_COMPLETE_GUARD_LIMIT) {
-              throw new Error(
-                `clearPlaceholderNodes: too many siblings (${siblingLoopCount}/${AUTO_COMPLETE_GUARD_LIMIT})`,
-              );
-            }
-            node.getParent()?.remove();
-            if (siblings.length > 0) {
-              $insertNodes(siblings);
-            }
-            $setSelection(clonedSelection);
-            return;
-          }
           node.remove();
         }
       });
+
+      if (clonedSelection) {
+        $setSelection(clonedSelection);
+      }
     });
   }
 
