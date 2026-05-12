@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.10.1](https://github.com/lobehub/lobe-editor/compare/v4.10.0...v4.10.1)
+<sup>Released on **2026-05-12**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **auto-complete**: Add burst limit and window for clearing placeho….
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **auto-complete**: Add burst limit and window for clearing placeho…, closes [#151](https://github.com/lobehub/lobe-editor/issues/151) ([589ba1a](https://github.com/lobehub/lobe-editor/commit/589ba1a))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.10.0](https://github.com/lobehub/lobe-editor/compare/v4.9.9...v4.10.0)
 <sup>Released on **2026-05-11**</sup>
 
