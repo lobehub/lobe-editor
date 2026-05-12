@@ -65,8 +65,8 @@ const themeConfig: SiteThemeConfig = {
     default: 'dark',
     switch: false,
   },
+  /** discord 与当前主题 `@lobehub/ui`/`dumi-theme-lobehub` 文案与图标不匹配时会崩页，故只保留 github */
   socialLinks: {
-    discord: 'https://discord.gg/AYFPHvv2jT',
     github: homepage,
   },
   title: 'Lobe Editor',

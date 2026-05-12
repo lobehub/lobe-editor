@@ -764,8 +764,9 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   setLocale(locale: Partial<Record<keyof ILocaleKeys, string>>): void {
-    this.localeMap = { ...this.localeMap, ...locale };
-    this.logger.debug(`🌐 Locale replaced: ${Object.keys(locale).length} keys`);
+    /** Deep-merge so nested namespaces (e.g. `meta2d.editor`) are not wiped by a partial top-level `meta2d`. */
+    this.localeMap = merge({}, this.localeMap, locale) as Record<keyof ILocaleKeys, string>;
+    this.logger.debug(`🌐 Locale merged: ${Object.keys(locale).length} top-level keys`);
   }
 
   t<K extends keyof ILocaleKeys>(key: K, params?: Record<string, any>): string {

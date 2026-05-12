@@ -168,9 +168,24 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
         const imageNode = defaultBlockImage
           ? $createBlockImageNode({ altText, src, status: 'uploaded' })
           : $createImageNode({ altText, src, status: 'uploaded' });
-        node.replace(imageNode);
-        if (!defaultBlockImage && $isRootOrShadowRoot(imageNode.getParentOrThrow())) {
-          $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
+        if (defaultBlockImage) {
+          // For block images: lift the image out of the paragraph to root level
+          const parent = node.getParent();
+          if (parent && $isRootOrShadowRoot(parent.getParent())) {
+            // Replace the entire paragraph with the image at root level
+            const emptyPara = $createParagraphNode();
+            parent.replace(imageNode);
+            imageNode.insertAfter(emptyPara);
+            emptyPara.selectEnd();
+          } else {
+            // Fallback: just replace the text node
+            node.replace(imageNode);
+          }
+        } else {
+          node.replace(imageNode);
+          if ($isRootOrShadowRoot(imageNode.getParentOrThrow())) {
+            $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
+          }
         }
       },
       trigger: ')',
@@ -261,6 +276,10 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
                   $insertNodes([imageNode]);
                   if (!isBlock && $isRootOrShadowRoot(imageNode.getParentOrThrow())) {
                     $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
+                  } else if (isBlock) {
+                    const emptyPara = $createParagraphNode();
+                    imageNode.insertAfter(emptyPara);
+                    emptyPara.selectEnd();
                   }
                 }
               });

@@ -268,8 +268,9 @@ export interface IEditor {
   setEditable(editable: boolean): void;
 
   /**
-   * Set the locale map, replacing all translation entries at once.
-   * Unlike registerLocale() which merges, this replaces the entire locale map.
+   * Merge locale overrides into the current map (deep merge via `merge()`).
+   * Prefer passing a full `zhCN` / `enUS` when switching app language; nested keys such as `meta2d.editor` are preserved.
+   * For plugin partial keys, use `registerLocale()` instead.
    */
   setLocale(locale: Partial<Record<keyof ILocaleKeys, string>>): void;
 

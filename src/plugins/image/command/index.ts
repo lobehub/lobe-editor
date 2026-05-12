@@ -66,6 +66,11 @@ export function registerImageCommand(
         $insertNodes([imageNode]); // Insert a zero-width space to ensure the image is not the last child
         if (!isBlock && $isRootOrShadowRoot(imageNode.getParentOrThrow())) {
           $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
+        } else if (isBlock) {
+          // Auto-append an empty paragraph after block images and move cursor there
+          const emptyPara = $createParagraphNode();
+          imageNode.insertAfter(emptyPara);
+          emptyPara.selectEnd();
         }
         handleUpload(file)
           .then((res) => {
