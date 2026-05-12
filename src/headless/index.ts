@@ -191,6 +191,56 @@ const normalizeLegacyEditorData = (
   } as SerializedEditorState<SerializedLexicalNode>;
 };
 
+const extractSerializedCodeText = (children: unknown[]): string =>
+  children
+    .map((child) => {
+      if (!child || typeof child !== 'object') return '';
+
+      const record = child as SerializedRecord;
+
+      if (record.type === 'linebreak') return '\n';
+      if (record.type === 'tab') return '\t';
+      if (typeof record.text === 'string') return record.text;
+      if (Array.isArray(record.children)) return extractSerializedCodeText(record.children);
+
+      return '';
+    })
+    .join('');
+
+const preserveSerializedCodeText = (node: unknown): unknown => {
+  if (!node || typeof node !== 'object') return node;
+
+  const record = node as SerializedRecord;
+  const children = Array.isArray(record.children)
+    ? record.children.map((child: unknown) => preserveSerializedCodeText(child))
+    : record.children;
+
+  if (record.type === 'code' && Array.isArray(children)) {
+    return {
+      ...record,
+      children,
+      code: extractSerializedCodeText(children),
+    };
+  }
+
+  if (Array.isArray(children)) {
+    return {
+      ...record,
+      children,
+    };
+  }
+
+  return record;
+};
+
+const preserveSerializedCodeTextInEditorData = (
+  editorData: SerializedEditorState<SerializedLexicalNode>,
+): SerializedEditorState<SerializedLexicalNode> =>
+  ({
+    ...editorData,
+    root: preserveSerializedCodeText(editorData.root),
+  }) as SerializedEditorState<SerializedLexicalNode>;
+
 export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   [CommonPlugin, { enableHotkey: false }],
   MarkdownPlugin,
@@ -268,9 +318,9 @@ export class HeadlessEditor {
 
   export(options: HeadlessEditorExportOptions = {}): HeadlessEditorExport {
     const snapshot: HeadlessEditorExport = {
-      editorData: this.kernel.getDocument(
-        'json',
-      ) as unknown as SerializedEditorState<SerializedLexicalNode>,
+      editorData: preserveSerializedCodeTextInEditorData(
+        this.kernel.getDocument('json') as unknown as SerializedEditorState<SerializedLexicalNode>,
+      ),
       markdown: this.kernel.getDocument('markdown') as unknown as string,
     };
 
