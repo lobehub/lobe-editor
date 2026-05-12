@@ -4,10 +4,11 @@ import { useMemo } from 'react';
 
 import { useEditorLocale } from '@/react/hooks/useEditorLocale';
 
+import { normalizeMeta2dPen } from '../utils/meta2dManager';
 import { GROUP_LOCALE_MAP, type PaletteItem, getPalette, itemLabelLocaleKey } from './diagram-pens';
 
 function clonePen(pen: Record<string, unknown>): Record<string, unknown> {
-  return structuredClone(pen);
+  return normalizeMeta2dPen(structuredClone(pen));
 }
 
 function groupPalette(items: PaletteItem[]): [string, PaletteItem[]][] {
@@ -127,7 +128,7 @@ function PaletteTile({
           event.preventDefault();
           return;
         }
-        const payload = JSON.stringify(item.pen);
+        const payload = JSON.stringify(clonePen(item.pen));
         event.dataTransfer.setData('Meta2d', payload);
         event.dataTransfer.setData('Text', payload);
         event.dataTransfer.effectAllowed = 'copy';

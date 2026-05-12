@@ -1,5 +1,5 @@
 import { Meta2d } from '@meta2d/core';
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useEditorLocale } from '@/react/hooks/useEditorLocale';
 
@@ -8,6 +8,8 @@ import {
   createEmptyMeta2dData,
   ensureMeta2dShapes,
   generateSvgFromDiagram,
+  generateSvgFromMeta2d,
+  normalizeMeta2dData,
   sanitizeMeta2dData,
 } from '../utils/meta2dManager';
 import { DiagramPalette } from './DiagramPalette';
@@ -55,10 +57,16 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
   const { t } = useEditorLocale();
   const canvasRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Meta2d | null>(null);
+  const initialDiagramRef = useRef(diagram);
+  const onCloseRef = useRef(onClose);
   const [engine, setEngine] = useState<Meta2d | null>(null);
   const [saving, setSaving] = useState(false);
 
   useBodyScrollLock(true);
+
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -69,19 +77,22 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
     setEngine(engine);
 
     try {
-      if (diagram?.trim()) {
-        engine.open(JSON.parse(diagram));
+      const initialDiagram = initialDiagramRef.current;
+      if (initialDiagram?.trim()) {
+        engine.open(JSON.parse(initialDiagram));
       } else {
         engine.open(createEmptyMeta2dData() as never);
       }
+      normalizeMeta2dData(engine.data());
       engine.render(true);
     } catch {
       engine.open(createEmptyMeta2dData() as never);
+      normalizeMeta2dData(engine.data());
       engine.render(true);
     }
 
     const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onCloseRef.current();
     };
     window.addEventListener('keydown', handleEsc);
 
@@ -94,7 +105,7 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
       }
       engineRef.current = null;
     };
-  }, [diagram, onClose]);
+  }, []);
 
   const handleSave = async () => {
     const engine = engineRef.current;
@@ -102,9 +113,14 @@ export function DiagramEditor({ diagram, onClose, onSave }: DiagramEditorProps) 
 
     setSaving(true);
     try {
+      normalizeMeta2dData(engine.data());
+      engine.render(true);
       const sanitized = sanitizeMeta2dData(engine.data());
       const json = JSON.stringify(sanitized);
-      const svg = (await generateSvgFromDiagram(json)) || EMPTY_META2D_PLACEHOLDER_SVG;
+      const svg =
+        (await generateSvgFromMeta2d(engine)) ||
+        (await generateSvgFromDiagram(json)) ||
+        EMPTY_META2D_PLACEHOLDER_SVG;
       onSave(json, svg);
     } finally {
       setSaving(false);

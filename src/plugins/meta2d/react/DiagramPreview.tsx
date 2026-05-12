@@ -73,7 +73,10 @@ function DiagramPreviewInner({ diagram, onDelete, onEdit, onSvgReady, svg }: Dia
 
   useEffect(() => {
     if (!diagram || generationFailed || generating) return;
-    if (svg && previewSyncedForDiagramRef.current === diagram) return;
+    if (svg) {
+      previewSyncedForDiagramRef.current = diagram;
+      return;
+    }
     let active = true;
     const timeoutId = window.setTimeout(() => {
       if (!active) return;

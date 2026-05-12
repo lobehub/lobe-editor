@@ -102,6 +102,10 @@
 | `src/plugins/image/react/components/LazyImage.tsx`      | React  | 图片懒加载组件                                                      | `src/plugins/image/react/components/useSupenseImage.ts` |
 | `src/plugins/image/react/components/useSupenseImage.ts` | Hook   | Suspense 图片加载，**全局 `imageCache` Map 会永久缓存加载失败状态** | `src/plugins/image/react/components/LazyImage.tsx`      |
 | `src/plugins/math/plugin/index.ts`                      | 插件   | KaTeX 公式                                                          | `src/renderer/renderers/math.tsx`                       |
+| `src/plugins/meta2d/plugin/index.ts`                    | 插件   | Meta2d 流程图节点、`---meta2d---` shortcut、markdown reader/writer | `src/plugins/meta2d/node/index.ts`                      |
+| `src/plugins/meta2d/react/DiagramEditor.tsx`            | React  | Meta2d 拖拽编辑弹窗，保存时导出 JSON + SVG                         | `src/plugins/meta2d/utils/meta2dManager.ts`             |
+| `src/plugins/meta2d/react/DiagramPreview.tsx`           | React  | SVG 预览与 hover 编辑/删除按钮                                      | `src/plugins/meta2d/react/ReactMeta2dPlugin.tsx`        |
+| `src/plugins/meta2d/utils/meta2dManager.ts`             | 工具   | pen 归一化、数据清洗、当前 Meta2d 实例导出 SVG                     | `fgbg-docs/references/meta2d-plugin-implementation-notes.md` |
 | `src/plugins/mermaid/plugin/index.ts`                   | 插件   | Mermaid 图表                                                        | `src/renderer/renderers/mermaid.tsx`                    |
 | `src/plugins/upload/plugin/index.ts`                    | 插件   | 上传逻辑                                                            | `src/plugins/image/`, `src/plugins/file/`               |
 
@@ -212,3 +216,17 @@
 | EditorProvider 配置 | `src/react/EditorProvider/index.tsx`                             |
 | 语言切换 Hook       | `src/react/hooks/useEditorLocale/index.ts`                       |
 | 新增翻译键步骤      | 见 `fgbg-docs/references/i18n-system.md`                         |
+
+### "我想找 Meta2d / 流程图相关的代码"
+
+| 功能 | 文件 |
+| --- | --- |
+| Meta2d 插件经验与坑点 | `fgbg-docs/references/meta2d-plugin-implementation-notes.md` |
+| Lexical 节点数据结构 | `src/plugins/meta2d/node/index.ts` |
+| `---meta2d---` shortcut / markdown 读写 | `src/plugins/meta2d/plugin/index.ts` |
+| React 插件注册与 decorator | `src/plugins/meta2d/react/ReactMeta2dPlugin.tsx` |
+| 拖拽编辑器弹窗 | `src/plugins/meta2d/react/DiagramEditor.tsx` |
+| SVG 预览与编辑/删除按钮 | `src/plugins/meta2d/react/DiagramPreview.tsx` |
+| 图形面板与拖拽 payload | `src/plugins/meta2d/react/DiagramPalette.tsx` |
+| 图形库注册 | `src/plugins/meta2d/utils/registerPens.ts` |
+| SVG 导出 / pen 归一化 / 数据清洗 | `src/plugins/meta2d/utils/meta2dManager.ts` |
