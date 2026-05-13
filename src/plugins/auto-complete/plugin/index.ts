@@ -1,14 +1,17 @@
 import {
   $getSelection,
   $isRangeSelection,
+  $nodesOfType,
   $setSelection,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
+  KEY_ARROW_LEFT_COMMAND,
+  KEY_ARROW_RIGHT_COMMAND,
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
   LexicalEditor,
-  TextNode,
 } from 'lexical';
+import type { BaseSelection } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
@@ -18,8 +21,6 @@ import { createDebugLogger } from '@/utils/debug';
 import { PlaceholderBlockNode, PlaceholderNode } from '../node/placeholderNode';
 
 const AUTO_COMPLETE_GUARD_LIMIT = 50_000;
-const CLEAR_PLACEHOLDER_BURST_LIMIT = 20;
-const CLEAR_PLACEHOLDER_BURST_WINDOW_MS = 1000;
 
 export interface AutoCompletePluginOptions {
   /** Delay in milliseconds before triggering auto-complete (default: 1000ms) */
@@ -48,11 +49,11 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   private cursorStableTimer: number | null = null;
   private abortController: AbortController | null = null;
   private delay: number;
-  private placeholderNodes: TextNode[] = [];
   private currentSuggestion: string | null = null;
+  private placeholderAnchorPosition: { key: string; offset: number; type: string } | null = null;
+  private placeholderSelectionSnapshot: BaseSelection | null = null;
   private markdownService: IMarkdownShortCutService | null = null;
   private skipNextTextContentListener = false;
-  private clearPlaceholderCallTimestamps: number[] = [];
 
   constructor(
     protected kernel: IEditorKernel,
@@ -81,14 +82,18 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         editorState.read(() => {
           if (editor.isComposing()) {
             this.clearTimer();
-            this.clearPlaceholderNodes(editor);
+            if (this.currentSuggestion) {
+              this.clearPlaceholderNodes(editor, { restoreSelection: false });
+            }
             return;
           }
           const selection = $getSelection();
 
           if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
             this.clearTimer();
-            this.clearPlaceholderNodes(editor);
+            if (this.currentSuggestion) {
+              this.clearPlaceholderNodes(editor, { restoreSelection: false });
+            }
             return;
           }
 
@@ -98,13 +103,14 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             type: selection.anchor.type,
           };
 
-          // Check if cursor position has changed
+          // If cursor moved, clear any active placeholder and restart the stable timer
           if (this.hasPositionChanged(currentPosition)) {
             this.clearTimer();
-            this.clearPlaceholderNodes(editor);
+            if (this.currentSuggestion) {
+              this.clearPlaceholderNodes(editor, { restoreSelection: false });
+            }
 
             this.abortController = new AbortController();
-            // Start new timer for cursor stability check
             this.cursorStableTimer = window.setTimeout(() => {
               this.handleCursorStable(editor, currentPosition);
             }, this.delay);
@@ -131,12 +137,39 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
     this.register(
       editor.registerCommand(
+        KEY_ARROW_LEFT_COMMAND,
+        () => {
+          if (this.currentSuggestion) {
+            this.clearPlaceholderNodes(editor, { restoreSelection: false });
+            return false;
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+    );
+
+    this.register(
+      editor.registerCommand(
+        KEY_ARROW_RIGHT_COMMAND,
+        () => {
+          if (this.currentSuggestion) {
+            this.clearPlaceholderNodes(editor, { restoreSelection: false });
+            return false;
+          }
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+    );
+
+    this.register(
+      editor.registerCommand(
         KEY_ESCAPE_COMMAND,
         (event) => {
           if (this.currentSuggestion) {
             event?.preventDefault();
             this.clearPlaceholderNodes(editor);
-            this.currentSuggestion = null;
             return true;
           }
           return false;
@@ -154,7 +187,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         }
 
         if (this.currentSuggestion) {
-          this.clearPlaceholderNodes(editor);
+          this.clearPlaceholderNodes(editor, { restoreSelection: false });
         }
       }),
     );
@@ -191,7 +224,9 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     editor.getEditorState().read(() => {
       if (editor.isComposing()) {
         this.clearTimer();
-        this.clearPlaceholderNodes(editor);
+        if (this.currentSuggestion) {
+          this.clearPlaceholderNodes(editor, { restoreSelection: false });
+        }
         return;
       }
       if (!this.abortController || this.abortController.signal.aborted) {
@@ -223,11 +258,8 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
       // Get context around cursor for auto-complete
       const anchorNode = selection.anchor.getNode();
-      let selectionType = 'unknown';
-
-      // Get text before cursor in the entire paragraph
       const textRet = this.getTextBeforeCursor(selection);
-      selectionType = anchorNode.getType();
+      const selectionType = anchorNode.getType();
 
       // Trigger auto-complete callback if provided
       if (this.config?.onAutoComplete) {
@@ -246,7 +278,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             });
 
             if (editor.isComposing()) {
-              this.clearPlaceholderNodes(editor);
+              this.clearPlaceholderNodes(editor, { restoreSelection: false });
               return;
             }
 
@@ -255,7 +287,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
               !$isRangeSelection(currentSelection) ||
               !currentSelection.isCollapsed()
             ) {
-              this.clearPlaceholderNodes(editor);
+              this.clearPlaceholderNodes(editor, { restoreSelection: false });
               return;
             }
 
@@ -266,15 +298,14 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             };
 
             if (!this.isSamePosition(currentPosition, newPosition)) {
-              this.clearPlaceholderNodes(editor);
+              this.clearPlaceholderNodes(editor, { restoreSelection: false });
               return;
             }
 
             if (result) {
-              // Store suggestion and show placeholder
               this.currentSuggestion = result;
+              this.placeholderAnchorPosition = currentPosition;
               this.showPlaceholderNodes(editor, result);
-
               this.logger.debug('🔍 Auto-complete triggered:', {
                 afterText: textRet.textAfter,
                 input: textRet.textBefore,
@@ -283,7 +314,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
                 selectionType,
               });
             } else {
-              this.clearPlaceholderNodes(editor);
+              this.clearPlaceholderNodes(editor, { restoreSelection: false });
             }
           });
       }
@@ -294,10 +325,6 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     textAfter: string;
     textBefore: string;
   } {
-    const ret = {
-      textAfter: '',
-      textBefore: '',
-    };
     const anchorNode = selection.anchor.getNode();
     const anchorOffset = selection.anchor.offset;
 
@@ -315,7 +342,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     }
 
     if (!paragraphNode) {
-      return ret;
+      return { textAfter: '', textBefore: '' };
     }
 
     this.logger.debug('🔍 Paragraph Node Type:', paragraphNode, anchorNode);
@@ -380,7 +407,6 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   }
 
   private showPlaceholderNodes(editor: LexicalEditor, suggestion: string): void {
-    // this.clearPlaceholderNodes(editor); // Remove existing placeholder first
     this.skipNextTextContentListener = true;
 
     editor.update(() => {
@@ -394,11 +420,19 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         return;
       }
 
+      // Always clear existing placeholder nodes before inserting a new suggestion
+      // to avoid duplicated/stacked placeholder text.
+      for (const node of $nodesOfType(PlaceholderNode)) {
+        node.remove();
+      }
+      for (const node of $nodesOfType(PlaceholderBlockNode)) {
+        node.remove();
+      }
+
       const nodes = this.markdownService.parseMarkdownToLexical(suggestion);
 
       if (nodes.children[0]) {
         const firstChild = nodes.children[0];
-        // Do something with the first child node
         // @ts-expect-error not error
         const oldChildren = firstChild.children;
         // @ts-expect-error not error
@@ -420,48 +454,53 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
       }
 
       const saveSel = selection.clone();
+      this.placeholderSelectionSnapshot = saveSel;
       this.markdownService.insertIRootNode(editor, nodes, selection);
 
       $setSelection(saveSel);
     });
   }
 
-  private clearPlaceholderNodes(editor: LexicalEditor): void {
-    const now = Date.now();
-    this.clearPlaceholderCallTimestamps = this.clearPlaceholderCallTimestamps.filter(
-      (ts) => now - ts <= CLEAR_PLACEHOLDER_BURST_WINDOW_MS,
-    );
+  private clearPlaceholderNodes(
+    editor: LexicalEditor,
+    options?: { restoreSelection?: boolean },
+  ): void {
+    const shouldRestoreSelection = options?.restoreSelection ?? true;
+    const restoreSelection = this.placeholderSelectionSnapshot;
 
-    if (this.clearPlaceholderCallTimestamps.length >= CLEAR_PLACEHOLDER_BURST_LIMIT) {
+    // Reset state immediately so listeners see no active suggestion
+    this.currentSuggestion = null;
+    this.placeholderAnchorPosition = null;
+    this.placeholderSelectionSnapshot = null;
+    // Cancel any pending AI timer
+    this.clearTimer();
+
+    // Check if there are actually placeholder nodes before queuing an update.
+    // An empty editor.update() still fires listeners and can cause loops.
+    let hasPlaceholderNodes = false;
+    editor.getEditorState().read(() => {
+      hasPlaceholderNodes =
+        $nodesOfType(PlaceholderNode).length > 0 || $nodesOfType(PlaceholderBlockNode).length > 0;
+    });
+
+    if (!hasPlaceholderNodes && !(shouldRestoreSelection && restoreSelection)) {
+      // Nothing to do — skip the update entirely to avoid triggering listeners
+      this.skipNextTextContentListener = false;
       return;
     }
 
-    this.clearPlaceholderCallTimestamps.push(now);
-
+    // Skip the textContentListener that fires when we remove placeholder nodes
     this.skipNextTextContentListener = true;
-    this.currentSuggestion = null;
-    this.placeholderNodes = [];
     editor.update(() => {
-      const selection = $getSelection();
-      const clonedSelection = selection ? selection.clone() : null;
-      let iterCount = 0;
-      editor.getEditorState()._nodeMap.forEach((node) => {
-        iterCount++;
-        if (iterCount > AUTO_COMPLETE_GUARD_LIMIT) {
-          throw new Error(
-            `clearPlaceholderNodes: forEach loop > ${AUTO_COMPLETE_GUARD_LIMIT} iterations`,
-          );
-        }
-        if (
-          node.isAttached() &&
-          ['PlaceholderBlock', 'PlaceholderInline'].includes(node.getType())
-        ) {
-          node.remove();
-        }
-      });
+      for (const node of $nodesOfType(PlaceholderNode)) {
+        node.remove();
+      }
+      for (const node of $nodesOfType(PlaceholderBlockNode)) {
+        node.remove();
+      }
 
-      if (clonedSelection) {
-        $setSelection(clonedSelection);
+      if (shouldRestoreSelection && restoreSelection) {
+        $setSelection(restoreSelection);
       }
     });
   }
@@ -479,20 +518,17 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         return;
       }
 
-      editor.getEditorState()._nodeMap.forEach((node) => {
-        if (
-          node.isAttached() &&
-          ['PlaceholderBlock', 'PlaceholderInline'].includes(node.getType())
-        ) {
-          node.remove();
-        }
-      });
+      for (const node of $nodesOfType(PlaceholderNode)) {
+        node.remove();
+      }
+      for (const node of $nodesOfType(PlaceholderBlockNode)) {
+        node.remove();
+      }
 
       const nodes = this.markdownService.parseMarkdownToLexical(markdown);
       this.markdownService.insertIRootNode(editor, nodes, selection);
 
-      this.clearPlaceholderNodes(editor);
-      this.currentSuggestion = null;
+      this.clearPlaceholderNodes(editor, { restoreSelection: false });
     });
   }
 
@@ -505,8 +541,6 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
   destroy(): void {
     this.clearTimer();
-    // Note: clearPlaceholderNodes needs editor instance, so it should be called before destroy
-    this.placeholderNodes = []; // Clear references
     super.destroy();
   }
 };
