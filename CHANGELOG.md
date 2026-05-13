@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.10.3](https://github.com/lobehub/lobe-editor/compare/v4.10.2...v4.10.3)
+<sup>Released on **2026-05-13**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **auto-complete**: Remove unused marker node creation and optimize….
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **auto-complete**: Remove unused marker node creation and optimize…, closes [#154](https://github.com/lobehub/lobe-editor/issues/154) ([ec750d3](https://github.com/lobehub/lobe-editor/commit/ec750d3))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.10.2](https://github.com/lobehub/lobe-editor/compare/v4.10.1...v4.10.2)
 <sup>Released on **2026-05-12**</sup>
 
