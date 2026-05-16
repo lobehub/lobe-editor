@@ -20,6 +20,11 @@ export type Commands = Map<LexicalCommand<unknown>, Array<Set<CommandListener<un
 export type CommandsClean = Map<LexicalCommand<unknown>, () => void>;
 
 export type IDecoratorFunc = (_node: LexicalNode, _editor: LexicalEditor) => any;
+export type INodeRegistrationTransform = (
+  node: LexicalNodeConfig,
+  index: number,
+) => LexicalNodeConfig | null | undefined;
+export type IBeforeEditorInitLifecycle = () => void;
 export type IDecorator =
   | {
       queryDOM: (_element: HTMLElement) => HTMLElement;
@@ -319,6 +324,12 @@ export interface IEditorKernel extends IEditor {
    */
   isHotReloadMode(): boolean;
   /**
+   * Register a lifecycle hook that runs right before editor initialization.
+   * @param hook
+   * @returns unregister function
+   */
+  registerBeforeEditorInit(hook: IBeforeEditorInitLifecycle): () => void;
+  /**
    * Register data source for multi-format data conversion
    * @param dataSource
    */
@@ -329,11 +340,27 @@ export interface IEditorKernel extends IEditor {
    * @param decorator
    */
   registerDecorator(name: string, decorator: IDecorator): void;
+
+  /**
+   * Register a transform hook that runs before editor initialization
+   * to rewrite registered nodes before createEditor/createHeadlessEditor is called.
+   * @param transform
+   * @returns unregister function
+   */
+  registerNodeTransform(transform: INodeRegistrationTransform): () => void;
+
   /**
    * Register Lexical Node
    * @param nodes
    */
   registerNodes(nodes: Array<LexicalNodeConfig>): void;
+
+  /**
+   * Register className(s) to the contenteditable root element.
+   * @param className One or more class names separated by spaces
+   * @returns unregister function
+   */
+  registerRootClassName(className: string): () => void;
   /**
    * Register service
    * @param serviceId

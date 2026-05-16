@@ -28,12 +28,14 @@ import { $isRootTextContentEmpty } from '@/plugins/common/utils';
 import { HotkeyId } from '@/types/hotkey';
 import {
   Commands,
+  IBeforeEditorInitLifecycle,
   IDecorator,
   IDocumentOptions,
   IEditor,
   IEditorKernel,
   IEditorPlugin,
   IEditorPluginConstructor,
+  INodeRegistrationTransform,
   IPlugin,
   ISelectionObject,
   IServiceID,
@@ -69,6 +71,9 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   private plugins: Array<IEditorPluginConstructor<any>> = [];
   private pluginsConfig: Map<IEditorPluginConstructor<any>, any> = new Map();
   private pluginsInstances: Array<IEditorPlugin<any>> = [];
+  private beforeEditorInitHooks: Array<IBeforeEditorInitLifecycle> = [];
+  private nodeTransforms: Array<INodeRegistrationTransform> = [];
+  private rootClassNames: Set<string> = new Set();
   private nodes: Array<LexicalNodeConfig> = [];
   private themes: Record<string, any> = {
     [EDITOR_THEME_KEY]: generateEditorId(),
@@ -184,6 +189,9 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       }
     });
     this.pluginsInstances = [];
+    this.beforeEditorInitHooks = [];
+    this.nodeTransforms = [];
+    this.rootClassNames.clear();
     // Clear services to support hot reload
     this.serviceMap.clear();
     // Clear decorators to prevent memory leaks
@@ -209,6 +217,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       }
       this.logger.warn('[Editor] Editor is already initialized, updating root element only');
       this.editor.setRootElement(dom);
+      this.applyRootClassNames(dom);
       return this.editor;
     }
 
@@ -221,14 +230,16 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       }
     }
 
-    this.logger.info(`📝 Creating editor with ${this.nodes.length} nodes`);
+    this.runBeforeEditorInitLifecycle();
+    const resolvedNodes = this.resolveNodesForInitialization();
+    this.logger.info(`📝 Creating editor with ${resolvedNodes.length} nodes`);
     registerEditorKernel(this.themes[EDITOR_THEME_KEY], this);
     const editor = (this.editor = createEditor({
       // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
       editable,
       namespace: 'lobehub',
-      nodes: this.nodes,
+      nodes: resolvedNodes,
       onError: (error: Error) => {
         this.logger.error('❌ Lexical editor error:', error);
         this.emit('error', error);
@@ -237,6 +248,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     }));
     this.headlessEditor = false;
     this.editor.setRootElement(dom);
+    this.applyRootClassNames(dom);
     registerEvent(editor, dom);
 
     this.pluginsInstances.forEach((plugin) => {
@@ -270,12 +282,14 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       }
     }
 
-    this.logger.info(`📝 Creating editor with ${this.nodes.length} nodes`);
+    this.runBeforeEditorInitLifecycle();
+    const resolvedNodes = this.resolveNodesForInitialization();
+    this.logger.info(`📝 Creating editor with ${resolvedNodes.length} nodes`);
     const editor = (this.editor = createEditor({
       // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
       namespace: 'lobehub',
-      nodes: this.nodes,
+      nodes: resolvedNodes,
       onError: (error: Error) => {
         this.logger.error('❌ Lexical editor error:', error);
         this.emit('error', error);
@@ -306,12 +320,14 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       }
     }
 
-    this.logger.info(`📝 Creating headless editor with ${this.nodes.length} nodes`);
+    this.runBeforeEditorInitLifecycle();
+    const resolvedNodes = this.resolveNodesForInitialization();
+    this.logger.info(`📝 Creating headless editor with ${resolvedNodes.length} nodes`);
     const editor = (this.editor = createLexicalHeadlessEditor({
       // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
       namespace: 'lobehub-headless',
-      nodes: this.nodes,
+      nodes: resolvedNodes,
       onError: (error: Error) => {
         this.logger.error('❌ Lexical headless editor error:', error);
         this.emit('error', error);
@@ -670,11 +686,89 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       })
       .filter((type) => type !== 'unknown');
     this.nodes.push(...nodes);
+
     if (nodeTypes.length > 3) {
       this.logger.debug(`🧩 Nodes: ${nodeTypes.length} types`);
     } else {
       this.logger.debug(`🧩 Nodes: ${nodeTypes.join(', ')}`);
     }
+  }
+
+  registerNodeTransform(transform: INodeRegistrationTransform): () => void {
+    this.nodeTransforms.push(transform);
+
+    return () => {
+      this.nodeTransforms = this.nodeTransforms.filter((item) => item !== transform);
+    };
+  }
+
+  registerBeforeEditorInit(hook: IBeforeEditorInitLifecycle): () => void {
+    this.beforeEditorInitHooks.push(hook);
+
+    return () => {
+      this.beforeEditorInitHooks = this.beforeEditorInitHooks.filter((item) => item !== hook);
+    };
+  }
+
+  registerRootClassName(className: string): () => void {
+    const classNames = className.split(/\s+/).filter(Boolean);
+
+    for (const item of classNames) {
+      this.rootClassNames.add(item);
+    }
+
+    const rootElement = this.editor?.getRootElement();
+    if (rootElement) {
+      rootElement.classList.add(...classNames);
+    }
+
+    return () => {
+      for (const item of classNames) {
+        this.rootClassNames.delete(item);
+      }
+
+      const currentRootElement = this.editor?.getRootElement();
+      if (currentRootElement) {
+        currentRootElement.classList.remove(...classNames);
+      }
+    };
+  }
+
+  private runBeforeEditorInitLifecycle(): void {
+    for (const hook of this.beforeEditorInitHooks) {
+      hook();
+    }
+  }
+
+  private applyRootClassNames(dom: HTMLElement): void {
+    if (this.rootClassNames.size === 0) {
+      return;
+    }
+
+    dom.classList.add(...Array.from(this.rootClassNames));
+  }
+
+  private resolveNodesForInitialization(): Array<LexicalNodeConfig> {
+    const resolvedNodes = this.nodes.flatMap((node, index) => {
+      let transformedNode: LexicalNodeConfig | null | undefined = node;
+
+      for (const transform of this.nodeTransforms) {
+        transformedNode = transform(transformedNode as LexicalNodeConfig, index);
+        if (!transformedNode) {
+          return [];
+        }
+      }
+
+      return [transformedNode];
+    });
+
+    if (resolvedNodes.length !== this.nodes.length) {
+      this.logger.debug(
+        `🧩 Node transform filtered ${this.nodes.length - resolvedNodes.length} nodes before editor initialization`,
+      );
+    }
+
+    return resolvedNodes;
   }
 
   registerService<T>(serviceId: IServiceID<T>, service: T): void {

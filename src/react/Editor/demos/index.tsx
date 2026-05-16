@@ -10,6 +10,7 @@ import {
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
   ReactAutoCompletePlugin,
+  ReactBlockPlugin,
   ReactCodePlugin,
   ReactCodemirrorPlugin,
   ReactFilePlugin,
@@ -276,6 +277,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         placeholder={'Type something...'}
         plugins={[
           ReactLiteXmlPlugin,
+          ReactBlockPlugin,
           ReactListPlugin,
           ReactLinkPlugin,
           ReactImagePlugin,
