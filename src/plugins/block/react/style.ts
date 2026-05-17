@@ -10,7 +10,6 @@ export const styles = createStaticStyles(({ css }) => ({
 
     width: 24px;
     height: 24px;
-    border: 1px solid transparent;
     border-radius: 8px;
 
     color: var(--lobe-color-text-secondary, rgba(0, 0, 0, 50%));
@@ -18,7 +17,6 @@ export const styles = createStaticStyles(({ css }) => ({
     background: transparent;
 
     &:hover {
-      border-color: var(--lobe-markdown-border-color, rgba(120, 120, 120, 28%));
       color: var(--lobe-color-text, rgba(0, 0, 0, 88%));
       background: var(--lobe-color-fill, rgba(120, 120, 120, 12%));
     }

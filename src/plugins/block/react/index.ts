@@ -1,5 +1,2 @@
-export {
-  type BlockDragTarget,
-  default as ReactBlockPlugin,
-  type ReactBlockPluginProps,
-} from './ReactBlockPlugin';
+export type { BlockDragTarget } from './core/types';
+export { default as ReactBlockPlugin, type ReactBlockPluginProps } from './ReactBlockPlugin';

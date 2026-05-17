@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 import { genServiceId } from '@/editor-kernel';
 import type { IEditor, IServiceID } from '@/types';
 
@@ -11,8 +9,9 @@ export interface IBlockMenuRenderContext {
 
 export interface IBlockMenuItem {
   key: string;
+  label: string | ((context: IBlockMenuRenderContext) => string);
+  onClick: (context: IBlockMenuRenderContext) => void;
   order?: number;
-  render: (context: IBlockMenuRenderContext) => ReactNode;
   when?: (context: IBlockMenuRenderContext) => boolean;
 }
 

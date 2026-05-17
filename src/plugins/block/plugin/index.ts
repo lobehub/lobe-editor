@@ -1,4 +1,10 @@
-import { LexicalEditor, LexicalNode, LexicalNodeConfig, ParagraphNode } from 'lexical';
+import {
+  $getNodeByKey,
+  LexicalEditor,
+  LexicalNode,
+  LexicalNodeConfig,
+  ParagraphNode,
+} from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -135,6 +141,28 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    const blockMenuService = this.kernel.requireService(IBlockMenuService);
+
+    if (blockMenuService) {
+      const unregisterDeleteMenu = blockMenuService.registerMenu({
+        key: '__block_default_delete',
+        label: (context) => context.editor.t('block.delete'),
+        onClick: (context) => {
+          const lexicalEditor = context.editor.getLexicalEditor();
+          if (!lexicalEditor) return;
+
+          lexicalEditor.update(() => {
+            const target = $getNodeByKey(context.blockId);
+            if (!target) return;
+            target.remove();
+          });
+        },
+        order: 999,
+      });
+
+      this.register(unregisterDeleteMenu);
+    }
+
     this.register(registerBlockMoveCommand(editor));
   }
 };
