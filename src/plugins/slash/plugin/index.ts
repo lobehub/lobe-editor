@@ -1,3 +1,4 @@
+import { $createListItemNode, $isListItemNode } from '@lexical/list';
 import {
   $createParagraphNode,
   $getNodeByKey,
@@ -101,14 +102,19 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
             const targetNode = $getNodeByKey(context.blockId);
             if (!targetNode) return;
 
-            const targetType = typeof targetNode.getType === 'function' ? targetNode.getType() : '';
-            const anchorNode =
-              targetType === 'listitem' ? (targetNode.getParent() ?? targetNode) : targetNode;
+            let nextNode;
+            if ($isListItemNode(targetNode)) {
+              // If it's a list item, create another list item
+              nextNode = $createListItemNode();
+              targetNode.insertAfter(nextNode);
+            } else {
+              // Otherwise create a paragraph
+              nextNode = $createParagraphNode();
+              targetNode.insertAfter(nextNode);
+            }
 
-            const paragraph = $createParagraphNode();
-            anchorNode.insertAfter(paragraph);
-            paragraph.selectStart();
-            nextParagraphBlockId = paragraph.getKey();
+            nextNode.selectStart();
+            nextParagraphBlockId = nextNode.getKey();
           });
 
           const fallbackRect = context.blockElement.getBoundingClientRect();

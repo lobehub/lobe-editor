@@ -22,10 +22,32 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
   menu: css`
     pointer-events: auto;
     position: fixed;
-    z-index: 9999;
+    z-index: 100;
     transition:
       inset-inline-start 200ms ease,
       inset-block-start 200ms ease;
+  `,
+  menuInner: css`
+    display: flex;
+    gap: 4px;
+    align-items: center;
+
+    min-width: 28px;
+    min-height: 28px;
+    padding: 2px;
+    border-radius: 8px;
+
+    background: transparent;
+    box-shadow: none;
+
+    transition:
+      background 120ms ease,
+      box-shadow 120ms ease;
+
+    &:hover {
+      background: var(--lobe-color-fill-secondary, ${cssVar.colorFillSecondary});
+      box-shadow: 0 0 0 1px ${cssVar.colorBorderSecondary} inset;
+    }
   `,
   root: css`
     padding-inline: 54px 54px;

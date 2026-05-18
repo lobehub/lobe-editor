@@ -391,25 +391,8 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   if (!menuContext && !dragIndicator) return null;
 
   const menuNode = menuContext ? (
-    <div
-      className={styles.menu}
-      onMouseDown={preventEditorSelectionLost}
-      ref={menuRef}
-      style={menuPosition}
-    >
-      <div
-        style={{
-          alignItems: 'center',
-          backgroundColor: token.colorFillSecondary,
-          borderRadius: token.borderRadiusLG,
-          boxShadow: `0 0 0 1px ${token.colorBorderSecondary} inset`,
-          display: 'flex',
-          gap: 4,
-          minHeight: 28,
-          minWidth: 28,
-          padding: 2,
-        }}
-      >
+    <div className={styles.menu} ref={menuRef} style={menuPosition}>
+      <div className={styles.menuInner} onMouseDown={preventEditorSelectionLost}>
         {actionButtons.map((item) => {
           const title = typeof item.title === 'function' ? item.title(menuContext) : item.title;
           const icon = item.icon === 'plus' ? <Icon icon={PlusIcon} size={14} /> : undefined;
@@ -427,6 +410,9 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
           );
         })}
         <Dropdown
+          align={{
+            points: ['tr', 'tl'],
+          }}
           classNames={{
             root: OPERATION_MENU_OVERLAY_CLASS,
           }}
@@ -439,7 +425,6 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
             }
           }}
           open={operationMenuOpen && operationMenuContext?.blockId === menuContext.blockId}
-          placement={'topLeft'}
           trigger={[]}
         >
           <Button
