@@ -2,6 +2,7 @@ export * from './editor-kernel';
 export * from './editor-kernel/react';
 export * from './headless';
 export * from './plugins/auto-complete';
+export * from './plugins/block';
 export * from './plugins/code';
 export * from './plugins/codeblock';
 export * from './plugins/codemirror-block';

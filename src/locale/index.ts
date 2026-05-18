@@ -1,4 +1,7 @@
 export default {
+  block: {
+    delete: 'Delete block',
+  },
   cancel: 'Cancel',
   codemirror: {
     copyFailed: 'Copy failed',

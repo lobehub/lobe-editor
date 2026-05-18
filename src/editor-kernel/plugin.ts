@@ -1,6 +1,6 @@
 import EventEmitter from 'eventemitter3';
 
-import type { IEditorKernel } from '@/types/kernel';
+import type { IEditorKernel, INodeRegistrationTransform } from '@/types/kernel';
 
 export abstract class KernelPlugin extends EventEmitter {
   protected clears: Array<() => void> = [];
@@ -12,6 +12,23 @@ export abstract class KernelPlugin extends EventEmitter {
 
   protected registerClears(...clears: Array<() => void>): void {
     clears.forEach((clear) => this.register(clear));
+  }
+
+  /**
+   * Register a node transform and automatically clean it up on plugin destroy
+   */
+  protected registerNodeTransform(
+    kernel: IEditorKernel,
+    transform: INodeRegistrationTransform,
+  ): void {
+    this.register(kernel.registerNodeTransform(transform));
+  }
+
+  /**
+   * Register className(s) on contenteditable root and auto cleanup
+   */
+  protected registerRootClassName(kernel: IEditorKernel, className: string): void {
+    this.register(kernel.registerRootClassName(className));
   }
 
   /**
