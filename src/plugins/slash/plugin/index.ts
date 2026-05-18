@@ -1,4 +1,6 @@
 import {
+  $createParagraphNode,
+  $getNodeByKey,
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
@@ -9,6 +11,7 @@ import {
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
+import { IBlockMenuService } from '../../block/service';
 import {
   ISlashOption,
   ISlashService,
@@ -52,10 +55,11 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
   private service: SlashService | null = null;
   private currentSlashTrigger: string | null = null;
   private currentSlashTriggerIndex = -1;
+  private manualOpen = false;
   private suppressOpen = false;
 
   constructor(
-    kernel: IEditorKernel,
+    protected kernel: IEditorKernel,
     public config?: SlashPluginOptions,
   ) {
     super();
@@ -72,11 +76,73 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
     this.config?.triggerClose?.();
     this.currentSlashTrigger = null;
     this.currentSlashTriggerIndex = -1;
+    this.manualOpen = false;
     // After an explicit close, suppress reopening until next typing input
     this.suppressOpen = true;
   }
 
   onInit(editor: LexicalEditor): void {
+    const blockMenuService = this.kernel.requireService(IBlockMenuService);
+
+    if (blockMenuService) {
+      const unregisterAddBlockButton = blockMenuService.registerActionButton({
+        icon: 'plus',
+        key: '__slash_add_below',
+        onClick: (context) => {
+          const lexicalEditor = context.editor.getLexicalEditor();
+          if (!lexicalEditor) return;
+
+          const slashOptions = this.service?.getSlashOptions('/') || this.config?.slashOptions?.[0];
+          if (!slashOptions) return;
+          let nextParagraphBlockId: string | null = null;
+
+          lexicalEditor.focus();
+          lexicalEditor.update(() => {
+            const targetNode = $getNodeByKey(context.blockId);
+            if (!targetNode) return;
+
+            const targetType = typeof targetNode.getType === 'function' ? targetNode.getType() : '';
+            const anchorNode =
+              targetType === 'listitem' ? (targetNode.getParent() ?? targetNode) : targetNode;
+
+            const paragraph = $createParagraphNode();
+            anchorNode.insertAfter(paragraph);
+            paragraph.selectStart();
+            nextParagraphBlockId = paragraph.getKey();
+          });
+
+          const fallbackRect = context.blockElement.getBoundingClientRect();
+          this.manualOpen = true;
+          this.currentSlashTrigger = slashOptions.trigger;
+          this.currentSlashTriggerIndex = -1;
+          this.config?.triggerOpen({
+            getRect: () => {
+              if (nextParagraphBlockId) {
+                const root = lexicalEditor.getRootElement();
+                const paragraphElement = root?.querySelector<HTMLElement>(
+                  `[data-block-id="${nextParagraphBlockId}"]`,
+                );
+
+                if (paragraphElement) {
+                  return paragraphElement.getBoundingClientRect();
+                }
+              }
+
+              return fallbackRect;
+            },
+            items: slashOptions.items,
+            lastIndex: -1,
+            match: null,
+            trigger: slashOptions.trigger,
+          });
+        },
+        order: -100,
+        title: 'Add block below',
+      });
+
+      this.register(unregisterAddBlockButton);
+    }
+
     // Reset suppression on typing-related key presses
     this.register(
       editor.registerCommand<KeyboardEvent>(
@@ -87,6 +153,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
           // Any character input or deletion should re-enable opening
           if (key.length === 1 || key === 'Backspace' || key === 'Delete') {
             this.suppressOpen = false;
+            this.manualOpen = false;
           }
           return false;
         },
@@ -100,6 +167,10 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
           if (!editor.isEditable()) {
             // Trigger close
             this.triggerClose();
+            return;
+          }
+
+          if (this.manualOpen) {
             return;
           }
 

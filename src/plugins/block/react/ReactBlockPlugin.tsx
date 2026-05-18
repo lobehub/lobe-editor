@@ -3,7 +3,7 @@
 import { Icon } from '@lobehub/ui';
 import { Button, Dropdown, theme } from 'antd';
 import { cx } from 'antd-style';
-import { GripVerticalIcon } from 'lucide-react';
+import { GripVerticalIcon, PlusIcon } from 'lucide-react';
 import {
   type CSSProperties,
   type FC,
@@ -249,6 +249,12 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     return blockMenuService.getMenus(operationMenuContext);
   }, [blockMenuService, operationMenuContext, menuVersion]);
 
+  const actionButtons = useMemo(() => {
+    if (!menuContext || !blockMenuService) return [];
+
+    return blockMenuService.getActionButtons(menuContext);
+  }, [blockMenuService, menuContext, menuVersion]);
+
   useEffect(() => {
     onHoverBlockChange?.(menuContext);
   }, [menuContext, onHoverBlockChange]);
@@ -404,6 +410,22 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
           padding: 2,
         }}
       >
+        {actionButtons.map((item) => {
+          const title = typeof item.title === 'function' ? item.title(menuContext) : item.title;
+          const icon = item.icon === 'plus' ? <Icon icon={PlusIcon} size={14} /> : undefined;
+
+          return (
+            <Button
+              aria-label={title}
+              icon={icon}
+              key={item.key}
+              onClick={() => item.onClick(menuContext)}
+              size={'small'}
+              title={title}
+              type={'text'}
+            />
+          );
+        })}
         <Dropdown
           classNames={{
             root: OPERATION_MENU_OVERLAY_CLASS,
