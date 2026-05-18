@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@lobehub/ui';
+import { Button, Dropdown, theme } from 'antd';
 import { cx } from 'antd-style';
 import { GripVerticalIcon } from 'lucide-react';
 import {
@@ -43,8 +44,10 @@ export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'classNa
 }
 
 const logger = createDebugLogger('plugin', 'block-react');
+const OPERATION_MENU_OVERLAY_CLASS = 'lobe-block-operation-dropdown';
 
 const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
+  const { token } = theme.useToken();
   const [editor] = useLexicalComposerContext();
   const {
     rootClassName,
@@ -57,13 +60,11 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   } = props;
   const mergedRootClassName = cx(styles.root, rootClassName?.trim() || className?.trim());
   const menuRef = useRef<HTMLDivElement>(null);
-  const operationMenuRef = useRef<HTMLDivElement>(null);
-  const [hoveredBlock, setHoveredBlock] = useState<HoveredBlockState>(null);
   const contextRef = useRef<RuntimeContextRef>(createRuntimeContext());
+  const [hoveredBlock, setHoveredBlock] = useState<HoveredBlockState>(null);
   const [menuVersion, setMenuVersion] = useState(0);
   const [menuPosition, setMenuPosition] = useState<CSSProperties>({});
   const [operationMenuOpen, setOperationMenuOpen] = useState(false);
-  const [operationMenuWidth, setOperationMenuWidth] = useState(120);
   const [operationMenuContext, setOperationMenuContext] = useState<IBlockMenuRenderContext | null>(
     null,
   );
@@ -135,7 +136,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
         return contextRef.current.hoveredBlock;
       }
 
-      if (operationMenuRef.current?.contains(targetElement)) {
+      if (targetElement.closest(`.${OPERATION_MENU_OVERLAY_CLASS}`)) {
         return contextRef.current.hoveredBlock;
       }
 
@@ -211,11 +212,12 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
 
     const updateMenuPosition = () => {
       const rect = hoveredBlock.blockElement.getBoundingClientRect();
-      const menuWidth = menuRef.current?.offsetWidth || 24;
+      const menuWidth = menuRef.current?.offsetWidth || 32;
       const gap = 8;
+      const listItemOffset = hoveredBlock.blockElement.tagName === 'LI' ? 16 : 0;
 
       setMenuPosition({
-        left: Math.max(gap, rect.left - menuWidth - gap),
+        left: Math.max(gap, rect.left - menuWidth - gap - listItemOffset),
         top: rect.top,
       });
     };
@@ -269,14 +271,36 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     }
   }, [operationMenuOpen]);
 
-  useLayoutEffect(() => {
-    if (!operationMenuOpen || !operationMenuRef.current) return;
-
-    const width = operationMenuRef.current.offsetWidth;
-    if (width > 0 && width !== operationMenuWidth) {
-      setOperationMenuWidth(width);
+  useEffect(() => {
+    if (!operationMenuOpen) {
+      return;
     }
-  }, [operationMenuContext, operationMenuOpen, operationMenuWidth, operationMenus.length]);
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (menuRef.current?.contains(target)) {
+        return;
+      }
+
+      if (target.closest(`.${OPERATION_MENU_OVERLAY_CLASS}`)) {
+        return;
+      }
+
+      contextRef.current.operationMenuAnchorBlockId = null;
+      setOperationMenuOpen(false);
+      setOperationMenuContext(null);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+    };
+  }, [operationMenuOpen]);
 
   useEffect(() => {
     onDragTargetChange?.(contextRef.current.dragTarget);
@@ -344,7 +368,21 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     toggleOperationMenu(menuContext);
   };
 
-  if (!menuContext && !dragIndicator && !(operationMenuOpen && operationMenuContext)) return null;
+  const dropdownItems = useMemo(
+    () =>
+      operationMenus.map((item) => ({
+        key: item.key,
+        label: typeof item.label === 'function' ? item.label(operationMenuContext!) : item.label,
+        onClick: () => {
+          item.onClick(operationMenuContext!);
+          setOperationMenuOpen(false);
+          setOperationMenuContext(null);
+        },
+      })),
+    [operationMenus, operationMenuContext],
+  );
+
+  if (!menuContext && !dragIndicator) return null;
 
   const menuNode = menuContext ? (
     <div
@@ -353,61 +391,59 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       ref={menuRef}
       style={menuPosition}
     >
-      <div className={styles.menuInner}>
-        <div
-          aria-label={'Block actions and drag'}
-          className={styles.dragHandle}
-          data-block-drag-handle={'true'}
-          draggable={false}
-          onClick={handleDragHandleClick}
-          onPointerDown={handleDragHandlePointerDown}
-          role={'button'}
-          tabIndex={-1}
-          title={'Block actions and drag'}
+      <div
+        style={{
+          alignItems: 'center',
+          backgroundColor: token.colorFillSecondary,
+          borderRadius: token.borderRadiusLG,
+          boxShadow: `0 0 0 1px ${token.colorBorderSecondary} inset`,
+          display: 'flex',
+          gap: 4,
+          minHeight: 28,
+          minWidth: 28,
+          padding: 2,
+        }}
+      >
+        <Dropdown
+          classNames={{
+            root: OPERATION_MENU_OVERLAY_CLASS,
+          }}
+          menu={{ items: dropdownItems }}
+          onOpenChange={(open) => {
+            if (!open) {
+              setOperationMenuOpen(false);
+              setOperationMenuContext(null);
+              contextRef.current.operationMenuAnchorBlockId = null;
+            }
+          }}
+          open={operationMenuOpen && operationMenuContext?.blockId === menuContext.blockId}
+          placement={'topLeft'}
+          trigger={[]}
         >
-          <Icon icon={GripVerticalIcon} size={14} />
-        </div>
+          <Button
+            aria-label={'Block actions and drag'}
+            className={styles.dragHandle}
+            data-block-drag-handle={'true'}
+            icon={<Icon icon={GripVerticalIcon} size={14} />}
+            onClick={handleDragHandleClick}
+            onPointerDown={handleDragHandlePointerDown}
+            size={'small'}
+            title={'Block actions and drag'}
+            type={'text'}
+          />
+        </Dropdown>
       </div>
     </div>
   ) : null;
 
-  const operationMenuNode = operationMenuContext &&
-    operationMenuOpen &&
-    operationMenus.length > 0 && (
-      <div
-        className={styles.operationMenu}
-        onMouseDown={(event) => event.preventDefault()}
-        ref={operationMenuRef}
-        style={{
-          left: Math.max(8, Number(menuPosition.left || 0) - operationMenuWidth - 4),
-          top: Number(menuPosition.top || 0),
-        }}
-      >
-        {operationMenus.map((item) => (
-          <button
-            className={styles.operationMenuItem}
-            key={item.key}
-            onClick={() => {
-              item.onClick(operationMenuContext);
-              setOperationMenuOpen(false);
-              setOperationMenuContext(null);
-            }}
-            type={'button'}
-          >
-            {typeof item.label === 'function' ? item.label(operationMenuContext) : item.label}
-          </button>
-        ))}
-      </div>
-    );
-
   return createPortal(
     <>
       {menuNode}
-      {operationMenuNode}
       {dragIndicator && (
         <div
           className={styles.dragIndicator}
           style={{
+            backgroundColor: token.colorPrimary,
             left: dragIndicator.left,
             top: dragIndicator.top,
             width: dragIndicator.width,
