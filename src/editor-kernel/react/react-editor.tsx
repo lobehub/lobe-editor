@@ -1,7 +1,7 @@
 /**
  * Support configuration through react children
  */
-import { type FC, type ReactNode, useEffect, useMemo } from 'react';
+import { type FC, type ReactNode, useEffect, useMemo, useRef } from 'react';
 
 import type { IEditor } from '@/types';
 
@@ -48,14 +48,13 @@ export const ReactEditor: FC<IReactEditorProps> = ({
     return [editor, theme] as LexicalComposerContextWithEditor;
   }, [editorProp]);
 
+  const onInitRef = useRef(onInit);
+  onInitRef.current = onInit;
+
   useEffect(() => {
     const editor = composerContext[0];
-
-    // Call onInit callback
-    if (onInit) {
-      onInit(editor);
-    }
-  }, [composerContext, onInit]);
+    onInitRef.current?.(editor);
+  }, [composerContext]);
 
   return (
     <LexicalComposerContext value={composerContext}>
