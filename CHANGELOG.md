@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.10.5](https://github.com/lobehub/lobe-editor/compare/v4.10.4...v4.10.5)
+<sup>Released on **2026-05-20**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **image**: Persist previewed resize width.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **image**: Persist previewed resize width, closes [#157](https://github.com/lobehub/lobe-editor/issues/157) ([9b307f9](https://github.com/lobehub/lobe-editor/commit/9b307f9))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.10.4](https://github.com/lobehub/lobe-editor/compare/v4.10.3...v4.10.4)
 <sup>Released on **2026-05-20**</sup>
 
