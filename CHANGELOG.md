@@ -2,6 +2,41 @@
 
 # Changelog
 
+### [Version&nbsp;4.10.4](https://github.com/lobehub/lobe-editor/compare/v4.10.3...v4.10.4)
+<sup>Released on **2026-05-20**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **auto-complete**: Optimize placeholder node management and add ar….
+- **react-editor**: Prevent onInit from re-firing on every parent render.
+- **send-button**: Destructure styles/classNames out of rest props.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **auto-complete**: Optimize placeholder node management and add ar…, closes [#155](https://github.com/lobehub/lobe-editor/issues/155) ([6295c00](https://github.com/lobehub/lobe-editor/commit/6295c00))
+* **react-editor**: Prevent onInit from re-firing on every parent render ([8b1a5dd](https://github.com/lobehub/lobe-editor/commit/8b1a5dd))
+* **send-button**: Destructure styles/classNames out of rest props, closes [#158](https://github.com/lobehub/lobe-editor/issues/158) ([1fa99a5](https://github.com/lobehub/lobe-editor/commit/1fa99a5))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.10.3](https://github.com/lobehub/lobe-editor/compare/v4.10.2...v4.10.3)
 <sup>Released on **2026-05-13**</sup>
 
