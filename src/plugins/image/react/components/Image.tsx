@@ -24,6 +24,12 @@ export interface ImageProps {
   showScaleInfo?: boolean;
 }
 
+function getResizedImageWidth(startWidth: number, deltaX: number, maxWidth: number) {
+  const adjustedDeltaX = deltaX * 2;
+
+  return Math.max(50, Math.min(startWidth + adjustedDeltaX, maxWidth));
+}
+
 const Image = memo<ImageProps>(
   ({ node, className, showScaleInfo = false, handleUpload, onPickFile }) => {
     const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
@@ -67,11 +73,8 @@ const Image = memo<ImageProps>(
       const parentWidth = imageRef.current.parentElement?.clientWidth || window.innerWidth;
       const maxWidth = parentWidth;
 
-      // Since image is centered, delta is halved (both sides resize)
-      const adjustedDeltaX = deltaX * 2;
-
       // Use the width captured at mousedown time
-      const newWidth = Math.max(50, Math.min(startWidthRef.current + adjustedDeltaX, maxWidth));
+      const newWidth = getResizedImageWidth(startWidthRef.current, deltaX, maxWidth);
 
       // Calculate new height based on the original aspect ratio
       const newHeight = newWidth / aspectRatio;
@@ -179,11 +182,8 @@ const Image = memo<ImageProps>(
         const parentWidth = imageRef.current.parentElement?.clientWidth || window.innerWidth;
         const maxWidth = parentWidth;
 
-        // Since image is centered, delta is halved (both sides resize)
-        const adjustedDeltaX = deltaX / 2;
-
         // Use the width captured at mousedown time
-        const finalWidth = Math.max(50, Math.min(startWidthRef.current + adjustedDeltaX, maxWidth));
+        const finalWidth = getResizedImageWidth(startWidthRef.current, deltaX, maxWidth);
 
         // persist to node via editor.update
         const editor = editorRef.current;

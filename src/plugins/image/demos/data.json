@@ -33,6 +33,15 @@
         "version": 1,
         "textFormat": 0,
         "textStyle": ""
+      },
+      {
+        "altText": "Block image resize persistence case",
+        "height": 240,
+        "maxWidth": 320,
+        "src": "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=640",
+        "type": "block-image",
+        "version": 1,
+        "width": 320
       }
     ],
     "direction": null,
