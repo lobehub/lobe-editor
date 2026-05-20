@@ -37,6 +37,60 @@ interface StartBlockDragSessionParams {
   toggleOperationMenu: (context: IBlockMenuRenderContext | null) => void;
 }
 
+const DRAG_GHOST_OFFSET_X = 14;
+const DRAG_GHOST_OFFSET_Y = 14;
+const DRAG_SOURCE_OPACITY = '0.45';
+
+const createDragGhost = (sourceBlock: HTMLElement, x: number, y: number): HTMLDivElement => {
+  const rect = sourceBlock.getBoundingClientRect();
+  const ghost = document.createElement('div');
+  const clone = sourceBlock.cloneNode(true) as HTMLElement;
+
+  ghost.dataset.blockDragGhost = 'true';
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.style.position = 'fixed';
+  ghost.style.top = '0';
+  ghost.style.left = '0';
+  ghost.style.pointerEvents = 'none';
+  ghost.style.zIndex = '10001';
+  ghost.style.opacity = '0.5';
+  ghost.style.width = `${rect.width}px`;
+  ghost.style.height = `${rect.height}px`;
+  ghost.style.overflow = 'hidden';
+  ghost.style.borderRadius = '8px';
+  ghost.style.boxShadow =
+    '0 10px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--lobe-color-border-secondary, rgba(0, 0, 0, 0.06)) inset';
+  ghost.style.transform = `translate3d(${x + DRAG_GHOST_OFFSET_X}px, ${y + DRAG_GHOST_OFFSET_Y}px, 0)`;
+
+  clone.style.margin = '0';
+  clone.style.pointerEvents = 'none';
+  clone.style.width = '100%';
+  clone.style.height = '100%';
+
+  ghost.append(clone);
+  document.body.append(ghost);
+
+  return ghost;
+};
+
+const updateDragGhostPosition = (ghost: HTMLDivElement, x: number, y: number) => {
+  ghost.style.transform = `translate3d(${x + DRAG_GHOST_OFFSET_X}px, ${y + DRAG_GHOST_OFFSET_Y}px, 0)`;
+};
+
+const removeDragGhost = (ghost: HTMLDivElement | null) => {
+  if (!ghost) return;
+  ghost.remove();
+};
+
+const applyDragSourceOpacity = (sourceBlock: HTMLElement): (() => void) => {
+  const previousOpacity = sourceBlock.style.opacity;
+  sourceBlock.style.opacity = DRAG_SOURCE_OPACITY;
+
+  return () => {
+    sourceBlock.style.opacity = previousOpacity;
+  };
+};
+
 export const startBlockDragSession = ({
   clientX,
   clientY,
@@ -51,6 +105,8 @@ export const startBlockDragSession = ({
   toggleOperationMenu,
 }: StartBlockDragSessionParams) => {
   setOperationMenuOpen(false);
+  let dragGhost: HTMLDivElement | null = null;
+  let restoreSourceOpacity: (() => void) | null = null;
 
   contextRef.current.dragStartPoint = { x: clientX, y: clientY };
   contextRef.current.dragStarted = false;
@@ -123,11 +179,29 @@ export const startBlockDragSession = ({
         contextRef.current.ignoreNextHandleClick = true;
         setOperationMenuOpen(false);
         setOperationMenuContext(null);
+
+        if (!dragGhost && contextRef.current.draggingSource) {
+          dragGhost = createDragGhost(
+            contextRef.current.draggingSource.blockElement,
+            pointerEvent.clientX,
+            pointerEvent.clientY,
+          );
+
+          if (!restoreSourceOpacity) {
+            restoreSourceOpacity = applyDragSourceOpacity(
+              contextRef.current.draggingSource.blockElement,
+            );
+          }
+        }
       }
     }
 
     if (!contextRef.current.dragStarted) {
       return;
+    }
+
+    if (dragGhost) {
+      updateDragGhostPosition(dragGhost, pointerEvent.clientX, pointerEvent.clientY);
     }
 
     if (contextRef.current.dragRaf !== null) return;
@@ -162,6 +236,10 @@ export const startBlockDragSession = ({
       contextRef.current.dragPointerY = null;
       contextRef.current.dragBlocks = [];
       contextRef.current.dragStartPoint = null;
+      removeDragGhost(dragGhost);
+      dragGhost = null;
+      restoreSourceOpacity?.();
+      restoreSourceOpacity = null;
 
       window.removeEventListener('pointermove', onPointerMove, true);
       window.removeEventListener('pointerup', onPointerUp, true);
@@ -201,6 +279,10 @@ export const startBlockDragSession = ({
     contextRef.current.dragPointerY = null;
     contextRef.current.dragBlocks = [];
     contextRef.current.dragStartPoint = null;
+    removeDragGhost(dragGhost);
+    dragGhost = null;
+    restoreSourceOpacity?.();
+    restoreSourceOpacity = null;
     clearDragPreview();
 
     window.removeEventListener('pointermove', onPointerMove, true);
@@ -297,6 +379,10 @@ export const startBlockDragSession = ({
     contextRef.current.dragPointerY = null;
     contextRef.current.dragBlocks = [];
     contextRef.current.dragStartPoint = null;
+    removeDragGhost(dragGhost);
+    dragGhost = null;
+    restoreSourceOpacity?.();
+    restoreSourceOpacity = null;
     clearDragPreview();
 
     window.removeEventListener('pointermove', onPointerMove, true);
