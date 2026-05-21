@@ -32,6 +32,7 @@ import {
 } from './core/runtime-context';
 import { type BlockDragTarget } from './core/types';
 import { startBlockDragSession } from './drag/drag-session';
+import { collectDragBlocks } from './drag/drag-utils';
 import { styles } from './style';
 
 export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'className'> {
@@ -122,7 +123,86 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   }, []);
 
   useEffect(() => {
-    const getHoveredBlock = (target: EventTarget | null) => {
+    let hoverRaf: number | null = null;
+    let blockRectsCache = collectDragBlocks(editor.getRootElement());
+    let blockRectsDirty = true;
+    let latestPointer: { clientX: number; clientY: number; target: EventTarget | null } | null =
+      null;
+
+    const markBlockRectsDirty = () => {
+      blockRectsDirty = true;
+    };
+
+    const getBlockRects = (root: HTMLElement) => {
+      if (blockRectsDirty) {
+        blockRectsCache = collectDragBlocks(root);
+        blockRectsDirty = false;
+      }
+
+      return blockRectsCache;
+    };
+
+    const resolveBlockByY = (
+      rects: ReturnType<typeof collectDragBlocks>,
+      y: number,
+    ): (typeof rects)[number] | null => {
+      if (rects.length === 0) return null;
+
+      let left = 0;
+      let right = rects.length - 1;
+
+      while (left <= right) {
+        const mid = (left + right) >> 1;
+        const entry = rects[mid];
+
+        if (y < entry.rect.top) {
+          right = mid - 1;
+          continue;
+        }
+
+        if (y > entry.rect.bottom) {
+          left = mid + 1;
+          continue;
+        }
+
+        return entry;
+      }
+
+      const nextIndex = Math.min(Math.max(left, 0), rects.length - 1);
+      const prevIndex = Math.min(Math.max(right, 0), rects.length - 1);
+      const next = rects[nextIndex];
+      const prev = rects[prevIndex];
+
+      if (!next) return prev || null;
+      if (!prev) return next || null;
+
+      const nextDistance = Math.min(Math.abs(y - next.rect.top), Math.abs(y - next.rect.bottom));
+      const prevDistance = Math.min(Math.abs(y - prev.rect.top), Math.abs(y - prev.rect.bottom));
+
+      return nextDistance < prevDistance ? next : prev;
+    };
+
+    const isInRootLeftPaddingArea = (root: HTMLElement, clientX: number, clientY: number) => {
+      const rootRect = root.getBoundingClientRect();
+      const inRootBounds =
+        clientX >= rootRect.left &&
+        clientX <= rootRect.right &&
+        clientY >= rootRect.top &&
+        clientY <= rootRect.bottom;
+
+      if (!inRootBounds) {
+        return false;
+      }
+
+      const paddingLeft = Number.parseFloat(window.getComputedStyle(root).paddingLeft || '0');
+      if (paddingLeft <= 0) {
+        return false;
+      }
+
+      return clientX <= rootRect.left + paddingLeft;
+    };
+
+    const getHoveredBlock = (target: EventTarget | null, clientX: number, clientY: number) => {
       const root = editor.getRootElement();
 
       if (!root || !(target instanceof Node)) {
@@ -144,24 +224,49 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
 
       const blockElement = targetElement.closest('[data-block-id]');
 
-      if (!(blockElement instanceof HTMLElement) || !root.contains(blockElement)) {
+      if (blockElement instanceof HTMLElement && root.contains(blockElement)) {
+        const blockId = blockElement.dataset.blockId;
+        if (!blockId) {
+          return null;
+        }
+
+        return { blockElement, blockId };
+      }
+
+      if (!root.contains(targetElement)) {
         return null;
       }
 
-      const blockId = blockElement.dataset.blockId;
-      if (!blockId) {
+      if (!isInRootLeftPaddingArea(root, clientX, clientY)) {
         return null;
       }
 
-      return { blockElement, blockId };
+      const rects = getBlockRects(root);
+      if (rects.length === 0) {
+        return null;
+      }
+
+      const entry = resolveBlockByY(rects, clientY);
+
+      if (!entry) return null;
+
+      return {
+        blockElement: entry.block,
+        blockId: entry.blockId,
+      };
     };
 
-    const handleMouseMove = (event: MouseEvent) => {
+    const processHover = () => {
+      if (!latestPointer) {
+        return;
+      }
+
       if (contextRef.current.draggingSource) {
         return;
       }
 
-      const next = getHoveredBlock(event.target);
+      const { clientX, clientY, target } = latestPointer;
+      const next = getHoveredBlock(target, clientX, clientY);
 
       if (next) {
         if (contextRef.current.hideTimer !== null) {
@@ -190,17 +295,100 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       }, HOVER_HIDE_DELAY);
     };
 
+    const scheduleHoverProcess = () => {
+      if (hoverRaf !== null) {
+        return;
+      }
+
+      hoverRaf = window.requestAnimationFrame(() => {
+        hoverRaf = null;
+        processHover();
+      });
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const root = editor.getRootElement();
+      const target = event.target;
+
+      if (!root || !(target instanceof Node)) {
+        if (!contextRef.current.hoveredBlock) return;
+      } else {
+        const targetElement = target instanceof Element ? target : target.parentElement;
+
+        if (!targetElement) {
+          if (!contextRef.current.hoveredBlock) return;
+        } else {
+          const overMenu =
+            menuRef.current?.contains(targetElement) ||
+            Boolean(targetElement.closest(`.${OPERATION_MENU_OVERLAY_CLASS}`));
+          const overBlock =
+            targetElement.closest('[data-block-id]') instanceof HTMLElement &&
+            root.contains(targetElement);
+          const inPaddingArea = root.contains(targetElement)
+            ? isInRootLeftPaddingArea(root, event.clientX, event.clientY)
+            : false;
+
+          if (!overMenu && !overBlock && !inPaddingArea && !contextRef.current.hoveredBlock) {
+            return;
+          }
+        }
+      }
+
+      latestPointer = {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        target,
+      };
+
+      scheduleHoverProcess();
+    };
+
+    const handleViewportChange = () => {
+      markBlockRectsDirty();
+      scheduleHoverProcess();
+    };
+
+    const rootResizeObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            markBlockRectsDirty();
+          })
+        : null;
+
+    const root = editor.getRootElement();
+    const unregisterUpdate =
+      editor.getLexicalEditor()?.registerUpdateListener(() => {
+        markBlockRectsDirty();
+        scheduleHoverProcess();
+      }) || (() => {});
+
+    if (root) {
+      rootResizeObserver?.observe(root);
+    }
+
     document.addEventListener('mousemove', handleMouseMove, true);
+    window.addEventListener('resize', handleViewportChange);
+    document.addEventListener('scroll', handleViewportChange, true);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove, true);
+      window.removeEventListener('resize', handleViewportChange);
+      document.removeEventListener('scroll', handleViewportChange, true);
+
+      rootResizeObserver?.disconnect();
+      unregisterUpdate();
+
+      if (hoverRaf !== null) {
+        window.cancelAnimationFrame(hoverRaf);
+        hoverRaf = null;
+      }
 
       if (contextRef.current.hideTimer !== null) {
         window.clearTimeout(contextRef.current.hideTimer);
         contextRef.current.hideTimer = null;
       }
     };
-  }, [editor]);
+  }, [editor, isDragging]);
 
   useEffect(() => {
     if (!hoveredBlock) {
