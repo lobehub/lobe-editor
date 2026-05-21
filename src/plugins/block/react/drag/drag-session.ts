@@ -31,6 +31,7 @@ interface StartBlockDragSessionParams {
   editor: IEditor;
   menuContext: IBlockMenuRenderContext;
   onDragTargetResolve?: (target: BlockDragTarget | null) => void;
+  onDraggingChange?: (dragging: boolean) => void;
   setDragIndicator: (value: DragIndicator | null) => void;
   setOperationMenuContext: (value: IBlockMenuRenderContext | null) => void;
   setOperationMenuOpen: (value: boolean) => void;
@@ -98,6 +99,7 @@ export const startBlockDragSession = ({
   contextRef,
   editor,
   menuContext,
+  onDraggingChange,
   onDragTargetResolve,
   setDragIndicator,
   setOperationMenuContext,
@@ -177,6 +179,7 @@ export const startBlockDragSession = ({
         contextRef.current.dragStarted = true;
         contextRef.current.dragMoved = true;
         contextRef.current.ignoreNextHandleClick = true;
+        onDraggingChange?.(true);
         setOperationMenuOpen(false);
         setOperationMenuContext(null);
 
@@ -240,6 +243,7 @@ export const startBlockDragSession = ({
       dragGhost = null;
       restoreSourceOpacity?.();
       restoreSourceOpacity = null;
+      onDraggingChange?.(false);
 
       window.removeEventListener('pointermove', onPointerMove, true);
       window.removeEventListener('pointerup', onPointerUp, true);
@@ -283,6 +287,7 @@ export const startBlockDragSession = ({
     dragGhost = null;
     restoreSourceOpacity?.();
     restoreSourceOpacity = null;
+    onDraggingChange?.(false);
     clearDragPreview();
 
     window.removeEventListener('pointermove', onPointerMove, true);
@@ -383,6 +388,7 @@ export const startBlockDragSession = ({
     dragGhost = null;
     restoreSourceOpacity?.();
     restoreSourceOpacity = null;
+    onDraggingChange?.(false);
     clearDragPreview();
 
     window.removeEventListener('pointermove', onPointerMove, true);

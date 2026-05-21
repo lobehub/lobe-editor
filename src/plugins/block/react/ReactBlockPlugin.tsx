@@ -73,6 +73,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     top: number;
     width: number;
   } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [blockMenuService, setBlockMenuService] = useState<BlockMenuService | null>(null);
 
   useLayoutEffect(() => {
@@ -116,6 +117,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     return () => {
       contextRef.current.dragCleanup?.();
       contextRef.current.dragCleanup = null;
+      setIsDragging(false);
     };
   }, []);
 
@@ -358,6 +360,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       editor,
       menuContext,
       onDragTargetResolve,
+      onDraggingChange: setIsDragging,
       setDragIndicator,
       setOperationMenuContext,
       setOperationMenuOpen,
@@ -390,58 +393,59 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
 
   if (!menuContext && !dragIndicator) return null;
 
-  const menuNode = menuContext ? (
-    <div className={styles.menu} ref={menuRef} style={menuPosition}>
-      <div className={styles.menuInner} onMouseDown={preventEditorSelectionLost}>
-        {actionButtons.map((item) => {
-          const title = typeof item.title === 'function' ? item.title(menuContext) : item.title;
-          const icon = item.icon === 'plus' ? <Icon icon={PlusIcon} size={14} /> : undefined;
+  const menuNode =
+    menuContext && !isDragging ? (
+      <div className={styles.menu} ref={menuRef} style={menuPosition}>
+        <div className={styles.menuInner} onMouseDown={preventEditorSelectionLost}>
+          {actionButtons.map((item) => {
+            const title = typeof item.title === 'function' ? item.title(menuContext) : item.title;
+            const icon = item.icon === 'plus' ? <Icon icon={PlusIcon} size={14} /> : undefined;
 
-          return (
+            return (
+              <Button
+                aria-label={title}
+                icon={icon}
+                key={item.key}
+                onClick={() => item.onClick(menuContext)}
+                size={'small'}
+                title={title}
+                type={'text'}
+              />
+            );
+          })}
+          <Dropdown
+            align={{
+              points: ['tr', 'tl'],
+            }}
+            classNames={{
+              root: OPERATION_MENU_OVERLAY_CLASS,
+            }}
+            menu={{ items: dropdownItems }}
+            onOpenChange={(open) => {
+              if (!open) {
+                setOperationMenuOpen(false);
+                setOperationMenuContext(null);
+                contextRef.current.operationMenuAnchorBlockId = null;
+              }
+            }}
+            open={operationMenuOpen && operationMenuContext?.blockId === menuContext.blockId}
+            trigger={[]}
+          >
             <Button
-              aria-label={title}
-              icon={icon}
-              key={item.key}
-              onClick={() => item.onClick(menuContext)}
+              aria-label={'Block actions and drag'}
+              className={styles.dragHandle}
+              data-block-drag-handle={'true'}
+              icon={<Icon icon={GripVerticalIcon} size={14} />}
+              onClick={handleDragHandleClick}
+              onPointerDown={handleDragHandlePointerDown}
               size={'small'}
-              title={title}
+              title={'Block actions and drag'}
               type={'text'}
             />
-          );
-        })}
-        <Dropdown
-          align={{
-            points: ['tr', 'tl'],
-          }}
-          classNames={{
-            root: OPERATION_MENU_OVERLAY_CLASS,
-          }}
-          menu={{ items: dropdownItems }}
-          onOpenChange={(open) => {
-            if (!open) {
-              setOperationMenuOpen(false);
-              setOperationMenuContext(null);
-              contextRef.current.operationMenuAnchorBlockId = null;
-            }
-          }}
-          open={operationMenuOpen && operationMenuContext?.blockId === menuContext.blockId}
-          trigger={[]}
-        >
-          <Button
-            aria-label={'Block actions and drag'}
-            className={styles.dragHandle}
-            data-block-drag-handle={'true'}
-            icon={<Icon icon={GripVerticalIcon} size={14} />}
-            onClick={handleDragHandleClick}
-            onPointerDown={handleDragHandlePointerDown}
-            size={'small'}
-            title={'Block actions and drag'}
-            type={'text'}
-          />
-        </Dropdown>
+          </Dropdown>
+        </div>
       </div>
-    </div>
-  ) : null;
+    ) : null;
 
   return createPortal(
     <>
