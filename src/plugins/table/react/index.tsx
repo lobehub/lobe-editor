@@ -13,8 +13,10 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { TablePlugin } from '../plugin';
 import { $updateDOMForSelection } from '../utils';
 import TableActionMenuPlugin from './TableActionMenu';
+import TableColController from './TableColController';
 import TableHoverActionsPlugin from './TableHoverActions';
 import TableCellResizePlugin from './TableResize';
+import TableRowController from './TableRowController';
 import { styles } from './style';
 import { ReactTablePluginProps } from './type';
 
@@ -30,6 +32,12 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({ className, locale 
       editor.registerLocale(locale);
     }
     editor.registerPlugin(TablePlugin, {
+      decoratorCol: (node, editor) => {
+        return <TableColController editor={editor} node={node} />;
+      },
+      decoratorRow: (node, editor) => {
+        return <TableRowController editor={editor} node={node} />;
+      },
       theme: cx(styles, className),
     });
   }, []);

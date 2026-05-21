@@ -8,19 +8,21 @@ import {
   setScrollableTablesActive,
 } from '@lexical/table';
 import { LexicalEditor } from 'lexical';
+import type { ReactNode } from 'react';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IDecorator, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { cx } from '@/utils/cx';
 
 import { registerTableCommand } from '../command';
 import { TableNode, patchTableNode } from '../node';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TablePluginOptions {
+  decoratorCol?: (node: TableNode, editor: LexicalEditor) => ReactNode;
+  decoratorRow?: (node: TableNode, editor: LexicalEditor) => ReactNode;
   theme?: string;
 }
 
@@ -46,6 +48,34 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     patchTableNode();
     // Register the horizontal rule node
     kernel.registerNodes([TableNode, TableRowNode, TableCellNode]);
+
+    if (options?.decoratorCol || options?.decoratorRow) {
+      kernel.registerDecorator(TableNode.getType(), {
+        multi: [
+          ...(options.decoratorCol
+            ? [
+                {
+                  queryDOM: (el: HTMLElement) => el.querySelector('.toolbar-col') as HTMLElement,
+                  render: (node: any, editor: LexicalEditor) => {
+                    return options.decoratorCol?.(node as TableNode, editor) || null;
+                  },
+                },
+              ]
+            : []),
+          ...(options.decoratorRow
+            ? [
+                {
+                  queryDOM: (el: HTMLElement) => el.querySelector('.toolbar-row') as HTMLElement,
+                  render: (node: any, editor: LexicalEditor) => {
+                    return options.decoratorRow?.(node as TableNode, editor) || null;
+                  },
+                },
+              ]
+            : []),
+        ],
+      } as unknown as IDecorator);
+      this.registeredDecorators.add(TableNode.getType());
+    }
     kernel.registerThemes({
       table: 'editor_table',
       tableCell: 'editor_table_cell',

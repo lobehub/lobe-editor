@@ -2,9 +2,66 @@ import { createStaticStyles } from 'antd-style';
 
 export const styles = createStaticStyles(
   ({ css, cssVar }) => css`
-    overflow-x: auto;
+    position: relative;
+    overflow: visible;
     margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em)
       calc(var(--lobe-markdown-margin-multiple) * 0.5em + 16px);
+
+    .lobe-editor-table-scroll-wrapper {
+      overflow: auto visible;
+      position: relative;
+      padding-top: 14px;
+    }
+
+    .toolbar,
+    .toolbar-col,
+    .toolbar-row {
+      pointer-events: none;
+
+      position: absolute;
+      z-index: 2;
+      inset-block-start: 0;
+      inset-inline-start: 0;
+
+      width: max-content;
+      height: 0;
+    }
+
+    .table-controller,
+    .table-controller-col,
+    .table-controller-row {
+      pointer-events: none;
+      position: relative;
+      width: max-content;
+      height: 0;
+    }
+
+    .table-controller-col .top,
+    .table-controller-row .left,
+    .table-controller-row .corner {
+      pointer-events: all;
+    }
+
+    .table-controller-row .left {
+      z-index: 3;
+      top: 14px;
+    }
+
+    .table-controller-row .corner {
+      cursor: pointer;
+
+      position: absolute;
+      z-index: 4;
+      inset-block-start: 0;
+      inset-inline-start: -14px;
+
+      box-sizing: border-box;
+      width: 15px;
+      height: 15px;
+      border: 1px solid rgba(255, 255, 255, 12%);
+
+      background-color: #1f1f1f;
+    }
 
     .editor_table {
       table-layout: fixed;

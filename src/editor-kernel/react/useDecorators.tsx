@@ -3,6 +3,7 @@ import {
   type ComponentClass,
   type FC,
   type JSX,
+  type ReactNode,
   Suspense,
   useEffect,
   useLayoutEffect,
@@ -26,20 +27,24 @@ type ErrorBoundaryProps = {
 
 export type ErrorBoundaryType = ComponentClass<ErrorBoundaryProps> | FC<ErrorBoundaryProps>;
 
+type PortalDecorator = {
+  queryDOM: (_element: HTMLElement) => HTMLElement;
+  render: ReactNode;
+};
+
+type MultiPortalDecorator = {
+  multi: PortalDecorator[];
+};
+
+type DecoratorValue = JSX.Element | PortalDecorator | MultiPortalDecorator;
+
 export function useDecorators(
   editor: IEditor,
   ErrorBoundary: ErrorBoundaryType,
 ): Array<JSX.Element> {
-  const [decorators, setDecorators] = useState<
-    Record<
-      NodeKey,
-      | JSX.Element
-      | {
-          queryDOM: (_element: HTMLElement) => HTMLElement;
-          render: JSX.Element;
-        }
-    >
-  >(() => editor.getLexicalEditor()?.getDecorators<JSX.Element>() || {});
+  const [decorators, setDecorators] = useState<Record<NodeKey, DecoratorValue>>(
+    () => editor.getLexicalEditor()?.getDecorators<JSX.Element>() || {},
+  );
 
   // Subscribe to changes
   useLayoutEffectImpl(() => {
@@ -76,28 +81,42 @@ export function useDecorators(
 
   // Return decorators defined as React Portals
   return useMemo(() => {
-    const decoratedPortals = [];
+    const decoratedPortals: JSX.Element[] = [];
     const decoratorKeys = Object.keys(decorators);
 
     for (const nodeKey of decoratorKeys) {
       const decorator = decorators[nodeKey];
-      const reactDecorator = (
-        <ErrorBoundary onError={(e) => editor.getLexicalEditor()?._onError(e as Error)}>
-          <Suspense fallback={null}>
-            {'render' in decorator ? decorator.render : decorator}
-          </Suspense>
-        </ErrorBoundary>
-      );
       const element = editor.getLexicalEditor()?.getElementByKey(nodeKey);
 
       if (element !== null && element !== undefined) {
-        decoratedPortals.push(
-          createPortal(
-            reactDecorator,
-            'queryDOM' in decorator ? decorator.queryDOM(element) : element,
-            nodeKey,
-          ),
-        );
+        const portalDecorators =
+          'multi' in decorator
+            ? decorator.multi
+            : [
+                'queryDOM' in decorator
+                  ? decorator
+                  : {
+                      queryDOM: () => element,
+                      render: decorator,
+                    },
+              ];
+
+        portalDecorators.forEach((portalDecorator, index) => {
+          const targetElement = portalDecorator.queryDOM(element);
+          if (!(targetElement instanceof HTMLElement)) {
+            return;
+          }
+
+          decoratedPortals.push(
+            createPortal(
+              <ErrorBoundary onError={(e) => editor.getLexicalEditor()?._onError(e as Error)}>
+                <Suspense fallback={null}>{portalDecorator.render}</Suspense>
+              </ErrorBoundary>,
+              targetElement,
+              `${nodeKey}:${index}`,
+            ),
+          );
+        });
       }
     }
 
