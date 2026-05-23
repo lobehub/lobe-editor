@@ -1,17 +1,17 @@
 import { TableNode } from '@lexical/table';
+import { cx } from 'antd-style';
 import { LexicalEditor } from 'lexical';
 import { memo, useMemo } from 'react';
 
 import { LexicalPortalContainer } from '@/editor-kernel/react';
 
+import { styles } from './TableController/style';
 import { MIN_COLUMN_WIDTH } from './TableResize/style';
 
 interface TableColControllerProps {
   editor: LexicalEditor;
   node: TableNode;
 }
-
-const CONTROL_SIZE = 14;
 
 const readTableControllerState = (editor: LexicalEditor, node: TableNode) => {
   return editor.getEditorState().read(() => {
@@ -34,32 +34,20 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
   return (
     <LexicalPortalContainer editor={editor} node={node}>
       <div className="table-controller-col" contentEditable={false}>
-        <div
-          className="top"
-          style={{
-            display: 'flex',
-            height: CONTROL_SIZE,
-            left: 0,
-            position: 'relative',
-            top: 0,
-          }}
-        >
-          {colWidths.map((width, index) => (
-            <div
-              className="col"
-              key={index}
-              style={{
-                backgroundColor: '#1f1f1f',
-                borderColor: 'rgba(255, 255, 255, 0.12)',
-                borderStyle: 'solid',
-                borderWidth: index + 1 === colWidths.length ? '1px 1px 0 1px' : '1px 0 0 1px',
-                cursor: 'pointer',
-                height: CONTROL_SIZE,
-                position: 'relative',
-                width: index + 1 === colWidths.length ? width + 0.5 : width,
-              }}
-            />
-          ))}
+        <div className={cx('top', styles.colTop)}>
+          {colWidths.map((width, index) => {
+            const isLastCol = index + 1 === colWidths.length;
+
+            return (
+              <div
+                className={cx('col', styles.col, isLastCol && styles.colLast)}
+                key={index}
+                style={{
+                  width: isLastCol ? width + 0.5 : width,
+                }}
+              />
+            );
+          })}
         </div>
       </div>
     </LexicalPortalContainer>

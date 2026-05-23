@@ -8,9 +8,9 @@ export const styles = createStaticStyles(
       calc(var(--lobe-markdown-margin-multiple) * 0.5em + 16px);
 
     .lobe-editor-table-scroll-wrapper {
-      overflow: auto visible;
       position: relative;
-      padding-top: 14px;
+      overflow: auto visible;
+      padding-block-start: 14px;
     }
 
     .toolbar,
@@ -40,27 +40,6 @@ export const styles = createStaticStyles(
     .table-controller-row .left,
     .table-controller-row .corner {
       pointer-events: all;
-    }
-
-    .table-controller-row .left {
-      z-index: 3;
-      top: 14px;
-    }
-
-    .table-controller-row .corner {
-      cursor: pointer;
-
-      position: absolute;
-      z-index: 4;
-      inset-block-start: 0;
-      inset-inline-start: -14px;
-
-      box-sizing: border-box;
-      width: 15px;
-      height: 15px;
-      border: 1px solid rgba(255, 255, 255, 12%);
-
-      background-color: #1f1f1f;
     }
 
     .editor_table {

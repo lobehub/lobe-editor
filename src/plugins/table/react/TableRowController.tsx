@@ -1,6 +1,9 @@
 import { $isTableRowNode, TableNode } from '@lexical/table';
+import { cx } from 'antd-style';
 import { LexicalEditor } from 'lexical';
 import { memo, useEffect, useMemo, useState } from 'react';
+
+import { styles } from './TableController/style';
 
 interface TableRowControllerProps {
   editor: LexicalEditor;
@@ -8,7 +11,6 @@ interface TableRowControllerProps {
 }
 
 const CONTROL_SIZE = 14;
-const ROW_CONTROL_WIDTH = 15;
 const ROW_BORDER_HEIGHT = 0.5;
 const LAST_ROW_BORDER_HEIGHT = 1;
 
@@ -104,35 +106,20 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
 
   return (
     <div className="table-controller-row" contentEditable={false}>
-      <div
-        className="left"
-        style={{
-          left: -CONTROL_SIZE,
-          position: 'absolute',
-          top: CONTROL_SIZE,
-          width: ROW_CONTROL_WIDTH,
-        }}
-      >
-        {rowHeights.map((height, index) => (
-          <div
-            className="row"
-            key={index}
-            style={{
-              backgroundColor: '#1f1f1f',
-              borderColor: 'rgba(255, 255, 255, 0.12)',
-              borderStyle: 'solid',
-              borderWidth:
-                index + 1 === rowHeights.length ? '1px 0.5px 1px 1px' : '1px 0.5px 0 1px',
-              boxSizing: 'border-box',
-              cursor: 'pointer',
-              height,
-              position: 'relative',
-              width: ROW_CONTROL_WIDTH,
-            }}
-          />
-        ))}
+      <div className={cx('left', styles.rowLeft)}>
+        {rowHeights.map((height, index) => {
+          const isLastRow = index + 1 === rowHeights.length;
+
+          return (
+            <div
+              className={cx('row', styles.row, isLastRow && styles.rowLast)}
+              key={index}
+              style={{ height }}
+            />
+          );
+        })}
       </div>
-      <div className="corner" />
+      <div className={cx('corner', styles.corner)} />
     </div>
   );
 });
