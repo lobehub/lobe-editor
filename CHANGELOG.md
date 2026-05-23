@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.12.0](https://github.com/lobehub/lobe-editor/compare/v4.11.0...v4.12.0)
+<sup>Released on **2026-05-23**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Track auto-complete suggestions.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Track auto-complete suggestions, closes [#160](https://github.com/lobehub/lobe-editor/issues/160) ([cfc7a54](https://github.com/lobehub/lobe-editor/commit/cfc7a54))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.11.0](https://github.com/lobehub/lobe-editor/compare/v4.10.6...v4.11.0)
 <sup>Released on **2026-05-23**</sup>
 
