@@ -31,7 +31,18 @@ export interface AutoCompletePluginOptions {
     editor: IEditor;
     input: string;
     selectionType: string;
+    suggestionId?: string;
   }) => Promise<string | null>;
+  onSuggestionAccepted?: (info: {
+    acceptedText: string;
+    suggestionId: string;
+    visibleMs: number;
+  }) => void;
+  onSuggestionRejected?: (info: {
+    reason: 'cursor-move' | 'typing' | 'esc' | 'blur' | 'other';
+    suggestionId: string;
+    visibleMs: number;
+  }) => void;
   theme?: {
     placeholderBlock?: string;
     placeholderInline?: string;
@@ -50,6 +61,11 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   private abortController: AbortController | null = null;
   private delay: number;
   private currentSuggestion: string | null = null;
+  private currentSuggestionId: string | null = null;
+  private suggestionIdCounter = 0;
+  private suggestionRequestIdCounter = 0;
+  private activeSuggestionRequestId: number | null = null;
+  private suggestionShownAt = 0;
   private placeholderAnchorPosition: { key: string; offset: number; type: string } | null = null;
   private placeholderSelectionSnapshot: BaseSelection | null = null;
   private markdownService: IMarkdownShortCutService | null = null;
@@ -77,12 +93,20 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
       return;
     }
 
+    const handleBlur = () => {
+      if (this.currentSuggestion) {
+        this.rejectSuggestion('blur');
+        this.clearPlaceholderNodes(editor, { restoreSelection: false });
+      }
+    };
+
     this.register(
       editor.registerUpdateListener(({ editorState }) => {
         editorState.read(() => {
           if (editor.isComposing()) {
             this.clearTimer();
             if (this.currentSuggestion) {
+              this.rejectSuggestion('other');
               this.clearPlaceholderNodes(editor, { restoreSelection: false });
             }
             return;
@@ -92,6 +116,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
           if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
             this.clearTimer();
             if (this.currentSuggestion) {
+              this.rejectSuggestion('other');
               this.clearPlaceholderNodes(editor, { restoreSelection: false });
             }
             return;
@@ -107,6 +132,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
           if (this.hasPositionChanged(currentPosition)) {
             this.clearTimer();
             if (this.currentSuggestion) {
+              this.rejectSuggestion('cursor-move');
               this.clearPlaceholderNodes(editor, { restoreSelection: false });
             }
 
@@ -140,6 +166,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         KEY_ARROW_LEFT_COMMAND,
         () => {
           if (this.currentSuggestion) {
+            this.rejectSuggestion('cursor-move');
             this.clearPlaceholderNodes(editor, { restoreSelection: false });
             return false;
           }
@@ -154,6 +181,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         KEY_ARROW_RIGHT_COMMAND,
         () => {
           if (this.currentSuggestion) {
+            this.rejectSuggestion('cursor-move');
             this.clearPlaceholderNodes(editor, { restoreSelection: false });
             return false;
           }
@@ -169,6 +197,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         (event) => {
           if (this.currentSuggestion) {
             event?.preventDefault();
+            this.rejectSuggestion('esc');
             this.clearPlaceholderNodes(editor);
             return true;
           }
@@ -187,10 +216,51 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         }
 
         if (this.currentSuggestion) {
+          this.rejectSuggestion('typing');
           this.clearPlaceholderNodes(editor, { restoreSelection: false });
         }
       }),
     );
+
+    this.register(
+      editor.registerRootListener((rootElement, prevRootElement) => {
+        prevRootElement?.removeEventListener('blur', handleBlur);
+        rootElement?.addEventListener('blur', handleBlur);
+      }),
+    );
+  }
+
+  private createSuggestionId(): string {
+    this.suggestionIdCounter += 1;
+    if (this.suggestionIdCounter > Number.MAX_SAFE_INTEGER) {
+      this.suggestionIdCounter = 1;
+    }
+    return `acp${this.suggestionIdCounter}`;
+  }
+
+  private createSuggestionRequestId(): number {
+    this.suggestionRequestIdCounter += 1;
+    if (this.suggestionRequestIdCounter > Number.MAX_SAFE_INTEGER) {
+      this.suggestionRequestIdCounter = 1;
+    }
+    return this.suggestionRequestIdCounter;
+  }
+
+  private isActiveSuggestionRequest(requestId: number, abortSignal: AbortSignal): boolean {
+    return this.activeSuggestionRequestId === requestId && !abortSignal.aborted;
+  }
+
+  private rejectSuggestion(reason: 'cursor-move' | 'typing' | 'esc' | 'blur' | 'other'): void {
+    if (this.currentSuggestion && this.currentSuggestionId) {
+      this.config?.onSuggestionRejected?.({
+        reason,
+        suggestionId: this.currentSuggestionId,
+        visibleMs: Date.now() - this.suggestionShownAt,
+      });
+    }
+    this.currentSuggestion = null;
+    this.currentSuggestionId = null;
+    this.suggestionShownAt = 0;
   }
 
   private hasPositionChanged(currentPosition: {
@@ -211,6 +281,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
   private clearTimer(): void {
     this.abortController?.abort('use cancel');
+    this.activeSuggestionRequestId = null;
     if (this.cursorStableTimer) {
       clearTimeout(this.cursorStableTimer);
       this.cursorStableTimer = null;
@@ -225,6 +296,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
       if (editor.isComposing()) {
         this.clearTimer();
         if (this.currentSuggestion) {
+          this.rejectSuggestion('other');
           this.clearPlaceholderNodes(editor, { restoreSelection: false });
         }
         return;
@@ -263,21 +335,31 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
       // Trigger auto-complete callback if provided
       if (this.config?.onAutoComplete) {
+        const suggestionId = this.createSuggestionId();
+        const requestId = this.createSuggestionRequestId();
+        const abortSignal = this.abortController!.signal;
+        this.activeSuggestionRequestId = requestId;
         this.config
           .onAutoComplete({
-            abortSignal: this.abortController!.signal,
+            abortSignal,
             afterText: textRet.textAfter,
             editor: this.kernel as any,
             input: textRet.textBefore,
             selectionType,
+            suggestionId,
           })
           .then((result) => {
+            if (!this.isActiveSuggestionRequest(requestId, abortSignal)) {
+              return;
+            }
+
             let currentSelection: any = null;
             editor.getEditorState().read(() => {
               currentSelection = $getSelection();
             });
 
             if (editor.isComposing()) {
+              this.rejectSuggestion('other');
               this.clearPlaceholderNodes(editor, { restoreSelection: false });
               return;
             }
@@ -287,6 +369,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
               !$isRangeSelection(currentSelection) ||
               !currentSelection.isCollapsed()
             ) {
+              this.rejectSuggestion('other');
               this.clearPlaceholderNodes(editor, { restoreSelection: false });
               return;
             }
@@ -298,12 +381,15 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             };
 
             if (!this.isSamePosition(currentPosition, newPosition)) {
+              this.rejectSuggestion('cursor-move');
               this.clearPlaceholderNodes(editor, { restoreSelection: false });
               return;
             }
 
             if (result) {
               this.currentSuggestion = result;
+              this.currentSuggestionId = suggestionId;
+              this.suggestionShownAt = Date.now();
               this.placeholderAnchorPosition = currentPosition;
               this.showPlaceholderNodes(editor, result);
               this.logger.debug('🔍 Auto-complete triggered:', {
@@ -470,6 +556,8 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
     // Reset state immediately so listeners see no active suggestion
     this.currentSuggestion = null;
+    this.currentSuggestionId = null;
+    this.suggestionShownAt = 0;
     this.placeholderAnchorPosition = null;
     this.placeholderSelectionSnapshot = null;
     // Cancel any pending AI timer
@@ -511,11 +599,21 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     }
 
     const markdown = this.currentSuggestion;
+    const suggestionId = this.currentSuggestionId;
+    const suggestionShownAt = this.suggestionShownAt;
 
     editor.update(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection) || !selection.isCollapsed() || !this.markdownService) {
         return;
+      }
+
+      if (suggestionId) {
+        this.config?.onSuggestionAccepted?.({
+          acceptedText: markdown,
+          suggestionId,
+          visibleMs: Date.now() - suggestionShownAt,
+        });
       }
 
       for (const node of $nodesOfType(PlaceholderNode)) {
