@@ -28,6 +28,7 @@ interface StartBlockDragSessionParams {
   clientX: number;
   clientY: number;
   contextRef: MutableRefObject<RuntimeContextRef>;
+  dragGhostContainer?: HTMLElement | null;
   editor: IEditor;
   menuContext: IBlockMenuRenderContext;
   onDragTargetResolve?: (target: BlockDragTarget | null) => void;
@@ -41,8 +42,34 @@ interface StartBlockDragSessionParams {
 const DRAG_GHOST_OFFSET_X = 14;
 const DRAG_GHOST_OFFSET_Y = 14;
 const DRAG_SOURCE_OPACITY = '0.45';
+const LIST_ITEM_GHOST_PADDING_INLINE_START = 24;
 
-const createDragGhost = (sourceBlock: HTMLElement, x: number, y: number): HTMLDivElement => {
+const createDragGhostContent = (sourceBlock: HTMLElement, clone: HTMLElement): HTMLElement => {
+  if (sourceBlock.tagName !== 'LI') {
+    return clone;
+  }
+
+  const list = sourceBlock.parentElement;
+  if (!list || (list.tagName !== 'UL' && list.tagName !== 'OL')) {
+    return clone;
+  }
+
+  const listClone = list.cloneNode(false) as HTMLElement;
+  listClone.style.margin = '0';
+  listClone.style.paddingInlineStart = `${LIST_ITEM_GHOST_PADDING_INLINE_START}px`;
+  listClone.style.pointerEvents = 'none';
+  listClone.style.width = `calc(100% - ${LIST_ITEM_GHOST_PADDING_INLINE_START}px)`;
+
+  listClone.append(clone);
+  return listClone;
+};
+
+const createDragGhost = (
+  sourceBlock: HTMLElement,
+  x: number,
+  y: number,
+  container: HTMLElement | null | undefined,
+): HTMLDivElement => {
   const rect = sourceBlock.getBoundingClientRect();
   const ghost = document.createElement('div');
   const clone = sourceBlock.cloneNode(true) as HTMLElement;
@@ -67,9 +94,13 @@ const createDragGhost = (sourceBlock: HTMLElement, x: number, y: number): HTMLDi
   clone.style.pointerEvents = 'none';
   clone.style.width = '100%';
   clone.style.height = '100%';
+  clone.setAttribute('contenteditable', 'false');
+  clone.querySelectorAll<HTMLElement>('[contenteditable]').forEach((element) => {
+    element.setAttribute('contenteditable', 'false');
+  });
 
-  ghost.append(clone);
-  document.body.append(ghost);
+  ghost.append(createDragGhostContent(sourceBlock, clone));
+  (container || document.body).append(ghost);
 
   return ghost;
 };
@@ -97,6 +128,7 @@ export const startBlockDragSession = ({
   clientY,
   clearDragPreview,
   contextRef,
+  dragGhostContainer,
   editor,
   menuContext,
   onDraggingChange,
@@ -188,6 +220,7 @@ export const startBlockDragSession = ({
             contextRef.current.draggingSource.blockElement,
             pointerEvent.clientX,
             pointerEvent.clientY,
+            dragGhostContainer || editor.getRootElement()?.parentElement,
           );
 
           if (!restoreSourceOpacity) {

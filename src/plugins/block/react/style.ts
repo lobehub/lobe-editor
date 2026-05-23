@@ -19,6 +19,15 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
 
     background: var(--lobe-color-primary, ${cssVar.colorPrimary});
   `,
+  dragLayer: css`
+    pointer-events: none;
+
+    position: fixed;
+    z-index: 10001;
+    inset: 0;
+
+    overflow: visible;
+  `,
   menu: css`
     pointer-events: auto;
     position: fixed;

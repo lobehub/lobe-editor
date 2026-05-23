@@ -61,6 +61,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   } = props;
   const mergedRootClassName = cx(styles.root, rootClassName?.trim() || className?.trim());
   const menuRef = useRef<HTMLDivElement>(null);
+  const dragLayerRef = useRef<HTMLDivElement>(null);
   const contextRef = useRef<RuntimeContextRef>(createRuntimeContext());
   const [hoveredBlock, setHoveredBlock] = useState<HoveredBlockState>(null);
   const [menuVersion, setMenuVersion] = useState(0);
@@ -74,6 +75,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     top: number;
     width: number;
   } | null>(null);
+  const [dragLayerContainer, setDragLayerContainer] = useState<HTMLElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [blockMenuService, setBlockMenuService] = useState<BlockMenuService | null>(null);
 
@@ -121,6 +123,27 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       setIsDragging(false);
     };
   }, []);
+
+  useEffect(() => {
+    let raf: number | null = null;
+
+    const syncDragLayerContainer = () => {
+      const container = editor.getRootElement()?.parentElement ?? null;
+      setDragLayerContainer((current) => (current === container ? current : container));
+
+      if (!container) {
+        raf = window.requestAnimationFrame(syncDragLayerContainer);
+      }
+    };
+
+    syncDragLayerContainer();
+
+    return () => {
+      if (raf !== null) {
+        window.cancelAnimationFrame(raf);
+      }
+    };
+  }, [editor]);
 
   useEffect(() => {
     let hoverRaf: number | null = null;
@@ -545,6 +568,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       clientX: event.clientX,
       clientY: event.clientY,
       contextRef,
+      dragGhostContainer: dragLayerRef.current,
       editor,
       menuContext,
       onDragTargetResolve,
@@ -579,7 +603,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     [operationMenus, operationMenuContext],
   );
 
-  if (!menuContext && !dragIndicator) return null;
+  const shouldRenderPortal = menuContext || dragIndicator;
 
   const menuNode =
     menuContext && !isDragging ? (
@@ -634,23 +658,37 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
         </div>
       </div>
     ) : null;
+  const dragLayerNode = (
+    <div
+      aria-hidden={'true'}
+      className={styles.dragLayer}
+      data-block-drag-layer={'true'}
+      ref={dragLayerRef}
+    />
+  );
 
-  return createPortal(
+  return (
     <>
-      {menuNode}
-      {dragIndicator && (
-        <div
-          className={styles.dragIndicator}
-          style={{
-            backgroundColor: token.colorPrimary,
-            left: dragIndicator.left,
-            top: dragIndicator.top,
-            width: dragIndicator.width,
-          }}
-        />
-      )}
-    </>,
-    document.body,
+      {dragLayerContainer ? createPortal(dragLayerNode, dragLayerContainer) : dragLayerNode}
+      {shouldRenderPortal &&
+        createPortal(
+          <>
+            {menuNode}
+            {dragIndicator && (
+              <div
+                className={styles.dragIndicator}
+                style={{
+                  backgroundColor: token.colorPrimary,
+                  left: dragIndicator.left,
+                  top: dragIndicator.top,
+                  width: dragIndicator.width,
+                }}
+              />
+            )}
+          </>,
+          document.body,
+        )}
+    </>
   );
 };
 
