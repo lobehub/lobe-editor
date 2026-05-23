@@ -293,35 +293,44 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
           }),
           Editor.withProps(ReactAutoCompletePlugin, {
             delay: 1000,
-            onAutoComplete: async ({ input, afterText, selectionType, abortSignal }) => {
-              // Simple example: return a fixed string for demonstration
+            onAutoComplete: async ({
+              input,
+              afterText,
+              selectionType,
+              abortSignal,
+              suggestionId,
+            }) => {
               console.log('Auto-complete triggered:', {
                 afterText,
                 input,
                 selectionType,
+                suggestionId,
               });
-              const res = await fetch(`${location.origin}/nodeserver/completion`, {
-                body: JSON.stringify({
-                  prompt: `Please complete the following text:\n\n${input}`,
-                }),
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                method: 'POST',
-                signal: abortSignal,
+
+              await new Promise((resolve) => {
+                setTimeout(resolve, 1000);
               });
+
               if (abortSignal.aborted) {
-                console.log('Auto-complete aborted');
+                console.log('Auto-complete aborted:', { suggestionId });
                 return null;
               }
-              const ai = await res.json();
-              if (ai) {
-                if (ai.content.startsWith(input)) {
-                  return ai.content.replace(input, '');
-                }
-                return ai.content;
-              }
-              return null;
+
+              return ` This is the auto-completed text for "${input}".`;
+            },
+            onSuggestionAccepted: ({ acceptedText, suggestionId, visibleMs }) => {
+              console.log('Auto-complete accepted:', {
+                acceptedText,
+                suggestionId,
+                visibleMs,
+              });
+            },
+            onSuggestionRejected: ({ reason, suggestionId, visibleMs }) => {
+              console.log('Auto-complete rejected:', {
+                reason,
+                suggestionId,
+                visibleMs,
+              });
             },
           }),
           Editor.withProps(ReactImagePlugin, {
