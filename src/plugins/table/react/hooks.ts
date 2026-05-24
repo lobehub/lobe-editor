@@ -5,14 +5,15 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-import { TableNode } from '@lexical/table';
+import { $findTableNode, $isTableSelection, TableNode } from '@lexical/table';
 import { debounce } from 'es-toolkit/compat';
-import { $getSelection, LexicalEditor } from 'lexical';
+import { $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getTableSelectionIndexes, isTableFullySelected } from '../utils';
 
 export interface TableControllerSelection {
+  isTableFocused: boolean;
   isTableSelected: boolean;
   selectedColumns: number[];
   selectedRows: number[];
@@ -23,6 +24,7 @@ const isSameSelection = (
   next: TableControllerSelection,
 ): boolean => {
   return (
+    current.isTableFocused === next.isTableFocused &&
     current.isTableSelected === next.isTableSelected &&
     current.selectedColumns.length === next.selectedColumns.length &&
     current.selectedRows.length === next.selectedRows.length &&
@@ -43,8 +45,13 @@ const readTableControllerSelection = (
     const tableKey = latestNode.getKey();
 
     const selectionIndexes = getTableSelectionIndexes(selection, tableKey, columnCount, rowCount);
+    const isTableFocused =
+      ($isTableSelection(selection) && selection.tableKey === tableKey) ||
+      ($isRangeSelection(selection) &&
+        Boolean($findTableNode(selection.anchor.getNode())?.is(latestNode)));
 
     return {
+      isTableFocused,
       isTableSelected: isTableFullySelected(selection, tableKey, columnCount, rowCount),
       ...selectionIndexes,
     };

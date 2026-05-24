@@ -58,7 +58,10 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
     [editor, node],
   );
   const [colWidths, setColWidths] = useState(initialColWidths);
-  const { isTableSelected, selectedColumns } = useTableControllerSelection(editor, node);
+  const { isTableFocused, isTableSelected, selectedColumns } = useTableControllerSelection(
+    editor,
+    node,
+  );
   const anchorColumnIndexRef = useRef<number | null>(null);
   const colTopRef = useRef<HTMLDivElement | null>(null);
   const deletePreviewElementsRef = useRef<HTMLElement[]>([]);
@@ -73,6 +76,7 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
     index: number;
     insertAfter: boolean;
   } | null>(null);
+  const [isControllerHovered, setControllerHovered] = useState(false);
   const [isInsertButtonHovered, setInsertButtonHovered] = useState(false);
   const insertColumnOffset = insertTarget
     ? sum(colWidths.slice(0, insertTarget.index)) +
@@ -201,12 +205,31 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
     };
   }, [clearDeletePreview]);
 
+  const shouldShowController = isTableFocused || isControllerHovered;
+
+  useEffect(() => {
+    if (!shouldShowController) {
+      clearInsertButtonHideTimer();
+      clearDeletePreview();
+      setInsertTarget(null);
+      setInsertButtonHovered(false);
+    }
+  }, [clearDeletePreview, shouldShowController]);
+
+  if (!shouldShowController) {
+    return null;
+  }
+
   return (
     <LexicalPortalContainer editor={editor} node={node}>
       <div className="table-controller-col" contentEditable={false}>
         <div
           className={cx('top', styles.colTop)}
+          onMouseEnter={() => {
+            setControllerHovered(true);
+          }}
           onMouseLeave={() => {
+            setControllerHovered(false);
             scheduleHideInsertButton();
           }}
           ref={colTopRef}

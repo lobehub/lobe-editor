@@ -64,7 +64,10 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
     [editor, node],
   );
   const [rowHeights, setRowHeights] = useState(initialRowHeights);
-  const { isTableSelected, selectedRows } = useTableControllerSelection(editor, node);
+  const { isTableFocused, isTableSelected, selectedRows } = useTableControllerSelection(
+    editor,
+    node,
+  );
   const anchorRowIndexRef = useRef<number | null>(null);
   const deletePreviewElementsRef = useRef<HTMLElement[]>([]);
   const insertButtonHoveredRef = useRef(false);
@@ -79,6 +82,7 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
     index: number;
     insertAfter: boolean;
   } | null>(null);
+  const [isControllerHovered, setControllerHovered] = useState(false);
   const [isInsertButtonHovered, setInsertButtonHovered] = useState(false);
   const insertRowOffset = insertTarget
     ? sum(rowHeights.slice(0, insertTarget.index)) +
@@ -213,15 +217,34 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
     };
   }, [editor, node]);
 
+  const shouldShowController = isTableFocused || isControllerHovered;
+
+  useEffect(() => {
+    if (!shouldShowController) {
+      clearInsertButtonHideTimer();
+      clearDeletePreview();
+      setInsertTarget(null);
+      setInsertButtonHovered(false);
+    }
+  }, [clearDeletePreview, shouldShowController]);
+
+  if (!shouldShowController) {
+    return null;
+  }
+
   return (
-    <div className="table-controller-row" contentEditable={false}>
-      <div
-        className={cx('left', styles.rowLeft)}
-        onMouseLeave={() => {
-          scheduleHideInsertButton();
-        }}
-        ref={rowLeftRef}
-      >
+    <div
+      className="table-controller-row"
+      contentEditable={false}
+      onMouseEnter={() => {
+        setControllerHovered(true);
+      }}
+      onMouseLeave={() => {
+        setControllerHovered(false);
+        scheduleHideInsertButton();
+      }}
+    >
+      <div className={cx('left', styles.rowLeft)} ref={rowLeftRef}>
         <TableDeleteButton
           ariaLabel="Delete selected rows"
           offset={selectedRowTop + selectedRowHeight / 2}
