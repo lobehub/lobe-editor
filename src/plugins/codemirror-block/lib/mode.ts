@@ -62,6 +62,12 @@ export const MODES = [
     syntax: 'markdown',
     value: 'markdown',
   },
+  {
+    ext: ['mmd'],
+    name: 'Mermaid',
+    syntax: 'simplemode',
+    value: 'mermaid',
+  },
   { name: 'MATLAB', syntax: 'octave', value: 'matlab' },
   { ext: ['conf'], name: 'Nginx', syntax: 'nginx', value: 'nginx' },
   {
