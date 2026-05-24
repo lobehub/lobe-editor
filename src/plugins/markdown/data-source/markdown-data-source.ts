@@ -16,7 +16,9 @@ import {
   $isTextNode,
 } from 'lexical';
 import { remark } from 'remark';
+import remarkCjkFriendly from 'remark-cjk-friendly';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
@@ -33,6 +35,8 @@ export default class MarkdownDataSource extends DataSource {
   private formatMarkdown(markdown: string): string {
     try {
       const result = remark()
+        .use(remarkCjkFriendly)
+        .use(remarkMath)
         .use([[remarkGfm, { singleTilde: false }]])
         .data('settings', {
           bullet: '-',
