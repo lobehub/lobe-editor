@@ -1,8 +1,10 @@
 'use client';
 
+import { $findTableNode, $isTableSelection } from '@lexical/table';
 import { Icon } from '@lobehub/ui';
 import { Button, Dropdown, theme } from 'antd';
 import { cx } from 'antd-style';
+import { $getSelection, $isRangeSelection } from 'lexical';
 import { GripVerticalIcon, PlusIcon } from 'lucide-react';
 import {
   type CSSProperties,
@@ -46,6 +48,14 @@ export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'classNa
 
 const logger = createDebugLogger('plugin', 'block-react');
 const OPERATION_MENU_OVERLAY_CLASS = 'lobe-block-operation-dropdown';
+const TABLE_FOCUSED_MENU_OFFSET = 40;
+
+const isTableBlockElement = (element: HTMLElement) => {
+  return (
+    element instanceof HTMLTableElement ||
+    Boolean(element.querySelector('table.editor_table, table'))
+  );
+};
 
 const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   const { token } = theme.useToken();
@@ -77,6 +87,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   } | null>(null);
   const [dragLayerContainer, setDragLayerContainer] = useState<HTMLElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isTableFocused, setTableFocused] = useState(false);
   const [blockMenuService, setBlockMenuService] = useState<BlockMenuService | null>(null);
 
   useLayoutEffect(() => {
@@ -115,6 +126,28 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       setMenuVersion((v) => v + 1);
     });
   }, [blockMenuService]);
+
+  useLexicalEditor(
+    (lexicalEditor) => {
+      return lexicalEditor.registerUpdateListener(({ editorState }) => {
+        editorState.read(() => {
+          const selection = $getSelection();
+          if ($isTableSelection(selection)) {
+            setTableFocused(true);
+            return;
+          }
+
+          if ($isRangeSelection(selection) && $findTableNode(selection.anchor.getNode())) {
+            setTableFocused(true);
+            return;
+          }
+
+          setTableFocused(false);
+        });
+      });
+    },
+    [editor],
+  );
 
   useEffect(() => {
     return () => {
@@ -428,9 +461,13 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       const menuWidth = menuRef.current?.offsetWidth || 32;
       const gap = 8;
       const listItemOffset = hoveredBlock.blockElement.tagName === 'LI' ? 16 : 0;
+      const tableMenuOffset =
+        isTableFocused && isTableBlockElement(hoveredBlock.blockElement)
+          ? TABLE_FOCUSED_MENU_OFFSET
+          : 0;
 
       setMenuPosition({
-        left: Math.max(gap, rect.left - menuWidth - gap - listItemOffset),
+        left: Math.max(gap, rect.left - menuWidth - gap - listItemOffset - tableMenuOffset),
         top: rect.top,
       });
     };
@@ -444,7 +481,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       window.removeEventListener('resize', updateMenuPosition);
       document.removeEventListener('scroll', updateMenuPosition, true);
     };
-  }, [hoveredBlock]);
+  }, [hoveredBlock, isTableFocused]);
 
   const menuContext = useMemo<IBlockMenuRenderContext | null>(() => {
     if (!hoveredBlock) return null;
