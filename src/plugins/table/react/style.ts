@@ -95,5 +95,9 @@ export const styles = createStaticStyles(
       background-color: ${cssVar.yellow};
       caret-color: transparent;
     }
+
+    .lobe-editor-table-delete-preview {
+      background-color: color-mix(in srgb, ${cssVar.colorError} 20%, transparent) !important;
+    }
   `,
 );

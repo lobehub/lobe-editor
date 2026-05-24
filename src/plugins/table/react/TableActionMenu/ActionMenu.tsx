@@ -35,7 +35,7 @@ import {
   TableColumnsSplitIcon,
   TableRowsSplitIcon,
 } from 'lucide-react';
-import { type ReactNode, memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
@@ -54,9 +54,16 @@ interface TableCellActionMenuProps {
   tableCellNode: TableCellNode;
 }
 
+const TABLE_DELETE_PREVIEW_CLASS = 'lobe-editor-table-delete-preview';
+
+const range = (from: number, to: number) => {
+  return Array.from({ length: to - from + 1 }, (_, index) => from + index);
+};
+
 const TableActionMenu = memo<TableCellActionMenuProps>(
   ({ editor, tableCellNode: _tableCellNode, cellMerge, children }) => {
     const [tableCellNode, updateTableCellNode] = useState(_tableCellNode);
+    const deletePreviewElementsRef = useRef<HTMLElement[]>([]);
     const [selectionCounts, updateSelectionCounts] = useState({
       columns: 1,
       rows: 1,
@@ -65,6 +72,109 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
     const [canUnmergeCell, setCanUnmergeCell] = useState(false);
     const [, setBackgroundColor] = useState(() => currentCellBackgroundColor(editor) || '');
     const t = useTranslation();
+
+    const clearDeletePreview = useCallback(() => {
+      deletePreviewElementsRef.current.forEach((element) => {
+        element.classList.remove(TABLE_DELETE_PREVIEW_CLASS);
+      });
+      deletePreviewElementsRef.current = [];
+    }, []);
+
+    const showDeletePreview = useCallback(
+      (target: 'columns' | 'rows' | 'table') => {
+        clearDeletePreview();
+
+        editor.getEditorState().read(() => {
+          if (!tableCellNode.isAttached()) {
+            return;
+          }
+
+          const latestTableCellNode = tableCellNode.getLatest();
+          if (!$isTableCellNode(latestTableCellNode)) {
+            return;
+          }
+
+          const tableNode = $getTableNodeFromLexicalNodeOrThrow(latestTableCellNode);
+          const [gridMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
+          const selection = $getSelection();
+          const previewCellKeys = new Set<string>();
+
+          if (target === 'columns') {
+            const selectedColumns =
+              $isTableSelection(selection) && selection.tableKey === tableNode.getKey()
+                ? range(selection.getShape().fromX, selection.getShape().toX)
+                : [];
+            const columnIndexes =
+              selectedColumns.length > 0
+                ? selectedColumns
+                : [$getTableColumnIndexFromTableCellNode(latestTableCellNode)];
+
+            for (const row of gridMap) {
+              for (const columnIndex of columnIndexes) {
+                const cell = row[columnIndex]?.cell;
+                if (cell) {
+                  previewCellKeys.add(cell.getKey());
+                }
+              }
+            }
+          } else if (target === 'rows') {
+            const selectedRows =
+              $isTableSelection(selection) && selection.tableKey === tableNode.getKey()
+                ? range(selection.getShape().fromY, selection.getShape().toY)
+                : [];
+            const rowIndexes =
+              selectedRows.length > 0
+                ? selectedRows
+                : [$getTableRowIndexFromTableCellNode(latestTableCellNode)];
+
+            for (const rowIndex of rowIndexes) {
+              const row = gridMap[rowIndex];
+              if (!row) {
+                continue;
+              }
+
+              for (const mapCell of row) {
+                if (mapCell?.cell) {
+                  previewCellKeys.add(mapCell.cell.getKey());
+                }
+              }
+            }
+          } else {
+            for (const row of gridMap) {
+              for (const mapCell of row) {
+                if (mapCell?.cell) {
+                  previewCellKeys.add(mapCell.cell.getKey());
+                }
+              }
+            }
+          }
+
+          for (const cellKey of previewCellKeys) {
+            const element = editor.getElementByKey(cellKey);
+            if (element instanceof HTMLElement) {
+              element.classList.add(TABLE_DELETE_PREVIEW_CLASS);
+              deletePreviewElementsRef.current.push(element);
+            }
+          }
+        });
+      },
+      [clearDeletePreview, editor, tableCellNode],
+    );
+
+    const renderDeleteMenuLabel = useCallback(
+      (label: ReactNode, target: 'columns' | 'rows' | 'table') => {
+        return (
+          <span
+            onMouseEnter={() => showDeletePreview(target)}
+            onMouseLeave={clearDeletePreview}
+            style={{ display: 'block' }}
+          >
+            {label}
+          </span>
+        );
+      },
+      [clearDeletePreview, showDeletePreview],
+    );
 
     useEffect(() => {
       return editor.registerMutationListener(
@@ -96,6 +206,12 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
         setCanUnmergeCell($canUnmerge());
       });
     }, [editor]);
+
+    useEffect(() => {
+      return () => {
+        clearDeletePreview();
+      };
+    }, [clearDeletePreview]);
 
     const clearTableSelection = useCallback(() => {
       editor.update(() => {
@@ -168,25 +284,28 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
     );
 
     const deleteTableRowAtSelection = useCallback(() => {
+      clearDeletePreview();
       editor.update(() => {
         $deleteTableRowAtSelection();
       });
-    }, [editor]);
+    }, [clearDeletePreview, editor]);
 
     const deleteTableAtSelection = useCallback(() => {
+      clearDeletePreview();
       editor.update(() => {
         const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
         tableNode.remove();
 
         clearTableSelection();
       });
-    }, [editor, tableCellNode, clearTableSelection]);
+    }, [clearDeletePreview, editor, tableCellNode, clearTableSelection]);
 
     const deleteTableColumnAtSelection = useCallback(() => {
+      clearDeletePreview();
       editor.update(() => {
         $deleteTableColumnAtSelection();
       });
-    }, [editor]);
+    }, [clearDeletePreview, editor]);
 
     const toggleTableRowIsHeader = useCallback(() => {
       editor.update(() => {
@@ -290,14 +409,14 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
           icon: TableColumnsSplitIcon,
           key: 'table-delete-columns',
           // label: 'Delete column',
-          label: t(`table.deleteColumn`),
+          label: renderDeleteMenuLabel(t(`table.deleteColumn`), 'columns'),
           onClick: () => deleteTableColumnAtSelection(),
         },
         {
           icon: TableRowsSplitIcon,
           key: 'table-delete-rows',
           // label: 'Delete row',
-          label: t(`table.deleteRow`),
+          label: renderDeleteMenuLabel(t(`table.deleteRow`), 'rows'),
           onClick: () => deleteTableRowAtSelection(),
         },
         { type: 'divider' as const },
@@ -305,7 +424,7 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
           icon: Grid2X2XIcon,
           key: 'table-delete',
           // label: 'Delete table',
-          label: t(`table.delete`),
+          label: renderDeleteMenuLabel(t(`table.delete`), 'table'),
           onClick: () => deleteTableAtSelection(),
         },
       ];
@@ -323,6 +442,7 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
       deleteTableColumnAtSelection,
       deleteTableRowAtSelection,
       deleteTableAtSelection,
+      renderDeleteMenuLabel,
       toggleTableRowIsHeader,
       toggleTableColumnIsHeader,
     ]);

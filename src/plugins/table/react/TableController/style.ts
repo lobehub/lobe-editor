@@ -1,6 +1,7 @@
 import { createStaticStyles } from 'antd-style';
 
 export const styles = createStaticStyles(({ css, cssVar }) => {
+  const selectedBackground = `color-mix(in srgb, ${cssVar.colorPrimaryBg} 72%, ${cssVar.colorPrimary} 28%)`;
   const hoverable = `
     cursor: pointer;
     background-color: ${cssVar.colorFillTertiary};
@@ -23,6 +24,10 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     `,
     colLast: css`
       border-width: 1px 1px 0;
+      border-start-end-radius: 8px;
+    `,
+    colSelectionDots: css`
+      grid-template-columns: repeat(3, 2px);
     `,
     colTop: css`
       position: relative;
@@ -44,6 +49,77 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       inline-size: 15px;
       block-size: 15px;
       border: 1px solid ${cssVar.colorFillSecondary};
+      border-start-start-radius: 8px;
+    `,
+    deleteButton: css`
+      pointer-events: none;
+      cursor: pointer;
+
+      position: fixed;
+      z-index: 5;
+      transform: translate(-50%, -50%);
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      box-sizing: border-box;
+      inline-size: 28px;
+      block-size: 28px;
+      padding: 0;
+      border: 1px solid ${cssVar.colorBorder};
+      border-radius: 4px;
+
+      color: ${cssVar.colorText};
+
+      opacity: 0;
+      background: ${cssVar.colorBgElevated};
+      box-shadow: 0 2px 8px color-mix(in srgb, #000 12%, transparent);
+
+      &:hover {
+        border-color: ${cssVar.colorErrorBorder};
+        color: ${cssVar.colorError};
+        background: ${cssVar.colorErrorBg};
+      }
+    `,
+    deleteButtonVisible: css`
+      pointer-events: auto;
+      opacity: 1;
+    `,
+    insertButton: css`
+      pointer-events: none;
+      cursor: pointer;
+
+      position: fixed;
+      z-index: 5;
+      transform: translate(-50%, -50%);
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      box-sizing: border-box;
+      inline-size: 28px;
+      block-size: 28px;
+      padding: 0;
+      border: 1px solid ${cssVar.colorBorder};
+      border-radius: 4px;
+
+      color: ${cssVar.colorText};
+
+      opacity: 0;
+      background: ${cssVar.colorBgElevated};
+      box-shadow: 0 2px 8px color-mix(in srgb, #000 12%, transparent);
+
+      &:hover {
+        border-color: ${cssVar.colorPrimary};
+        color: ${cssVar.colorPrimary};
+        background: ${cssVar.colorPrimaryBg};
+      }
+    `,
+    insertButtonVisible: css`
+      pointer-events: auto;
+      opacity: 1;
     `,
     row: css`
       ${hoverable};
@@ -57,6 +133,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     `,
     rowLast: css`
       border-width: 1px 0.5px 1px 1px;
+      border-end-start-radius: 8px;
     `,
     rowLeft: css`
       position: absolute;
@@ -65,6 +142,39 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       inset-inline-start: -14px;
 
       inline-size: 15px;
+    `,
+    rowSelectionDots: css`
+      grid-template-columns: repeat(2, 2px);
+    `,
+    selected: css`
+      background-color: ${selectedBackground};
+
+      &:hover {
+        background-color: ${selectedBackground};
+      }
+    `,
+    selectionDots: css`
+      pointer-events: none;
+
+      position: absolute;
+      inset-block-start: 50%;
+      inset-inline-start: 50%;
+      transform: translate(-50%, -50%);
+
+      display: grid;
+      gap: 2px;
+
+      opacity: 0;
+
+      > span {
+        inline-size: 2px;
+        block-size: 2px;
+        border-radius: 50%;
+        background: ${cssVar.colorTextLightSolid};
+      }
+    `,
+    selectionDotsVisible: css`
+      opacity: 1;
     `,
   };
 });
