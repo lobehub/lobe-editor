@@ -17,6 +17,8 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       ${hoverable};
       position: relative;
 
+      flex-shrink: 0;
+
       block-size: 14px;
       border-color: ${cssVar.colorFillSecondary};
       border-style: solid;

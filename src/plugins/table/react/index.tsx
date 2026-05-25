@@ -33,7 +33,7 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({ className, locale 
     }
     editor.registerPlugin(TablePlugin, {
       decoratorCol: (node, editor) => {
-        return <TableColController editor={editor} node={node} />;
+        return <TableColController editor={editor} key={node.getColumnCount()} node={node} />;
       },
       decoratorRow: (node, editor) => {
         return <TableRowController editor={editor} node={node} />;

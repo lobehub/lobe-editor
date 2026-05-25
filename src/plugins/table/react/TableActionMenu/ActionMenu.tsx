@@ -77,6 +77,9 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
       deletePreviewElementsRef.current.forEach((element) => {
         element.classList.remove(TABLE_DELETE_PREVIEW_CLASS);
       });
+      document.querySelectorAll(`.${TABLE_DELETE_PREVIEW_CLASS}`).forEach((element) => {
+        element.classList.remove(TABLE_DELETE_PREVIEW_CLASS);
+      });
       deletePreviewElementsRef.current = [];
     }, []);
 
@@ -212,6 +215,12 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
         clearDeletePreview();
       };
     }, [clearDeletePreview]);
+
+    useEffect(() => {
+      return editor.registerUpdateListener(() => {
+        clearDeletePreview();
+      });
+    }, [clearDeletePreview, editor]);
 
     const clearTableSelection = useCallback(() => {
       editor.update(() => {

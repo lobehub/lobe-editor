@@ -55,11 +55,7 @@ export const styles = createStaticStyles(
       word-break: auto-phrase;
       overflow-wrap: break-word;
 
-      background: ${cssVar.colorFillQuaternary};
-
       > tr:first-of-type {
-        background: ${cssVar.colorFillQuaternary};
-
         .editor_table_cell_header {
           font-weight: bold;
         }
@@ -92,7 +88,7 @@ export const styles = createStaticStyles(
 
     .editor_table_cell_selected {
       color: #000;
-      background-color: ${cssVar.yellow};
+      background-color: color-mix(in srgb, ${cssVar.yellow} 28%, transparent);
       caret-color: transparent;
     }
 

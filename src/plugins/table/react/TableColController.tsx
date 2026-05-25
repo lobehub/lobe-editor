@@ -10,7 +10,6 @@ import {
   memo,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -22,6 +21,12 @@ import {
   MOVE_TABLE_COLUMN_COMMAND,
   SELECT_TABLE_COMMAND,
 } from '../command';
+import {
+  type DragTarget,
+  sum,
+  useTableAxisDrag,
+  useTableColumnMetrics,
+} from './TableController/hooks';
 import { styles } from './TableController/style';
 import { createTableDragImage } from './TableController/utils';
 import TableDeleteButton from './TableDeleteButton';
@@ -38,82 +43,35 @@ const INSERT_BUTTON_HIDE_DELAY = 160;
 const TABLE_DELETE_PREVIEW_CLASS = 'lobe-editor-table-delete-preview';
 const DOTS = Array.from({ length: 6 }, (_, index) => index);
 
-interface DragState {
-  selectedIndexes: number[];
-}
-
-const sum = (values: number[]) => {
-  return values.reduce((total, value) => total + value, 0);
-};
-
-const getTableElement = (element: HTMLElement | null) => {
-  if (element instanceof HTMLTableElement) {
-    return element;
-  }
-
-  return (element?.querySelector('table.editor_table, table') as HTMLTableElement | null) || null;
-};
-
-const readTableControllerState = (editor: LexicalEditor, node: TableNode) => {
-  return editor.getEditorState().read(() => {
-    const latestNode = node.getLatest();
-    const columnCount = latestNode.getColumnCount();
-    const colWidths = latestNode.getColWidths();
-
-    return {
-      colWidths: Array.from(
-        { length: columnCount },
-        (_, index) => colWidths?.[index] || MIN_COLUMN_WIDTH,
-      ),
-    };
-  });
-};
-
 const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
-  const { colWidths: initialColWidths } = useMemo(
-    () => readTableControllerState(editor, node),
-    [editor, node],
-  );
-  const [colWidths, setColWidths] = useState(initialColWidths);
-  const [tableHeight, setTableHeight] = useState(0);
+  const { colWidths, refreshColumnMetrics, tableHeight } = useTableColumnMetrics(editor, node);
   const { isTableFocused, isTableSelected, selectedColumns } = useTableControllerSelection(
     editor,
     node,
   );
   const anchorColumnIndexRef = useRef<number | null>(null);
   const colTopRef = useRef<HTMLDivElement | null>(null);
+  const renderColWidths = Array.from(
+    { length: colWidths.length },
+    (_, index) => colWidths[index] || MIN_COLUMN_WIDTH,
+  );
   const deletePreviewElementsRef = useRef<HTMLElement[]>([]);
   const insertButtonHoveredRef = useRef(false);
   const insertButtonHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showDeleteButton = selectedColumns.length > 0 && !isTableSelected;
   const selectedColumnStart = selectedColumns[0] ?? 0;
   const selectedColumnEnd = selectedColumns.at(-1) ?? selectedColumnStart;
-  const selectedColumnLeft = sum(colWidths.slice(0, selectedColumnStart));
-  const selectedColumnWidth = sum(colWidths.slice(selectedColumnStart, selectedColumnEnd + 1));
+  const selectedColumnLeft = sum(renderColWidths.slice(0, selectedColumnStart));
+  const selectedColumnWidth = sum(
+    renderColWidths.slice(selectedColumnStart, selectedColumnEnd + 1),
+  );
   const [insertTarget, setInsertTarget] = useState<{
     index: number;
     insertAfter: boolean;
   } | null>(null);
-  const [dragTarget, setDragTarget] = useState<{
-    index: number;
-    insertAfter: boolean;
-  } | null>(null);
-  const [isDragging, setDragging] = useState(false);
-  const dragStateRef = useRef<DragState | null>(null);
-  const dragTargetRef = useRef<typeof dragTarget>(null);
-  const dragCleanupRef = useRef<(() => void) | null>(null);
   const pendingDragColumnsRef = useRef<number[] | null>(null);
   const [isControllerHovered, setControllerHovered] = useState(false);
   const [isInsertButtonHovered, setInsertButtonHovered] = useState(false);
-  const insertColumnOffset = insertTarget
-    ? sum(colWidths.slice(0, insertTarget.index)) +
-      (insertTarget.insertAfter ? colWidths[insertTarget.index] || 0 : 0)
-    : 0;
-  const dragColumnOffset = dragTarget
-    ? sum(colWidths.slice(0, dragTarget.index)) +
-      (dragTarget.insertAfter ? colWidths[dragTarget.index] || 0 : 0)
-    : 0;
-  const showInsertButton = !isDragging && (Boolean(insertTarget) || isInsertButtonHovered);
 
   const clearInsertButtonHideTimer = () => {
     if (insertButtonHideTimerRef.current) {
@@ -170,7 +128,7 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
     }, INSERT_BUTTON_HIDE_DELAY);
   };
 
-  const getColumnDropTarget = useCallback((clientX: number) => {
+  const getColumnDropTarget = useCallback((event: DragEvent): DragTarget | null => {
     const controller = colTopRef.current;
     if (!controller) {
       return null;
@@ -183,7 +141,7 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
 
     for (const [index, column] of columns.entries()) {
       const rect = column.getBoundingClientRect();
-      if (clientX <= rect.left + rect.width / 2) {
+      if (event.clientX <= rect.left + rect.width / 2) {
         return {
           index,
           insertAfter: false,
@@ -197,46 +155,31 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
     };
   }, []);
 
-  const clearDragState = useCallback(() => {
-    dragCleanupRef.current?.();
-    dragCleanupRef.current = null;
-    dragStateRef.current = null;
-    dragTargetRef.current = null;
-    pendingDragColumnsRef.current = null;
-    setDragging(false);
-    setDragTarget(null);
-  }, []);
-
-  const updateColumnDragTarget = useCallback(
-    (clientX: number) => {
-      const target = getColumnDropTarget(clientX);
-      dragTargetRef.current = target;
-      setDragTarget(target);
-    },
-    [getColumnDropTarget],
-  );
-
-  const finishColumnDrag = useCallback(() => {
-    const dragState = dragStateRef.current;
-    const target = dragTargetRef.current;
-
-    if (dragState && target) {
+  const moveColumns = useCallback(
+    (target: DragTarget, selectedIndexes: number[]) => {
       editor.dispatchCommand(MOVE_TABLE_COLUMN_COMMAND, {
         columnIndex: target.index,
         insertAfter: target.insertAfter,
-        selectedColumns: dragState.selectedIndexes,
+        selectedColumns: selectedIndexes,
         table: node.getKey(),
       });
-    }
+    },
+    [editor, node],
+  );
 
-    clearDragState();
-  }, [clearDragState, editor, node]);
+  const {
+    clearDragState,
+    dragTarget,
+    finishDrag: finishColumnDrag,
+    isDragging,
+    startDrag,
+  } = useTableAxisDrag({
+    getDropTarget: getColumnDropTarget,
+    onMove: moveColumns,
+  });
 
   const startColumnDrag = useCallback(
     (event: ReactDragEvent<HTMLDivElement>, selectedIndexes: number[]) => {
-      dragStateRef.current = {
-        selectedIndexes,
-      };
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.dropEffect = 'move';
       event.dataTransfer.setData('text/plain', '');
@@ -246,37 +189,22 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
         dragImage.offsetWidth / 2,
         dragImage.offsetHeight / 2,
       );
-      setDragging(true);
       setInsertTarget(null);
-      updateColumnDragTarget(event.clientX);
-
-      const body = document.body;
-      const handleDragOver = (dragEvent: globalThis.DragEvent) => {
-        dragEvent.preventDefault();
-        dragEvent.stopPropagation();
-        if (dragEvent.dataTransfer) {
-          dragEvent.dataTransfer.dropEffect = 'move';
-        }
-        updateColumnDragTarget(dragEvent.clientX);
-      };
-      const handleDragEnd = (dragEvent: globalThis.DragEvent) => {
-        dragEvent.preventDefault();
-        dragEvent.stopPropagation();
-        finishColumnDrag();
-      };
-
-      dragCleanupRef.current?.();
-      dragCleanupRef.current = () => {
-        body.removeEventListener('dragover', handleDragOver);
-        body.removeEventListener('drop', handleDragEnd);
-        body.removeEventListener('dragend', handleDragEnd);
-      };
-      body.addEventListener('dragover', handleDragOver);
-      body.addEventListener('drop', handleDragEnd);
-      body.addEventListener('dragend', handleDragEnd);
+      startDrag(event.nativeEvent, selectedIndexes);
     },
-    [finishColumnDrag, updateColumnDragTarget],
+    [startDrag],
   );
+
+  const insertColumnOffset = insertTarget
+    ? sum(renderColWidths.slice(0, insertTarget.index)) +
+      (insertTarget.insertAfter ? renderColWidths[insertTarget.index] || 0 : 0)
+    : 0;
+  const dragColumnOffset = dragTarget
+    ? sum(renderColWidths.slice(0, dragTarget.index)) +
+      (dragTarget.insertAfter ? renderColWidths[dragTarget.index] || 0 : 0)
+    : 0;
+  const controllerWidth = sum(renderColWidths);
+  const showInsertButton = !isDragging && (Boolean(insertTarget) || isInsertButtonHovered);
 
   useEffect(() => {
     if (selectedColumns.length > 0) {
@@ -285,64 +213,10 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
   }, [selectedColumns]);
 
   useEffect(() => {
-    setColWidths(initialColWidths);
-  }, [initialColWidths]);
-
-  useEffect(() => {
-    const tableElement = getTableElement(editor.getElementByKey(node.getKey()));
-
-    if (!tableElement) {
-      return;
-    }
-
-    const readColWidthsFromDOM = () => {
-      const latestColWidths = readTableControllerState(editor, node).colWidths;
-      const lastColIndex = latestColWidths.length - 1;
-
-      if (lastColIndex < 0) {
-        return;
-      }
-
-      const tableRect = tableElement.getBoundingClientRect();
-      const tableWidth = tableRect.width;
-      const precedingWidth = sum(latestColWidths.slice(0, lastColIndex));
-      const lastColWidth = Math.max(0, tableWidth - precedingWidth);
-      const nextColWidths = latestColWidths.map((width, index) => {
-        return index === lastColIndex ? lastColWidth : width;
-      });
-
-      setColWidths((currentWidths) => {
-        if (
-          currentWidths.length === nextColWidths.length &&
-          currentWidths.every((width, index) => width === nextColWidths[index])
-        ) {
-          return currentWidths;
-        }
-
-        return nextColWidths;
-      });
-      setTableHeight(tableRect.height);
-    };
-
-    const raf = requestAnimationFrame(readColWidthsFromDOM);
-    const observer = new ResizeObserver(readColWidthsFromDOM);
-    observer.observe(tableElement);
-
-    const unregisterUpdate = editor.registerUpdateListener(() => {
-      readColWidthsFromDOM();
-    });
-
-    return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-      unregisterUpdate();
-    };
-  }, [editor, node]);
-
-  useEffect(() => {
     return () => {
       clearInsertButtonHideTimer();
       clearDeletePreview();
+      pendingDragColumnsRef.current = null;
       clearDragState();
     };
   }, [clearDeletePreview, clearDragState]);
@@ -355,6 +229,7 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
       clearDeletePreview();
       setInsertTarget(null);
       setInsertButtonHovered(false);
+      pendingDragColumnsRef.current = null;
       clearDragState();
     }
   }, [clearDeletePreview, clearDragState, shouldShowController]);
@@ -365,7 +240,11 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
 
   return (
     <LexicalPortalContainer editor={editor} node={node}>
-      <div className="table-controller-col" contentEditable={false}>
+      <div
+        className="table-controller-col"
+        contentEditable={false}
+        style={{ inlineSize: controllerWidth }}
+      >
         <div
           className={cx('top', styles.colTop)}
           onMouseEnter={() => {
@@ -376,6 +255,7 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
             scheduleHideInsertButton();
           }}
           ref={colTopRef}
+          style={{ inlineSize: controllerWidth }}
         >
           <TableDeleteButton
             ariaLabel="Delete selected columns"
@@ -392,8 +272,8 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
             reference={colTopRef.current}
             visible={showDeleteButton}
           />
-          {colWidths.map((width, index) => {
-            const isLastCol = index + 1 === colWidths.length;
+          {renderColWidths.map((width, index) => {
+            const isLastCol = index + 1 === renderColWidths.length;
             const isSelected = selectedColumns.includes(index);
             const showSelectionDots = isSelected && !isTableSelected;
 
@@ -413,7 +293,10 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
                     event.stopPropagation();
                   }
                 }}
-                onDragEnd={finishColumnDrag}
+                onDragEnd={() => {
+                  pendingDragColumnsRef.current = null;
+                  finishColumnDrag();
+                }}
                 onDragStart={(event) => {
                   event.stopPropagation();
                   startColumnDrag(
@@ -515,6 +398,7 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
                 insertAfter: insertTarget.insertAfter,
                 table: node.getKey(),
               });
+              refreshColumnMetrics();
               setInsertTarget(null);
             }}
             onMouseEnter={() => {
