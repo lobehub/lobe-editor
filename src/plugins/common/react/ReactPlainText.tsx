@@ -51,9 +51,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     onCompositionEnd,
     onContextMenu,
     onTextChange,
-    // When enablePasteMarkdown is true the editor acts as a rich autocomplete surface;
-    // disabling spellCheck also suppresses Safari/WebKit inline predictive text.
-    spellCheck = !enablePasteMarkdown,
+    spellCheck,
   }) => {
     const isChat = variant === 'chat';
     const {
