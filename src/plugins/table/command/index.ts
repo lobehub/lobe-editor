@@ -5,9 +5,12 @@ import {
   $findTableNode,
   $insertTableColumnAtSelection,
   $insertTableRowAtSelection,
+  $isSimpleTable,
   $isTableNode,
+  $isTableRowNode,
   $isTableSelection,
   InsertTableCommandPayloadHeaders,
+  TableNode,
 } from '@lexical/table';
 import { $insertNodeToNearestRoot, mergeRegister } from '@lexical/utils';
 import {
@@ -50,6 +53,20 @@ export const INSERT_TABLE_ROW_COMMAND = createCommand<{
   table: string;
 }>();
 
+export const MOVE_TABLE_COLUMN_COMMAND = createCommand<{
+  columnIndex: number;
+  insertAfter?: boolean;
+  selectedColumns: number[];
+  table: string;
+}>();
+
+export const MOVE_TABLE_ROW_COMMAND = createCommand<{
+  insertAfter?: boolean;
+  rowIndex: number;
+  selectedRows: number[];
+  table: string;
+}>();
+
 const $selectFirstDescendant = (node: ElementNode) => {
   const firstDescendant = node.getFirstDescendant();
   if ($isTextNode(firstDescendant)) {
@@ -57,6 +74,61 @@ const $selectFirstDescendant = (node: ElementNode) => {
   } else {
     node.selectStart();
   }
+};
+
+const getMoveRange = (selectedIndexes: number[], targetIndex: number, insertAfter = false) => {
+  if (selectedIndexes.length === 0) {
+    return null;
+  }
+
+  const sortedIndexes = [...selectedIndexes].sort((a, b) => a - b);
+  const from = sortedIndexes[0];
+  const to = sortedIndexes.at(-1) ?? from;
+  const count = to - from + 1;
+  const insertionIndex = insertAfter ? targetIndex + 1 : targetIndex;
+
+  if (insertionIndex >= from && insertionIndex <= to + 1) {
+    return null;
+  }
+
+  return {
+    count,
+    from,
+    target: insertionIndex > to ? insertionIndex - count : insertionIndex,
+    to,
+  };
+};
+
+const $selectTableRows = (tableNode: TableNode, from: number, to: number) => {
+  const [tableMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
+  const firstRow = tableMap[from];
+  const lastRow = tableMap[to];
+  const firstCell = firstRow?.[0]?.cell;
+  const lastCell = lastRow?.[lastRow.length - 1]?.cell;
+
+  if (!firstCell || !lastCell) {
+    return false;
+  }
+
+  const tableSelection = $createTableSelection();
+  tableSelection.set(tableNode.getKey(), firstCell.getKey(), lastCell.getKey());
+  $setSelection(tableSelection);
+  return true;
+};
+
+const $selectTableColumns = (tableNode: TableNode, from: number, to: number) => {
+  const [tableMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
+  const firstCell = tableMap.find((row) => row[from])?.[from]?.cell;
+  const lastCell = [...tableMap].reverse().find((row) => row[to])?.[to]?.cell;
+
+  if (!firstCell || !lastCell) {
+    return false;
+  }
+
+  const tableSelection = $createTableSelection();
+  tableSelection.set(tableNode.getKey(), firstCell.getKey(), lastCell.getKey());
+  $setSelection(tableSelection);
+  return true;
 };
 
 const getRangeFromSelection = (
@@ -190,6 +262,67 @@ export function registerTableCommand(editor: LexicalEditor) {
           $selectFirstDescendant(insertedRow);
         }
 
+        return true;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    ),
+    editor.registerCommand(
+      MOVE_TABLE_COLUMN_COMMAND,
+      ({ table, selectedColumns, columnIndex, insertAfter = false }) => {
+        const tableNode = $getNodeByKey(table);
+        if (!tableNode || !$isTableNode(tableNode) || !$isSimpleTable(tableNode)) {
+          return false;
+        }
+
+        const moveRange = getMoveRange(selectedColumns, columnIndex, insertAfter);
+        if (!moveRange) {
+          return false;
+        }
+
+        const { count, from, target, to } = moveRange;
+        const rows = tableNode.getChildren().filter($isTableRowNode);
+        rows.forEach((row) => {
+          const cells = row.getChildren();
+          const movedCells = cells.slice(from, to + 1);
+          const nextCells = [...cells.slice(0, from), ...cells.slice(to + 1)];
+          nextCells.splice(target, 0, ...movedCells);
+          row.splice(0, cells.length, nextCells);
+        });
+
+        const colWidths = tableNode.getColWidths();
+        if (colWidths && colWidths.length === tableNode.getColumnCount()) {
+          const movedWidths = colWidths.slice(from, to + 1);
+          const nextWidths = [...colWidths.slice(0, from), ...colWidths.slice(to + 1)];
+          nextWidths.splice(target, 0, ...movedWidths);
+          tableNode.setColWidths(nextWidths);
+        }
+
+        $selectTableColumns(tableNode, target, target + count - 1);
+        return true;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    ),
+    editor.registerCommand(
+      MOVE_TABLE_ROW_COMMAND,
+      ({ table, selectedRows, rowIndex, insertAfter = false }) => {
+        const tableNode = $getNodeByKey(table);
+        if (!tableNode || !$isTableNode(tableNode) || !$isSimpleTable(tableNode)) {
+          return false;
+        }
+
+        const moveRange = getMoveRange(selectedRows, rowIndex, insertAfter);
+        if (!moveRange) {
+          return false;
+        }
+
+        const { count, from, target, to } = moveRange;
+        const rows = tableNode.getChildren();
+        const movedRows = rows.slice(from, to + 1);
+        const nextRows = [...rows.slice(0, from), ...rows.slice(to + 1)];
+        nextRows.splice(target, 0, ...movedRows);
+        tableNode.splice(0, rows.length, nextRows);
+
+        $selectTableRows(tableNode, target, target + count - 1);
         return true;
       },
       COMMAND_PRIORITY_EDITOR,

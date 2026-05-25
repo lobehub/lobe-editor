@@ -22,6 +22,11 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       border-style: solid;
       border-width: 1px 0 0 1px;
     `,
+    colDragIndicator: css`
+      inset-block-start: 14px;
+      transform: translateX(-50%);
+      inline-size: 2px;
+    `,
     colLast: css`
       border-width: 1px 1px 0;
       border-start-end-radius: 8px;
@@ -86,6 +91,21 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       pointer-events: auto;
       opacity: 1;
     `,
+    dragIndicator: css`
+      pointer-events: none;
+
+      position: absolute;
+      z-index: 6;
+
+      border-radius: 999px;
+
+      opacity: 0;
+      background: ${cssVar.colorPrimary};
+      box-shadow: 0 0 0 2px ${cssVar.colorPrimaryBg};
+    `,
+    dragIndicatorVisible: css`
+      opacity: 1;
+    `,
     insertButton: css`
       pointer-events: none;
       cursor: pointer;
@@ -131,6 +151,11 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       border-style: solid;
       border-width: 1px 0.5px 0 1px;
     `,
+    rowDragIndicator: css`
+      inset-inline-start: 15px;
+      transform: translateY(-50%);
+      block-size: 2px;
+    `,
     rowLast: css`
       border-width: 1px 0.5px 1px 1px;
       border-end-start-radius: 8px;
@@ -147,11 +172,15 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       grid-template-columns: repeat(2, 2px);
     `,
     selected: css`
+      cursor: move;
       background-color: ${selectedBackground};
 
       &:hover {
         background-color: ${selectedBackground};
       }
+    `,
+    selectedCorner: css`
+      cursor: pointer;
     `,
     selectionDots: css`
       pointer-events: none;

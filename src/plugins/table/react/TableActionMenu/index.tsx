@@ -140,6 +140,8 @@ const TableActionMenu = memo<{
       if (checkTableCellOverflow(tableCellParentNodeDOM)) {
         return disable();
       }
+
+      setTableMenuCellNode(anchorNode);
     } else if (!activeElement) {
       return disable();
     }
