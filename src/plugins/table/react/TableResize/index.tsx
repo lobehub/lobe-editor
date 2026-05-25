@@ -31,12 +31,14 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
+import type { TableResizeMode } from '../type';
 import { MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT, styles } from './style';
 import { getCellColumnIndex, getCellNodeHeight } from './utils';
 
-export interface ReactTableResizeHandleProps {
+interface TableResizeProps {
   editor: LexicalEditor;
   eventEmitter: EventEmitter;
+  resizeMode: TableResizeMode;
 }
 
 type PointerPosition = {
@@ -45,15 +47,53 @@ type PointerPosition = {
 };
 
 type PointerDraggingDirection = 'right' | 'bottom';
+type ResizeStartState = PointerPosition &
+  (
+    | {
+        columnIndex: number;
+        direction: 'right';
+        size: number;
+      }
+    | {
+        direction: 'bottom';
+        rowIndex: number;
+        size: number;
+      }
+  );
 
-export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, eventEmitter }) => {
+const isHeightChanging = (direction: PointerDraggingDirection) => {
+  if (direction === 'bottom') {
+    return true;
+  }
+  return false;
+};
+
+const syncTableWidthDOM = (
+  editor: LexicalEditor,
+  tableKey: NodeKey,
+  colWidths: readonly number[],
+) => {
+  const tableElement = editor.getElementByKey(tableKey);
+  const table =
+    tableElement instanceof HTMLTableElement
+      ? tableElement
+      : tableElement?.querySelector('table.editor_table, table');
+
+  if (!(table instanceof HTMLTableElement)) {
+    return;
+  }
+
+  table.style.width = `${colWidths.reduce((total, width) => total + width, 0)}px`;
+};
+
+export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, resizeMode }) => {
   const targetRef = useRef<HTMLElement | null>(null);
   const resizerRef = useRef<HTMLDivElement | null>(null);
   // eslint-disable-next-line no-undef
   const tableRectRef = useRef<ClientRect | null>(null);
   const [hasTable, setHasTable] = useState(false);
 
-  const pointerStartPosRef = useRef<PointerPosition | null>(null);
+  const resizeStartStateRef = useRef<ResizeStartState | null>(null);
   const [pointerCurrentPos, updatePointerCurrentPos] = useState<PointerPosition | null>(null);
 
   const [activeCell, updateActiveCell] = useState<TableDOMCell | null>(null);
@@ -65,7 +105,8 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
     updateActiveCell(null);
     targetRef.current = null;
     updateDraggingDirection(null);
-    pointerStartPosRef.current = null;
+    updatePointerCurrentPos(null);
+    resizeStartStateRef.current = null;
     tableRectRef.current = null;
   }, []);
 
@@ -97,6 +138,197 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
     );
   }, [editor]);
 
+  const getResizeStartState = useCallback(
+    (direction: PointerDraggingDirection, startPos: PointerPosition) => {
+      if (!activeCell) {
+        throw new Error('TableCellResizer: Expected active cell.');
+      }
+
+      let resizeState: ResizeStartState | null = null;
+      editor.getEditorState().read(
+        () => {
+          const tableCellNode = $getNearestNodeFromDOMNode(activeCell.elem);
+          if (!$isTableCellNode(tableCellNode)) {
+            throw new Error('TableCellResizer: Table cell node not found.');
+          }
+
+          const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
+
+          if (!isHeightChanging(direction)) {
+            const [tableMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
+            const columnIndex = getCellColumnIndex(tableCellNode, tableMap);
+            if (columnIndex === undefined) {
+              throw new Error('TableCellResizer: Table column not found.');
+            }
+
+            const width = tableNode.getColWidths()?.[columnIndex] ?? MIN_COLUMN_WIDTH;
+            resizeState = {
+              ...startPos,
+              columnIndex,
+              direction: 'right',
+              size: width,
+            };
+            return;
+          }
+
+          const baseRowIndex = $getTableRowIndexFromTableCellNode(tableCellNode);
+          const tableRows = tableNode.getChildren();
+          const isFullRowMerge = tableCellNode.getColSpan() === tableNode.getColumnCount();
+          const rowIndex = isFullRowMerge
+            ? baseRowIndex
+            : baseRowIndex + tableCellNode.getRowSpan() - 1;
+
+          if (rowIndex >= tableRows.length || rowIndex < 0) {
+            throw new Error('Expected table cell to be inside of table row.');
+          }
+
+          const tableRow = tableRows[rowIndex];
+
+          if (!$isTableRowNode(tableRow)) {
+            throw new Error('Expected table row');
+          }
+
+          let height = tableRow.getHeight();
+          if (height === undefined) {
+            const rowCells = tableRow.getChildren<TableCellNode>();
+            height = Math.min(
+              ...rowCells.map(
+                // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                (cell) => getCellNodeHeight(cell, editor) ?? Infinity,
+              ),
+            );
+          }
+
+          resizeState = {
+            ...startPos,
+            direction: 'bottom',
+            rowIndex,
+            size: height,
+          };
+        },
+        { editor },
+      );
+
+      return resizeState;
+    },
+    [activeCell, editor],
+  );
+
+  const updateRowHeight = useCallback(
+    (rowIndex: number, nextHeight: number) => {
+      if (!activeCell) {
+        throw new Error('TableCellResizer: Expected active cell.');
+      }
+
+      let didUpdate = false;
+      editor.update(
+        () => {
+          const tableCellNode = $getNearestNodeFromDOMNode(activeCell.elem);
+          if (!$isTableCellNode(tableCellNode)) {
+            throw new Error('TableCellResizer: Table cell node not found.');
+          }
+
+          const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
+          const tableRows = tableNode.getChildren();
+          if (rowIndex >= tableRows.length || rowIndex < 0) {
+            throw new Error('Expected table cell to be inside of table row.');
+          }
+
+          const tableRow = tableRows[rowIndex];
+
+          if (!$isTableRowNode(tableRow)) {
+            throw new Error('Expected table row');
+          }
+
+          let height = tableRow.getHeight();
+          if (height === undefined) {
+            const rowCells = tableRow.getChildren<TableCellNode>();
+            height = Math.min(
+              ...rowCells.map(
+                // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                (cell) => getCellNodeHeight(cell, editor) ?? Infinity,
+              ),
+            );
+          }
+
+          const newHeight = Math.max(nextHeight, MIN_ROW_HEIGHT);
+          tableRow.setHeight(newHeight);
+          didUpdate = true;
+          eventEmitter.emit('table:resize', {
+            heightChange: newHeight - height,
+            newHeight,
+          });
+        },
+        { tag: SKIP_SCROLL_INTO_VIEW_TAG },
+      );
+      return didUpdate;
+    },
+    [activeCell, editor, eventEmitter],
+  );
+
+  const updateColumnWidth = useCallback(
+    (columnIndex: number, nextWidth: number) => {
+      if (!activeCell) {
+        throw new Error('TableCellResizer: Expected active cell.');
+      }
+      let didUpdate = false;
+      editor.update(
+        () => {
+          const tableCellNode = $getNearestNodeFromDOMNode(activeCell.elem);
+          if (!$isTableCellNode(tableCellNode)) {
+            throw new Error('TableCellResizer: Table cell node not found.');
+          }
+
+          const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
+          const colWidths = tableNode.getColWidths();
+          if (!colWidths) {
+            return;
+          }
+          const width = colWidths[columnIndex];
+          if (width === undefined) {
+            return;
+          }
+          const newColWidths = [...colWidths];
+          const newWidth = Math.max(nextWidth, MIN_COLUMN_WIDTH);
+          newColWidths[columnIndex] = newWidth;
+          tableNode.setColWidths(newColWidths);
+          const tableKey = tableNode.getKey();
+          didUpdate = true;
+          requestAnimationFrame(() => {
+            syncTableWidthDOM(editor, tableKey, newColWidths);
+            eventEmitter.emit('table:resize', {
+              newColWidths,
+            });
+          });
+        },
+        { tag: SKIP_SCROLL_INTO_VIEW_TAG },
+      );
+      return didUpdate;
+    },
+    [activeCell, editor, eventEmitter],
+  );
+
+  const commitResizeChange = useCallback(
+    (currentPos: PointerPosition, startState: ResizeStartState, target: Element) => {
+      const zoom = calculateZoomLevel(target);
+
+      if (startState.direction === 'bottom') {
+        const heightChange = (currentPos.y - startState.y) / zoom;
+        if (heightChange === 0) {
+          return false;
+        }
+        return updateRowHeight(startState.rowIndex, startState.size + heightChange);
+      }
+
+      const widthChange = (currentPos.x - startState.x) / zoom;
+      if (widthChange === 0) {
+        return false;
+      }
+      return updateColumnWidth(startState.columnIndex, startState.size + widthChange);
+    },
+    [updateColumnWidth, updateRowHeight],
+  );
+
   useEffect(() => {
     if (!hasTable) {
       return;
@@ -111,10 +343,15 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
       if (draggingDirection) {
         event.preventDefault();
         event.stopPropagation();
-        updatePointerCurrentPos({
+        const currentPos = {
           x: event.clientX,
           y: event.clientY,
-        });
+        };
+        updatePointerCurrentPos(currentPos);
+
+        if (resizeMode === 'realtime' && activeCell && resizeStartStateRef.current) {
+          commitResizeChange(currentPos, resizeStartStateRef.current, activeCell.elem);
+        }
         return;
       }
       if (resizerRef.current && resizerRef.current.contains(target)) {
@@ -178,153 +415,40 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
       removeRootListener();
       resizerContainer?.removeEventListener('pointermove', onPointerMove);
     };
-  }, [activeCell, draggingDirection, editor, resetState, hasTable]);
+  }, [activeCell, commitResizeChange, draggingDirection, editor, hasTable, resetState, resizeMode]);
 
-  const isHeightChanging = (direction: PointerDraggingDirection) => {
-    if (direction === 'bottom') {
-      return true;
-    }
-    return false;
-  };
+  const pointerUpHandler = useCallback(() => {
+    const handler = (event: PointerEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-  const updateRowHeight = useCallback(
-    (heightChange: number) => {
       if (!activeCell) {
         throw new Error('TableCellResizer: Expected active cell.');
       }
 
-      editor.update(
-        () => {
-          const tableCellNode = $getNearestNodeFromDOMNode(activeCell.elem);
-          if (!$isTableCellNode(tableCellNode)) {
-            throw new Error('TableCellResizer: Table cell node not found.');
-          }
-
-          const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
-          const baseRowIndex = $getTableRowIndexFromTableCellNode(tableCellNode);
-          const tableRows = tableNode.getChildren();
-
-          // Determine if this is a full row merge by checking colspan
-          const isFullRowMerge = tableCellNode.getColSpan() === tableNode.getColumnCount();
-
-          // For full row merges, apply to first row. For partial merges, apply to last row
-          const tableRowIndex = isFullRowMerge
-            ? baseRowIndex
-            : baseRowIndex + tableCellNode.getRowSpan() - 1;
-
-          if (tableRowIndex >= tableRows.length || tableRowIndex < 0) {
-            throw new Error('Expected table cell to be inside of table row.');
-          }
-
-          const tableRow = tableRows[tableRowIndex];
-
-          if (!$isTableRowNode(tableRow)) {
-            throw new Error('Expected table row');
-          }
-
-          let height = tableRow.getHeight();
-          if (height === undefined) {
-            const rowCells = tableRow.getChildren<TableCellNode>();
-            height = Math.min(
-              ...rowCells.map(
-                // eslint-disable-next-line @typescript-eslint/no-use-before-define
-                (cell) => getCellNodeHeight(cell, editor) ?? Infinity,
-              ),
-            );
-          }
-
-          const newHeight = Math.max(height + heightChange, MIN_ROW_HEIGHT);
-          tableRow.setHeight(newHeight);
-          eventEmitter.emit('table:resize', {
-            heightChange,
-            newHeight,
-          });
-        },
-        { tag: SKIP_SCROLL_INTO_VIEW_TAG },
-      );
-    },
-    [activeCell, editor],
-  );
-
-  const updateColumnWidth = useCallback(
-    (widthChange: number) => {
-      if (!activeCell) {
-        throw new Error('TableCellResizer: Expected active cell.');
-      }
-      editor.update(
-        () => {
-          const tableCellNode = $getNearestNodeFromDOMNode(activeCell.elem);
-          if (!$isTableCellNode(tableCellNode)) {
-            throw new Error('TableCellResizer: Table cell node not found.');
-          }
-
-          const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
-          const [tableMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
-          const columnIndex = getCellColumnIndex(tableCellNode, tableMap);
-          if (columnIndex === undefined) {
-            throw new Error('TableCellResizer: Table column not found.');
-          }
-
-          const colWidths = tableNode.getColWidths();
-          if (!colWidths) {
-            return;
-          }
-          const width = colWidths[columnIndex];
-          if (width === undefined) {
-            return;
-          }
-          const newColWidths = [...colWidths];
-          const newWidth = Math.max(width + widthChange, MIN_COLUMN_WIDTH);
-          newColWidths[columnIndex] = newWidth;
-          tableNode.setColWidths(newColWidths);
-          requestAnimationFrame(() => {
-            eventEmitter.emit('table:resize', {
-              newColWidths,
-            });
-          });
-        },
-        { tag: SKIP_SCROLL_INTO_VIEW_TAG },
-      );
-    },
-    [activeCell, editor],
-  );
-
-  const pointerUpHandler = useCallback(
-    (direction: PointerDraggingDirection) => {
-      const handler = (event: PointerEvent) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        if (!activeCell) {
-          throw new Error('TableCellResizer: Expected active cell.');
-        }
-
-        if (pointerStartPosRef.current) {
-          const { x, y } = pointerStartPosRef.current;
-
+      if (resizeStartStateRef.current) {
+        if (resizeMode === 'deferred') {
           if (activeCell === null) {
             return;
           }
-          const zoom = calculateZoomLevel(event.target as Element);
-
-          if (isHeightChanging(direction)) {
-            const heightChange = (event.clientY - y) / zoom;
-            updateRowHeight(heightChange);
-          } else {
-            const widthChange = (event.clientX - x) / zoom;
-            updateColumnWidth(widthChange);
-          }
-
-          resetState();
-          if (typeof document !== 'undefined') {
-            document.removeEventListener('pointerup', handler);
-          }
+          commitResizeChange(
+            {
+              x: event.clientX,
+              y: event.clientY,
+            },
+            resizeStartStateRef.current,
+            activeCell.elem,
+          );
         }
-      };
-      return handler;
-    },
-    [activeCell, resetState, updateColumnWidth, updateRowHeight],
-  );
+
+        resetState();
+        if (typeof document !== 'undefined') {
+          document.removeEventListener('pointerup', handler);
+        }
+      }
+    };
+    return handler;
+  }, [activeCell, commitResizeChange, resetState, resizeMode]);
 
   const toggleResize = useCallback(
     (direction: PointerDraggingDirection): PointerEventHandler<HTMLDivElement> =>
@@ -336,18 +460,24 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
           throw new Error('TableCellResizer: Expected active cell.');
         }
 
-        pointerStartPosRef.current = {
+        const startPos = {
           x: event.clientX,
           y: event.clientY,
         };
-        updatePointerCurrentPos(pointerStartPosRef.current);
+        const resizeStartState = getResizeStartState(direction, startPos);
+        if (!resizeStartState) {
+          return;
+        }
+
+        resizeStartStateRef.current = resizeStartState;
+        updatePointerCurrentPos(startPos);
         updateDraggingDirection(direction);
 
         if (typeof document !== 'undefined') {
-          document.addEventListener('pointerup', pointerUpHandler(direction));
+          document.addEventListener('pointerup', pointerUpHandler());
         }
       },
-    [activeCell, pointerUpHandler],
+    [activeCell, getResizeStartState, pointerUpHandler],
   );
 
   const getResizers = useCallback(() => {
@@ -431,7 +561,7 @@ export const TableCellResize = memo<ReactTableResizeHandleProps>(({ editor, even
   );
 });
 
-export default memo<ReactTableResizeHandleProps>(({ editor, eventEmitter }) => {
+export default memo<TableResizeProps>(({ editor, eventEmitter, resizeMode }) => {
   // Don't render portal on server side
   if (typeof document === 'undefined') {
     return null;
@@ -440,5 +570,8 @@ export default memo<ReactTableResizeHandleProps>(({ editor, eventEmitter }) => {
   // Mount to .ant-app if exists, otherwise document.body
   const container = (document.querySelector('.ant-app') as HTMLElement) || document.body;
 
-  return createPortal(<TableCellResize editor={editor} eventEmitter={eventEmitter} />, container);
+  return createPortal(
+    <TableCellResize editor={editor} eventEmitter={eventEmitter} resizeMode={resizeMode} />,
+    container,
+  );
 });

@@ -21,7 +21,11 @@ import TableRowController from './TableRowController';
 import { styles } from './style';
 import { ReactTablePluginProps } from './type';
 
-export const ReactTablePlugin: FC<ReactTablePluginProps> = ({ className, locale }) => {
+export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
+  className,
+  locale,
+  resizeMode = 'realtime',
+}) => {
   const [editor] = useLexicalComposerContext();
   const [lexicalEditor, setLexicalEditor] = useState<LexicalEditor | null>(null);
   const eventEmitter = useMemo(() => {
@@ -79,7 +83,11 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({ className, locale 
   return (
     lexicalEditor && (
       <>
-        <TableCellResizePlugin editor={lexicalEditor} eventEmitter={eventEmitter} />
+        <TableCellResizePlugin
+          editor={lexicalEditor}
+          eventEmitter={eventEmitter}
+          resizeMode={resizeMode}
+        />
         <PortalAnchor>
           <TableActionMenuPlugin editor={lexicalEditor} />
           <TableHoverActionsPlugin editor={lexicalEditor} />
