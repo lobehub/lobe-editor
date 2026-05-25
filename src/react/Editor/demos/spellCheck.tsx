@@ -2,24 +2,23 @@ import { Editor, useEditor } from '@lobehub/editor/react';
 import { createStaticStyles } from 'antd-style';
 import { type FC } from 'react';
 
-const useStyles = createStaticStyles(({ css, token }) => ({
+const useStyles = createStaticStyles(({ css }) => ({
   container: css`
     display: flex;
     gap: 16px;
     padding: 16px;
   `,
   editor: css`
-    flex: 1;
     min-height: 120px;
     padding: 12px;
-    border: 1px solid ${token.colorBorder};
-    border-radius: ${token.borderRadius}px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
   `,
   label: css`
     margin-bottom: 8px;
     font-size: 12px;
     font-weight: 500;
-    color: ${token.colorTextSecondary};
+    opacity: 0.6;
   `,
   wrapper: css`
     flex: 1;
@@ -28,10 +27,10 @@ const useStyles = createStaticStyles(({ css, token }) => ({
 
 const SpellCheckOn: FC = () => {
   const editor = useEditor();
-  const { styles } = useStyles();
+  const styles = useStyles();
   return (
     <div className={styles.wrapper}>
-      <div className={styles.label}>spellCheck={'{true}'} (browser default)</div>
+      <div className={styles.label}>{'spellCheck={true}'} (browser default)</div>
       <Editor
         autoFocus
         className={styles.editor}
@@ -48,10 +47,10 @@ const SpellCheckOn: FC = () => {
 
 const SpellCheckOff: FC = () => {
   const editor = useEditor();
-  const { styles } = useStyles();
+  const styles = useStyles();
   return (
     <div className={styles.wrapper}>
-      <div className={styles.label}>spellCheck={'{false}'} (recommended for chat input)</div>
+      <div className={styles.label}>{'spellCheck={false}'} (recommended for chat input)</div>
       <Editor
         className={styles.editor}
         content={''}
@@ -66,7 +65,7 @@ const SpellCheckOff: FC = () => {
 };
 
 const Demo: FC = () => {
-  const { styles } = useStyles();
+  const styles = useStyles();
   return (
     <div className={styles.container}>
       <SpellCheckOn />
