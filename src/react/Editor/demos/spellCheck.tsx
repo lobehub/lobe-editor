@@ -2,7 +2,7 @@ import { Editor, useEditor } from '@lobehub/editor/react';
 import { createStaticStyles } from 'antd-style';
 import { type FC } from 'react';
 
-const useStyles = createStaticStyles(({ css }) => ({
+const styles = createStaticStyles(({ css }) => ({
   container: css`
     display: flex;
     gap: 16px;
@@ -27,7 +27,6 @@ const useStyles = createStaticStyles(({ css }) => ({
 
 const SpellCheckOn: FC = () => {
   const editor = useEditor();
-  const styles = useStyles();
   return (
     <div className={styles.wrapper}>
       <div className={styles.label}>{'spellCheck={true}'} (browser default)</div>
@@ -47,7 +46,6 @@ const SpellCheckOn: FC = () => {
 
 const SpellCheckOff: FC = () => {
   const editor = useEditor();
-  const styles = useStyles();
   return (
     <div className={styles.wrapper}>
       <div className={styles.label}>{'spellCheck={false}'} (recommended for chat input)</div>
@@ -65,7 +63,6 @@ const SpellCheckOff: FC = () => {
 };
 
 const Demo: FC = () => {
-  const styles = useStyles();
   return (
     <div className={styles.container}>
       <SpellCheckOn />
