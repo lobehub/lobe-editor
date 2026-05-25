@@ -143,6 +143,60 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       pointer-events: auto;
       opacity: 1;
     `,
+    menu: css`
+      pointer-events: auto;
+
+      position: fixed;
+      z-index: 7;
+
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      box-sizing: border-box;
+      padding: 6px;
+      border: 1px solid ${cssVar.colorBorderSecondary};
+      border-radius: 8px;
+
+      background: ${cssVar.colorBgElevated};
+      box-shadow: 0 8px 24px color-mix(in srgb, #000 18%, transparent);
+    `,
+    menuItem: css`
+      cursor: pointer;
+
+      display: flex;
+      align-items: center;
+
+      min-block-size: 32px;
+      padding-block: 0;
+      padding-inline: 10px;
+      border: 0;
+      border-radius: 5px;
+
+      font: inherit;
+      color: ${cssVar.colorText};
+      text-align: start;
+      white-space: nowrap;
+
+      background: transparent;
+
+      &:hover {
+        background: ${cssVar.colorFillTertiary};
+      }
+    `,
+    menuItemDanger: css`
+      color: ${cssVar.colorError};
+
+      &:hover {
+        background: ${cssVar.colorErrorBg};
+      }
+    `,
+    menuSeparator: css`
+      block-size: 1px;
+      margin-block: 4px;
+      margin-inline: -6px;
+      background: ${cssVar.colorSplit};
+    `,
     row: css`
       ${hoverable};
       position: relative;

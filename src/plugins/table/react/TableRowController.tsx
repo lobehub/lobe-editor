@@ -1,8 +1,4 @@
-import {
-  $computeTableMapSkipCellCheck,
-  $deleteTableRowAtSelection,
-  TableNode,
-} from '@lexical/table';
+import { $computeTableMapSkipCellCheck, TableNode } from '@lexical/table';
 import { cx } from 'antd-style';
 import { LexicalEditor } from 'lexical';
 import {
@@ -15,6 +11,7 @@ import {
 } from 'react';
 
 import { INSERT_TABLE_ROW_COMMAND, MOVE_TABLE_ROW_COMMAND, SELECT_TABLE_COMMAND } from '../command';
+import type { ITableControllerMenuService } from '../service';
 import {
   type DragTarget,
   sum,
@@ -23,12 +20,13 @@ import {
 } from './TableController/hooks';
 import { styles } from './TableController/style';
 import { createTableDragImage } from './TableController/utils';
-import TableDeleteButton from './TableDeleteButton';
+import TableControllerMenu from './TableControllerMenu';
 import TableInsertButton from './TableInsertButton';
 import { useTableControllerSelection } from './hooks';
 
 interface TableRowControllerProps {
   editor: LexicalEditor;
+  menuService: ITableControllerMenuService | null;
   node: TableNode;
 }
 
@@ -36,7 +34,7 @@ const INSERT_BUTTON_HIDE_DELAY = 160;
 const TABLE_DELETE_PREVIEW_CLASS = 'lobe-editor-table-delete-preview';
 const DOTS = Array.from({ length: 6 }, (_, index) => index);
 
-const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
+const TableRowController = memo<TableRowControllerProps>(({ editor, menuService, node }) => {
   const { rowHeights, tableWidth } = useTableRowMetrics(editor, node);
   const { isTableFocused, isTableSelected, selectedRows } = useTableControllerSelection(
     editor,
@@ -47,15 +45,13 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
   const insertButtonHoveredRef = useRef(false);
   const insertButtonHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rowLeftRef = useRef<HTMLDivElement | null>(null);
-  const showDeleteButton = selectedRows.length > 0 && !isTableSelected;
-  const selectedRowStart = selectedRows[0] ?? 0;
-  const selectedRowEnd = selectedRows.at(-1) ?? selectedRowStart;
-  const selectedRowTop = sum(rowHeights.slice(0, selectedRowStart));
-  const selectedRowHeight = sum(rowHeights.slice(selectedRowStart, selectedRowEnd + 1));
+  const showMenu = selectedRows.length > 0 && !isTableSelected;
   const [insertTarget, setInsertTarget] = useState<{
     index: number;
     insertAfter: boolean;
   } | null>(null);
+  const [menuAnchorElement, setMenuAnchorElement] = useState<HTMLElement | null>(null);
+  const [, setMenuVersion] = useState(0);
   const pendingDragRowsRef = useRef<number[] | null>(null);
   const [isControllerHovered, setControllerHovered] = useState(false);
   const [isInsertButtonHovered, setInsertButtonHovered] = useState(false);
@@ -77,7 +73,7 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
   const showDeletePreview = useCallback(() => {
     clearDeletePreview();
 
-    if (!showDeleteButton) {
+    if (!showMenu) {
       return;
     }
 
@@ -107,7 +103,39 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
         }
       }
     });
-  }, [clearDeletePreview, editor, node, selectedRows, showDeleteButton]);
+  }, [clearDeletePreview, editor, node, selectedRows, showMenu]);
+
+  const closeMenu = useCallback(() => {
+    setMenuAnchorElement(null);
+    clearDeletePreview();
+  }, [clearDeletePreview]);
+
+  const menuContext = {
+    axis: 'row' as const,
+    editor,
+    node,
+    selectedIndexes: selectedRows,
+  };
+  const menuItems =
+    menuService?.getItems(menuContext).map((item) => {
+      if (item.type === 'separator') {
+        return {
+          key: item.key,
+          type: 'separator' as const,
+        };
+      }
+
+      return {
+        danger: item.danger,
+        key: item.key,
+        label: typeof item.label === 'function' ? item.label(menuContext) : item.label,
+        onClick: () => {
+          item.onClick(menuContext);
+        },
+        onMouseEnter: item.preview === 'delete' ? showDeletePreview : undefined,
+        onMouseLeave: item.preview === 'delete' ? clearDeletePreview : undefined,
+      };
+    }) ?? [];
 
   const scheduleHideInsertButton = () => {
     clearInsertButtonHideTimer();
@@ -181,9 +209,10 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
         dragImage.offsetHeight / 2,
       );
       setInsertTarget(null);
+      closeMenu();
       startDrag(event.nativeEvent, selectedIndexes);
     },
-    [startDrag],
+    [closeMenu, startDrag],
   );
 
   const insertRowOffset = insertTarget
@@ -203,9 +232,16 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
   }, [selectedRows]);
 
   useEffect(() => {
+    return menuService?.subscribe(() => {
+      setMenuVersion((version) => version + 1);
+    });
+  }, [menuService]);
+
+  useEffect(() => {
     return () => {
       clearInsertButtonHideTimer();
       clearDeletePreview();
+      setMenuAnchorElement(null);
       pendingDragRowsRef.current = null;
       clearDragState();
     };
@@ -219,10 +255,17 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
       clearDeletePreview();
       setInsertTarget(null);
       setInsertButtonHovered(false);
+      setMenuAnchorElement(null);
       pendingDragRowsRef.current = null;
       clearDragState();
     }
   }, [clearDeletePreview, clearDragState, shouldShowController]);
+
+  useEffect(() => {
+    if (!showMenu) {
+      closeMenu();
+    }
+  }, [closeMenu, showMenu]);
 
   if (!shouldShowController) {
     return null;
@@ -241,20 +284,16 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
       }}
     >
       <div className={cx('left', styles.rowLeft)} ref={rowLeftRef}>
-        <TableDeleteButton
-          ariaLabel="Delete selected rows"
-          offset={selectedRowTop + selectedRowHeight / 2}
-          onDelete={() => {
-            clearDeletePreview();
-            editor.update(() => {
-              $deleteTableRowAtSelection();
-            });
+        <TableControllerMenu
+          anchorElement={menuAnchorElement}
+          items={menuItems}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeMenu();
+            }
           }}
-          onMouseEnter={showDeletePreview}
-          onMouseLeave={clearDeletePreview}
+          open={Boolean(menuAnchorElement) && showMenu && menuItems.length > 0}
           position="left"
-          reference={rowLeftRef.current}
-          visible={showDeleteButton}
         />
         <TableInsertButton
           ariaLabel="Insert row"
@@ -303,6 +342,10 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
                 if (isSelected) {
                   event.preventDefault();
                   event.stopPropagation();
+                  clearInsertButtonHideTimer();
+                  setInsertTarget(null);
+                  setInsertButtonHovered(false);
+                  setMenuAnchorElement(event.currentTarget);
                 }
               }}
               onDragEnd={() => {
@@ -324,6 +367,7 @@ const TableRowController = memo<TableRowControllerProps>(({ editor, node }) => {
                   return;
                 }
 
+                closeMenu();
                 pendingDragRowsRef.current = [index];
 
                 const anchorIndex = event.shiftKey

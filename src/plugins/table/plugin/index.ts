@@ -1,4 +1,6 @@
 import {
+  $deleteTableColumnAtSelection,
+  $deleteTableRowAtSelection,
   $isTableNode,
   TableCellNode,
   TableRowNode,
@@ -17,8 +19,13 @@ import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IDecorator, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { cx } from '@/utils/cx';
 
-import { registerTableCommand } from '../command';
+import {
+  INSERT_TABLE_COLUMN_COMMAND,
+  INSERT_TABLE_ROW_COMMAND,
+  registerTableCommand,
+} from '../command';
 import { TableNode, patchTableNode } from '../node';
+import { ITableControllerMenuService, TableControllerMenuService } from '../service';
 
 export interface TablePluginOptions {
   decoratorCol?: (node: TableNode, editor: LexicalEditor) => ReactNode;
@@ -34,6 +41,15 @@ function isHeadlessEditor(editor: LexicalEditor): boolean {
   return editor._headless === true;
 }
 
+const getSelectedRange = (selectedIndexes: number[]) => {
+  const sortedIndexes = [...selectedIndexes].sort((a, b) => a - b);
+
+  return {
+    end: sortedIndexes.at(-1) ?? 0,
+    start: sortedIndexes[0] ?? 0,
+  };
+};
+
 export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   extends KernelPlugin
   implements IEditorPlugin<TablePluginOptions>
@@ -46,6 +62,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   ) {
     super();
     patchTableNode();
+    kernel.registerServiceHotReload(ITableControllerMenuService, new TableControllerMenuService());
     // Register the horizontal rule node
     kernel.registerNodes([TableNode, TableRowNode, TableCellNode]);
 
@@ -97,6 +114,113 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
 
     this.registerMarkdown();
     this.registerLiteXml();
+    this.registerControllerMenu();
+  }
+
+  registerControllerMenu() {
+    const tableControllerMenuService = this.kernel.requireService(ITableControllerMenuService);
+    if (!tableControllerMenuService) {
+      return;
+    }
+
+    [
+      tableControllerMenuService.registerItem({
+        key: '__table_column_insert_before',
+        label: 'Insert before',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          const { start } = getSelectedRange(selectedIndexes);
+          editor.dispatchCommand(INSERT_TABLE_COLUMN_COMMAND, {
+            columnIndex: start,
+            insertAfter: false,
+            table: node.getKey(),
+          });
+        },
+        order: 10,
+        when: ({ axis }) => axis === 'column',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_column_insert_after',
+        label: 'Insert after',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          const { end } = getSelectedRange(selectedIndexes);
+          editor.dispatchCommand(INSERT_TABLE_COLUMN_COMMAND, {
+            columnIndex: end,
+            insertAfter: true,
+            table: node.getKey(),
+          });
+        },
+        order: 20,
+        when: ({ axis }) => axis === 'column',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_column_separator_delete',
+        order: 30,
+        type: 'separator',
+        when: ({ axis }) => axis === 'column',
+      }),
+      tableControllerMenuService.registerItem({
+        danger: true,
+        key: '__table_column_delete',
+        label: 'Delete',
+        onClick: ({ editor }) => {
+          editor.update(() => {
+            $deleteTableColumnAtSelection();
+          });
+        },
+        order: 40,
+        preview: 'delete',
+        when: ({ axis }) => axis === 'column',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_row_insert_above',
+        label: 'Insert above',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          const { start } = getSelectedRange(selectedIndexes);
+          editor.dispatchCommand(INSERT_TABLE_ROW_COMMAND, {
+            insertAfter: false,
+            rowIndex: start,
+            table: node.getKey(),
+          });
+        },
+        order: 10,
+        when: ({ axis }) => axis === 'row',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_row_insert_below',
+        label: 'Insert below',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          const { end } = getSelectedRange(selectedIndexes);
+          editor.dispatchCommand(INSERT_TABLE_ROW_COMMAND, {
+            insertAfter: true,
+            rowIndex: end,
+            table: node.getKey(),
+          });
+        },
+        order: 20,
+        when: ({ axis }) => axis === 'row',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_row_separator_delete',
+        order: 30,
+        type: 'separator',
+        when: ({ axis }) => axis === 'row',
+      }),
+      tableControllerMenuService.registerItem({
+        danger: true,
+        key: '__table_row_delete',
+        label: 'Delete',
+        onClick: ({ editor }) => {
+          editor.update(() => {
+            $deleteTableRowAtSelection();
+          });
+        },
+        order: 40,
+        preview: 'delete',
+        when: ({ axis }) => axis === 'row',
+      }),
+    ].forEach((unregister) => {
+      this.register(unregister);
+    });
   }
 
   registerLiteXml() {

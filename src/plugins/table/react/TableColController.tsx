@@ -1,8 +1,4 @@
-import {
-  $computeTableMapSkipCellCheck,
-  $deleteTableColumnAtSelection,
-  TableNode,
-} from '@lexical/table';
+import { $computeTableMapSkipCellCheck, TableNode } from '@lexical/table';
 import { cx } from 'antd-style';
 import { LexicalEditor } from 'lexical';
 import {
@@ -21,6 +17,7 @@ import {
   MOVE_TABLE_COLUMN_COMMAND,
   SELECT_TABLE_COMMAND,
 } from '../command';
+import type { ITableControllerMenuService } from '../service';
 import {
   type DragTarget,
   sum,
@@ -29,13 +26,14 @@ import {
 } from './TableController/hooks';
 import { styles } from './TableController/style';
 import { createTableDragImage } from './TableController/utils';
-import TableDeleteButton from './TableDeleteButton';
+import TableControllerMenu from './TableControllerMenu';
 import TableInsertButton from './TableInsertButton';
 import { MIN_COLUMN_WIDTH } from './TableResize/style';
 import { useTableControllerSelection } from './hooks';
 
 interface TableColControllerProps {
   editor: LexicalEditor;
+  menuService: ITableControllerMenuService | null;
   node: TableNode;
 }
 
@@ -43,7 +41,7 @@ const INSERT_BUTTON_HIDE_DELAY = 160;
 const TABLE_DELETE_PREVIEW_CLASS = 'lobe-editor-table-delete-preview';
 const DOTS = Array.from({ length: 6 }, (_, index) => index);
 
-const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
+const TableColController = memo<TableColControllerProps>(({ editor, menuService, node }) => {
   const { colWidths, refreshColumnMetrics, tableHeight } = useTableColumnMetrics(editor, node);
   const { isTableFocused, isTableSelected, selectedColumns } = useTableControllerSelection(
     editor,
@@ -58,17 +56,13 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
   const deletePreviewElementsRef = useRef<HTMLElement[]>([]);
   const insertButtonHoveredRef = useRef(false);
   const insertButtonHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showDeleteButton = selectedColumns.length > 0 && !isTableSelected;
-  const selectedColumnStart = selectedColumns[0] ?? 0;
-  const selectedColumnEnd = selectedColumns.at(-1) ?? selectedColumnStart;
-  const selectedColumnLeft = sum(renderColWidths.slice(0, selectedColumnStart));
-  const selectedColumnWidth = sum(
-    renderColWidths.slice(selectedColumnStart, selectedColumnEnd + 1),
-  );
+  const showMenu = selectedColumns.length > 0 && !isTableSelected;
   const [insertTarget, setInsertTarget] = useState<{
     index: number;
     insertAfter: boolean;
   } | null>(null);
+  const [menuAnchorElement, setMenuAnchorElement] = useState<HTMLElement | null>(null);
+  const [, setMenuVersion] = useState(0);
   const pendingDragColumnsRef = useRef<number[] | null>(null);
   const [isControllerHovered, setControllerHovered] = useState(false);
   const [isInsertButtonHovered, setInsertButtonHovered] = useState(false);
@@ -90,7 +84,7 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
   const showDeletePreview = useCallback(() => {
     clearDeletePreview();
 
-    if (!showDeleteButton) {
+    if (!showMenu) {
       return;
     }
 
@@ -116,7 +110,39 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
         }
       }
     });
-  }, [clearDeletePreview, editor, node, selectedColumns, showDeleteButton]);
+  }, [clearDeletePreview, editor, node, selectedColumns, showMenu]);
+
+  const closeMenu = useCallback(() => {
+    setMenuAnchorElement(null);
+    clearDeletePreview();
+  }, [clearDeletePreview]);
+
+  const menuContext = {
+    axis: 'column' as const,
+    editor,
+    node,
+    selectedIndexes: selectedColumns,
+  };
+  const menuItems =
+    menuService?.getItems(menuContext).map((item) => {
+      if (item.type === 'separator') {
+        return {
+          key: item.key,
+          type: 'separator' as const,
+        };
+      }
+
+      return {
+        danger: item.danger,
+        key: item.key,
+        label: typeof item.label === 'function' ? item.label(menuContext) : item.label,
+        onClick: () => {
+          item.onClick(menuContext);
+        },
+        onMouseEnter: item.preview === 'delete' ? showDeletePreview : undefined,
+        onMouseLeave: item.preview === 'delete' ? clearDeletePreview : undefined,
+      };
+    }) ?? [];
 
   const scheduleHideInsertButton = () => {
     clearInsertButtonHideTimer();
@@ -190,9 +216,10 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
         dragImage.offsetHeight / 2,
       );
       setInsertTarget(null);
+      closeMenu();
       startDrag(event.nativeEvent, selectedIndexes);
     },
-    [startDrag],
+    [closeMenu, startDrag],
   );
 
   const insertColumnOffset = insertTarget
@@ -213,9 +240,16 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
   }, [selectedColumns]);
 
   useEffect(() => {
+    return menuService?.subscribe(() => {
+      setMenuVersion((version) => version + 1);
+    });
+  }, [menuService]);
+
+  useEffect(() => {
     return () => {
       clearInsertButtonHideTimer();
       clearDeletePreview();
+      setMenuAnchorElement(null);
       pendingDragColumnsRef.current = null;
       clearDragState();
     };
@@ -229,10 +263,17 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
       clearDeletePreview();
       setInsertTarget(null);
       setInsertButtonHovered(false);
+      setMenuAnchorElement(null);
       pendingDragColumnsRef.current = null;
       clearDragState();
     }
   }, [clearDeletePreview, clearDragState, shouldShowController]);
+
+  useEffect(() => {
+    if (!showMenu) {
+      closeMenu();
+    }
+  }, [closeMenu, showMenu]);
 
   if (!shouldShowController) {
     return null;
@@ -257,20 +298,16 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
           ref={colTopRef}
           style={{ inlineSize: controllerWidth }}
         >
-          <TableDeleteButton
-            ariaLabel="Delete selected columns"
-            offset={selectedColumnLeft + selectedColumnWidth / 2}
-            onDelete={() => {
-              clearDeletePreview();
-              editor.update(() => {
-                $deleteTableColumnAtSelection();
-              });
+          <TableControllerMenu
+            anchorElement={menuAnchorElement}
+            items={menuItems}
+            onOpenChange={(open) => {
+              if (!open) {
+                closeMenu();
+              }
             }}
-            onMouseEnter={showDeletePreview}
-            onMouseLeave={clearDeletePreview}
+            open={Boolean(menuAnchorElement) && showMenu && menuItems.length > 0}
             position="top"
-            reference={colTopRef.current}
-            visible={showDeleteButton}
           />
           {renderColWidths.map((width, index) => {
             const isLastCol = index + 1 === renderColWidths.length;
@@ -291,6 +328,10 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
                   if (isSelected) {
                     event.preventDefault();
                     event.stopPropagation();
+                    clearInsertButtonHideTimer();
+                    setInsertTarget(null);
+                    setInsertButtonHovered(false);
+                    setMenuAnchorElement(event.currentTarget);
                   }
                 }}
                 onDragEnd={() => {
@@ -312,6 +353,7 @@ const TableColController = memo<TableColControllerProps>(({ editor, node }) => {
                     return;
                   }
 
+                  closeMenu();
                   pendingDragColumnsRef.current = [index];
 
                   const anchorIndex = event.shiftKey

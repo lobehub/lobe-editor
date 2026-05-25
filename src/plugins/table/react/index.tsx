@@ -11,6 +11,7 @@ import PortalAnchor from '@/editor-kernel/react/PortalAnchor';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
 import { TablePlugin } from '../plugin';
+import { ITableControllerMenuService } from '../service';
 import { $updateDOMForSelection } from '../utils';
 import TableActionMenuPlugin from './TableActionMenu';
 import TableColController from './TableColController';
@@ -32,11 +33,24 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({ className, locale 
       editor.registerLocale(locale);
     }
     editor.registerPlugin(TablePlugin, {
-      decoratorCol: (node, editor) => {
-        return <TableColController editor={editor} key={node.getColumnCount()} node={node} />;
+      decoratorCol: (node, lexicalEditor) => {
+        return (
+          <TableColController
+            editor={lexicalEditor}
+            key={node.getColumnCount()}
+            menuService={editor.requireService(ITableControllerMenuService)}
+            node={node}
+          />
+        );
       },
-      decoratorRow: (node, editor) => {
-        return <TableRowController editor={editor} node={node} />;
+      decoratorRow: (node, lexicalEditor) => {
+        return (
+          <TableRowController
+            editor={lexicalEditor}
+            menuService={editor.requireService(ITableControllerMenuService)}
+            node={node}
+          />
+        );
       },
       theme: cx(styles, className),
     });
