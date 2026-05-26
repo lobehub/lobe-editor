@@ -9,10 +9,11 @@ import {
   type MediaLists,
   extractMediaLists,
 } from '@lobehub/editor';
-import { DEFAULT_HEADLESS_EDITOR_PLUGINS, createHeadlessEditor } from '@lobehub/editor/headless';
 import { CodeEditor, Collapse, Highlighter } from '@lobehub/ui';
 import { debounce } from 'es-toolkit';
 import { useMemo, useState } from 'react';
+
+import { DEFAULT_HEADLESS_EDITOR_PLUGINS, createHeadlessEditor } from '@/headless';
 
 import sample from './data.json';
 
