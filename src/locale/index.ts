@@ -1,6 +1,7 @@
 export default {
   block: {
     delete: 'Delete block',
+    select: 'Select',
   },
   cancel: 'Cancel',
   codemirror: {

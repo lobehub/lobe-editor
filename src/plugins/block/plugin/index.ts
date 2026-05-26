@@ -1,5 +1,9 @@
 import {
+  $createNodeSelection,
   $getNodeByKey,
+  $isElementNode,
+  $isTextNode,
+  $setSelection,
   LexicalEditor,
   LexicalNode,
   LexicalNodeConfig,
@@ -25,6 +29,23 @@ type LexicalNodeClass = {
 };
 
 const PATCHED_NODE_TYPES = new Set<string>();
+
+const selectBlockNode = (node: LexicalNode) => {
+  if ($isElementNode(node)) {
+    node.select(0, node.getChildrenSize());
+    return true;
+  }
+
+  if ($isTextNode(node)) {
+    node.select(0, node.getTextContentSize());
+    return true;
+  }
+
+  const selection = $createNodeSelection();
+  selection.add(node.getKey());
+  $setSelection(selection);
+  return true;
+};
 
 const resolveNodeClass = (node: LexicalNodeConfig): LexicalNodeClass | null => {
   if (typeof node === 'function') {
@@ -144,6 +165,28 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
     const blockMenuService = this.kernel.requireService(IBlockMenuService);
 
     if (blockMenuService) {
+      const unregisterDefaultSelectHandler = blockMenuService.registerSelectHandler({
+        key: '__block_default_select_handler',
+        onSelect: selectBlockNode,
+        order: 999,
+      });
+
+      const unregisterSelectMenu = blockMenuService.registerMenu({
+        key: '__block_default_select',
+        label: (context) => context.editor.t('block.select'),
+        onClick: (context) => {
+          const lexicalEditor = context.editor.getLexicalEditor();
+          if (!lexicalEditor) return;
+
+          lexicalEditor.update(() => {
+            const target = $getNodeByKey(context.blockId);
+            if (!target) return;
+            blockMenuService.selectNode(target);
+          });
+        },
+        order: 998,
+      });
+
       const unregisterDeleteMenu = blockMenuService.registerMenu({
         key: '__block_default_delete',
         label: (context) => context.editor.t('block.delete'),
@@ -160,6 +203,8 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
         order: 999,
       });
 
+      this.register(unregisterDefaultSelectHandler);
+      this.register(unregisterSelectMenu);
       this.register(unregisterDeleteMenu);
     }
 

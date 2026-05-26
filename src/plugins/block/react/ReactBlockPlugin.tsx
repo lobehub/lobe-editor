@@ -49,6 +49,7 @@ export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'classNa
 const logger = createDebugLogger('plugin', 'block-react');
 const OPERATION_MENU_OVERLAY_CLASS = 'lobe-block-operation-dropdown';
 const TABLE_FOCUSED_MENU_OFFSET = 40;
+const TABLE_FOCUSED_MENU_TOP_OFFSET = 14;
 
 const isTableBlockElement = (element: HTMLElement) => {
   return (
@@ -87,7 +88,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   } | null>(null);
   const [dragLayerContainer, setDragLayerContainer] = useState<HTMLElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isTableFocused, setTableFocused] = useState(false);
+  const [focusedTableBlockId, setFocusedTableBlockId] = useState<string | null>(null);
   const [blockMenuService, setBlockMenuService] = useState<BlockMenuService | null>(null);
 
   useLayoutEffect(() => {
@@ -133,16 +134,17 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
         editorState.read(() => {
           const selection = $getSelection();
           if ($isTableSelection(selection)) {
-            setTableFocused(true);
+            setFocusedTableBlockId(selection.tableKey);
             return;
           }
 
-          if ($isRangeSelection(selection) && $findTableNode(selection.anchor.getNode())) {
-            setTableFocused(true);
+          if ($isRangeSelection(selection)) {
+            const tableNode = $findTableNode(selection.anchor.getNode());
+            setFocusedTableBlockId(tableNode?.getKey() ?? null);
             return;
           }
 
-          setTableFocused(false);
+          setFocusedTableBlockId(null);
         });
       });
     },
@@ -461,14 +463,14 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       const menuWidth = menuRef.current?.offsetWidth || 32;
       const gap = 8;
       const listItemOffset = hoveredBlock.blockElement.tagName === 'LI' ? 16 : 0;
-      const tableMenuOffset =
-        isTableFocused && isTableBlockElement(hoveredBlock.blockElement)
-          ? TABLE_FOCUSED_MENU_OFFSET
-          : 0;
+      const isTableBlock = isTableBlockElement(hoveredBlock.blockElement);
+      const isFocusedTableBlock = focusedTableBlockId === hoveredBlock.blockId && isTableBlock;
+      const tableMenuOffset = isFocusedTableBlock ? TABLE_FOCUSED_MENU_OFFSET : 0;
+      const tableMenuTopOffset = isTableBlock ? TABLE_FOCUSED_MENU_TOP_OFFSET : 0;
 
       setMenuPosition({
         left: Math.max(gap, rect.left - menuWidth - gap - listItemOffset - tableMenuOffset),
-        top: rect.top,
+        top: rect.top + tableMenuTopOffset,
       });
     };
 
@@ -481,7 +483,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       window.removeEventListener('resize', updateMenuPosition);
       document.removeEventListener('scroll', updateMenuPosition, true);
     };
-  }, [hoveredBlock, isTableFocused]);
+  }, [focusedTableBlockId, hoveredBlock]);
 
   const menuContext = useMemo<IBlockMenuRenderContext | null>(() => {
     if (!hoveredBlock) return null;

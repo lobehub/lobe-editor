@@ -6,8 +6,10 @@ import {
   CodeNode,
 } from '@lexical/code-core';
 import {
+  $createRangeSelection,
   $getSelection,
   $isRangeSelection,
+  $setSelection,
   COMMAND_PRIORITY_EDITOR,
   DOMConversionOutput,
   ElementNode,
@@ -19,6 +21,7 @@ import {
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { IBlockMenuService } from '@/plugins/block/service';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -156,6 +159,45 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
 
     this.registerMarkdown();
     this.registerLiteXml();
+    this.registerBlockSelect();
+  }
+
+  registerBlockSelect() {
+    const blockMenuService = this.kernel.requireService(IBlockMenuService);
+    if (!blockMenuService) {
+      return;
+    }
+
+    this.register(
+      blockMenuService.registerSelectHandler({
+        key: '__codeblock_block_select_handler',
+        onSelect: (node) => {
+          if (!$isCodeNode(node)) {
+            return false;
+          }
+
+          const textNodes = node.getAllTextNodes();
+          const firstTextNode = textNodes[0];
+          const lastTextNode = textNodes.at(-1);
+
+          if (!firstTextNode || !lastTextNode) {
+            node.select(0, node.getChildrenSize());
+            return true;
+          }
+
+          const selection = $createRangeSelection();
+          selection.setTextNodeRange(
+            firstTextNode,
+            0,
+            lastTextNode,
+            lastTextNode.getTextContentSize(),
+          );
+          $setSelection(selection);
+          return true;
+        },
+        order: 100,
+      }),
+    );
   }
 
   registerLiteXml() {

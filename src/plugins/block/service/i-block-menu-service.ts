@@ -1,3 +1,5 @@
+import type { LexicalNode } from 'lexical';
+
 import { genServiceId } from '@/editor-kernel';
 import type { IEditor, IServiceID } from '@/types';
 
@@ -26,11 +28,19 @@ export interface IBlockActionButton {
   when?: (context: IBlockMenuRenderContext) => boolean;
 }
 
+export interface IBlockSelectHandler {
+  key: string;
+  onSelect: (node: LexicalNode) => boolean | void;
+  order?: number;
+}
+
 export interface IBlockMenuService {
   getActionButtons(context: IBlockMenuRenderContext): IBlockActionButton[];
   getMenus(context: IBlockMenuRenderContext): IBlockMenuItem[];
   registerActionButton(item: IBlockActionButton): () => void;
   registerMenu(item: IBlockMenuItem): () => void;
+  registerSelectHandler(item: IBlockSelectHandler): () => void;
+  selectNode(node: LexicalNode): boolean;
   subscribe(listener: () => void): () => void;
 }
 
@@ -42,6 +52,7 @@ export class BlockMenuService implements IBlockMenuService {
   private actionButtons: Map<string, IBlockActionButton> = new Map();
   private items: Map<string, IBlockMenuItem> = new Map();
   private listeners: Set<() => void> = new Set();
+  private selectHandlers: Map<string, IBlockSelectHandler> = new Map();
 
   getActionButtons(context: IBlockMenuRenderContext): IBlockActionButton[] {
     return Array.from(this.actionButtons.values())
@@ -73,6 +84,30 @@ export class BlockMenuService implements IBlockMenuService {
       this.items.delete(item.key);
       this.notify();
     };
+  }
+
+  registerSelectHandler(item: IBlockSelectHandler): () => void {
+    this.selectHandlers.set(item.key, item);
+    this.notify();
+
+    return () => {
+      this.selectHandlers.delete(item.key);
+      this.notify();
+    };
+  }
+
+  selectNode(node: LexicalNode): boolean {
+    const handlers = Array.from(this.selectHandlers.values()).sort(
+      (a, b) => (a.order || 0) - (b.order || 0),
+    );
+
+    for (const handler of handlers) {
+      if (handler.onSelect(node)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   subscribe(listener: () => void): () => void {

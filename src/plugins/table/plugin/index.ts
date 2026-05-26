@@ -1,4 +1,6 @@
 import {
+  $computeTableMapSkipCellCheck,
+  $createTableSelection,
   $deleteTableColumnAtSelection,
   $deleteTableRowAtSelection,
   $isTableNode,
@@ -9,11 +11,12 @@ import {
   registerTableSelectionObserver,
   setScrollableTablesActive,
 } from '@lexical/table';
-import { LexicalEditor } from 'lexical';
+import { $setSelection, LexicalEditor } from 'lexical';
 import type { ReactNode } from 'react';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { IBlockMenuService } from '@/plugins/block/service';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IDecorator, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -116,6 +119,40 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     this.registerMarkdown();
     this.registerLiteXml();
     this.registerControllerMenu();
+    this.registerBlockSelect();
+  }
+
+  registerBlockSelect() {
+    const blockMenuService = this.kernel.requireService(IBlockMenuService);
+    if (!blockMenuService) {
+      return;
+    }
+
+    this.register(
+      blockMenuService.registerSelectHandler({
+        key: '__table_block_select_handler',
+        onSelect: (node) => {
+          if (!$isTableNode(node)) {
+            return false;
+          }
+
+          const [tableMap] = $computeTableMapSkipCellCheck(node, null, null);
+          const firstCell = tableMap[0]?.[0]?.cell;
+          const lastRow = [...tableMap].reverse().find((row) => row.length > 0);
+          const lastCell = lastRow?.[lastRow.length - 1]?.cell;
+
+          if (!firstCell || !lastCell) {
+            return false;
+          }
+
+          const tableSelection = $createTableSelection();
+          tableSelection.set(node.getKey(), firstCell.getKey(), lastCell.getKey());
+          $setSelection(tableSelection);
+          return true;
+        },
+        order: 100,
+      }),
+    );
   }
 
   registerControllerMenu() {
