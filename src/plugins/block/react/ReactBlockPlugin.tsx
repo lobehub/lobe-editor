@@ -49,13 +49,40 @@ export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'classNa
 const logger = createDebugLogger('plugin', 'block-react');
 const OPERATION_MENU_OVERLAY_CLASS = 'lobe-block-operation-dropdown';
 const TABLE_FOCUSED_MENU_OFFSET = 40;
-const TABLE_FOCUSED_MENU_TOP_OFFSET = 14;
 
 const isTableBlockElement = (element: HTMLElement) => {
   return (
     element instanceof HTMLTableElement ||
     Boolean(element.querySelector('table.editor_table, table'))
   );
+};
+
+const getTableMenuAnchorRect = (element: HTMLElement) => {
+  const table =
+    element instanceof HTMLTableElement
+      ? element
+      : element.querySelector('table.editor_table, table');
+  if (!(table instanceof HTMLElement)) {
+    return null;
+  }
+
+  const tableRect = table.getBoundingClientRect();
+  const firstCell = table.querySelector('th, td');
+
+  if (firstCell instanceof HTMLElement) {
+    const cellRect = firstCell.getBoundingClientRect();
+    if (cellRect.width > 0 && cellRect.height > 0) {
+      return {
+        left: cellRect.left,
+        top: tableRect.height > 0 ? tableRect.top : cellRect.top,
+      };
+    }
+  }
+
+  return {
+    left: tableRect.left,
+    top: tableRect.top,
+  };
 };
 
 const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
@@ -459,18 +486,31 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     }
 
     const updateMenuPosition = () => {
-      const rect = hoveredBlock.blockElement.getBoundingClientRect();
+      const blockRect = hoveredBlock.blockElement.getBoundingClientRect();
       const menuWidth = menuRef.current?.offsetWidth || 32;
       const gap = 8;
       const listItemOffset = hoveredBlock.blockElement.tagName === 'LI' ? 16 : 0;
       const isTableBlock = isTableBlockElement(hoveredBlock.blockElement);
       const isFocusedTableBlock = focusedTableBlockId === hoveredBlock.blockId && isTableBlock;
       const tableMenuOffset = isFocusedTableBlock ? TABLE_FOCUSED_MENU_OFFSET : 0;
-      const tableMenuTopOffset = isTableBlock ? TABLE_FOCUSED_MENU_TOP_OFFSET : 0;
+      const tableAnchorRect = isTableBlock
+        ? getTableMenuAnchorRect(hoveredBlock.blockElement)
+        : null;
+      const root = editor.getRootElement();
+      const rootRect = root?.getBoundingClientRect();
+      const rootPaddingLeft = root
+        ? Number.parseFloat(window.getComputedStyle(root).paddingLeft || '0')
+        : 0;
+      const minTableLeft = rootRect ? rootRect.left + rootPaddingLeft : gap;
+      const anchorLeft =
+        isTableBlock && tableAnchorRect
+          ? Math.max(tableAnchorRect.left, minTableLeft)
+          : blockRect.left;
+      const anchorTop = tableAnchorRect?.top ?? blockRect.top;
 
       setMenuPosition({
-        left: Math.max(gap, rect.left - menuWidth - gap - listItemOffset - tableMenuOffset),
-        top: rect.top + tableMenuTopOffset,
+        left: Math.max(gap, anchorLeft - menuWidth - gap - listItemOffset - tableMenuOffset),
+        top: anchorTop,
       });
     };
 

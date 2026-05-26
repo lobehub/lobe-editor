@@ -1,5 +1,11 @@
 import {
+  $getClipboardDataFromSelection,
+  type LexicalClipboardData,
+  copyToClipboard,
+} from '@lexical/clipboard';
+import {
   $createNodeSelection,
+  $createRangeSelection,
   $getNodeByKey,
   $isElementNode,
   $isTextNode,
@@ -29,6 +35,34 @@ type LexicalNodeClass = {
 };
 
 const PATCHED_NODE_TYPES = new Set<string>();
+
+const getBlockClipboardData = (node: LexicalNode): LexicalClipboardData => {
+  if ($isElementNode(node)) {
+    const selection = $createRangeSelection();
+    const parent = node.getParent();
+
+    if (parent) {
+      const index = node.getIndexWithinParent();
+      selection.anchor.set(parent.getKey(), index, 'element');
+      selection.focus.set(parent.getKey(), index + 1, 'element');
+    } else {
+      selection.anchor.set(node.getKey(), 0, 'element');
+      selection.focus.set(node.getKey(), node.getChildrenSize(), 'element');
+    }
+
+    return $getClipboardDataFromSelection(selection);
+  }
+
+  if ($isTextNode(node)) {
+    const selection = $createRangeSelection();
+    selection.setTextNodeRange(node, 0, node, node.getTextContentSize());
+    return $getClipboardDataFromSelection(selection);
+  }
+
+  const selection = $createNodeSelection();
+  selection.add(node.getKey());
+  return $getClipboardDataFromSelection(selection);
+};
 
 const selectBlockNode = (node: LexicalNode) => {
   if ($isElementNode(node)) {
@@ -171,6 +205,27 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
         order: 999,
       });
 
+      const unregisterCopyMenu = blockMenuService.registerMenu({
+        key: '__block_default_copy',
+        label: (context) => context.editor.t('block.copy'),
+        onClick: (context) => {
+          const lexicalEditor = context.editor.getLexicalEditor();
+          if (!lexicalEditor) return;
+
+          let clipboardData: LexicalClipboardData | undefined;
+          lexicalEditor.read(() => {
+            const target = $getNodeByKey(context.blockId);
+            if (!target) return;
+            clipboardData = getBlockClipboardData(target);
+          });
+
+          if (clipboardData) {
+            void copyToClipboard(lexicalEditor, null, clipboardData);
+          }
+        },
+        order: 998,
+      });
+
       const unregisterSelectMenu = blockMenuService.registerMenu({
         key: '__block_default_select',
         label: (context) => context.editor.t('block.select'),
@@ -184,7 +239,7 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
             blockMenuService.selectNode(target);
           });
         },
-        order: 998,
+        order: 997,
       });
 
       const unregisterDeleteMenu = blockMenuService.registerMenu({
@@ -204,6 +259,7 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
       });
 
       this.register(unregisterDefaultSelectHandler);
+      this.register(unregisterCopyMenu);
       this.register(unregisterSelectMenu);
       this.register(unregisterDeleteMenu);
     }

@@ -1,5 +1,6 @@
 export default {
   block: {
+    copy: 'Copy',
     delete: 'Delete block',
     select: 'Select',
   },
