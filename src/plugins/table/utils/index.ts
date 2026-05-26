@@ -21,6 +21,17 @@ const EMPTY_TABLE_SELECTION_INDEXES: TableSelectionIndexes = {
   selectedRows: [],
 };
 
+export const DEFAULT_TABLE_WIDTH = 750;
+
+export function createDefaultTableColWidths(columnCount: number, tableWidth = DEFAULT_TABLE_WIDTH) {
+  const safeColumnCount = Math.max(1, columnCount);
+  const columnWidth = Math.floor(tableWidth / safeColumnCount);
+  const colWidths = Array.from({ length: safeColumnCount }, () => columnWidth);
+  colWidths[safeColumnCount - 1] = tableWidth - columnWidth * (safeColumnCount - 1);
+
+  return colWidths;
+}
+
 const range = (from: number, to: number) => {
   return Array.from({ length: to - from + 1 }, (_, index) => from + index);
 };

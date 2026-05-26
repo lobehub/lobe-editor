@@ -26,6 +26,7 @@ import {
 } from '../command';
 import { TableNode, patchTableNode } from '../node';
 import { ITableControllerMenuService, TableControllerMenuService } from '../service';
+import { createDefaultTableColWidths } from '../utils';
 
 export interface TablePluginOptions {
   decoratorCol?: (node: TableNode, editor: LexicalEditor) => ReactNode;
@@ -278,8 +279,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       }
       return INodeHelper.createElementNode(TableNode.getType(), {
         children,
-        // eslint-disable-next-line unicorn/no-new-array
-        colWidths: colWidths.length > 0 ? colWidths : new Array(maxTdlen).fill(750 / maxTdlen),
+        colWidths: colWidths.length > 0 ? colWidths : createDefaultTableColWidths(maxTdlen),
         direction: null,
         format: '',
         indent: 0,
@@ -362,8 +362,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       const colLen = node.children[0]?.children.length || 1;
       return INodeHelper.createElementNode('table', {
         children,
-        // eslint-disable-next-line unicorn/no-new-array
-        colWidths: new Array(colLen).fill(750 / colLen),
+        colWidths: createDefaultTableColWidths(colLen),
         direction: null,
         format: '',
         indent: 0,

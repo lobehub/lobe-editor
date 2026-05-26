@@ -31,6 +31,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
+import { createDefaultTableColWidths } from '../../utils';
 import type { TableResizeMode } from '../type';
 import { MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT, styles } from './style';
 import { getCellColumnIndex, getCellNodeHeight } from './utils';
@@ -124,15 +125,13 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
         setHasTable(tableKeys.size > 0);
       }),
       editor.registerNodeTransform(TableNode, (tableNode) => {
-        if (tableNode.getColWidths()) {
+        const colWidths = tableNode.getColWidths();
+        const numColumns = tableNode.getColumnCount();
+        if (colWidths && colWidths.length === numColumns) {
           return tableNode;
         }
 
-        const numColumns = tableNode.getColumnCount();
-        const columnWidth = MIN_COLUMN_WIDTH;
-
-        // eslint-disable-next-line unicorn/no-new-array
-        tableNode.setColWidths(new Array(numColumns).fill(columnWidth));
+        tableNode.setColWidths(createDefaultTableColWidths(numColumns));
         return tableNode;
       }),
     );
