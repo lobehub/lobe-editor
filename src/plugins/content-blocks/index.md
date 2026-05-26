@@ -11,6 +11,12 @@ description: Content Blocks plugin extracts the current editor state into discre
 
 The plugin requires `MarkdownPlugin` to be registered first, since text serialization reuses the markdown writer.
 
+## Playground
+
+Edit the editor below and watch the extracted `ContentBlock[]` and derived `imageList` / `fileList` update live.
+
+<code src="./demos/index.tsx"></code>
+
 ## Quick Start
 
 ### Register
@@ -54,6 +60,40 @@ const { imageList, fileList } = extractMediaLists(blocks);
 ```
 
 `extractMediaLists` is a pure transformation over `ContentBlock[]` — no editor or service required. It scans the blocks once, ignores `text` parts, and produces the two media arrays in document order with fresh ids per entry.
+
+## Headless Usage
+
+`ContentBlocksPlugin` works without any DOM — pair it with the headless editor to extract blocks from a persisted editor state (typically server-side or inside a worker).
+
+```ts
+import {
+  CONTENT_BLOCKS_DATA_TYPE,
+  type ContentBlock,
+  ContentBlocksPlugin,
+  FilePlugin,
+  ImagePlugin,
+} from '@lobehub/editor';
+import { DEFAULT_HEADLESS_EDITOR_PLUGINS, createHeadlessEditor } from '@lobehub/editor/headless';
+
+const headless = createHeadlessEditor({
+  additionalPlugins: [
+    [ImagePlugin, { renderImage: () => null, handleUpload: async () => ({ url: '' }) }],
+    [FilePlugin, { decorator: () => null, handleUpload: async () => ({ url: '' }) }],
+    ContentBlocksPlugin,
+  ],
+  plugins: DEFAULT_HEADLESS_EDITOR_PLUGINS,
+});
+
+headless.hydrate({ content: editorJson, type: 'json' });
+const blocks = headless.kernel.getDocument(CONTENT_BLOCKS_DATA_TYPE) as unknown as ContentBlock[];
+headless.destroy();
+```
+
+`ImagePlugin` and `FilePlugin` are registered with no-op render / upload callbacks because the headless editor never touches the DOM. `MarkdownPlugin` is already part of `DEFAULT_HEADLESS_EDITOR_PLUGINS`, satisfying the markdown-writer dependency.
+
+Edit the JSON input below and watch the headless extraction run live:
+
+<code src="./demos/headless.tsx"></code>
 
 ## ContentBlock Schema
 
