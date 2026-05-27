@@ -23,6 +23,13 @@ const EMPTY_TABLE_SELECTION_INDEXES: TableSelectionIndexes = {
 
 export const DEFAULT_TABLE_WIDTH = 750;
 
+export interface TableSelectionOutlineRect {
+  height: number;
+  left: number;
+  top: number;
+  width: number;
+}
+
 export function createDefaultTableColWidths(columnCount: number, tableWidth = DEFAULT_TABLE_WIDTH) {
   const safeColumnCount = Math.max(1, columnCount);
   const columnWidth = Math.floor(tableWidth / safeColumnCount);
@@ -147,17 +154,115 @@ function $removeHighlightFromDOM(editor: LexicalEditor, cell: TableDOMCell): voi
   removeClassNamesFromElement(element, editorThemeClasses.tableCellSelected);
 }
 
+function getTableSelectionOutlineRect(
+  selectedCells: HTMLElement[],
+  table: TableDOMTable,
+  selection: TableSelection,
+): TableSelectionOutlineRect | null {
+  const outlineElements = [...selectedCells];
+  if (outlineElements.length === 0) {
+    return null;
+  }
+
+  const shape = selection.getShape();
+  const firstCell = outlineElements[0];
+  const tableElement = firstCell.closest('table.editor_table, table');
+  const scrollWrapper = tableElement?.closest('.lobe-editor-table-scroll-wrapper');
+  const tableRoot = scrollWrapper?.parentElement ?? tableElement?.parentElement;
+  const isColumnSelection = shape.fromY === 0 && shape.toY === table.rows - 1;
+  const isRowSelection = shape.fromX === 0 && shape.toX === table.columns - 1;
+  const selectedRowControllers: HTMLElement[] = [];
+
+  if (isColumnSelection && isRowSelection) {
+    return null;
+  }
+
+  if (isColumnSelection) {
+    const columnControllers = scrollWrapper?.querySelectorAll<HTMLElement>(
+      '.table-controller-col .col',
+    );
+
+    for (let index = shape.fromX; index <= shape.toX; index++) {
+      const element = columnControllers?.[index];
+      if (element) {
+        outlineElements.push(element);
+      }
+    }
+  }
+
+  if (isRowSelection) {
+    const rowControllers = tableRoot?.querySelectorAll<HTMLElement>('.table-controller-row .row');
+
+    for (let index = shape.fromY; index <= shape.toY; index++) {
+      const element = rowControllers?.[index];
+      if (element) {
+        selectedRowControllers.push(element);
+        outlineElements.push(element);
+      }
+    }
+  }
+
+  let left = Number.POSITIVE_INFINITY;
+  let top = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  let bottom = Number.NEGATIVE_INFINITY;
+
+  for (const element of outlineElements) {
+    if (!element.isConnected) {
+      continue;
+    }
+
+    const rect = element.getBoundingClientRect();
+    left = Math.min(left, rect.left);
+    top = Math.min(top, rect.top);
+    right = Math.max(right, rect.right);
+    bottom = Math.max(bottom, rect.bottom);
+  }
+
+  if (isRowSelection && scrollWrapper) {
+    const scrollWrapperRect = scrollWrapper.getBoundingClientRect();
+    const tableRect = tableElement?.getBoundingClientRect();
+    const rowControllerLeft = selectedRowControllers.reduce(
+      (currentLeft, element) => Math.min(currentLeft, element.getBoundingClientRect().left),
+      Number.POSITIVE_INFINITY,
+    );
+
+    left =
+      rowControllerLeft === Number.POSITIVE_INFINITY ? scrollWrapperRect.left : rowControllerLeft;
+    right = Math.min(tableRect?.right ?? scrollWrapperRect.right, scrollWrapperRect.right);
+  }
+
+  if (
+    left === Number.POSITIVE_INFINITY ||
+    top === Number.POSITIVE_INFINITY ||
+    right === Number.NEGATIVE_INFINITY ||
+    bottom === Number.NEGATIVE_INFINITY
+  ) {
+    return null;
+  }
+
+  return {
+    height: bottom - top,
+    left,
+    top,
+    width: right - left,
+  };
+}
+
 export function $updateDOMForSelection(
   editor: LexicalEditor,
   table: TableDOMTable,
   selection: TableSelection | RangeSelection | null,
-) {
+): TableSelectionOutlineRect | null {
   const selectedCellNodes = new Set(selection ? selection.getNodes() : []);
+  const selectedCells = new Set<HTMLElement>();
+
   $forEachTableCell(table, (cell, lexicalNode) => {
     const elem = cell.elem;
 
     if (selectedCellNodes.has(lexicalNode)) {
       cell.highlighted = true;
+      selectedCells.add(elem);
       $addHighlightToDOM(editor, cell);
     } else {
       cell.highlighted = false;
@@ -167,4 +272,8 @@ export function $updateDOMForSelection(
       }
     }
   });
+
+  return $isTableSelection(selection)
+    ? getTableSelectionOutlineRect([...selectedCells], table, selection)
+    : null;
 }

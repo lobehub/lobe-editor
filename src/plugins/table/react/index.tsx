@@ -4,7 +4,15 @@ import { $findTableNode, $getElementForTableNode, $isTableSelection } from '@lex
 import { cx } from 'antd-style';
 import EventEmitter from 'eventemitter3';
 import { $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
-import { type FC, useLayoutEffect, useMemo, useState } from 'react';
+import {
+  type CSSProperties,
+  type FC,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import PortalAnchor from '@/editor-kernel/react/PortalAnchor';
@@ -12,13 +20,13 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
 import { TablePlugin } from '../plugin';
 import { ITableControllerMenuService } from '../service';
-import { $updateDOMForSelection } from '../utils';
+import { $updateDOMForSelection, type TableSelectionOutlineRect } from '../utils';
 import TableActionMenuPlugin from './TableActionMenu';
 import TableColController from './TableColController';
 import TableHoverActionsPlugin from './TableHoverActions';
 import TableCellResizePlugin from './TableResize';
 import TableRowController from './TableRowController';
-import { styles } from './style';
+import { selectionOutlineStyles, styles } from './style';
 import { ReactTablePluginProps } from './type';
 
 export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
@@ -28,9 +36,93 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
 }) => {
   const [editor] = useLexicalComposerContext();
   const [lexicalEditor, setLexicalEditor] = useState<LexicalEditor | null>(null);
+  const [selectionOutlineRect, setSelectionOutlineRect] =
+    useState<TableSelectionOutlineRect | null>(null);
   const eventEmitter = useMemo(() => {
     return new EventEmitter();
   }, []);
+
+  const selectionOutlineStyle = useMemo<CSSProperties | undefined>(() => {
+    if (!selectionOutlineRect) {
+      return undefined;
+    }
+
+    return {
+      height: selectionOutlineRect.height,
+      left: selectionOutlineRect.left,
+      top: selectionOutlineRect.top,
+      width: selectionOutlineRect.width,
+    };
+  }, [selectionOutlineRect]);
+
+  const updateSelectionOutlineRect = useCallback((rect: TableSelectionOutlineRect | null) => {
+    setSelectionOutlineRect((current) => {
+      if (
+        current?.height === rect?.height &&
+        current?.left === rect?.left &&
+        current?.top === rect?.top &&
+        current?.width === rect?.width
+      ) {
+        return current;
+      }
+
+      return rect;
+    });
+  }, []);
+
+  const refreshSelectionOutlineRect = useCallback(
+    (activeEditor: LexicalEditor) => {
+      activeEditor.read(() => {
+        const selection = $getSelection();
+        if (!$isTableSelection(selection) && !$isRangeSelection(selection)) {
+          updateSelectionOutlineRect(null);
+          return null;
+        }
+        const tableNode = $findTableNode(selection.anchor.getNode());
+        if (!tableNode) {
+          updateSelectionOutlineRect(null);
+          return null;
+        }
+        updateSelectionOutlineRect(
+          $updateDOMForSelection(
+            activeEditor,
+            $getElementForTableNode(activeEditor, tableNode),
+            selection,
+          ),
+        );
+      });
+    },
+    [updateSelectionOutlineRect],
+  );
+
+  useEffect(() => {
+    if (!lexicalEditor || !selectionOutlineRect) {
+      return;
+    }
+
+    let frame: number | null = null;
+    const scheduleRefresh = () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        refreshSelectionOutlineRect(lexicalEditor);
+      });
+    };
+
+    document.addEventListener('scroll', scheduleRefresh, true);
+    window.addEventListener('resize', scheduleRefresh);
+
+    return () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+      document.removeEventListener('scroll', scheduleRefresh, true);
+      window.removeEventListener('resize', scheduleRefresh);
+    };
+  }, [lexicalEditor, refreshSelectionOutlineRect, selectionOutlineRect]);
 
   useLayoutEffect(() => {
     if (locale) {
@@ -62,20 +154,12 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
 
   useLexicalEditor((editor) => {
     setLexicalEditor(editor);
-    editor.registerUpdateListener(() => {
-      editor.read(() => {
-        const selection = $getSelection();
-        if (!$isTableSelection(selection) && !$isRangeSelection(selection)) {
-          return null;
-        }
-        const tableNode = $findTableNode(selection.anchor.getNode());
-        if (!tableNode) {
-          return null;
-        }
-        $updateDOMForSelection(editor, $getElementForTableNode(editor, tableNode), selection);
-      });
+    const unregisterUpdateListener = editor.registerUpdateListener(() => {
+      refreshSelectionOutlineRect(editor);
     });
     return () => {
+      unregisterUpdateListener();
+      updateSelectionOutlineRect(null);
       setLexicalEditor(null);
     };
   }, []);
@@ -89,6 +173,13 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
           resizeMode={resizeMode}
         />
         <PortalAnchor>
+          {selectionOutlineStyle && (
+            <div
+              className={selectionOutlineStyles.outline}
+              contentEditable={false}
+              style={selectionOutlineStyle}
+            />
+          )}
           <TableActionMenuPlugin editor={lexicalEditor} />
           <TableHoverActionsPlugin editor={lexicalEditor} />
         </PortalAnchor>

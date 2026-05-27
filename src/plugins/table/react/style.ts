@@ -87,8 +87,7 @@ export const styles = createStaticStyles(
     }
 
     .editor_table_cell_selected {
-      color: #000;
-      background-color: color-mix(in srgb, ${cssVar.yellow} 28%, transparent);
+      background-color: color-mix(in srgb, ${cssVar.yellow} 3%, transparent);
       caret-color: transparent;
     }
 
@@ -97,3 +96,16 @@ export const styles = createStaticStyles(
     }
   `,
 );
+
+export const selectionOutlineStyles = createStaticStyles(({ css, cssVar }) => ({
+  outline: css`
+    pointer-events: none;
+
+    position: fixed;
+    z-index: 3;
+
+    box-sizing: border-box;
+    border: 1.5px solid ${cssVar.colorPrimary};
+    border-radius: 3px;
+  `,
+}));
