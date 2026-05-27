@@ -3,6 +3,7 @@ import {
   $getTableNodeFromLexicalNodeOrThrow,
   $getTableRowIndexFromTableCellNode,
   $isTableCellNode,
+  $isTableNode,
   $isTableRowNode,
   TableCellNode,
   TableDOMCell,
@@ -15,6 +16,7 @@ import { cssVar, cx } from 'antd-style';
 import EventEmitter from 'eventemitter3';
 import {
   $getNearestNodeFromDOMNode,
+  $getNodeByKey,
   LexicalEditor,
   NodeKey,
   SKIP_SCROLL_INTO_VIEW_TAG,
@@ -54,19 +56,27 @@ type ResizeStartState = PointerPosition &
         columnIndex: number;
         direction: 'right';
         size: number;
+        tableKey: NodeKey;
       }
     | {
         direction: 'bottom';
         rowIndex: number;
         size: number;
+        tableKey: NodeKey;
       }
   );
 
 const isHeightChanging = (direction: PointerDraggingDirection) => {
-  if (direction === 'bottom') {
-    return true;
-  }
-  return false;
+  return direction === 'bottom';
+};
+
+const getTableColWidths = (tableNode: TableNode) => {
+  return tableNode.getColWidths() || createDefaultTableColWidths(tableNode.getColumnCount());
+};
+
+const $getTableNodeByKey = (tableKey: NodeKey) => {
+  const node = $getNodeByKey(tableKey);
+  return $isTableNode(node) ? node : null;
 };
 
 const syncTableWidthDOM = (
@@ -124,16 +134,6 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
         }
         setHasTable(tableKeys.size > 0);
       }),
-      editor.registerNodeTransform(TableNode, (tableNode) => {
-        const colWidths = tableNode.getColWidths();
-        const numColumns = tableNode.getColumnCount();
-        if (colWidths && colWidths.length === numColumns) {
-          return tableNode;
-        }
-
-        tableNode.setColWidths(createDefaultTableColWidths(numColumns));
-        return tableNode;
-      }),
     );
   }, [editor]);
 
@@ -160,12 +160,14 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
               throw new Error('TableCellResizer: Table column not found.');
             }
 
-            const width = tableNode.getColWidths()?.[columnIndex] ?? MIN_COLUMN_WIDTH;
+            const colWidths = getTableColWidths(tableNode);
+            const width = colWidths[columnIndex] ?? MIN_COLUMN_WIDTH;
             resizeState = {
               ...startPos,
               columnIndex,
               direction: 'right',
               size: width,
+              tableKey: tableNode.getKey(),
             };
             return;
           }
@@ -203,6 +205,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
             direction: 'bottom',
             rowIndex,
             size: height,
+            tableKey: tableNode.getKey(),
           };
         },
         { editor },
@@ -214,20 +217,14 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
   );
 
   const updateRowHeight = useCallback(
-    (rowIndex: number, nextHeight: number) => {
-      if (!activeCell) {
-        throw new Error('TableCellResizer: Expected active cell.');
-      }
-
+    (tableKey: NodeKey, rowIndex: number, nextHeight: number) => {
       let didUpdate = false;
       editor.update(
         () => {
-          const tableCellNode = $getNearestNodeFromDOMNode(activeCell.elem);
-          if (!$isTableCellNode(tableCellNode)) {
-            throw new Error('TableCellResizer: Table cell node not found.');
+          const tableNode = $getTableNodeByKey(tableKey);
+          if (!tableNode) {
+            return;
           }
-
-          const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
           const tableRows = tableNode.getChildren();
           if (rowIndex >= tableRows.length || rowIndex < 0) {
             throw new Error('Expected table cell to be inside of table row.');
@@ -262,27 +259,19 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
       );
       return didUpdate;
     },
-    [activeCell, editor, eventEmitter],
+    [editor, eventEmitter],
   );
 
   const updateColumnWidth = useCallback(
-    (columnIndex: number, nextWidth: number) => {
-      if (!activeCell) {
-        throw new Error('TableCellResizer: Expected active cell.');
-      }
+    (tableKey: NodeKey, columnIndex: number, nextWidth: number) => {
       let didUpdate = false;
       editor.update(
         () => {
-          const tableCellNode = $getNearestNodeFromDOMNode(activeCell.elem);
-          if (!$isTableCellNode(tableCellNode)) {
-            throw new Error('TableCellResizer: Table cell node not found.');
-          }
-
-          const tableNode = $getTableNodeFromLexicalNodeOrThrow(tableCellNode);
-          const colWidths = tableNode.getColWidths();
-          if (!colWidths) {
+          const tableNode = $getTableNodeByKey(tableKey);
+          if (!tableNode) {
             return;
           }
+          const colWidths = getTableColWidths(tableNode);
           const width = colWidths[columnIndex];
           if (width === undefined) {
             return;
@@ -291,7 +280,6 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
           const newWidth = Math.max(nextWidth, MIN_COLUMN_WIDTH);
           newColWidths[columnIndex] = newWidth;
           tableNode.setColWidths(newColWidths);
-          const tableKey = tableNode.getKey();
           didUpdate = true;
           requestAnimationFrame(() => {
             syncTableWidthDOM(editor, tableKey, newColWidths);
@@ -304,7 +292,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
       );
       return didUpdate;
     },
-    [activeCell, editor, eventEmitter],
+    [editor, eventEmitter],
   );
 
   const commitResizeChange = useCallback(
@@ -316,14 +304,22 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
         if (heightChange === 0) {
           return false;
         }
-        return updateRowHeight(startState.rowIndex, startState.size + heightChange);
+        return updateRowHeight(
+          startState.tableKey,
+          startState.rowIndex,
+          startState.size + heightChange,
+        );
       }
 
       const widthChange = (currentPos.x - startState.x) / zoom;
       if (widthChange === 0) {
         return false;
       }
-      return updateColumnWidth(startState.columnIndex, startState.size + widthChange);
+      return updateColumnWidth(
+        startState.tableKey,
+        startState.columnIndex,
+        startState.size + widthChange,
+      );
     },
     [updateColumnWidth, updateRowHeight],
   );

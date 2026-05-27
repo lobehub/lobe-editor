@@ -27,6 +27,8 @@ import {
   createCommand,
 } from 'lexical';
 
+import { createDefaultTableColWidths } from '../utils';
+
 export const INSERT_TABLE_COMMAND = createCommand<{
   columns: string;
   includeHeaders?: InsertTableCommandPayloadHeaders;
@@ -191,12 +193,11 @@ export function registerTableCommand(editor: LexicalEditor) {
         }
 
         const anchorNode = selection.anchor.getNode();
+        const rowCount = Number(rows);
+        const columnCount = Number(columns);
 
-        const tableNode = $createTableNodeWithDimensions(
-          Number(rows),
-          Number(columns),
-          includeHeaders,
-        );
+        const tableNode = $createTableNodeWithDimensions(rowCount, columnCount, includeHeaders);
+        tableNode.setColWidths(createDefaultTableColWidths(columnCount));
 
         if ($isElementNode(anchorNode) && anchorNode.isEmpty()) {
           anchorNode.replace(tableNode);
