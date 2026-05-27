@@ -1,3 +1,9 @@
+export type {
+  FileListItem,
+  ImageListItem,
+  MediaLists,
+} from '@/utils/extract-media-from-editor-state';
+
 export interface TextContentBlock {
   text: string;
   type: 'text';
@@ -28,25 +34,6 @@ export interface ExtractContentBlocksOptions {
    * @default true
    */
   emitPlaceholderForUnuploaded?: boolean;
-}
-
-export interface ImageListItem {
-  alt: string;
-  id: string;
-  url: string;
-}
-
-export interface FileListItem {
-  fileType: string;
-  id: string;
-  name: string;
-  size: number;
-  url: string;
-}
-
-export interface MediaLists {
-  fileList: FileListItem[];
-  imageList: ImageListItem[];
 }
 
 export const CONTENT_BLOCKS_DATA_TYPE = 'content-blocks';
