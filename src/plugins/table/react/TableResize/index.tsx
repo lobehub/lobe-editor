@@ -33,7 +33,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
-import { createDefaultTableColWidths } from '../../utils';
+import { createDefaultTableColWidths, syncTableWidthDOM } from '../../utils';
 import type { TableResizeMode } from '../type';
 import { MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT, styles } from './style';
 import { getCellColumnIndex, getCellNodeHeight } from './utils';
@@ -77,24 +77,6 @@ const getTableColWidths = (tableNode: TableNode) => {
 const $getTableNodeByKey = (tableKey: NodeKey) => {
   const node = $getNodeByKey(tableKey);
   return $isTableNode(node) ? node : null;
-};
-
-const syncTableWidthDOM = (
-  editor: LexicalEditor,
-  tableKey: NodeKey,
-  colWidths: readonly number[],
-) => {
-  const tableElement = editor.getElementByKey(tableKey);
-  const table =
-    tableElement instanceof HTMLTableElement
-      ? tableElement
-      : tableElement?.querySelector('table.editor_table, table');
-
-  if (!(table instanceof HTMLTableElement)) {
-    return;
-  }
-
-  table.style.width = `${colWidths.reduce((total, width) => total + width, 0)}px`;
 };
 
 export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, resizeMode }) => {

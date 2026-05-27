@@ -23,7 +23,7 @@ export interface ITableControllerMenuActionItem extends ITableControllerBaseMenu
   danger?: boolean;
   label: string | ((context: ITableControllerMenuRenderContext) => string);
   onClick: (context: ITableControllerMenuRenderContext) => void;
-  preview?: 'delete';
+  preview?: 'delete' | 'insert-after' | 'insert-before';
   type?: 'item';
 }
 

@@ -35,13 +35,15 @@ interface TableColControllerProps {
   editor: LexicalEditor;
   menuService: ITableControllerMenuService | null;
   node: TableNode;
+  onInsertPreviewChange?: (side: 'left' | 'right' | null) => void;
 }
 
 const INSERT_BUTTON_HIDE_DELAY = 160;
 const TABLE_DELETE_PREVIEW_CLASS = 'lobe-editor-table-delete-preview';
 const DOTS = Array.from({ length: 6 }, (_, index) => index);
 
-const TableColController = memo<TableColControllerProps>(({ editor, menuService, node }) => {
+const TableColController = memo<TableColControllerProps>((props) => {
+  const { editor, menuService, node, onInsertPreviewChange } = props;
   const { colWidths, refreshColumnMetrics, tableHeight } = useTableColumnMetrics(editor, node);
   const { isTableFocused, isTableSelected, selectedColumns } = useTableControllerSelection(
     editor,
@@ -114,8 +116,9 @@ const TableColController = memo<TableColControllerProps>(({ editor, menuService,
 
   const closeMenu = useCallback(() => {
     setMenuAnchorElement(null);
+    onInsertPreviewChange?.(null);
     clearDeletePreview();
-  }, [clearDeletePreview]);
+  }, [clearDeletePreview, onInsertPreviewChange]);
 
   const menuContext = {
     axis: 'column' as const,
@@ -139,8 +142,26 @@ const TableColController = memo<TableColControllerProps>(({ editor, menuService,
         onClick: () => {
           item.onClick(menuContext);
         },
-        onMouseEnter: item.preview === 'delete' ? showDeletePreview : undefined,
-        onMouseLeave: item.preview === 'delete' ? clearDeletePreview : undefined,
+        onMouseEnter:
+          item.preview === 'delete'
+            ? showDeletePreview
+            : item.preview === 'insert-before'
+              ? () => {
+                  onInsertPreviewChange?.('left');
+                }
+              : item.preview === 'insert-after'
+                ? () => {
+                    onInsertPreviewChange?.('right');
+                  }
+                : undefined,
+        onMouseLeave:
+          item.preview === 'delete'
+            ? clearDeletePreview
+            : item.preview === 'insert-before' || item.preview === 'insert-after'
+              ? () => {
+                  onInsertPreviewChange?.(null);
+                }
+              : undefined,
       };
     }) ?? [];
 
@@ -249,11 +270,12 @@ const TableColController = memo<TableColControllerProps>(({ editor, menuService,
     return () => {
       clearInsertButtonHideTimer();
       clearDeletePreview();
+      onInsertPreviewChange?.(null);
       setMenuAnchorElement(null);
       pendingDragColumnsRef.current = null;
       clearDragState();
     };
-  }, [clearDeletePreview, clearDragState]);
+  }, [clearDeletePreview, clearDragState, onInsertPreviewChange]);
 
   const shouldShowController = isTableFocused || isControllerHovered;
 
@@ -263,11 +285,12 @@ const TableColController = memo<TableColControllerProps>(({ editor, menuService,
       clearDeletePreview();
       setInsertTarget(null);
       setInsertButtonHovered(false);
+      onInsertPreviewChange?.(null);
       setMenuAnchorElement(null);
       pendingDragColumnsRef.current = null;
       clearDragState();
     }
-  }, [clearDeletePreview, clearDragState, shouldShowController]);
+  }, [clearDeletePreview, clearDragState, onInsertPreviewChange, shouldShowController]);
 
   useEffect(() => {
     if (!showMenu) {

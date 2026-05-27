@@ -29,6 +29,8 @@ import TableRowController from './TableRowController';
 import { selectionOutlineStyles, styles } from './style';
 import { ReactTablePluginProps } from './type';
 
+type SelectionOutlinePreviewSide = 'bottom' | 'left' | 'right' | 'top';
+
 export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
   className,
   locale,
@@ -38,6 +40,8 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
   const [lexicalEditor, setLexicalEditor] = useState<LexicalEditor | null>(null);
   const [selectionOutlineRect, setSelectionOutlineRect] =
     useState<TableSelectionOutlineRect | null>(null);
+  const [selectionOutlinePreviewSide, setSelectionOutlinePreviewSide] =
+    useState<SelectionOutlinePreviewSide | null>(null);
   const eventEmitter = useMemo(() => {
     return new EventEmitter();
   }, []);
@@ -47,13 +51,25 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
       return undefined;
     }
 
-    return {
+    const style: CSSProperties = {
       height: selectionOutlineRect.height,
       left: selectionOutlineRect.left,
       top: selectionOutlineRect.top,
       width: selectionOutlineRect.width,
     };
-  }, [selectionOutlineRect]);
+
+    if (!selectionOutlinePreviewSide) {
+      return style;
+    }
+
+    return {
+      ...style,
+      borderBottomWidth: selectionOutlinePreviewSide === 'bottom' ? undefined : 0,
+      borderLeftWidth: selectionOutlinePreviewSide === 'left' ? undefined : 0,
+      borderRightWidth: selectionOutlinePreviewSide === 'right' ? undefined : 0,
+      borderTopWidth: selectionOutlinePreviewSide === 'top' ? undefined : 0,
+    };
+  }, [selectionOutlinePreviewSide, selectionOutlineRect]);
 
   const updateSelectionOutlineRect = useCallback((rect: TableSelectionOutlineRect | null) => {
     setSelectionOutlineRect((current) => {
@@ -136,6 +152,7 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
             key={node.getColumnCount()}
             menuService={editor.requireService(ITableControllerMenuService)}
             node={node}
+            onInsertPreviewChange={setSelectionOutlinePreviewSide}
           />
         );
       },
@@ -145,6 +162,7 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
             editor={lexicalEditor}
             menuService={editor.requireService(ITableControllerMenuService)}
             node={node}
+            onInsertPreviewChange={setSelectionOutlinePreviewSide}
           />
         );
       },
@@ -154,12 +172,28 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
 
   useLexicalEditor((editor) => {
     setLexicalEditor(editor);
-    const unregisterUpdateListener = editor.registerUpdateListener(() => {
-      refreshSelectionOutlineRect(editor);
-    });
+    let frame: number | null = null;
+    const scheduleRefreshSelectionOutlineRect = () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        refreshSelectionOutlineRect(editor);
+      });
+    };
+
+    const unregisterUpdateListener = editor.registerUpdateListener(
+      scheduleRefreshSelectionOutlineRect,
+    );
     return () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
       unregisterUpdateListener();
       updateSelectionOutlineRect(null);
+      setSelectionOutlinePreviewSide(null);
       setLexicalEditor(null);
     };
   }, []);

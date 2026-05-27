@@ -25,6 +25,7 @@ import { cx } from '@/utils/cx';
 import {
   INSERT_TABLE_COLUMN_COMMAND,
   INSERT_TABLE_ROW_COMMAND,
+  SYNC_TABLE_COLUMN_WIDTH_COMMAND,
   registerTableCommand,
 } from '../command';
 import { TableNode, patchTableNode } from '../node';
@@ -174,6 +175,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
           });
         },
         order: 10,
+        preview: 'insert-before',
         when: ({ axis }) => axis === 'column',
       }),
       tableControllerMenuService.registerItem({
@@ -188,13 +190,31 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
           });
         },
         order: 20,
+        preview: 'insert-after',
         when: ({ axis }) => axis === 'column',
       }),
       tableControllerMenuService.registerItem({
         key: '__table_column_separator_delete',
-        order: 30,
+        order: 40,
         type: 'separator',
         when: ({ axis }) => axis === 'column',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_column_sync_width',
+        label: 'Sync width to all columns',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          const columnIndex = selectedIndexes[0];
+          if (columnIndex === undefined) {
+            return;
+          }
+
+          editor.dispatchCommand(SYNC_TABLE_COLUMN_WIDTH_COMMAND, {
+            columnIndex,
+            table: node.getKey(),
+          });
+        },
+        order: 30,
+        when: ({ axis, selectedIndexes }) => axis === 'column' && selectedIndexes.length > 0,
       }),
       tableControllerMenuService.registerItem({
         danger: true,
@@ -221,6 +241,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
           });
         },
         order: 10,
+        preview: 'insert-before',
         when: ({ axis }) => axis === 'row',
       }),
       tableControllerMenuService.registerItem({
@@ -235,6 +256,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
           });
         },
         order: 20,
+        preview: 'insert-after',
         when: ({ axis }) => axis === 'row',
       }),
       tableControllerMenuService.registerItem({

@@ -6,6 +6,7 @@ import {
   BaseSelection,
   LexicalEditor,
   LexicalNode,
+  NodeKey,
   RangeSelection,
 } from 'lexical';
 
@@ -37,6 +38,24 @@ export function createDefaultTableColWidths(columnCount: number, tableWidth = DE
   colWidths[safeColumnCount - 1] = tableWidth - columnWidth * (safeColumnCount - 1);
 
   return colWidths;
+}
+
+export function syncTableWidthDOM(
+  editor: LexicalEditor,
+  tableKey: NodeKey,
+  colWidths: readonly number[],
+) {
+  const tableElement = editor.getElementByKey(tableKey);
+  const table =
+    tableElement instanceof HTMLTableElement
+      ? tableElement
+      : tableElement?.querySelector('table.editor_table, table');
+
+  if (!(table instanceof HTMLTableElement)) {
+    return;
+  }
+
+  table.style.width = `${colWidths.reduce((total, width) => total + width, 0)}px`;
 }
 
 const range = (from: number, to: number) => {

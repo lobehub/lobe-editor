@@ -27,7 +27,7 @@ import {
   createCommand,
 } from 'lexical';
 
-import { createDefaultTableColWidths } from '../utils';
+import { createDefaultTableColWidths, syncTableWidthDOM } from '../utils';
 
 export const INSERT_TABLE_COMMAND = createCommand<{
   columns: string;
@@ -52,6 +52,11 @@ export const INSERT_TABLE_COLUMN_COMMAND = createCommand<{
 export const INSERT_TABLE_ROW_COMMAND = createCommand<{
   insertAfter?: boolean;
   rowIndex: number;
+  table: string;
+}>();
+
+export const SYNC_TABLE_COLUMN_WIDTH_COMMAND = createCommand<{
+  columnIndex: number;
   table: string;
 }>();
 
@@ -262,6 +267,32 @@ export function registerTableCommand(editor: LexicalEditor) {
         if (insertedRow) {
           $selectFirstDescendant(insertedRow);
         }
+
+        return true;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    ),
+    editor.registerCommand(
+      SYNC_TABLE_COLUMN_WIDTH_COMMAND,
+      ({ table, columnIndex }) => {
+        const tableNode = $getNodeByKey(table);
+        if (!tableNode || !$isTableNode(tableNode)) {
+          return false;
+        }
+
+        const columnCount = tableNode.getColumnCount();
+        const colWidths = tableNode.getColWidths() || createDefaultTableColWidths(columnCount);
+        const selectedWidth = colWidths[columnIndex];
+        if (selectedWidth === undefined) {
+          return false;
+        }
+
+        const nextColWidths = Array.from({ length: columnCount }, () => selectedWidth);
+        tableNode.setColWidths(nextColWidths);
+
+        requestAnimationFrame(() => {
+          syncTableWidthDOM(editor, table, nextColWidths);
+        });
 
         return true;
       },
