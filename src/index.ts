@@ -7,6 +7,7 @@ export * from './plugins/code';
 export * from './plugins/codeblock';
 export * from './plugins/codemirror-block';
 export * from './plugins/common';
+export * from './plugins/content-blocks';
 export * from './plugins/file';
 export * from './plugins/hr';
 export * from './plugins/image';

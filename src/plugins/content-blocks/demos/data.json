@@ -1,0 +1,81 @@
+{
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "",
+            "text": "Tell me what's in this picture: ",
+            "type": "text",
+            "version": 1
+          },
+          {
+            "type": "image",
+            "version": 1,
+            "altText": "avatar.png",
+            "caption": {
+              "editorState": {
+                "root": {
+                  "children": [],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "root",
+                  "version": 1
+                }
+              }
+            },
+            "height": 0,
+            "maxWidth": 320,
+            "showCaption": false,
+            "src": "https://avatars.githubusercontent.com/u/17870709?v=4",
+            "status": "uploaded",
+            "width": 0
+          },
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "",
+            "text": " — and reference the file below.",
+            "type": "text",
+            "version": 1
+          }
+        ],
+        "direction": null,
+        "format": "",
+        "indent": 0,
+        "type": "paragraph",
+        "version": 1,
+        "textFormat": 0,
+        "textStyle": ""
+      },
+      {
+        "altText": "Block image example",
+        "height": 240,
+        "maxWidth": 480,
+        "src": "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=640",
+        "status": "uploaded",
+        "type": "block-image",
+        "version": 1,
+        "width": 480
+      },
+      {
+        "type": "file",
+        "version": 1,
+        "fileUrl": "https://example.com/spec.pdf",
+        "name": "spec.pdf",
+        "size": 20480,
+        "status": "uploaded"
+      }
+    ],
+    "direction": null,
+    "format": "",
+    "indent": 0,
+    "type": "root",
+    "version": 1
+  }
+}
