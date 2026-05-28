@@ -26,6 +26,10 @@
       "types": "./es/index.d.ts",
       "import": "./es/index.js"
     },
+    "./codemirror": {
+      "types": "./es/codemirror.d.ts",
+      "import": "./es/codemirror.js"
+    },
     "./headless": {
       "types": "./es/headless.d.ts",
       "import": "./es/headless.js"

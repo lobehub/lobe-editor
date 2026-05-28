@@ -2,7 +2,6 @@
 
 import { mergeRegister } from '@lexical/utils';
 import { Block } from '@lobehub/ui';
-import { message } from 'antd';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
 import {
@@ -12,17 +11,15 @@ import {
   KEY_DOWN_COMMAND,
   LexicalEditor,
 } from 'lexical';
-import { type FC, useCallback, useEffect, useRef, useState } from 'react';
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { Toolbar, lobeTheme, styles } from '@/codemirror';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
-import { lobeTheme } from '@/plugins/codemirror-block/react/theme';
 
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
 import { CodeMirrorNode } from '../node/CodeMirrorNode';
-import { Toolbar } from './components/Toolbar';
-import { styles } from './style';
 
 interface ReactCodemirrorNodeProps {
   className?: string;
@@ -48,17 +45,26 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   );
   const [expand, setExpand] = useState<boolean>(true);
 
-  // 复制代码
   const handleCopy = useCallback(async () => {
     if (instanceRef.current) {
       const code = instanceRef.current.getValue();
       try {
         await navigator.clipboard.writeText(code);
       } catch {
-        message.error(t('codemirror.copyFailed'));
+        /* swallow */
       }
     }
-  }, [t]);
+  }, []);
+
+  const labels = useMemo(
+    () => ({
+      selectLanguage: t('codemirror.selectLanguage'),
+      showLineNumbers: t('codemirror.showLineNumbers'),
+      tabSize: t('codemirror.tabSize'),
+      useTabs: t('codemirror.useTabs'),
+    }),
+    [t],
+  );
 
   // 更改语言
   const handleLanguageChange = useCallback(
@@ -309,6 +315,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       {/* 工具条 */}
       <Toolbar
         expand={expand}
+        labels={labels}
         onClick={() => setExpand(!expand)}
         onCopy={handleCopy}
         onLanguageChange={handleLanguageChange}

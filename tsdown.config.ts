@@ -23,6 +23,7 @@ export default defineConfig([
     ...commonConfig,
     clean: false,
     entry: {
+      codemirror: 'src/codemirror/index.ts',
       index: 'src/index.ts',
       react: 'src/react/index.ts',
       renderer: 'src/renderer/index.ts',
