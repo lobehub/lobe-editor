@@ -4,7 +4,6 @@ export default {
   },
   cancel: 'Cancel',
   codemirror: {
-    copyFailed: 'Copy failed',
     copySuccess: 'Code copied to clipboard',
     selectLanguage: 'Select language',
     selectTheme: 'Select theme',

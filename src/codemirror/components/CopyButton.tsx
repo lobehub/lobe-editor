@@ -2,16 +2,16 @@
 
 import { ActionIcon } from '@lobehub/ui';
 import { Check, CopyIcon } from 'lucide-react';
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 
-const CopyButton: FC<{
-  onCopy: () => void;
-}> = ({ onCopy }) => {
+import type { CopyButtonProps } from '../types';
+
+export const CopyButton: FC<CopyButtonProps> = ({ onCopy, labels, className }) => {
   const [copied, setCopied] = useState(false);
   return (
     <ActionIcon
       active={copied}
-      className={'cm-hidden-actions'}
+      className={className ?? 'cm-hidden-actions'}
       icon={copied ? Check : CopyIcon}
       onClick={() => {
         setCopied(true);
@@ -19,11 +19,9 @@ const CopyButton: FC<{
         setTimeout(() => setCopied(false), 1000);
       }}
       size={'small'}
-      title={'Copy'}
+      title={labels?.copy ?? 'Copy'}
     />
   );
 };
 
 CopyButton.displayName = 'CopyButton';
-
-export default CopyButton;
