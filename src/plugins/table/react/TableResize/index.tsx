@@ -17,6 +17,7 @@ import EventEmitter from 'eventemitter3';
 import {
   $getNearestNodeFromDOMNode,
   $getNodeByKey,
+  HISTORIC_TAG,
   LexicalEditor,
   NodeKey,
   SKIP_SCROLL_INTO_VIEW_TAG,
@@ -79,11 +80,22 @@ const $getTableNodeByKey = (tableKey: NodeKey) => {
   return $isTableNode(node) ? node : null;
 };
 
+const getCurrentTableRect = (activeCell: TableDOMCell, fallbackRect: DOMRect | null) => {
+  return (
+    activeCell.elem
+      .closest<HTMLTableElement>('table.editor_table, table')
+      ?.getBoundingClientRect() ?? fallbackRect
+  );
+};
+
+const getResizeUpdateTags = (skipHistory: boolean) => {
+  return skipHistory ? [SKIP_SCROLL_INTO_VIEW_TAG, HISTORIC_TAG] : SKIP_SCROLL_INTO_VIEW_TAG;
+};
+
 export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, resizeMode }) => {
   const targetRef = useRef<HTMLElement | null>(null);
   const resizerRef = useRef<HTMLDivElement | null>(null);
-  // eslint-disable-next-line no-undef
-  const tableRectRef = useRef<ClientRect | null>(null);
+  const tableRectRef = useRef<DOMRect | null>(null);
   const [hasTable, setHasTable] = useState(false);
 
   const resizeStartStateRef = useRef<ResizeStartState | null>(null);
@@ -199,7 +211,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
   );
 
   const updateRowHeight = useCallback(
-    (tableKey: NodeKey, rowIndex: number, nextHeight: number) => {
+    (tableKey: NodeKey, rowIndex: number, nextHeight: number, skipHistory = false) => {
       let didUpdate = false;
       editor.update(
         () => {
@@ -237,7 +249,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
             newHeight,
           });
         },
-        { tag: SKIP_SCROLL_INTO_VIEW_TAG },
+        { tag: getResizeUpdateTags(skipHistory) },
       );
       return didUpdate;
     },
@@ -245,7 +257,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
   );
 
   const updateColumnWidth = useCallback(
-    (tableKey: NodeKey, columnIndex: number, nextWidth: number) => {
+    (tableKey: NodeKey, columnIndex: number, nextWidth: number, skipHistory = false) => {
       let didUpdate = false;
       editor.update(
         () => {
@@ -270,7 +282,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
             });
           });
         },
-        { tag: SKIP_SCROLL_INTO_VIEW_TAG },
+        { tag: getResizeUpdateTags(skipHistory) },
       );
       return didUpdate;
     },
@@ -278,8 +290,14 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
   );
 
   const commitResizeChange = useCallback(
-    (currentPos: PointerPosition, startState: ResizeStartState, target: Element) => {
+    (
+      currentPos: PointerPosition,
+      startState: ResizeStartState,
+      target: Element,
+      options?: { skipHistory?: boolean },
+    ) => {
       const zoom = calculateZoomLevel(target);
+      const skipHistory = options?.skipHistory ?? resizeMode === 'realtime';
 
       if (startState.direction === 'bottom') {
         const heightChange = (currentPos.y - startState.y) / zoom;
@@ -290,6 +308,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
           startState.tableKey,
           startState.rowIndex,
           startState.size + heightChange,
+          skipHistory,
         );
       }
 
@@ -301,9 +320,10 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
         startState.tableKey,
         startState.columnIndex,
         startState.size + widthChange,
+        skipHistory,
       );
     },
-    [updateColumnWidth, updateRowHeight],
+    [resizeMode, updateColumnWidth, updateRowHeight],
   );
 
   useEffect(() => {
@@ -404,19 +424,18 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
       }
 
       if (resizeStartStateRef.current) {
-        if (resizeMode === 'deferred') {
-          if (activeCell === null) {
-            return;
-          }
-          commitResizeChange(
-            {
-              x: event.clientX,
-              y: event.clientY,
-            },
-            resizeStartStateRef.current,
-            activeCell.elem,
-          );
+        if (activeCell === null) {
+          return;
         }
+        commitResizeChange(
+          {
+            x: event.clientX,
+            y: event.clientY,
+          },
+          resizeStartStateRef.current,
+          activeCell.elem,
+          { skipHistory: false },
+        );
 
         resetState();
         if (typeof document !== 'undefined') {
@@ -486,7 +505,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
         },
       };
 
-      const tableRect = tableRectRef.current;
+      const tableRect = getCurrentTableRect(activeCell, tableRectRef.current);
 
       if (draggingDirection && pointerCurrentPos && tableRect) {
         if (isHeightChanging(draggingDirection)) {

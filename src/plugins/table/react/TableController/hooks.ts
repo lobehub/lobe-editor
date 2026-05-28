@@ -2,6 +2,7 @@ import type { TableNode } from '@lexical/table';
 import type { LexicalEditor } from 'lexical';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { syncTableWidthDOM } from '../../utils';
 import { MIN_COLUMN_WIDTH } from '../TableResize/style';
 
 export interface DragTarget {
@@ -73,6 +74,7 @@ export const useTableColumnMetrics = (editor: LexicalEditor, node: TableNode) =>
     });
 
     if (tableElement) {
+      syncTableWidthDOM(editor, node.getKey(), nodeColWidths);
       setTableHeight(tableElement.getBoundingClientRect().height);
     }
   }, [editor, node]);
