@@ -29,5 +29,6 @@ export default defineConfig([
       renderer: 'src/renderer/index.ts',
     },
     platform: 'browser',
+    unbundle: true,
   },
 ]);
