@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.15.2](https://github.com/lobehub/lobe-editor/compare/v4.15.1...v4.15.2)
+<sup>Released on **2026-05-29**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **build**: Make package tree-shakeable and Node-safe via unbundle.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **build**: Make package tree-shakeable and Node-safe via unbundle, closes [#167](https://github.com/lobehub/lobe-editor/issues/167) ([5f61f5b](https://github.com/lobehub/lobe-editor/commit/5f61f5b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.15.1](https://github.com/lobehub/lobe-editor/compare/v4.15.0...v4.15.1)
 <sup>Released on **2026-05-29**</sup>
 
