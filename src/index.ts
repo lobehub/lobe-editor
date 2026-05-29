@@ -33,14 +33,6 @@ export { getHotkeyById } from './utils/hotkey/registerHotkey';
 // URL utilities
 export { isPureUrl, isValidUrl } from './utils/url';
 
-// Editor-state media extraction
-export type {
-  FileListItem,
-  ImageListItem,
-  MediaLists,
-} from './utils/extract-media-from-editor-state';
-export { extractMediaFromEditorState } from './utils/extract-media-from-editor-state';
-
 // Debug utilities
 export {
   browserDebug,

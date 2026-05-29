@@ -19,6 +19,9 @@ import type { IDocumentOptions, IEditor, IPlugin } from '@/types';
 
 import { HeadlessCodeblockPlugin } from './plugins/codeblock';
 
+export type { FileListItem, ImageListItem, MediaLists } from './extract-media-from-editor-state';
+export { extractMediaFromEditorState } from './extract-media-from-editor-state';
+
 export type HeadlessDocumentType = 'json' | 'litexml' | 'markdown' | (string & object);
 
 export interface HeadlessEditorHydrationInput {

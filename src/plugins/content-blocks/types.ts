@@ -2,7 +2,7 @@ export type {
   FileListItem,
   ImageListItem,
   MediaLists,
-} from '@/utils/extract-media-from-editor-state';
+} from '@/headless/extract-media-from-editor-state';
 
 export interface TextContentBlock {
   text: string;
