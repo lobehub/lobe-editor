@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.15.1](https://github.com/lobehub/lobe-editor/compare/v4.15.0...v4.15.1)
+<sup>Released on **2026-05-29**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **headless**: Move media extractor under headless export path.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **headless**: Move media extractor under headless export path ([1874272](https://github.com/lobehub/lobe-editor/commit/1874272))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.15.0](https://github.com/lobehub/lobe-editor/compare/v4.14.0...v4.15.0)
 <sup>Released on **2026-05-28**</sup>
 
