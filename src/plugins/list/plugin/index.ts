@@ -167,7 +167,9 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
 
     markdownService.registerMarkdownWriter(ListNode.getType(), (ctx, node) => {
       if ($isListNode(node)) {
-        ctx.wrap('', '\n');
+        const parent = node.getParent();
+        const needsLeadingNewline = $isListItemNode(parent) && node.getPreviousSibling() !== null;
+        ctx.wrap(needsLeadingNewline ? '\n' : '', '\n');
       }
     });
 
@@ -219,7 +221,11 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
         children: children.map((v) => {
           if (v.type === 'listitem') {
             // @ts-expect-error not error
-            v.value = start++;
+            v.value = start;
+            // @ts-expect-error not error
+            if (v.children?.[0]?.type !== 'list') {
+              start++;
+            }
           }
           return v;
         }),
