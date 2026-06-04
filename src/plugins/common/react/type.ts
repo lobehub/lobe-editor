@@ -71,6 +71,12 @@ export interface ReactPlainTextProps {
    * @default true
    */
   pasteVSCodeAsCodeBlock?: boolean;
+  /**
+   * Controls the spellCheck attribute on the contentEditable div.
+   * Setting to false also suppresses Safari/WebKit inline predictive text (Apple Intelligence).
+   * Consumers that don't want spellcheck (e.g. chat input) should pass spellCheck={false} explicitly.
+   */
+  spellCheck?: boolean;
   style?: CSSProperties;
   theme?: CommonPluginOptions['theme'] & {
     fontSize?: number;

@@ -51,6 +51,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     onCompositionEnd,
     onContextMenu,
     onTextChange,
+    spellCheck,
   }) => {
     const isChat = variant === 'chat';
     const {
@@ -243,6 +244,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
           onContextMenu={handleContextMenu}
           onFocus={handleFocus}
           ref={editorContainerRef}
+          spellCheck={spellCheck}
         />
         <Placeholder lineEmptyPlaceholder={lineEmptyPlaceholder} style={style}>
           {placeholder}

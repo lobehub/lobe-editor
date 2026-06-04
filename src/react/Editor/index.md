@@ -38,6 +38,15 @@ Force all pasted content to be inserted as plain text, stripping any rich text f
 
 <code src="./demos/pasteAsPlainText.tsx" nopadding iframe></code>
 
+
+## spellCheck — Suppress Safari Inline Predictive Text
+
+Setting `spellCheck={false}` on the editor disables OS-level spellcheck and suppresses
+Safari/WebKit inline predictive text (Apple Intelligence). This is recommended for chat
+input surfaces where the editor provides its own autocomplete.
+
+<code src="./demos/spellCheck.tsx" nopadding></code>
+
 ## APIs
 
 ### Editor
