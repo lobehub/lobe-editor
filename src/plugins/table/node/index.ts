@@ -10,6 +10,7 @@ import type { IDecorator, IDecoratorFunc } from '@/types';
 
 const OriginalCreateDOM = TableNode.prototype.createDOM;
 const OriginalUpdateDOM = TableNode.prototype.updateDOM;
+const SCROLL_INDICATOR_WIDTH = 24;
 
 type TablePortalDecorator = {
   queryDOM: (_element: HTMLElement) => HTMLElement;
@@ -27,6 +28,68 @@ function markTableControllerHost(element: HTMLElement, withDecorator = false): v
   if (withDecorator) {
     element.dataset.lexicalDecorator = 'true';
   }
+}
+
+function updateTableScrollIndicators(scrollWrapper: HTMLElement): void {
+  const maxScrollLeft = scrollWrapper.scrollWidth - scrollWrapper.clientWidth;
+  const scrollLeft = scrollWrapper.scrollLeft;
+  const hasOverflow = maxScrollLeft > 1;
+  const showStart = hasOverflow && scrollLeft > 1;
+  const showEnd = hasOverflow && scrollLeft < maxScrollLeft - 1;
+  const startIndicator = scrollWrapper.querySelector<HTMLElement>(
+    ':scope > .lobe-editor-table-scroll-indicator-start',
+  );
+  const endIndicator = scrollWrapper.querySelector<HTMLElement>(
+    ':scope > .lobe-editor-table-scroll-indicator-end',
+  );
+
+  startIndicator?.classList.toggle('lobe-editor-table-scroll-indicator-visible', showStart);
+  endIndicator?.classList.toggle('lobe-editor-table-scroll-indicator-visible', showEnd);
+
+  if (startIndicator) {
+    startIndicator.style.transform = `translateX(${scrollLeft}px)`;
+  }
+
+  if (endIndicator) {
+    endIndicator.style.transform = `translateX(${Math.max(
+      scrollLeft + scrollWrapper.clientWidth - SCROLL_INDICATOR_WIDTH,
+      0,
+    )}px)`;
+  }
+}
+
+function ensureTableScrollIndicators(scrollWrapper: HTMLElement): void {
+  const ensureIndicator = (className: string) => {
+    const existingIndicator = scrollWrapper.querySelector(`:scope > .${className}`);
+    if (existingIndicator instanceof HTMLElement) {
+      setDOMUnmanaged(existingIndicator);
+      return;
+    }
+
+    const indicator = document.createElement('span');
+    indicator.className = `lobe-editor-table-scroll-indicator ${className}`;
+    setDOMUnmanaged(indicator);
+    scrollWrapper.append(indicator);
+  };
+
+  ensureIndicator('lobe-editor-table-scroll-indicator-start');
+  ensureIndicator('lobe-editor-table-scroll-indicator-end');
+
+  if (scrollWrapper.dataset.scrollIndicatorsReady === 'true') {
+    updateTableScrollIndicators(scrollWrapper);
+    return;
+  }
+
+  scrollWrapper.dataset.scrollIndicatorsReady = 'true';
+  scrollWrapper.addEventListener('scroll', () => updateTableScrollIndicators(scrollWrapper), {
+    passive: true,
+  });
+
+  const resizeObserver = new ResizeObserver(() => updateTableScrollIndicators(scrollWrapper));
+  resizeObserver.observe(scrollWrapper);
+  resizeObserver.observe(scrollWrapper.querySelector('table') ?? scrollWrapper);
+
+  requestAnimationFrame(() => updateTableScrollIndicators(scrollWrapper));
 }
 
 function ensureTableControllerDOM(element: HTMLElement): void {
@@ -94,6 +157,7 @@ function ensureTableControllerDOM(element: HTMLElement): void {
 
   ensureToolbar(scrollWrapper, 'toolbar-col', true);
   ensureToolbar(element, 'toolbar-row', true);
+  ensureTableScrollIndicators(scrollWrapper);
 }
 
 function reconcileTableDecorator(

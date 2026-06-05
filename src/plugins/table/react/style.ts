@@ -13,6 +13,42 @@ export const styles = createStaticStyles(
       padding-block-start: 14px;
     }
 
+    .lobe-editor-table-scroll-indicator {
+      pointer-events: none;
+
+      position: absolute;
+      z-index: 3;
+      inset-block: 14px 0;
+
+      inline-size: 24px;
+
+      opacity: 0;
+
+      transition: opacity 0.12s ease;
+    }
+
+    .lobe-editor-table-scroll-indicator-visible {
+      opacity: 1;
+    }
+
+    .lobe-editor-table-scroll-indicator-start {
+      inset-inline-start: 0;
+      background: linear-gradient(
+        to right,
+        color-mix(in srgb, ${cssVar.colorBgContainer} 82%, transparent),
+        transparent
+      );
+    }
+
+    .lobe-editor-table-scroll-indicator-end {
+      inset-inline-start: 0;
+      background: linear-gradient(
+        to left,
+        color-mix(in srgb, ${cssVar.colorBgContainer} 82%, transparent),
+        transparent
+      );
+    }
+
     .toolbar,
     .toolbar-col,
     .toolbar-row {
