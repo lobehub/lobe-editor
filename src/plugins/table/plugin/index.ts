@@ -24,6 +24,7 @@ import { cx } from '@/utils/cx';
 
 import {
   AUTO_FIT_TABLE_COLUMN_WIDTH_COMMAND,
+  DISTRIBUTE_TABLE_COLUMN_WIDTH_COMMAND,
   INSERT_TABLE_COLUMN_COMMAND,
   INSERT_TABLE_ROW_COMMAND,
   SYNC_TABLE_COLUMN_WIDTH_COMMAND,
@@ -228,6 +229,17 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
         },
         order: 35,
         when: ({ axis, selectedIndexes }) => axis === 'column' && selectedIndexes.length > 0,
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_column_distribute_width',
+        label: 'Distribute width',
+        onClick: ({ editor, node }) => {
+          editor.dispatchCommand(DISTRIBUTE_TABLE_COLUMN_WIDTH_COMMAND, {
+            table: node.getKey(),
+          });
+        },
+        order: 36,
+        when: ({ axis }) => axis === 'column',
       }),
       tableControllerMenuService.registerItem({
         danger: true,

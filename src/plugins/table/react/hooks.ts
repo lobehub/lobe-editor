@@ -37,6 +37,14 @@ const readTableControllerSelection = (
   editor: LexicalEditor,
   node: TableNode,
 ): TableControllerSelection => {
+  const rootElement = editor.getRootElement();
+  const activeElement = rootElement?.ownerDocument.activeElement;
+  const isEditorFocused = Boolean(
+    rootElement &&
+    activeElement &&
+    (activeElement === rootElement || rootElement.contains(activeElement)),
+  );
+
   return editor.getEditorState().read(() => {
     const selection = $getSelection();
     const latestNode = node.getLatest();
@@ -46,14 +54,17 @@ const readTableControllerSelection = (
 
     const selectionIndexes = getTableSelectionIndexes(selection, tableKey, columnCount, rowCount);
     const isTableFocused =
-      ($isTableSelection(selection) && selection.tableKey === tableKey) ||
-      ($isRangeSelection(selection) &&
-        Boolean($findTableNode(selection.anchor.getNode())?.is(latestNode)));
+      isEditorFocused &&
+      (($isTableSelection(selection) && selection.tableKey === tableKey) ||
+        ($isRangeSelection(selection) &&
+          Boolean($findTableNode(selection.anchor.getNode())?.is(latestNode))));
 
     return {
       isTableFocused,
-      isTableSelected: isTableFullySelected(selection, tableKey, columnCount, rowCount),
-      ...selectionIndexes,
+      isTableSelected:
+        isEditorFocused && isTableFullySelected(selection, tableKey, columnCount, rowCount),
+      selectedColumns: isEditorFocused ? selectionIndexes.selectedColumns : [],
+      selectedRows: isEditorFocused ? selectionIndexes.selectedRows : [],
     };
   });
 };
@@ -62,6 +73,7 @@ export const useTableControllerSelection = (editor: LexicalEditor, node: TableNo
   const [selection, setSelection] = useState(() => readTableControllerSelection(editor, node));
 
   useEffect(() => {
+    let frame: number | null = null;
     const updateSelection = () => {
       const nextSelection = readTableControllerSelection(editor, node);
       setSelection((currentSelection) => {
@@ -69,9 +81,34 @@ export const useTableControllerSelection = (editor: LexicalEditor, node: TableNo
       });
     };
 
-    updateSelection();
+    const scheduleUpdateSelection = () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
 
-    return editor.registerUpdateListener(updateSelection);
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        updateSelection();
+      });
+    };
+
+    const unregisterRootListener = editor.registerRootListener((rootElement, prevRootElement) => {
+      prevRootElement?.removeEventListener('focusin', scheduleUpdateSelection);
+      prevRootElement?.removeEventListener('focusout', scheduleUpdateSelection);
+      rootElement?.addEventListener('focusin', scheduleUpdateSelection);
+      rootElement?.addEventListener('focusout', scheduleUpdateSelection);
+      updateSelection();
+    });
+
+    const unregisterUpdateListener = editor.registerUpdateListener(updateSelection);
+
+    return () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+      unregisterRootListener();
+      unregisterUpdateListener();
+    };
   }, [editor, node]);
 
   return selection;

@@ -29,6 +29,7 @@ import {
 
 import { createDefaultTableColWidths, syncTableWidthDOM } from '../utils';
 import { getAutoFitTableColumnWidths } from '../utils/autoFitColumnWidth';
+import { getDistributedTableColumnWidths } from '../utils/distributeColumnWidth';
 
 export const INSERT_TABLE_COMMAND = createCommand<{
   columns: string;
@@ -63,6 +64,10 @@ export const SYNC_TABLE_COLUMN_WIDTH_COMMAND = createCommand<{
 
 export const AUTO_FIT_TABLE_COLUMN_WIDTH_COMMAND = createCommand<{
   columnIndexes: number[];
+  table: string;
+}>();
+
+export const DISTRIBUTE_TABLE_COLUMN_WIDTH_COMMAND = createCommand<{
   table: string;
 }>();
 
@@ -313,6 +318,29 @@ export function registerTableCommand(editor: LexicalEditor) {
         }
 
         const nextColWidths = getAutoFitTableColumnWidths(editor, tableNode, columnIndexes);
+        if (!nextColWidths) {
+          return false;
+        }
+
+        tableNode.setColWidths(nextColWidths);
+
+        requestAnimationFrame(() => {
+          syncTableWidthDOM(editor, table, nextColWidths);
+        });
+
+        return true;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    ),
+    editor.registerCommand(
+      DISTRIBUTE_TABLE_COLUMN_WIDTH_COMMAND,
+      ({ table }) => {
+        const tableNode = $getNodeByKey(table);
+        if (!tableNode || !$isTableNode(tableNode)) {
+          return false;
+        }
+
+        const nextColWidths = getDistributedTableColumnWidths(editor, tableNode);
         if (!nextColWidths) {
           return false;
         }
