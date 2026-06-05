@@ -152,6 +152,11 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
             key={node.getColumnCount()}
             menuService={editor.requireService(ITableControllerMenuService)}
             node={node}
+            onColumnMetricsChange={() => {
+              requestAnimationFrame(() => {
+                refreshSelectionOutlineRect(lexicalEditor);
+              });
+            }}
             onInsertPreviewChange={setSelectionOutlinePreviewSide}
           />
         );

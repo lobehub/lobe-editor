@@ -35,6 +35,7 @@ interface TableColControllerProps {
   editor: LexicalEditor;
   menuService: ITableControllerMenuService | null;
   node: TableNode;
+  onColumnMetricsChange?: () => void;
   onInsertPreviewChange?: (side: 'left' | 'right' | null) => void;
 }
 
@@ -43,7 +44,7 @@ const TABLE_DELETE_PREVIEW_CLASS = 'lobe-editor-table-delete-preview';
 const DOTS = Array.from({ length: 6 }, (_, index) => index);
 
 const TableColController = memo<TableColControllerProps>((props) => {
-  const { editor, menuService, node, onInsertPreviewChange } = props;
+  const { editor, menuService, node, onColumnMetricsChange, onInsertPreviewChange } = props;
   const { colWidths, refreshColumnMetrics, tableHeight } = useTableColumnMetrics(editor, node);
   const { isTableFocused, isTableSelected, selectedColumns } = useTableControllerSelection(
     editor,
@@ -261,6 +262,10 @@ const TableColController = memo<TableColControllerProps>((props) => {
   }, [selectedColumns]);
 
   useEffect(() => {
+    onColumnMetricsChange?.();
+  }, [colWidths, onColumnMetricsChange, tableHeight]);
+
+  useEffect(() => {
     return menuService?.subscribe(() => {
       setMenuVersion((version) => version + 1);
     });
@@ -335,6 +340,7 @@ const TableColController = memo<TableColControllerProps>((props) => {
           {renderColWidths.map((width, index) => {
             const isLastCol = index + 1 === renderColWidths.length;
             const isSelected = selectedColumns.includes(index);
+            const isSelectedController = isSelected && !isTableSelected;
             const showSelectionDots = isSelected && !isTableSelected;
 
             return (
@@ -348,7 +354,7 @@ const TableColController = memo<TableColControllerProps>((props) => {
                 draggable
                 key={index}
                 onClickCapture={(event) => {
-                  if (isSelected) {
+                  if (isSelectedController) {
                     event.preventDefault();
                     event.stopPropagation();
                     clearInsertButtonHideTimer();
@@ -365,12 +371,13 @@ const TableColController = memo<TableColControllerProps>((props) => {
                   event.stopPropagation();
                   startColumnDrag(
                     event,
-                    pendingDragColumnsRef.current || (isSelected ? selectedColumns : [index]),
+                    pendingDragColumnsRef.current ||
+                      (isSelectedController ? selectedColumns : [index]),
                   );
                 }}
                 onMouseDown={(event) => {
                   event.stopPropagation();
-                  if (isSelected) {
+                  if (isSelectedController) {
                     event.preventDefault();
                     pendingDragColumnsRef.current = selectedColumns;
                     return;
@@ -395,13 +402,13 @@ const TableColController = memo<TableColControllerProps>((props) => {
                   }
                 }}
                 onMouseDownCapture={(event) => {
-                  if (isSelected) {
+                  if (isSelectedController) {
                     event.stopPropagation();
                     pendingDragColumnsRef.current = selectedColumns;
                   }
                 }}
                 onMouseMove={(event) => {
-                  if (isDragging || isSelected) {
+                  if (isDragging || isSelectedController) {
                     setInsertTarget(null);
                     return;
                   }
@@ -413,13 +420,13 @@ const TableColController = memo<TableColControllerProps>((props) => {
                   });
                 }}
                 onMouseUpCapture={(event) => {
-                  if (isSelected) {
+                  if (isSelectedController) {
                     event.preventDefault();
                     event.stopPropagation();
                   }
                 }}
                 onPointerDownCapture={(event) => {
-                  if (isSelected) {
+                  if (isSelectedController) {
                     event.stopPropagation();
                     pendingDragColumnsRef.current = selectedColumns;
                   }

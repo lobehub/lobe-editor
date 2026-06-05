@@ -349,6 +349,7 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
         {rowHeights.map((height, index) => {
           const isLastRow = index + 1 === rowHeights.length;
           const isSelected = selectedRows.includes(index);
+          const isSelectedController = isSelected && !isTableSelected;
           const showSelectionDots = isSelected && !isTableSelected;
 
           return (
@@ -362,7 +363,7 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
               draggable
               key={index}
               onClickCapture={(event) => {
-                if (isSelected) {
+                if (isSelectedController) {
                   event.preventDefault();
                   event.stopPropagation();
                   clearInsertButtonHideTimer();
@@ -379,12 +380,12 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
                 event.stopPropagation();
                 startRowDrag(
                   event,
-                  pendingDragRowsRef.current || (isSelected ? selectedRows : [index]),
+                  pendingDragRowsRef.current || (isSelectedController ? selectedRows : [index]),
                 );
               }}
               onMouseDown={(event) => {
                 event.stopPropagation();
-                if (isSelected) {
+                if (isSelectedController) {
                   event.preventDefault();
                   pendingDragRowsRef.current = selectedRows;
                   return;
@@ -409,13 +410,13 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
                 }
               }}
               onMouseDownCapture={(event) => {
-                if (isSelected) {
+                if (isSelectedController) {
                   event.stopPropagation();
                   pendingDragRowsRef.current = selectedRows;
                 }
               }}
               onMouseMove={(event) => {
-                if (isDragging || isSelected) {
+                if (isDragging || isSelectedController) {
                   setInsertTarget(null);
                   return;
                 }
@@ -427,13 +428,13 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
                 });
               }}
               onMouseUpCapture={(event) => {
-                if (isSelected) {
+                if (isSelectedController) {
                   event.preventDefault();
                   event.stopPropagation();
                 }
               }}
               onPointerDownCapture={(event) => {
-                if (isSelected) {
+                if (isSelectedController) {
                   event.stopPropagation();
                   pendingDragRowsRef.current = selectedRows;
                 }
