@@ -23,6 +23,7 @@ import type { IDecorator, IEditorKernel, IEditorPlugin, IEditorPluginConstructor
 import { cx } from '@/utils/cx';
 
 import {
+  AUTO_FIT_TABLE_COLUMN_WIDTH_COMMAND,
   INSERT_TABLE_COLUMN_COMMAND,
   INSERT_TABLE_ROW_COMMAND,
   SYNC_TABLE_COLUMN_WIDTH_COMMAND,
@@ -214,6 +215,18 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
           });
         },
         order: 30,
+        when: ({ axis, selectedIndexes }) => axis === 'column' && selectedIndexes.length > 0,
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_column_auto_fit_width',
+        label: 'Auto fit width',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          editor.dispatchCommand(AUTO_FIT_TABLE_COLUMN_WIDTH_COMMAND, {
+            columnIndexes: selectedIndexes,
+            table: node.getKey(),
+          });
+        },
+        order: 35,
         when: ({ axis, selectedIndexes }) => axis === 'column' && selectedIndexes.length > 0,
       }),
       tableControllerMenuService.registerItem({

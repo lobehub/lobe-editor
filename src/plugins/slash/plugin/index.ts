@@ -74,7 +74,12 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
   }
 
   private triggerClose() {
-    this.config?.triggerClose?.();
+    const shouldNotifyClose =
+      this.currentSlashTrigger !== null || this.manualOpen || !this.suppressOpen;
+
+    if (shouldNotifyClose) {
+      this.config?.triggerClose?.();
+    }
     this.currentSlashTrigger = null;
     this.currentSlashTriggerIndex = -1;
     this.manualOpen = false;

@@ -9,7 +9,15 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
 } from 'lexical';
-import { Children, type FC, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  Children,
+  type FC,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { noop } from '@/editor-kernel';
 import { useLexicalEditor } from '@/editor-kernel/react';
@@ -53,10 +61,10 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
   const triggerMapRef = useRef<Map<string, ReactSlashOptionProps>>(new Map());
 
   const close = useCallback(() => {
-    setIsOpen(false);
-    setOptions([]);
-    setResolution(null);
-    setActiveKey(null);
+    setIsOpen((open) => (open ? false : open));
+    setOptions((currentOptions) => (currentOptions.length > 0 ? [] : currentOptions));
+    setResolution((currentResolution) => (currentResolution ? null : currentResolution));
+    setActiveKey((currentActiveKey) => (currentActiveKey ? null : currentActiveKey));
   }, []);
 
   // Close menu on unmount to prevent orphaned portal at (0,0)
