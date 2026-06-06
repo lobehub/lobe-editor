@@ -38,6 +38,10 @@ const INSERT_BUTTON_HIDE_DELAY = 160;
 const TABLE_DELETE_PREVIEW_CLASS = 'lobe-editor-table-delete-preview';
 const DOTS = Array.from({ length: 6 }, (_, index) => index);
 
+const isBeforeFirstRow = (target: { index: number; insertAfter: boolean } | null) => {
+  return target?.index === 0 && !target.insertAfter;
+};
+
 const TableRowController = memo<TableRowControllerProps>((props) => {
   const { blockMenuService, editor, menuService, node, onInsertPreviewChange } = props;
   const { rowHeights, tableWidth } = useTableRowMetrics(editor, node);
@@ -59,7 +63,6 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
   const [, setMenuVersion] = useState(0);
   const pendingDragRowsRef = useRef<number[] | null>(null);
   const [isControllerHovered, setControllerHovered] = useState(false);
-  const [isInsertButtonHovered, setInsertButtonHovered] = useState(false);
 
   const clearInsertButtonHideTimer = () => {
     if (insertButtonHideTimerRef.current) {
@@ -166,7 +169,6 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
     insertButtonHideTimerRef.current = setTimeout(() => {
       if (!insertButtonHoveredRef.current) {
         setInsertTarget(null);
-        setInsertButtonHovered(false);
       }
     }, INSERT_BUTTON_HIDE_DELAY);
   };
@@ -247,7 +249,8 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
     ? sum(rowHeights.slice(0, dragTarget.index)) +
       (dragTarget.insertAfter ? rowHeights[dragTarget.index] || 0 : 0)
     : 0;
-  const showInsertButton = !isDragging && (Boolean(insertTarget) || isInsertButtonHovered);
+  const showRowInsertButton =
+    !isDragging && Boolean(insertTarget) && !isBeforeFirstRow(insertTarget);
 
   useEffect(() => {
     if (selectedRows.length > 0) {
@@ -279,7 +282,6 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
       clearInsertButtonHideTimer();
       clearDeletePreview();
       setInsertTarget(null);
-      setInsertButtonHovered(false);
       onInsertPreviewChange?.(null);
       setMenuAnchorElement(null);
       pendingDragRowsRef.current = null;
@@ -340,7 +342,6 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
           onMouseEnter={() => {
             insertButtonHoveredRef.current = true;
             clearInsertButtonHideTimer();
-            setInsertButtonHovered(true);
           }}
           onMouseLeave={() => {
             insertButtonHoveredRef.current = false;
@@ -348,7 +349,7 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
           }}
           position="left"
           reference={rowLeftRef.current}
-          visible={showInsertButton}
+          visible={showRowInsertButton}
         />
         {rowHeights.map((height, index) => {
           const isLastRow = index + 1 === rowHeights.length;
@@ -372,7 +373,6 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
                   event.stopPropagation();
                   clearInsertButtonHideTimer();
                   setInsertTarget(null);
-                  setInsertButtonHovered(false);
                   setMenuAnchorElement(event.currentTarget);
                 }
               }}
@@ -426,9 +426,17 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
                 }
 
                 const rect = event.currentTarget.getBoundingClientRect();
+                const insertAfter = event.clientY - rect.top > rect.height / 2;
+                const nextInsertTarget = { index, insertAfter };
+
+                if (isBeforeFirstRow(nextInsertTarget)) {
+                  setInsertTarget(null);
+                  return;
+                }
+
                 setInsertTarget({
                   index,
-                  insertAfter: event.clientY - rect.top > rect.height / 2,
+                  insertAfter,
                 });
               }}
               onMouseUpCapture={(event) => {

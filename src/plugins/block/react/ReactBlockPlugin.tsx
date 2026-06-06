@@ -53,7 +53,7 @@ export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'classNa
 
 const logger = createDebugLogger('plugin', 'block-react');
 const OPERATION_MENU_OVERLAY_CLASS = 'lobe-block-operation-dropdown';
-const TABLE_FOCUSED_MENU_OFFSET = 40;
+const TABLE_FOCUSED_MENU_OFFSET = 8;
 
 type HoverResolveResult = NonNullable<HoveredBlockState> & {
   source: 'direct' | 'existing' | 'padding';
