@@ -1,26 +1,8 @@
 import { mergeRegister } from '@lexical/utils';
-import {
-  $getNodeByKey,
-  $isElementNode,
-  COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
-  createCommand,
-} from 'lexical';
+import { $getNodeByKey, $isElementNode, COMMAND_PRIORITY_EDITOR, LexicalEditor } from 'lexical';
 
 import { DiffNode } from '../node/DiffNode';
-
-export enum DiffAction {
-  Reject,
-  Accept,
-}
-
-export const LITEXML_DIFFNODE_COMMAND = createCommand<{ action: DiffAction; nodeKey: string }>(
-  'LITEXML_DIFFNODE_COMMAND',
-);
-
-export const LITEXML_DIFFNODE_ALL_COMMAND = createCommand<{ action: DiffAction }>(
-  'LITEXML_DIFFNODE_ALL_COMMAND',
-);
+import { DiffAction, LITEXML_DIFFNODE_ALL_COMMAND, LITEXML_DIFFNODE_COMMAND } from './symbols';
 
 function doAction(node: DiffNode, action: DiffAction) {
   if (node.diffType === 'modify') {
@@ -146,3 +128,7 @@ export function registerLiteXMLDiffCommand(editor: LexicalEditor) {
     ),
   );
 }
+
+// Command identities and the `DiffAction` enum live in the side-effect-free
+// `./symbols` module so they stay single-instance across the package bundles.
+export { DiffAction, LITEXML_DIFFNODE_ALL_COMMAND, LITEXML_DIFFNODE_COMMAND } from './symbols';

@@ -34,6 +34,10 @@
       "types": "./es/headless.d.ts",
       "import": "./es/headless.js"
     },
+    "./litexml-commands": {
+      "types": "./es/plugins/litexml/command/symbols.d.ts",
+      "import": "./es/plugins/litexml/command/symbols.js"
+    },
     "./react": {
       "types": "./es/react.d.ts",
       "import": "./es/react.js"
