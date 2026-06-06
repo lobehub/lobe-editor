@@ -17,6 +17,7 @@ import {
 import { useLexicalEditor } from '@/editor-kernel/react';
 import PortalAnchor from '@/editor-kernel/react/PortalAnchor';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
+import { IBlockMenuService } from '@/plugins/block/service';
 
 import { TablePlugin } from '../plugin';
 import { ITableControllerMenuService } from '../service';
@@ -148,6 +149,7 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
       decoratorCol: (node, lexicalEditor) => {
         return (
           <TableColController
+            blockMenuService={editor.requireService(IBlockMenuService)}
             editor={lexicalEditor}
             key={node.getColumnCount()}
             menuService={editor.requireService(ITableControllerMenuService)}
@@ -164,6 +166,7 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
       decoratorRow: (node, lexicalEditor) => {
         return (
           <TableRowController
+            blockMenuService={editor.requireService(IBlockMenuService)}
             editor={lexicalEditor}
             menuService={editor.requireService(ITableControllerMenuService)}
             node={node}

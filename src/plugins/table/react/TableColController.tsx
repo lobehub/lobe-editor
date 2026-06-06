@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import { LexicalPortalContainer } from '@/editor-kernel/react';
+import type { IBlockMenuService } from '@/plugins/block/service';
 
 import {
   INSERT_TABLE_COLUMN_COMMAND,
@@ -32,6 +33,7 @@ import { MIN_COLUMN_WIDTH } from './TableResize/style';
 import { useTableControllerSelection } from './hooks';
 
 interface TableColControllerProps {
+  blockMenuService: IBlockMenuService | null;
   editor: LexicalEditor;
   menuService: ITableControllerMenuService | null;
   node: TableNode;
@@ -44,7 +46,14 @@ const TABLE_DELETE_PREVIEW_CLASS = 'lobe-editor-table-delete-preview';
 const DOTS = Array.from({ length: 6 }, (_, index) => index);
 
 const TableColController = memo<TableColControllerProps>((props) => {
-  const { editor, menuService, node, onColumnMetricsChange, onInsertPreviewChange } = props;
+  const {
+    blockMenuService,
+    editor,
+    menuService,
+    node,
+    onColumnMetricsChange,
+    onInsertPreviewChange,
+  } = props;
   const { colWidths, refreshColumnMetrics, tableHeight } = useTableColumnMetrics(editor, node);
   const { isTableFocused, isTableSelected, selectedColumns } = useTableControllerSelection(
     editor,
@@ -328,6 +337,7 @@ const TableColController = memo<TableColControllerProps>((props) => {
         >
           <TableControllerMenu
             anchorElement={menuAnchorElement}
+            blockMenuService={blockMenuService}
             items={menuItems}
             onOpenChange={(open) => {
               if (!open) {

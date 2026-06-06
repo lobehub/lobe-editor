@@ -10,6 +10,8 @@ import {
   useState,
 } from 'react';
 
+import type { IBlockMenuService } from '@/plugins/block/service';
+
 import { INSERT_TABLE_ROW_COMMAND, MOVE_TABLE_ROW_COMMAND, SELECT_TABLE_COMMAND } from '../command';
 import type { ITableControllerMenuService } from '../service';
 import {
@@ -25,6 +27,7 @@ import TableInsertButton from './TableInsertButton';
 import { useTableControllerSelection } from './hooks';
 
 interface TableRowControllerProps {
+  blockMenuService: IBlockMenuService | null;
   editor: LexicalEditor;
   menuService: ITableControllerMenuService | null;
   node: TableNode;
@@ -36,7 +39,7 @@ const TABLE_DELETE_PREVIEW_CLASS = 'lobe-editor-table-delete-preview';
 const DOTS = Array.from({ length: 6 }, (_, index) => index);
 
 const TableRowController = memo<TableRowControllerProps>((props) => {
-  const { editor, menuService, node, onInsertPreviewChange } = props;
+  const { blockMenuService, editor, menuService, node, onInsertPreviewChange } = props;
   const { rowHeights, tableWidth } = useTableRowMetrics(editor, node);
   const { isTableFocused, isTableSelected, selectedRows } = useTableControllerSelection(
     editor,
@@ -309,6 +312,7 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
       <div className={cx('left', styles.rowLeft)} ref={rowLeftRef}>
         <TableControllerMenu
           anchorElement={menuAnchorElement}
+          blockMenuService={blockMenuService}
           items={menuItems}
           onOpenChange={(open) => {
             if (!open) {

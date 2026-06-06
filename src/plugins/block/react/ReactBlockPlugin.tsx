@@ -102,6 +102,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   const [isDragging, setIsDragging] = useState(false);
   const [focusedTableBlockId, setFocusedTableBlockId] = useState<string | null>(null);
   const [blockMenuService, setBlockMenuService] = useState<BlockMenuService | null>(null);
+  const blockMenuSuppressed = blockMenuService?.isMenuSuppressed() ?? false;
 
   useLayoutEffect(() => {
     if (locale) {
@@ -139,6 +140,15 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       setMenuVersion((v) => v + 1);
     });
   }, [blockMenuService]);
+
+  useEffect(() => {
+    if (!blockMenuSuppressed) return;
+
+    setHoveredBlock(null);
+    setOperationMenuOpen(false);
+    setOperationMenuContext(null);
+    contextRef.current.operationMenuAnchorBlockId = null;
+  }, [blockMenuSuppressed]);
 
   useLexicalEditor(
     (lexicalEditor) => {
@@ -743,10 +753,10 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     [operationMenus, operationMenuContext],
   );
 
-  const shouldRenderPortal = menuContext || dragIndicator;
+  const shouldRenderPortal = (!blockMenuSuppressed && menuContext) || dragIndicator;
 
   const menuNode =
-    menuContext && !isDragging ? (
+    menuContext && !isDragging && !blockMenuSuppressed ? (
       <div className={styles.menu} ref={menuRef} style={menuPosition}>
         <div className={styles.menuInner} onMouseDown={preventEditorSelectionLost}>
           {actionButtons.map((item) => {

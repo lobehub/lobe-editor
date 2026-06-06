@@ -2,6 +2,8 @@ import { cx } from 'antd-style';
 import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import type { IBlockMenuService } from '@/plugins/block/service';
+
 import { styles } from './TableController/style';
 
 interface TableControllerMenuActionItem {
@@ -24,6 +26,7 @@ export type TableControllerMenuItem =
 
 interface TableControllerMenuProps {
   anchorElement: HTMLElement | null;
+  blockMenuService?: IBlockMenuService | null;
   items: TableControllerMenuItem[];
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -32,6 +35,7 @@ interface TableControllerMenuProps {
 
 const MENU_GAP = 8;
 const MENU_MIN_WIDTH = 168;
+const BLOCK_MENU_SUPPRESSOR_KEY = '__table_controller_menu';
 
 const isSeparatorItem = (
   item: TableControllerMenuItem,
@@ -88,10 +92,18 @@ const getMenuStyle = (
 };
 
 const TableControllerMenu = memo<TableControllerMenuProps>(
-  ({ anchorElement, items, onOpenChange, open, position }) => {
+  ({ anchorElement, blockMenuService, items, onOpenChange, open, position }) => {
     const [style, setStyle] = useState(() => getMenuStyle(anchorElement, items, position));
     const menuRef = useRef<HTMLDivElement | null>(null);
     const container = getPortalContainer();
+
+    useEffect(() => {
+      blockMenuService?.setMenuSuppressed(BLOCK_MENU_SUPPRESSOR_KEY, open);
+
+      return () => {
+        blockMenuService?.setMenuSuppressed(BLOCK_MENU_SUPPRESSOR_KEY, false);
+      };
+    }, [blockMenuService, open]);
 
     useEffect(() => {
       if (!open || !anchorElement) {

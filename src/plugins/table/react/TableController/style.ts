@@ -145,7 +145,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       pointer-events: auto;
 
       position: fixed;
-      z-index: 7;
+      z-index: 1000;
 
       display: flex;
       flex-direction: column;

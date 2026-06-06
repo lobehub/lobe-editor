@@ -37,10 +37,12 @@ export interface IBlockSelectHandler {
 export interface IBlockMenuService {
   getActionButtons(context: IBlockMenuRenderContext): IBlockActionButton[];
   getMenus(context: IBlockMenuRenderContext): IBlockMenuItem[];
+  isMenuSuppressed(): boolean;
   registerActionButton(item: IBlockActionButton): () => void;
   registerMenu(item: IBlockMenuItem): () => void;
   registerSelectHandler(item: IBlockSelectHandler): () => void;
   selectNode(node: LexicalNode): boolean;
+  setMenuSuppressed(key: string, suppressed: boolean): void;
   subscribe(listener: () => void): () => void;
 }
 
@@ -53,6 +55,7 @@ export class BlockMenuService implements IBlockMenuService {
   private items: Map<string, IBlockMenuItem> = new Map();
   private listeners: Set<() => void> = new Set();
   private selectHandlers: Map<string, IBlockSelectHandler> = new Map();
+  private suppressors: Set<string> = new Set();
 
   getActionButtons(context: IBlockMenuRenderContext): IBlockActionButton[] {
     return Array.from(this.actionButtons.values())
@@ -64,6 +67,10 @@ export class BlockMenuService implements IBlockMenuService {
     return Array.from(this.items.values())
       .filter((item) => (item.when ? item.when(context) : true))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  isMenuSuppressed(): boolean {
+    return this.suppressors.size > 0;
   }
 
   registerActionButton(item: IBlockActionButton): () => void {
@@ -108,6 +115,20 @@ export class BlockMenuService implements IBlockMenuService {
     }
 
     return false;
+  }
+
+  setMenuSuppressed(key: string, suppressed: boolean): void {
+    const size = this.suppressors.size;
+
+    if (suppressed) {
+      this.suppressors.add(key);
+    } else {
+      this.suppressors.delete(key);
+    }
+
+    if (this.suppressors.size !== size) {
+      this.notify();
+    }
   }
 
   subscribe(listener: () => void): () => void {
