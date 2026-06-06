@@ -34,6 +34,7 @@ import TableCellResizePlugin from './TableResize';
 import TableRowController from './TableRowController';
 import { selectionOutlineStyles, styles } from './style';
 import { ReactTablePluginProps } from './type';
+import { useAutoFitPastedTable } from './useAutoFitPastedTable';
 
 type SelectionOutlinePreviewSide = 'bottom' | 'left' | 'right' | 'top';
 
@@ -51,6 +52,8 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
   const eventEmitter = useMemo(() => {
     return new EventEmitter();
   }, []);
+
+  useAutoFitPastedTable(lexicalEditor);
 
   const selectionOutlineStyle = useMemo<CSSProperties | undefined>(() => {
     if (!selectionOutlineRect) {
