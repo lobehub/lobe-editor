@@ -14,7 +14,13 @@ export default defineConfig([
     ...commonConfig,
     clean: true,
     entry: {
-      headless: 'src/headless/index.ts',
+      'headless': 'src/headless/index.ts',
+      // Emit the LiteXML command identities as their own chunk so the bundled
+      // node build references them instead of inlining a second copy. Both this
+      // entry and the unbundled browser build resolve to the same emitted
+      // `es/plugins/litexml/command/symbols.js`, giving the commands a single
+      // runtime identity (and a DOM-free import via `./litexml-commands`).
+      'plugins/litexml/command/symbols': 'src/plugins/litexml/command/symbols.ts',
     },
     outExtensions: () => ({ dts: '.d.ts', js: '.js' }),
     platform: 'node',

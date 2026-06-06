@@ -10,7 +10,6 @@ import {
   COMMAND_PRIORITY_EDITOR,
   LexicalEditor,
   LexicalNode,
-  createCommand,
 } from 'lexical';
 
 import { $closest } from '@/editor-kernel';
@@ -19,6 +18,12 @@ import { createDebugLogger } from '@/utils/debug';
 import type LitexmlDataSource from '../data-source/litexml-data-source';
 import { $createDiffNode, DiffNode } from '../node/DiffNode';
 import { $cloneNode, $parseSerializedNodeImpl, charToId } from '../utils';
+import {
+  LITEXML_APPLY_COMMAND,
+  LITEXML_INSERT_COMMAND,
+  LITEXML_MODIFY_COMMAND,
+  LITEXML_REMOVE_COMMAND,
+} from './symbols';
 
 const logger = createDebugLogger('plugin', 'litexml');
 
@@ -137,48 +142,6 @@ function wrapBlockModify(oldBlock: LexicalNode, editor: LexicalEditor, changeFn:
   diffNode.append($cloneNode(newBlock, editor));
   newBlock.replace(diffNode, false);
 }
-
-export const LITEXML_MODIFY_COMMAND = createCommand<
-  Array<
-    | {
-        action: 'insert';
-        beforeId: string;
-        litexml: string;
-      }
-    | {
-        action: 'insert';
-        afterId: string;
-        litexml: string;
-      }
-    | {
-        action: 'remove';
-        id: string;
-      }
-    | {
-        action: 'modify';
-        litexml: string | string[];
-      }
-  >
->('LITEXML_MODIFY_COMMAND');
-
-export const LITEXML_APPLY_COMMAND = createCommand<{ delay?: boolean; litexml: string | string[] }>(
-  'LITEXML_APPLY_COMMAND',
-);
-export const LITEXML_REMOVE_COMMAND = createCommand<{ delay?: boolean; id: string }>(
-  'LITEXML_REMOVE_COMMAND',
-);
-export const LITEXML_INSERT_COMMAND = createCommand<
-  | {
-      beforeId: string;
-      delay?: boolean;
-      litexml: string;
-    }
-  | {
-      afterId: string;
-      delay?: boolean;
-      litexml: string;
-    }
->('LITEXML_INSERT_COMMAND');
 
 export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: LitexmlDataSource) {
   return mergeRegister(
@@ -570,3 +533,12 @@ function handleInsert(
     }
   });
 }
+
+// Command identities live in the side-effect-free `./symbols` module so they
+// keep a single runtime identity across the package's browser/node bundles.
+export {
+  LITEXML_APPLY_COMMAND,
+  LITEXML_INSERT_COMMAND,
+  LITEXML_MODIFY_COMMAND,
+  LITEXML_REMOVE_COMMAND,
+} from './symbols';
