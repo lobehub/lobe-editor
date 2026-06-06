@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.16.0](https://github.com/lobehub/lobe-editor/compare/v4.15.2...v4.16.0)
+<sup>Released on **2026-06-06**</sup>
+
+
+#### ✨ Features
+
+- **table**: Implement table column and row controllers with decorators.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **table**: Implement table column and row controllers with decorators, closes [#159](https://github.com/lobehub/lobe-editor/issues/159) ([6e26d4b](https://github.com/lobehub/lobe-editor/commit/6e26d4b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.15.2](https://github.com/lobehub/lobe-editor/compare/v4.15.1...v4.15.2)
 <sup>Released on **2026-05-29**</sup>
 
