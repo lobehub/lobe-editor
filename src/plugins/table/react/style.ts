@@ -141,7 +141,7 @@ export const selectionOutlineStyles = createStaticStyles(({ css, cssVar }) => ({
     z-index: 3;
 
     box-sizing: border-box;
-    border: 1.5px solid ${cssVar.colorPrimary};
+    border: 1.5px solid color-mix(in srgb, ${cssVar.colorText} 22%, transparent);
     border-radius: 3px;
   `,
 }));

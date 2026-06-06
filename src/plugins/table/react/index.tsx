@@ -38,6 +38,17 @@ import { useAutoFitPastedTable } from './useAutoFitPastedTable';
 
 type SelectionOutlinePreviewSide = 'bottom' | 'left' | 'right' | 'top';
 
+const isEditorRootFocused = (activeEditor: LexicalEditor) => {
+  const rootElement = activeEditor.getRootElement();
+  const activeElement = rootElement?.ownerDocument.activeElement;
+
+  return Boolean(
+    rootElement &&
+    activeElement &&
+    (activeElement === rootElement || rootElement.contains(activeElement)),
+  );
+};
+
 export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
   className,
   locale,
@@ -97,6 +108,11 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
 
   const refreshSelectionOutlineRect = useCallback(
     (activeEditor: LexicalEditor) => {
+      if (!isEditorRootFocused(activeEditor)) {
+        updateSelectionOutlineRect(null);
+        return;
+      }
+
       activeEditor.read(() => {
         const selection = $getSelection();
         if (!$isTableSelection(selection) && !$isRangeSelection(selection)) {
@@ -211,10 +227,18 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
     const unregisterUpdateListener = editor.registerUpdateListener(
       scheduleRefreshSelectionOutlineRect,
     );
+    const unregisterRootListener = editor.registerRootListener((rootElement, prevRootElement) => {
+      prevRootElement?.removeEventListener('focusin', scheduleRefreshSelectionOutlineRect);
+      prevRootElement?.removeEventListener('focusout', scheduleRefreshSelectionOutlineRect);
+      rootElement?.addEventListener('focusin', scheduleRefreshSelectionOutlineRect);
+      rootElement?.addEventListener('focusout', scheduleRefreshSelectionOutlineRect);
+    });
+
     return () => {
       if (frame !== null) {
         cancelAnimationFrame(frame);
       }
+      unregisterRootListener();
       unregisterUpdateListener();
       updateSelectionOutlineRect(null);
       setSelectionOutlinePreviewSide(null);
