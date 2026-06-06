@@ -31,7 +31,7 @@ const TableInsertButton = memo<TableInsertButtonProps>(
         visible={visible}
         visibleClassName={styles.insertButtonVisible}
       >
-        <PlusIcon size={16} />
+        <PlusIcon size={14} />
       </TableControllerButton>
     );
   },

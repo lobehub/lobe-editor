@@ -17,7 +17,7 @@ interface TableControllerButtonProps {
   visibleClassName: string;
 }
 
-const BUTTON_SIZE = 28;
+const BUTTON_SIZE = 24;
 
 const getPortalContainer = () => {
   if (typeof document === 'undefined') {

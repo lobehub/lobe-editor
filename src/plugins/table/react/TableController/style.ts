@@ -121,22 +121,20 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       justify-content: center;
 
       box-sizing: border-box;
-      inline-size: 28px;
-      block-size: 28px;
+      inline-size: 24px;
+      block-size: 24px;
       padding: 0;
-      border: 1px solid ${cssVar.colorBorder};
-      border-radius: 4px;
+      border: 0;
+      border-radius: 8px;
 
-      color: ${cssVar.colorText};
+      color: ${cssVar.colorTextSecondary};
 
       opacity: 0;
-      background: ${cssVar.colorBgElevated};
-      box-shadow: 0 2px 8px color-mix(in srgb, #000 12%, transparent);
+      background: ${cssVar.colorFillTertiary};
 
       &:hover {
-        border-color: ${cssVar.colorPrimary};
-        color: ${cssVar.colorPrimary};
-        background: ${cssVar.colorPrimaryBg};
+        color: ${cssVar.colorText};
+        background: ${cssVar.colorFillSecondary};
       }
     `,
     insertButtonVisible: css`

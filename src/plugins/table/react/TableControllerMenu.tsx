@@ -49,7 +49,9 @@ const getPortalContainer = () => {
 
 const getMenuStyle = (
   anchorElement: HTMLElement | null,
+  items: TableControllerMenuItem[],
   position: TableControllerMenuProps['position'],
+  menuElement?: HTMLElement | null,
 ) => {
   if (!anchorElement || typeof window === 'undefined') {
     return {};
@@ -57,7 +59,9 @@ const getMenuStyle = (
 
   const rect = anchorElement.getBoundingClientRect();
   const menuWidth = MENU_MIN_WIDTH;
-  const estimatedHeight = 40 * 3 + 12;
+  const estimatedHeight =
+    menuElement?.getBoundingClientRect().height ||
+    items.reduce((height, item) => height + (isSeparatorItem(item) ? 9 : 32), 12);
   const maxLeft = Math.max(MENU_GAP, window.innerWidth - menuWidth - MENU_GAP);
   const maxTop = Math.max(MENU_GAP, window.innerHeight - estimatedHeight - MENU_GAP);
   const clamp = (value: number, max: number) => Math.min(Math.max(value, MENU_GAP), max);
@@ -85,7 +89,7 @@ const getMenuStyle = (
 
 const TableControllerMenu = memo<TableControllerMenuProps>(
   ({ anchorElement, items, onOpenChange, open, position }) => {
-    const [style, setStyle] = useState(() => getMenuStyle(anchorElement, position));
+    const [style, setStyle] = useState(() => getMenuStyle(anchorElement, items, position));
     const menuRef = useRef<HTMLDivElement | null>(null);
     const container = getPortalContainer();
 
@@ -95,7 +99,7 @@ const TableControllerMenu = memo<TableControllerMenuProps>(
       }
 
       const updateStyle = () => {
-        setStyle(getMenuStyle(anchorElement, position));
+        setStyle(getMenuStyle(anchorElement, items, position, menuRef.current));
       };
 
       const handlePointerDown = (event: PointerEvent) => {
@@ -117,6 +121,7 @@ const TableControllerMenu = memo<TableControllerMenuProps>(
       };
 
       updateStyle();
+      requestAnimationFrame(updateStyle);
       window.addEventListener('scroll', updateStyle, true);
       window.addEventListener('resize', updateStyle);
       document.addEventListener('pointerdown', handlePointerDown);
@@ -132,7 +137,7 @@ const TableControllerMenu = memo<TableControllerMenuProps>(
         document.removeEventListener('keydown', handleKeyDown);
         observer.disconnect();
       };
-    }, [anchorElement, container, onOpenChange, open, position]);
+    }, [anchorElement, container, items, onOpenChange, open, position]);
 
     if (!container || !open) {
       return null;
