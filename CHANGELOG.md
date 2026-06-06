@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.16.1](https://github.com/lobehub/lobe-editor/compare/v4.16.0...v4.16.1)
+<sup>Released on **2026-06-06**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: Share LiteXML command identities across bundles via a pure module.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: Share LiteXML command identities across bundles via a pure module, closes [#168](https://github.com/lobehub/lobe-editor/issues/168) ([f7d70c1](https://github.com/lobehub/lobe-editor/commit/f7d70c1))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.16.0](https://github.com/lobehub/lobe-editor/compare/v4.15.2...v4.16.0)
 <sup>Released on **2026-06-06**</sup>
 
