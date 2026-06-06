@@ -19,6 +19,7 @@ import {
   COMMAND_PRIORITY_NORMAL,
   ElementNode,
   FORMAT_TEXT_COMMAND,
+  HISTORIC_TAG,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
@@ -482,18 +483,21 @@ export function registerLastElement(editor: LexicalEditor) {
       isProcessing = true;
 
       queueMicrotask(() => {
-        editor.update(() => {
-          const root = $getRoot();
-          const currentLast = root.getLastChild();
+        editor.update(
+          () => {
+            const root = $getRoot();
+            const currentLast = root.getLastChild();
 
-          // Double check to ensure the state still needs processing
-          if (NEEDS_FOLLOWING_PARAGRAPH_TYPES.has(currentLast?.getType())) {
-            const paragraph = $createParagraphNode();
-            root.append(paragraph);
-          }
+            // Double check to ensure the state still needs processing
+            if (NEEDS_FOLLOWING_PARAGRAPH_TYPES.has(currentLast?.getType())) {
+              const paragraph = $createParagraphNode();
+              root.append(paragraph);
+            }
 
-          isProcessing = false;
-        });
+            isProcessing = false;
+          },
+          { tag: HISTORIC_TAG },
+        );
       });
     }
   });

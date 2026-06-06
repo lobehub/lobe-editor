@@ -5,6 +5,7 @@ import {
   $setSelection,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
+  HISTORIC_TAG,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ESCAPE_COMMAND,
@@ -495,56 +496,59 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   private showPlaceholderNodes(editor: LexicalEditor, suggestion: string): void {
     this.skipNextTextContentListener = true;
 
-    editor.update(() => {
-      const selection = $getSelection();
-      if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-        this.logger.warn('⚠️ No valid selection for placeholder');
-        return;
-      }
-      if (!this.markdownService) {
-        this.logger.warn('⚠️ No valid markdown service for placeholder');
-        return;
-      }
+    editor.update(
+      () => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+          this.logger.warn('⚠️ No valid selection for placeholder');
+          return;
+        }
+        if (!this.markdownService) {
+          this.logger.warn('⚠️ No valid markdown service for placeholder');
+          return;
+        }
 
-      // Always clear existing placeholder nodes before inserting a new suggestion
-      // to avoid duplicated/stacked placeholder text.
-      for (const node of $nodesOfType(PlaceholderNode)) {
-        node.remove();
-      }
-      for (const node of $nodesOfType(PlaceholderBlockNode)) {
-        node.remove();
-      }
+        // Always clear existing placeholder nodes before inserting a new suggestion
+        // to avoid duplicated/stacked placeholder text.
+        for (const node of $nodesOfType(PlaceholderNode)) {
+          node.remove();
+        }
+        for (const node of $nodesOfType(PlaceholderBlockNode)) {
+          node.remove();
+        }
 
-      const nodes = this.markdownService.parseMarkdownToLexical(suggestion);
+        const nodes = this.markdownService.parseMarkdownToLexical(suggestion);
 
-      if (nodes.children[0]) {
-        const firstChild = nodes.children[0];
-        // @ts-expect-error not error
-        const oldChildren = firstChild.children;
-        // @ts-expect-error not error
-        firstChild.children = [
-          {
-            children: oldChildren,
-            type: 'PlaceholderInline',
-          },
-        ];
-      }
-
-      for (let i = 1; i < nodes.children.length; i++) {
-        const child = nodes.children[i];
-        nodes.children[i] = {
+        if (nodes.children[0]) {
+          const firstChild = nodes.children[0];
           // @ts-expect-error not error
-          children: [child],
-          type: 'PlaceholderBlock',
-        };
-      }
+          const oldChildren = firstChild.children;
+          // @ts-expect-error not error
+          firstChild.children = [
+            {
+              children: oldChildren,
+              type: 'PlaceholderInline',
+            },
+          ];
+        }
 
-      const saveSel = selection.clone();
-      this.placeholderSelectionSnapshot = saveSel;
-      this.markdownService.insertIRootNode(editor, nodes, selection);
+        for (let i = 1; i < nodes.children.length; i++) {
+          const child = nodes.children[i];
+          nodes.children[i] = {
+            // @ts-expect-error not error
+            children: [child],
+            type: 'PlaceholderBlock',
+          };
+        }
 
-      $setSelection(saveSel);
-    });
+        const saveSel = selection.clone();
+        this.placeholderSelectionSnapshot = saveSel;
+        this.markdownService.insertIRootNode(editor, nodes, selection);
+
+        $setSelection(saveSel);
+      },
+      { tag: HISTORIC_TAG },
+    );
   }
 
   private clearPlaceholderNodes(
@@ -579,18 +583,21 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
     // Skip the textContentListener that fires when we remove placeholder nodes
     this.skipNextTextContentListener = true;
-    editor.update(() => {
-      for (const node of $nodesOfType(PlaceholderNode)) {
-        node.remove();
-      }
-      for (const node of $nodesOfType(PlaceholderBlockNode)) {
-        node.remove();
-      }
+    editor.update(
+      () => {
+        for (const node of $nodesOfType(PlaceholderNode)) {
+          node.remove();
+        }
+        for (const node of $nodesOfType(PlaceholderBlockNode)) {
+          node.remove();
+        }
 
-      if (shouldRestoreSelection && restoreSelection) {
-        $setSelection(restoreSelection);
-      }
-    });
+        if (shouldRestoreSelection && restoreSelection) {
+          $setSelection(restoreSelection);
+        }
+      },
+      { tag: HISTORIC_TAG },
+    );
   }
 
   private applySuggestion(editor: LexicalEditor): void {

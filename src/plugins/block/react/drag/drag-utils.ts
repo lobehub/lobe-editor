@@ -2,6 +2,66 @@
 import { DRAG_AUTO_SCROLL_EDGE, DRAG_AUTO_SCROLL_MAX_STEP } from '../core/constants';
 import { type DragBlockEntry, type DragInsertionSlot } from '../core/types';
 
+const toRectSnapshot = (rect: DOMRect): DragBlockEntry['rect'] => ({
+  bottom: rect.bottom,
+  height: rect.height,
+  left: rect.left,
+  top: rect.top,
+  width: rect.width,
+});
+
+export const isTableBlockElement = (element: HTMLElement) => {
+  return (
+    element instanceof HTMLTableElement ||
+    Boolean(element.querySelector('table.editor_table, table'))
+  );
+};
+
+export const getTableBlockRect = (element: HTMLElement): DragBlockEntry['rect'] | null => {
+  const table =
+    element instanceof HTMLTableElement
+      ? element
+      : element.querySelector('table.editor_table, table');
+
+  if (!(table instanceof HTMLElement)) {
+    return null;
+  }
+
+  const tableRect = table.getBoundingClientRect();
+  const firstCell = table.querySelector('th, td');
+
+  if (firstCell instanceof HTMLElement) {
+    const cellRect = firstCell.getBoundingClientRect();
+    if (cellRect.width > 0 && cellRect.height > 0) {
+      return {
+        bottom: tableRect.height > 0 ? tableRect.bottom : cellRect.bottom,
+        height: tableRect.height > 0 ? tableRect.height : cellRect.height,
+        left: cellRect.left,
+        top: tableRect.height > 0 ? tableRect.top : cellRect.top,
+        width: tableRect.width > 0 ? tableRect.width : cellRect.width,
+      };
+    }
+  }
+
+  if (tableRect.height <= 0) {
+    return null;
+  }
+
+  return toRectSnapshot(tableRect);
+};
+
+export const getBlockMeasureRect = (block: HTMLElement): DragBlockEntry['rect'] | null => {
+  const rect = isTableBlockElement(block)
+    ? getTableBlockRect(block)
+    : toRectSnapshot(block.getBoundingClientRect());
+
+  if (!rect || rect.height <= 0) {
+    return null;
+  }
+
+  return rect;
+};
+
 export const collectDragBlocks = (root: HTMLElement | null): DragBlockEntry[] => {
   if (!root) return [];
 
@@ -10,19 +70,13 @@ export const collectDragBlocks = (root: HTMLElement | null): DragBlockEntry[] =>
       const blockId = block.dataset.blockId;
       if (!blockId) return acc;
 
-      const rect = block.getBoundingClientRect();
-      if (rect.height <= 0) return acc;
+      const rect = getBlockMeasureRect(block);
+      if (!rect) return acc;
 
       acc.push({
         block,
         blockId,
-        rect: {
-          bottom: rect.bottom,
-          height: rect.height,
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-        },
+        rect,
       });
       return acc;
     }, [])

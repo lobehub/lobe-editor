@@ -2,9 +2,81 @@ import { createStaticStyles } from 'antd-style';
 
 export const styles = createStaticStyles(
   ({ css, cssVar }) => css`
-    overflow-x: auto;
+    position: relative;
+    overflow: visible;
     margin-block: calc(var(--lobe-markdown-margin-multiple) * 0.5em)
       calc(var(--lobe-markdown-margin-multiple) * 0.5em + 16px);
+
+    .lobe-editor-table-scroll-wrapper {
+      position: relative;
+      overflow: auto visible;
+      padding-block-start: 14px;
+    }
+
+    .lobe-editor-table-scroll-indicator {
+      pointer-events: none;
+
+      position: absolute;
+      z-index: 3;
+      inset-block: 14px 0;
+
+      inline-size: 24px;
+
+      opacity: 0;
+
+      transition: opacity 0.12s ease;
+    }
+
+    .lobe-editor-table-scroll-indicator-visible {
+      opacity: 1;
+    }
+
+    .lobe-editor-table-scroll-indicator-start {
+      inset-inline-start: 0;
+      background: linear-gradient(
+        to right,
+        color-mix(in srgb, ${cssVar.colorBgContainer} 82%, transparent),
+        transparent
+      );
+    }
+
+    .lobe-editor-table-scroll-indicator-end {
+      inset-inline-start: 0;
+      background: linear-gradient(
+        to left,
+        color-mix(in srgb, ${cssVar.colorBgContainer} 82%, transparent),
+        transparent
+      );
+    }
+
+    .toolbar,
+    .toolbar-col,
+    .toolbar-row {
+      pointer-events: none;
+
+      position: absolute;
+      z-index: 2;
+      inset-block-start: 0;
+      inset-inline-start: 0;
+
+      width: max-content;
+      height: 0;
+    }
+
+    .table-controller,
+    .table-controller-col,
+    .table-controller-row {
+      pointer-events: none;
+      position: relative;
+      width: max-content;
+      height: 0;
+    }
+
+    .table-controller-col .top,
+    .table-controller-row .left,
+    .table-controller-row .corner {
+      pointer-events: all;
+    }
 
     .editor_table {
       table-layout: fixed;
@@ -19,11 +91,7 @@ export const styles = createStaticStyles(
       word-break: auto-phrase;
       overflow-wrap: break-word;
 
-      background: ${cssVar.colorFillQuaternary};
-
       > tr:first-of-type {
-        background: ${cssVar.colorFillQuaternary};
-
         .editor_table_cell_header {
           font-weight: bold;
         }
@@ -55,9 +123,25 @@ export const styles = createStaticStyles(
     }
 
     .editor_table_cell_selected {
-      color: #000;
-      background-color: ${cssVar.yellow};
+      background-color: color-mix(in srgb, ${cssVar.yellow} 3%, transparent);
       caret-color: transparent;
+    }
+
+    .lobe-editor-table-delete-preview {
+      background-color: color-mix(in srgb, ${cssVar.colorError} 20%, transparent) !important;
     }
   `,
 );
+
+export const selectionOutlineStyles = createStaticStyles(({ css, cssVar }) => ({
+  outline: css`
+    pointer-events: none;
+
+    position: fixed;
+    z-index: 3;
+
+    box-sizing: border-box;
+    border: 1.5px solid color-mix(in srgb, ${cssVar.colorText} 22%, transparent);
+    border-radius: 3px;
+  `,
+}));

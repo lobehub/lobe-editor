@@ -1,8 +1,10 @@
 'use client';
 
+import { $findTableNode, $isTableSelection } from '@lexical/table';
 import { Icon } from '@lobehub/ui';
 import { Button, Dropdown, theme } from 'antd';
 import { cx } from 'antd-style';
+import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
 import { GripVerticalIcon, PlusIcon } from 'lucide-react';
 import {
   type CSSProperties,
@@ -32,7 +34,12 @@ import {
 } from './core/runtime-context';
 import { type BlockDragTarget } from './core/types';
 import { startBlockDragSession } from './drag/drag-session';
-import { collectDragBlocks } from './drag/drag-utils';
+import {
+  collectDragBlocks,
+  getBlockMeasureRect,
+  getTableBlockRect,
+  isTableBlockElement,
+} from './drag/drag-utils';
 import { styles } from './style';
 
 export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'className'> {
@@ -46,6 +53,21 @@ export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'classNa
 
 const logger = createDebugLogger('plugin', 'block-react');
 const OPERATION_MENU_OVERLAY_CLASS = 'lobe-block-operation-dropdown';
+const TABLE_FOCUSED_MENU_OFFSET = 8;
+
+type HoverResolveResult = NonNullable<HoveredBlockState> & {
+  source: 'direct' | 'existing' | 'padding';
+};
+
+const getTableMenuAnchorRect = (element: HTMLElement) => {
+  const rect = getTableBlockRect(element);
+  if (!rect) return null;
+
+  return {
+    left: rect.left,
+    top: rect.top,
+  };
+};
 
 const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   const { token } = theme.useToken();
@@ -64,6 +86,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   const dragLayerRef = useRef<HTMLDivElement>(null);
   const contextRef = useRef<RuntimeContextRef>(createRuntimeContext());
   const [hoveredBlock, setHoveredBlock] = useState<HoveredBlockState>(null);
+  const [layoutVersion, setLayoutVersion] = useState(0);
   const [menuVersion, setMenuVersion] = useState(0);
   const [menuPosition, setMenuPosition] = useState<CSSProperties>({});
   const [operationMenuOpen, setOperationMenuOpen] = useState(false);
@@ -77,7 +100,9 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   } | null>(null);
   const [dragLayerContainer, setDragLayerContainer] = useState<HTMLElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [focusedTableBlockId, setFocusedTableBlockId] = useState<string | null>(null);
   const [blockMenuService, setBlockMenuService] = useState<BlockMenuService | null>(null);
+  const blockMenuSuppressed = blockMenuService?.isMenuSuppressed() ?? false;
 
   useLayoutEffect(() => {
     if (locale) {
@@ -115,6 +140,39 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       setMenuVersion((v) => v + 1);
     });
   }, [blockMenuService]);
+
+  useEffect(() => {
+    if (!blockMenuSuppressed) return;
+
+    setHoveredBlock(null);
+    setOperationMenuOpen(false);
+    setOperationMenuContext(null);
+    contextRef.current.operationMenuAnchorBlockId = null;
+  }, [blockMenuSuppressed]);
+
+  useLexicalEditor(
+    (lexicalEditor) => {
+      return lexicalEditor.registerUpdateListener(({ editorState }) => {
+        editorState.read(() => {
+          const selection = $getSelection();
+          if ($isTableSelection(selection)) {
+            setFocusedTableBlockId(selection.tableKey);
+            return;
+          }
+
+          if ($isRangeSelection(selection)) {
+            const anchorNode = $getNodeByKey(selection.anchor.key);
+            const tableNode = anchorNode ? $findTableNode(anchorNode) : null;
+            setFocusedTableBlockId(tableNode?.getKey() ?? null);
+            return;
+          }
+
+          setFocusedTableBlockId(null);
+        });
+      });
+    },
+    [editor],
+  );
 
   useEffect(() => {
     return () => {
@@ -225,7 +283,19 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       return clientX <= rootRect.left + paddingLeft;
     };
 
-    const getHoveredBlock = (target: EventTarget | null, clientX: number, clientY: number) => {
+    const resolveCurrentBlockElement = (root: HTMLElement, blockId: string): HTMLElement | null => {
+      const currentBlock = Array.from(root.querySelectorAll<HTMLElement>('[data-block-id]')).find(
+        (element) => element.dataset.blockId === blockId,
+      );
+
+      return currentBlock && root.contains(currentBlock) ? currentBlock : null;
+    };
+
+    const getHoveredBlock = (
+      target: EventTarget | null,
+      clientX: number,
+      clientY: number,
+    ): HoverResolveResult | null => {
       const root = editor.getRootElement();
 
       if (!root || !(target instanceof Node)) {
@@ -238,11 +308,15 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       }
 
       if (menuRef.current?.contains(targetElement)) {
-        return contextRef.current.hoveredBlock;
+        return contextRef.current.hoveredBlock
+          ? { ...contextRef.current.hoveredBlock, source: 'existing' }
+          : null;
       }
 
       if (targetElement.closest(`.${OPERATION_MENU_OVERLAY_CLASS}`)) {
-        return contextRef.current.hoveredBlock;
+        return contextRef.current.hoveredBlock
+          ? { ...contextRef.current.hoveredBlock, source: 'existing' }
+          : null;
       }
 
       const blockElement = targetElement.closest('[data-block-id]');
@@ -253,7 +327,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
           return null;
         }
 
-        return { blockElement, blockId };
+        return { blockElement, blockId, source: 'direct' };
       }
 
       if (!root.contains(targetElement)) {
@@ -271,15 +345,28 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
 
       const entry = resolveBlockByY(rects, clientY);
 
-      if (!entry) return null;
+      if (!entry) {
+        return null;
+      }
+
+      const currentBlockElement = resolveCurrentBlockElement(root, entry.blockId);
+      if (!currentBlockElement) {
+        markBlockRectsDirty();
+        return null;
+      }
 
       return {
-        blockElement: entry.block,
+        blockElement: currentBlockElement,
         blockId: entry.blockId,
+        source: 'padding',
       };
     };
 
     const processHover = () => {
+      if (blockMenuSuppressed) {
+        return;
+      }
+
       if (!latestPointer) {
         return;
       }
@@ -300,6 +387,9 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
         setHoveredBlock((current) => {
           if (!current) return next;
           if (next.blockId === current.blockId && next.blockElement === current.blockElement) {
+            if (next.source === 'padding') {
+              setLayoutVersion((version) => version + 1);
+            }
             return current;
           }
           return next;
@@ -330,16 +420,24 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     };
 
     const handleMouseMove = (event: MouseEvent) => {
+      if (blockMenuSuppressed) {
+        return;
+      }
+
       const root = editor.getRootElement();
       const target = event.target;
 
       if (!root || !(target instanceof Node)) {
-        if (!contextRef.current.hoveredBlock) return;
+        if (!contextRef.current.hoveredBlock) {
+          return;
+        }
       } else {
         const targetElement = target instanceof Element ? target : target.parentElement;
 
         if (!targetElement) {
-          if (!contextRef.current.hoveredBlock) return;
+          if (!contextRef.current.hoveredBlock) {
+            return;
+          }
         } else {
           const overMenu =
             menuRef.current?.contains(targetElement) ||
@@ -368,37 +466,151 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
 
     const handleViewportChange = () => {
       markBlockRectsDirty();
+      if (blockMenuSuppressed) {
+        return;
+      }
+
       scheduleHoverProcess();
+    };
+
+    const clearMenuState = () => {
+      if (contextRef.current.hideTimer !== null) {
+        window.clearTimeout(contextRef.current.hideTimer);
+        contextRef.current.hideTimer = null;
+      }
+
+      latestPointer = null;
+      contextRef.current.operationMenuAnchorBlockId = null;
+      setHoveredBlock(null);
+      setOperationMenuOpen(false);
+      setOperationMenuContext(null);
+    };
+
+    const isInsideMenu = (target: EventTarget | null) => {
+      if (!(target instanceof Element)) {
+        return false;
+      }
+
+      return (
+        Boolean(menuRef.current?.contains(target)) ||
+        Boolean(target.closest(`.${OPERATION_MENU_OVERLAY_CLASS}`))
+      );
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const rootElement = editor.getRootElement();
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        clearMenuState();
+        return;
+      }
+
+      if (rootElement?.contains(target) || isInsideMenu(target)) {
+        return;
+      }
+
+      clearMenuState();
+    };
+
+    const handleFocusOut = () => {
+      window.requestAnimationFrame(() => {
+        const rootElement = editor.getRootElement();
+        const activeElement = rootElement?.ownerDocument.activeElement;
+
+        if (!activeElement) {
+          clearMenuState();
+          return;
+        }
+
+        if (rootElement?.contains(activeElement) || isInsideMenu(activeElement)) {
+          return;
+        }
+
+        clearMenuState();
+      });
     };
 
     const rootResizeObserver =
       typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(() => {
             markBlockRectsDirty();
+            setLayoutVersion((version) => version + 1);
+            if (blockMenuSuppressed) {
+              return;
+            }
+
+            scheduleHoverProcess();
           })
         : null;
 
     const root = editor.getRootElement();
+    const rootMutationObserver =
+      root && typeof MutationObserver !== 'undefined'
+        ? new MutationObserver(() => {
+            markBlockRectsDirty();
+            setLayoutVersion((version) => version + 1);
+            if (blockMenuSuppressed) {
+              return;
+            }
+
+            scheduleHoverProcess();
+          })
+        : null;
     const unregisterUpdate =
       editor.getLexicalEditor()?.registerUpdateListener(() => {
         markBlockRectsDirty();
+        if (blockMenuSuppressed) {
+          setHoveredBlock(null);
+          setLayoutVersion((version) => version + 1);
+          return;
+        }
+
+        setHoveredBlock((current) => {
+          if (!current) return current;
+
+          const currentRoot = editor.getRootElement();
+          const currentBlockId = current.blockElement.dataset.blockId;
+
+          if (
+            !currentRoot ||
+            !current.blockElement.isConnected ||
+            !currentRoot.contains(current.blockElement) ||
+            currentBlockId !== current.blockId
+          ) {
+            return null;
+          }
+
+          return current;
+        });
+        setLayoutVersion((version) => version + 1);
         scheduleHoverProcess();
       }) || (() => {});
 
     if (root) {
       rootResizeObserver?.observe(root);
+      rootMutationObserver?.observe(root, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+      });
     }
 
     document.addEventListener('mousemove', handleMouseMove, true);
+    document.addEventListener('pointerdown', handlePointerDown, true);
     window.addEventListener('resize', handleViewportChange);
     document.addEventListener('scroll', handleViewportChange, true);
+    root?.addEventListener('focusout', handleFocusOut);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove, true);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
       window.removeEventListener('resize', handleViewportChange);
       document.removeEventListener('scroll', handleViewportChange, true);
+      root?.removeEventListener('focusout', handleFocusOut);
 
       rootResizeObserver?.disconnect();
+      rootMutationObserver?.disconnect();
       unregisterUpdate();
 
       if (hoverRaf !== null) {
@@ -411,9 +623,9 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
         contextRef.current.hideTimer = null;
       }
     };
-  }, [editor, isDragging]);
+  }, [blockMenuSuppressed, editor, isDragging]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!hoveredBlock) {
       if (operationMenuOpen) {
         return;
@@ -424,15 +636,42 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     }
 
     const updateMenuPosition = () => {
-      const rect = hoveredBlock.blockElement.getBoundingClientRect();
+      const blockRect = getBlockMeasureRect(hoveredBlock.blockElement);
+      if (!blockRect) {
+        setMenuPosition({});
+        return;
+      }
+
       const menuWidth = menuRef.current?.offsetWidth || 32;
       const gap = 8;
       const listItemOffset = hoveredBlock.blockElement.tagName === 'LI' ? 16 : 0;
+      const isTableBlock = isTableBlockElement(hoveredBlock.blockElement);
+      const isFocusedTableBlock = focusedTableBlockId === hoveredBlock.blockId && isTableBlock;
+      const tableMenuOffset = isFocusedTableBlock ? TABLE_FOCUSED_MENU_OFFSET : 0;
+      const tableAnchorRect = isTableBlock
+        ? getTableMenuAnchorRect(hoveredBlock.blockElement)
+        : null;
+      const root = editor.getRootElement();
+      const rootRect = root?.getBoundingClientRect();
+      const rootPaddingLeft = root
+        ? Number.parseFloat(window.getComputedStyle(root).paddingLeft || '0')
+        : 0;
+      const minTableLeft = rootRect ? rootRect.left + rootPaddingLeft : gap;
+      const anchorLeft =
+        isTableBlock && tableAnchorRect
+          ? Math.max(tableAnchorRect.left, minTableLeft)
+          : blockRect.left;
+      const rawAnchorTop = tableAnchorRect?.top ?? blockRect.top;
+      const anchorTop =
+        rawAnchorTop >= blockRect.top - 1 && rawAnchorTop <= blockRect.bottom + 1
+          ? rawAnchorTop
+          : blockRect.top;
+      const position = {
+        left: Math.max(gap, anchorLeft - menuWidth - gap - listItemOffset - tableMenuOffset),
+        top: anchorTop,
+      };
 
-      setMenuPosition({
-        left: Math.max(gap, rect.left - menuWidth - gap - listItemOffset),
-        top: rect.top,
-      });
+      setMenuPosition(position);
     };
 
     updateMenuPosition();
@@ -444,7 +683,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       window.removeEventListener('resize', updateMenuPosition);
       document.removeEventListener('scroll', updateMenuPosition, true);
     };
-  }, [hoveredBlock]);
+  }, [editor, focusedTableBlockId, hoveredBlock, layoutVersion, operationMenuOpen]);
 
   const menuContext = useMemo<IBlockMenuRenderContext | null>(() => {
     if (!hoveredBlock) return null;
@@ -603,10 +842,10 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     [operationMenus, operationMenuContext],
   );
 
-  const shouldRenderPortal = menuContext || dragIndicator;
+  const shouldRenderPortal = (!blockMenuSuppressed && menuContext) || dragIndicator;
 
   const menuNode =
-    menuContext && !isDragging ? (
+    menuContext && !isDragging && !blockMenuSuppressed ? (
       <div className={styles.menu} ref={menuRef} style={menuPosition}>
         <div className={styles.menuInner} onMouseDown={preventEditorSelectionLost}>
           {actionButtons.map((item) => {

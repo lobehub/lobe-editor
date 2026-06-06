@@ -1,4 +1,4 @@
-import { $nodesOfType, ElementNode, LexicalEditor, LexicalNode } from 'lexical';
+import { $nodesOfType, ElementNode, HISTORIC_TAG, LexicalEditor, LexicalNode } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
@@ -87,8 +87,19 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
 
     // 补充逻辑：初始化加载/重置 State 时，NodeTransform 不会触发。需要用 UpdateListener 扫一遍存量节点。
     this.register(
-      editor.registerUpdateListener(({ editorState, prevEditorState }) => {
+      editor.registerUpdateListener(({ editorState, prevEditorState, tags }) => {
         if (editorState === prevEditorState) return;
+        if (tags.has(HISTORIC_TAG)) return;
+
+        let shouldNormalize = false;
+        editorState.read(() => {
+          shouldNormalize = $nodesOfType(DiffNode).some(
+            (node) => node.diffType === 'modify' && node.getChildrenSize() === 1,
+          );
+        });
+
+        if (!shouldNormalize) return;
+
         editor.update(() => {
           const diffNodes = $nodesOfType(DiffNode);
           for (const node of diffNodes) {

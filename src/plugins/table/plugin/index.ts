@@ -1,4 +1,8 @@
 import {
+  $computeTableMapSkipCellCheck,
+  $createTableSelection,
+  $deleteTableColumnAtSelection,
+  $deleteTableRowAtSelection,
   $isTableNode,
   TableCellNode,
   TableRowNode,
@@ -7,20 +11,32 @@ import {
   registerTableSelectionObserver,
   setScrollableTablesActive,
 } from '@lexical/table';
-import { LexicalEditor } from 'lexical';
+import { $setSelection, LexicalEditor } from 'lexical';
+import type { ReactNode } from 'react';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { IBlockMenuService } from '@/plugins/block/service';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IDecorator, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { cx } from '@/utils/cx';
 
-import { registerTableCommand } from '../command';
+import {
+  AUTO_FIT_TABLE_COLUMN_WIDTH_COMMAND,
+  DISTRIBUTE_TABLE_COLUMN_WIDTH_COMMAND,
+  INSERT_TABLE_COLUMN_COMMAND,
+  INSERT_TABLE_ROW_COMMAND,
+  SYNC_TABLE_COLUMN_WIDTH_COMMAND,
+  registerTableCommand,
+} from '../command';
 import { TableNode, patchTableNode } from '../node';
+import { ITableControllerMenuService, TableControllerMenuService } from '../service';
+import { createDefaultTableColWidths } from '../utils';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TablePluginOptions {
+  decoratorCol?: (node: TableNode, editor: LexicalEditor) => ReactNode;
+  decoratorRow?: (node: TableNode, editor: LexicalEditor) => ReactNode;
   theme?: string;
 }
 
@@ -31,6 +47,15 @@ const tableCellProcessor = (before: string, content: string, after: string) => {
 function isHeadlessEditor(editor: LexicalEditor): boolean {
   return editor._headless === true;
 }
+
+const getSelectedRange = (selectedIndexes: number[]) => {
+  const sortedIndexes = [...selectedIndexes].sort((a, b) => a - b);
+
+  return {
+    end: sortedIndexes.at(-1) ?? 0,
+    start: sortedIndexes[0] ?? 0,
+  };
+};
 
 export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   extends KernelPlugin
@@ -44,8 +69,37 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   ) {
     super();
     patchTableNode();
+    kernel.registerServiceHotReload(ITableControllerMenuService, new TableControllerMenuService());
     // Register the horizontal rule node
     kernel.registerNodes([TableNode, TableRowNode, TableCellNode]);
+
+    if (options?.decoratorCol || options?.decoratorRow) {
+      kernel.registerDecorator(TableNode.getType(), {
+        multi: [
+          ...(options.decoratorCol
+            ? [
+                {
+                  queryDOM: (el: HTMLElement) => el.querySelector('.toolbar-col') as HTMLElement,
+                  render: (node: any, editor: LexicalEditor) => {
+                    return options.decoratorCol?.(node as TableNode, editor) || null;
+                  },
+                },
+              ]
+            : []),
+          ...(options.decoratorRow
+            ? [
+                {
+                  queryDOM: (el: HTMLElement) => el.querySelector('.toolbar-row') as HTMLElement,
+                  render: (node: any, editor: LexicalEditor) => {
+                    return options.decoratorRow?.(node as TableNode, editor) || null;
+                  },
+                },
+              ]
+            : []),
+        ],
+      } as unknown as IDecorator);
+      this.registeredDecorators.add(TableNode.getType());
+    }
     kernel.registerThemes({
       table: 'editor_table',
       tableCell: 'editor_table_cell',
@@ -67,6 +121,191 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
 
     this.registerMarkdown();
     this.registerLiteXml();
+    this.registerControllerMenu();
+    this.registerBlockSelect();
+  }
+
+  registerBlockSelect() {
+    const blockMenuService = this.kernel.requireService(IBlockMenuService);
+    if (!blockMenuService) {
+      return;
+    }
+
+    this.register(
+      blockMenuService.registerSelectHandler({
+        key: '__table_block_select_handler',
+        onSelect: (node) => {
+          if (!$isTableNode(node)) {
+            return false;
+          }
+
+          const [tableMap] = $computeTableMapSkipCellCheck(node, null, null);
+          const firstCell = tableMap[0]?.[0]?.cell;
+          const lastRow = [...tableMap].reverse().find((row) => row.length > 0);
+          const lastCell = lastRow?.[lastRow.length - 1]?.cell;
+
+          if (!firstCell || !lastCell) {
+            return false;
+          }
+
+          const tableSelection = $createTableSelection();
+          tableSelection.set(node.getKey(), firstCell.getKey(), lastCell.getKey());
+          $setSelection(tableSelection);
+          return true;
+        },
+        order: 100,
+      }),
+    );
+  }
+
+  registerControllerMenu() {
+    const tableControllerMenuService = this.kernel.requireService(ITableControllerMenuService);
+    if (!tableControllerMenuService) {
+      return;
+    }
+
+    [
+      tableControllerMenuService.registerItem({
+        key: '__table_column_insert_before',
+        label: 'Insert before',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          const { start } = getSelectedRange(selectedIndexes);
+          editor.dispatchCommand(INSERT_TABLE_COLUMN_COMMAND, {
+            columnIndex: start,
+            insertAfter: false,
+            table: node.getKey(),
+          });
+        },
+        order: 10,
+        preview: 'insert-before',
+        when: ({ axis }) => axis === 'column',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_column_insert_after',
+        label: 'Insert after',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          const { end } = getSelectedRange(selectedIndexes);
+          editor.dispatchCommand(INSERT_TABLE_COLUMN_COMMAND, {
+            columnIndex: end,
+            insertAfter: true,
+            table: node.getKey(),
+          });
+        },
+        order: 20,
+        preview: 'insert-after',
+        when: ({ axis }) => axis === 'column',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_column_separator_delete',
+        order: 40,
+        type: 'separator',
+        when: ({ axis }) => axis === 'column',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_column_sync_width',
+        label: 'Sync width to all columns',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          const columnIndex = selectedIndexes[0];
+          if (columnIndex === undefined) {
+            return;
+          }
+
+          editor.dispatchCommand(SYNC_TABLE_COLUMN_WIDTH_COMMAND, {
+            columnIndex,
+            table: node.getKey(),
+          });
+        },
+        order: 30,
+        when: ({ axis, selectedIndexes }) => axis === 'column' && selectedIndexes.length > 0,
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_column_auto_fit_width',
+        label: 'Auto fit width',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          editor.dispatchCommand(AUTO_FIT_TABLE_COLUMN_WIDTH_COMMAND, {
+            columnIndexes: selectedIndexes,
+            table: node.getKey(),
+          });
+        },
+        order: 35,
+        when: ({ axis, selectedIndexes }) => axis === 'column' && selectedIndexes.length > 0,
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_column_distribute_width',
+        label: 'Distribute width',
+        onClick: ({ editor, node }) => {
+          editor.dispatchCommand(DISTRIBUTE_TABLE_COLUMN_WIDTH_COMMAND, {
+            table: node.getKey(),
+          });
+        },
+        order: 36,
+        when: ({ axis }) => axis === 'column',
+      }),
+      tableControllerMenuService.registerItem({
+        danger: true,
+        key: '__table_column_delete',
+        label: 'Delete',
+        onClick: ({ editor }) => {
+          editor.update(() => {
+            $deleteTableColumnAtSelection();
+          });
+        },
+        order: 40,
+        preview: 'delete',
+        when: ({ axis }) => axis === 'column',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_row_insert_above',
+        label: 'Insert above',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          const { start } = getSelectedRange(selectedIndexes);
+          editor.dispatchCommand(INSERT_TABLE_ROW_COMMAND, {
+            insertAfter: false,
+            rowIndex: start,
+            table: node.getKey(),
+          });
+        },
+        order: 10,
+        preview: 'insert-before',
+        when: ({ axis }) => axis === 'row',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_row_insert_below',
+        label: 'Insert below',
+        onClick: ({ editor, node, selectedIndexes }) => {
+          const { end } = getSelectedRange(selectedIndexes);
+          editor.dispatchCommand(INSERT_TABLE_ROW_COMMAND, {
+            insertAfter: true,
+            rowIndex: end,
+            table: node.getKey(),
+          });
+        },
+        order: 20,
+        preview: 'insert-after',
+        when: ({ axis }) => axis === 'row',
+      }),
+      tableControllerMenuService.registerItem({
+        key: '__table_row_separator_delete',
+        order: 30,
+        type: 'separator',
+        when: ({ axis }) => axis === 'row',
+      }),
+      tableControllerMenuService.registerItem({
+        danger: true,
+        key: '__table_row_delete',
+        label: 'Delete',
+        onClick: ({ editor }) => {
+          editor.update(() => {
+            $deleteTableRowAtSelection();
+          });
+        },
+        order: 40,
+        preview: 'delete',
+        when: ({ axis }) => axis === 'row',
+      }),
+    ].forEach((unregister) => {
+      this.register(unregister);
+    });
   }
 
   registerLiteXml() {
@@ -124,8 +363,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       }
       return INodeHelper.createElementNode(TableNode.getType(), {
         children,
-        // eslint-disable-next-line unicorn/no-new-array
-        colWidths: colWidths.length > 0 ? colWidths : new Array(maxTdlen).fill(750 / maxTdlen),
+        colWidths: colWidths.length > 0 ? colWidths : createDefaultTableColWidths(maxTdlen),
         direction: null,
         format: '',
         indent: 0,
@@ -208,8 +446,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       const colLen = node.children[0]?.children.length || 1;
       return INodeHelper.createElementNode('table', {
         children,
-        // eslint-disable-next-line unicorn/no-new-array
-        colWidths: new Array(colLen).fill(750 / colLen),
+        colWidths: createDefaultTableColWidths(colLen),
         direction: null,
         format: '',
         indent: 0,
