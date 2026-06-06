@@ -19,6 +19,7 @@ import { mergeRegister } from '@lexical/utils';
 import { ActionIcon } from '@lobehub/ui';
 import type { LexicalEditor } from 'lexical';
 import {
+  $getNodeByKey,
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
@@ -93,9 +94,12 @@ const TableActionMenu = memo<{
       nativeSelection !== null &&
       rootElement.contains(nativeSelection.anchorNode)
     ) {
-      const tableCellNodeFromSelection = $getTableCellNodeFromLexicalNode(
-        selection.anchor.getNode(),
-      );
+      const anchorNode = $getNodeByKey(selection.anchor.key);
+      if (!anchorNode) {
+        return disable();
+      }
+
+      const tableCellNodeFromSelection = $getTableCellNodeFromLexicalNode(anchorNode);
 
       if (!tableCellNodeFromSelection) {
         return disable();
@@ -121,9 +125,14 @@ const TableActionMenu = memo<{
       tableObserver = getTableObserverFromTableElement(tableElement);
       setTableMenuCellNode(tableCellNodeFromSelection);
     } else if ($isTableSelection(selection)) {
-      const anchorNode = $getTableCellNodeFromLexicalNode(selection.anchor.getNode());
+      const selectionAnchorNode = $getNodeByKey(selection.anchor.key);
+      if (!selectionAnchorNode) {
+        return disable();
+      }
+
+      const anchorNode = $getTableCellNodeFromLexicalNode(selectionAnchorNode);
       if (!$isTableCellNode(anchorNode)) {
-        throw new Error('TableSelection anchorNode must be a TableCellNode');
+        return disable();
       }
       const tableNode = $getTableNodeFromLexicalNodeOrThrow(anchorNode);
       const tableElement = getTableElement(tableNode, editor.getElementByKey(tableNode.getKey()));

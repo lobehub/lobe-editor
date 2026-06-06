@@ -1,9 +1,14 @@
 'use client';
 
-import { $findTableNode, $getElementForTableNode, $isTableSelection } from '@lexical/table';
+import {
+  $findTableNode,
+  $getElementForTableNode,
+  $isTableNode,
+  $isTableSelection,
+} from '@lexical/table';
 import { cx } from 'antd-style';
 import EventEmitter from 'eventemitter3';
-import { $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
 import {
   type CSSProperties,
   type FC,
@@ -95,8 +100,16 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
           updateSelectionOutlineRect(null);
           return null;
         }
-        const tableNode = $findTableNode(selection.anchor.getNode());
-        if (!tableNode) {
+        const anchorNode = $isRangeSelection(selection)
+          ? $getNodeByKey(selection.anchor.key)
+          : null;
+        const tableNode = $isTableSelection(selection)
+          ? $getNodeByKey(selection.tableKey)
+          : anchorNode
+            ? $findTableNode(anchorNode)
+            : null;
+
+        if (!tableNode || !$isTableNode(tableNode)) {
           updateSelectionOutlineRect(null);
           return null;
         }

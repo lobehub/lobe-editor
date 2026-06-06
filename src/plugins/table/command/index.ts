@@ -85,6 +85,19 @@ export const MOVE_TABLE_ROW_COMMAND = createCommand<{
   table: string;
 }>();
 
+const resetTableScrollLeft = (editor: LexicalEditor, tableKey: string) => {
+  const tableElement = editor.getElementByKey(tableKey);
+  const table =
+    tableElement instanceof HTMLTableElement
+      ? tableElement
+      : tableElement?.querySelector<HTMLTableElement>('table.editor_table, table');
+  const scrollWrapper = table?.closest<HTMLElement>('.lobe-editor-table-scroll-wrapper');
+
+  if (scrollWrapper) {
+    scrollWrapper.scrollLeft = 0;
+  }
+};
+
 const $selectFirstDescendant = (node: ElementNode) => {
   const firstDescendant = node.getFirstDescendant();
   if ($isTextNode(firstDescendant)) {
@@ -203,12 +216,16 @@ export function registerTableCommand(editor: LexicalEditor) {
           return false;
         }
 
-        // Prevent nested tables by checking if we're already inside a table
-        if ($findTableNode(selection.anchor.getNode())) {
+        const anchorNode = $getNodeByKey(selection.anchor.key);
+        if (!anchorNode) {
           return false;
         }
 
-        const anchorNode = selection.anchor.getNode();
+        // Prevent nested tables by checking if we're already inside a table
+        if ($findTableNode(anchorNode)) {
+          return false;
+        }
+
         const rowCount = Number(rows);
         const columnCount = Number(columns);
 
@@ -349,6 +366,7 @@ export function registerTableCommand(editor: LexicalEditor) {
 
         requestAnimationFrame(() => {
           syncTableWidthDOM(editor, table, nextColWidths);
+          resetTableScrollLeft(editor, table);
         });
 
         return true;

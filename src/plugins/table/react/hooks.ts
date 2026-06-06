@@ -7,7 +7,7 @@
  */
 import { $findTableNode, $isTableSelection, TableNode } from '@lexical/table';
 import { debounce } from 'es-toolkit/compat';
-import { $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getTableSelectionIndexes, isTableFullySelected } from '../utils';
@@ -35,7 +35,7 @@ const isSameSelection = (
 
 const readTableControllerSelection = (
   editor: LexicalEditor,
-  node: TableNode,
+  tableKey: string,
 ): TableControllerSelection => {
   const rootElement = editor.getRootElement();
   const activeElement = rootElement?.ownerDocument.activeElement;
@@ -47,17 +47,26 @@ const readTableControllerSelection = (
 
   return editor.getEditorState().read(() => {
     const selection = $getSelection();
-    const latestNode = node.getLatest();
-    const columnCount = latestNode.getColumnCount();
-    const rowCount = latestNode.getChildrenSize();
-    const tableKey = latestNode.getKey();
+    const tableNode = $getNodeByKey<TableNode>(tableKey);
+
+    if (!tableNode) {
+      return {
+        isTableFocused: false,
+        isTableSelected: false,
+        selectedColumns: [],
+        selectedRows: [],
+      };
+    }
+
+    const columnCount = tableNode.getColumnCount();
+    const rowCount = tableNode.getChildrenSize();
 
     const selectionIndexes = getTableSelectionIndexes(selection, tableKey, columnCount, rowCount);
+    const anchorNode = $isRangeSelection(selection) ? $getNodeByKey(selection.anchor.key) : null;
     const isTableFocused =
       isEditorFocused &&
       (($isTableSelection(selection) && selection.tableKey === tableKey) ||
-        ($isRangeSelection(selection) &&
-          Boolean($findTableNode(selection.anchor.getNode())?.is(latestNode))));
+        Boolean(anchorNode && $findTableNode(anchorNode)?.getKey() === tableKey));
 
     return {
       isTableFocused,
@@ -70,12 +79,13 @@ const readTableControllerSelection = (
 };
 
 export const useTableControllerSelection = (editor: LexicalEditor, node: TableNode) => {
-  const [selection, setSelection] = useState(() => readTableControllerSelection(editor, node));
+  const tableKey = node.getKey();
+  const [selection, setSelection] = useState(() => readTableControllerSelection(editor, tableKey));
 
   useEffect(() => {
     let frame: number | null = null;
     const updateSelection = () => {
-      const nextSelection = readTableControllerSelection(editor, node);
+      const nextSelection = readTableControllerSelection(editor, tableKey);
       setSelection((currentSelection) => {
         return isSameSelection(currentSelection, nextSelection) ? currentSelection : nextSelection;
       });
@@ -109,7 +119,7 @@ export const useTableControllerSelection = (editor: LexicalEditor, node: TableNo
       unregisterRootListener();
       unregisterUpdateListener();
     };
-  }, [editor, node]);
+  }, [editor, tableKey]);
 
   return selection;
 };
