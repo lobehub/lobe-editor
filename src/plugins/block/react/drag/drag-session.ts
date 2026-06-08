@@ -36,7 +36,6 @@ interface StartBlockDragSessionParams {
   setDragIndicator: (value: DragIndicator | null) => void;
   setOperationMenuContext: (value: IBlockMenuRenderContext | null) => void;
   setOperationMenuOpen: (value: boolean) => void;
-  toggleOperationMenu: (context: IBlockMenuRenderContext | null) => void;
 }
 
 const DRAG_GHOST_OFFSET_X = 14;
@@ -136,9 +135,7 @@ export const startBlockDragSession = ({
   setDragIndicator,
   setOperationMenuContext,
   setOperationMenuOpen,
-  toggleOperationMenu,
 }: StartBlockDragSessionParams) => {
-  setOperationMenuOpen(false);
   let dragGhost: HTMLDivElement | null = null;
   let restoreSourceOpacity: (() => void) | null = null;
 
@@ -264,10 +261,6 @@ export const startBlockDragSession = ({
 
   const onPointerUp = () => {
     if (!contextRef.current.dragStarted && !contextRef.current.dragMoved) {
-      toggleOperationMenu(menuContext);
-      // Pointerup may be followed by click; consume it to avoid immediate double toggle.
-      contextRef.current.ignoreNextHandleClick = true;
-
       contextRef.current.draggingSource = null;
       contextRef.current.dragPointerY = null;
       contextRef.current.dragBlocks = [];

@@ -1,8 +1,8 @@
 'use client';
 
 import { $findTableNode, $isTableSelection } from '@lexical/table';
-import { Icon } from '@lobehub/ui';
-import { Button, Dropdown, theme } from 'antd';
+import { DropdownMenu, type DropdownMenuProps, Icon, useAppElement } from '@lobehub/ui';
+import { Button, theme } from 'antd';
 import { cx } from 'antd-style';
 import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
 import { GripVerticalIcon, PlusIcon } from 'lucide-react';
@@ -40,7 +40,7 @@ import {
   getTableBlockRect,
   isTableBlockElement,
 } from './drag/drag-utils';
-import { styles } from './style';
+import { ANCHOR_PADDING_CSS_VAR, styles } from './style';
 
 export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'className'> {
   className?: string;
@@ -72,16 +72,22 @@ const getTableMenuAnchorRect = (element: HTMLElement) => {
 const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   const { token } = theme.useToken();
   const [editor] = useLexicalComposerContext();
+  const appElement = useAppElement();
   const {
     rootClassName,
     className,
     attributeName,
+    anchorPadding,
     locale,
     onHoverBlockChange,
     onDragTargetChange,
     onDragTargetResolve,
   } = props;
   const mergedRootClassName = cx(styles.root, rootClassName?.trim() || className?.trim());
+  const anchorPaddingValue = useMemo(() => {
+    if (anchorPadding === undefined) return null;
+    return typeof anchorPadding === 'number' ? `${anchorPadding}px` : anchorPadding;
+  }, [anchorPadding]);
   const menuRef = useRef<HTMLDivElement>(null);
   const dragLayerRef = useRef<HTMLDivElement>(null);
   const contextRef = useRef<RuntimeContextRef>(createRuntimeContext());
@@ -110,10 +116,27 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     }
 
     editor.registerPlugin(BlockPlugin, {
+      anchorPadding,
       attributeName,
       className: mergedRootClassName,
     });
-  }, [attributeName, editor, locale, mergedRootClassName]);
+  }, [anchorPadding, attributeName, editor, locale, mergedRootClassName]);
+
+  useLexicalEditor(
+    (lexicalEditor) =>
+      lexicalEditor.registerRootListener((rootElement, prevRootElement) => {
+        if (prevRootElement) {
+          prevRootElement.style.removeProperty(ANCHOR_PADDING_CSS_VAR);
+        }
+        if (!rootElement) return;
+        if (anchorPaddingValue === null) {
+          rootElement.style.removeProperty(ANCHOR_PADDING_CSS_VAR);
+        } else {
+          rootElement.style.setProperty(ANCHOR_PADDING_CSS_VAR, anchorPaddingValue);
+        }
+      }),
+    [anchorPaddingValue],
+  );
 
   useLexicalEditor(() => {
     const service = editor.requireService(IBlockMenuService) as BlockMenuService | null;
@@ -625,8 +648,44 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     };
   }, [blockMenuSuppressed, editor, isDragging]);
 
+  const menuContext = useMemo<IBlockMenuRenderContext | null>(() => {
+    if (operationMenuOpen && operationMenuContext) {
+      return operationMenuContext;
+    }
+
+    const lockedContext = blockMenuService?.getMenuLockedContext();
+    if (lockedContext) {
+      const root = editor.getRootElement();
+      const fresh = root?.querySelector<HTMLElement>(
+        `[data-block-id="${CSS.escape(lockedContext.blockId)}"]`,
+      );
+      if (fresh && root?.contains(fresh)) {
+        return {
+          blockElement: fresh,
+          blockId: lockedContext.blockId,
+          editor,
+        };
+      }
+    }
+
+    if (!hoveredBlock) return null;
+
+    return {
+      blockElement: hoveredBlock.blockElement,
+      blockId: hoveredBlock.blockId,
+      editor,
+    };
+  }, [
+    editor,
+    hoveredBlock,
+    operationMenuOpen,
+    operationMenuContext,
+    blockMenuService,
+    menuVersion,
+  ]);
+
   useLayoutEffect(() => {
-    if (!hoveredBlock) {
+    if (!menuContext) {
       if (operationMenuOpen) {
         return;
       }
@@ -636,7 +695,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     }
 
     const updateMenuPosition = () => {
-      const blockRect = getBlockMeasureRect(hoveredBlock.blockElement);
+      const blockRect = getBlockMeasureRect(menuContext.blockElement);
       if (!blockRect) {
         setMenuPosition({});
         return;
@@ -644,12 +703,12 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
 
       const menuWidth = menuRef.current?.offsetWidth || 32;
       const gap = 8;
-      const listItemOffset = hoveredBlock.blockElement.tagName === 'LI' ? 16 : 0;
-      const isTableBlock = isTableBlockElement(hoveredBlock.blockElement);
-      const isFocusedTableBlock = focusedTableBlockId === hoveredBlock.blockId && isTableBlock;
+      const listItemOffset = menuContext.blockElement.tagName === 'LI' ? 16 : 0;
+      const isTableBlock = isTableBlockElement(menuContext.blockElement);
+      const isFocusedTableBlock = focusedTableBlockId === menuContext.blockId && isTableBlock;
       const tableMenuOffset = isFocusedTableBlock ? TABLE_FOCUSED_MENU_OFFSET : 0;
       const tableAnchorRect = isTableBlock
-        ? getTableMenuAnchorRect(hoveredBlock.blockElement)
+        ? getTableMenuAnchorRect(menuContext.blockElement)
         : null;
       const root = editor.getRootElement();
       const rootRect = root?.getBoundingClientRect();
@@ -683,17 +742,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       window.removeEventListener('resize', updateMenuPosition);
       document.removeEventListener('scroll', updateMenuPosition, true);
     };
-  }, [editor, focusedTableBlockId, hoveredBlock, layoutVersion, operationMenuOpen]);
-
-  const menuContext = useMemo<IBlockMenuRenderContext | null>(() => {
-    if (!hoveredBlock) return null;
-
-    return {
-      blockElement: hoveredBlock.blockElement,
-      blockId: hoveredBlock.blockId,
-      editor,
-    };
-  }, [editor, hoveredBlock]);
+  }, [editor, focusedTableBlockId, menuContext, layoutVersion, operationMenuOpen]);
 
   const operationMenus = useMemo(() => {
     if (!operationMenuContext || !blockMenuService) return [];
@@ -780,23 +829,6 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
     setDragIndicator(null);
   };
 
-  const toggleOperationMenu = (context: IBlockMenuRenderContext | null) => {
-    if (!context) {
-      setOperationMenuOpen(false);
-      setOperationMenuContext(null);
-      return;
-    }
-
-    setOperationMenuOpen((open) => {
-      const shouldOpen = !(
-        open && contextRef.current.operationMenuAnchorBlockId === context.blockId
-      );
-      contextRef.current.operationMenuAnchorBlockId = shouldOpen ? context.blockId : null;
-      setOperationMenuContext(shouldOpen ? context : null);
-      return shouldOpen;
-    });
-  };
-
   const handleDragHandlePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     if (!menuContext) return;
 
@@ -815,20 +847,29 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       setDragIndicator,
       setOperationMenuContext,
       setOperationMenuOpen,
-      toggleOperationMenu,
     });
   };
 
-  const handleDragHandleClick = () => {
+  const handleOperationMenuOpenChange = (open: boolean) => {
     if (contextRef.current.ignoreNextHandleClick) {
       contextRef.current.ignoreNextHandleClick = false;
       return;
     }
 
-    toggleOperationMenu(menuContext);
+    if (!menuContext) return;
+
+    if (open) {
+      setOperationMenuOpen(true);
+      setOperationMenuContext(menuContext);
+      contextRef.current.operationMenuAnchorBlockId = menuContext.blockId;
+    } else {
+      setOperationMenuOpen(false);
+      setOperationMenuContext(null);
+      contextRef.current.operationMenuAnchorBlockId = null;
+    }
   };
 
-  const dropdownItems = useMemo(
+  const dropdownItems = useMemo<DropdownMenuProps['items']>(
     () =>
       operationMenus.map((item) => ({
         key: item.key,
@@ -864,36 +905,25 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
               />
             );
           })}
-          <Dropdown
-            align={{
-              points: ['tr', 'tl'],
-            }}
-            classNames={{
-              root: OPERATION_MENU_OVERLAY_CLASS,
-            }}
-            menu={{ items: dropdownItems }}
-            onOpenChange={(open) => {
-              if (!open) {
-                setOperationMenuOpen(false);
-                setOperationMenuContext(null);
-                contextRef.current.operationMenuAnchorBlockId = null;
-              }
-            }}
+          <DropdownMenu
+            items={dropdownItems}
+            onOpenChange={handleOperationMenuOpenChange}
             open={operationMenuOpen && operationMenuContext?.blockId === menuContext.blockId}
-            trigger={[]}
+            placement={'leftTop'}
+            popupProps={{ className: OPERATION_MENU_OVERLAY_CLASS }}
+            positionerProps={{ style: { zIndex: 1000 } }}
           >
             <Button
               aria-label={'Block actions and drag'}
               className={styles.dragHandle}
               data-block-drag-handle={'true'}
               icon={<Icon icon={GripVerticalIcon} size={14} />}
-              onClick={handleDragHandleClick}
               onPointerDown={handleDragHandlePointerDown}
               size={'small'}
               title={'Block actions and drag'}
               type={'text'}
             />
-          </Dropdown>
+          </DropdownMenu>
         </div>
       </div>
     ) : null;
@@ -925,7 +955,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
               />
             )}
           </>,
-          document.body,
+          appElement ?? document.body,
         )}
     </>
   );

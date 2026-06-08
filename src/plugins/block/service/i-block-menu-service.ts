@@ -36,12 +36,25 @@ export interface IBlockSelectHandler {
 
 export interface IBlockMenuService {
   getActionButtons(context: IBlockMenuRenderContext): IBlockActionButton[];
+  /**
+   * Returns the currently pinned menu context, or null when no lock is active.
+   * While locked, the block menu UI freezes at the pinned block and hover
+   * detection no longer reassigns the anchor.
+   */
+  getMenuLockedContext(): IBlockMenuRenderContext | null;
   getMenus(context: IBlockMenuRenderContext): IBlockMenuItem[];
   isMenuSuppressed(): boolean;
   registerActionButton(item: IBlockActionButton): () => void;
   registerMenu(item: IBlockMenuItem): () => void;
   registerSelectHandler(item: IBlockSelectHandler): () => void;
   selectNode(node: LexicalNode): boolean;
+  /**
+   * Pin the block menu UI to the provided context (typically while a consumer
+   * popup spawned by an action button is open). Pass `null` for `context` to
+   * release the lock owned by `key`. Multiple keys may hold locks
+   * simultaneously; the most recently set lock wins.
+   */
+  setMenuLockedContext(key: string, context: IBlockMenuRenderContext | null): void;
   setMenuSuppressed(key: string, suppressed: boolean): void;
   subscribe(listener: () => void): () => void;
 }
@@ -54,6 +67,7 @@ export class BlockMenuService implements IBlockMenuService {
   private actionButtons: Map<string, IBlockActionButton> = new Map();
   private items: Map<string, IBlockMenuItem> = new Map();
   private listeners: Set<() => void> = new Set();
+  private lockedContexts: Map<string, IBlockMenuRenderContext> = new Map();
   private selectHandlers: Map<string, IBlockSelectHandler> = new Map();
   private suppressors: Set<string> = new Set();
 
@@ -61,6 +75,15 @@ export class BlockMenuService implements IBlockMenuService {
     return Array.from(this.actionButtons.values())
       .filter((item) => (item.when ? item.when(context) : true))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  getMenuLockedContext(): IBlockMenuRenderContext | null {
+    if (this.lockedContexts.size === 0) return null;
+    let last: IBlockMenuRenderContext | null = null;
+    for (const ctx of this.lockedContexts.values()) {
+      last = ctx;
+    }
+    return last;
   }
 
   getMenus(context: IBlockMenuRenderContext): IBlockMenuItem[] {
@@ -115,6 +138,22 @@ export class BlockMenuService implements IBlockMenuService {
     }
 
     return false;
+  }
+
+  setMenuLockedContext(key: string, context: IBlockMenuRenderContext | null): void {
+    const existing = this.lockedContexts.get(key);
+
+    if (context === null) {
+      if (!this.lockedContexts.delete(key)) return;
+      this.notify();
+      return;
+    }
+
+    if (existing === context) return;
+
+    this.lockedContexts.delete(key);
+    this.lockedContexts.set(key, context);
+    this.notify();
   }
 
   setMenuSuppressed(key: string, suppressed: boolean): void {
