@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.17.0](https://github.com/lobehub/lobe-editor/compare/v4.16.1...v4.17.0)
+<sup>Released on **2026-06-08**</sup>
+
+
+#### ✨ Features
+
+- **block**: Configurable anchor padding & base-ui dropdown.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **block**: Configurable anchor padding & base-ui dropdown, closes [#169](https://github.com/lobehub/lobe-editor/issues/169) ([fafbfc4](https://github.com/lobehub/lobe-editor/commit/fafbfc4))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.16.1](https://github.com/lobehub/lobe-editor/compare/v4.16.0...v4.16.1)
 <sup>Released on **2026-06-06**</sup>
 
