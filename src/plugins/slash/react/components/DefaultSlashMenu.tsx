@@ -126,12 +126,11 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
       const isDisabled = Boolean(item.disabled);
 
       return (
-        <button
+        <div
           aria-disabled={isDisabled || undefined}
           className={menuSharedStyles.item}
           data-disabled={isDisabled ? '' : undefined}
           data-highlighted={isHighlighted ? '' : undefined}
-          disabled={isDisabled}
           key={String(item.key)}
           onClick={() => {
             if (isDisabled) return;
@@ -139,7 +138,7 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
           }}
           // Prevent the editor from losing focus when the popup is clicked.
           onMouseDown={(event) => event.preventDefault()}
-          type={'button'}
+          role={'menuitem'}
         >
           {item.icon ? (
             <span className={menuSharedStyles.icon}>
@@ -148,7 +147,7 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
           ) : null}
           <span className={menuSharedStyles.label}>{item.label}</span>
           {item.extra ? <span className={menuSharedStyles.extra}>{item.extra}</span> : null}
-        </button>
+        </div>
       );
     })
   );
