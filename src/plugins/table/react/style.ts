@@ -10,6 +10,7 @@ export const styles = createStaticStyles(
     .lobe-editor-table-scroll-wrapper {
       position: relative;
       overflow: auto visible;
+      margin-inline: calc(var(--lobe-block-anchor-padding, 54px) * -1);
       padding-block-start: 14px;
     }
 
@@ -84,6 +85,7 @@ export const styles = createStaticStyles(
       border-collapse: collapse;
 
       width: fit-content;
+      margin-inline: var(--lobe-block-anchor-padding, 54px);
 
       text-align: start;
       text-indent: initial;

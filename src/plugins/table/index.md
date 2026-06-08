@@ -14,6 +14,12 @@ Table plugin enables full-featured table editing in the editor. Built on Lexical
 
 <code src="./demos/index.tsx"></code>
 
+## Horizontal Scrolling
+
+When a table is wider than the editor's text column, the scroll wrapper bleeds into the editor's own anchor padding on both sides while the table itself stays anchored to the text column at scroll position zero. As the user scrolls horizontally, the leftmost columns slide into the left gutter and the rightmost columns reveal into the right gutter — the visible clip region uses both gutters. The bleed tracks `--lobe-block-anchor-padding`; consumers that override anchor padding (for example, set it to `0`) get the matching bleed amount automatically.
+
+<code src="./demos/scrollable.tsx"></code>
+
 ## Core Architecture
 
 ### Table Node System
