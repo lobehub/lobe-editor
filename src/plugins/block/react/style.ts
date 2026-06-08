@@ -1,5 +1,15 @@
 import { createStaticStyles } from 'antd-style';
 
+export const ANCHOR_PADDING_CSS_VAR = '--lobe-block-anchor-padding';
+
+/**
+ * Default inline padding (px) reserved on the editor root so the floating
+ * block menu / drag handle has room to render. Exported for consumers that
+ * need to align surrounding chrome (e.g. a title section above the editor)
+ * with the editor's content edge.
+ */
+export const DEFAULT_BLOCK_ANCHOR_PADDING = 54;
+
 export const styles = createStaticStyles(({ css, cssVar }) => ({
   dragHandle: css`
     cursor: grab !important;
@@ -59,6 +69,6 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     }
   `,
   root: css`
-    padding-inline: 54px 54px;
+    padding-inline: var(${ANCHOR_PADDING_CSS_VAR}, ${DEFAULT_BLOCK_ANCHOR_PADDING}px);
   `,
 }));

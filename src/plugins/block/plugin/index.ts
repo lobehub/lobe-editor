@@ -23,6 +23,15 @@ import { registerBlockMoveCommand } from '../command';
 import { BlockMenuService, IBlockMenuService } from '../service';
 
 export interface BlockPluginOptions {
+  /**
+   * Inline padding reserved on the editor root so the floating block menu /
+   * drag handle has somewhere to render without overlapping the block content.
+   * Pass `0` (or `'0'`) when the surrounding layout already provides enough
+   * left gutter. Accepts a number (treated as px) or any valid CSS
+   * `padding-inline` value (e.g. `'40px 0'`). When omitted, defaults to 54px
+   * on each side.
+   */
+  anchorPadding?: number | string;
   attributeName?: string;
   className?: string;
 }

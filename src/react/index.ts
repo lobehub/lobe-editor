@@ -19,3 +19,4 @@ export { useEditor } from './hooks/useEditor';
 export { type EditorState, useEditorState } from './hooks/useEditorState';
 export { default as SendButton, type SendButtonProps } from './SendButton';
 export { default as SlashMenu, type SlashMenuProps } from './SlashMenu';
+export { ANCHOR_PADDING_CSS_VAR, DEFAULT_BLOCK_ANCHOR_PADDING } from '@/plugins/block/react/style';
