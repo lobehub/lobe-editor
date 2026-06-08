@@ -61,7 +61,7 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
   const getRectRef = useRef(position.getRect);
   getRectRef.current = position.getRect;
 
-  const { refs, floatingStyles, update } = useFloating({
+  const { refs, floatingStyles, isPositioned, update } = useFloating({
     middleware,
     open,
     placement: resolvedPlacement,
@@ -157,7 +157,10 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
       className={styles.root}
       data-resloved-placement={resolvedPlacement}
       ref={refs.setFloating}
-      style={floatingStyles}
+      // Hide until floating-ui has measured to avoid a one-frame flash at 0,0
+      // on first open (the layout effect attaches the reference *after* the
+      // initial render, so the first floatingStyles fall back to top-left).
+      style={{ ...floatingStyles, visibility: isPositioned ? 'visible' : 'hidden' }}
     >
       <div className={styles.popup}>{renderedItems}</div>
     </div>
