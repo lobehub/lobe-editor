@@ -21,6 +21,8 @@ import {
 } from '../service/i-slash-service';
 import { getQueryTextForSearch, tryToPositionRange } from '../utils/utils';
 
+const SLASH_ADD_LOCK_KEY = '__slash_add_below';
+
 export interface ITriggerContext {
   getRect: () => DOMRect;
   items:
@@ -54,6 +56,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
   static readonly pluginName = 'SlashPlugin';
 
   private service: SlashService | null = null;
+  private blockMenuService: IBlockMenuService | null = null;
   private currentSlashTrigger: string | null = null;
   private currentSlashTriggerIndex = -1;
   private manualOpen = false;
@@ -85,15 +88,19 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
     this.manualOpen = false;
     // After an explicit close, suppress reopening until next typing input
     this.suppressOpen = true;
+    // Release the block-menu anchor lock acquired when the add-block button
+    // spawned this slash menu (no-op when not held).
+    this.blockMenuService?.setMenuLockedContext(SLASH_ADD_LOCK_KEY, null);
   }
 
   onInit(editor: LexicalEditor): void {
     const blockMenuService = this.kernel.requireService(IBlockMenuService);
+    this.blockMenuService = blockMenuService;
 
     if (blockMenuService) {
       const unregisterAddBlockButton = blockMenuService.registerActionButton({
         icon: 'plus',
-        key: '__slash_add_below',
+        key: SLASH_ADD_LOCK_KEY,
         onClick: (context) => {
           const lexicalEditor = context.editor.getLexicalEditor();
           if (!lexicalEditor) return;
@@ -146,6 +153,10 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
             match: null,
             trigger: slashOptions.trigger,
           });
+          // Pin the block-menu anchor to the clicked block while the slash
+          // menu is open, mirroring the drag-handle dropdown's lock so the
+          // action bar does not chase the cursor.
+          blockMenuService.setMenuLockedContext(SLASH_ADD_LOCK_KEY, context);
         },
         order: -100,
         title: 'Add block below',
@@ -277,6 +288,8 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
   }
 
   destroy(): void {
+    this.blockMenuService?.setMenuLockedContext(SLASH_ADD_LOCK_KEY, null);
+    this.blockMenuService = null;
     super.destroy();
   }
 };
