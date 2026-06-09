@@ -45,6 +45,8 @@ interface MarkdownDetectionResult {
 const RICH_HTML_SELECTOR =
   'strong,em,b,i,h1,h2,h3,h4,h5,h6,ul,ol,table,img,blockquote,pre>code,a[href]';
 
+export const normalizeMarkdownForClipboard = (markdown: string) => markdown.replace(/\r?\n$/, '');
+
 const MARKDOWN_DETECTION_RULES = [
   { name: 'headers', score: 5, test: (text) => /^#{1,6}\s+\S/m.test(text) },
   { name: 'code-fence-start', score: 5, test: (text) => /^```[\w-]*$/m.test(text) },
@@ -324,8 +326,10 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           if (!selection || selection.isCollapsed()) return false;
 
           // Get the selection as markdown
-          const markdown = this.markdownDataSource.write(editor, { selection: true });
-          if (!markdown) return false;
+          const rawMarkdown = this.markdownDataSource.write(editor, { selection: true });
+          if (!rawMarkdown) return false;
+
+          const markdown = normalizeMarkdownForClipboard(rawMarkdown);
 
           event.preventDefault();
 
