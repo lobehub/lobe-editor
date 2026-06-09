@@ -12,8 +12,8 @@ import {
   MentionPlugin,
   TablePlugin,
 } from '@lobehub/editor';
-import { REDO_COMMAND, UNDO_COMMAND } from 'lexical';
-import { describe, expect, it } from 'vitest';
+import { COPY_COMMAND, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
+import { describe, expect, it, vi } from 'vitest';
 
 import Editor from '@/editor-kernel';
 
@@ -496,6 +496,174 @@ const json = {
 };
 
 describe('Markdown Commands', () => {
+  describe('COPY_COMMAND', () => {
+    const dispatchCopyCommand = (editor: ReturnType<typeof Editor.createEditor>) => {
+      const clipboard = new Map<string, string>();
+      const clipboardData = {
+        clearData: (type?: string) => {
+          if (type) {
+            clipboard.delete(type);
+          } else {
+            clipboard.clear();
+          }
+        },
+        getData: (type: string) => clipboard.get(type) || '',
+        setData: (type: string, value: string) => {
+          clipboard.set(type, value);
+        },
+        get types() {
+          return Array.from(clipboard.keys());
+        },
+      } as unknown as DataTransfer;
+      class MockClipboardEvent extends Event {
+        clipboardData = clipboardData;
+      }
+      vi.stubGlobal('ClipboardEvent', MockClipboardEvent);
+
+      const event = new MockClipboardEvent('copy') as ClipboardEvent;
+
+      editor.dispatchCommand(COPY_COMMAND, event);
+
+      return clipboard;
+    };
+
+    it('should write a partial paragraph selection without formatter-generated trailing line break', async () => {
+      const editor = Editor.createEditor().registerPlugins([CommonPlugin, MarkdownPlugin]);
+      editor.initNodeEditor();
+
+      editor.setDocument(
+        'json',
+        {
+          root: {
+            children: [
+              {
+                children: [
+                  {
+                    detail: 0,
+                    format: 0,
+                    id: '2',
+                    mode: 'normal',
+                    style: '',
+                    text: 'before js代码 after',
+                    type: 'text',
+                    version: 1,
+                  },
+                ],
+                direction: 'ltr',
+                format: '',
+                id: '1',
+                indent: 0,
+                textFormat: 0,
+                textStyle: '',
+                type: 'paragraph',
+                version: 1,
+              },
+            ],
+            direction: 'ltr',
+            format: '',
+            id: 'root',
+            indent: 0,
+            type: 'root',
+            version: 1,
+          },
+        },
+        { keepId: true },
+      );
+
+      await editor.setSelection({
+        endNodeId: '2',
+        endOffset: 11,
+        startNodeId: '2',
+        startOffset: 7,
+        type: 'range',
+      });
+
+      const clipboard = dispatchCopyCommand(editor);
+
+      expect(clipboard.get('text/plain')).toBe('js代码');
+      expect(clipboard.get('text/markdown')).toBe('js代码');
+    });
+
+    it('should preserve paragraph breaks when copying across paragraphs', async () => {
+      const editor = Editor.createEditor().registerPlugins([CommonPlugin, MarkdownPlugin]);
+      editor.initNodeEditor();
+
+      editor.setDocument(
+        'json',
+        {
+          root: {
+            children: [
+              {
+                children: [
+                  {
+                    detail: 0,
+                    format: 0,
+                    id: '2',
+                    mode: 'normal',
+                    style: '',
+                    text: 'before 第一段',
+                    type: 'text',
+                    version: 1,
+                  },
+                ],
+                direction: 'ltr',
+                format: '',
+                id: '1',
+                indent: 0,
+                textFormat: 0,
+                textStyle: '',
+                type: 'paragraph',
+                version: 1,
+              },
+              {
+                children: [
+                  {
+                    detail: 0,
+                    format: 0,
+                    id: '4',
+                    mode: 'normal',
+                    style: '',
+                    text: '第二段 after',
+                    type: 'text',
+                    version: 1,
+                  },
+                ],
+                direction: 'ltr',
+                format: '',
+                id: '3',
+                indent: 0,
+                textFormat: 0,
+                textStyle: '',
+                type: 'paragraph',
+                version: 1,
+              },
+            ],
+            direction: 'ltr',
+            format: '',
+            id: 'root',
+            indent: 0,
+            type: 'root',
+            version: 1,
+          },
+        },
+        { keepId: true },
+      );
+
+      await editor.setSelection({
+        endNodeId: '4',
+        endOffset: 3,
+        startNodeId: '2',
+        startOffset: 7,
+        type: 'range',
+      });
+
+      const clipboard = dispatchCopyCommand(editor);
+
+      expect(clipboard.get('text/plain')).toBe('第一段\n\n第二段');
+      expect(clipboard.get('text/markdown')).toBe('第一段\n\n第二段');
+    });
+  });
+
   describe('INSERT_MARKDOWN_COMMAND', () => {
     it('should keep markdown auto-convert redoable after undo', async () => {
       const editor = Editor.createEditor().registerPlugins([CommonPlugin, MarkdownPlugin]);
