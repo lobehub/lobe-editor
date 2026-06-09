@@ -152,11 +152,16 @@ function ensureTableControllerDOM(element: HTMLElement): void {
   if (legacyPlainToolbar instanceof HTMLElement) {
     legacyPlainToolbar.className = 'toolbar-row';
     markTableControllerHost(legacyPlainToolbar, true);
-    element.append(legacyPlainToolbar);
+    scrollWrapper.append(legacyPlainToolbar);
+  }
+
+  const legacyOuterRowToolbar = element.querySelector(':scope > .toolbar-row');
+  if (legacyOuterRowToolbar instanceof HTMLElement) {
+    scrollWrapper.append(legacyOuterRowToolbar);
   }
 
   ensureToolbar(scrollWrapper, 'toolbar-col', true);
-  ensureToolbar(element, 'toolbar-row', true);
+  ensureToolbar(scrollWrapper, 'toolbar-row', true);
   ensureTableScrollIndicators(scrollWrapper);
 }
 

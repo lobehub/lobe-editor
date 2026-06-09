@@ -64,6 +64,11 @@ export const styles = createStaticStyles(
       height: 0;
     }
 
+    .toolbar-col,
+    .toolbar-row {
+      inset-inline-start: var(--lobe-block-anchor-padding, 54px);
+    }
+
     .table-controller,
     .table-controller-col,
     .table-controller-row {
