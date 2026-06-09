@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.17.1](https://github.com/lobehub/lobe-editor/compare/v4.17.0...v4.17.1)
+<sup>Released on **2026-06-09**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **release**: Trigger release ci.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **release**: Trigger release ci ([a96834f](https://github.com/lobehub/lobe-editor/commit/a96834f))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.17.0](https://github.com/lobehub/lobe-editor/compare/v4.16.1...v4.17.0)
 <sup>Released on **2026-06-08**</sup>
 
