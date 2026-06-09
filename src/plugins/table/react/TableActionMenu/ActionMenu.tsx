@@ -23,7 +23,7 @@ import {
   getTableElement,
   getTableObserverFromTableElement,
 } from '@lexical/table';
-import { Dropdown } from '@lobehub/ui';
+import { DropdownMenu, type DropdownMenuProps } from '@lobehub/ui';
 import type { LexicalEditor } from 'lexical';
 import { $getSelection, $setSelection } from 'lexical';
 import {
@@ -371,8 +371,7 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
       });
     }, [editor, tableCellNode, clearTableSelection]);
 
-    // Create menu items array with useMemo for performance
-    const menuItems = useMemo(() => {
+    const menuItems = useMemo<DropdownMenuProps['items']>(() => {
       return [
         {
           icon: PanelTopCloseIcon,
@@ -456,7 +455,7 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
       toggleTableColumnIsHeader,
     ]);
 
-    return <Dropdown menu={{ items: menuItems }}>{children}</Dropdown>;
+    return <DropdownMenu items={menuItems}>{children}</DropdownMenu>;
   },
 );
 
