@@ -42,9 +42,6 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     pointer-events: auto;
     position: fixed;
     z-index: 100;
-    transition:
-      inset-inline-start 200ms ease,
-      inset-block-start 200ms ease;
   `,
   menuInner: css`
     display: flex;
