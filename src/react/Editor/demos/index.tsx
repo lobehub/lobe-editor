@@ -23,6 +23,7 @@ import {
   ReactTablePlugin,
   ReactToolbarPlugin,
   ReactVirtualBlockPlugin,
+  ReactYjsPlugin,
   type SlashOptions,
   scrollIntoView,
 } from '@lobehub/editor';
@@ -42,6 +43,7 @@ import { type FC, useMemo, useState } from 'react';
 
 import { devConsole } from '@/utils/debug';
 
+import { createBroadcastChannelYjsProvider } from './BroadcastChannelYjsProvider';
 import Container from './Container';
 import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
@@ -49,6 +51,33 @@ import content from './data.json';
 
 // @ts-expect-error not error
 window.__scrollIntoView = scrollIntoView;
+
+const cursorColors = ['#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ea580c', '#0891b2'];
+
+const getTabUser = () => {
+  if (typeof window === 'undefined') {
+    return {
+      color: cursorColors[0],
+      name: 'Demo user',
+    };
+  }
+
+  const cacheKey = 'lobe-editor-demo-yjs-user';
+  const cached = window.sessionStorage.getItem(cacheKey);
+
+  if (cached) {
+    return JSON.parse(cached) as { color: string; name: string };
+  }
+
+  const index = Math.floor(Math.random() * cursorColors.length);
+  const user = {
+    color: cursorColors[index],
+    name: `Demo user ${Math.floor(Math.random() * 900 + 100)}`,
+  };
+
+  window.sessionStorage.setItem(cacheKey, JSON.stringify(user));
+  return user;
+};
 
 const styles = createStaticStyles(({ css }) => ({
   editor: css`
@@ -61,6 +90,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
   const [xml, setXml] = useState('');
+  const tabUser = useMemo(() => getTabUser(), []);
 
   const handleChange = useMemo(
     () =>
@@ -288,6 +318,12 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
           ReactTablePlugin,
           ReactMathPlugin,
           ReactCodePlugin,
+          Editor.withProps(ReactYjsPlugin, {
+            cursorColor: tabUser.color,
+            id: 'editor-demo',
+            providerFactory: createBroadcastChannelYjsProvider,
+            username: tabUser.name,
+          }),
           Editor.withProps(ReactToolbarPlugin, {
             children: <Toolbar editor={editor} floating />,
           }),

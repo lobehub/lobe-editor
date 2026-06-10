@@ -403,6 +403,10 @@ export interface IEditorPlugin<IConfig> {
    */
   destroy(): void;
   /**
+   * After editor document content is written by setDocument
+   */
+  onDocumentChange?(type: string, content: any, options?: IDocumentOptions): void;
+  /**
    * After Lexical editor instantiation
    * @param editor Lexical editor instance
    */
