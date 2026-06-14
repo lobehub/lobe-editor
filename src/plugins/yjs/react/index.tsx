@@ -3,24 +3,28 @@
 import {
   type ExcludedProperties,
   type SyncCursorPositionsFn,
+  type UserState,
   initLocalState,
   setLocalStateFocus,
   syncCursorPositions,
 } from '@lexical/yjs';
 import { BLUR_COMMAND, COMMAND_PRIORITY_EDITOR, FOCUS_COMMAND, type LexicalEditor } from 'lexical';
 import type { FC, RefObject } from 'react';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Doc } from 'yjs';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
+import { ICodemirrorEditLockService } from '@/plugins/codemirror-block/service';
 import {
   type YjsInitialEditorState,
   YjsPlugin,
   type YjsProviderFactory,
 } from '@/plugins/yjs/plugin';
 import { IYjsService, type YjsPluginState } from '@/plugins/yjs/service';
+
+import { createCodemirrorEditLockProvider } from './codemirrorEditLockProvider';
 
 export interface ReactYjsPluginProps {
   awarenessData?: object;
@@ -29,6 +33,7 @@ export interface ReactYjsPluginProps {
   excludedProperties?: ExcludedProperties;
   id: string;
   initialEditorState?: YjsInitialEditorState;
+  persistCursorOnBlur?: boolean;
   providerFactory: YjsProviderFactory;
   shouldBootstrap?: boolean;
   syncCursorPositionsFn?: SyncCursorPositionsFn;
@@ -38,6 +43,9 @@ export interface ReactYjsPluginProps {
 
 const DEFAULT_CURSOR_COLOR = '#2563eb';
 const DEFAULT_USERNAME = 'Anonymous';
+const CURSOR_OVERLAY_Z_INDEX = 1;
+
+type LocalSelectionState = Pick<UserState, 'anchorPos' | 'focusPos'>;
 
 function useYjsState(
   lexicalEditor: LexicalEditor | null,
@@ -59,13 +67,27 @@ function useYjsState(
 
 function YjsCursors({
   cursorsContainerRef,
+  lexicalEditor,
   syncCursorPositionsFn,
   state,
 }: {
   cursorsContainerRef?: RefObject<HTMLElement | null>;
+  lexicalEditor: LexicalEditor;
   state: YjsPluginState;
   syncCursorPositionsFn: SyncCursorPositionsFn;
 }) {
+  const [defaultContainer, setDefaultContainer] = useState<HTMLElement | null>(null);
+  const cursorsContainer = cursorsContainerRef?.current || defaultContainer || document.body;
+
+  useLayoutEffect(() => {
+    if (cursorsContainerRef?.current) {
+      return;
+    }
+
+    const rootElement = lexicalEditor.getRootElement();
+    setDefaultContainer(rootElement?.parentElement || rootElement || document.body);
+  }, [cursorsContainerRef, lexicalEditor]);
+
   const portal = useMemo(() => {
     const ref = (element: HTMLElement | null) => {
       state.binding.cursorsContainer = element;
@@ -85,12 +107,12 @@ function YjsCursors({
           position: 'absolute',
           top: 0,
           width: 0,
-          zIndex: 1000,
+          zIndex: CURSOR_OVERLAY_Z_INDEX,
         }}
       />,
-      (cursorsContainerRef && cursorsContainerRef.current) || document.body,
+      cursorsContainer,
     );
-  }, [cursorsContainerRef, state.binding, state.provider, syncCursorPositionsFn]);
+  }, [cursorsContainer, state.binding, state.provider, syncCursorPositionsFn]);
 
   return portal;
 }
@@ -102,6 +124,7 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
   excludedProperties,
   id,
   initialEditorState,
+  persistCursorOnBlur = true,
   providerFactory,
   shouldBootstrap,
   syncCursorPositionsFn = syncCursorPositions,
@@ -111,6 +134,7 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
   const [editor] = useLexicalComposerContext();
   const [lexicalEditor, setLexicalEditor] = useState<LexicalEditor | null>(null);
   const [pluginRegisteredSignal, setPluginRegisteredSignal] = useState(0);
+  const lastLocalSelectionRef = useRef<LocalSelectionState | null>(null);
   const state = useYjsState(lexicalEditor, pluginRegisteredSignal);
 
   useLayoutEffect(() => {
@@ -146,19 +170,58 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
       return;
     }
 
+    const awareness = state.provider.awareness;
+    const setLocalState = awareness.setLocalState.bind(awareness);
+
+    const getLocalStateWithPreservedSelection = (localState: UserState | null) => {
+      if (!localState) {
+        lastLocalSelectionRef.current = null;
+        return localState;
+      }
+
+      if (localState.anchorPos && localState.focusPos) {
+        lastLocalSelectionRef.current = {
+          anchorPos: localState.anchorPos,
+          focusPos: localState.focusPos,
+        };
+        return localState;
+      }
+
+      if (!persistCursorOnBlur || !localState.focusing || !lastLocalSelectionRef.current) {
+        return localState;
+      }
+
+      return {
+        ...localState,
+        anchorPos: lastLocalSelectionRef.current.anchorPos,
+        focusPos: lastLocalSelectionRef.current.focusPos,
+      };
+    };
+
+    awareness.setLocalState = (localState) => {
+      setLocalState(getLocalStateWithPreservedSelection(localState));
+    };
+
     initLocalState(
       state.provider,
       username,
       cursorColor,
-      document.activeElement === lexicalEditor.getRootElement(),
+      persistCursorOnBlur || document.activeElement === lexicalEditor.getRootElement(),
       awarenessData,
     );
 
     const updateAwareness = () => {
+      const localState = awareness.getLocalState();
+      const nextLocalState = getLocalStateWithPreservedSelection(localState);
+
+      if (nextLocalState !== localState) {
+        setLocalState(nextLocalState);
+      }
+
       syncCursorPositionsFn(state.binding, state.provider);
     };
 
-    state.provider.awareness.on('update', updateAwareness);
+    awareness.on('update', updateAwareness);
     const unregisterUpdate = lexicalEditor.registerUpdateListener(updateAwareness);
     let animationFrame = 0;
 
@@ -171,11 +234,30 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
     animationFrame = window.requestAnimationFrame(renderCursorPositions);
 
     return () => {
-      state.provider.awareness.off('update', updateAwareness);
+      awareness.setLocalState = setLocalState;
+      awareness.off('update', updateAwareness);
       unregisterUpdate();
       window.cancelAnimationFrame(animationFrame);
     };
-  }, [awarenessData, cursorColor, lexicalEditor, state, syncCursorPositionsFn, username]);
+  }, [
+    awarenessData,
+    cursorColor,
+    lexicalEditor,
+    persistCursorOnBlur,
+    state,
+    syncCursorPositionsFn,
+    username,
+  ]);
+
+  useEffect(() => {
+    if (!lexicalEditor || !state) {
+      return;
+    }
+
+    const editLockService = editor.requireService(ICodemirrorEditLockService);
+
+    return editLockService?.registerProvider(createCodemirrorEditLockProvider(state));
+  }, [editor, lexicalEditor, state]);
 
   useEffect(() => {
     if (!lexicalEditor || !state) {
@@ -183,6 +265,10 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
     }
 
     const setFocus = (focusing: boolean) => {
+      if (!focusing && persistCursorOnBlur) {
+        return false;
+      }
+
       setLocalStateFocus(state.provider, username, cursorColor, focusing, awarenessData);
       return false;
     };
@@ -202,7 +288,7 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
       unregisterFocus();
       unregisterBlur();
     };
-  }, [awarenessData, cursorColor, lexicalEditor, state, username]);
+  }, [awarenessData, cursorColor, lexicalEditor, persistCursorOnBlur, state, username]);
 
   useEffect(() => {
     if (!state) {
@@ -223,13 +309,14 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
     };
   }, [state]);
 
-  if (!state) {
+  if (!lexicalEditor || !state) {
     return null;
   }
 
   return (
     <YjsCursors
       cursorsContainerRef={cursorsContainerRef}
+      lexicalEditor={lexicalEditor}
       state={state}
       syncCursorPositionsFn={syncCursorPositionsFn}
     />
