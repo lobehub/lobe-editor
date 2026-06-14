@@ -23,11 +23,14 @@ import {
   ReactTablePlugin,
   ReactToolbarPlugin,
   ReactVirtualBlockPlugin,
+  ReactYjsPlugin,
   type SlashOptions,
+  type YjsProviderFactory,
   scrollIntoView,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
+import { Alert, Button, Segmented, Space, Tag } from 'antd';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
@@ -38,36 +41,128 @@ import {
   SigmaIcon,
   Table2Icon,
 } from 'lucide-react';
-import { type FC, useMemo, useState } from 'react';
+import { type FC, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { devConsole } from '@/utils/debug';
 
+import { createBroadcastChannelYjsProvider } from './BroadcastChannelYjsProvider';
 import Container from './Container';
 import Toolbar from './Toolbar';
+import {
+  type WebSocketYjsProviderStatus,
+  createWebSocketYjsProvider,
+  fetchWebSocketDemoDocument,
+  saveWebSocketDemoDocument,
+  snapshotWebSocketDemoDocument,
+} from './WebSocketYjsProvider';
 import { openFileSelector } from './actions';
-import content from './data.json';
+import localContent from './data.json';
 
 // @ts-expect-error not error
 window.__scrollIntoView = scrollIntoView;
 
+const cursorColors = ['#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ea580c', '#0891b2'];
+
+const getTabUser = () => {
+  if (typeof window === 'undefined') {
+    return {
+      color: cursorColors[0],
+      name: 'Demo user',
+    };
+  }
+
+  const cacheKey = 'lobe-editor-demo-yjs-user';
+  const cached = window.sessionStorage.getItem(cacheKey);
+
+  if (cached) {
+    return JSON.parse(cached) as { color: string; name: string };
+  }
+
+  const index = Math.floor(Math.random() * cursorColors.length);
+  const user = {
+    color: cursorColors[index],
+    name: `Demo user ${Math.floor(Math.random() * 900 + 100)}`,
+  };
+
+  window.sessionStorage.setItem(cacheKey, JSON.stringify(user));
+  return user;
+};
+
 const styles = createStaticStyles(({ css }) => ({
+  controls: css`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+
+    padding-block: 12px;
+    padding-inline: 16px;
+    border-block-end: 1px solid rgba(0, 0, 0, 6%);
+  `,
   editor: css`
     padding: 16px;
   `,
+  modeBar: css`
+    display: flex;
+    justify-content: flex-end;
+    padding-block: 12px;
+    padding-inline: 0;
+  `,
 }));
 
-const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+const WEBSOCKET_DOCUMENT_ID = 'editor-demo';
+const connectionStatusColors: Record<WebSocketYjsProviderStatus, string> = {
+  connected: 'success',
+  connecting: 'processing',
+  disconnected: 'error',
+  reconnecting: 'warning',
+};
+
+function getInitialYjsDemoMode(): 'broadcast' | 'websocket' {
+  if (typeof window === 'undefined') {
+    return 'broadcast';
+  }
+
+  return new URLSearchParams(window.location.search).get('yjsMode') === 'websocket'
+    ? 'websocket'
+    : 'broadcast';
+}
+
+type EditorDemoProps = Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'> & {
+  content: unknown;
+  onEditorReady?: (editor: IEditor) => void;
+  providerFactory: YjsProviderFactory;
+  renderControls?: (editor: IEditor) => ReactNode;
+};
+
+function getDocumentSafely<T>(editor: IEditor, type: string, fallback: T): T {
+  try {
+    return (editor.getDocument(type) as T) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+const EditorDemo: FC<EditorDemoProps> = ({
+  content,
+  onEditorReady,
+  providerFactory,
+  renderControls,
+  ...props
+}) => {
   const editor = useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
   const [xml, setXml] = useState('');
+  const tabUser = useMemo(() => getTabUser(), []);
 
   const handleChange = useMemo(
     () =>
       debounce((editor: IEditor) => {
-        const markdownContent = editor.getDocument('markdown') as unknown as string;
-        const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
-        const xmlContent = editor.getDocument('litexml') as unknown as string;
+        const markdownContent = getDocumentSafely(editor, 'markdown', '');
+        const jsonContent = getDocumentSafely<Record<string, any>>(editor, 'json', {});
+        const xmlContent = getDocumentSafely(editor, 'litexml', '');
         setMarkdown(markdownContent || '');
         setJson(JSON.stringify(jsonContent || {}, null, 2));
         setXml(xmlContent || '');
@@ -89,6 +184,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
   const handleInit = (editor: IEditor) => {
     // @ts-expect-error not error：
     window.editor = editor;
+    onEditorReady?.(editor);
     handleChange(editor);
   };
 
@@ -252,7 +348,10 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
       xml={xml}
       {...props}
     >
-      <Toolbar editor={editor} />
+      <div className={styles.controls}>
+        <Toolbar editor={editor} />
+        {renderControls?.(editor)}
+      </div>
       <Editor
         className={styles.editor}
         content={content}
@@ -288,6 +387,12 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
           ReactTablePlugin,
           ReactMathPlugin,
           ReactCodePlugin,
+          Editor.withProps(ReactYjsPlugin, {
+            cursorColor: tabUser.color,
+            id: 'editor-demo',
+            providerFactory,
+            username: tabUser.name,
+          }),
           Editor.withProps(ReactToolbarPlugin, {
             children: <Toolbar editor={editor} floating />,
           }),
@@ -373,6 +478,159 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         }}
       />
     </Container>
+  );
+};
+
+const WebSocketJsonDemo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+  const [content, setContent] = useState<unknown>(null);
+  const [connectionStatus, setConnectionStatus] =
+    useState<WebSocketYjsProviderStatus>('disconnected');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState('Not saved');
+  const editorReference = useRef<IEditor | null>(null);
+  const providersReference = useRef(new Set<ReturnType<typeof createWebSocketYjsProvider>>());
+
+  const providerFactory = useCallback<YjsProviderFactory>((id, yjsDocMap) => {
+    const provider = createWebSocketYjsProvider(id, yjsDocMap);
+    providersReference.current.add(provider);
+
+    provider.on('status', ({ status }) => {
+      setConnectionStatus(status);
+    });
+
+    return provider;
+  }, []);
+
+  const snapshotCurrentDocument = useCallback(() => {
+    if (!editorReference.current) {
+      return;
+    }
+
+    snapshotWebSocketDemoDocument(
+      WEBSOCKET_DOCUMENT_ID,
+      getDocumentSafely(editorReference.current, 'json', {}),
+    );
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchWebSocketDemoDocument(WEBSOCKET_DOCUMENT_ID)
+      .then((data) => {
+        if (!isMounted) return;
+        setContent(data);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        setLoadError(error instanceof Error ? error.message : 'Failed to load document');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', snapshotCurrentDocument);
+
+    return () => {
+      snapshotCurrentDocument();
+      providersReference.current.forEach((provider) => provider.disconnect());
+      providersReference.current.clear();
+      window.removeEventListener('beforeunload', snapshotCurrentDocument);
+    };
+  }, [snapshotCurrentDocument]);
+
+  if (loadError) {
+    return (
+      <Alert message={`WebSocket demo server is not ready: ${loadError}`} showIcon type="warning" />
+    );
+  }
+
+  if (!content) {
+    return <Alert message="Loading document JSON from demo server..." showIcon type="info" />;
+  }
+
+  return (
+    <EditorDemo
+      content={content}
+      onEditorReady={(editor) => {
+        editorReference.current = editor;
+      }}
+      providerFactory={providerFactory}
+      renderControls={(editor) => (
+        <Space size={8}>
+          <Tag color={connectionStatusColors[connectionStatus]}>{connectionStatus}</Tag>
+          <Text code fontSize={12} type="secondary">
+            {saveStatus}
+          </Text>
+          <Button
+            onClick={async () => {
+              setSaveStatus('Saving...');
+              try {
+                await saveWebSocketDemoDocument(
+                  WEBSOCKET_DOCUMENT_ID,
+                  getDocumentSafely(editor, 'json', {}),
+                );
+                setSaveStatus(`Saved ${new Date().toLocaleTimeString()}`);
+              } catch (error) {
+                setSaveStatus(error instanceof Error ? error.message : 'Save failed');
+              }
+            }}
+            size="small"
+          >
+            Save JSON
+          </Button>
+        </Space>
+      )}
+      {...props}
+    />
+  );
+};
+
+const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+  const [mode, setMode] = useState<'broadcast' | 'websocket'>(getInitialYjsDemoMode);
+
+  return (
+    <>
+      <div className={styles.modeBar}>
+        <Segmented
+          onChange={(value) => {
+            const nextMode = value as 'broadcast' | 'websocket';
+            setMode(nextMode);
+
+            if (typeof window !== 'undefined') {
+              const url = new URL(window.location.href);
+
+              if (nextMode === 'websocket') {
+                url.searchParams.set('yjsMode', 'websocket');
+              } else {
+                url.searchParams.delete('yjsMode');
+              }
+
+              window.history.replaceState(null, '', url);
+            }
+          }}
+          options={[
+            { label: 'BroadcastChannel', value: 'broadcast' },
+            { label: 'WebSocket JSON', value: 'websocket' },
+          ]}
+          size="small"
+          value={mode}
+        />
+      </div>
+      {mode === 'websocket' ? (
+        <WebSocketJsonDemo key="websocket" {...props} />
+      ) : (
+        <EditorDemo
+          content={localContent}
+          key="broadcast"
+          providerFactory={createBroadcastChannelYjsProvider}
+          {...props}
+        />
+      )}
+    </>
   );
 };
 
