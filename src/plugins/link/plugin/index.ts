@@ -1,4 +1,10 @@
-import { $createTextNode, COMMAND_PRIORITY_NORMAL, LexicalEditor, PASTE_COMMAND } from 'lexical';
+import {
+  $createTextNode,
+  COMMAND_PRIORITY_NORMAL,
+  LexicalEditor,
+  PASTE_COMMAND,
+  TextNode,
+} from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
@@ -14,13 +20,15 @@ import {
   LinkAttributes,
   LinkNode,
 } from '../node/LinkNode';
-import { ILinkService, LinkService } from '../service/i-link-service';
+import { ILinkService, LinkService, SchemaLinkRendererConfig } from '../service/i-link-service';
 import { registerLinkCommands } from './registry';
 
 export interface LinkPluginOptions {
+  allowedProtocols?: string[];
   attributes?: LinkAttributes;
   enableHotkey?: boolean;
   linkRegex?: RegExp;
+  schemaLinkRenderers?: SchemaLinkRendererConfig[];
   theme?: {
     link?: string;
   };
@@ -42,6 +50,16 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
     super();
     // Register the link nodes
     kernel.registerNodes([LinkNode, AutoLinkNode]);
+    this.service.setAllowedProtocols([
+      'http:',
+      'https:',
+      'mailto:',
+      'sms:',
+      'tel:',
+      ...(config?.schemaLinkRenderers?.map(({ protocol }) => protocol) || []),
+      ...(config?.allowedProtocols || []),
+    ]);
+    this.service.setSchemaLinkRenderers(config?.schemaLinkRenderers);
     kernel.registerService(ILinkService, this.service);
     if (config?.theme) {
       kernel.registerThemes(config.theme);
@@ -59,6 +77,14 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
         attributes: this.config?.attributes,
         enableHotkey: this.config?.enableHotkey,
         validateUrl: this.config?.validateUrl,
+      }),
+    );
+    this.register(
+      editor.registerNodeTransform(TextNode, (textNode) => {
+        const parent = textNode.getParent();
+        if ($isLinkNode(parent) && this.service.getSchemaLinkRenderer(parent.getURL())) {
+          parent.getWritable();
+        }
       }),
     );
     this.register(

@@ -15,10 +15,12 @@ import { styles } from './style';
 import { ReactLinkPluginProps } from './type';
 
 export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
+  allowedProtocols,
   theme,
   enableHotkey = true,
   validateUrl,
   attributes,
+  schemaLinkRenderers,
 }) => {
   const [enableToolbar, setEnableToolbar] = useState(false);
   const [editor] = useLexicalComposerContext();
@@ -26,12 +28,14 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(LinkPlugin, {
+      allowedProtocols,
       attributes,
       enableHotkey,
+      schemaLinkRenderers,
       theme: theme || styles,
       validateUrl,
     });
-  }, [attributes, enableHotkey, styles, theme, validateUrl]);
+  }, [allowedProtocols, attributes, enableHotkey, schemaLinkRenderers, styles, theme, validateUrl]);
 
   useLexicalEditor(() => {
     const linkService = editor.requireService(ILinkService) as LinkService;
