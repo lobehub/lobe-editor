@@ -1,7 +1,9 @@
 // @vitest-environment node
-import { createHeadlessEditor } from '@lobehub/editor/headless';
+import { createHeadlessEditor, extractMediaFromEditorState } from '@lobehub/editor/headless';
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { resetRandomKey } from 'lexical';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 function findTextNode(
@@ -166,6 +168,92 @@ describe('HeadlessEditor', () => {
     expect(markdown).toContain('Feature');
     expect(markdown).toContain('Supported');
     editor.destroy();
+  });
+
+  it('supports image, file, math, and mention kernel data in node headless mode', () => {
+    expect(globalThis.document).toBeUndefined();
+    expect(globalThis.window).toBeUndefined();
+
+    const imageEditor = createHeadlessEditor();
+    imageEditor.hydrateMarkdown('![Diagram](https://cdn.example.com/diagram.png)');
+    const imageSnapshot = imageEditor.export({ litexml: true });
+    const imageNode = findNodeByType(imageSnapshot.editorData.root, 'block-image');
+
+    expect(imageNode).toMatchObject({
+      altText: 'Diagram',
+      src: 'https://cdn.example.com/diagram.png',
+      status: 'uploaded',
+      type: 'block-image',
+    });
+    expect(imageSnapshot.litexml).toContain('<img');
+    expect(imageSnapshot.markdown).toContain('![Diagram](https://cdn.example.com/diagram.png)');
+    expect(extractMediaFromEditorState(imageSnapshot.editorData).imageList[0]).toMatchObject({
+      alt: 'Diagram',
+      url: 'https://cdn.example.com/diagram.png',
+    });
+    imageEditor.destroy();
+
+    const fileEditor = createHeadlessEditor();
+    fileEditor.hydrateLiteXML(
+      '<?xml version="1.0" encoding="UTF-8"?><root><file name="guide.pdf" fileUrl="https://cdn.example.com/guide.pdf" size="2048" status="uploaded"></file></root>',
+    );
+    const fileSnapshot = fileEditor.export({ litexml: true });
+    const fileNode = findNodeByType(fileSnapshot.editorData.root, 'file');
+
+    expect(fileNode).toMatchObject({
+      fileUrl: 'https://cdn.example.com/guide.pdf',
+      name: 'guide.pdf',
+      size: 2048,
+      status: 'uploaded',
+      type: 'file',
+    });
+    expect(fileSnapshot.markdown).toContain('[guide.pdf](https://cdn.example.com/guide.pdf)');
+    expect(extractMediaFromEditorState(fileSnapshot.editorData).fileList[0]).toMatchObject({
+      fileType: 'pdf',
+      name: 'guide.pdf',
+      size: 2048,
+      url: 'https://cdn.example.com/guide.pdf',
+    });
+    fileEditor.destroy();
+
+    const mathEditor = createHeadlessEditor();
+    mathEditor.hydrateMarkdown('This is math: $E=mc^2$');
+    const mathSnapshot = mathEditor.export({ litexml: true });
+
+    expect(findNodeByType(mathSnapshot.editorData.root, 'math')).toMatchObject({
+      code: 'E=mc^2',
+      type: 'math',
+    });
+    expect(mathSnapshot.litexml).toContain('<math');
+    expect(mathSnapshot.markdown).toBe('This is math: $E=mc^2$\n');
+    mathEditor.destroy();
+
+    const mentionEditor = createHeadlessEditor();
+    mentionEditor.hydrateLiteXML(
+      '<?xml version="1.0" encoding="UTF-8"?><root><p><mention label="Ada" metadata="{&quot;id&quot;:&quot;42&quot;}"></mention></p></root>',
+    );
+    const mentionSnapshot = mentionEditor.export({ litexml: true });
+
+    expect(findNodeByType(mentionSnapshot.editorData.root, 'mention')).toMatchObject({
+      label: 'Ada',
+      metadata: { id: '42' },
+      type: 'mention',
+    });
+    expect(mentionSnapshot.litexml).toContain('<mention');
+    expect(mentionSnapshot.markdown).toBe('Ada\n');
+    mentionEditor.destroy();
+  });
+
+  it('keeps the headless entry and headless plugins free of direct React and DOM globals', () => {
+    const forbiddenPattern =
+      /\b(document|window|HTMLElement|HTMLImageElement|FileReader|ClipboardEvent|Range|JSX)\b|from ['"]react['"]/;
+    const files = ['../index.ts', '../plugins/codeblock.ts'];
+
+    for (const file of files) {
+      const source = readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8');
+
+      expect(source, file).not.toMatch(forbiddenPattern);
+    }
   });
 
   it('hydrates editor data with code blocks and horizontal rules', () => {
