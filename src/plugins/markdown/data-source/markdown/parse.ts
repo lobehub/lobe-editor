@@ -144,8 +144,31 @@ function convertMdastToLexical(
                 if (isComment) {
                   return ret;
                 }
-                const tag = child.value.replaceAll(/^<\/?|>$/g, '');
+                const tag = getHtmlTagName(child.value);
                 const isEndTag = child.value.startsWith('</');
+                const pairedTag = child.value.match(/^<\s*([a-z0-9-]+)\b[^>]*>([\s\S]*)<\/\s*\1\s*>$/i);
+                if (!isEndTag && pairedTag) {
+                  const reader = markdownReaders['html'];
+                  const htmlChildren = pairedTag[2] ? [INodeHelper.createTextNode(pairedTag[2])] : [];
+                  if (Array.isArray(reader)) {
+                    for (const element of reader) {
+                      const inode = element(child as unknown as any, htmlChildren, index);
+                      if (inode) {
+                        ret.push(inode);
+                        return ret;
+                      }
+                    }
+                  } else if (typeof reader === 'function') {
+                    const inode = reader(child as unknown as any, htmlChildren, index);
+                    if (inode) {
+                      ret.push(inode);
+                      return ret;
+                    }
+                  }
+
+                  ret.push(INodeHelper.createTextNode(child.value));
+                  return ret;
+                }
                 if (selfClosingHtmlTags.has(tag)) {
                   // Self-closing tag
                   const reader = markdownReaders['html'];
@@ -274,6 +297,11 @@ function convertMdastToLexical(
       return children || null;
     }
   }
+}
+
+function getHtmlTagName(value: string): string {
+  const match = value.match(/^<\/?\s*([a-z0-9-]+)/i);
+  return match?.[1]?.toLowerCase() || value.replaceAll(/^<\/?|>$/g, '');
 }
 
 function registerDefaultReaders(markdownReaders: TransformerRecord) {
