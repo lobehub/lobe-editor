@@ -1,14 +1,11 @@
 import { $isCodeNode } from '@lexical/code-core';
 import { $findMatchingParent } from '@lexical/utils';
-import {
-  $getSelection,
-  $isRangeSelection,
-  COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
-  createCommand,
-} from 'lexical';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR, LexicalEditor } from 'lexical';
 
 import { ShikiTokenizer } from '../plugin/CodeHighlighterShiki';
+import { UPDATE_CODEBLOCK_LANG } from './symbols';
+
+export { UPDATE_CODEBLOCK_LANG } from './symbols';
 
 export const CustomShikiTokenizer = {
   $tokenize: ShikiTokenizer.$tokenize,
@@ -16,10 +13,6 @@ export const CustomShikiTokenizer = {
   defaultLanguage: ShikiTokenizer.defaultLanguage,
   defaultTheme: ShikiTokenizer.defaultTheme,
 };
-
-export const UPDATE_CODEBLOCK_LANG = createCommand<{
-  lang: string;
-}>('UPDATE_CODEBLOCK_LANG');
 
 export function registerCodeCommand(editor: LexicalEditor) {
   const unregisterLangCommand = editor.registerCommand(

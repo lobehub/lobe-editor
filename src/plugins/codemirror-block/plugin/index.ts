@@ -12,7 +12,7 @@ import { $createCodeMirrorNode, CodeMirrorNode } from '../node/CodeMirrorNode';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CodemirrorPluginOptions {
-  decorator: (node: CodeMirrorNode, editor: LexicalEditor) => any;
+  decorator?: (node: CodeMirrorNode, editor: LexicalEditor) => any;
   theme?: string;
 }
 

@@ -139,20 +139,13 @@ describe('HeadlessEditor', () => {
 
     const { editorData, markdown } = editor.export();
     const codeNode = findNodeByType(editorData.root, 'code');
-    const codeChildren = Array.isArray(codeNode?.children) ? codeNode.children : [];
 
-    expect(markdown).toBe('```plaintext\nconst a = 1\nconst b=  1\n```\n');
+    expect(markdown).toBe('```plain\nconst a = 1\nconst b=  1\n```\n');
     expect(codeNode).toMatchObject({
       code: 'const a = 1\nconst b=  1',
+      language: 'plain',
       type: 'code',
     });
-    expect(codeChildren).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ text: 'const a = 1', type: 'code-highlight' }),
-        expect.objectContaining({ type: 'linebreak' }),
-        expect.objectContaining({ text: 'const b=  1', type: 'code-highlight' }),
-      ]),
-    );
     editor.destroy();
   });
 
@@ -247,13 +240,28 @@ describe('HeadlessEditor', () => {
   it('keeps the headless entry and headless plugins free of direct React and DOM globals', () => {
     const forbiddenPattern =
       /\b(document|window|HTMLElement|HTMLImageElement|FileReader|ClipboardEvent|Range|JSX)\b|from ['"]react['"]/;
-    const files = ['../index.ts', '../plugins/codeblock.ts'];
+    const files = ['../index.ts'];
 
     for (const file of files) {
       const source = readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8');
 
       expect(source, file).not.toMatch(forbiddenPattern);
     }
+  });
+
+  it('uses the shared codemirror kernel plugin in headless mode', () => {
+    const source = readFileSync(fileURLToPath(new URL('../index.ts', import.meta.url)), 'utf8');
+    const commandSource = readFileSync(
+      fileURLToPath(new URL('../../plugins/codemirror-block/command/index.ts', import.meta.url)),
+      'utf8',
+    );
+
+    expect(source).toContain('@/plugins/codemirror-block/plugin');
+    expect(source).toContain('CodemirrorPlugin');
+    expect(source).not.toContain('CodeblockPlugin');
+    expect(source).not.toContain('HeadlessCodeblockPlugin');
+    expect(commandSource).toContain('@/plugins/codeblock/command/symbols');
+    expect(commandSource).not.toContain("@/plugins/codeblock'");
   });
 
   it('hydrates editor data with code blocks and horizontal rules', () => {

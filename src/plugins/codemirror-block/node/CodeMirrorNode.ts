@@ -45,6 +45,22 @@ const DEFAULT_OPTIONS: CodeMirrorOptions = {
   tabSize: 2,
 };
 
+const extractSerializedCodeText = (children: unknown[]): string =>
+  children
+    .map((child) => {
+      if (!child || typeof child !== 'object') return '';
+
+      const record = child as Record<string, unknown>;
+
+      if (record.type === 'linebreak') return '\n';
+      if (record.type === 'tab') return '\t';
+      if (typeof record.text === 'string') return record.text;
+      if (Array.isArray(record.children)) return extractSerializedCodeText(record.children);
+
+      return '';
+    })
+    .join('');
+
 function hasChildDOMNodeTag(node: Node, tagName: string) {
   for (const child of node.childNodes) {
     if (isHTMLElement(child) && child.tagName === tagName) {
@@ -85,9 +101,8 @@ export class CodeMirrorNode extends DecoratorNode<any> {
 
   static importJSON(serializedNode: SerializedCodeMirrorNode): CodeMirrorNode {
     let code = serializedNode.code;
-    if ('children' in serializedNode) {
-      // @ts-expect-error not error
-      code = serializedNode.children?.map((child) => child.text).join('') || '';
+    if ('children' in serializedNode && Array.isArray(serializedNode.children)) {
+      code = extractSerializedCodeText(serializedNode.children);
     }
     return $createCodeMirrorNode(
       serializedNode.language,
