@@ -1,7 +1,9 @@
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import { mergeRegister } from '@lexical/utils';
 import {
   $createParagraphNode,
   $getNodeByKey,
+  $getRoot,
   $getSelection,
   $isDecoratorNode,
   $isNodeSelection,
@@ -15,6 +17,7 @@ import {
   LexicalEditor,
   LexicalNode,
   ParagraphNode,
+  RangeSelection,
 } from 'lexical';
 
 import { $closest } from '@/editor-kernel';
@@ -51,6 +54,54 @@ function $isEmptyNode(node: ElementNode): boolean {
     }
   }
   return true;
+}
+
+function $getTopLevelListItem(selection: RangeSelection) {
+  const focusNode = selection.focus.getNode();
+  const listNode = toRootElement(focusNode);
+
+  if (!$isListNode(listNode)) {
+    return null;
+  }
+
+  let current: LexicalNode = focusNode;
+  while (current.getParent() !== listNode) {
+    const parent = current.getParent();
+    if (!parent || $isRootOrShadowRoot(parent)) {
+      return null;
+    }
+    current = parent;
+  }
+
+  if (!$isListItemNode(current)) {
+    return null;
+  }
+
+  return {
+    listItem: current,
+    listNode,
+  };
+}
+
+function $isListBoundarySelection(selection: RangeSelection, isBackward: boolean) {
+  if (!selection.isCollapsed()) {
+    return false;
+  }
+
+  const focusNode = selection.focus.getNode();
+  if ($isListNode(focusNode)) {
+    return isBackward
+      ? selection.focus.offset === 0
+      : selection.focus.offset === focusNode.getChildrenSize();
+  }
+
+  const listContext = $getTopLevelListItem(selection);
+  if (!listContext) {
+    return false;
+  }
+
+  const { listItem } = listContext;
+  return isBackward ? !listItem.getPreviousSibling() : !listItem.getNextSibling();
 }
 
 export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
@@ -126,7 +177,13 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
           if (possibleNode === needRemoveOnFocusNode || $isEmptyNode(possibleNode)) {
             return false;
           }
-          if ($isDecoratorNode(possibleNode.getPreviousSibling())) {
+          if ($isListNode(possibleNode) && !$isListBoundarySelection(selection, true)) {
+            return false;
+          }
+          if (
+            $getRoot().getFirstChild() === possibleNode ||
+            $isDecoratorNode(possibleNode.getPreviousSibling())
+          ) {
             event.preventDefault();
             const p = $createParagraphNode();
             possibleNode.insertBefore(p);
@@ -154,6 +211,25 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
             const p = $createParagraphNode();
             needRemoveOnFocusNode = p;
             blockNode.insertAfter(p);
+            p.selectStart();
+            return true;
+          }
+        } else if ($isRangeSelection(selection)) {
+          if (!selection.isCollapsed()) {
+            return false;
+          }
+          const possibleNode = toRootElement(selection.focus.getNode());
+          if (possibleNode === needRemoveOnFocusNode || $isEmptyNode(possibleNode)) {
+            return false;
+          }
+          if ($isListNode(possibleNode) && !$isListBoundarySelection(selection, false)) {
+            return false;
+          }
+          if ($getRoot().getLastChild() === possibleNode) {
+            event.preventDefault();
+            const p = $createParagraphNode();
+            possibleNode.insertAfter(p);
+            needRemoveOnFocusNode = p;
             p.selectStart();
             return true;
           }

@@ -1,4 +1,5 @@
 import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code-core';
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import { $isHeadingNode, QuoteNode } from '@lexical/rich-text';
 import { mergeRegister } from '@lexical/utils';
 import {
@@ -140,6 +141,12 @@ export function $getDownUpNode(focus: PointType, isUp: boolean): null | LexicalN
 function $isSelectionAtEndOfRoot(selection: RangeSelection) {
   const focus = selection.focus;
   return focus.key === 'root' && focus.offset === $getRoot().getChildrenSize();
+}
+
+function $isSelectionInList(selection: RangeSelection) {
+  return Boolean(
+    $closest(selection.focus.getNode(), (node) => $isListNode(node) || $isListItemNode(node)),
+  );
 }
 
 export function registerHeaderBackspace(editor: LexicalEditor) {
@@ -288,6 +295,9 @@ export function registerRichKeydown(
             return true;
           }
         } else if ($isRangeSelection(selection)) {
+          if ($isSelectionInList(selection)) {
+            return false;
+          }
           const possibleNode = $getAdjacentNode(selection.focus, true);
           const upblock = possibleNode || $getDownUpNode(selection.focus, true);
           if (!event.shiftKey && $isDecoratorNode(possibleNode)) {
@@ -381,6 +391,9 @@ export function registerRichKeydown(
             return true;
           }
         } else if ($isRangeSelection(selection)) {
+          if ($isSelectionInList(selection)) {
+            return false;
+          }
           if ($isSelectionAtEndOfRoot(selection)) {
             event.preventDefault();
             return true;
