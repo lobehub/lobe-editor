@@ -16,8 +16,8 @@ permissions:
 jobs:
   run:
     permissions:
-      issues: write # for actions-cool/issues-helper to update issues
-      pull-requests: write # for actions-cool/issues-helper to update PRs
+      issues: write # for issue automation
+      pull-requests: write # for issue automation
     runs-on: ubuntu-latest
     steps:
       - name: Auto Comment on Issues Opened
@@ -64,9 +64,4 @@ jobs:
           pr-emoji: '+1, heart'
       - name: Remove inactive
         if: github.event.issue.state == 'open' && github.actor == github.event.issue.user.login
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: 'remove-labels'
-          token: ${{ secrets.GH_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          labels: 'Inactive'
+        run: echo "Temporarily disabled issue automation."
