@@ -198,7 +198,6 @@
   },
   "pnpm": {
     "overrides": {
-      "@lobehub/ui>remark-cjk-friendly": "2.0.1",
       "chalk": "^4.1.2"
     },
     "patchedDependencies": {
