@@ -6,6 +6,7 @@ import {
   $getRoot,
   $getSelection,
   $isDecoratorNode,
+  $isElementNode,
   $isNodeSelection,
   $isRangeSelection,
   $isRootOrShadowRoot,
@@ -49,7 +50,11 @@ function $isEmptyNode(node: ElementNode): boolean {
       if (child.getTextContent().trim().length > 0) {
         return false;
       }
-    } else if (!$isEmptyNode(child as ElementNode)) {
+    } else if ($isElementNode(child)) {
+      if (!$isEmptyNode(child)) {
+        return false;
+      }
+    } else {
       return false;
     }
   }
@@ -95,6 +100,8 @@ function $isListBoundarySelection(selection: RangeSelection, isBackward: boolean
       : selection.focus.offset === focusNode.getChildrenSize();
   }
 
+  // Element selections can also focus a ListItemNode, so normalize back to the
+  // containing top-level list item before checking whether the list has room to move.
   const listContext = $getTopLevelListItem(selection);
   if (!listContext) {
     return false;

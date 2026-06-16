@@ -391,12 +391,12 @@ export function registerRichKeydown(
             return true;
           }
         } else if ($isRangeSelection(selection)) {
-          if ($isSelectionInList(selection)) {
-            return false;
-          }
           if ($isSelectionAtEndOfRoot(selection)) {
             event.preventDefault();
             return true;
+          }
+          if ($isSelectionInList(selection)) {
+            return false;
           }
           const possibleNode = $getAdjacentNode(selection.focus, false);
           const upblock = possibleNode || $getDownUpNode(selection.focus, false);

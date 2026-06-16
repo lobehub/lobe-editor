@@ -60,7 +60,50 @@ describe('$getAdjacentNode', () => {
     expect(adjacentNode).toBeNull();
   });
 
-  it('should move ArrowDown from the first list item to the next item without jumping to the last item', () => {
+  it('should resolve the next list item when moving forward from the first item', () => {
+    const editor = createEditor({
+      namespace: 'adjacent-node-test',
+      nodes: [ListNode, ListItemNode],
+      onError: (error) => {
+        throw error;
+      },
+    });
+    let adjacentNodeKey = '';
+    let secondItemKey = '';
+
+    update(editor, () => {
+      const root = $getRoot();
+      root.clear();
+
+      const list = $createListNode('bullet');
+      const firstItem = $createListItemNode();
+      const firstText = $createTextNode('first');
+      const secondItem = $createListItemNode();
+      const secondText = $createTextNode('second');
+      const lastItem = $createListItemNode();
+      const lastText = $createTextNode('last');
+
+      firstItem.append(firstText);
+      secondItem.append(secondText);
+      lastItem.append(lastText);
+      list.append(firstItem, secondItem, lastItem);
+      root.append(list);
+
+      secondItemKey = secondItem.getKey();
+      const selection = $createRangeSelection();
+      selection.anchor.set(firstText.getKey(), firstText.getTextContentSize(), 'text');
+      selection.focus.set(firstText.getKey(), firstText.getTextContentSize(), 'text');
+      $setSelection(selection);
+
+      adjacentNodeKey = $getAdjacentNode(selection.focus, false)?.getKey() || '';
+    });
+
+    expect(adjacentNodeKey).toBe(secondItemKey);
+  });
+});
+
+describe('CommonPlugin list arrow navigation', () => {
+  it('should leave ArrowDown inside list items unhandled', () => {
     const kernel = Editor.createEditor();
     kernel.registerPlugins([CommonPlugin, ListPlugin]);
     kernel.setRootElement(document.createElement('div'));
@@ -102,17 +145,18 @@ describe('$getAdjacentNode', () => {
       $setSelection(selection);
     });
 
-    editor.dispatchCommand(
+    const handledFromFirstItem = editor.dispatchCommand(
       KEY_ARROW_DOWN_COMMAND,
       new KeyboardEvent('keydown', { key: 'ArrowDown' }),
     );
+    expect(handledFromFirstItem).toBe(false);
 
     editor.getEditorState().read(() => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       if (!$isRangeSelection(selection)) return;
 
-      expect(selection.focus.key).not.toBe(lastTextKey);
+      expect(selection.focus.key).toBe(firstTextKey);
     });
 
     update(editor, () => {
@@ -122,10 +166,11 @@ describe('$getAdjacentNode', () => {
       $setSelection(selection);
     });
 
-    editor.dispatchCommand(
+    const handledFromLastItem = editor.dispatchCommand(
       KEY_ARROW_DOWN_COMMAND,
       new KeyboardEvent('keydown', { key: 'ArrowDown' }),
     );
+    expect(handledFromLastItem).toBe(false);
 
     editor.getEditorState().read(() => {
       const selection = $getSelection();

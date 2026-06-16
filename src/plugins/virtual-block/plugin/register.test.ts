@@ -1,6 +1,7 @@
 import { $createListItemNode, $createListNode, ListItemNode, ListNode } from '@lexical/list';
 import {
   $applyNodeReplacement,
+  $createParagraphNode,
   $createRangeSelection,
   $createTextNode,
   $getRoot,
@@ -329,5 +330,33 @@ describe('VirtualBlockPlugin list arrow navigation', () => {
       expect(root.getFirstChild()?.getType()).toBe('list');
       expect($isParagraphNode(root.getLastChild())).toBe(true);
     });
+  });
+
+  it('does not throw when checking an empty block with a non-element child', () => {
+    const editor = createTestEditor();
+    let textKey = '';
+
+    update(editor, () => {
+      const root = $getRoot();
+      root.clear();
+
+      const paragraph = $createParagraphNode();
+      const text = $createTextNode('');
+      paragraph.append(text, $createTestDecoratorNode());
+      root.append(paragraph);
+
+      textKey = text.getKey();
+      const selection = $createRangeSelection();
+      selection.anchor.set(textKey, 0, 'text');
+      selection.focus.set(textKey, 0, 'text');
+      $setSelection(selection);
+    });
+
+    expect(() =>
+      editor.dispatchCommand(
+        KEY_ARROW_DOWN_COMMAND,
+        new KeyboardEvent('keydown', { key: 'ArrowDown' }),
+      ),
+    ).not.toThrow();
   });
 });
