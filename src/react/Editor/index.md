@@ -32,6 +32,12 @@ Editor is a powerful and extensible rich text editor component designed for mode
 
 <code src="./demos/disableMarkdown.tsx" nopadding iframe></code>
 
+## Toggle Editable
+
+When `editable` is `false`, the floating block menu (add-block button and drag handle) on the left side should not appear.
+
+<code src="./demos/editable.tsx" nopadding iframe></code>
+
 ## Paste as Plain Text
 
 Force all pasted content to be inserted as plain text, stripping any rich text formatting (bold, italic, links, etc).

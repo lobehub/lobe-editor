@@ -21,6 +21,7 @@ import { createPortal } from 'react-dom';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
+import { useEditable } from '@/editor-kernel/react/useEditable';
 import { ILocaleKeys } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
@@ -108,7 +109,8 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
   const [isDragging, setIsDragging] = useState(false);
   const [focusedTableBlockId, setFocusedTableBlockId] = useState<string | null>(null);
   const [blockMenuService, setBlockMenuService] = useState<BlockMenuService | null>(null);
-  const blockMenuSuppressed = blockMenuService?.isMenuSuppressed() ?? false;
+  const { editable } = useEditable();
+  const blockMenuSuppressed = (blockMenuService?.isMenuSuppressed() ?? false) || editable === false;
 
   useLayoutEffect(() => {
     if (locale) {
