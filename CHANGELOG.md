@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.18.0](https://github.com/lobehub/lobe-editor/compare/v4.17.2...v4.18.0)
+<sup>Released on **2026-06-16**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Add headless media plugins.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Add headless media plugins, closes [#173](https://github.com/lobehub/lobe-editor/issues/173) ([bbfe99c](https://github.com/lobehub/lobe-editor/commit/bbfe99c))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.17.2](https://github.com/lobehub/lobe-editor/compare/v4.17.1...v4.17.2)
 <sup>Released on **2026-06-16**</sup>
 
