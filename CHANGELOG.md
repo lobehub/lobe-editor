@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.17.2](https://github.com/lobehub/lobe-editor/compare/v4.17.1...v4.17.2)
+<sup>Released on **2026-06-16**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **block**: Hide floating menu when editor is not editable.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **block**: Hide floating menu when editor is not editable ([6c3f5c2](https://github.com/lobehub/lobe-editor/commit/6c3f5c2))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.17.1](https://github.com/lobehub/lobe-editor/compare/v4.17.0...v4.17.1)
 <sup>Released on **2026-06-09**</sup>
 
