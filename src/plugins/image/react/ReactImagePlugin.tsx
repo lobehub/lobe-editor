@@ -10,6 +10,25 @@ import Image from './components/Image';
 import { styles } from './style';
 import { ReactImagePluginProps } from './type';
 
+const getImageWidth = (file: File): Promise<number> =>
+  new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+      const img = new window.Image();
+      img.addEventListener('load', () => {
+        resolve(img.naturalWidth);
+      });
+      img.addEventListener('error', () => {
+        resolve(800);
+      });
+      img.src = event.target?.result as string;
+    });
+    reader.addEventListener('error', () => {
+      resolve(800);
+    });
+    reader.readAsDataURL(file);
+  });
+
 const defaultUpload = (file: File) => {
   return new Promise<{ url: string }>((resolve) => {
     setTimeout(() => {
@@ -33,6 +52,7 @@ const ReactImagePlugin: FC<ReactImagePluginProps> = ({
     editor.registerPlugin(UploadPlugin);
     editor.registerPlugin(ImagePlugin, {
       defaultBlockImage,
+      getImageWidth,
       handleRehost,
       handleUpload: handleUpload || defaultUpload,
       needRehost,

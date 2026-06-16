@@ -18,7 +18,7 @@ import { isLikelyMathContent } from '../utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface MathPluginOptions {
-  decorator: (node: MathInlineNode | MathBlockNode, editor: LexicalEditor) => unknown;
+  decorator?: (node: MathInlineNode | MathBlockNode, editor: LexicalEditor) => unknown;
   theme?: {
     mathBlock?: string;
     mathInline?: string;

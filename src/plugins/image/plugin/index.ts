@@ -1,5 +1,4 @@
 import { LexicalEditor } from 'lexical';
-import type { JSX } from 'react';
 
 import { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -16,10 +15,11 @@ import { $isImageNode, ImageNode } from '../node/image-node';
 
 export interface ImagePluginOptions {
   defaultBlockImage?: boolean;
+  getImageWidth?: (file: File) => Promise<number>;
   handleRehost?: (url: string) => Promise<{ url: string }>;
-  handleUpload: (file: File) => Promise<{ url: string }>;
+  handleUpload?: (file: File) => Promise<{ url: string }>;
   needRehost?: (url: string) => boolean;
-  renderImage: (node: ImageNode | BlockImageNode) => JSX.Element | null;
+  renderImage?: (node: ImageNode | BlockImageNode) => unknown;
   theme?: {
     blockImage?: string;
     image?: string;
@@ -38,21 +38,23 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
   ) {
     super();
     kernel.registerNodes([ImageNode, BlockImageNode]);
-    ImageNode.setDecorate(config!.renderImage);
-    BlockImageNode.setDecorate(config!.renderImage);
+    ImageNode.setDecorate(config?.renderImage ?? (() => null));
+    BlockImageNode.setDecorate(config?.renderImage ?? (() => null));
     if (config?.theme) {
       kernel.registerThemes(config.theme);
     }
   }
 
   onInit(editor: LexicalEditor): void {
-    this.register(
-      registerImageCommand(
-        editor,
-        this.config!.handleUpload,
-        this.config?.defaultBlockImage !== false,
-      ),
-    );
+    if (this.config?.handleUpload) {
+      this.register(
+        registerImageCommand(
+          editor,
+          this.config.handleUpload,
+          this.config?.defaultBlockImage !== false,
+        ),
+      );
+    }
 
     this.registerMarkdown();
     this.registerLiteXml();
@@ -105,10 +107,12 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     if (!uploadService) {
       return;
     }
+    if (!this.config?.handleUpload) {
+      return;
+    }
 
     uploadService.registerUpload(async (file: File, from: string, range?: Range | null) => {
-      // Get image dimensions before uploading
-      const imageWidth = await this.getImageWidth(file);
+      const imageWidth = await this.config?.getImageWidth?.(file);
 
       return editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
         block: this.config?.defaultBlockImage !== false,
@@ -253,28 +257,6 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
       root.children = root.children.map((child) => {
         return loopNodes(child);
       });
-    });
-  }
-
-  private getImageWidth(file: File): Promise<number> {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.addEventListener('load', (e) => {
-        const img = new Image();
-        img.addEventListener('load', () => {
-          resolve(img.naturalWidth);
-        });
-        img.addEventListener('error', () => {
-          // Default width if image fails to load
-          resolve(800);
-        });
-        img.src = e.target?.result as string;
-      });
-      reader.addEventListener('error', () => {
-        // Default width if file reading fails
-        resolve(800);
-      });
-      reader.readAsDataURL(file);
     });
   }
 };

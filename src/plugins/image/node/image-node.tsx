@@ -136,6 +136,13 @@ export class ImageNode extends BaseImageNode {
   decorate(): any {
     return ImageNode._decorate(this)!;
   }
+
+  override exportJSON(): SerializedImageNode {
+    return {
+      ...super.exportJSON(),
+      status: this.__status,
+    };
+  }
 }
 
 export function $createImageNode({

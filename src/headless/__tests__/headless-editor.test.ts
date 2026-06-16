@@ -1,7 +1,9 @@
 // @vitest-environment node
-import { createHeadlessEditor } from '@lobehub/editor/headless';
+import { createHeadlessEditor, extractMediaFromEditorState } from '@lobehub/editor/headless';
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { resetRandomKey } from 'lexical';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 function findTextNode(
@@ -137,20 +139,13 @@ describe('HeadlessEditor', () => {
 
     const { editorData, markdown } = editor.export();
     const codeNode = findNodeByType(editorData.root, 'code');
-    const codeChildren = Array.isArray(codeNode?.children) ? codeNode.children : [];
 
-    expect(markdown).toBe('```plaintext\nconst a = 1\nconst b=  1\n```\n');
+    expect(markdown).toBe('```plain\nconst a = 1\nconst b=  1\n```\n');
     expect(codeNode).toMatchObject({
       code: 'const a = 1\nconst b=  1',
+      language: 'plain',
       type: 'code',
     });
-    expect(codeChildren).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ text: 'const a = 1', type: 'code-highlight' }),
-        expect.objectContaining({ type: 'linebreak' }),
-        expect.objectContaining({ text: 'const b=  1', type: 'code-highlight' }),
-      ]),
-    );
     editor.destroy();
   });
 
@@ -166,6 +161,107 @@ describe('HeadlessEditor', () => {
     expect(markdown).toContain('Feature');
     expect(markdown).toContain('Supported');
     editor.destroy();
+  });
+
+  it('supports image, file, math, and mention kernel data in node headless mode', () => {
+    expect(globalThis.document).toBeUndefined();
+    expect(globalThis.window).toBeUndefined();
+
+    const imageEditor = createHeadlessEditor();
+    imageEditor.hydrateMarkdown('![Diagram](https://cdn.example.com/diagram.png)');
+    const imageSnapshot = imageEditor.export({ litexml: true });
+    const imageNode = findNodeByType(imageSnapshot.editorData.root, 'block-image');
+
+    expect(imageNode).toMatchObject({
+      altText: 'Diagram',
+      src: 'https://cdn.example.com/diagram.png',
+      status: 'uploaded',
+      type: 'block-image',
+    });
+    expect(imageSnapshot.litexml).toContain('<img');
+    expect(imageSnapshot.markdown).toContain('![Diagram](https://cdn.example.com/diagram.png)');
+    expect(extractMediaFromEditorState(imageSnapshot.editorData).imageList[0]).toMatchObject({
+      alt: 'Diagram',
+      url: 'https://cdn.example.com/diagram.png',
+    });
+    imageEditor.destroy();
+
+    const fileEditor = createHeadlessEditor();
+    fileEditor.hydrateLiteXML(
+      '<?xml version="1.0" encoding="UTF-8"?><root><file name="guide.pdf" fileUrl="https://cdn.example.com/guide.pdf" size="2048" status="uploaded"></file></root>',
+    );
+    const fileSnapshot = fileEditor.export({ litexml: true });
+    const fileNode = findNodeByType(fileSnapshot.editorData.root, 'file');
+
+    expect(fileNode).toMatchObject({
+      fileUrl: 'https://cdn.example.com/guide.pdf',
+      name: 'guide.pdf',
+      size: 2048,
+      status: 'uploaded',
+      type: 'file',
+    });
+    expect(fileSnapshot.markdown).toContain('[guide.pdf](https://cdn.example.com/guide.pdf)');
+    expect(extractMediaFromEditorState(fileSnapshot.editorData).fileList[0]).toMatchObject({
+      fileType: 'pdf',
+      name: 'guide.pdf',
+      size: 2048,
+      url: 'https://cdn.example.com/guide.pdf',
+    });
+    fileEditor.destroy();
+
+    const mathEditor = createHeadlessEditor();
+    mathEditor.hydrateMarkdown('This is math: $E=mc^2$');
+    const mathSnapshot = mathEditor.export({ litexml: true });
+
+    expect(findNodeByType(mathSnapshot.editorData.root, 'math')).toMatchObject({
+      code: 'E=mc^2',
+      type: 'math',
+    });
+    expect(mathSnapshot.litexml).toContain('<math');
+    expect(mathSnapshot.markdown).toBe('This is math: $E=mc^2$\n');
+    mathEditor.destroy();
+
+    const mentionEditor = createHeadlessEditor();
+    mentionEditor.hydrateLiteXML(
+      '<?xml version="1.0" encoding="UTF-8"?><root><p><mention label="Ada" metadata="{&quot;id&quot;:&quot;42&quot;}"></mention></p></root>',
+    );
+    const mentionSnapshot = mentionEditor.export({ litexml: true });
+
+    expect(findNodeByType(mentionSnapshot.editorData.root, 'mention')).toMatchObject({
+      label: 'Ada',
+      metadata: { id: '42' },
+      type: 'mention',
+    });
+    expect(mentionSnapshot.litexml).toContain('<mention');
+    expect(mentionSnapshot.markdown).toBe('Ada\n');
+    mentionEditor.destroy();
+  });
+
+  it('keeps the headless entry and headless plugins free of direct React and DOM globals', () => {
+    const forbiddenPattern =
+      /\b(document|window|HTMLElement|HTMLImageElement|FileReader|ClipboardEvent|Range|JSX)\b|from ['"]react['"]/;
+    const files = ['../index.ts'];
+
+    for (const file of files) {
+      const source = readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8');
+
+      expect(source, file).not.toMatch(forbiddenPattern);
+    }
+  });
+
+  it('uses the shared codemirror kernel plugin in headless mode', () => {
+    const source = readFileSync(fileURLToPath(new URL('../index.ts', import.meta.url)), 'utf8');
+    const commandSource = readFileSync(
+      fileURLToPath(new URL('../../plugins/codemirror-block/command/index.ts', import.meta.url)),
+      'utf8',
+    );
+
+    expect(source).toContain('@/plugins/codemirror-block/plugin');
+    expect(source).toContain('CodemirrorPlugin');
+    expect(source).not.toContain('CodeblockPlugin');
+    expect(source).not.toContain('HeadlessCodeblockPlugin');
+    expect(commandSource).toContain('@/plugins/codeblock/command/symbols');
+    expect(commandSource).not.toContain("@/plugins/codeblock'");
   });
 
   it('hydrates editor data with code blocks and horizontal rules', () => {

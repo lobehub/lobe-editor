@@ -12,7 +12,7 @@ import {
   createCommand,
 } from 'lexical';
 
-import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
+import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock/command/symbols';
 
 import { $createCodeMirrorNode, $isCodeMirrorNode } from '../node/CodeMirrorNode';
 

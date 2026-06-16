@@ -17,7 +17,7 @@ import { registerMentionNodeSelectionObserver } from './register';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface MentionPluginOptions {
-  decorator: (node: MentionNode, editor: LexicalEditor) => any;
+  decorator?: (node: MentionNode, editor: LexicalEditor) => any;
   markdownReader?: (node: Html, children: INode[]) => SerializedMentionNode | null | false;
   markdownWriter?: (mention: MentionNode) => string;
   theme?: {
@@ -52,7 +52,9 @@ export const MentionPlugin: IEditorPluginConstructor<MentionPluginOptions> = cla
 
   onInit(editor: LexicalEditor): void {
     this.register(registerMentionCommand(editor));
-    this.register(registerMentionNodeSelectionObserver(editor));
+    if (this.config?.decorator) {
+      this.register(registerMentionNodeSelectionObserver(editor));
+    }
 
     this.registerMarkdown();
     this.registerLiteXml();

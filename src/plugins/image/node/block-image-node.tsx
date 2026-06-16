@@ -142,6 +142,13 @@ export class BlockImageNode extends BaseImageNode {
     return BlockImageNode._decorate(this)!;
   }
 
+  override exportJSON(): SerializedImageNode {
+    return {
+      ...super.exportJSON(),
+      status: this.__status,
+    };
+  }
+
   override createDOM(config: EditorConfig): HTMLElement {
     const span = document.createElement('div');
     const theme = config.theme;

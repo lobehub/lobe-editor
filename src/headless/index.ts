@@ -2,8 +2,12 @@ import type { CommandPayloadType, SerializedEditorState, SerializedLexicalNode }
 
 import Editor, { moment } from '@/editor-kernel';
 import { CodePlugin } from '@/plugins/code/plugin';
+import { CodemirrorPlugin } from '@/plugins/codemirror-block/plugin';
 import { CommonPlugin } from '@/plugins/common/plugin';
+import { FilePlugin } from '@/plugins/file/plugin';
 import { HRPlugin } from '@/plugins/hr/plugin';
+import { ImagePlugin } from '@/plugins/image/plugin';
+import { INodePlugin } from '@/plugins/inode/plugin';
 import { LinkPlugin } from '@/plugins/link/plugin';
 import { ListPlugin } from '@/plugins/list/plugin';
 import {
@@ -14,10 +18,10 @@ import {
 } from '@/plugins/litexml/command';
 import { LitexmlPlugin } from '@/plugins/litexml/plugin';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
+import { MathPlugin } from '@/plugins/math/plugin';
+import { MentionPlugin } from '@/plugins/mention/plugin';
 import { TablePlugin } from '@/plugins/table/plugin';
 import type { IDocumentOptions, IEditor, IPlugin } from '@/types';
-
-import { HeadlessCodeblockPlugin } from './plugins/codeblock';
 
 export type { FileListItem, ImageListItem, MediaLists } from './extract-media-from-editor-state';
 export { extractMediaFromEditorState } from './extract-media-from-editor-state';
@@ -246,10 +250,15 @@ const preserveSerializedCodeTextInEditorData = (
 
 export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   [CommonPlugin, { enableHotkey: false }],
+  INodePlugin,
   MarkdownPlugin,
   [LinkPlugin, { enableHotkey: false }],
   CodePlugin,
-  HeadlessCodeblockPlugin,
+  CodemirrorPlugin,
+  ImagePlugin,
+  FilePlugin,
+  MathPlugin,
+  MentionPlugin,
   HRPlugin,
   ListPlugin,
   TablePlugin,
