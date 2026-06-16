@@ -1,12 +1,9 @@
-import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code-core';
 import { mergeRegister } from '@lexical/utils';
 import {
   $createParagraphNode,
   $getNodeByKey,
-  $getRoot,
   $getSelection,
   $isDecoratorNode,
-  $isLineBreakNode,
   $isNodeSelection,
   $isRangeSelection,
   $isRootOrShadowRoot,
@@ -18,7 +15,6 @@ import {
   LexicalEditor,
   LexicalNode,
   ParagraphNode,
-  PointType,
 } from 'lexical';
 
 import { $closest } from '@/editor-kernel';
@@ -31,50 +27,6 @@ import { createDebugLogger } from '@/utils/debug';
 
 const logger = createDebugLogger('plugin', 'virtual-block');
 
-function resolveElement(
-  element: ElementNode,
-  isBackward: boolean,
-  focusOffset: number,
-): LexicalNode | null {
-  const parent = element.getParent();
-  let offset = focusOffset;
-  let block = element;
-  if (parent !== null) {
-    if (isBackward && focusOffset === 0) {
-      offset = block.getIndexWithinParent();
-      block = parent;
-    } else if (!isBackward && focusOffset === block.getChildrenSize()) {
-      offset = block.getIndexWithinParent() + 1;
-      block = parent;
-    }
-  }
-  return block.getChildAtIndex(isBackward ? offset - 1 : offset);
-}
-
-function isCodeNodeLastLine(focusNode: LexicalNode) {
-  if (!$isCodeHighlightNode(focusNode)) {
-    return false;
-  }
-  const codeNode = focusNode.getParent();
-  if (!$isCodeNode(codeNode)) {
-    return false;
-  }
-  let last: LexicalNode | null | undefined = codeNode.getLastChild();
-  do {
-    if ($isLineBreakNode(last)) {
-      return false;
-    }
-    if (last === focusNode) {
-      return codeNode;
-    }
-    last = last?.getPreviousSibling();
-  } while (last !== focusNode && last);
-  if (last === focusNode) {
-    return codeNode;
-  }
-  return false;
-}
-
 export function toRootElement(node: LexicalNode): ElementNode {
   let currentNode: LexicalNode | null = node;
   let parent = currentNode.getParent();
@@ -83,56 +35,6 @@ export function toRootElement(node: LexicalNode): ElementNode {
     parent = currentNode.getParent();
   }
   return currentNode as ElementNode;
-}
-
-export function $getAdjacentNode(focus: PointType, isBackward: boolean): null | LexicalNode {
-  const focusOffset = focus.offset;
-  if (focus.type === 'element') {
-    const block = focus.getNode();
-    return resolveElement(block, isBackward, focusOffset);
-  } else {
-    const focusNode = focus.getNode();
-    if (
-      (isBackward && focusOffset === 0) ||
-      (!isBackward && focusOffset === focusNode.getTextContentSize())
-    ) {
-      const possibleNode = isBackward ? focusNode.getPreviousSibling() : focusNode.getNextSibling();
-      if (possibleNode === null) {
-        return resolveElement(
-          focusNode.getParentOrThrow(),
-          isBackward,
-          focusNode.getIndexWithinParent() + (isBackward ? 0 : 1),
-        );
-      }
-      return possibleNode;
-    } else if (!isBackward && isCodeNodeLastLine(focusNode)) {
-      return focusNode.getParent()?.getNextSibling() || null;
-    }
-  }
-  return null;
-}
-
-export function $getDownUpNode(focus: PointType, isUp: boolean): null | LexicalNode {
-  const focusNode = focus.getNode();
-  let blockParent: LexicalNode | null = focusNode;
-  while (blockParent !== null && blockParent.isInline()) {
-    blockParent = blockParent.getParent();
-  }
-  if (!blockParent) {
-    return null;
-  }
-  let nextNode = isUp ? blockParent.getPreviousSibling() : blockParent.getNextSibling();
-  while (!nextNode && !$isRootOrShadowRoot(blockParent)) {
-    blockParent = blockParent.getParent();
-    if (!blockParent) {
-      return null;
-    }
-    nextNode = isUp ? blockParent.getPreviousSibling() : blockParent.getNextSibling();
-  }
-  if (!nextNode) {
-    return null;
-  }
-  return nextNode;
 }
 
 function $isEmptyNode(node: ElementNode): boolean {
@@ -224,14 +126,7 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
           if (possibleNode === needRemoveOnFocusNode || $isEmptyNode(possibleNode)) {
             return false;
           }
-          if ($getRoot().getFirstChild() === possibleNode) {
-            event.preventDefault();
-            const p = $createParagraphNode();
-            possibleNode.insertBefore(p);
-            needRemoveOnFocusNode = p;
-            p.selectStart();
-            return true;
-          } else if ($isDecoratorNode(possibleNode.getPreviousSibling())) {
+          if ($isDecoratorNode(possibleNode.getPreviousSibling())) {
             event.preventDefault();
             const p = $createParagraphNode();
             possibleNode.insertBefore(p);
@@ -262,24 +157,6 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
             p.selectStart();
             return true;
           }
-        } else if ($isRangeSelection(selection)) {
-          if (!selection.isCollapsed()) {
-            return false;
-          }
-          const focusNode = selection.focus.getNode();
-          const possibleNode = toRootElement(focusNode);
-          if (possibleNode === needRemoveOnFocusNode || $isEmptyNode(possibleNode)) {
-            return false;
-          }
-          const root = $getRoot();
-          if (root.getLastChild() === possibleNode) {
-            event.preventDefault();
-            const p = $createParagraphNode();
-            possibleNode.insertAfter(p);
-            needRemoveOnFocusNode = p;
-            p.selectStart();
-          }
-          return true;
         }
         return false;
       },

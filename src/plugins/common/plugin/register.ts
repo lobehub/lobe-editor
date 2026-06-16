@@ -56,7 +56,11 @@ function resolveElement(
       block = parent;
     }
   }
-  return block.getChildAtIndex(isBackward ? offset - 1 : offset);
+  const childIndex = isBackward ? offset - 1 : offset;
+  if (childIndex < 0 || childIndex >= block.getChildrenSize()) {
+    return null;
+  }
+  return block.getChildAtIndex(childIndex);
 }
 
 function isCodeNodeLastLine(focusNode: LexicalNode) {
