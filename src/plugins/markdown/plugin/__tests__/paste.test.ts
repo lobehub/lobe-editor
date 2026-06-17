@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { MarkdownPlugin } from '../index';
+import { MarkdownPlugin, normalizeMarkdownForClipboard } from '../index';
 
 const createKernelMock = () =>
   ({
@@ -118,5 +118,16 @@ describe('Markdown paste auto conversion', () => {
     );
 
     expect(result).toBe(false);
+  });
+});
+
+describe('Markdown copy normalization', () => {
+  it('should remove the formatter-generated trailing line break from copied plain text', () => {
+    expect(normalizeMarkdownForClipboard('js代码\n')).toBe('js代码');
+    expect(normalizeMarkdownForClipboard('js代码\r\n')).toBe('js代码');
+  });
+
+  it('should preserve non-line-break trailing whitespace while copying', () => {
+    expect(normalizeMarkdownForClipboard('js代码  \n')).toBe('js代码  ');
   });
 });
