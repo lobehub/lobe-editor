@@ -1,5 +1,5 @@
 export { GET_MARKDOWN_SELECTION_COMMAND, INSERT_MARKDOWN_COMMAND } from './command';
-export { MarkdownPlugin, normalizeMarkdownForClipboard } from './plugin';
+export { MarkdownPlugin } from './plugin';
 export { default as ReactMarkdownPlugin } from './react';
 export type { MARKDOWN_READER_LEVEL } from './service/shortcut';
 export {

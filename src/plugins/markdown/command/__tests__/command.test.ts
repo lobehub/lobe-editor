@@ -13,12 +13,16 @@ import {
   TablePlugin,
 } from '@lobehub/editor';
 import { COPY_COMMAND, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Editor from '@/editor-kernel';
 
 import { MarkdownPlugin } from '../../plugin';
 import { GET_MARKDOWN_SELECTION_COMMAND, INSERT_MARKDOWN_COMMAND } from '../index';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const json = {
   root: {
