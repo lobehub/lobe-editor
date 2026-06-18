@@ -62,6 +62,7 @@
     "build:watch": "tsdown --watch",
     "ci": "npm run lint:circular && npm run lint && npm run type-check",
     "clean": "rm -r es lib dist coverage .dumi/tmp .eslintcache node_modules/.cache",
+    "demo:yjs-server": "node ./scripts/yjs-websocket-demo-server.cjs",
     "dev": "dumi dev",
     "docs:build": "dumi build",
     "docs:build-analyze": "ANALYZE=1 dumi build",
@@ -120,6 +121,7 @@
     "@lexical/selection": "0.42.0",
     "@lexical/table": "0.42.0",
     "@lexical/utils": "0.42.0",
+    "@lexical/yjs": "0.42.0",
     "@shikijs/core": "^3.20.0",
     "@shikijs/engine-javascript": "^3.20.0",
     "@xmldom/xmldom": "^0.8.11",
@@ -144,7 +146,8 @@
     "remark-supersub": "^1.0.0",
     "shiki": "^3.20.0",
     "ts-key-enum": "^3.0.13",
-    "use-merge-value": "^1.2.0"
+    "use-merge-value": "^1.2.0",
+    "yjs": "^13.6.31"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
@@ -158,6 +161,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/unist": "^3.0.3",
+    "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^3.2.4",
     "antd": "^6.1.4",
     "babel-plugin-antd-style": "^1.0.4",
@@ -181,7 +185,8 @@
     "tsdown": "^0.21.4",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "ws": "^8.21.0"
   },
   "peerDependencies": {
     "@lobehub/ui": "^5.0.0",

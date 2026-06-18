@@ -9,6 +9,7 @@ import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types'
 import { registerCodeMirrorCommand } from '../command';
 import { modeMatch } from '../lib/mode';
 import { $createCodeMirrorNode, CodeMirrorNode } from '../node/CodeMirrorNode';
+import { CodemirrorEditLockService, ICodemirrorEditLockService } from '../service';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CodemirrorPluginOptions {
@@ -32,6 +33,7 @@ export const CodemirrorPlugin: IEditorPluginConstructor<CodemirrorPluginOptions>
     kernel.registerThemes({
       hr: config?.theme || '',
     });
+    kernel.registerServiceHotReload(ICodemirrorEditLockService, new CodemirrorEditLockService());
     this.registerDecorator(
       kernel,
       'codemirror',

@@ -1,5 +1,7 @@
 import { createStaticStyles } from 'antd-style';
 
+const FLOATING_TOOLBAR_Z_INDEX = 1001;
+
 export const styles = createStaticStyles(({ css, cssVar }) => ({
   anchor: css`
     position: relative;
@@ -8,7 +10,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     will-change: transform;
 
     position: absolute;
-    z-index: 10;
+    z-index: ${FLOATING_TOOLBAR_Z_INDEX};
     inset-block-start: 0;
     inset-inline-start: 0;
     transform: translate(-10000px, -10000px);
@@ -31,7 +33,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     will-change: transform;
 
     position: absolute;
-    z-index: 10;
+    z-index: ${FLOATING_TOOLBAR_Z_INDEX};
     inset-block-start: 0;
     inset-inline-start: 0;
     transform: translate(-10000px, -10000px);
