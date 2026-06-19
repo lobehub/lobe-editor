@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-redeclare */
 import { DropdownMenuItemType } from '@lobehub/ui';
 import Fuse, { type IFuseOptions } from 'fuse.js';
+import type { ReactNode } from 'react';
 
 import { genServiceId } from '@/editor-kernel';
 import type { IEditor, IEditorKernel, IServiceID } from '@/types';
@@ -14,8 +15,11 @@ export type ISlashDividerOption = {
 };
 
 export interface ISlashMenuOption extends DropdownMenuItemType {
+  description?: ReactNode;
+  layout?: 'compact' | 'tile' | 'wide';
   metadata?: Record<string, any>;
   onSelect?: (editor: IEditor, matchingString: string) => void;
+  shortcut?: ReactNode;
 }
 
 export type ISlashOption = ISlashMenuOption | ISlashDividerOption;

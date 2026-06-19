@@ -4,6 +4,8 @@ import { mergeRegister } from '@lexical/utils';
 import {
   COMMAND_PRIORITY_CRITICAL,
   KEY_ARROW_DOWN_COMMAND,
+  KEY_ARROW_LEFT_COMMAND,
+  KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_DOWN_COMMAND,
   KEY_ESCAPE_COMMAND,
@@ -32,6 +34,11 @@ import {
 } from '../service/i-slash-service';
 import { $splitNodeContainingQuery } from '../utils/utils';
 import SlashMenu from './components/SlashMenu';
+import {
+  findSlashOptionByKey,
+  getNextSlashActiveKey,
+  getNextSlashSpatialActiveKey,
+} from './menu-utils';
 import type { ReactSlashOptionProps, ReactSlashPluginProps } from './type';
 import { setCancelablePromise } from './utils';
 
@@ -74,6 +81,11 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
     setActiveKey(key);
   }, []);
 
+  const updateMenuOptions = useCallback((items: ISlashOption[]) => {
+    setOptions(items);
+    setActiveKey(getNextSlashActiveKey(items, null, 'forward'));
+  }, []);
+
   useLayoutEffect(() => {
     const options =
       Children.map(children, (child) => {
@@ -93,11 +105,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
         setResolution(ctx);
         cancelRef.current.cancel();
         if (Array.isArray(ctx.items)) {
-          setOptions(ctx.items);
-          if (!activeKey) {
-            // @ts-ignore
-            setActiveKey(ctx.items?.[0]?.key);
-          }
+          updateMenuOptions(ctx.items);
         } else {
           setLoading(true);
           const pr = setCancelablePromise((resolve, reject) => {
@@ -109,11 +117,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
           });
           pr.promise.then((items) => {
             const typedItems = items as ISlashOption[];
-            setOptions(typedItems);
-            if (!activeKey) {
-              // @ts-ignore
-              setActiveKey(typedItems?.[0]?.key);
-            }
+            updateMenuOptions(typedItems);
           });
           cancelRef.current.cancel = () => {
             pr.cancel();
@@ -125,7 +129,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
         setIsOpen(true);
       },
     });
-  }, [activeKey, editor, close]);
+  }, [editor, close, updateMenuOptions]);
 
   useLayoutEffect(() => {
     const slash = editor.requireService(ISlashService);
@@ -173,48 +177,42 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
   );
 
   useLexicalEditor(() => {
-    const pureOptions = options.filter(
-      (item): item is ISlashMenuOption =>
-        !('type' in item && item.type === 'divider') && 'key' in item && Boolean(item.key),
-    );
+    const activateSpatialSibling = (
+      event: KeyboardEvent,
+      direction: 'down' | 'left' | 'right' | 'up',
+    ) => {
+      const nextKey = getNextSlashSpatialActiveKey(options, activeKey, direction);
+      if (!nextKey) return false;
+
+      setActiveKey(nextKey);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return true;
+    };
+
     return mergeRegister(
       editor.registerHighCommand<KeyboardEvent>(
         KEY_ARROW_DOWN_COMMAND,
         (payload) => {
-          const event = payload;
-          if (pureOptions !== null && pureOptions.length) {
-            const currentIndex = activeKey
-              ? pureOptions.findIndex((opt) => opt.key === activeKey)
-              : -1;
-            const newIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % pureOptions.length;
-            setActiveKey(String(pureOptions[newIndex].key));
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            return true;
-          }
-          return false;
+          return activateSpatialSibling(payload, 'down');
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
       editor.registerHighCommand<KeyboardEvent>(
         KEY_ARROW_UP_COMMAND,
         (payload) => {
-          const event = payload;
-          if (pureOptions !== null && pureOptions.length) {
-            const currentIndex = activeKey
-              ? pureOptions.findIndex((opt) => opt.key === activeKey)
-              : -1;
-            const newIndex =
-              currentIndex === -1
-                ? pureOptions.length - 1
-                : (currentIndex - 1 + pureOptions.length) % pureOptions.length;
-            setActiveKey(String(pureOptions[newIndex].key));
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            return true;
-          }
-          return false;
+          return activateSpatialSibling(payload, 'up');
         },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+      editor.registerHighCommand<KeyboardEvent>(
+        KEY_ARROW_RIGHT_COMMAND,
+        (payload) => activateSpatialSibling(payload, 'right'),
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+      editor.registerHighCommand<KeyboardEvent>(
+        KEY_ARROW_LEFT_COMMAND,
+        (payload) => activateSpatialSibling(payload, 'left'),
         COMMAND_PRIORITY_CRITICAL,
       ),
       editor.registerHighCommand<KeyboardEvent>(
@@ -235,9 +233,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
           if (options === null || activeKey === null) {
             return false;
           }
-          const selectedOption = options.find(
-            (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
-          );
+          const selectedOption = findSlashOptionByKey(options, activeKey);
           if (!selectedOption) {
             return false;
           }
@@ -258,9 +254,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
 
             // Only select option if we have valid options and activeKey
             if (options !== null && activeKey !== null) {
-              const selectedOption = options.find(
-                (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
-              );
+              const selectedOption = findSlashOptionByKey(options, activeKey);
               if (selectedOption) {
                 handleMenuSelect(selectedOption);
               }
@@ -272,7 +266,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
         COMMAND_PRIORITY_CRITICAL,
       ),
     );
-  }, [options, activeKey, handleActiveKeyChange, handleMenuSelect, isOpen]);
+  }, [options, activeKey, handleMenuSelect, isOpen]);
 
   // Get custom render component if available
   const { renderComp: CustomRender } = triggerMapRef.current.get(resolution?.trigger || '') || {};

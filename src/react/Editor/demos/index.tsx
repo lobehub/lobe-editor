@@ -1,14 +1,19 @@
 import {
   IEditor,
+  INSERT_CHECK_LIST_COMMAND,
   INSERT_CODEINLINE_COMMAND,
   INSERT_CODEMIRROR_COMMAND,
   INSERT_FILE_COMMAND,
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
+  INSERT_IMAGE_COMMAND,
   INSERT_LINK_COMMAND,
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
+  INSERT_ORDERED_LIST_COMMAND,
+  INSERT_QUOTE_COMMAND,
   INSERT_TABLE_COMMAND,
+  INSERT_UNORDERED_LIST_COMMAND,
   ReactAutoCompletePlugin,
   ReactBlockPlugin,
   ReactCodePlugin,
@@ -31,12 +36,26 @@ import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
+  BracesIcon,
+  Code2Icon,
+  FileIcon,
   Heading1Icon,
   Heading2Icon,
   Heading3Icon,
+  Heading4Icon,
+  Heading5Icon,
+  ImageIcon,
+  LinkIcon,
+  ListChecksIcon,
+  ListIcon,
+  ListOrderedIcon,
   MinusIcon,
+  PanelTopIcon,
+  QuoteIcon,
   SigmaIcon,
   Table2Icon,
+  TagIcon,
+  TypeIcon,
 } from 'lucide-react';
 import { type FC, useMemo, useState } from 'react';
 
@@ -122,27 +141,119 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         icon: Heading1Icon,
         key: 'h1',
         label: 'Heading 1',
+        layout: 'compact',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
         },
+        shortcut: 'h1',
       },
       {
         icon: Heading2Icon,
         key: 'h2',
         label: 'Heading 2',
+        layout: 'compact',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
         },
+        shortcut: 'h2',
       },
       {
         icon: Heading3Icon,
         key: 'h3',
         label: 'Heading 3',
+        layout: 'compact',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h3' });
         },
+        shortcut: 'h3',
       },
-
+      {
+        icon: Heading4Icon,
+        key: 'h4',
+        label: 'Heading 4',
+        layout: 'compact',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h4' });
+        },
+        shortcut: 'h4',
+      },
+      {
+        icon: Heading5Icon,
+        key: 'h5',
+        label: 'Heading 5',
+        layout: 'compact',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h5' });
+        },
+        shortcut: 'h5',
+      },
+      {
+        icon: TypeIcon,
+        key: 'paragraph',
+        label: 'Paragraph',
+        layout: 'compact',
+        shortcut: 'text',
+      },
+      {
+        icon: QuoteIcon,
+        key: 'quote',
+        label: 'Quote',
+        layout: 'compact',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_QUOTE_COMMAND, {});
+        },
+        shortcut: 'quote',
+      },
+      {
+        icon: ListIcon,
+        key: 'bullet-list',
+        label: 'Bullet List',
+        layout: 'compact',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+        },
+        shortcut: 'ul',
+      },
+      {
+        icon: ListOrderedIcon,
+        key: 'numbered-list',
+        label: 'Numbered List',
+        layout: 'compact',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+        },
+        shortcut: 'ol',
+      },
+      {
+        icon: ListChecksIcon,
+        key: 'todo-list',
+        label: 'Todo List',
+        layout: 'compact',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined);
+        },
+        shortcut: 'todo',
+      },
+      {
+        icon: LinkIcon,
+        key: 'quick-link',
+        label: 'Link',
+        layout: 'compact',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_LINK_COMMAND, { url: 'https://example.com' });
+        },
+        shortcut: 'link',
+      },
+      {
+        icon: Code2Icon,
+        key: 'quick-code',
+        label: 'Code',
+        layout: 'compact',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined);
+        },
+        shortcut: 'code',
+      },
       {
         type: 'divider',
       },
@@ -150,35 +261,58 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         icon: MinusIcon,
         key: 'hr',
         label: 'Hr',
+        layout: 'tile',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, {});
         },
+        shortcut: 'hr',
       },
       {
         icon: Table2Icon,
         key: 'table',
         label: 'Table',
+        layout: 'tile',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' });
         },
+        shortcut: 'table',
       },
       {
         icon: SigmaIcon,
         key: 'tex',
         label: 'Tex',
+        layout: 'tile',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_MATH_COMMAND, { code: 'x^2 + y^2 = z^2' });
           queueMicrotask(() => {
             editor.focus();
           });
         },
+        shortcut: 'tex',
+      },
+      {
+        icon: ImageIcon,
+        key: 'image',
+        label: 'Image',
+        layout: 'tile',
+        onSelect: (editor) => {
+          openFileSelector((files) => {
+            const [file] = files;
+            if (file) {
+              editor.dispatchCommand(INSERT_IMAGE_COMMAND, { file });
+            }
+          });
+        },
+        shortcut: 'image',
       },
       {
         type: 'divider',
       },
       {
+        icon: FileIcon,
         key: 'file',
         label: 'File',
+        layout: 'tile',
         onSelect: (editor) => {
           openFileSelector((files) => {
             for (const file of files) {
@@ -186,56 +320,76 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
             }
           });
         },
+        shortcut: 'file',
       },
       {
+        icon: TagIcon,
+        key: 'status',
+        label: 'Status',
+        layout: 'tile',
+        shortcut: 'status',
+      },
+      {
+        icon: PanelTopIcon,
         key: 'set-text-content',
         label: 'SetTextContent',
+        layout: 'wide',
         onSelect: (editor) => {
           editor.setDocument('text', '123\n123');
           queueMicrotask(() => {
             editor.focus();
           });
         },
+        shortcut: 'set-text',
       },
       {
+        icon: LinkIcon,
         key: 'insert-link',
         label: 'InsertLink',
+        layout: 'wide',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_LINK_COMMAND, { url: 'https://example.com' });
           queueMicrotask(() => {
             editor.focus();
           });
         },
+        shortcut: 'link',
       },
 
       {
+        icon: Code2Icon,
         key: 'insert-codeInline',
         label: 'InsertCodeInline',
+        layout: 'wide',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined);
           queueMicrotask(() => {
             editor.focus();
           });
         },
+        shortcut: 'code',
       },
       {
+        icon: BracesIcon,
         key: 'insert-codeBlock',
         label: 'InsertCodeBlock',
+        layout: 'wide',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_CODEMIRROR_COMMAND, undefined);
           queueMicrotask(() => {
             editor.focus();
           });
         },
+        shortcut: 'codeblock',
       },
     ];
     return data.map((item) => {
       if (item.type === 'divider') return item;
       return {
         ...item,
-        extra: (
+        shortcut: (
           <Text code fontSize={12} type={'secondary'}>
-            {item.key}
+            {item.shortcut ?? item.key}
           </Text>
         ),
       };
