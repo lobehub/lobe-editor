@@ -51,7 +51,7 @@ import {
   handleVSCodePaste,
   runPasteHandlers,
 } from './paste-handler';
-import { registerHeaderBackspace, registerLastElement, registerRichKeydown } from './register';
+import { registerBlockBackspace, registerLastElement, registerRichKeydown } from './register';
 
 patchBreakLine();
 
@@ -452,7 +452,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerRichText(editor),
       CAN_USE_DOM ? registerDragonSupport(editor) : noop,
       registerHistory(editor, this.kernel.getHistoryState(), 300),
-      registerHeaderBackspace(editor),
+      registerBlockBackspace(editor),
       registerRichKeydown(editor, this.kernel, {
         enableHotkey: this.config?.enableHotkey,
       }),
