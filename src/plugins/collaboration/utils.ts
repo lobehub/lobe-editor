@@ -52,6 +52,10 @@ const isStaleLexicalNodeError = (error: unknown) =>
   error instanceof Error &&
   error.message.includes('Lexical node does not exist in active editor state');
 
+const flushBindingNodeProperties = (lexicalEditor: LexicalEditor) => {
+  lexicalEditor.update(() => {}, { discrete: true });
+};
+
 export const registerCollaborationBinding = ({
   cursorContainer,
   doc,
@@ -66,6 +70,7 @@ export const registerCollaborationBinding = ({
   const binding = createBindingV2__EXPERIMENTAL(lexicalEditor, id, doc, yjsDocMap, {
     excludedProperties,
   });
+  flushBindingNodeProperties(lexicalEditor);
   binding.cursorsContainer = cursorContainer ?? null;
 
   const rootHasContent = binding.root.length > 0;

@@ -1,5 +1,11 @@
 import type { Provider, UserState } from '@lexical/yjs';
-import { Doc, XmlElement, applyUpdate, encodeStateAsUpdate } from 'yjs';
+import {
+  Doc,
+  applyUpdate,
+  diffUpdate,
+  encodeStateAsUpdate,
+  encodeStateVectorFromUpdate,
+} from 'yjs';
 
 import {
   createRoomEventSource,
@@ -18,7 +24,7 @@ import type {
 
 const serverUpdateOrigin = Symbol('server-update');
 
-const docHasCollaborationContent = (doc: Doc) => doc.get('root-v2', XmlElement).length > 0;
+const updateHasContent = (update: Uint8Array) => update.byteLength > 2;
 
 type ProviderEventType = 'reload' | 'status' | 'sync' | 'update';
 type ProviderListener =
@@ -50,6 +56,10 @@ export class BusinessCollaborationProvider implements Provider {
     this.doc.on('update', this.handleLocalDocumentUpdate);
     this.emitStatus('connecting');
 
+    const localUpdate = encodeStateAsUpdate(this.doc);
+    let updateToPublish: Uint8Array | undefined = updateHasContent(localUpdate)
+      ? localUpdate
+      : undefined;
     const snapshot = await fetchRoomSnapshot(this.roomId);
 
     if (!this.connected) return;
@@ -57,9 +67,21 @@ export class BusinessCollaborationProvider implements Provider {
     this.openEventSource();
 
     if (snapshot.update) {
-      applyUpdate(this.doc, base64ToBytes(snapshot.update), serverUpdateOrigin);
-    } else if (docHasCollaborationContent(this.doc)) {
-      await this.publishDocumentUpdate(encodeStateAsUpdate(this.doc));
+      const remoteUpdate = base64ToBytes(snapshot.update);
+
+      if (updateToPublish) {
+        const missingLocalUpdate = diffUpdate(
+          localUpdate,
+          encodeStateVectorFromUpdate(remoteUpdate),
+        );
+        updateToPublish = updateHasContent(missingLocalUpdate) ? missingLocalUpdate : undefined;
+      }
+
+      applyUpdate(this.doc, remoteUpdate, serverUpdateOrigin);
+    }
+
+    if (updateToPublish) {
+      await this.publishDocumentUpdate(updateToPublish);
     }
 
     this.awareness.applyRemoteStates(snapshot.awareness);

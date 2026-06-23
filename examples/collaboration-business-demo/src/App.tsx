@@ -40,6 +40,7 @@ const users: BusinessUser[] = [
 
 interface ClientPaneProps {
   editable?: boolean;
+  onSynced?: () => void;
   page: PageMetadata;
   role: string;
   roomId: string;
@@ -56,6 +57,7 @@ const collaborationPlugins: EditorPlugin[] = [
 
 const ClientPane = ({
   editable = true,
+  onSynced,
   page,
   role,
   roomId,
@@ -91,6 +93,9 @@ const ClientPane = ({
       onStatusChange: setStatus,
       onSync: (isSynced) => {
         setSyncState(isSynced ? 'synced' : 'syncing');
+        if (isSynced) {
+          onSynced?.();
+        }
       },
       providerFactory,
       shouldBootstrap,
@@ -111,6 +116,7 @@ const ClientPane = ({
     [
       connected,
       editable,
+      onSynced,
       page.id,
       page.workspaceId,
       providerFactory,
@@ -176,16 +182,19 @@ export const App = () => {
   const [showObserver, setShowObserver] = useState(true);
   const [page, setPage] = useState<PageMetadata>();
   const [roomId, setRoomId] = useState('');
+  const [seedReady, setSeedReady] = useState(false);
   const [error, setError] = useState<string>();
   const [sessionKey, setSessionKey] = useState(0);
 
   useEffect(() => {
     setPage(undefined);
     setRoomId('');
+    setSeedReady(false);
     setError(undefined);
 
     fetchPage(workspaceId, activePageId)
-      .then((response) => {
+      .then(async (response) => {
+        await resetRoom(response.roomId);
         setPage(response.page);
         setRoomId(response.roomId);
       })
@@ -198,9 +207,14 @@ export const App = () => {
     setSessionKey((value) => value + 1);
   }, []);
 
+  const markSeedReady = useCallback(() => {
+    setSeedReady(true);
+  }, []);
+
   const resetActiveRoom = useCallback(() => {
     if (!roomId) return;
 
+    setSeedReady(false);
     resetRoom(roomId)
       .then(() => {
         remountClients();
@@ -273,39 +287,40 @@ export const App = () => {
 
         <section className="integration-summary">
           <div>
-            <span>First open</span>
-            <strong>JSON bootstrap only once</strong>
+            <span>Room reset</span>
+            <strong>fresh demo state</strong>
           </div>
           <div>
-            <span>Re-enter</span>
-            <strong>room snapshot hydrate</strong>
+            <span>Alice</span>
+            <strong>seeds initial JSON</strong>
+          </div>
+          <div>
+            <span>Bo and Cara</span>
+            <strong>join same room</strong>
           </div>
           <div>
             <span>Presence</span>
-            <strong>focus, leave, observer</strong>
-          </div>
-          <div>
-            <span>Content nodes</span>
-            <strong>list, table, image, code</strong>
+            <strong>remote cursor only</strong>
           </div>
         </section>
 
         <section className="pane-grid" key={`${roomId}:${sessionKey}`}>
           <ClientPane
+            onSynced={markSeedReady}
             page={page}
-            role="Bootstrap client"
+            role="Seed client"
             roomId={roomId}
             shouldBootstrap
             user={users[0]}
           />
-          {showBo ? (
-            <ClientPane page={page} role="Joining client" roomId={roomId} user={users[1]} />
+          {showBo && seedReady ? (
+            <ClientPane page={page} role="Room peer" roomId={roomId} user={users[1]} />
           ) : null}
-          {showObserver ? (
+          {showObserver && seedReady ? (
             <ClientPane
               editable={false}
               page={page}
-              role="Read-only observer"
+              role="Read-only peer"
               roomId={roomId}
               user={users[2]}
             />
