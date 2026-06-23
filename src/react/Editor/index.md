@@ -38,6 +38,12 @@ When `editable` is `false`, the floating block menu (add-block button and drag h
 
 <code src="./demos/editable.tsx" nopadding iframe></code>
 
+## Collaboration
+
+Two editor instances can share the same Yjs document through the `collaboration` prop.
+
+<code src="./demos/collaboration.tsx" nopadding iframe></code>
+
 ## Paste as Plain Text
 
 Force all pasted content to be inserted as plain text, stripping any rich text formatting (bold, italic, links, etc).
@@ -54,6 +60,7 @@ Force all pasted content to be inserted as plain text, stripping any rich text f
 | autoFormatMarkdown                | Automatically convert pasted markdown once the detection threshold is reached | `boolean`                                                                               | `true`   |
 | children                          | Additional content or components                                              | `ReactNode`                                                                             | -        |
 | className                         | Custom CSS class                                                              | `string`                                                                                | -        |
+| collaboration                     | Yjs collaboration configuration                                               | `false \| EditorCollaborationConfig`                                                    | -        |
 | content                           | Initial editor content                                                        | `ReactEditorContentProps['content']`                                                    | -        |
 | editor                            | Editor instance to use                                                        | `IEditor`                                                                               | -        |
 | enablePasteMarkdown               | Enable automatic markdown conversion for pasted content                       | `boolean`                                                                               | `true`   |

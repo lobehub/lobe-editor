@@ -4,6 +4,7 @@ import { debounce } from 'es-toolkit';
 import { createElement, memo, useMemo } from 'react';
 
 import { ReactEditor } from '@/editor-kernel/react/react-editor';
+import { ReactCollaborationPlugin } from '@/plugins/collaboration';
 import { ReactEditorContent, ReactPlainText } from '@/plugins/common';
 import ReactMarkdownPlugin from '@/plugins/markdown/react';
 import { ReactMentionPlugin } from '@/plugins/mention';
@@ -18,6 +19,7 @@ const Editor = memo<EditorProps>(
     content,
     style,
     className,
+    collaboration,
     debounceWait = 100,
     editable,
     editor,
@@ -68,9 +70,11 @@ const Editor = memo<EditorProps>(
     const memoPlugins = useMemo(
       () =>
         (
-          [enablePasteMarkdown && autoFormatMarkdown && ReactMarkdownPlugin, ...plugins].filter(
-            Boolean,
-          ) as EditorPlugin[]
+          [
+            collaboration && [ReactCollaborationPlugin, collaboration],
+            enablePasteMarkdown && autoFormatMarkdown && ReactMarkdownPlugin,
+            ...plugins,
+          ].filter(Boolean) as EditorPlugin[]
         ).map((plugin, index) => {
           const withNoProps = typeof plugin === 'function';
           if (withNoProps) return createElement(plugin, { key: index });
@@ -79,7 +83,7 @@ const Editor = memo<EditorProps>(
             ...plugin[1],
           });
         }),
-      [plugins, enablePasteMarkdown, autoFormatMarkdown, ReactMarkdownPlugin],
+      [plugins, collaboration, enablePasteMarkdown, autoFormatMarkdown, ReactMarkdownPlugin],
     );
 
     const memoMention = useMemo(() => {

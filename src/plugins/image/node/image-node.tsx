@@ -32,6 +32,10 @@ export class ImageNode extends BaseImageNode {
     src: string;
     status?: 'uploaded' | 'loading' | 'error';
     width?: 'inherit' | number;
+  } = {
+    altText: '',
+    maxWidth: 4200,
+    src: '',
   }) {
     super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key);
     this.__status = opt.status ?? 'uploaded';

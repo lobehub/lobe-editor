@@ -1,0 +1,24 @@
+{
+  "name": "@lobehub/editor-collaboration-business-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "dev": "tsx scripts/dev.ts",
+    "dev:client": "vite --host 0.0.0.0 --port 5174",
+    "dev:server": "tsx watch server/index.ts",
+    "type-check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.4",
+    "@vitejs/plugin-react": "^5.1.1",
+    "hono": "^4.10.7",
+    "vite": "^7.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,5 +1,6 @@
 import type { CSSProperties, FC, ReactNode } from 'react';
 
+import type { EditorCollaborationConfig } from '@/plugins/collaboration';
 import type { ReactEditorContentProps, ReactPlainTextProps } from '@/plugins/common/react';
 import type { ReactMentionPluginProps } from '@/plugins/mention/react';
 import type { ReactSlashOptionProps } from '@/plugins/slash/react';
@@ -21,6 +22,7 @@ export interface EditorProps
   autoFormatMarkdown?: boolean;
   children?: ReactNode;
   className?: string;
+  collaboration?: false | EditorCollaborationConfig;
   /**
    * Debounce wait time in milliseconds for onChange and onTextChange callbacks
    * @default 100
