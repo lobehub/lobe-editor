@@ -117,21 +117,22 @@ const patchBlockNodeCreateDOM = (nodeClass: LexicalNodeClass, attributeName: str
     const dom = originCreateDOM.call(this, config, editor);
 
     const latestNode = typeof this.getLatest === 'function' ? this.getLatest() : this;
-    const isRootOrListChainToRoot = (() => {
-      let current = typeof latestNode.getParent === 'function' ? latestNode.getParent() : null;
+    const parentNode = typeof latestNode.getParent === 'function' ? latestNode.getParent() : null;
+    const isBlockChainToEditableRoot = (() => {
+      let current = parentNode;
 
       if (!current || typeof current.getType !== 'function') {
         return false;
       }
 
-      if (current.getType() === 'root') {
+      if (current.getType() === 'root' || current.isShadowRoot?.()) {
         return true;
       }
 
       while (current && typeof current.getType === 'function') {
         const parentType = current.getType();
 
-        if (parentType === 'root') {
+        if (parentType === 'root' || current.isShadowRoot?.()) {
           return true;
         }
 
@@ -147,13 +148,18 @@ const patchBlockNodeCreateDOM = (nodeClass: LexicalNodeClass, attributeName: str
 
     const nodeKey = typeof latestNode.getKey === 'function' ? latestNode.getKey() : this.getKey();
     const nodeType = typeof latestNode.getType === 'function' ? latestNode.getType() : '';
+    const isCollapsibleTitleChild =
+      parentNode?.getType?.() === 'collapsible' &&
+      typeof latestNode.getIndexWithinParent === 'function' &&
+      latestNode.getIndexWithinParent() === 0;
 
     const isRootChildBlock =
       dom &&
       typeof latestNode.isInline === 'function' &&
       !latestNode.isInline() &&
       nodeType !== 'list' &&
-      isRootOrListChainToRoot;
+      isBlockChainToEditableRoot &&
+      !isCollapsibleTitleChild;
 
     if (isRootChildBlock) {
       dom.dataset.blockId = nodeKey;

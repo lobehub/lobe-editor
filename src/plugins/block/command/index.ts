@@ -93,6 +93,34 @@ const cleanupEmptyListForItem = (listItem: ListItemNode) => {
   }
 };
 
+const hasAncestorOfType = (node: LexicalNode, type: string): boolean => {
+  let parent = node.getParent();
+
+  while (parent) {
+    if (parent.getType() === type) {
+      return true;
+    }
+
+    parent = parent.getParent();
+  }
+
+  return false;
+};
+
+const isDescendantOf = (node: LexicalNode, ancestor: LexicalNode): boolean => {
+  let parent = node.getParent();
+
+  while (parent) {
+    if (parent === ancestor) {
+      return true;
+    }
+
+    parent = parent.getParent();
+  }
+
+  return false;
+};
+
 const moveBlockNode = (payload: BlockMovePayload) => {
   logger.debug('start', payload);
 
@@ -109,6 +137,16 @@ const moveBlockNode = (payload: BlockMovePayload) => {
 
   if (sourceNode === targetNode) {
     logger.debug('abort: source-equals-target');
+    return;
+  }
+
+  if (isDescendantOf(targetNode, sourceNode)) {
+    logger.debug('abort: target-inside-source');
+    return;
+  }
+
+  if (sourceNode.getType() === 'collapsible' && hasAncestorOfType(targetNode, 'collapsible')) {
+    logger.debug('abort: collapsible-inside-collapsible');
     return;
   }
 

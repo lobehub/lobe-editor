@@ -1,6 +1,7 @@
 import {
   IEditor,
   INSERT_CODEINLINE_COMMAND,
+  INSERT_COLLAPSIBLE_COMMAND,
   INSERT_FILE_COMMAND,
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
@@ -8,6 +9,7 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  ReactCollapsiblePlugin,
   type SlashOptions,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
@@ -17,6 +19,7 @@ import {
   Heading1Icon,
   Heading2Icon,
   Heading3Icon,
+  ListCollapseIcon,
   MinusIcon,
   SigmaIcon,
   Table2Icon,
@@ -131,6 +134,17 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         type: 'divider',
       },
       {
+        icon: ListCollapseIcon,
+        key: 'collapsible',
+        label: '折叠块',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_COLLAPSIBLE_COMMAND, {});
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
+      {
         key: 'file',
         label: 'File',
         onSelect: (editor) => {
@@ -210,8 +224,11 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         onChange={handleChange}
         onInit={handleInit}
         placeholder={'Type something...'}
+        plugins={[ReactCollapsiblePlugin]}
         slashOption={{
           items: slashItems,
+          maxLength: 16,
+          searchKeys: ['key', 'label'],
         }}
       />
     </Container>

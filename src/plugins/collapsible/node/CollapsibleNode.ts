@@ -2,6 +2,8 @@
 import { addClassNamesToElement } from '@lexical/utils';
 import {
   $applyNodeReplacement,
+  $createParagraphNode,
+  $createTextNode,
   DOMConversionMap,
   DOMConversionOutput,
   DOMExportOutput,
@@ -25,6 +27,7 @@ export type SerializedCollapsibleNode = Spread<
 >;
 
 const CONTENT_SELECTOR = '[data-collapsible-content="true"]';
+const TOGGLE_SELECTOR = '[data-collapsible-toggle="true"]';
 
 export class CollapsibleNode extends ElementNode {
   __collapsed: boolean;
@@ -48,7 +51,17 @@ export class CollapsibleNode extends ElementNode {
   }
 
   static importJSON(serializedNode: SerializedCollapsibleNode): CollapsibleNode {
-    return $createCollapsibleNode().updateFromJSON(serializedNode);
+    const node = $createCollapsibleNode(serializedNode.title || 'Details').updateFromJSON(serializedNode);
+    if (shouldPrependTitle(serializedNode)) {
+      const titleParagraph = $createTitleParagraph(serializedNode.title || 'Details');
+      const firstChild = node.getFirstChild();
+      if (firstChild) {
+        firstChild.insertBefore(titleParagraph);
+      } else {
+        node.append(titleParagraph);
+      }
+    }
+    return node;
   }
 
   constructor(title: string = 'Details', collapsed: boolean = false, key?: NodeKey) {
@@ -61,14 +74,15 @@ export class CollapsibleNode extends ElementNode {
     const element = document.createElement('section');
     addClassNamesToElement(element, config.theme.collapsible);
     element.dataset.collapsible = 'true';
+    element.dataset.collapsibleCollapsed = String(this.__collapsed);
 
-    const summary = document.createElement('button');
-    summary.type = 'button';
-    summary.contentEditable = 'false';
-    summary.dataset.collapsibleSummary = 'true';
-    summary.setAttribute('aria-expanded', String(!this.__collapsed));
-    summary.textContent = this.__title;
-    summary.addEventListener('click', () => {
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.contentEditable = 'false';
+    toggle.dataset.collapsibleToggle = 'true';
+    toggle.setAttribute('aria-expanded', String(!this.__collapsed));
+    toggle.setAttribute('aria-label', this.__collapsed ? 'Expand collapsible block' : 'Collapse collapsible block');
+    toggle.addEventListener('click', () => {
       editor.update(() => {
         const latest = this.getLatest();
         if ($isCollapsibleNode(latest)) {
@@ -79,26 +93,21 @@ export class CollapsibleNode extends ElementNode {
 
     const content = document.createElement('div');
     content.dataset.collapsibleContent = 'true';
-    content.hidden = this.__collapsed;
 
-    element.append(summary, content);
+    element.append(toggle, content);
     return element;
   }
 
   updateDOM(prevNode: this, dom: HTMLElement): boolean {
-    const summary = dom.querySelector<HTMLElement>('[data-collapsible-summary="true"]');
-    const content = dom.querySelector<HTMLElement>(CONTENT_SELECTOR);
+    const toggle = dom.querySelector<HTMLElement>(TOGGLE_SELECTOR);
+    dom.dataset.collapsibleCollapsed = String(this.__collapsed);
 
-    if (summary && prevNode.__title !== this.__title) {
-      summary.textContent = this.__title;
-    }
-
-    if (summary && prevNode.__collapsed !== this.__collapsed) {
-      summary.setAttribute('aria-expanded', String(!this.__collapsed));
-    }
-
-    if (content && prevNode.__collapsed !== this.__collapsed) {
-      content.hidden = this.__collapsed;
+    if (toggle && prevNode.__collapsed !== this.__collapsed) {
+      toggle.setAttribute('aria-expanded', String(!this.__collapsed));
+      toggle.setAttribute(
+        'aria-label',
+        this.__collapsed ? 'Expand collapsible block' : 'Collapse collapsible block',
+      );
     }
 
     return false;
@@ -110,7 +119,7 @@ export class CollapsibleNode extends ElementNode {
       element.setAttribute('open', '');
     }
     const summary = document.createElement('summary');
-    summary.textContent = this.__title;
+    summary.textContent = this.getTitle();
     element.append(summary);
     return { element };
   }
@@ -132,11 +141,17 @@ export class CollapsibleNode extends ElementNode {
   }
 
   getTitle(): string {
-    return this.getLatest().__title;
+    const latest = this.getLatest();
+    const firstChild = latest.getFirstChild();
+    return firstChild ? firstChild.getTextContent().trim() : latest.__title;
   }
 
   isCollapsed(): boolean {
     return this.getLatest().__collapsed;
+  }
+
+  isShadowRoot(): boolean {
+    return true;
   }
 
   setCollapsed(collapsed: boolean): this {
@@ -181,4 +196,28 @@ function $convertDetailsElement(domNode: Node): DOMConversionOutput {
   return {
     node: $createCollapsibleNode(title, !domNode.open),
   };
+}
+
+function $createTitleParagraph(title: string) {
+  const paragraph = $createParagraphNode();
+  paragraph.append($createTextNode(title));
+  return paragraph;
+}
+
+function getSerializedText(node: unknown): string {
+  if (!node || typeof node !== 'object') return '';
+  if ('text' in node && typeof node.text === 'string') return node.text;
+  if ('children' in node && Array.isArray(node.children)) {
+    return node.children.map((child) => getSerializedText(child)).join('');
+  }
+  return '';
+}
+
+function shouldPrependTitle(serializedNode: SerializedCollapsibleNode): boolean {
+  const title = serializedNode.title?.trim();
+  if (!title) return false;
+
+  const children = Array.isArray(serializedNode.children) ? serializedNode.children : [];
+  const firstChild = children[0];
+  return getSerializedText(firstChild).trim() !== title;
 }

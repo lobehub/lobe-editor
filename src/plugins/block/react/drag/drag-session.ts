@@ -10,6 +10,7 @@ import type { RuntimeContextRef } from '../core/runtime-context';
 import type { BlockDragTarget } from '../core/types';
 import {
   collectDragBlocks,
+  filterDragBlocksForSource,
   getAutoScrollDelta,
   resolveNearestInsertionSlot,
   resolveScrollContainers,
@@ -174,7 +175,8 @@ export const startBlockDragSession = ({
       return;
     }
 
-    const bestSlot = resolveNearestInsertionSlot(source.blockId, blocks, y);
+    const validBlocks = filterDragBlocksForSource(source.blockId, blocks);
+    const bestSlot = resolveNearestInsertionSlot(source.blockId, validBlocks, y);
     if (!bestSlot) {
       clearDragPreview();
       return;
