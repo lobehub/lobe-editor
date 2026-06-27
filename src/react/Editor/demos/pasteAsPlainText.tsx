@@ -2,6 +2,7 @@ import {
   IEditor,
   INSERT_CODEINLINE_COMMAND,
   INSERT_CODEMIRROR_COMMAND,
+  INSERT_COLLAPSIBLE_COMMAND,
   INSERT_FILE_COMMAND,
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
@@ -12,6 +13,7 @@ import {
   ReactAutoCompletePlugin,
   ReactCodePlugin,
   ReactCodemirrorPlugin,
+  ReactCollapsiblePlugin,
   ReactFilePlugin,
   ReactHRPlugin,
   ReactImagePlugin,
@@ -32,6 +34,7 @@ import {
   Heading1Icon,
   Heading2Icon,
   Heading3Icon,
+  ListCollapseIcon,
   MinusIcon,
   SigmaIcon,
   Table2Icon,
@@ -172,6 +175,17 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         type: 'divider',
       },
       {
+        icon: ListCollapseIcon,
+        key: 'collapsible',
+        label: '折叠块',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_COLLAPSIBLE_COMMAND, {});
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
+      {
         key: 'file',
         label: 'File',
         onSelect: (editor) => {
@@ -279,6 +293,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
           // ReactCodeblockPlugin,
           ReactVirtualBlockPlugin,
           ReactCodemirrorPlugin,
+          ReactCollapsiblePlugin,
           ReactHRPlugin,
           ReactTablePlugin,
           ReactMathPlugin,
@@ -356,6 +371,8 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         ]}
         slashOption={{
           items: slashItems,
+          maxLength: 16,
+          searchKeys: ['key', 'label'],
         }}
       />
     </Container>
