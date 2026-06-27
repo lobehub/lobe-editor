@@ -21,6 +21,7 @@ import {
   ReactLiteXmlPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
+  ReactTocPlugin,
   ReactToolbarPlugin,
   ReactVirtualBlockPlugin,
   type SlashOptions,
@@ -288,6 +289,10 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
           ReactTablePlugin,
           ReactMathPlugin,
           ReactCodePlugin,
+          Editor.withProps(ReactTocPlugin, {
+            offsetTop: 88,
+            reserveGap: 24,
+          }),
           Editor.withProps(ReactToolbarPlugin, {
             children: <Toolbar editor={editor} floating />,
           }),

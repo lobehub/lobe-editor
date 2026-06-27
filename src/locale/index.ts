@@ -59,4 +59,12 @@ export default {
     insertRowAbove: 'Insert {{count}} row(s) above',
     insertRowBelow: 'Insert {{count}} row(s) below',
   },
+  toc: {
+    ariaLabel: 'Table of contents',
+    empty: 'No headings',
+    expand: 'Expand table of contents',
+    pin: 'Pin table of contents',
+    title: 'TOC',
+    unpin: 'Unpin table of contents',
+  },
 };
