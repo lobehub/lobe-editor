@@ -28,12 +28,7 @@ import {
   createCommand,
 } from 'lexical';
 
-import {
-  assert,
-  getKernelFromEditor,
-  getKernelFromEditorConfig,
-  reconcileDecorator,
-} from '@/editor-kernel/utils';
+import { assert, getKernelFromEditorConfig } from '@/editor-kernel/utils';
 import { createDebugLogger } from '@/utils/debug';
 
 import { ILinkService, LinkService } from '../service/i-link-service';
@@ -58,12 +53,10 @@ export type SerializedLinkNode = Spread<
 type LinkHTMLElementType = HTMLAnchorElement | HTMLSpanElement;
 
 const SUPPORTED_URL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'sms:', 'tel:']);
-const LINK_RENDER_HOST_SELECTOR = '[data-link-render-host="true"]';
-const LINK_CONTENT_SLOT_SELECTOR = '[data-link-content-slot="true"]';
 
 export const HOVER_LINK_COMMAND = createCommand<{
   event: MouseEvent;
-  linkNode: LinkNode;
+  node: LexicalNode;
 }>('HOVER_LINK_COMMAND');
 export const HOVER_OUT_LINK_COMMAND = createCommand<{
   event: MouseEvent;
@@ -104,19 +97,6 @@ export class LinkNode extends ElementNode {
   createDOM(config: EditorConfig, editor: LexicalEditor): LinkHTMLElementType {
     logger.debug('🔍 config', config);
     const element = document.createElement('a');
-    const linkService = getLinkServiceFromEditor(editor);
-    if (linkService?.getSchemaLinkRenderer(this.__url)) {
-      element.dataset.schemaLink = 'true';
-      element.contentEditable = 'false';
-      const host = document.createElement('span');
-      host.dataset.linkRenderHost = 'true';
-      element.append(host);
-      const contentSlot = document.createElement('span');
-      contentSlot.dataset.linkContentSlot = 'true';
-      contentSlot.style.display = 'none';
-      element.append(contentSlot);
-      reconcileSchemaLinkDecorator(editor, this, linkService);
-    }
     this.updateLinkDOM(null, element, config);
     addClassNamesToElement(element, config.theme.link);
     element.addEventListener('mouseenter', (event) => {
@@ -124,7 +104,7 @@ export class LinkNode extends ElementNode {
         event.target.classList.add('hover');
         editor.dispatchCommand(HOVER_LINK_COMMAND, {
           event: event as MouseEvent,
-          linkNode: this,
+          node: this,
         });
       }
     });
@@ -165,15 +145,6 @@ export class LinkNode extends ElementNode {
   }
 
   updateDOM(prevNode: this, anchor: LinkHTMLElementType, config: EditorConfig): boolean {
-    const linkService = getLinkServiceFromConfig(config);
-    const prevHasRenderer = Boolean(linkService?.getSchemaLinkRenderer(prevNode.__url));
-    const nextHasRenderer = Boolean(linkService?.getSchemaLinkRenderer(this.__url));
-    if (prevHasRenderer !== nextHasRenderer) {
-      return true;
-    }
-    if (nextHasRenderer) {
-      reconcileSchemaLinkDecorator(getKernelFromEditorConfig(config)?.getLexicalEditor(), this, linkService);
-    }
     this.updateLinkDOM(prevNode, anchor, config);
     return false;
   }
@@ -315,46 +286,14 @@ export class LinkNode extends ElementNode {
   }
 
   getDOMSlot(element: HTMLElement): ElementDOMSlot<HTMLElement> {
-    const contentSlot = element.querySelector(LINK_CONTENT_SLOT_SELECTOR);
-    if (contentSlot instanceof HTMLElement) {
-      return super.getDOMSlot(element).withElement(contentSlot);
-    }
     return super.getDOMSlot(element);
   }
-}
-
-function getLinkServiceFromEditor(editor: LexicalEditor): LinkService | null {
-  return (getKernelFromEditor(editor)?.requireService(ILinkService) as LinkService | null) || null;
 }
 
 function getLinkServiceFromConfig(config: EditorConfig): LinkService | null {
   return (
     (getKernelFromEditorConfig(config)?.requireService(ILinkService) as LinkService | null) || null
   );
-}
-
-function reconcileSchemaLinkDecorator(
-  editor: LexicalEditor | null | undefined,
-  node: LinkNode,
-  linkService: LinkService | null,
-): void {
-  if (!editor) return;
-  const renderer = linkService?.getSchemaLinkRenderer(node.getURL());
-  if (!renderer) return;
-
-  reconcileDecorator(editor, node.getKey(), {
-    queryDOM: (element: HTMLElement) =>
-      (element.querySelector(LINK_RENDER_HOST_SELECTOR) as HTMLElement | null) || element,
-    render: renderer({
-      editor,
-      node,
-      rel: node.getRel(),
-      target: node.getTarget(),
-      text: node.getTextContent(),
-      title: node.getTitle(),
-      url: node.getURL(),
-    }),
-  });
 }
 
 function $convertAnchorElement(domNode: Node): DOMConversionOutput {
@@ -388,7 +327,9 @@ export function $createLinkNode(url: string = '', attributes?: LinkAttributes): 
  * @returns true if node is a LinkNode, false otherwise.
  */
 export function $isLinkNode(node: LexicalNode | null | undefined): node is LinkNode {
-  return node instanceof LinkNode;
+  return (
+    node instanceof LinkNode || node?.getType?.() === 'link' || node?.getType?.() === 'autolink'
+  );
 }
 
 export type SerializedAutoLinkNode = Spread<

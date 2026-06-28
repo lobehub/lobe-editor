@@ -1,4 +1,3 @@
-import { LinkNode } from '@lexical/link';
 import { mergeRegister } from '@lexical/utils';
 import {
   $createTextNode,
@@ -10,7 +9,7 @@ import {
   createCommand,
 } from 'lexical';
 
-import { $createLinkNode } from '../node/LinkNode';
+import { $createLinkNode, LinkNode } from '../node/LinkNode';
 
 export const INSERT_LINK_COMMAND = createCommand<{ title?: string; url?: string }>(
   'INSERT_LINK_COMMAND',
