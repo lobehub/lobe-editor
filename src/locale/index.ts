@@ -24,6 +24,10 @@ export default {
     replace: 'Replace',
   },
   link: {
+    convertToCard: 'Convert to Card',
+    convertToIframe: 'Convert to Iframe',
+    convertToLink: 'Convert to Link',
+    convertToSchema: 'Convert to Schema',
     edit: 'Edit Link',
     editLinkTitle: 'Link',
     editTextTitle: 'Text',
