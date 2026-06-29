@@ -97,8 +97,11 @@ export interface SlashMenuProps {
   options: Array<ISlashOption>;
   /** Force menu placement direction, skipping auto-flip detection */
   placement?: 'bottom' | 'top';
-  /** Menu position */
-  position: { getRect?: () => DOMRect; rect?: DOMRect; x: number; y: number };
+  /**
+   * Caret position used by the floating fallback when no getPopupContainer
+   * is provided. Ignored in full-width mode.
+   */
+  position?: { getRect?: () => DOMRect; rect?: DOMRect; x: number; y: number };
 }
 
 export interface ReactSlashPluginProps {

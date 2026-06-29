@@ -14,7 +14,7 @@ import {
   ReactTablePlugin,
   type SlashOptions,
 } from '@lobehub/editor';
-import { Editor, FloatMenu, SlashMenu } from '@lobehub/editor/react';
+import { Editor } from '@lobehub/editor/react';
 import { Avatar, Text } from '@lobehub/ui';
 import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
 import { type FC, type Ref, useMemo } from 'react';
@@ -23,12 +23,11 @@ import { content } from './data';
 
 interface InputEditorProps {
   editor: IEditor;
-  fullscreen?: boolean;
   onSend?: () => void;
-  slashMenuRef: Ref<HTMLDivElement>;
+  slashMenuRef?: Ref<HTMLDivElement>;
 }
 
-const InputEditor: FC<InputEditorProps> = ({ editor, slashMenuRef, onSend, fullscreen }) => {
+const InputEditor: FC<InputEditorProps> = ({ editor, onSend, slashMenuRef }) => {
   const mentionItems: SlashOptions['items'] = useMemo(
     () => [
       {
@@ -118,6 +117,7 @@ const InputEditor: FC<InputEditorProps> = ({ editor, slashMenuRef, onSend, fulls
       autoFocus
       content={content}
       editor={editor}
+      getPopupContainer={() => (slashMenuRef as any)?.current ?? null}
       mentionOption={{
         items: mentionItems,
         markdownWriter: (mention) => {
@@ -129,14 +129,6 @@ const InputEditor: FC<InputEditorProps> = ({ editor, slashMenuRef, onSend, fulls
             metadata: { id: option.key },
           });
         },
-        renderComp: fullscreen
-          ? undefined
-          : (props) => {
-              if (props.options.length === 0) return;
-              return (
-                <SlashMenu {...props} getPopupContainer={() => (slashMenuRef as any).current} />
-              );
-            },
         searchKeys: ['label'],
       }}
       onBlur={({ editor, event }) => console.log('Blur', editor, event)}
@@ -155,7 +147,7 @@ const InputEditor: FC<InputEditorProps> = ({ editor, slashMenuRef, onSend, fulls
         onSend?.();
         return true;
       }}
-      placeholder={'Type something...'}
+      placeholder={'Type @ to mention or / for slash commands'}
       plugins={[
         ReactListPlugin,
         ReactLinkHighlightPlugin,
@@ -164,24 +156,11 @@ const InputEditor: FC<InputEditorProps> = ({ editor, slashMenuRef, onSend, fulls
         ReactHRPlugin,
         ReactCodePlugin,
         ReactTablePlugin,
-        Editor.withProps(ReactMathPlugin, {
-          renderComp: fullscreen
-            ? undefined
-            : (props) => (
-                <FloatMenu {...props} getPopupContainer={() => (slashMenuRef as any).current} />
-              ),
-        }),
+        ReactMathPlugin,
       ]}
       slashOption={{
         items: slashItems,
         maxLength: 6,
-        renderComp: fullscreen
-          ? undefined
-          : (props) => {
-              return (
-                <SlashMenu {...props} getPopupContainer={() => (slashMenuRef as any).current} />
-              );
-            },
       }}
       variant={'chat'}
     />
