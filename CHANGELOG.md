@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.18.1](https://github.com/lobehub/lobe-editor/compare/v4.18.0...v4.18.1)
+<sup>Released on **2026-06-29**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **slash**: Anchor menu to input edges, drop FloatMenu.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **slash**: Anchor menu to input edges, drop FloatMenu, closes [#182](https://github.com/lobehub/lobe-editor/issues/182) ([d042e68](https://github.com/lobehub/lobe-editor/commit/d042e68))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.18.0](https://github.com/lobehub/lobe-editor/compare/v4.17.2...v4.18.0)
 <sup>Released on **2026-06-16**</sup>
 
