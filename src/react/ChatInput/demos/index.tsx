@@ -109,12 +109,7 @@ export default () => {
           slashMenuRef={slashMenuRef}
           {...controls}
         >
-          <InputEditor
-            editor={editor}
-            fullscreen={controls.fullscreen}
-            onSend={handleSendMessage}
-            slashMenuRef={slashMenuRef}
-          />
+          <InputEditor editor={editor} onSend={handleSendMessage} slashMenuRef={slashMenuRef} />
         </ChatInput>
       </Container>
     </StoryBook>

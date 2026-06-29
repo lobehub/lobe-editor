@@ -20,6 +20,11 @@ export interface ChatInputProps extends Omit<FlexboxProps, 'height'> {
   resize?: boolean;
   resizeMaxHeightOffset?: number;
   showResizeHandle?: boolean;
+  /**
+   * Ref attached to the ChatInput root element. Pass the same ref to
+   * `<Editor getPopupContainer={() => ref.current}>` to anchor the slash /
+   * mention menu to the ChatInput's outer edges (full-width).
+   */
   slashMenuRef?: Ref<HTMLDivElement>;
   styles?: {
     body?: CSSProperties;

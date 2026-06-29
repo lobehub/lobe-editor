@@ -85,11 +85,11 @@ const ChatInput: FC<ChatInputProps> = (props) => {
         className,
       )}
       height={fullscreen ? '100%' : undefined}
+      ref={slashMenuRef}
       style={style}
       width="100%"
       {...rest}
     >
-      {slashMenuRef && <div ref={slashMenuRef} />}
       <div
         className={cx(styles.header, classNames?.header)}
         ref={headerRef}
