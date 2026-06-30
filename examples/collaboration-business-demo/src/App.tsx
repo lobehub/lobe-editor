@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Doc } from 'yjs';
 
 import { BusinessCollaborationProvider } from './BusinessCollaborationProvider';
-import { fetchPage, resetRoom } from './api';
+import { fetchPage, fetchRoomSnapshot, resetRoom } from './api';
 import { emptyPageContent, getInitialPageContent } from './editorContent';
 import type { BusinessUser, PageMetadata } from './types';
 
@@ -176,18 +176,22 @@ export const App = () => {
   const [showObserver, setShowObserver] = useState(true);
   const [page, setPage] = useState<PageMetadata>();
   const [roomId, setRoomId] = useState('');
+  const [roomHasContent, setRoomHasContent] = useState(false);
   const [error, setError] = useState<string>();
   const [sessionKey, setSessionKey] = useState(0);
 
   useEffect(() => {
     setPage(undefined);
     setRoomId('');
+    setRoomHasContent(false);
     setError(undefined);
 
     fetchPage(workspaceId, activePageId)
-      .then((response) => {
+      .then(async (response) => {
+        const snapshot = await fetchRoomSnapshot(response.roomId);
         setPage(response.page);
         setRoomId(response.roomId);
+        setRoomHasContent(snapshot.hasContent);
       })
       .catch((error_: unknown) => {
         setError(error_ instanceof Error ? error_.message : 'Failed to load page metadata');
@@ -203,6 +207,7 @@ export const App = () => {
 
     resetRoom(roomId)
       .then(() => {
+        setRoomHasContent(false);
         remountClients();
       })
       .catch((error_: unknown) => {
@@ -295,7 +300,7 @@ export const App = () => {
             page={page}
             role="Bootstrap client"
             roomId={roomId}
-            shouldBootstrap
+            shouldBootstrap={!roomHasContent}
             user={users[0]}
           />
           {showBo ? (

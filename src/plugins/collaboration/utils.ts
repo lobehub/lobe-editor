@@ -90,6 +90,12 @@ export const registerCollaborationBinding = ({
     syncYjsChangesToLexicalV2__EXPERIMENTAL(binding, provider, events, transaction, false);
   };
 
+  const reloadObserver = (nextDoc: Doc) => {
+    if (nextDoc === doc) {
+      syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
+    }
+  };
+
   let isCleanedUp = false;
   let cursorSyncQueued = false;
   let cursorSyncRetryQueued = false;
@@ -152,6 +158,7 @@ export const registerCollaborationBinding = ({
   );
 
   binding.root.observeDeep(yjsObserver);
+  provider.on('reload', reloadObserver);
   provider.awareness.on('update', awarenessObserver);
 
   return {
@@ -160,6 +167,7 @@ export const registerCollaborationBinding = ({
       isCleanedUp = true;
       unregisterUpdateListener();
       binding.root.unobserveDeep(yjsObserver);
+      provider.off('reload', reloadObserver);
       provider.awareness.off('update', awarenessObserver);
       lexicalEditor.update(() => {}, { tag: COLLABORATION_TAG });
       binding.cursorsContainer = null;

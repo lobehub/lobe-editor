@@ -29,6 +29,130 @@ const clearLocalCollaborationContent = (doc: Doc) => {
   }, serverUpdateOrigin);
 };
 
+const getElementFromNode = (node: Node): Element | null =>
+  node instanceof Element ? node : node.parentElement;
+
+const getRangeScreenTop = (range: Range) => {
+  if (!range.collapsed) {
+    const rect = range.getBoundingClientRect();
+    if (rect.height > 0 || rect.width > 0) return rect.top;
+
+    const firstRect = range.getClientRects()[0];
+    return firstRect?.top;
+  }
+
+  const anchorNode = range.startContainer;
+  if (anchorNode.nodeType === Node.TEXT_NODE) {
+    const text = anchorNode.textContent ?? '';
+    const probeRange = range.cloneRange();
+
+    if (text.length > 0) {
+      const start = Math.max(0, Math.min(range.startOffset, text.length - 1));
+      const end = Math.min(text.length, start + 1);
+      probeRange.setStart(anchorNode, start);
+      probeRange.setEnd(anchorNode, end);
+
+      const rect = probeRange.getBoundingClientRect();
+      if (rect.height > 0 || rect.width > 0) return rect.top;
+    }
+  }
+
+  const element = getElementFromNode(anchorNode);
+  return element?.getBoundingClientRect().top;
+};
+
+const scrollByTop = (element: Element | Window, top: number) => {
+  if (element === window) {
+    window.scrollBy({
+      behavior: 'instant',
+      top,
+    });
+    return;
+  }
+
+  (element as Element).scrollTop += top;
+};
+
+const getNearestScrollableAncestor = (element: Element): Element | Window => {
+  let current = element.parentElement;
+
+  while (current) {
+    const style = window.getComputedStyle(current);
+    const canScroll = /(auto|scroll|overlay)/.test(`${style.overflowY}${style.overflow}`);
+
+    if (canScroll && current.scrollHeight > current.clientHeight) {
+      return current;
+    }
+
+    current = current.parentElement;
+  }
+
+  return window;
+};
+
+interface SelectionScreenAnchor {
+  editorElement: Element;
+  scrollElement: Element | Window;
+  top: number;
+}
+
+let pendingSelectionAnchor: SelectionScreenAnchor | undefined;
+let pendingSelectionAnchorFrame = 0;
+
+const captureLocalSelectionScreenAnchor = () => {
+  if (typeof window === 'undefined') return;
+
+  if (pendingSelectionAnchor) return;
+
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  const range = selection.getRangeAt(0).cloneRange();
+  const editorElement = getElementFromNode(range.commonAncestorContainer)?.closest(
+    '.business-editor',
+  );
+
+  if (!editorElement || !editorElement.contains(range.commonAncestorContainer)) return;
+
+  const beforeTop = getRangeScreenTop(range);
+  if (beforeTop === undefined) return;
+
+  const scrollElement = getNearestScrollableAncestor(editorElement);
+
+  pendingSelectionAnchor = {
+    editorElement,
+    scrollElement,
+    top: beforeTop,
+  };
+
+  return () => {
+    if (pendingSelectionAnchorFrame) return;
+
+    pendingSelectionAnchorFrame = window.requestAnimationFrame(() => {
+      pendingSelectionAnchorFrame = 0;
+      const anchor = pendingSelectionAnchor;
+      pendingSelectionAnchor = undefined;
+
+      if (!anchor) return;
+
+      const nextSelection = window.getSelection();
+      if (!nextSelection || nextSelection.rangeCount === 0) return;
+
+      const nextRange = nextSelection.getRangeAt(0).cloneRange();
+      if (!anchor.editorElement.contains(nextRange.commonAncestorContainer)) return;
+
+      const afterTop = getRangeScreenTop(nextRange);
+      if (afterTop === undefined) return;
+
+      const delta = afterTop - anchor.top;
+
+      if (Math.abs(delta) > 12) {
+        scrollByTop(anchor.scrollElement, delta);
+      }
+    });
+  };
+};
+
 type ProviderEventType = 'reload' | 'status' | 'sync' | 'update';
 type ProviderListener =
   | ((_doc: Doc) => void)
@@ -183,7 +307,17 @@ export class BusinessCollaborationProvider implements Provider {
       const payload = JSON.parse(event.data) as DocumentUpdateEventPayload;
       if (payload.clientID === this.doc.clientID) return;
 
+      const restoreLocalSelectionScreenAnchor = captureLocalSelectionScreenAnchor();
       applyUpdate(this.doc, base64ToBytes(payload.update), serverUpdateOrigin);
+      restoreLocalSelectionScreenAnchor?.();
+
+      if (payload.reload) {
+        setTimeout(() => {
+          if (this.connected) {
+            this.emitReload();
+          }
+        }, 0);
+      }
     });
 
     eventSource.addEventListener('awareness', (event) => {
