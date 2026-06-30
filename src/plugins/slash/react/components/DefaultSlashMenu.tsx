@@ -55,16 +55,12 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     margin-block-start: 0;
   `,
   sectionLabel: css`
-    padding-block: 12px 6px;
+    padding-block: 4px 0;
     padding-inline: 8px;
 
     font-size: 12px;
     line-height: 1;
     color: ${cssVar.colorTextDescription};
-
-    &:first-child {
-      padding-block-start: 6px;
-    }
   `,
   text: css`
     display: flex;
