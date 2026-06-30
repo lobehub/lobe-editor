@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.19.1](https://github.com/lobehub/lobe-editor/compare/v4.19.0...v4.19.1)
+<sup>Released on **2026-06-30**</sup>
+
+
+#### 💄 Styles
+
+- **slash**: Keep menu descriptions inline.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **slash**: Keep menu descriptions inline, closes [#185](https://github.com/lobehub/lobe-editor/issues/185) ([e6263f9](https://github.com/lobehub/lobe-editor/commit/e6263f9))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.19.0](https://github.com/lobehub/lobe-editor/compare/v4.18.1...v4.19.0)
 <sup>Released on **2026-06-30**</sup>
 
