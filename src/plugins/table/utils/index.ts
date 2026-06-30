@@ -1,5 +1,5 @@
 import { $isTableCellNode, $isTableSelection, TableDOMCell, TableSelection } from '@lexical/table';
-import { TableDOMTable } from '@lexical/table/LexicalTableObserver';
+import type { TableDOMTable } from '@lexical/table/LexicalTableObserver';
 import { addClassNamesToElement, removeClassNamesFromElement } from '@lexical/utils';
 import {
   $getNearestNodeFromDOMNode,

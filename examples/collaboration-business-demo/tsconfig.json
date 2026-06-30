@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "types": ["node", "vite/client"],
+    "paths": {
+      "@/*": ["../../src/*"],
+      "@lobehub/editor/*": ["../../src/*"],
+      "@lobehub/editor": ["../../src/index.ts"],
+      "@lobehub/editor/react": ["../../src/react/index.ts"]
+    }
+  },
+  "include": [
+    "../../src/global.d.ts",
+    "../../src/types",
+    "server",
+    "scripts",
+    "src",
+    "vite.config.ts"
+  ]
+}
