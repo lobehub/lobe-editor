@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.19.0](https://github.com/lobehub/lobe-editor/compare/v4.18.1...v4.19.0)
+<sup>Released on **2026-06-30**</sup>
+
+
+#### ✨ Features
+
+- **slash**: Support sectioned menu options.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **slash**: Support sectioned menu options, closes [#184](https://github.com/lobehub/lobe-editor/issues/184) ([a9c68d0](https://github.com/lobehub/lobe-editor/commit/a9c68d0))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.18.1](https://github.com/lobehub/lobe-editor/compare/v4.18.0...v4.18.1)
 <sup>Released on **2026-06-29**</sup>
 
