@@ -65,17 +65,19 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     }
   `,
   text: css`
+    overflow: hidden;
     display: flex;
     flex: 1 1 auto;
-    flex-wrap: wrap;
-    gap: 2px 8px;
+    gap: 8px;
     align-items: baseline;
 
     min-width: 0;
+
+    white-space: nowrap;
   `,
   textDescription: css`
     overflow: hidden;
-    flex: 0 1 auto;
+    flex: 1 1 auto;
 
     min-width: 0;
 
