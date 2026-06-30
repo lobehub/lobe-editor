@@ -86,14 +86,9 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     white-space: nowrap;
   `,
   textLabel: css`
-    overflow: hidden;
-    flex: 0 1 auto;
-
-    max-width: min(42ch, 55%);
-
+    flex: 0 0 auto;
     font-weight: 500;
     color: ${cssVar.colorText};
-    text-overflow: ellipsis;
     white-space: nowrap;
   `,
 }));
