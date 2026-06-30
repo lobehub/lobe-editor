@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.20.0](https://github.com/lobehub/lobe-editor/compare/v4.19.2...v4.20.0)
+<sup>Released on **2026-06-30**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Editor collaboration hugehard.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Editor collaboration hugehard, closes [#187](https://github.com/lobehub/lobe-editor/issues/187) ([91b1a75](https://github.com/lobehub/lobe-editor/commit/91b1a75))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.19.2](https://github.com/lobehub/lobe-editor/compare/v4.19.1...v4.19.2)
 <sup>Released on **2026-06-30**</sup>
 
