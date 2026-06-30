@@ -127,7 +127,7 @@ export const scrollIntoViewIfNeeded = (target: HTMLElement) => {
   target.scrollIntoView({ block: 'nearest' });
 };
 
-export const PUNCTUATION = '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
+export const PUNCTUATION = '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\[\\]\\\\/!%\'"~=<>_:;';
 
 export function getBasicTypeaheadTriggerMatch(
   trigger: string,
