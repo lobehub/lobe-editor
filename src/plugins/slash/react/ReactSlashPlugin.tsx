@@ -29,6 +29,7 @@ import {
   type ISlashOption,
   ISlashService,
   type SlashOptions,
+  flattenSlashOptions,
 } from '../service/i-slash-service';
 import { $splitNodeContainingQuery } from '../utils/utils';
 import SlashMenu from './components/SlashMenu';
@@ -74,6 +75,16 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
     setActiveKey(key);
   }, []);
 
+  const setInitialActiveKey = useCallback(
+    (items: ISlashOption[]) => {
+      if (!activeKey) {
+        const firstOption = flattenSlashOptions(items)[0];
+        setActiveKey(firstOption?.key ? String(firstOption.key) : null);
+      }
+    },
+    [activeKey],
+  );
+
   useLayoutEffect(() => {
     const options =
       Children.map(children, (child) => {
@@ -94,10 +105,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
         cancelRef.current.cancel();
         if (Array.isArray(ctx.items)) {
           setOptions(ctx.items);
-          if (!activeKey) {
-            // @ts-ignore
-            setActiveKey(ctx.items?.[0]?.key);
-          }
+          setInitialActiveKey(ctx.items);
         } else {
           setLoading(true);
           const pr = setCancelablePromise((resolve, reject) => {
@@ -110,10 +118,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
           pr.promise.then((items) => {
             const typedItems = items as ISlashOption[];
             setOptions(typedItems);
-            if (!activeKey) {
-              // @ts-ignore
-              setActiveKey(typedItems?.[0]?.key);
-            }
+            setInitialActiveKey(typedItems);
           });
           cancelRef.current.cancel = () => {
             pr.cancel();
@@ -125,7 +130,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
         setIsOpen(true);
       },
     });
-  }, [activeKey, editor, close]);
+  }, [editor, close, setInitialActiveKey]);
 
   useLayoutEffect(() => {
     const slash = editor.requireService(ISlashService);
@@ -143,11 +148,6 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
 
   const handleMenuSelect = useCallback(
     (option: ISlashMenuOption) => {
-      // ISlashMenuOption should not have divider type, but adding check for safety
-      if ('type' in option && (option as any).type === 'divider') {
-        return;
-      }
-
       const lexicalEditor = editor.getLexicalEditor();
       if (lexicalEditor && resolution) {
         lexicalEditor.update(() => {
@@ -173,10 +173,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
   );
 
   useLexicalEditor(() => {
-    const pureOptions = options.filter(
-      (item): item is ISlashMenuOption =>
-        !('type' in item && item.type === 'divider') && 'key' in item && Boolean(item.key),
-    );
+    const pureOptions = flattenSlashOptions(options).filter((item) => Boolean(item.key));
     return mergeRegister(
       editor.registerHighCommand<KeyboardEvent>(
         KEY_ARROW_DOWN_COMMAND,
@@ -235,9 +232,7 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
           if (options === null || activeKey === null) {
             return false;
           }
-          const selectedOption = options.find(
-            (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
-          );
+          const selectedOption = flattenSlashOptions(options).find((opt) => opt.key === activeKey);
           if (!selectedOption) {
             return false;
           }
@@ -258,8 +253,8 @@ const ReactSlashPlugin: FC<ReactSlashPluginProps> = ({
 
             // Only select option if we have valid options and activeKey
             if (options !== null && activeKey !== null) {
-              const selectedOption = options.find(
-                (opt): opt is ISlashMenuOption => 'key' in opt && opt.key === activeKey,
+              const selectedOption = flattenSlashOptions(options).find(
+                (opt) => opt.key === activeKey,
               );
               if (selectedOption) {
                 handleMenuSelect(selectedOption);

@@ -14,7 +14,12 @@ import { createStaticStyles } from 'antd-style';
 import { type FC, type ReactNode, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-import { ISlashMenuOption } from '../../service/i-slash-service';
+import {
+  type ISlashMenuOption,
+  flattenSlashOptions,
+  isSlashDividerOption,
+  isSlashSectionOption,
+} from '../../service/i-slash-service';
 import type { SlashMenuProps } from '../type';
 
 const LOBE_THEME_APP_ID = 'lobe-ui-theme-app';
@@ -43,12 +48,95 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
   root: css`
     z-index: 1100;
   `,
+  section: css`
+    margin-block-start: 4px;
+  `,
+  sectionFirst: css`
+    margin-block-start: 0;
+  `,
+  sectionLabel: css`
+    padding-block: 12px 6px;
+    padding-inline: 8px;
+
+    font-size: 12px;
+    line-height: 1;
+    color: ${cssVar.colorTextDescription};
+
+    &:first-child {
+      padding-block-start: 6px;
+    }
+  `,
+  text: css`
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    align-items: baseline;
+
+    min-width: 0;
+  `,
+  textDescription: css`
+    overflow: hidden;
+    flex: 0 1 auto;
+
+    min-width: 0;
+
+    color: ${cssVar.colorTextDescription};
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  textLabel: css`
+    overflow: hidden;
+    flex: 0 1 auto;
+
+    max-width: min(42ch, 55%);
+
+    font-weight: 500;
+    color: ${cssVar.colorText};
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
 }));
 
-const isDividerOption = (option: SlashMenuProps['options'][number]): boolean =>
-  'type' in option && option.type === 'divider';
-
 type DefaultSlashMenuProps = Omit<SlashMenuProps, 'customRender' | 'onActiveKeyChange' | 'editor'>;
+
+const renderMenuItem = (
+  item: ISlashMenuOption,
+  activeKey: string | null,
+  onSelect: (option: ISlashMenuOption) => void,
+): ReactNode => {
+  const isHighlighted = item.key === activeKey;
+  const isDisabled = Boolean(item.disabled);
+  const description = item.metadata?.description as ReactNode | undefined;
+
+  return (
+    <div
+      aria-disabled={isDisabled || undefined}
+      className={menuSharedStyles.item}
+      data-disabled={isDisabled ? '' : undefined}
+      data-highlighted={isHighlighted ? '' : undefined}
+      key={String(item.key)}
+      onClick={() => {
+        if (isDisabled) return;
+        onSelect(item);
+      }}
+      // Prevent the editor from losing focus when the popup is clicked.
+      onMouseDown={(event) => event.preventDefault()}
+      role={'menuitem'}
+    >
+      {item.icon ? (
+        <span className={menuSharedStyles.icon}>
+          <Icon icon={item.icon} />
+        </span>
+      ) : null}
+      <span className={styles.text}>
+        <span className={styles.textLabel}>{item.label}</span>
+        {description ? <span className={styles.textDescription}>{description}</span> : null}
+      </span>
+      {item.extra ? <span className={menuSharedStyles.extra}>{item.extra}</span> : null}
+    </div>
+  );
+};
 
 const renderItems = (
   options: SlashMenuProps['options'],
@@ -58,36 +146,21 @@ const renderItems = (
 ): ReactNode => {
   if (loading) return <div className={menuSharedStyles.empty}>Loading...</div>;
   return options.map((opt, index) => {
-    if (isDividerOption(opt)) {
+    if (isSlashDividerOption(opt)) {
       return <div className={menuSharedStyles.separator} key={`__divider_${index}`} />;
     }
-    const item = opt as ISlashMenuOption;
-    const isHighlighted = item.key === activeKey;
-    const isDisabled = Boolean(item.disabled);
-    return (
-      <div
-        aria-disabled={isDisabled || undefined}
-        className={menuSharedStyles.item}
-        data-disabled={isDisabled ? '' : undefined}
-        data-highlighted={isHighlighted ? '' : undefined}
-        key={String(item.key)}
-        onClick={() => {
-          if (isDisabled) return;
-          onSelect(item);
-        }}
-        // Prevent the editor from losing focus when the popup is clicked.
-        onMouseDown={(event) => event.preventDefault()}
-        role={'menuitem'}
-      >
-        {item.icon ? (
-          <span className={menuSharedStyles.icon}>
-            <Icon icon={item.icon} />
-          </span>
-        ) : null}
-        <span className={menuSharedStyles.label}>{item.label}</span>
-        {item.extra ? <span className={menuSharedStyles.extra}>{item.extra}</span> : null}
-      </div>
-    );
+    if (isSlashSectionOption(opt)) {
+      return (
+        <div
+          className={`${styles.section} ${index === 0 ? styles.sectionFirst : ''}`}
+          key={String(opt.key ?? `__section_${index}`)}
+        >
+          <div className={styles.sectionLabel}>{opt.label}</div>
+          {opt.items.map((item) => renderMenuItem(item, activeKey, onSelect))}
+        </div>
+      );
+    }
+    return renderMenuItem(opt, activeKey, onSelect);
   });
 };
 
@@ -235,7 +308,7 @@ const DefaultSlashMenu: FC<DefaultSlashMenuProps> = ({
   placement,
   position,
 }) => {
-  const hasVisibleItems = options?.some((item) => !isDividerOption(item));
+  const hasVisibleItems = flattenSlashOptions(options).length > 0;
   if (!open || !hasVisibleItems) return null;
 
   const anchor = getPopupContainer?.() ?? null;

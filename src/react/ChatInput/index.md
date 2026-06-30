@@ -17,6 +17,10 @@ ChatInput is a versatile container component designed for chat input interfaces.
 
 <code src="./demos/index.tsx" iframe nopadding></code>
 
+## Sectioned Menus
+
+<code src="./demos/SectionedMenu.tsx" iframe nopadding></code>
+
 ## APIs
 
 ### ChatInput

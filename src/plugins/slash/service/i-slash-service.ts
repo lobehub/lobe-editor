@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-redeclare */
 import { DropdownMenuItemType } from '@lobehub/ui';
 import Fuse, { type IFuseOptions } from 'fuse.js';
+import type { ReactNode } from 'react';
 
 import { genServiceId } from '@/editor-kernel';
 import type { IEditor, IEditorKernel, IServiceID } from '@/types';
@@ -18,7 +19,30 @@ export interface ISlashMenuOption extends DropdownMenuItemType {
   onSelect?: (editor: IEditor, matchingString: string) => void;
 }
 
-export type ISlashOption = ISlashMenuOption | ISlashDividerOption;
+export interface ISlashSectionOption {
+  items: ISlashMenuOption[];
+  key?: string;
+  label: ReactNode;
+  type: 'section';
+}
+
+export type ISlashOption = ISlashMenuOption | ISlashDividerOption | ISlashSectionOption;
+
+export const isSlashDividerOption = (option: ISlashOption): option is ISlashDividerOption =>
+  'type' in option && option.type === 'divider';
+
+export const isSlashSectionOption = (option: ISlashOption): option is ISlashSectionOption =>
+  'type' in option && option.type === 'section';
+
+export const isSlashMenuOption = (option: ISlashOption): option is ISlashMenuOption =>
+  !isSlashDividerOption(option) && !isSlashSectionOption(option);
+
+export const flattenSlashOptions = (options: ISlashOption[]): ISlashMenuOption[] =>
+  options.flatMap((option) => {
+    if (isSlashDividerOption(option)) return [];
+    if (isSlashSectionOption(option)) return option.items;
+    return [option];
+  });
 
 export interface SlashOptions {
   allowWhitespace?: boolean;
@@ -93,10 +117,7 @@ export class SlashService implements ISlashService {
     this.logger.debug(`⚡ Slash trigger: ${options.trigger}`);
 
     if (Array.isArray(options.items)) {
-      // Filter out divider items for search functionality
-      const searchableItems = options.items.filter(
-        (item): item is ISlashMenuOption => !('type' in item) || item.type !== 'divider',
-      );
+      const searchableItems = flattenSlashOptions(options.items);
 
       // Use fuseOptions if provided, otherwise fallback to searchKeys or default
       const fuseConfig: IFuseOptions<ISlashMenuOption> = options.fuseOptions || {
