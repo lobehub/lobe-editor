@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.19.2](https://github.com/lobehub/lobe-editor/compare/v4.19.1...v4.19.2)
+<sup>Released on **2026-06-30**</sup>
+
+
+#### 💄 Styles
+
+- **slash**: Preserve full menu titles.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **slash**: Preserve full menu titles, closes [#186](https://github.com/lobehub/lobe-editor/issues/186) ([fd7efcb](https://github.com/lobehub/lobe-editor/commit/fd7efcb))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.19.1](https://github.com/lobehub/lobe-editor/compare/v4.19.0...v4.19.1)
 <sup>Released on **2026-06-30**</sup>
 
