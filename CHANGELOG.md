@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.20.1](https://github.com/lobehub/lobe-editor/compare/v4.20.0...v4.20.1)
+<sup>Released on **2026-07-01**</sup>
+
+
+#### 💄 Styles
+
+- **slash**: Loosen menu item spacing.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **slash**: Loosen menu item spacing ([c7f94ba](https://github.com/lobehub/lobe-editor/commit/c7f94ba))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.20.0](https://github.com/lobehub/lobe-editor/compare/v4.19.2...v4.20.0)
 <sup>Released on **2026-06-30**</sup>
 
