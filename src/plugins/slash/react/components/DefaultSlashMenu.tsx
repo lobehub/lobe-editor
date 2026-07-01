@@ -29,7 +29,7 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     overflow-y: auto;
 
     max-height: min(50vh, 400px);
-    padding: 4px;
+    padding: 6px;
     border-radius: ${cssVar.borderRadius};
 
     background: ${cssVar.colorBgElevated};
@@ -38,23 +38,29 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
       0 0 15px 0 #00000008,
       0 2px 30px 0 #00000014,
       0 0 0 1px ${cssVar.colorBorder} inset;
+
+    [role='menuitem'] {
+      min-height: 40px;
+      padding-block: 8px;
+      padding-inline: 12px;
+    }
   `,
   popupCaret: css`
     width: max-content;
-    min-width: 200px;
+    min-width: 220px;
   `,
   root: css`
     z-index: 1100;
   `,
   section: css`
-    margin-block-start: 4px;
+    margin-block-start: 6px;
   `,
   sectionFirst: css`
     margin-block-start: 0;
   `,
   sectionLabel: css`
     padding-block: 12px 6px;
-    padding-inline: 8px;
+    padding-inline: 12px;
 
     font-size: 12px;
     line-height: 1;
