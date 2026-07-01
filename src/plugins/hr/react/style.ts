@@ -10,6 +10,7 @@ export const styles = createStaticStyles(
     width: 100%;
     height: calc(var(--lobe-markdown-margin-multiple) * 1em);
     margin-block: calc(var(--lobe-markdown-margin-multiple) * 1em);
+    border-radius: ${cssVar.borderRadiusSM};
 
     hr {
       width: 100%;
@@ -22,11 +23,8 @@ export const styles = createStaticStyles(
     }
 
     &.selected {
-      background: ${cssVar.yellow};
-
-      hr {
-        border-color: #000;
-      }
+      outline: 2px solid ${cssVar.yellow};
+      outline-offset: 0;
     }
   `,
 );
