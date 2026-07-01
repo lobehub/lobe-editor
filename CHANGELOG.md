@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.20.2](https://github.com/lobehub/lobe-editor/compare/v4.20.1...v4.20.2)
+<sup>Released on **2026-07-01**</sup>
+
+
+#### 💄 Styles
+
+- **hr**: Refine selected outline.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **hr**: Refine selected outline ([fda92a4](https://github.com/lobehub/lobe-editor/commit/fda92a4))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.20.1](https://github.com/lobehub/lobe-editor/compare/v4.20.0...v4.20.1)
 <sup>Released on **2026-07-01**</sup>
 
