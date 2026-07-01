@@ -1,4 +1,4 @@
-import { createStaticStyles , cx } from 'antd-style';
+import { createStaticStyles, cx } from 'antd-style';
 
 export const styles = createStaticStyles(({ css, cssVar }) => {
   const position = css`
@@ -33,8 +33,24 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     linkToolbar: cx(
       position,
       css`
+        padding-block: 6px;
+        padding-inline: 10px;
+        border: 1px solid ${cssVar.colorBorder};
+        border-radius: 0;
+
         background: ${cssVar.colorBgElevated};
       `,
     ),
+
+    popoverActionItem: css`
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      border-radius: ${cssVar.borderRadius}px;
+
+      &:hover {
+        background: ${cssVar.colorFillQuaternary};
+      }
+    `,
   };
 });
