@@ -213,7 +213,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, service }) => {
         ),
       );
     },
-    [enable, editable, scheduleHideToolbar, scheduleShowToolbar, showToolbar],
+    [enable, editable, scheduleHideToolbar, scheduleShowToolbar, service, showToolbar],
   );
 
   return (
