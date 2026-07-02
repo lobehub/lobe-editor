@@ -24,6 +24,8 @@ export default {
     replace: 'Replace',
   },
   link: {
+    copy: 'Copy Link',
+    copySuccess: 'Link copied',
     edit: 'Edit Link',
     editLinkTitle: 'Link',
     editTextTitle: 'Text',
