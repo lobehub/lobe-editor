@@ -4,7 +4,7 @@ import type { IconProps } from '@lobehub/ui';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_NORMAL, LexicalEditor } from 'lexical';
 import type { NodeKey } from 'lexical';
 import { CopyIcon, EditIcon, ExternalLinkIcon, UnlinkIcon } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useEditable } from '@/editor-kernel/react/useEditable';
@@ -65,17 +65,20 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, service }) => {
     cleanPosition(divRef.current);
   }, []);
 
+  const updateToolbarPosition = useCallback(() => {
+    updatePosition({
+      floating: divRef.current,
+      offset: 4,
+      placement: 'top-start',
+      reference: linkDomRef.current,
+    });
+  }, []);
+
   const showToolbar = useCallback((nextLinkNode: LinkNode, reference: HTMLElement) => {
     clearTimeout(clearTimerRef.current);
     linkDomRef.current = reference;
     visibleLinkKeyRef.current = nextLinkNode.getKey();
     setLinkNode(nextLinkNode);
-    updatePosition({
-      floating: divRef.current,
-      offset: 4,
-      placement: 'top-start',
-      reference,
-    });
   }, []);
 
   const scheduleShowToolbar = useCallback(
@@ -121,6 +124,11 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, service }) => {
     if (!context || !service) return [];
     return service.getToolbarItems(context);
   }, [context, menuVersion, service]);
+
+  useLayoutEffect(() => {
+    if (!linkNode || actionItems.length === 0) return;
+    updateToolbarPosition();
+  }, [actionItems.length, linkNode, menuVersion, updateToolbarPosition]);
 
   const resolveLabel = useCallback(
     (label: LinkToolbarItem['label']) => {
