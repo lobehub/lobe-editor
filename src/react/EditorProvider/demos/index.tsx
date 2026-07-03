@@ -13,6 +13,8 @@ const customLocale = {
     replace: '替换',
   },
   link: {
+    copy: '复制链接',
+    copySuccess: '链接已复制',
     edit: '编辑链接',
     editLinkTitle: '链接',
     editTextTitle: '文本',

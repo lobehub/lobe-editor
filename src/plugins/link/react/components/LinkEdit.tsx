@@ -156,6 +156,13 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
         floating: divRef.current,
         reference: linkDom,
       });
+      const focusTimer = setTimeout(() => {
+        linkInputRef.current?.focus();
+      });
+
+      return () => {
+        clearTimeout(focusTimer);
+      };
     } else {
       cleanPosition(divRef.current);
     }
