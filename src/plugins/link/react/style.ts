@@ -36,7 +36,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
         padding-block: 6px;
         padding-inline: 10px;
         border: 1px solid ${cssVar.colorBorder};
-        border-radius: 0;
+        border-radius: 6px;
 
         background: ${cssVar.colorBgElevated};
       `,
