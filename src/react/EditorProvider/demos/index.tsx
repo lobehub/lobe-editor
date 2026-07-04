@@ -13,6 +13,10 @@ const customLocale = {
     replace: '替换',
   },
   link: {
+    convertToCard: '转为卡片',
+    convertToIframe: '转为嵌入',
+    convertToLink: '转为链接',
+    convertToSchema: '转为协议组件',
     edit: '编辑链接',
     editLinkTitle: '链接',
     editTextTitle: '文本',

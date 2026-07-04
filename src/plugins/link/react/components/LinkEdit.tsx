@@ -22,11 +22,11 @@ import {
 } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
-import { useEditable } from '@/editor-kernel/react/useEditable';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
 import { UPDATE_LINK_TEXT_COMMAND } from '../../command';
+import { EDIT_LINK_CARD_COMMAND, LinkCardNode } from '../../node/LinkCardNode';
 import { LinkNode } from '../../node/LinkNode';
 import { styles } from '../style';
 
@@ -42,12 +42,13 @@ interface LinkEditProps {
 const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const linkNodeRef = useRef<LinkNode | null>(null);
+  const cardNodeRef = useRef<LinkCardNode | null>(null);
   const linkInputRef = useRef<InputRef | null>(null);
   const linkTextInputRef = useRef<InputRef | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
+  const [openTarget, setOpenTarget] = useState('_blank');
   const [linkDom, setLinkDom] = useState<HTMLElement | null>(null);
-  const { editable } = useEditable();
 
   const t = useTranslation();
 
@@ -57,21 +58,38 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
     editor.focus();
     cleanPosition(divRef.current);
     linkNodeRef.current = null;
+    cardNodeRef.current = null;
     setLinkUrl('');
     setLinkText('');
+    setOpenTarget('_blank');
     setLinkDom(null);
   }, [editor]);
 
   // 提取提交逻辑到独立函数
   const handleSubmit = useCallback(() => {
-    if (!linkNodeRef.current || !linkInputRef.current || !linkTextInputRef.current || !editor)
-      return;
+    if (!editor.isEditable()) return;
+    if (!linkInputRef.current || !linkTextInputRef.current || !editor) return;
 
-    const linkNode = linkNodeRef.current;
     const input = linkInputRef.current;
     const inputDOM = input.input as HTMLInputElement;
     const textInput = linkTextInputRef.current;
     const textInputDOM = textInput.input as HTMLInputElement;
+
+    if (cardNodeRef.current) {
+      const cardNode = cardNodeRef.current;
+      editor.update(() => {
+        cardNode.setTitle(textInputDOM.value);
+        cardNode.setURL(inputDOM.value);
+        cardNode.setOpenTarget(openTarget);
+      });
+      editor.focus();
+      handleCancel();
+      return;
+    }
+
+    if (!linkNodeRef.current) return;
+
+    const linkNode = linkNodeRef.current;
 
     // 更新链接URL
     const currentURL = editor.getEditorState().read(() => linkNode.getURL());
@@ -95,11 +113,16 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
 
     // 隐藏编辑面板
     handleCancel();
-  }, [editor, linkNodeRef, linkInputRef, linkTextInputRef, handleCancel]);
+  }, [editor, linkNodeRef, linkInputRef, linkTextInputRef, openTarget, handleCancel]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
-      if (!linkNodeRef.current || !linkInputRef.current || !linkTextInputRef.current || !editor) {
+      if (
+        (!linkNodeRef.current && !cardNodeRef.current) ||
+        !linkInputRef.current ||
+        !linkTextInputRef.current ||
+        !editor
+      ) {
         return;
       }
 
@@ -112,6 +135,11 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
         case 'Enter': {
           event.preventDefault();
           if (event.currentTarget === textInputDOM) {
+            if (cardNodeRef.current) {
+              inputDOM.focus();
+              return;
+            }
+            if (!linkNode) return;
             const currentText = editor.getEditorState().read(() => linkNode.getTextContent());
             if (currentText !== textInputDOM.value) {
               editor.dispatchCommand(UPDATE_LINK_TEXT_COMMAND, {
@@ -187,14 +215,35 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
         editor.registerCommand(
           EDIT_LINK_COMMAND,
           (payload) => {
+            if (!editor.isEditable()) return false;
             if (!payload.linkNode || !payload.linkNodeDOM) {
               handleCancel();
               return false;
             }
             linkNodeRef.current = payload.linkNode;
+            cardNodeRef.current = null;
             setLinkUrl(payload.linkNode.getURL());
             setLinkText(payload.linkNode.getTextContent());
+            setOpenTarget(payload.linkNode.getTarget() || '_blank');
             setLinkDom(payload.linkNodeDOM);
+            return true;
+          },
+          COMMAND_PRIORITY_EDITOR,
+        ),
+        editor.registerCommand(
+          EDIT_LINK_CARD_COMMAND,
+          (payload) => {
+            if (!editor.isEditable()) return false;
+            if (!payload.cardNode || !payload.cardNodeDOM) {
+              handleCancel();
+              return false;
+            }
+            cardNodeRef.current = payload.cardNode;
+            linkNodeRef.current = null;
+            setLinkUrl(payload.cardNode.getURL());
+            setLinkText(payload.cardNode.getTitle());
+            setOpenTarget(payload.cardNode.getOpenTarget() || '_blank');
+            setLinkDom(payload.cardNodeDOM);
             return true;
           },
           COMMAND_PRIORITY_EDITOR,
@@ -202,6 +251,7 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
         editor.registerCommand(
           KEY_ESCAPE_COMMAND,
           () => {
+            if (!linkNodeRef.current && !cardNodeRef.current) return false;
             handleCancel();
             return true;
           },
@@ -225,12 +275,13 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
     [editor],
   );
 
-  if (!linkNodeRef.current || !editable) return null;
+  if (!linkNodeRef.current && !cardNodeRef.current) return null;
+  const isCardEdit = Boolean(cardNodeRef.current);
 
   return (
     <Block className={styles.linkEdit} ref={divRef} shadow variant={'outlined'}>
       <Flexbox gap={8} padding={12}>
-        <Text weight={500}>{t('link.editTextTitle')}</Text>
+        <Text weight={500}>{isCardEdit ? 'Title' : t('link.editTextTitle')}</Text>
         <Input
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
             // Handle link text change
@@ -253,6 +304,36 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
           ref={linkInputRef}
           value={linkUrl}
         />
+        {isCardEdit ? (
+          <>
+            <Text weight={500}>Open target</Text>
+            <select
+              onChange={(e) => {
+                setOpenTarget(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancel();
+                }
+              }}
+              style={{
+                border: `1px solid ${cssVar.colorBorder}`,
+                borderRadius: 6,
+                height: 32,
+                paddingInline: 8,
+              }}
+              value={openTarget}
+            >
+              <option value="_blank">New page</option>
+              <option value="_self">Current page</option>
+            </select>
+          </>
+        ) : null}
       </Flexbox>
       <Flexbox
         className={styles.linkEditFooter}

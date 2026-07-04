@@ -29,9 +29,12 @@ export const updatePosition = ({
   }).then((props) => {
     if (!floating) return false;
     const { x, y } = props;
+    const viewportPadding = 8;
+    const viewportMinX = window.scrollX + viewportPadding;
+    const viewportMinY = window.scrollY + viewportPadding;
 
-    floating.style.left = `${x}px`;
-    floating.style.top = `${y}px`;
+    floating.style.left = `${Math.max(x, viewportMinX)}px`;
+    floating.style.top = `${Math.max(y, viewportMinY)}px`;
     callback?.(props);
   });
 };
