@@ -1,5 +1,5 @@
 import { mergeRegister } from '@lexical/utils';
-import { Block } from '@lobehub/ui';
+import { Block, LOBE_THEME_APP_ID } from '@lobehub/ui';
 import { cx, useThemeMode } from 'antd-style';
 import {
   $getSelection,
@@ -8,7 +8,8 @@ import {
   SELECTION_CHANGE_COMMAND,
   getDOMSelection,
 } from 'lexical';
-import { FC, useCallback, useRef } from 'react';
+import { FC, useCallback, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
 import { ILinkService } from '@/plugins/link';
@@ -20,13 +21,36 @@ import { setFloatingElemPosition } from '../utils/setFloatingElemPosition';
 import { styles } from './style';
 import { ReactToolbarPluginProps } from './type';
 
-export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, children }) => {
+const resolveDefaultPortalContainer = (): HTMLElement | null => {
+  if (typeof document === 'undefined') return null;
+  return document.getElementById(LOBE_THEME_APP_ID) ?? document.body;
+};
+
+export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({
+  className,
+  children,
+  getPopupContainer,
+  usePortal = true,
+  zIndex,
+}) => {
   const popupCharStylesEditorRef = useRef<HTMLDivElement | null>(null);
   const anchorElemRef = useRef<HTMLDivElement | null>(null);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
   const [kernelEditor] = useLexicalComposerContext();
   const { isDarkMode } = useThemeMode();
   const isMouseDownRef = useRef(false);
   const logger = createDebugLogger('plugin', 'toolbar');
+
+  const resolvePortalContainer = useCallback(() => {
+    if (!usePortal) return null;
+    if (getPopupContainer) return getPopupContainer();
+    return resolveDefaultPortalContainer();
+  }, [getPopupContainer, usePortal]);
+
+  const syncPortalContainer = useCallback(() => {
+    const nextContainer = resolvePortalContainer();
+    setPortalContainer((current) => (current === nextContainer ? current : nextContainer));
+  }, [resolvePortalContainer]);
 
   const $updateTextFormatFloatingToolbar = useCallback(
     (editor: LexicalEditor) => {
@@ -112,6 +136,20 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
     }
   }, []);
 
+  useLexicalEditor(
+    (editor) => {
+      if (!usePortal) {
+        setPortalContainer(null);
+        return;
+      }
+
+      syncPortalContainer();
+
+      return editor.registerRootListener(syncPortalContainer);
+    },
+    [syncPortalContainer, usePortal],
+  );
+
   useLexicalEditor((editor) => {
     const handleMouseDown = handleMouseDownFactory(() => {
       editor.dispatchCommand(HIDE_TOOLBAR_COMMAND, undefined);
@@ -123,9 +161,37 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
     });
 
     const rootElement = editor.getRootElement();
+    const editorWindow =
+      editor._window ?? rootElement?.ownerDocument.defaultView ?? globalThis.window ?? null;
+    let animationFrameId: number | null = null;
+    const updateToolbarPosition = () => {
+      if (!editorWindow || isMouseDownRef.current || animationFrameId !== null) {
+        return;
+      }
+
+      animationFrameId = editorWindow.requestAnimationFrame(() => {
+        animationFrameId = null;
+        editor.getEditorState().read(() => {
+          $updateTextFormatFloatingToolbar(editor);
+        });
+      });
+    };
+    const scrollListenerOptions = { capture: true, passive: true } as const;
+    const scrollCleanupOptions = { capture: true } as const;
+    const resizeListenerOptions = { passive: true } as const;
+
     if (rootElement) {
       rootElement.addEventListener('mousedown', handleMouseDown);
       document.addEventListener('mouseup', handleMouseUp);
+    }
+    if (editorWindow) {
+      editorWindow.addEventListener('scroll', updateToolbarPosition, scrollListenerOptions);
+      editorWindow.document.addEventListener(
+        'scroll',
+        updateToolbarPosition,
+        scrollListenerOptions,
+      );
+      editorWindow.addEventListener('resize', updateToolbarPosition, resizeListenerOptions);
     }
 
     return mergeRegister(
@@ -159,12 +225,28 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
           rootElement.removeEventListener('mousedown', handleMouseDown);
           document.removeEventListener('mouseup', handleMouseUp);
         }
+        if (editorWindow) {
+          editorWindow.removeEventListener('scroll', updateToolbarPosition, scrollCleanupOptions);
+          editorWindow.document.removeEventListener(
+            'scroll',
+            updateToolbarPosition,
+            scrollCleanupOptions,
+          );
+          editorWindow.removeEventListener('resize', updateToolbarPosition);
+          if (animationFrameId !== null) {
+            editorWindow.cancelAnimationFrame(animationFrameId);
+          }
+        }
       },
     );
   });
 
-  return (
-    <div className={styles.anchor} ref={anchorElemRef}>
+  const toolbarNode = (
+    <div
+      className={usePortal ? styles.portalAnchor : styles.anchor}
+      ref={anchorElemRef}
+      style={usePortal && zIndex !== undefined ? { zIndex } : undefined}
+    >
       <Block
         className={cx(isDarkMode ? styles.toolbarDark : styles.toolbarLight, className)}
         padding={4}
@@ -175,4 +257,10 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({ className, chi
       </Block>
     </div>
   );
+
+  if (usePortal) {
+    return portalContainer ? createPortal(toolbarNode, portalContainer) : null;
+  }
+
+  return toolbarNode;
 };
