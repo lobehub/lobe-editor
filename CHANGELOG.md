@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.20.3](https://github.com/lobehub/lobe-editor/compare/v4.20.2...v4.20.3)
+<sup>Released on **2026-07-05**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **toolbar**: Portal floating toolbar.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **toolbar**: Portal floating toolbar, closes [#190](https://github.com/lobehub/lobe-editor/issues/190) ([ea556ea](https://github.com/lobehub/lobe-editor/commit/ea556ea))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.20.2](https://github.com/lobehub/lobe-editor/compare/v4.20.1...v4.20.2)
 <sup>Released on **2026-07-01**</sup>
 
