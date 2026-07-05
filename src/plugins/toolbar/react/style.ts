@@ -4,7 +4,14 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
   anchor: css`
     position: relative;
   `,
+  portalAnchor: css`
+    pointer-events: none;
+    position: fixed;
+    z-index: 1100;
+    inset: 0;
+  `,
   toolbarDark: css`
+    pointer-events: auto;
     will-change: transform;
 
     position: absolute;
@@ -28,6 +35,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     transition: opacity 0.12s ${cssVar.motionEaseOut};
   `,
   toolbarLight: css`
+    pointer-events: auto;
     will-change: transform;
 
     position: absolute;
