@@ -11,7 +11,7 @@ import {
   KEY_DOWN_COMMAND,
   LexicalEditor,
 } from 'lexical';
-import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type FC, type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Toolbar, lobeTheme, styles } from '@/codemirror';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
@@ -20,6 +20,7 @@ import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
 import { CodeMirrorNode } from '../node/CodeMirrorNode';
+import { useCodemirrorEditLock } from './useCodemirrorEditLock';
 
 interface ReactCodemirrorNodeProps {
   className?: string;
@@ -32,6 +33,8 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   const keydownRef = useRef('');
   const instanceRef = useRef<any>(null);
   const isEmptyRef = useRef<boolean>(false);
+  const hasLocalEditLockRef = useRef(false);
+  const releaseLockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = useTranslation();
   const [isSelected, setSelected, clearSelection, isNodeSelected] = useLexicalNodeSelection(
     node.getKey(),
@@ -44,6 +47,69 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     node.options.lineNumbers ?? false,
   );
   const [expand, setExpand] = useState<boolean>(true);
+  const { acquireLock, isLockedByRemote, lockOwnerName, releaseLock } = useCodemirrorEditLock(
+    node.getKey(),
+    'CodeMirror block',
+  );
+  const editLockRef = useRef({
+    acquireLock,
+    isLockedByRemote,
+    releaseLock,
+  });
+
+  useEffect(() => {
+    editLockRef.current = {
+      acquireLock,
+      isLockedByRemote,
+      releaseLock,
+    };
+  }, [acquireLock, isLockedByRemote, releaseLock]);
+
+  const clearReleaseLockTimer = useCallback(() => {
+    if (!releaseLockTimerRef.current) {
+      return;
+    }
+
+    clearTimeout(releaseLockTimerRef.current);
+    releaseLockTimerRef.current = null;
+  }, []);
+
+  const acquireEditLock = useCallback(() => {
+    clearReleaseLockTimer();
+
+    const acquired = editLockRef.current.acquireLock();
+
+    if (acquired) {
+      hasLocalEditLockRef.current = true;
+    }
+
+    return acquired;
+  }, [clearReleaseLockTimer]);
+
+  const releaseEditLock = useCallback(() => {
+    clearReleaseLockTimer();
+
+    if (!hasLocalEditLockRef.current) {
+      return;
+    }
+
+    editLockRef.current.releaseLock();
+    hasLocalEditLockRef.current = false;
+  }, [clearReleaseLockTimer]);
+
+  const scheduleReleaseEditLock = useCallback(() => {
+    clearReleaseLockTimer();
+
+    releaseLockTimerRef.current = setTimeout(() => {
+      releaseLockTimerRef.current = null;
+
+      if (document.visibilityState === 'hidden' || instanceRef.current?.view.hasFocus) {
+        return;
+      }
+
+      releaseEditLock();
+    }, 100);
+  }, [clearReleaseLockTimer, releaseEditLock]);
 
   const handleCopy = useCallback(async () => {
     if (instanceRef.current) {
@@ -137,6 +203,11 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     }
     // 选中状态下，聚焦 CodeMirror
     if (isSelected && instanceRef.current && isNodeSelected) {
+      if (!acquireEditLock()) {
+        clearSelection();
+        return;
+      }
+
       // 已经聚焦不在处理
       if (instanceRef.current?.view.hasFocus) {
         return;
@@ -146,7 +217,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         instanceRef.current.setSelectionToEnd();
       }
     }
-  }, [isSelected, isNodeSelected, editor]);
+  }, [acquireEditLock, isSelected, isNodeSelected, editor]);
 
   useEffect(() => {
     // 防止重复初始化：如果已经有实例，直接返回
@@ -167,6 +238,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           indentWithTabs: useTabs,
           lineNumbers: showLineNumbers,
           mode: node.lang,
+          readOnly: editLockRef.current.isLockedByRemote,
           tabSize,
           theme: 'default',
           value: node.code,
@@ -257,6 +329,12 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           }),
         );
         instance.on('focus', () => {
+          if (!acquireEditLock()) {
+            instanceRef.current?.blur();
+            clearSelection();
+            return;
+          }
+
           if (
             editor.getEditorState().read(() => {
               const sel = $getSelection();
@@ -270,15 +348,20 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
             setSelected(true);
           }
         });
+        instance.on('blur', () => {
+          scheduleReleaseEditLock();
+        });
 
         instanceRef.current = instance;
-        if (isSelected) {
+        if (isSelected && acquireEditLock()) {
           instanceRef.current.focus();
         }
       });
     }
 
     return () => {
+      releaseEditLock();
+
       if (instanceRef.current) {
         instanceRef.current.destroy();
         instanceRef.current = null;
@@ -304,14 +387,64 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     );
   }, [clearSelection, editor, isSelected, node, setSelected]);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !instanceRef.current?.view.hasFocus) {
+        releaseEditLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [releaseEditLock]);
+
+  useEffect(() => {
+    instanceRef.current?.setOption('readOnly', isLockedByRemote);
+
+    if (isLockedByRemote) {
+      releaseEditLock();
+      instanceRef.current?.blur();
+      clearSelection();
+    }
+  }, [clearSelection, isLockedByRemote, releaseEditLock]);
+
+  const handleBlockMouseDown = useCallback(
+    (event: MouseEvent) => {
+      event.stopPropagation();
+
+      if (!isLockedByRemote) {
+        return;
+      }
+
+      event.preventDefault();
+      instanceRef.current?.blur();
+      clearSelection();
+    },
+    [clearSelection, isLockedByRemote],
+  );
+
   return (
     <Block
-      className={cx(styles, isSelected && !isNodeSelected && 'selected', className)}
-      onMouseDown={(e) => e.stopPropagation()}
+      className={cx(
+        styles,
+        isSelected && !isNodeSelected && 'selected',
+        isLockedByRemote && 'collab-locked',
+        className,
+      )}
+      onMouseDown={handleBlockMouseDown}
       onMouseUp={(e) => e.stopPropagation()}
       onSelect={(e) => e.stopPropagation()}
       variant={'filled'}
     >
+      {isLockedByRemote && (
+        <div className={'cm-collab-lock'} contentEditable={false}>
+          {lockOwnerName || 'Someone'} editing
+        </div>
+      )}
+
       {/* 工具条 */}
       <Toolbar
         expand={expand}

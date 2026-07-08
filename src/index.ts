@@ -25,6 +25,7 @@ export * from './plugins/table';
 export * from './plugins/toolbar';
 export * from './plugins/upload';
 export * from './plugins/virtual-block';
+export * from './plugins/yjs';
 export type { IEditor } from './types';
 
 // Hotkey utilities

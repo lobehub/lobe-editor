@@ -362,6 +362,9 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       this.historyState.current = null;
     }
     datasource.read(this.editor, content, options);
+    this.pluginsInstances.forEach((plugin) => {
+      plugin.onDocumentChange?.(type, content, options);
+    });
     this.emit('documentChange', type, content);
     this.logger.debug(`📥 Set ${type} document`);
   }
