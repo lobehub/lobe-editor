@@ -24,6 +24,7 @@ export const Toolbar: FC<ToolbarProps> = ({
   toggleExpand,
   labels,
   languageOptions,
+  extra,
 }) => {
   return (
     <Flexbox
@@ -41,6 +42,7 @@ export const Toolbar: FC<ToolbarProps> = ({
         selectedLang={selectedLang}
       />
       <Flexbox gap={4} horizontal onClick={(e) => e.stopPropagation()}>
+        {extra}
         <MoreOptions
           labels={labels}
           onShowLineNumbersChange={onShowLineNumbersChange}

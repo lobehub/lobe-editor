@@ -64,6 +64,7 @@ export const LANGUAGES: CodeMirrorMode[] = [
     syntax: 'markdown',
     value: 'markdown',
   },
+  { ext: ['mermaid', 'mmd'], name: 'Mermaid', syntax: 'simplemode', value: 'mermaid' },
   { name: 'MATLAB', syntax: 'octave', value: 'matlab' },
   { ext: ['conf'], name: 'Nginx', syntax: 'nginx', value: 'nginx' },
   {

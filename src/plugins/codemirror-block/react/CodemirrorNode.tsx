@@ -1,7 +1,7 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { Block } from '@lobehub/ui';
+import { ActionIcon, Block } from '@lobehub/ui';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
 import {
@@ -11,6 +11,7 @@ import {
   KEY_DOWN_COMMAND,
   LexicalEditor,
 } from 'lexical';
+import { CodeXml, Eye } from 'lucide-react';
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Toolbar, lobeTheme, styles } from '@/codemirror';
@@ -20,6 +21,7 @@ import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
 import { CodeMirrorNode } from '../node/CodeMirrorNode';
+import MermaidPreview from './MermaidPreview';
 
 interface ReactCodemirrorNodeProps {
   className?: string;
@@ -44,6 +46,8 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     node.options.lineNumbers ?? false,
   );
   const [expand, setExpand] = useState<boolean>(true);
+  const [preview, setPreview] = useState<boolean>(false);
+  const [code, setCode] = useState<string>(node.code);
 
   const handleCopy = useCallback(async () => {
     if (instanceRef.current) {
@@ -58,6 +62,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
 
   const labels = useMemo(
     () => ({
+      preview: t('codemirror.preview'),
       selectLanguage: t('codemirror.selectLanguage'),
       showLineNumbers: t('codemirror.showLineNumbers'),
       tabSize: t('codemirror.tabSize'),
@@ -70,6 +75,9 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   const handleLanguageChange = useCallback(
     (value: string) => {
       setSelectedLang(value);
+      if (value !== 'mermaid') {
+        setPreview(false);
+      }
       if (instanceRef.current) {
         instanceRef.current.setOption('mode', value);
       }
@@ -244,6 +252,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           const currentValue = instance.getValue();
           // 立即检查代码是否为空（trim 后为空），用于 keydown 事件判断
           isEmptyRef.current = !currentValue.trim();
+          setCode(currentValue);
         });
 
         instance.on(
@@ -315,6 +324,17 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       {/* 工具条 */}
       <Toolbar
         expand={expand}
+        extra={
+          selectedLang === 'mermaid' ? (
+            <ActionIcon
+              className={'cm-hidden-actions'}
+              icon={preview ? CodeXml : Eye}
+              onClick={() => setPreview(!preview)}
+              size="small"
+              title={labels.preview}
+            />
+          ) : undefined
+        }
         labels={labels}
         onClick={() => setExpand(!expand)}
         onCopy={handleCopy}
@@ -330,9 +350,20 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       />
 
       {/* CodeMirror 编辑器容器 */}
-      <div className={cx('cm-container', !expand && 'cm-container-collapsed')}>
+      <div
+        className={cx(
+          'cm-container',
+          (!expand || (preview && selectedLang === 'mermaid')) && 'cm-container-collapsed',
+        )}
+      >
         <textarea className={'cm-textarea'} ref={ref} />
       </div>
+
+      {expand && preview && selectedLang === 'mermaid' && (
+        <div className={'cm-container'} onMouseDown={(e) => e.stopPropagation()}>
+          <MermaidPreview code={code} />
+        </div>
+      )}
     </Block>
   );
 };

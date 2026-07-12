@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export interface CodeMirrorMode {
   ext?: string[];
   name: string;
@@ -7,6 +9,7 @@ export interface CodeMirrorMode {
 
 export interface CodeMirrorLabels {
   copy?: string;
+  preview?: string;
   selectLanguage?: string;
   showLineNumbers?: string;
   tabSize?: string;
@@ -39,6 +42,7 @@ export interface MoreOptionsProps {
 
 export interface ToolbarProps {
   expand?: boolean;
+  extra?: ReactNode;
   labels?: CodeMirrorLabels;
   languageOptions?: CodeMirrorMode[];
   onClick?: () => void;

@@ -7,6 +7,7 @@ export default {
   cancel: 'Cancel',
   codemirror: {
     copySuccess: 'Code copied to clipboard',
+    preview: 'Preview',
     selectLanguage: 'Select language',
     selectTheme: 'Select theme',
     showLineNumbers: 'Show Line Numbers',
