@@ -1,10 +1,10 @@
 ---
-nav: Plugins
-group: Plugins
 title: Link
 description: Link plugin provides comprehensive hyperlink functionality with internationalization support. It includes link creation, editing, validation, custom link nodes, utility functions, and React components for building rich link editing experiences with auto-detection and formatting.
-atomId: ReactLinkPlugin
+category: Plugins
 ---
+
+import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
 
@@ -12,7 +12,7 @@ Link plugin enables advanced hyperlink functionality in the editor. It supports 
 
 ## Basic Usage
 
-<code src="./demos/index.tsx"></code>
+<Demo editable={false} of={DemoIndex} />
 
 ## Core Architecture
 
@@ -51,17 +51,17 @@ The plugin implements custom link nodes:
 
 React component wrapper for link functionality.
 
-| Property    | Description                | Type                                         | Default   |
-| ----------- | -------------------------- | -------------------------------------------- | --------- |
-| href        | Link URL                   | `string`                                     | -         |
-| target      | Link target                | `'_blank' \| '_self' \| '_parent' \| '_top'` | `'_self'` |
-| title       | Link title attribute       | `string`                                     | -         |
-| rel         | Link relationship          | `string`                                     | -         |
-| autoDetect  | Enable auto-link detection | `boolean`                                    | `true`    |
-| validate    | Enable URL validation      | `boolean`                                    | `true`    |
-| preview     | Enable link preview        | `boolean`                                    | `false`   |
-| onLinkClick | Link click event handler   | `(url: string) => void`                      | -         |
-| onLinkEdit  | Link edit event handler    | `(link: LinkData) => void`                   | -         |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| href | Link URL | `string` | - |
+| target | Link target | `'_blank' \| '_self' \| '_parent' \| '_top'` | `'_self'` |
+| title | Link title attribute | `string` | - |
+| rel | Link relationship | `string` | - |
+| autoDetect | Enable auto-link detection | `boolean` | `true` |
+| validate | Enable URL validation | `boolean` | `true` |
+| preview | Enable link preview | `boolean` | `false` |
+| onLinkClick | Link click event handler | `(url: string) => void` | - |
+| onLinkEdit | Link edit event handler | `(link: LinkData) => void` | - |
 
 ## Commands
 

@@ -1,15 +1,14 @@
 ---
-nav: Components
-group:
-  title: Playground
-  order: -1
 title: Editor
 description: Editor is a comprehensive rich text editor component built on a powerful editor kernel. It supports plugins, mentions, slash commands, various content formats, and comprehensive event handling including keyboard, focus, composition, and context menu events with extensive customization options for modern editing experiences.
-apiHeader:
-  pkg: '@lobehub/editor/react'
-  docUrl: 'https://github.com/lobehub/lobe-editor/tree/master/src/react/Editor/index.md'
-  sourceUrl: 'https://github.com/lobehub/lobe-editor/tree/master/src/react/Editor/index.ts'
+category: Playground
 ---
+
+import DemoCollaboration from './demos/collaboration.tsx?demo';
+import DemoDisableMarkdown from './demos/disableMarkdown.tsx?demo';
+import DemoEditable from './demos/editable.tsx?demo';
+import DemoIndex from './demos/index.tsx?demo';
+import DemoPasteAsPlainText from './demos/pasteAsPlainText.tsx?demo';
 
 ## Introduction
 
@@ -26,64 +25,64 @@ Editor is a powerful and extensible rich text editor component designed for mode
 
 ## Basic Usage
 
-<code src="./demos/index.tsx" nopadding iframe></code>
+<Demo editable={false} of={DemoIndex} isolated layout="bare" />
 
 ## Disable Markdown Formatting
 
-<code src="./demos/disableMarkdown.tsx" nopadding iframe></code>
+<Demo editable={false} of={DemoDisableMarkdown} isolated layout="bare" />
 
 ## Toggle Editable
 
 When `editable` is `false`, the floating block menu (add-block button and drag handle) on the left side should not appear.
 
-<code src="./demos/editable.tsx" nopadding iframe></code>
+<Demo editable={false} of={DemoEditable} isolated layout="bare" />
 
 ## Collaboration
 
 Two editor instances can share the same Yjs document through the `collaboration` prop.
 
-<code src="./demos/collaboration.tsx" nopadding iframe></code>
+<Demo editable={false} of={DemoCollaboration} isolated layout="bare" />
 
 ## Paste as Plain Text
 
 Force all pasted content to be inserted as plain text, stripping any rich text formatting (bold, italic, links, etc).
 
-<code src="./demos/pasteAsPlainText.tsx" nopadding iframe></code>
+<Demo editable={false} of={DemoPasteAsPlainText} isolated layout="bare" />
 
 ## APIs
 
 ### Editor
 
-| Property                          | Description                                                                   | Type                                                                                    | Default  |
-| --------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------- |
-| autoFocus                         | Auto focus on component mount                                                 | `boolean`                                                                               | -        |
-| autoFormatMarkdown                | Automatically convert pasted markdown once the detection threshold is reached | `boolean`                                                                               | `true`   |
-| children                          | Additional content or components                                              | `ReactNode`                                                                             | -        |
-| className                         | Custom CSS class                                                              | `string`                                                                                | -        |
-| collaboration                     | Yjs collaboration configuration                                               | `false \| EditorCollaborationConfig`                                                    | -        |
-| content                           | Initial editor content                                                        | `ReactEditorContentProps['content']`                                                    | -        |
-| editor                            | Editor instance to use                                                        | `IEditor`                                                                               | -        |
-| enablePasteMarkdown               | Enable automatic markdown conversion for pasted content                       | `boolean`                                                                               | `true`   |
-| markdownOption                    | Enable/disable markdown shortcuts granularly                                  | `boolean \| MarkdownFormatOptions`                                                      | `true`   |
-| pasteAsPlainText                  | Force paste as plain text, stripping all rich text formatting                 | `boolean`                                                                               | `false`  |
-| pasteMarkdownAutoConvertThreshold | Minimum markdown score required before auto conversion runs                   | `number`                                                                                | `5`      |
-| onInit                            | Callback called when editor is initialized                                    | `(editor: IEditor) => void`                                                             | -        |
-| mentionOption                     | Configuration for mention functionality                                       | `MentionOption`                                                                         | `{}`     |
-| onBlur                            | Blur event handler                                                            | `FocusEventHandler<HTMLDivElement>`                                                     | -        |
-| onChange                          | Content change event handler                                                  | `(editor: IEditor) => void`                                                             | -        |
-| onCompositionEnd                  | IME composition end event handler                                             | `CompositionEventHandler<HTMLDivElement>`                                               | -        |
-| onCompositionStart                | IME composition start event handler                                           | `CompositionEventHandler<HTMLDivElement>`                                               | -        |
-| onContextMenu                     | Context menu event handler                                                    | `MouseEventHandler<HTMLDivElement>`                                                     | -        |
-| onFocus                           | Focus event handler                                                           | `FocusEventHandler<HTMLDivElement>`                                                     | -        |
-| onKeyDown                         | Key down event handler                                                        | `KeyboardEventHandler<HTMLDivElement>`                                                  | -        |
-| onPressEnter                      | Enter key press event handler. Return `true` to prevent default behavior      | `(props: { editor: IEditor; event: KeyboardEvent<HTMLDivElement> }) => void \| boolean` | -        |
-| placeholder                       | Placeholder content                                                           | `ReactNode`                                                                             | -        |
-| plugins                           | Array of editor plugins                                                       | `EditorPlugin[]`                                                                        | `[]`     |
-| slashOption                       | Configuration for slash commands                                              | `Partial<ReactSlashOptionProps>`                                                        | `{}`     |
-| style                             | Custom inline styles                                                          | `CSSProperties`                                                                         | -        |
-| theme                             | Editor theme                                                                  | `ReactPlainTextProps['theme']`                                                          | -        |
-| type                              | Content format type                                                           | `string`                                                                                | `'json'` |
-| variant                           | Editor variant style                                                          | `ReactPlainTextProps['variant']`                                                        | -        |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| autoFocus | Auto focus on component mount | `boolean` | - |
+| autoFormatMarkdown | Automatically convert pasted markdown once the detection threshold is reached | `boolean` | `true` |
+| children | Additional content or components | `ReactNode` | - |
+| className | Custom CSS class | `string` | - |
+| collaboration | Yjs collaboration configuration | `false \| EditorCollaborationConfig` | - |
+| content | Initial editor content | `ReactEditorContentProps['content']` | - |
+| editor | Editor instance to use | `IEditor` | - |
+| enablePasteMarkdown | Enable automatic markdown conversion for pasted content | `boolean` | `true` |
+| markdownOption | Enable/disable markdown shortcuts granularly | `boolean \| MarkdownFormatOptions` | `true` |
+| pasteAsPlainText | Force paste as plain text, stripping all rich text formatting | `boolean` | `false` |
+| pasteMarkdownAutoConvertThreshold | Minimum markdown score required before auto conversion runs | `number` | `5` |
+| onInit | Callback called when editor is initialized | `(editor: IEditor) => void` | - |
+| mentionOption | Configuration for mention functionality | `MentionOption` | `{}` |
+| onBlur | Blur event handler | `FocusEventHandler<HTMLDivElement>` | - |
+| onChange | Content change event handler | `(editor: IEditor) => void` | - |
+| onCompositionEnd | IME composition end event handler | `CompositionEventHandler<HTMLDivElement>` | - |
+| onCompositionStart | IME composition start event handler | `CompositionEventHandler<HTMLDivElement>` | - |
+| onContextMenu | Context menu event handler | `MouseEventHandler<HTMLDivElement>` | - |
+| onFocus | Focus event handler | `FocusEventHandler<HTMLDivElement>` | - |
+| onKeyDown | Key down event handler | `KeyboardEventHandler<HTMLDivElement>` | - |
+| onPressEnter | Enter key press event handler. Return `true` to prevent default behavior | `(props: { editor: IEditor; event: KeyboardEvent<HTMLDivElement> }) => void \| boolean` | - |
+| placeholder | Placeholder content | `ReactNode` | - |
+| plugins | Array of editor plugins | `EditorPlugin[]` | `[]` |
+| slashOption | Configuration for slash commands | `Partial<ReactSlashOptionProps>` | `{}` |
+| style | Custom inline styles | `CSSProperties` | - |
+| theme | Editor theme | `ReactPlainTextProps['theme']` | - |
+| type | Content format type | `string` | `'json'` |
+| variant | Editor variant style | `ReactPlainTextProps['variant']` | - |
 
 ### EditorPlugin
 
@@ -131,10 +130,10 @@ Configuration for fine-grained control of markdown shortcuts:
 
 ### MentionOption
 
-| Property       | Description                     | Type                                        | Default |
-| -------------- | ------------------------------- | ------------------------------------------- | ------- |
-| items          | Available mention items         | `ReactSlashOptionProps['items']`            | -       |
-| markdownWriter | Custom markdown writer function | `ReactMentionPluginProps['markdownWriter']` | -       |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| items | Available mention items | `ReactSlashOptionProps['items']` | - |
+| markdownWriter | Custom markdown writer function | `ReactMentionPluginProps['markdownWriter']` | - |
 
 ## Markdown Configuration
 

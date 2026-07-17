@@ -11,7 +11,7 @@ import {
   LITEXML_MODIFY_COMMAND,
   LITEXML_REMOVE_COMMAND,
 } from '@/plugins/litexml';
-import { IEditor } from '@/types';
+import type { IEditor } from '@/types';
 
 interface XmlModifierProps {
   children?: ReactNode;

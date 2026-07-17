@@ -1,4 +1,4 @@
-import { IEditor, ReactBlockPlugin } from '@lobehub/editor';
+import { type IEditor, ReactBlockPlugin } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { Button, type CollapseProps, Flexbox, Text } from '@lobehub/ui';
 import { debounce } from 'es-toolkit';

@@ -16,7 +16,6 @@
     "types": ["vitest/globals"],
     "paths": {
       "@/*": ["./src/*"],
-      "@@/*": [".dumi/tmp/*"],
       "@lobehub/editor": ["./src"],
       "@lobehub/editor/*": ["./src/*"],
       "@lobehub/editor/codemirror": ["./src/codemirror"],
@@ -29,5 +28,14 @@
       "@lobehub/editor/renderer/*": ["./src/renderer/*"]
     }
   },
-  "include": ["src", "./src/types", "docs", "tests", "scripts", ".dumirc.ts", "tsdown.config.ts"]
+  "exclude": [".react-router"],
+  "include": [
+    "src",
+    "./src/types",
+    "docs",
+    "tests",
+    "scripts",
+    "docs.config.ts",
+    "tsdown.config.ts"
+  ]
 }

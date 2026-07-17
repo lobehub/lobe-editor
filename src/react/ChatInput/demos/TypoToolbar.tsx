@@ -1,8 +1,8 @@
-import { HotkeyEnum, IEditor, getHotkeyById } from '@lobehub/editor';
+import { HotkeyEnum, type IEditor, getHotkeyById } from '@lobehub/editor';
 import {
   ChatInputActionBar,
   ChatInputActions,
-  ChatInputActionsProps,
+  type ChatInputActionsProps,
   CodeLanguageSelect,
   useEditorState,
 } from '@lobehub/editor/react';

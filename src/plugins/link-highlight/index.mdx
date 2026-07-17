@@ -1,10 +1,10 @@
 ---
-nav: Plugins
-group: Plugins
 title: LinkHighlight
 description: Link Highlight plugin enables inline link highlighting in the editor. It provides a custom LinkHighlightNode for representing links as highlighted inline elements with direct editing, markdown serialization, and seamless integration for displaying clickable links.
-atomId: ReactLinkHighlightPlugin
+category: Plugins
 ---
+
+import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
 
@@ -12,7 +12,7 @@ Link Highlight plugin provides comprehensive inline link highlighting functional
 
 ## Basic Usage
 
-<code src="./demos/index.tsx"></code>
+<Demo editable={false} of={DemoIndex} />
 
 **Important:** The `ReactLinkHighlightPlugin` must be placed **before** `ReactPlainText` to ensure the plugin is registered before content is loaded. This is because LinkHighlightNode extends `CardLikeElementNode` and needs to be available during JSON deserialization.
 
@@ -79,12 +79,12 @@ editor.dispatchCommand(INSERT_LINK_HIGHLIGHT_COMMAND, undefined);
 
 ### LinkHighlightPluginOptions
 
-| Property                 | Description                      | Type      | Default                   |
-| ------------------------ | -------------------------------- | --------- | ------------------------- |
-| theme                    | CSS class for link elements      | `string`  | `'editor-link-highlight'` |
-| enableHotkey             | Enable keyboard shortcut         | `boolean` | `true`                    |
-| enablePasteAutoHighlight | Auto-highlight when pasting URLs | `boolean` | `true`                    |
-| urlRegex                 | Custom URL validation regex      | `RegExp`  | Built-in URL pattern      |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| theme | CSS class for link elements | `string` | `'editor-link-highlight'` |
+| enableHotkey | Enable keyboard shortcut | `boolean` | `true` |
+| enablePasteAutoHighlight | Auto-highlight when pasting URLs | `boolean` | `true` |
+| urlRegex | Custom URL validation regex | `RegExp` | Built-in URL pattern |
 
 ## Node API
 
@@ -136,8 +136,7 @@ The markdown writer converts `LinkHighlightNode` content to `<url>` format, and 
 Type the link inside angle brackets and it will automatically convert to a highlighted link:
 
 ```markdown
-<https://example.com> → Highlighted link
-<user@example.com> → Highlighted email link
+<https://example.com> → Highlighted link <user@example.com> → Highlighted email link
 ```
 
 ### Pasting Markdown Content
@@ -145,8 +144,7 @@ Type the link inside angle brackets and it will automatically convert to a highl
 When you paste markdown content containing auto-link syntax, it will be automatically converted to LinkHighlightNode:
 
 ```markdown
-Check out <https://www.google.com.hk/> for more info.
-Visit <mailto:support@example.com> for help.
+Check out <https://www.google.com.hk/> for more info. Visit <mailto:support@example.com> for help.
 ```
 
 **How it works:**

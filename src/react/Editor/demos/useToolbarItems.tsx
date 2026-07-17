@@ -1,11 +1,15 @@
 import {
   HotkeyEnum,
-  IEditor,
+  type IEditor,
   INSERT_FILE_COMMAND,
   INSERT_IMAGE_COMMAND,
   getHotkeyById,
 } from '@lobehub/editor';
-import { ChatInputActionsProps, CodeLanguageSelect, useEditorState } from '@lobehub/editor/react';
+import {
+  type ChatInputActionsProps,
+  CodeLanguageSelect,
+  useEditorState,
+} from '@lobehub/editor/react';
 import {
   BoldIcon,
   CodeXmlIcon,

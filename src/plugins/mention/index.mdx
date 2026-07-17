@@ -1,10 +1,10 @@
 ---
-nav: Plugins
-group: Plugins
 title: Mention
 description: Mention plugin enables @-style mentions in the editor. It provides a complete mention system with customizable decorators, markdown serialization, command support, and React components for rendering mention items with autocomplete functionality.
-atomId: ReactMentionPlugin
+category: Plugins
 ---
+
+import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
 
@@ -12,7 +12,7 @@ Mention plugin provides comprehensive @-style mention functionality for the edit
 
 ## Basic Usage
 
-<code src="./demos/index.tsx"></code>
+<Demo editable={false} of={DemoIndex} />
 
 ## Core Architecture
 
@@ -69,11 +69,11 @@ editor.dispatchCommand(INSERT_MENTION_COMMAND, {
 
 ### MentionPluginOptions
 
-| Property       | Description                      | Type                                 | Default |
-| -------------- | -------------------------------- | ------------------------------------ | ------- |
-| decorator      | Custom mention renderer function | `(node: MentionNode, editor) => any` | -       |
-| markdownWriter | Custom markdown serialization    | `(node: MentionNode) => string`      | -       |
-| theme          | CSS theme configuration          | `{ mention?: string }`               | -       |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| decorator | Custom mention renderer function | `(node: MentionNode, editor) => any` | - |
+| markdownWriter | Custom markdown serialization | `(node: MentionNode) => string` | - |
+| theme | CSS theme configuration | `{ mention?: string }` | - |
 
 ## Usage Examples
 

@@ -70,7 +70,7 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
 - 🎨 **Customizable UI** - Antd-styled components with flexible theming
 - 🔗 **File & Media Support** - Native support for images, files, tables, and more
 - 🎯 **TypeScript Native** - Built with TypeScript for excellent developer experience
-- 📱 **Modern Build System** - Optimized with Vite, Dumi docs, and comprehensive testing
+- 📱 **Modern Build System** - Optimized with Vite, lobedocs, and comprehensive testing
 
 ## 📦 Installation
 
@@ -419,21 +419,22 @@ $ pnpm install
 $ pnpm run dev
 ```
 
-This will start the Dumi documentation server with live playground at `http://localhost:8000`.
+This starts the lobedocs development server with the live component playground. The local URL is
+printed in the terminal.
 
 ### Available Scripts
 
-| Script               | Description                                   |
-| -------------------- | --------------------------------------------- |
-| `pnpm dev`           | Start Dumi development server with playground |
-| `pnpm build`         | Build library and generate type definitions   |
-| `pnpm test`          | Run tests with Vitest                         |
-| `pnpm test:coverage` | Run tests with coverage report                |
-| `pnpm lint`          | Lint and fix code with ESLint                 |
-| `pnpm type-check`    | Type check with TypeScript                    |
-| `pnpm ci`            | Run all CI checks (lint, type-check, test)    |
-| `pnpm docs:build`    | Build documentation for production            |
-| `pnpm release`       | Publish new version with semantic-release     |
+| Script               | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `pnpm dev`           | Start lobedocs with the component playground |
+| `pnpm build`         | Build library and generate type definitions  |
+| `pnpm test`          | Run tests with Vitest                        |
+| `pnpm test:coverage` | Run tests with coverage report               |
+| `pnpm lint`          | Lint and fix code with ESLint                |
+| `pnpm type-check`    | Type check with TypeScript                   |
+| `pnpm ci`            | Run all CI checks (lint, type-check, test)   |
+| `pnpm docs:build`    | Build documentation for production           |
+| `pnpm release`       | Publish new version with semantic-release    |
 
 ### Debug Environment Variables
 
@@ -587,9 +588,9 @@ lobe-editor/
 │   └── index.ts                # Public API exports
 │
 ├── docs/                       # 📚 Documentation source
+├── docs.config.ts              # lobedocs site configuration
 ├── tests/                      # 🧪 Test files
-├── vitest.config.ts           # Test configuration
-└── .dumi/                      # Dumi doc build cache
+└── vitest.config.ts            # Test configuration
 ```
 
 The architecture follows a **dual-layer design**:

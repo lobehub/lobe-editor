@@ -1,13 +1,11 @@
 ---
-nav: Components
-group: Data Entry
 title: ChatInput
 description: ChatInput is a flexible container component for building chat input interfaces. It provides structured layout with header, footer, and content areas, along with configurable height constraints and slash menu integration.
-apiHeader:
-  pkg: '@lobehub/editor/react'
-  docUrl: 'https://github.com/lobehub/lobe-editor/tree/master/src/react/ChatInput/index.md'
-  sourceUrl: 'https://github.com/lobehub/lobe-editor/tree/master/src/react/ChatInput/index.ts'
+category: Data Entry
 ---
+
+import DemoIndex from './demos/index.tsx?demo';
+import DemoSectionedMenu from './demos/SectionedMenu.tsx?demo';
 
 ## Introduction
 
@@ -15,11 +13,11 @@ ChatInput is a versatile container component designed for chat input interfaces.
 
 ## Basic Usage
 
-<code src="./demos/index.tsx" iframe nopadding></code>
+<Demo of={DemoIndex} isolated layout="bare" />
 
 ## Sectioned Menus
 
-<code src="./demos/SectionedMenu.tsx" iframe nopadding></code>
+<Demo of={DemoSectionedMenu} isolated layout="bare" />
 
 ## APIs
 
