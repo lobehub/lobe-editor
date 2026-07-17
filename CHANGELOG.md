@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.22.0](https://github.com/lobehub/lobe-editor/compare/v4.21.0...v4.22.0)
+<sup>Released on **2026-07-17**</sup>
+
+
+#### ✨ Features
+
+- **docs**: Migrate to lobedocs.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **docs**: Migrate to lobedocs, closes [#191](https://github.com/lobehub/lobe-editor/issues/191) ([5b3f895](https://github.com/lobehub/lobe-editor/commit/5b3f895))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.21.0](https://github.com/lobehub/lobe-editor/compare/v4.20.3...v4.21.0)
 <sup>Released on **2026-07-12**</sup>
 
