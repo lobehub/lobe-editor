@@ -1,0 +1,754 @@
+{
+  "demoReferences": [
+    {
+      "document": "docs/index.mdx",
+      "legacyId": "docs-demo-docs",
+      "legacyRouteId": "docs/index",
+      "options": {
+        "inline": true,
+        "isolated": false,
+        "layout": "bare"
+      },
+      "pathname": "/",
+      "source": "docs/index.tsx"
+    },
+    {
+      "document": "src/plugins/code/index.mdx",
+      "legacyId": "reactcodeplugin-demo-demos",
+      "legacyRouteId": "components/plugins/code/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/code",
+      "source": "src/plugins/code/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/codeblock/index.mdx",
+      "legacyId": "reactcodeblockplugin-demo-demos",
+      "legacyRouteId": "components/plugins/codeblock/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/codeblock",
+      "source": "src/plugins/codeblock/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/common/index.mdx",
+      "legacyId": "reacteditor, reacteditorcontent, reactplaintext-demo-demos",
+      "legacyRouteId": "components/plugins/common/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/common",
+      "source": "src/plugins/common/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/content-blocks/index.mdx",
+      "legacyId": "src-plugins-content-blocks-demo-demos",
+      "legacyRouteId": "components/plugins/content-blocks/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/content-blocks",
+      "source": "src/plugins/content-blocks/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/content-blocks/index.mdx",
+      "legacyId": "src-plugins-content-blocks-demo-headless",
+      "legacyRouteId": "components/plugins/content-blocks/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/content-blocks",
+      "source": "src/plugins/content-blocks/demos/headless.tsx"
+    },
+    {
+      "document": "src/plugins/file/index.mdx",
+      "legacyId": "reactfileplugin-demo-demos",
+      "legacyRouteId": "components/plugins/file/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/file",
+      "source": "src/plugins/file/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/hr/index.mdx",
+      "legacyId": "reacthrplugin-demo-demos",
+      "legacyRouteId": "components/plugins/hr/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/hr",
+      "source": "src/plugins/hr/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/image/index.mdx",
+      "legacyId": "reactimageplugin-demo-demos",
+      "legacyRouteId": "components/plugins/image/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/image",
+      "source": "src/plugins/image/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/link-highlight/index.mdx",
+      "legacyId": "reactlinkhighlightplugin-demo-demos",
+      "legacyRouteId": "components/plugins/link-highlight/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/link-highlight",
+      "source": "src/plugins/link-highlight/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/link/index.mdx",
+      "legacyId": "reactlinkplugin-demo-demos",
+      "legacyRouteId": "components/plugins/link/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/link",
+      "source": "src/plugins/link/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/list/index.mdx",
+      "legacyId": "reactlistplugin-demo-demos",
+      "legacyRouteId": "components/plugins/list/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/list",
+      "source": "src/plugins/list/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/math/index.mdx",
+      "legacyId": "reactmathplugin-demo-demos",
+      "legacyRouteId": "components/plugins/math/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/math",
+      "source": "src/plugins/math/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/mention/index.mdx",
+      "legacyId": "reactmentionplugin-demo-demos",
+      "legacyRouteId": "components/plugins/mention/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/mention",
+      "source": "src/plugins/mention/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/slash/index.mdx",
+      "legacyId": "reactslashplugin, reactslashoption-demo-demos",
+      "legacyRouteId": "components/plugins/slash/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/slash",
+      "source": "src/plugins/slash/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/table/index.mdx",
+      "legacyId": "reacttableplugin-demo-demos",
+      "legacyRouteId": "components/plugins/table/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/table",
+      "source": "src/plugins/table/demos/index.tsx"
+    },
+    {
+      "document": "src/plugins/table/index.mdx",
+      "legacyId": "reacttableplugin-demo-scrollable",
+      "legacyRouteId": "components/plugins/table/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/plugins/table",
+      "source": "src/plugins/table/demos/scrollable.tsx"
+    },
+    {
+      "document": "src/react/ChatInput/index.mdx",
+      "legacyId": "src-react-chat-input-demo-demos",
+      "legacyRouteId": "components/react/ChatInput/index",
+      "options": {
+        "inline": false,
+        "isolated": true,
+        "layout": "bare"
+      },
+      "pathname": "/components/react/chat-input",
+      "source": "src/react/ChatInput/demos/index.tsx"
+    },
+    {
+      "document": "src/react/ChatInput/index.mdx",
+      "legacyId": "src-react-chat-input-demo-sectionedmenu",
+      "legacyRouteId": "components/react/ChatInput/index",
+      "options": {
+        "inline": false,
+        "isolated": true,
+        "layout": "bare"
+      },
+      "pathname": "/components/react/chat-input",
+      "source": "src/react/ChatInput/demos/SectionedMenu.tsx"
+    },
+    {
+      "document": "src/react/ChatInputActionBar/index.mdx",
+      "legacyId": "src-react-chat-input-action-bar-demo-demos",
+      "legacyRouteId": "components/react/ChatInputActionBar/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "center"
+      },
+      "pathname": "/components/react/chat-input-action-bar",
+      "source": "src/react/ChatInputActionBar/demos/index.tsx"
+    },
+    {
+      "document": "src/react/ChatInputActions/index.mdx",
+      "legacyId": "src-react-chat-input-actions-demo-demos",
+      "legacyRouteId": "components/react/ChatInputActions/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/react/chat-input-actions",
+      "source": "src/react/ChatInputActions/demos/index.tsx"
+    },
+    {
+      "document": "src/react/ChatInputActions/index.mdx",
+      "legacyId": "src-react-chat-input-actions-demo-collapse",
+      "legacyRouteId": "components/react/ChatInputActions/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/react/chat-input-actions",
+      "source": "src/react/ChatInputActions/demos/Collapse.tsx"
+    },
+    {
+      "document": "src/react/CodeLanguageSelect/index.mdx",
+      "legacyId": "src-react-code-language-select-demo-demos",
+      "legacyRouteId": "components/react/CodeLanguageSelect/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "center"
+      },
+      "pathname": "/components/react/code-language-select",
+      "source": "src/react/CodeLanguageSelect/demos/index.tsx"
+    },
+    {
+      "document": "src/react/Editor/index.mdx",
+      "legacyId": "src-react-editor-demo-demos",
+      "legacyRouteId": "components/react/Editor/index",
+      "options": {
+        "inline": false,
+        "isolated": true,
+        "layout": "bare"
+      },
+      "pathname": "/components/react/editor",
+      "source": "src/react/Editor/demos/index.tsx"
+    },
+    {
+      "document": "src/react/Editor/index.mdx",
+      "legacyId": "src-react-editor-demo-disablemarkdown",
+      "legacyRouteId": "components/react/Editor/index",
+      "options": {
+        "inline": false,
+        "isolated": true,
+        "layout": "bare"
+      },
+      "pathname": "/components/react/editor",
+      "source": "src/react/Editor/demos/disableMarkdown.tsx"
+    },
+    {
+      "document": "src/react/Editor/index.mdx",
+      "legacyId": "src-react-editor-demo-editable",
+      "legacyRouteId": "components/react/Editor/index",
+      "options": {
+        "inline": false,
+        "isolated": true,
+        "layout": "bare"
+      },
+      "pathname": "/components/react/editor",
+      "source": "src/react/Editor/demos/editable.tsx"
+    },
+    {
+      "document": "src/react/Editor/index.mdx",
+      "legacyId": "src-react-editor-demo-collaboration",
+      "legacyRouteId": "components/react/Editor/index",
+      "options": {
+        "inline": false,
+        "isolated": true,
+        "layout": "bare"
+      },
+      "pathname": "/components/react/editor",
+      "source": "src/react/Editor/demos/collaboration.tsx"
+    },
+    {
+      "document": "src/react/Editor/index.mdx",
+      "legacyId": "src-react-editor-demo-pasteasplaintext",
+      "legacyRouteId": "components/react/Editor/index",
+      "options": {
+        "inline": false,
+        "isolated": true,
+        "layout": "bare"
+      },
+      "pathname": "/components/react/editor",
+      "source": "src/react/Editor/demos/pasteAsPlainText.tsx"
+    },
+    {
+      "document": "src/react/EditorProvider/index.mdx",
+      "legacyId": "editorprovider-demo-demos",
+      "legacyRouteId": "components/react/EditorProvider/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/react/editor-provider",
+      "source": "src/react/EditorProvider/demos/index.tsx"
+    },
+    {
+      "document": "src/react/FloatActions/index.mdx",
+      "legacyId": "src-react-float-actions-demo-demos",
+      "legacyRouteId": "components/react/FloatActions/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/react/float-actions",
+      "source": "src/react/FloatActions/demos/index.tsx"
+    },
+    {
+      "document": "src/react/FloatActions/index.mdx",
+      "legacyId": "src-react-float-actions-demo-collapse",
+      "legacyRouteId": "components/react/FloatActions/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/react/float-actions",
+      "source": "src/react/FloatActions/demos/Collapse.tsx"
+    },
+    {
+      "document": "src/react/SendButton/index.mdx",
+      "legacyId": "src-react-send-button-demo-demos",
+      "legacyRouteId": "components/react/SendButton/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "bare"
+      },
+      "pathname": "/components/react/send-button",
+      "source": "src/react/SendButton/demos/index.tsx"
+    },
+    {
+      "document": "src/renderer/LexicalDiff/index.mdx",
+      "legacyId": "lexicaldiff-demo-demos",
+      "legacyRouteId": "components/renderer/LexicalDiff/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/renderer/lexical-diff",
+      "source": "src/renderer/LexicalDiff/demos/index.tsx"
+    },
+    {
+      "document": "src/renderer/LexicalDiff/index.mdx",
+      "legacyId": "lexicaldiff-demo-renderers",
+      "legacyRouteId": "components/renderer/LexicalDiff/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/renderer/lexical-diff",
+      "source": "src/renderer/LexicalDiff/demos/renderers.tsx"
+    },
+    {
+      "document": "src/renderer/LexicalDiff/index.mdx",
+      "legacyId": "lexicaldiff-demo-complex-document",
+      "legacyRouteId": "components/renderer/LexicalDiff/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/renderer/lexical-diff",
+      "source": "src/renderer/LexicalDiff/demos/complex-document.tsx"
+    },
+    {
+      "document": "src/renderer/LexicalDiff/index.mdx",
+      "legacyId": "lexicaldiff-demo-inline-modifications",
+      "legacyRouteId": "components/renderer/LexicalDiff/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/renderer/lexical-diff",
+      "source": "src/renderer/LexicalDiff/demos/inline-modifications.tsx"
+    },
+    {
+      "document": "src/renderer/LexicalDiff/index.mdx",
+      "legacyId": "lexicaldiff-demo-diff-node",
+      "legacyRouteId": "components/renderer/LexicalDiff/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/renderer/lexical-diff",
+      "source": "src/renderer/LexicalDiff/demos/diff-node.tsx"
+    },
+    {
+      "document": "src/renderer/LexicalDiff/index.mdx",
+      "legacyId": "lexicaldiff-demo-list-diff",
+      "legacyRouteId": "components/renderer/LexicalDiff/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/renderer/lexical-diff",
+      "source": "src/renderer/LexicalDiff/demos/list-diff.tsx"
+    },
+    {
+      "document": "src/renderer/LexicalDiff/index.mdx",
+      "legacyId": "lexicaldiff-demo-borderless",
+      "legacyRouteId": "components/renderer/LexicalDiff/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/renderer/lexical-diff",
+      "source": "src/renderer/LexicalDiff/demos/borderless.tsx"
+    },
+    {
+      "document": "src/renderer/LexicalRenderer/index.mdx",
+      "legacyId": "lexicalrenderer-demo-demos",
+      "legacyRouteId": "components/renderer/LexicalRenderer/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/renderer/lexical-renderer",
+      "source": "src/renderer/LexicalRenderer/demos/index.tsx"
+    },
+    {
+      "document": "src/renderer/LexicalRenderer/index.mdx",
+      "legacyId": "lexicalrenderer-demo-compare",
+      "legacyRouteId": "components/renderer/LexicalRenderer/index",
+      "options": {
+        "inline": false,
+        "isolated": false,
+        "layout": "default"
+      },
+      "pathname": "/components/renderer/lexical-renderer",
+      "source": "src/renderer/LexicalRenderer/demos/compare.tsx"
+    }
+  ],
+  "documents": [
+    {
+      "description": "New updates and improvements to @lobehub/ui",
+      "legacyRouteId": "docs/changelog",
+      "pathname": "/changelog",
+      "section": "Changelog",
+      "source": "docs/changelog.mdx",
+      "title": "Changelog"
+    },
+    {
+      "description": "Entry page for React components, renderer components, and plugin docs.",
+      "legacyRouteId": "docs/components",
+      "pathname": "/components",
+      "section": "Guides",
+      "source": "docs/components.mdx",
+      "title": "Components"
+    },
+    {
+      "description": "A powerful and extensible rich text editor built on Meta's Lexical framework,<br>providing a modern editing experience with React integration.",
+      "legacyRouteId": "docs/index",
+      "pathname": "/",
+      "section": "Home",
+      "source": "docs/index.mdx"
+    },
+    {
+      "category": "Plugins",
+      "description": "Code plugin enables inline code formatting in the editor. It provides a custom CodeNode for representing inline code snippets with keyboard shortcuts, markdown serialization, and React components for seamless code highlighting integration.",
+      "legacyRouteId": "components/plugins/code/index",
+      "pathname": "/components/plugins/code",
+      "section": "Components",
+      "source": "src/plugins/code/index.mdx",
+      "title": "Code"
+    },
+    {
+      "category": "Plugins",
+      "description": "Codeblock plugin provides advanced code syntax highlighting and editing capabilities. It integrates Shiki for beautiful syntax highlighting, supports multiple programming languages, custom themes, color replacements, and includes markdown shortcuts for easy code block creation.",
+      "legacyRouteId": "components/plugins/codeblock/index",
+      "pathname": "/components/plugins/codeblock",
+      "section": "Components",
+      "source": "src/plugins/codeblock/index.mdx",
+      "title": "Codeblock"
+    },
+    {
+      "category": "Core",
+      "description": "Common plugin provides the foundational editor components and utilities. It includes the core ReactEditor, ReactEditorContent, and ReactPlainText components, along with essential editor services, node types, and data source management for building rich text editing experiences.",
+      "legacyRouteId": "components/plugins/common/index",
+      "pathname": "/components/plugins/common",
+      "section": "Components",
+      "source": "src/plugins/common/index.mdx",
+      "title": "Common"
+    },
+    {
+      "category": "Plugins",
+      "description": "Content Blocks plugin extracts the current editor state into discrete content blocks (text / image / file) suitable for downstream AI chat pipelines. It mirrors the message-part format used by lobe-chat's context engine and ships a small helper to derive `imageList` / `fileList` arrays from the blocks.",
+      "legacyRouteId": "components/plugins/content-blocks/index",
+      "pathname": "/components/plugins/content-blocks",
+      "section": "Components",
+      "source": "src/plugins/content-blocks/index.mdx",
+      "title": "Content Blocks"
+    },
+    {
+      "category": "Plugins",
+      "description": "File plugin provides comprehensive file attachment capabilities with internationalization support. It includes file insertion, upload status management, custom file nodes, utility functions, and React components for building rich file handling experiences with drag-and-drop support.",
+      "legacyRouteId": "components/plugins/file/index",
+      "pathname": "/components/plugins/file",
+      "section": "Components",
+      "source": "src/plugins/file/index.mdx",
+      "title": "File"
+    },
+    {
+      "category": "Plugins",
+      "description": "Horizontal Rule (HR) plugin provides divider functionality for content separation. It includes horizontal rule insertion, custom styling, markdown shortcuts, and React components for building rich document structure with visual content dividers.",
+      "legacyRouteId": "components/plugins/hr/index",
+      "pathname": "/components/plugins/hr",
+      "section": "Components",
+      "source": "src/plugins/hr/index.mdx",
+      "title": "Horizontal Rule"
+    },
+    {
+      "category": "Plugins",
+      "description": "Image plugin provides comprehensive image handling capabilities with internationalization support. It includes image insertion, resizing, caption management, custom image nodes, and React components for building rich image editing experiences with drag-and-drop support.",
+      "legacyRouteId": "components/plugins/image/index",
+      "pathname": "/components/plugins/image",
+      "section": "Components",
+      "source": "src/plugins/image/index.mdx",
+      "title": "Image"
+    },
+    {
+      "category": "Plugins",
+      "description": "Link Highlight plugin enables inline link highlighting in the editor. It provides a custom LinkHighlightNode for representing links as highlighted inline elements with direct editing, markdown serialization, and seamless integration for displaying clickable links.",
+      "legacyRouteId": "components/plugins/link-highlight/index",
+      "pathname": "/components/plugins/link-highlight",
+      "section": "Components",
+      "source": "src/plugins/link-highlight/index.mdx",
+      "title": "LinkHighlight"
+    },
+    {
+      "category": "Plugins",
+      "description": "Link plugin provides comprehensive hyperlink functionality with internationalization support. It includes link creation, editing, validation, custom link nodes, utility functions, and React components for building rich link editing experiences with auto-detection and formatting.",
+      "legacyRouteId": "components/plugins/link/index",
+      "pathname": "/components/plugins/link",
+      "section": "Components",
+      "source": "src/plugins/link/index.mdx",
+      "title": "Link"
+    },
+    {
+      "category": "Plugins",
+      "description": "List plugin provides comprehensive list functionality for ordered and unordered lists. It includes list creation, nesting, conversion commands, utility functions, and React components for building rich list editing experiences with markdown shortcuts and keyboard navigation.",
+      "legacyRouteId": "components/plugins/list/index",
+      "pathname": "/components/plugins/list",
+      "section": "Components",
+      "source": "src/plugins/list/index.mdx",
+      "title": "List"
+    },
+    {
+      "category": "Core",
+      "description": "Markdown plugin provides comprehensive markdown transformation and serialization capabilities. It includes markdown shortcuts, text formatting, element transformations, writer context system, and data source integration for seamless markdown import/export functionality.",
+      "legacyRouteId": "components/plugins/markdown/index",
+      "pathname": "/components/plugins/markdown",
+      "section": "Components",
+      "source": "src/plugins/markdown/index.mdx",
+      "title": "Markdown"
+    },
+    {
+      "category": "Plugins",
+      "description": "Math plugin enables LaTeX-style mathematical expressions in the editor. It provides inline and block math nodes with decorator support, markdown shortcuts, command integration, and React components for rendering mathematical notation with customizable renderers.",
+      "legacyRouteId": "components/plugins/math/index",
+      "pathname": "/components/plugins/math",
+      "section": "Components",
+      "source": "src/plugins/math/index.mdx",
+      "title": "Math"
+    },
+    {
+      "category": "Plugins",
+      "description": "Mention plugin enables @-style mentions in the editor. It provides a complete mention system with customizable decorators, markdown serialization, command support, and React components for rendering mention items with autocomplete functionality.",
+      "legacyRouteId": "components/plugins/mention/index",
+      "pathname": "/components/plugins/mention",
+      "section": "Components",
+      "source": "src/plugins/mention/index.mdx",
+      "title": "Mention"
+    },
+    {
+      "category": "Plugins",
+      "description": "Slash plugin enables powerful slash commands (/command) in the editor. It provides intelligent command detection, fuzzy search, customizable triggers, and React components for building interactive command menus with autocomplete functionality.",
+      "legacyRouteId": "components/plugins/slash/index",
+      "pathname": "/components/plugins/slash",
+      "section": "Components",
+      "source": "src/plugins/slash/index.mdx",
+      "title": "Slash"
+    },
+    {
+      "category": "Plugins",
+      "description": "Table plugin provides comprehensive table editing capabilities with internationalization support. It includes table creation, manipulation commands, custom node patching, utility functions, and React components for building rich table editing experiences.",
+      "legacyRouteId": "components/plugins/table/index",
+      "pathname": "/components/plugins/table",
+      "section": "Components",
+      "source": "src/plugins/table/index.mdx",
+      "title": "Table"
+    },
+    {
+      "category": "Plugins",
+      "description": "Upload plugin provides comprehensive file upload handling with drag-and-drop support, priority-based handler system, and service-oriented architecture. It manages file uploads from multiple sources including drag-drop and paste operations with customizable upload handlers and error management.",
+      "legacyRouteId": "components/plugins/upload/index",
+      "pathname": "/components/plugins/upload",
+      "section": "Components",
+      "source": "src/plugins/upload/index.mdx",
+      "title": "Upload"
+    },
+    {
+      "category": "Data Entry",
+      "description": "ChatInput is a flexible container component for building chat input interfaces. It provides structured layout with header, footer, and content areas, along with configurable height constraints and slash menu integration.",
+      "legacyRouteId": "components/react/ChatInput/index",
+      "pathname": "/components/react/chat-input",
+      "section": "Components",
+      "source": "src/react/ChatInput/index.mdx",
+      "title": "ChatInput"
+    },
+    {
+      "category": "Layout",
+      "description": "ChatInputActionBar is a horizontal layout component for organizing actions in chat input interfaces. It provides left and right alignment areas with consistent spacing and styling, ideal for toolbar-like action arrangements.",
+      "legacyRouteId": "components/react/ChatInputActionBar/index",
+      "pathname": "/components/react/chat-input-action-bar",
+      "section": "Components",
+      "source": "src/react/ChatInputActionBar/index.mdx",
+      "title": "ChatInputActionBar"
+    },
+    {
+      "category": "General",
+      "description": "ChatInputActions is a sophisticated action management component for chat interfaces. It supports multiple action types including regular actions, dropdowns, collapsible sections, and automatic overflow handling with smart responsive behavior.",
+      "legacyRouteId": "components/react/ChatInputActions/index",
+      "pathname": "/components/react/chat-input-actions",
+      "section": "Components",
+      "source": "src/react/ChatInputActions/index.mdx",
+      "title": "ChatInputActions"
+    },
+    {
+      "category": "Data Entry",
+      "description": "CodeLanguageSelect is a specialized select component for choosing programming languages. It provides a comprehensive list of programming languages with icons, built on top of the Shiki syntax highlighting library and LobeHub UI components.",
+      "legacyRouteId": "components/react/CodeLanguageSelect/index",
+      "pathname": "/components/react/code-language-select",
+      "section": "Components",
+      "source": "src/react/CodeLanguageSelect/index.mdx",
+      "title": "CodeLanguageSelect"
+    },
+    {
+      "category": "Playground",
+      "description": "Editor is a comprehensive rich text editor component built on a powerful editor kernel. It supports plugins, mentions, slash commands, various content formats, and comprehensive event handling including keyboard, focus, composition, and context menu events with extensive customization options for modern editing experiences.",
+      "legacyRouteId": "components/react/Editor/index",
+      "pathname": "/components/react/editor",
+      "section": "Components",
+      "source": "src/react/Editor/index.mdx",
+      "title": "Editor"
+    },
+    {
+      "category": "Providers",
+      "description": "Global editor configuration provider that supports unified management of locale, themes, and other global settings. Uses React 19 standard Context API to provide consistent configuration for all editor instances.",
+      "legacyRouteId": "components/react/EditorProvider/index",
+      "pathname": "/components/react/editor-provider",
+      "section": "Components",
+      "source": "src/react/EditorProvider/index.mdx",
+      "title": "EditorProvider"
+    },
+    {
+      "category": "General",
+      "description": "FloatActions is a sophisticated action management component for chat interfaces. It supports multiple action types including regular actions, dropdowns, collapsible sections, and dividers.",
+      "legacyRouteId": "components/react/FloatActions/index",
+      "pathname": "/components/react/float-actions",
+      "section": "Components",
+      "source": "src/react/FloatActions/index.mdx",
+      "title": "FloatActions"
+    },
+    {
+      "category": "General",
+      "legacyRouteId": "components/react/SendButton/index",
+      "pathname": "/components/react/send-button",
+      "section": "Components",
+      "source": "src/react/SendButton/index.mdx",
+      "title": "SendButton"
+    },
+    {
+      "category": "Renderer",
+      "description": "Read-only side-by-side diff viewer for SerializedEditorState values.",
+      "legacyRouteId": "components/renderer/LexicalDiff/index",
+      "pathname": "/components/renderer/lexical-diff",
+      "section": "Components",
+      "source": "src/renderer/LexicalDiff/index.mdx",
+      "title": "LexicalDiff"
+    },
+    {
+      "category": "Renderer",
+      "description": "Headless renderer that converts SerializedEditorState JSON to React elements without loading a full editor instance. SSR/SSG safe, with dedicated Mermaid code-block rendering support.",
+      "legacyRouteId": "components/renderer/LexicalRenderer/index",
+      "pathname": "/components/renderer/lexical-renderer",
+      "section": "Components",
+      "source": "src/renderer/LexicalRenderer/index.mdx",
+      "title": "LexicalRenderer"
+    }
+  ]
+}

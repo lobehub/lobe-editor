@@ -1,10 +1,10 @@
 ---
-nav: React Components
-group: Providers
 title: EditorProvider
 description: Global editor configuration provider that supports unified management of locale, themes, and other global settings. Uses React 19 standard Context API to provide consistent configuration for all editor instances.
-atomId: EditorProvider
+category: Providers
 ---
+
+import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
 
@@ -12,7 +12,7 @@ atomId: EditorProvider
 
 ## Basic Usage
 
-<code src="./demos/index.tsx"></code>
+<Demo of={DemoIndex} />
 
 ## Core Architecture
 
@@ -104,6 +104,6 @@ const globalConfig = {
 
 ## Related Components
 
-- [Editor](/react/editor) - Main editor component
-- [ChatInput](/react/chat-input) - Chat input component
-- [useTranslation](/editor-kernel/react/use-translation) - Internationalization Hook
+- [Editor](/components/react/editor) - Main editor component
+- [ChatInput](/components/react/chat-input) - Chat input component
+- [useTranslation](https://github.com/lobehub/lobe-editor/blob/master/src/editor-kernel/react/useTranslation.ts) - Internationalization Hook

@@ -1,4 +1,4 @@
-import { ChatInputActions, ChatInputActionsProps } from '@lobehub/editor/react';
+import { ChatInputActions, type ChatInputActionsProps } from '@lobehub/editor/react';
 import { Popover } from '@lobehub/ui';
 import { TokenTag } from '@lobehub/ui/chat';
 import {

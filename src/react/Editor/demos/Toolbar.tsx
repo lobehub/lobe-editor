@@ -1,13 +1,13 @@
 import {
   HotkeyEnum,
-  IEditor,
+  type IEditor,
   INSERT_FILE_COMMAND,
   INSERT_IMAGE_COMMAND,
   getHotkeyById,
 } from '@lobehub/editor';
 import {
   ChatInputActions,
-  ChatInputActionsProps,
+  type ChatInputActionsProps,
   CodeLanguageSelect,
   FloatActions,
   useEditorState,

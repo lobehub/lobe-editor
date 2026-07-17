@@ -32,11 +32,8 @@ es
 logs
 test-output
 
-# umi
-.umi
-.umi-production
-.umi-test
-.dumi/tmp*
+# documentation build cache
+.react-router/
 
 # husky
 .husky/prepare-commit-msg

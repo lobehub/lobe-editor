@@ -1,4 +1,4 @@
-import { ChatInput, ChatInputProps, useEditor, useEditorState } from '@lobehub/editor/react';
+import { ChatInput, type ChatInputProps, useEditor, useEditorState } from '@lobehub/editor/react';
 import type { ChatMessage } from '@lobehub/ui/chat';
 import { StoryBook, useControls, useCreateStore } from '@lobehub/ui/storybook';
 import { useRef, useState } from 'react';

@@ -1,10 +1,10 @@
 ---
-nav: Plugins
-group: Plugins
 title: Math
 description: Math plugin enables LaTeX-style mathematical expressions in the editor. It provides inline and block math nodes with decorator support, markdown shortcuts, command integration, and React components for rendering mathematical notation with customizable renderers.
-atomId: ReactMathPlugin
+category: Plugins
 ---
+
+import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
 
@@ -12,7 +12,7 @@ Math plugin provides comprehensive mathematical expression support for the edito
 
 ## Basic Usage
 
-<code src="./demos/index.tsx"></code>
+<Demo editable={false} of={DemoIndex} />
 
 ## Core Architecture
 
@@ -53,11 +53,11 @@ The plugin introduces two custom node types:
 
 React component wrapper providing complete math functionality.
 
-| Property   | Description                    | Type                                          | Default |
-| ---------- | ------------------------------ | --------------------------------------------- | ------- |
-| className  | Custom CSS class name          | `string`                                      | -       |
-| renderComp | Custom math renderer component | `ReactNode`                                   | -       |
-| theme      | Theme configuration object     | `{ mathBlock?: string, mathInline?: string }` | -       |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| className | Custom CSS class name | `string` | - |
+| renderComp | Custom math renderer component | `ReactNode` | - |
+| theme | Theme configuration object | `{ mathBlock?: string, mathInline?: string }` | - |
 
 ## Commands
 
@@ -121,10 +121,10 @@ editor.dispatchCommand(SELECT_MATH_SIDE_COMMAND, {
 
 ### MathPluginOptions
 
-| Property  | Description             | Type                                             | Required |
-| --------- | ----------------------- | ------------------------------------------------ | -------- |
-| decorator | Math rendering function | `(node: MathNode, editor: LexicalEditor) => any` | Yes      |
-| theme     | CSS theme configuration | `{ mathBlock?: string, mathInline?: string }`    | No       |
+| Property | Description | Type | Required |
+| --- | --- | --- | --- |
+| decorator | Math rendering function | `(node: MathNode, editor: LexicalEditor) => any` | Yes |
+| theme | CSS theme configuration | `{ mathBlock?: string, mathInline?: string }` | No |
 
 ## Node API
 
@@ -167,8 +167,7 @@ The plugin provides automatic LaTeX-style shortcuts:
 // Automatically converts to inline math node
 ```
 
-**Pattern:** `/\$([^$]+)\$\s?$/`
-**Trigger:** `$` character
+**Pattern:** `/\$([^$]+)\$\s?$/` **Trigger:** `$` character
 
 ### Block Math Shortcut
 
@@ -177,8 +176,7 @@ The plugin provides automatic LaTeX-style shortcuts:
 // Press Enter to create block math node
 ```
 
-**Pattern:** `/^(\$\$)$/`
-**Trigger:** `enter` key
+**Pattern:** `/^(\$\$)$/` **Trigger:** `enter` key
 
 ## Usage Examples
 

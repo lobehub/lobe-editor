@@ -1,10 +1,10 @@
 ---
-nav: Plugins
-group: Plugins
 title: Codeblock
 description: Codeblock plugin provides advanced code syntax highlighting and editing capabilities. It integrates Shiki for beautiful syntax highlighting, supports multiple programming languages, custom themes, color replacements, and includes markdown shortcuts for easy code block creation.
-atomId: ReactCodeblockPlugin
+category: Plugins
 ---
+
+import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
 
@@ -12,7 +12,7 @@ Codeblock plugin enhances the editor with professional code editing capabilities
 
 ## Basic Usage
 
-<code src="./demos/index.tsx"></code>
+<Demo editable={false} of={DemoIndex} />
 
 ## Core Architecture
 
@@ -86,11 +86,11 @@ editor.dispatchCommand(UPDATE_CODEBLOCK_COLOR_REPLACEMENTS, {
 
 ### CodeblockPluginOptions
 
-| Property          | Description               | Type                                        | Default |
-| ----------------- | ------------------------- | ------------------------------------------- | ------- |
-| shikiTheme        | Shiki theme configuration | `string \| { dark: string, light: string }` | -       |
-| colorReplacements | Custom color scheme       | `{ current?: AllColorReplacements }`        | -       |
-| theme             | CSS theme configuration   | `{ code?: string }`                         | -       |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| shikiTheme | Shiki theme configuration | `string \| { dark: string, light: string }` | - |
+| colorReplacements | Custom color scheme | `{ current?: AllColorReplacements }` | - |
+| theme | CSS theme configuration | `{ code?: string }` | - |
 
 ### AllColorReplacements
 

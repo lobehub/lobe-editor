@@ -1,14 +1,11 @@
 ---
-nav: Components
-group: Renderer
 title: LexicalRenderer
 description: Headless renderer that converts SerializedEditorState JSON to React elements without loading a full editor instance. SSR/SSG safe, with dedicated Mermaid code-block rendering support.
-atomId: LexicalRenderer
-apiHeader:
-  pkg: '@lobehub/editor/renderer'
-  docUrl: 'https://github.com/lobehub/lobe-editor/tree/master/src/renderer/LexicalRenderer/index.md'
-  sourceUrl: 'https://github.com/lobehub/lobe-editor/tree/master/src/renderer/LexicalRenderer.tsx'
+category: Renderer
 ---
+
+import DemoCompare from './demos/compare.tsx?demo';
+import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
 
@@ -16,13 +13,13 @@ apiHeader:
 
 ## Basic Usage
 
-<code src="./demos/index.tsx"></code>
+<Demo editable={false} of={DemoIndex} />
 
 ## Comparison with Editor
 
 Side-by-side comparison between `<Editor editable={false}>` and `<LexicalRenderer>` using the same JSON data.
 
-<code src="./demos/compare.tsx"></code>
+<Demo editable={false} of={DemoCompare} />
 
 ## Features
 

@@ -1,9 +1,11 @@
 ---
-nav: Plugins
-group: Plugins
 title: Content Blocks
 description: Content Blocks plugin extracts the current editor state into discrete content blocks (text / image / file) suitable for downstream AI chat pipelines. It mirrors the message-part format used by lobe-chat's context engine and ships a small helper to derive `imageList` / `fileList` arrays from the blocks.
+category: Plugins
 ---
+
+import DemoHeadless from './demos/headless.tsx?demo';
+import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
 
@@ -15,7 +17,7 @@ The plugin requires `MarkdownPlugin` to be registered first, since text serializ
 
 Edit the editor below and watch the extracted `ContentBlock[]` and derived `imageList` / `fileList` update live.
 
-<code src="./demos/index.tsx"></code>
+<Demo editable={false} of={DemoIndex} />
 
 ## Quick Start
 
@@ -93,7 +95,7 @@ headless.destroy();
 
 Edit the JSON input below and watch the headless extraction run live:
 
-<code src="./demos/headless.tsx"></code>
+<Demo editable={false} of={DemoHeadless} />
 
 ## ContentBlock Schema
 
@@ -184,24 +186,24 @@ const { imageList, fileList }: MediaLists = extractMediaLists(blocks);
 
 Returns:
 
-| Field       | Description                                                                                  |
-| ----------- | -------------------------------------------------------------------------------------------- |
-| `imageList` | `{ id, alt, url }[]` — one entry per image block, in document order.                         |
-| `fileList`  | `{ id, name, size, fileType, url }[]` — one entry per file block. `fileType` from extension. |
+| Field | Description |
+| --- | --- |
+| `imageList` | `{ id, alt, url }[]` — one entry per image block, in document order. |
+| `fileList` | `{ id, name, size, fileType, url }[]` — one entry per file block. `fileType` from extension. |
 
 ## Plugin Options
 
 ### `ContentBlocksPluginOptions`
 
-| Property         | Description                                                                                                                                                             | Type                          | Default |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------- |
-| `defaultOptions` | Default `ExtractContentBlocksOptions` applied when reading via `kernel.getDocument('content-blocks')`. Direct callers of `extractContentBlocks` pass their own options. | `ExtractContentBlocksOptions` | `{}`    |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| `defaultOptions` | Default `ExtractContentBlocksOptions` applied when reading via `kernel.getDocument('content-blocks')`. Direct callers of `extractContentBlocks` pass their own options. | `ExtractContentBlocksOptions` | `{}` |
 
 ### `ExtractContentBlocksOptions`
 
-| Property                       | Description                                                                                      | Type      | Default |
-| ------------------------------ | ------------------------------------------------------------------------------------------------ | --------- | ------- |
-| `emitPlaceholderForUnuploaded` | When `true`, non-uploaded images/files become text placeholders. When `false`, dropped silently. | `boolean` | `true`  |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| `emitPlaceholderForUnuploaded` | When `true`, non-uploaded images/files become text placeholders. When `false`, dropped silently. | `boolean` | `true` |
 
 ### Example: silent drop
 

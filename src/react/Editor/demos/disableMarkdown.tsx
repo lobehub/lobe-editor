@@ -1,5 +1,5 @@
 import {
-  IEditor,
+  type IEditor,
   INSERT_CODEINLINE_COMMAND,
   INSERT_FILE_COMMAND,
   INSERT_HEADING_COMMAND,

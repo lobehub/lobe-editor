@@ -1,7 +1,7 @@
-import { CodeEditor, Collapse, CollapseProps, Highlighter, ToastHost } from '@lobehub/ui';
+import { CodeEditor, Collapse, type CollapseProps, Highlighter, ToastHost } from '@lobehub/ui';
 import { type FC, type PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
 
-import { IEditor } from '@/types';
+import type { IEditor } from '@/types';
 
 import XmlModifier from './XmlModifier';
 
