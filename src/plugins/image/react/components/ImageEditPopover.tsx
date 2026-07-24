@@ -4,8 +4,8 @@ import { LinkIcon, UploadIcon } from 'lucide-react';
 import {
   type ChangeEvent,
   type FC,
-  type ReactNode,
   memo,
+  type ReactNode,
   useCallback,
   useRef,
   useState,
@@ -15,8 +15,8 @@ import { useEditable } from '@/editor-kernel/react/useEditable';
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
-import { BlockImageNode } from '../../node/block-image-node';
-import { ImageNode } from '../../node/image-node';
+import type { BlockImageNode } from '../../node/block-image-node';
+import type { ImageNode } from '../../node/image-node';
 
 interface ImageEditPopoverProps {
   children: ReactNode;

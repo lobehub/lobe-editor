@@ -1,12 +1,11 @@
-import { LinkNode } from '@lexical/link';
+import type { LinkNode } from '@lexical/link';
 import { mergeRegister } from '@lexical/utils';
+import type { LexicalEditor, NodeKey } from 'lexical';
 import {
   $createTextNode,
   $getNodeByKey,
   $insertNodes,
   COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
-  NodeKey,
   createCommand,
 } from 'lexical';
 

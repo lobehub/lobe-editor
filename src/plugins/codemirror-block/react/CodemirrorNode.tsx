@@ -4,23 +4,18 @@ import { mergeRegister } from '@lexical/utils';
 import { ActionIcon, Block } from '@lobehub/ui';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
-import {
-  $getSelection,
-  $setSelection,
-  COMMAND_PRIORITY_CRITICAL,
-  KEY_DOWN_COMMAND,
-  LexicalEditor,
-} from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getSelection, $setSelection, COMMAND_PRIORITY_CRITICAL, KEY_DOWN_COMMAND } from 'lexical';
 import { CodeXml, Eye } from 'lucide-react';
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Toolbar, lobeTheme, styles } from '@/codemirror';
+import { lobeTheme, styles, Toolbar } from '@/codemirror';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
-import { CodeMirrorNode } from '../node/CodeMirrorNode';
+import type { CodeMirrorNode } from '../node/CodeMirrorNode';
 import MermaidPreview from './MermaidPreview';
 
 interface ReactCodemirrorNodeProps {

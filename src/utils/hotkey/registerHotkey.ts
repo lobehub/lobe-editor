@@ -1,5 +1,5 @@
 import { HOTKEYS_REGISTRATION } from '@/const/hotkey';
-import { HotkeyId, HotkeyItem, ModifierCombination } from '@/types/hotkey';
+import type { HotkeyId, HotkeyItem, ModifierCombination } from '@/types/hotkey';
 import { createDebugLogger } from '@/utils/debug';
 import { parseHotkey } from '@/utils/hotkey/parseHotkeys';
 

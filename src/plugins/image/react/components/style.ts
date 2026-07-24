@@ -105,10 +105,10 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
 
       width: 6px;
       height: min(80px, 80%);
-      border: 1px solid color-mix(in srgb, rgb(255, 255, 255) 75%, transparent);
+      border: 1px solid color-mix(in srgb, rgb(255 255 255) 75%, transparent);
       border-radius: 3px;
 
-      background-color: color-mix(in srgb, rgb(0, 0, 0) 50%, transparent);
+      background-color: color-mix(in srgb, rgb(0 0 0) 50%, transparent);
     }
   `,
 
@@ -135,6 +135,6 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     font-size: 12px;
     color: white;
 
-    background-color: color-mix(in srgb, rgb(0, 0, 0) 50%, transparent);
+    background-color: color-mix(in srgb, rgb(0 0 0) 50%, transparent);
   `,
 }));

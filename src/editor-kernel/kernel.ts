@@ -1,8 +1,17 @@
 import { createHeadlessEditor as createLexicalHeadlessEditor } from '@lexical/headless';
-import { HistoryState, createEmptyHistoryState } from '@lexical/history';
+import type { HistoryState } from '@lexical/history';
+import { createEmptyHistoryState } from '@lexical/history';
 import { $createTableSelection, $isTableNode, $isTableSelection } from '@lexical/table';
 import { get, merge, template, templateSettings } from 'es-toolkit/compat';
 import EventEmitter from 'eventemitter3';
+import type {
+  CommandListener,
+  CommandListenerPriority,
+  CommandPayloadType,
+  LexicalCommand,
+  LexicalEditor,
+  LexicalNodeConfig,
+} from 'lexical';
 import {
   $createNodeSelection,
   $createRangeSelection,
@@ -13,20 +22,14 @@ import {
   $isRangeSelection,
   $setSelection,
   COMMAND_PRIORITY_CRITICAL,
-  CommandListener,
-  CommandListenerPriority,
-  CommandPayloadType,
-  KEY_DOWN_COMMAND,
-  LexicalCommand,
-  LexicalEditor,
-  LexicalNodeConfig,
   createEditor,
+  KEY_DOWN_COMMAND,
 } from 'lexical';
 
 import defaultLocale from '@/locale';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
-import { HotkeyId } from '@/types/hotkey';
-import {
+import type { HotkeyId } from '@/types/hotkey';
+import type {
   Commands,
   IBeforeEditorInitLifecycle,
   IDecorator,
@@ -40,22 +43,18 @@ import {
   ISelectionObject,
   IServiceID,
 } from '@/types/kernel';
-import { ILocaleKeys } from '@/types/locale';
+import type { ILocaleKeys } from '@/types/locale';
 import { createDebugLogger } from '@/utils/debug';
-import {
-  HotkeyOptions,
-  HotkeysEvent,
-  getHotkeyById,
-  registerHotkey,
-} from '@/utils/hotkey/registerHotkey';
+import type { HotkeyOptions, HotkeysEvent } from '@/utils/hotkey/registerHotkey';
+import { getHotkeyById, registerHotkey } from '@/utils/hotkey/registerHotkey';
 
-import DataSource from './data-source';
+import type DataSource from './data-source';
 import { registerEvent } from './event';
 import { KernelPlugin } from './plugin';
 import {
   $closest,
-  EDITOR_THEME_KEY,
   createEmptyEditorState,
+  EDITOR_THEME_KEY,
   generateEditorId,
   noop,
   registerEditorKernel,

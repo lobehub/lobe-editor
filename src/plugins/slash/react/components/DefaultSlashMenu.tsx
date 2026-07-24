@@ -1,10 +1,10 @@
 'use client';
 
 import {
-  type Placement,
   autoUpdate,
   flip,
   offset,
+  type Placement,
   shift,
   size,
   useFloating,
@@ -15,8 +15,8 @@ import { type FC, type ReactNode, useEffect, useLayoutEffect, useMemo, useRef } 
 import { createPortal } from 'react-dom';
 
 import {
-  type ISlashMenuOption,
   flattenSlashOptions,
+  type ISlashMenuOption,
   isSlashDividerOption,
   isSlashSectionOption,
 } from '../../service/i-slash-service';

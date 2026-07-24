@@ -1,7 +1,8 @@
-import { $getRoot, $getSelection, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getRoot, $getSelection } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
-import { IWriteOptions } from '@/editor-kernel/data-source';
+import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 
 export default class TextDataSource extends DataSource {

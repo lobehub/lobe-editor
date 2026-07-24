@@ -1,14 +1,15 @@
 import { mergeRegister } from '@lexical/utils';
 import { Block, LOBE_THEME_APP_ID } from '@lobehub/ui';
 import { cx, useThemeMode } from 'antd-style';
+import type { LexicalEditor } from 'lexical';
 import {
   $getSelection,
   COMMAND_PRIORITY_LOW,
-  LexicalEditor,
-  SELECTION_CHANGE_COMMAND,
   getDOMSelection,
+  SELECTION_CHANGE_COMMAND,
 } from 'lexical';
-import { FC, useCallback, useRef, useState } from 'react';
+import type { FC } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
@@ -19,7 +20,7 @@ import { HIDE_TOOLBAR_COMMAND, registerToolbarCommand } from '../command';
 import { getDOMRangeRect } from '../utils/getDOMRangeRect';
 import { setFloatingElemPosition } from '../utils/setFloatingElemPosition';
 import { styles } from './style';
-import { ReactToolbarPluginProps } from './type';
+import type { ReactToolbarPluginProps } from './type';
 
 const resolveDefaultPortalContainer = (): HTMLElement | null => {
   if (typeof document === 'undefined') return null;

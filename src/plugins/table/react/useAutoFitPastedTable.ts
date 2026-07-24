@@ -1,12 +1,6 @@
 import { $computeTableMapSkipCellCheck, $isTableNode, TableNode } from '@lexical/table';
-import {
-  $getNodeByKey,
-  HISTORIC_TAG,
-  LexicalEditor,
-  NodeKey,
-  PASTE_TAG,
-  SKIP_SCROLL_INTO_VIEW_TAG,
-} from 'lexical';
+import type { LexicalEditor, NodeKey } from 'lexical';
+import { $getNodeByKey, HISTORIC_TAG, PASTE_TAG, SKIP_SCROLL_INTO_VIEW_TAG } from 'lexical';
 import { useEffect, useRef } from 'react';
 
 import { syncTableWidthDOM } from '../utils';

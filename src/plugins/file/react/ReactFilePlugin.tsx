@@ -8,7 +8,7 @@ import { UploadPlugin } from '@/plugins/upload';
 import { FilePlugin } from '../plugin';
 import ReactFile from './components/ReactFile';
 import { styles } from './style';
-import { ReactFilePluginProps } from './type';
+import type { ReactFilePluginProps } from './type';
 
 const ReactFilePlugin: FC<ReactFilePluginProps> = ({
   className,
@@ -34,7 +34,7 @@ const ReactFilePlugin: FC<ReactFilePluginProps> = ({
         }
         throw new Error('No upload handler provided');
       },
-      markdownWriter: markdownWriter,
+      markdownWriter,
       theme: theme || styles,
     });
   }, [editor]);

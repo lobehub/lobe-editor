@@ -7,13 +7,14 @@ import {
   registerListStrictIndentTransform,
 } from '@lexical/list';
 import { $getNearestNodeOfType } from '@lexical/utils';
-import { $isRootNode, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $isRootNode } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { cx } from '@/utils/cx';
 
 import { listReplace } from '../utils';
@@ -106,7 +107,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
 
     litexmlService.registerXMLReader('ol', (xmlNode, children) => {
       return INodeHelper.createElementNode('list', {
-        children: children,
+        children,
         direction: 'ltr',
         format: '',
         indent: 0,
@@ -120,7 +121,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
     });
     litexmlService.registerXMLReader('ul', (xmlNode, children) => {
       return INodeHelper.createElementNode('list', {
-        children: children,
+        children,
         direction: 'ltr',
         format: '',
         indent: 0,
@@ -132,7 +133,7 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
     });
     litexmlService.registerXMLReader('li', (xmlNode, children) => {
       return INodeHelper.createElementNode('listitem', {
-        children: children,
+        children,
         direction: 'ltr',
         format: '',
         indent: 0,

@@ -9,6 +9,7 @@ import { $createQuoteNode, $isHeadingNode, $isQuoteNode } from '@lexical/rich-te
 import { $setBlocksType } from '@lexical/selection';
 import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
 import { debounce } from 'es-toolkit';
+import type { LexicalEditor, LexicalNode, TextFormatType } from 'lexical';
 import {
   $createNodeSelection,
   $getSelection,
@@ -19,11 +20,8 @@ import {
   CAN_UNDO_COMMAND,
   COMMAND_PRIORITY_LOW,
   FORMAT_TEXT_COMMAND,
-  LexicalEditor,
-  LexicalNode,
   REDO_COMMAND,
   SELECTION_CHANGE_COMMAND,
-  TextFormatType,
   UNDO_COMMAND,
 } from 'lexical';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -32,19 +30,19 @@ import { noop } from '@/editor-kernel';
 import { INSERT_CODEINLINE_COMMAND } from '@/plugins/code';
 import { $isSelectionInCodeInline } from '@/plugins/code/node/code';
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock';
+import type { CodeMirrorNode } from '@/plugins/codemirror-block/node/CodeMirrorNode';
 import {
   $createCodeMirrorNode,
   $isCodeMirrorNode,
-  CodeMirrorNode,
 } from '@/plugins/codemirror-block/node/CodeMirrorNode';
 import { $isRootTextContentEmpty } from '@/plugins/common/utils';
+import { $isLinkNode, formatUrl, TOGGLE_LINK_COMMAND } from '@/plugins/link/node/LinkNode';
+import { extractUrlFromText, sanitizeUrl, validateUrl } from '@/plugins/link/utils';
 import { INSERT_LINK_HIGHLIGHT_COMMAND } from '@/plugins/link-highlight/command';
 import { $isLinkHighlightNode } from '@/plugins/link-highlight/node/link-highlight';
-import { $isLinkNode, TOGGLE_LINK_COMMAND, formatUrl } from '@/plugins/link/node/LinkNode';
-import { extractUrlFromText, sanitizeUrl, validateUrl } from '@/plugins/link/utils';
 import { INSERT_CHECK_LIST_COMMAND } from '@/plugins/list';
 import { $createMathBlockNode, $createMathInlineNode } from '@/plugins/math/node';
-import { IEditor } from '@/types';
+import type { IEditor } from '@/types';
 
 import { $findTopLevelElement, formatParagraph, getSelectedNode } from './utils';
 

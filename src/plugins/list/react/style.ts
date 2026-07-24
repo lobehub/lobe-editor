@@ -26,7 +26,7 @@ export const styles = createStaticStyles(
     .editor_listUnordered& {
       list-style-type: none;
 
-      > .editor_listItem:not(:has(ul)):not([role='checkbox']) {
+      > .editor_listItem:not(:has(ul), [role='checkbox']) {
         &::before {
           content: '-';
           display: inline-block;

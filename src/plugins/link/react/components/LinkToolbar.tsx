@@ -1,5 +1,6 @@
 import { mergeRegister } from '@lexical/utils';
 import { ActionIconGroup } from '@lobehub/ui';
+import type { LexicalEditor } from 'lexical';
 import {
   $createRangeSelection,
   $getNodeByKey,
@@ -8,7 +9,6 @@ import {
   $isTextNode,
   $setSelection,
   COMMAND_PRIORITY_NORMAL,
-  LexicalEditor,
 } from 'lexical';
 import { EditIcon, ExternalLinkIcon, UnlinkIcon } from 'lucide-react';
 import { memo, useCallback, useRef, useState } from 'react';
@@ -19,11 +19,11 @@ import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { getSelectedNode } from '@/plugins/link/utils';
 import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
+import type { LinkNode } from '../../node/LinkNode';
 import {
   $isLinkNode,
   HOVER_LINK_COMMAND,
   HOVER_OUT_LINK_COMMAND,
-  LinkNode,
   TOGGLE_LINK_COMMAND,
 } from '../../node/LinkNode';
 import { styles } from '../style';

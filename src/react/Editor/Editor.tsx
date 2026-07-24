@@ -11,7 +11,7 @@ import { ReactMentionPlugin } from '@/plugins/mention';
 import { ReactSlashOption, ReactSlashPlugin } from '@/plugins/slash';
 import { useEditorContent } from '@/react/EditorProvider';
 
-import { EditorPlugin, EditorProps } from './type';
+import type { EditorPlugin, EditorProps } from './type';
 
 // Keep memo: Core editor component with complex useMemo calculations and plugin system
 const Editor = memo<EditorProps>(

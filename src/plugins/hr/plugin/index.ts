@@ -1,10 +1,10 @@
-import { DecoratorNode, LexicalEditor } from 'lexical';
+import type { DecoratorNode, LexicalEditor } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerHorizontalRuleCommand } from '../command';
 import {
@@ -13,7 +13,6 @@ import {
   HorizontalRuleNode,
 } from '../node/HorizontalRuleNode';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HRPluginOptions {
   decorator: (node: HorizontalRuleNode, editor: LexicalEditor) => any;
   theme?: string;

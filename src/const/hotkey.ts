@@ -1,6 +1,7 @@
 import { COMMAND_PRIORITY_LOW } from 'lexical';
 
-import { HotkeyEnum, HotkeyItem, HotkeyScopeEnum, KeyEnum } from '@/types/hotkey';
+import type { HotkeyItem } from '@/types/hotkey';
+import { HotkeyEnum, HotkeyScopeEnum, KeyEnum } from '@/types/hotkey';
 
 const combineKeys = (keys: string[]) => keys.join('+');
 

@@ -1,7 +1,7 @@
-import { DecoratorNode, LexicalEditor } from 'lexical';
-import { Html } from 'mdast';
+import type { DecoratorNode, LexicalEditor } from 'lexical';
+import type { Html } from 'mdast';
 
-import { INode } from '@/editor-kernel/inode';
+import type { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
@@ -12,10 +12,10 @@ import {
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerMentionCommand } from '../command';
-import { $isMentionNode, MentionNode, SerializedMentionNode } from '../node/MentionNode';
+import type { SerializedMentionNode } from '../node/MentionNode';
+import { $isMentionNode, MentionNode } from '../node/MentionNode';
 import { registerMentionNodeSelectionObserver } from './register';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface MentionPluginOptions {
   decorator?: (node: MentionNode, editor: LexicalEditor) => any;
   markdownReader?: (node: Html, children: INode[]) => SerializedMentionNode | null | false;

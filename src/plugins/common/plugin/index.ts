@@ -11,6 +11,7 @@ import {
   registerRichText,
 } from '@lexical/rich-text';
 import { CAN_USE_DOM } from '@lexical/utils';
+import type { LexicalEditor } from 'lexical';
 import {
   $createLineBreakNode,
   $createParagraphNode,
@@ -21,12 +22,11 @@ import {
   COMMAND_PRIORITY_HIGH,
   INSERT_LINE_BREAK_COMMAND,
   INSERT_PARAGRAPH_COMMAND,
-  PASTE_COMMAND,
   ParagraphNode,
+  PASTE_COMMAND,
   TEXT_TYPE_TO_FORMAT,
   TextNode,
 } from 'lexical';
-import type { LexicalEditor } from 'lexical';
 
 import { noop } from '@/editor-kernel';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -39,16 +39,16 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
-import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { CursorNode, registerCursorNode } from '../node/cursor';
+import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
 import { registerMDReader } from './mdReader';
 import {
-  type PasteContext,
-  type PasteHandlerConfig,
   handleFilePaste,
   handlePlainTextPaste,
   handleVSCodePaste,
+  type PasteContext,
+  type PasteHandlerConfig,
   runPasteHandlers,
 } from './paste-handler';
 import { registerHeaderBackspace, registerLastElement, registerRichKeydown } from './register';

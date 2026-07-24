@@ -8,7 +8,7 @@ import { createDebugLogger } from '@/utils/debug';
 
 import { AutoCompletePlugin } from '../plugin';
 import { styles } from './style';
-import { ReactAutoCompletePluginProps } from './type';
+import type { ReactAutoCompletePluginProps } from './type';
 
 const logger = createDebugLogger('react-plugin', 'auto-complete');
 

@@ -1,6 +1,7 @@
 import { $isCodeNode } from '@lexical/code-core';
 import { $findMatchingParent } from '@lexical/utils';
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR } from 'lexical';
 
 import { ShikiTokenizer } from '../plugin/CodeHighlighterShiki';
 import { UPDATE_CODEBLOCK_LANG } from './symbols';

@@ -5,9 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-import { $findTableNode, $isTableSelection, TableNode } from '@lexical/table';
+import type { TableNode } from '@lexical/table';
+import { $findTableNode, $isTableSelection } from '@lexical/table';
 import { debounce } from 'es-toolkit/compat';
-import { $getNodeByKey, $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getTableSelectionIndexes, isTableFullySelected } from '../utils';

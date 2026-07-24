@@ -1,12 +1,12 @@
+import type { ListItemNode, ListNode } from '@lexical/list';
 import {
   $createListNode,
   $isListItemNode,
   INSERT_ORDERED_LIST_COMMAND,
   INSERT_UNORDERED_LIST_COMMAND,
-  ListItemNode,
-  ListNode,
 } from '@lexical/list';
 import { mergeRegister } from '@lexical/utils';
+import type { LexicalCommand, LexicalEditor } from 'lexical';
 import {
   $createParagraphNode,
   $getSelection,
@@ -19,12 +19,10 @@ import {
   INSERT_TAB_COMMAND,
   KEY_BACKSPACE_COMMAND,
   KEY_TAB_COMMAND,
-  LexicalCommand,
-  LexicalEditor,
   OUTDENT_CONTENT_COMMAND,
 } from 'lexical';
 
-import { IEditorKernel } from '@/types';
+import type { IEditorKernel } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 
 import { $indentOverTab } from '../utils';

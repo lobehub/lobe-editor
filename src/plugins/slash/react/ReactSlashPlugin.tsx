@@ -25,11 +25,11 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
 import { type ITriggerContext, SlashPlugin } from '../plugin/index';
 import {
+  flattenSlashOptions,
   type ISlashMenuOption,
   type ISlashOption,
   ISlashService,
   type SlashOptions,
-  flattenSlashOptions,
 } from '../service/i-slash-service';
 import { $splitNodeContainingQuery } from '../utils/utils';
 import SlashMenu from './components/SlashMenu';

@@ -1,5 +1,6 @@
 import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code-core';
 import { mergeRegister } from '@lexical/utils';
+import type { ElementNode, LexicalEditor, LexicalNode, PointType } from 'lexical';
 import {
   $createParagraphNode,
   $getNodeByKey,
@@ -12,13 +13,9 @@ import {
   $isRootOrShadowRoot,
   $isTextNode,
   COMMAND_PRIORITY_NORMAL,
-  ElementNode,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
-  LexicalEditor,
-  LexicalNode,
   ParagraphNode,
-  PointType,
 } from 'lexical';
 
 import { $closest } from '@/editor-kernel';
@@ -26,7 +23,7 @@ import {
   SELECT_AFTER_CODEMIRROR_COMMAND,
   SELECT_BEFORE_CODEMIRROR_COMMAND,
 } from '@/plugins/codemirror-block';
-import { IEditor } from '@/types';
+import type { IEditor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 const logger = createDebugLogger('plugin', 'virtual-block');

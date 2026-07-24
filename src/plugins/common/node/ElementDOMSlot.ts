@@ -1,5 +1,6 @@
 import { CAN_USE_DOM, mergeRegister } from '@lexical/utils';
-import { COMMAND_PRIORITY_HIGH, LexicalEditor, SELECTION_CHANGE_COMMAND } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { COMMAND_PRIORITY_HIGH, SELECTION_CHANGE_COMMAND } from 'lexical';
 
 import { $getNodeFromDOMNode } from '@/editor-kernel/utils';
 

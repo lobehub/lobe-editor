@@ -1,5 +1,5 @@
 import katex from 'katex';
-import { type ReactNode, createElement } from 'react';
+import { createElement, type ReactNode } from 'react';
 
 import { getMathBlockClassName, getMathInlineClassName } from '../style';
 

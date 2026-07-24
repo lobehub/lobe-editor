@@ -1,4 +1,4 @@
-import { IEditor } from '@/types';
+import type { IEditor } from '@/types';
 
 export interface ReactAutoCompletePluginProps {
   delay?: number;

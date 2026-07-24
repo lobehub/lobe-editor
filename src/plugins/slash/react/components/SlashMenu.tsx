@@ -2,7 +2,7 @@
 
 import { type FC, useCallback } from 'react';
 
-import { ISlashMenuOption } from '../../service/i-slash-service';
+import type { ISlashMenuOption } from '../../service/i-slash-service';
 import type { SlashMenuProps } from '../type';
 import DefaultSlashMenu from './DefaultSlashMenu';
 
@@ -23,7 +23,7 @@ const SlashMenu: FC<SlashMenuProps> = ({
   placement,
   position,
   // onClose is passed through but not used directly in this component
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   onClose,
 }) => {
   // Adapter for custom render component onSelect

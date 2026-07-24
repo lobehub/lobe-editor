@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, createElement } from 'react';
+import { createElement, type CSSProperties, type ReactNode } from 'react';
 
 import { getListClassName, getTableWrapperClassName } from '../style';
 import { parseCSSText } from './utils';

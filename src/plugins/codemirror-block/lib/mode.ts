@@ -3,7 +3,6 @@ import { LANGUAGES } from '@/codemirror/constants';
 export const DISABLE_FORMAT_MODE = ['yaml'];
 
 export function modeMatch(mode = '') {
-  // eslint-disable-next-line no-param-reassign
   mode = mode.toLocaleLowerCase() || 'plain';
   const findMode = LANGUAGES.find((m) => m.value === mode || m.ext?.includes(mode));
 

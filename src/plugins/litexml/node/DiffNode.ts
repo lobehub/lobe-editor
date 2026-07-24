@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import {
-  $applyNodeReplacement,
+import type {
   DOMExportOutput,
   EditorConfig,
   ElementDOMSlot,
@@ -9,6 +7,7 @@ import {
   SerializedElementNode,
   Spread,
 } from 'lexical';
+import { $applyNodeReplacement } from 'lexical';
 
 import {
   getKernelFromEditor,
@@ -17,7 +16,8 @@ import {
 } from '@/editor-kernel/utils';
 import { CardLikeElementNode } from '@/plugins/common/node/cursor';
 
-export type DiffType = 'add' | 'remove' | 'modify' | 'unchanged' | 'listItemModify' | 'listItemRemove' | 'listItemAdd';
+export type DiffType =
+  'add' | 'remove' | 'modify' | 'unchanged' | 'listItemModify' | 'listItemRemove' | 'listItemAdd';
 
 export type SerializedDiffNode = Spread<
   {

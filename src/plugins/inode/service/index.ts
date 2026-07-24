@@ -1,5 +1,5 @@
 import { genServiceId } from '@/editor-kernel';
-import { IRootNode } from '@/editor-kernel/inode';
+import type { IRootNode } from '@/editor-kernel/inode';
 
 export interface INodeService {
   processNodeTree(inode: { root: IRootNode }): void;
@@ -9,7 +9,7 @@ export interface INodeService {
 /**
  * Service ID for Node service
  */
-// eslint-disable-next-line @typescript-eslint/no-redeclare, no-redeclare
+
 export const INodeService = genServiceId<INodeService>('INodeService');
 
 /**

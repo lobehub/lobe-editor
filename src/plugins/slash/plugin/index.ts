@@ -1,4 +1,5 @@
 import { $createListItemNode, $isListItemNode } from '@lexical/list';
+import type { LexicalEditor } from 'lexical';
 import {
   $createParagraphNode,
   $getNodeByKey,
@@ -6,19 +7,14 @@ import {
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
   KEY_DOWN_COMMAND,
-  LexicalEditor,
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { IBlockMenuService } from '../../block/service';
-import {
-  ISlashOption,
-  ISlashService,
-  SlashOptions,
-  SlashService,
-} from '../service/i-slash-service';
+import type { ISlashOption, SlashOptions } from '../service/i-slash-service';
+import { ISlashService, SlashService } from '../service/i-slash-service';
 import { getQueryTextForSearch, tryToPositionRange } from '../utils/utils';
 
 const SLASH_ADD_LOCK_KEY = '__slash_add_below';

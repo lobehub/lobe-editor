@@ -1,6 +1,6 @@
 import { createHeadlessEditor } from '@lexical/headless';
 import { $getRoot } from 'lexical';
-import { type ReactElement, type ReactNode, createElement, useMemo } from 'react';
+import { createElement, type ReactElement, type ReactNode, useMemo } from 'react';
 
 import { renderNode } from './engine/render-tree';
 import { rendererNodes } from './nodes';

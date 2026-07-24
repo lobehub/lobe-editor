@@ -1,4 +1,5 @@
-import { $nodesOfType, ElementNode, HISTORIC_TAG, LexicalEditor, LexicalNode } from 'lexical';
+import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
+import { $nodesOfType, HISTORIC_TAG } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
@@ -142,7 +143,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
         }
       }
       return {
-        lines: lines,
+        lines,
       };
     });
   }

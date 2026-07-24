@@ -3,6 +3,7 @@ import {
   setLexicalClipboardDataTransfer,
 } from '@lexical/clipboard';
 import { $isCodeNode } from '@lexical/code-core';
+import type { LexicalEditor } from 'lexical';
 import {
   $getNodeByKey,
   $getSelection,
@@ -14,12 +15,11 @@ import {
   COPY_COMMAND,
   HISTORIC_TAG,
   KEY_ENTER_COMMAND,
-  LexicalEditor,
   PASTE_COMMAND,
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import { INSERT_MARKDOWN_COMMAND, registerMarkdownCommand } from '../command';

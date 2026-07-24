@@ -7,7 +7,7 @@ import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { ListPlugin } from '../plugin';
 import { styles } from './style';
-import { ReactListPluginProps } from './type';
+import type { ReactListPluginProps } from './type';
 
 const ReactListPlugin: FC<ReactListPluginProps> = ({ enableHotkey = true }) => {
   const [editor] = useLexicalComposerContext();

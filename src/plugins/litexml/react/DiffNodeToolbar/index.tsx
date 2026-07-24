@@ -1,6 +1,6 @@
 import { ActionIcon, Block } from '@lobehub/ui';
 import { useThemeMode } from 'antd-style';
-import { LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import { Check, X } from 'lucide-react';
 import type { FC } from 'react';
 
@@ -8,7 +8,7 @@ import { LexicalPortalContainer } from '@/editor-kernel/react';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { DiffAction, LITEXML_DIFFNODE_COMMAND } from '../../command/diffCommand';
-import { DiffNode } from '../../node/DiffNode';
+import type { DiffNode } from '../../node/DiffNode';
 import { styles } from './style';
 
 interface ReactDiffNodeToolbarProps {

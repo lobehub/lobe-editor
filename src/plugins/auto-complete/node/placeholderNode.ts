@@ -1,5 +1,6 @@
 import { addClassNamesToElement } from '@lexical/utils';
-import { $applyNodeReplacement, EditorConfig, ElementNode, SerializedElementNode } from 'lexical';
+import type { EditorConfig, SerializedElementNode } from 'lexical';
+import { $applyNodeReplacement, ElementNode } from 'lexical';
 
 export type SerializedPlaceholderNode = SerializedElementNode;
 
@@ -13,13 +14,12 @@ export class PlaceholderNode extends ElementNode {
   }
 
   static importJSON(serializedNode: SerializedPlaceholderNode): PlaceholderNode {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return $createPlaceholderNode().updateFromJSON(serializedNode);
   }
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = document.createElement('span');
-    // eslint-disable-next-line unicorn/prefer-dom-node-dataset
+
     element.setAttribute('data-lexical-key', this.getKey());
     addClassNamesToElement(element, config.theme.placeholderInline);
     return element;
@@ -69,13 +69,12 @@ export class PlaceholderBlockNode extends ElementNode {
   }
 
   static importJSON(serializedNode: SerializedPlaceholderNode): PlaceholderBlockNode {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return $createPlaceholderBlockNode().updateFromJSON(serializedNode);
   }
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = document.createElement('div');
-    // eslint-disable-next-line unicorn/prefer-dom-node-dataset
+
     element.setAttribute('data-lexical-key', this.getKey());
     addClassNamesToElement(element, config.theme.placeholderBlock);
     return element;

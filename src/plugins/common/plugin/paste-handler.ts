@@ -1,3 +1,4 @@
+import type { LexicalEditor } from 'lexical';
 import {
   $createNodeSelection,
   $getSelection,
@@ -6,7 +7,6 @@ import {
   $setSelection,
   CONTROLLED_TEXT_INSERTION_COMMAND,
 } from 'lexical';
-import type { LexicalEditor } from 'lexical';
 
 import { $createCodeMirrorNode } from '@/plugins/codemirror-block/node/CodeMirrorNode';
 

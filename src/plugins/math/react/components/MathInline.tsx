@@ -1,13 +1,15 @@
 import { addClassNamesToElement, removeClassNamesFromElement } from '@lexical/utils';
 import Katex from 'katex';
-import { $getSelection, $isNodeSelection, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getSelection, $isNodeSelection } from 'lexical';
 import React, { type FC, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { createDebugLogger } from '@/utils/debug';
 
-import { $isMathNode, MathBlockNode, MathInlineNode } from '../../node';
+import type { MathInlineNode } from '../../node';
+import { $isMathNode, MathBlockNode } from '../../node';
 import Placeholder from './Placeholder';
 
 const logger = createDebugLogger('plugin', 'math');

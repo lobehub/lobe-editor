@@ -1,15 +1,17 @@
 import { LexicalEditor, LexicalNode } from 'lexical';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { IDecorator } from '@/types/kernel';
+
 import { Kernel } from '../kernel';
 
 describe('Decorator Registration Tests', () => {
   let kernel: Kernel;
-  let mockDecorator: (node: LexicalNode, editor: LexicalEditor) => any;
+  let mockDecorator: IDecorator;
 
   beforeEach(() => {
     kernel = new Kernel();
-    mockDecorator = vi.fn().mockReturnValue(null);
+    mockDecorator = vi.fn((_node: LexicalNode, _editor: LexicalEditor) => null);
   });
 
   describe('registerDecorator', () => {
@@ -26,7 +28,10 @@ describe('Decorator Registration Tests', () => {
       kernel.registerDecorator('test-decorator', mockDecorator);
 
       expect(() => {
-        kernel.registerDecorator('test-decorator', vi.fn());
+        kernel.registerDecorator(
+          'test-decorator',
+          vi.fn((_node: LexicalNode, _editor: LexicalEditor) => null),
+        );
       }).toThrow('Decorator with name "test-decorator" is already registered.');
     });
 
@@ -34,7 +39,6 @@ describe('Decorator Registration Tests', () => {
       kernel.setHotReloadMode(false);
       kernel.registerDecorator('test-decorator', mockDecorator);
 
-      // Should not throw when registering the same function
       expect(() => {
         kernel.registerDecorator('test-decorator', mockDecorator);
       }).not.toThrow();
@@ -42,7 +46,7 @@ describe('Decorator Registration Tests', () => {
 
     it('should allow override in hot reload mode', () => {
       kernel.setHotReloadMode(true);
-      const newDecorator = vi.fn().mockReturnValue(null);
+      const newDecorator: IDecorator = vi.fn((_node: LexicalNode, _editor: LexicalEditor) => null);
 
       kernel.registerDecorator('test-decorator', mockDecorator);
       kernel.registerDecorator('test-decorator', newDecorator);

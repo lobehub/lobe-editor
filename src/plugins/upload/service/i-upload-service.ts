@@ -6,9 +6,7 @@ export const UPLOAD_PRIORITY_MEDIUM = 1;
 export const UPLOAD_PRIORITY_HIGH = 0;
 
 export type UPLOAD_PRIORITY =
-  | typeof UPLOAD_PRIORITY_LOW
-  | typeof UPLOAD_PRIORITY_MEDIUM
-  | typeof UPLOAD_PRIORITY_HIGH;
+  typeof UPLOAD_PRIORITY_LOW | typeof UPLOAD_PRIORITY_MEDIUM | typeof UPLOAD_PRIORITY_HIGH;
 
 export interface IUploadService {
   registerUpload(
@@ -18,17 +16,15 @@ export interface IUploadService {
   uploadFile(file: File, from: string, range: Range | null | undefined): Promise<boolean>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare, no-redeclare
 export const IUploadService: IServiceID<IUploadService> =
   genServiceId<IUploadService>('UploadService');
 
 export class UploadService implements IUploadService {
   private uploadHandlers: [
-    // eslint-disable-next-line unused-imports/no-unused-vars
     Array<(file: File, from: string, range: Range | null | undefined) => Promise<boolean>>,
-    // eslint-disable-next-line unused-imports/no-unused-vars
+
     Array<(file: File, from: string, range: Range | null | undefined) => Promise<boolean>>,
-    // eslint-disable-next-line unused-imports/no-unused-vars
+
     Array<(file: File, from: string, range: Range | null | undefined) => Promise<boolean>>,
   ] = [[], [], []];
 

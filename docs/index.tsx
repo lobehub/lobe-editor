@@ -1,7 +1,8 @@
 import { Block, Center } from '@lobehub/ui';
 import { Features, type FeaturesProps } from '@lobehub/ui/awesome';
+import { Github } from '@lobehub/ui/icons';
 import { createStaticStyles } from 'antd-style';
-import { Github, Puzzle, Slash, Zap } from 'lucide-react';
+import { Puzzle, Slash, Zap } from 'lucide-react';
 import { type ComponentType, useEffect, useState } from 'react';
 
 const description =

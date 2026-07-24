@@ -1,14 +1,7 @@
 import { mergeRegister } from '@lexical/utils';
-import {
-  $getNodeByKey,
-  $getSelection,
-  $isBlockElementNode,
-  $isRangeSelection,
-  ElementNode,
-  LexicalEditor,
-  LexicalNode,
-} from 'lexical';
-import { type CSSProperties, type ReactNode, memo, useRef, useState } from 'react';
+import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
+import { $getNodeByKey, $getSelection, $isBlockElementNode, $isRangeSelection } from 'lexical';
+import { type CSSProperties, memo, type ReactNode, useRef, useState } from 'react';
 
 import { $closestNodeType } from '@/editor-kernel';
 import { useLexicalEditor } from '@/editor-kernel/react';

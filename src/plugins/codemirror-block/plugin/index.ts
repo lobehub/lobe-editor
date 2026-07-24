@@ -1,16 +1,16 @@
-import { $createNodeSelection, $setSelection, DecoratorNode, LexicalEditor } from 'lexical';
+import type { DecoratorNode, LexicalEditor } from 'lexical';
+import { $createNodeSelection, $setSelection } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCodeMirrorCommand } from '../command';
 import { modeMatch } from '../lib/mode';
 import { $createCodeMirrorNode, CodeMirrorNode } from '../node/CodeMirrorNode';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CodemirrorPluginOptions {
   decorator?: (node: CodeMirrorNode, editor: LexicalEditor) => any;
   theme?: string;

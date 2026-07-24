@@ -1,4 +1,4 @@
-import { LinkAttributes } from '@/plugins/link/node/LinkNode';
+import type { LinkAttributes } from '@/plugins/link/node/LinkNode';
 
 export interface ReactLinkPluginProps {
   attributes?: LinkAttributes;

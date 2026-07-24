@@ -1,5 +1,6 @@
 import { debounce } from 'es-toolkit/compat';
-import { EditorThemeClasses, isHTMLElement } from 'lexical';
+import type { EditorThemeClasses } from 'lexical';
+import { isHTMLElement } from 'lexical';
 import { useMemo, useRef } from 'react';
 
 import type { IEditor } from '@/types';

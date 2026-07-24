@@ -1,5 +1,5 @@
 import { Flexbox, Popover } from '@lobehub/ui';
-import { type ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
 import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 

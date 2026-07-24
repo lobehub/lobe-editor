@@ -20,7 +20,7 @@ import type { LexicalEditor, LexicalNode, NodeKey, SerializedTextNode, Spread } 
 import { $createLineBreakNode, $createTabNode, $getNodeByKey } from 'lexical';
 import { bundledLanguagesInfo, bundledThemesInfo } from 'shiki';
 
-import { INode } from '@/editor-kernel/inode';
+import type { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 
 // Color replacements types for Shiki

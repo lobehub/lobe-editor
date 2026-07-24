@@ -445,7 +445,7 @@ function diffChildrenInline(
         }
 
         // Recursive descent is intentional here: same-type element nodes diff their children.
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+
         const nested = diffNodeInline(op.oldNode, op.newNode);
         nextOldChildren.push(nested.oldNode);
         nextNewChildren.push(nested.newNode);

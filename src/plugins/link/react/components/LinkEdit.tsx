@@ -2,13 +2,13 @@ import { mergeRegister } from '@lexical/utils';
 import { Block, Button, Flexbox, Hotkey, Icon, Input, Text } from '@lobehub/ui';
 import type { InputRef } from 'antd';
 import { cssVar } from 'antd-style';
+import type { LexicalEditor } from 'lexical';
 import {
   COMMAND_PRIORITY_EDITOR,
   COMMAND_PRIORITY_NORMAL,
+  createCommand,
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
-  LexicalEditor,
-  createCommand,
 } from 'lexical';
 import { BaselineIcon, LinkIcon } from 'lucide-react';
 import {
@@ -27,7 +27,7 @@ import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
 import { UPDATE_LINK_TEXT_COMMAND } from '../../command';
-import { LinkNode } from '../../node/LinkNode';
+import type { LinkNode } from '../../node/LinkNode';
 import { styles } from '../style';
 
 export const EDIT_LINK_COMMAND = createCommand<{

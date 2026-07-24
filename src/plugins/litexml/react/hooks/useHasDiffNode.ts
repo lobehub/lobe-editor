@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { IEditor } from '@/types';
+import type { IEditor } from '@/types';
 
 function hasDiffNode(editor?: IEditor): boolean {
   if (!editor) {

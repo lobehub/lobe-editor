@@ -1,12 +1,11 @@
 import { $wrapNodeInElement } from '@lexical/utils';
+import type { DecoratorNode, LexicalEditor } from 'lexical';
 import {
   $createParagraphNode,
   $createRangeSelection,
   $insertNodes,
   $isRootOrShadowRoot,
   $setSelection,
-  DecoratorNode,
-  LexicalEditor,
 } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -14,14 +13,13 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService } from '@/plugins/upload';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import { registerFileCommand } from '../command';
 import { $createFileNode, $isFileNode, FileNode } from '../node/FileNode';
 import { registerFileNodeSelectionObserver } from '../utils';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface FilePluginOptions {
   decorator?: (node: FileNode, editor: LexicalEditor) => any;
   handleUpload?: (file: File) => Promise<{ url: string }>;
@@ -127,10 +125,7 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
       const name = xmlElement.getAttribute('name') || 'unknown';
       const fileUrl = xmlElement.getAttribute('fileUrl') || '';
       const status = xmlElement.getAttribute('status') as
-        | 'pending'
-        | 'uploaded'
-        | 'error'
-        | undefined;
+        'pending' | 'uploaded' | 'error' | undefined;
       return INodeHelper.createTypeNode(FileNode.getType(), {
         fileUrl,
         message: xmlElement.getAttribute('message') || '',

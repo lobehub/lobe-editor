@@ -1,11 +1,5 @@
-import {
-  $getSelection,
-  $isRangeSelection,
-  LexicalEditor,
-  RangeSelection,
-  TextNode,
-  getDOMSelection,
-} from 'lexical';
+import type { LexicalEditor, RangeSelection, TextNode } from 'lexical';
+import { $getSelection, $isRangeSelection, getDOMSelection } from 'lexical';
 
 /**
  * Get the text content of the editor up to the anchor point of the selection.
@@ -87,7 +81,7 @@ export function getScrollParent(
   if (style.position === 'fixed') {
     return document.body;
   }
-  for (let parent: HTMLElement | null = element; (parent = parent.parentElement); ) {
+  for (let parent: HTMLElement | null = element; (parent = parent.parentElement);) {
     style = getComputedStyle(parent);
     if (excludeStaticParent && style.position === 'static') {
       continue;

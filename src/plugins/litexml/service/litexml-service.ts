@@ -5,7 +5,7 @@ import { genServiceId } from '@/editor-kernel';
 /**
  * XML Reader function type - converts XML element to Lexical node
  */
-export type XMLReaderFunc = (xmlElement: Element, children: any[]) => any | any[] | false;
+export type XMLReaderFunc = (xmlElement: any, children: any[]) => any | any[] | false;
 
 /**
  * XML Writer function type - converts Lexical node to XML string
@@ -93,7 +93,7 @@ export interface ILitexmlService {
 /**
  * Service ID for Litexml service
  */
-// eslint-disable-next-line @typescript-eslint/no-redeclare, no-redeclare
+
 export const ILitexmlService = genServiceId<ILitexmlService>('ILitexmlService');
 
 /**

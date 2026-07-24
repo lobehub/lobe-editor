@@ -1,5 +1,6 @@
 import { DRAG_DROP_PASTE } from '@lexical/rich-text';
-import { COMMAND_PRIORITY_HIGH, DROP_COMMAND, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { COMMAND_PRIORITY_HIGH, DROP_COMMAND } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -8,7 +9,6 @@ import { createDebugLogger } from '@/utils/debug';
 import { IUploadService, UploadService } from '../service/i-upload-service';
 import { getDragSelection } from '../utils';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface UploadPluginOptions {
   // Define any options specific to the upload plugin
 }

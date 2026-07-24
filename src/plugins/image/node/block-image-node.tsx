@@ -1,13 +1,14 @@
-import {
-  $applyNodeReplacement,
+import type {
   DOMConversionMap,
   DOMConversionOutput,
   EditorConfig,
   LexicalNode,
   NodeKey,
 } from 'lexical';
+import { $applyNodeReplacement } from 'lexical';
 
-import { BaseImageNode, ImagePayload, SerializedImageNode } from './basie-image-node';
+import type { ImagePayload, SerializedImageNode } from './basie-image-node';
+import { BaseImageNode } from './basie-image-node';
 
 export class BlockImageNode extends BaseImageNode {
   private static _decorate: (node: BlockImageNode) => any | null = () => null;
@@ -117,7 +118,7 @@ export class BlockImageNode extends BaseImageNode {
 
   static importJSON(serializedNode: SerializedImageNode): BlockImageNode {
     const { altText, height, width, maxWidth, src, status } = serializedNode;
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+
     return $createBlockImageNode({
       altText,
       height,
@@ -131,7 +132,6 @@ export class BlockImageNode extends BaseImageNode {
   static importDOM(): DOMConversionMap | null {
     return {
       img: () => ({
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
         conversion: $convertImageElement,
         priority: 0,
       }),

@@ -1,11 +1,12 @@
-import { MaterialFileTypeIcon , Center } from '@lobehub/ui';
-import { CLICK_COMMAND, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
+import { Center, MaterialFileTypeIcon } from '@lobehub/ui';
+import type { LexicalEditor } from 'lexical';
+import { CLICK_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { type FC, useCallback, useEffect, useRef } from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
-import { FileNode } from '../../node/FileNode';
+import type { FileNode } from '../../node/FileNode';
 
 interface ReactFileProps {
   className?: string;

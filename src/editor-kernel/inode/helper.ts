@@ -38,7 +38,7 @@ export const INodeHelper = {
       style: '',
       ...attrs,
       text,
-      type: type,
+      type,
     };
   },
 

@@ -5,18 +5,15 @@ import {
   CodeHighlightNode,
   CodeNode,
 } from '@lexical/code-core';
+import type { DOMConversionOutput, ElementNode, LexicalEditor, TextNode } from 'lexical';
 import {
   $createRangeSelection,
   $getSelection,
   $isRangeSelection,
   $setSelection,
   COMMAND_PRIORITY_EDITOR,
-  DOMConversionOutput,
-  ElementNode,
-  LexicalEditor,
   PASTE_COMMAND,
   TabNode,
-  TextNode,
 } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -24,7 +21,7 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IBlockMenuService } from '@/plugins/block/service';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { CustomShikiTokenizer, registerCodeCommand } from '../command';
 import { getCodeLanguageByInput } from '../utils/language';
@@ -318,7 +315,7 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
         direction: 'ltr',
         format: '',
         indent: 0,
-        language: language,
+        language,
         textStyle: '--shiki-dark:var(--color-info);--shiki-light:var(--color-info)',
         theme: `${toMarkdownTheme(this.config?.shikiTheme)} needUpdate`,
         version: 1,

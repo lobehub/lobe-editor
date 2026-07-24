@@ -1,5 +1,5 @@
-import { LexicalEditor, LexicalNode } from 'lexical';
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import type { LexicalEditor, LexicalNode } from 'lexical';
+import React, { useEffect, useImperativeHandle, useRef } from 'react';
 
 export interface PortalContainerProps {
   children: React.ReactNode;
@@ -9,37 +9,40 @@ export interface PortalContainerProps {
   style?: React.CSSProperties;
 }
 
-export const LexicalPortalContainer = forwardRef<HTMLDivElement | null, PortalContainerProps>(
-  ({ editor, node, children }, ref) => {
-    const divRef = useRef<HTMLDivElement>(null);
+export const LexicalPortalContainer = ({
+  ref,
+  editor,
+  node,
+  children,
+}: PortalContainerProps & { ref?: React.RefObject<HTMLDivElement | null | null> }) => {
+  const divRef = useRef<HTMLDivElement>(null);
 
-    useImperativeHandle(ref, () => divRef.current as unknown as HTMLDivElement, []);
+  useImperativeHandle(ref, () => divRef.current as unknown as HTMLDivElement, []);
 
-    useEffect(() => {
-      return () => {
-        if (divRef.current) {
+  useEffect(() => {
+    return () => {
+      if (divRef.current) {
+        // @ts-expect-error not error
+        delete divRef.current[`__lexicalKey_${editor._key}`];
+      }
+    };
+  }, [editor, node]);
+
+  return (
+    <div
+      ref={(dom) => {
+        divRef.current = dom;
+        if (dom) {
+          const prop = `__lexicalKey_${editor._key}`;
           // @ts-expect-error not error
-          delete divRef.current[`__lexicalKey_${editor._key}`];
+          dom[prop] = node.getKey();
         }
-      };
-    }, [editor, node]);
-
-    return (
-      <div
-        ref={(dom) => {
-          divRef.current = dom;
-          if (dom) {
-            const prop = `__lexicalKey_${editor._key}`;
-            // @ts-expect-error not error
-            dom[prop] = node.getKey();
-          }
-        }}
-      >
-        {children}
-      </div>
-    );
-  },
-);
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 LexicalPortalContainer.displayName = 'LexicalPortalContainer';
 

@@ -18,10 +18,10 @@ import {
   $isTableSelection,
   $mergeCells,
   $unmergeCell,
-  TableCellHeaderStates,
-  TableCellNode,
   getTableElement,
   getTableObserverFromTableElement,
+  TableCellHeaderStates,
+  TableCellNode,
 } from '@lexical/table';
 import { DropdownMenu, type DropdownMenuProps } from '@lobehub/ui';
 import type { LexicalEditor } from 'lexical';
@@ -35,7 +35,7 @@ import {
   TableColumnsSplitIcon,
   TableRowsSplitIcon,
 } from 'lucide-react';
-import { type ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 

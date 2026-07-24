@@ -1,4 +1,3 @@
-/* eslint-disable sort-keys-fix/sort-keys-fix */
 import { createStaticStyles, cx } from 'antd-style';
 
 export const styles = createStaticStyles(({ css, cssVar }) => {

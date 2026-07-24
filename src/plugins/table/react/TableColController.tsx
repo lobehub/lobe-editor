@@ -1,6 +1,7 @@
-import { $computeTableMapSkipCellCheck, TableNode } from '@lexical/table';
+import type { TableNode } from '@lexical/table';
+import { $computeTableMapSkipCellCheck } from '@lexical/table';
 import { cx } from 'antd-style';
-import { LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import {
   type DragEvent as ReactDragEvent,
   memo,
@@ -19,6 +20,7 @@ import {
   SELECT_TABLE_COMMAND,
 } from '../command';
 import type { ITableControllerMenuService } from '../service';
+import { useTableControllerSelection } from './hooks';
 import {
   type DragTarget,
   sum,
@@ -30,7 +32,6 @@ import { createTableDragImage } from './TableController/utils';
 import TableControllerMenu from './TableControllerMenu';
 import TableInsertButton from './TableInsertButton';
 import { MIN_COLUMN_WIDTH } from './TableResize/style';
-import { useTableControllerSelection } from './hooks';
 
 interface TableColControllerProps {
   blockMenuService: IBlockMenuService | null;

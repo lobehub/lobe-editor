@@ -1,6 +1,4 @@
-/* eslint-disable no-redeclare */
-/* eslint-disable @typescript-eslint/no-redeclare */
-import { DropdownMenuItemType } from '@lobehub/ui';
+import type { DropdownMenuItemType } from '@lobehub/ui';
 import Fuse, { type IFuseOptions } from 'fuse.js';
 import type { ReactNode } from 'react';
 

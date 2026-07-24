@@ -5,13 +5,12 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
+import type { TableCellNode, TableObserver } from '@lexical/table';
 import {
   $getTableCellNodeFromLexicalNode,
   $getTableNodeFromLexicalNodeOrThrow,
   $isTableCellNode,
   $isTableSelection,
-  TableCellNode,
-  TableObserver,
   getTableElement,
   getTableObserverFromTableElement,
 } from '@lexical/table';
@@ -23,8 +22,8 @@ import {
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
-  SELECTION_CHANGE_COMMAND,
   getDOMSelection,
+  SELECTION_CHANGE_COMMAND,
 } from 'lexical';
 import { ChevronDown } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';

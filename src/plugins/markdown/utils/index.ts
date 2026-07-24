@@ -1,3 +1,4 @@
+import type { BaseSelection, LexicalEditor, LexicalNode, TextNode } from 'lexical';
 import {
   $caretFromPoint,
   $getCaretRange,
@@ -8,14 +9,10 @@ import {
   $isTextNode,
   $isTextPointCaret,
   $parseSerializedNode,
-  BaseSelection,
-  LexicalEditor,
-  LexicalNode,
   SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
-  TextNode,
 } from 'lexical';
 
-import { IRootNode } from '@/editor-kernel/inode';
+import type { IRootNode } from '@/editor-kernel/inode';
 
 /**
  * Returns true if the node can contain transformable markdown.
@@ -43,7 +40,6 @@ export function isEqualSubString(
   return true;
 }
 
-// eslint-disable-next-line unicorn/better-regex
 export const PUNCTUATION_OR_SPACE = /[!-/:-@[-`{-~\s]/;
 
 export function getOpenTagStartIndex(string: string, maxIndex: number, tag: string): number {

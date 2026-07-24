@@ -3,7 +3,6 @@ import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import type { CSSProperties, ReactNode } from 'react';
 import { useMemo } from 'react';
 
-import { LexicalRenderer } from './LexicalRenderer';
 import { computeLexicalDiffRows } from './diff/compute';
 import { type DiffAppearance, diffStyles } from './diff/style';
 import type {
@@ -11,6 +10,7 @@ import type {
   LexicalDiffBlockRenderer,
   LexicalDiffRow,
 } from './diff/types';
+import { LexicalRenderer } from './LexicalRenderer';
 import type { LexicalRendererProps } from './types';
 
 export type { DiffAppearance } from './diff/style';

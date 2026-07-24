@@ -24,9 +24,9 @@ const SendButton: FC<SendButtonProps> = ({
   onStop,
   disabled,
   onClick,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   styles: _styles,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   classNames: _classNames,
   ...rest
 }) => {

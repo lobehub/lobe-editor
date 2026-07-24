@@ -5,7 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-import { $insertList, $isListItemNode, $isListNode, ListItemNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
+import { $insertList, $isListItemNode, $isListNode } from '@lexical/list';
 import {
   $findMatchingParent,
   calculateZoomLevel,
@@ -19,11 +20,11 @@ import {
   $isElementNode,
   $isRangeSelection,
   COMMAND_PRIORITY_LOW,
+  createCommand,
+  getNearestEditorFromDOMNode,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_UP_COMMAND,
-  createCommand,
-  getNearestEditorFromDOMNode,
 } from 'lexical';
 
 export const INSERT_CHECK_LIST_COMMAND: LexicalCommand<void> = createCommand(

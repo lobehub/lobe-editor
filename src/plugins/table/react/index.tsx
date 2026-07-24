@@ -8,7 +8,8 @@ import {
 } from '@lexical/table';
 import { cx } from 'antd-style';
 import EventEmitter from 'eventemitter3';
-import { $getNodeByKey, $getSelection, $isRangeSelection, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
 import {
   type CSSProperties,
   type FC,
@@ -27,13 +28,13 @@ import { IBlockMenuService } from '@/plugins/block/service';
 import { TablePlugin } from '../plugin';
 import { ITableControllerMenuService } from '../service';
 import { $updateDOMForSelection, type TableSelectionOutlineRect } from '../utils';
+import { selectionOutlineStyles, styles } from './style';
 import TableActionMenuPlugin from './TableActionMenu';
 import TableColController from './TableColController';
 import TableHoverActionsPlugin from './TableHoverActions';
 import TableCellResizePlugin from './TableResize';
 import TableRowController from './TableRowController';
-import { selectionOutlineStyles, styles } from './style';
-import { ReactTablePluginProps } from './type';
+import type { ReactTablePluginProps } from './type';
 import { useAutoFitPastedTable } from './useAutoFitPastedTable';
 
 type SelectionOutlinePreviewSide = 'bottom' | 'left' | 'right' | 'top';

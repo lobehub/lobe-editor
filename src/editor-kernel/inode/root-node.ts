@@ -1,4 +1,4 @@
-import { SerializedRootNode } from 'lexical';
+import type { SerializedRootNode } from 'lexical';
 
 /**
  * Root node

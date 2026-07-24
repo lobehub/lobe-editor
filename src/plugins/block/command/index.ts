@@ -12,10 +12,10 @@ import {
   $isParagraphNode,
   $isRootNode,
   COMMAND_PRIORITY_EDITOR,
+  createCommand,
   type ElementNode,
   type LexicalEditor,
   type LexicalNode,
-  createCommand,
 } from 'lexical';
 
 import { createDebugLogger } from '@/utils/debug';

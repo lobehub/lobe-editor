@@ -1,4 +1,5 @@
 import { $wrapNodeInElement } from '@lexical/utils';
+import type { LexicalEditor } from 'lexical';
 import {
   $createParagraphNode,
   $createRangeSelection,
@@ -6,7 +7,6 @@ import {
   $isRootOrShadowRoot,
   $setSelection,
   COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
   createCommand,
 } from 'lexical';
 
