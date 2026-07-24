@@ -1,5 +1,6 @@
 import { mergeRegister } from '@lexical/utils';
-import { COMMAND_PRIORITY_LOW, LexicalCommand, LexicalEditor, createCommand } from 'lexical';
+import type { LexicalCommand, LexicalEditor } from 'lexical';
+import { COMMAND_PRIORITY_LOW, createCommand } from 'lexical';
 
 export const HIDE_TOOLBAR_COMMAND: LexicalCommand<void> = createCommand();
 export const SHOW_TOOLBAR_COMMAND: LexicalCommand<void> = createCommand();

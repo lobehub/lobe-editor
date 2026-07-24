@@ -1,8 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "declaration": true,
-    "downlevelIteration": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -12,8 +10,8 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es6",
-    "typeRoots": ["./src/types", "./node_modules"],
-    "types": ["vitest/globals"],
+    "typeRoots": ["./src/types", "./node_modules/@types", "./node_modules"],
+    "types": ["vitest/globals", "node"],
     "paths": {
       "@/*": ["./src/*"],
       "@lobehub/editor": ["./src"],

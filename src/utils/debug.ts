@@ -69,17 +69,17 @@ export class DebugLogger {
       /**
        * General debug logging
        */
-      debug: debug,
+      debug,
 
       /**
        * Error level logging - uses console.error for proper browser dev tool support
        */
-      error: error,
+      error,
 
       /**
        * Info level logging
        */
-      info: info,
+      info,
 
       /**
        * Log function - alias for debug for compatibility
@@ -89,7 +89,7 @@ export class DebugLogger {
       /**
        * Warning level logging - uses console.warn for proper browser dev tool support
        */
-      warn: warn,
+      warn,
     };
   }
 

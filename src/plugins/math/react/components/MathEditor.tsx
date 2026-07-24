@@ -1,14 +1,15 @@
 import { mergeRegister } from '@lexical/utils';
 import { type TextAreaRef } from 'antd/es/input/TextArea';
 import { $getNodeByKey, $getSelection, $isNodeSelection, $isRangeSelection } from 'lexical';
-import { type FC, type ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
+import { type FC, memo, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
 import PortalAnchor from '@/editor-kernel/react/PortalAnchor';
 import { compareNodeOrder } from '@/editor-kernel/utils';
 
 import { SELECT_MATH_SIDE_COMMAND, UPDATE_MATH_COMMAND } from '../../command';
-import { $isMathNode, MathBlockNode, MathInlineNode } from '../../node';
+import type { MathInlineNode } from '../../node';
+import { $isMathNode, MathBlockNode } from '../../node';
 import MathEditorContainer from './MathEditorContainer';
 import MathEditorContent from './MathEditorContent';
 

@@ -1,5 +1,3 @@
-/* eslint-disable import/no-duplicates */
-/* eslint-disable unicorn/no-for-loop */
 import { $isTableSelection } from '@lexical/table';
 import type {
   LexicalEditor,
@@ -10,6 +8,7 @@ import type {
 import {
   $getCharacterOffsets,
   $getNodeByKey,
+  $getRoot,
   $getSelection,
   $isElementNode,
   $isRangeSelection,
@@ -17,7 +16,6 @@ import {
   IS_CODE,
   resetRandomKey,
 } from 'lexical';
-import { $getRoot } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
@@ -114,8 +112,9 @@ export default class JSONDataSource extends DataSource {
           const lastNode = selectedNodes[lastIndex];
           const [anchorOffset, focusOffset] = $getCharacterOffsets(selection);
 
-          let lastElement: Array<SerializedElementNode<SerializedLexicalNode> & { $key: string }> =
-            [];
+          const lastElement: Array<
+            SerializedElementNode<SerializedLexicalNode> & { $key: string }
+          > = [];
 
           const rootNodes: Array<SerializedLexicalNode & { $key: string }> = [];
           for (let i = 0; i < selectedNodes.length; i++) {

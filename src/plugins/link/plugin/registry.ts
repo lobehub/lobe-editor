@@ -1,16 +1,12 @@
 import { mergeRegister } from '@lexical/utils';
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from 'lexical';
 
-import { IEditorKernel } from '@/types';
+import type { IEditorKernel } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 
-import {
-  $isLinkNode,
-  $toggleLink,
-  LinkAttributes,
-  TOGGLE_LINK_COMMAND,
-  formatUrl,
-} from '../node/LinkNode';
+import type { LinkAttributes } from '../node/LinkNode';
+import { $isLinkNode, $toggleLink, formatUrl, TOGGLE_LINK_COMMAND } from '../node/LinkNode';
 import { extractUrlFromText, getSelectedNode, sanitizeUrl } from '../utils';
 
 export interface LinkRegistryOptions {

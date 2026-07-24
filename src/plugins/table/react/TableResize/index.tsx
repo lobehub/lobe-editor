@@ -1,3 +1,4 @@
+import type { TableCellNode, TableDOMCell } from '@lexical/table';
 import {
   $computeTableMapSkipCellCheck,
   $getTableNodeFromLexicalNodeOrThrow,
@@ -5,28 +6,25 @@ import {
   $isTableCellNode,
   $isTableNode,
   $isTableRowNode,
-  TableCellNode,
-  TableDOMCell,
-  TableNode,
   getDOMCellFromTarget,
   getTableElement,
+  TableNode,
 } from '@lexical/table';
 import { calculateZoomLevel, mergeRegister } from '@lexical/utils';
 import { cssVar, cx } from 'antd-style';
-import EventEmitter from 'eventemitter3';
+import type EventEmitter from 'eventemitter3';
+import type { LexicalEditor, NodeKey } from 'lexical';
 import {
   $getNearestNodeFromDOMNode,
   $getNodeByKey,
   HISTORIC_TAG,
-  LexicalEditor,
-  NodeKey,
-  SKIP_SCROLL_INTO_VIEW_TAG,
   isHTMLElement,
+  SKIP_SCROLL_INTO_VIEW_TAG,
 } from 'lexical';
 import {
   type CSSProperties,
-  type PointerEventHandler,
   memo,
+  type PointerEventHandler,
   useCallback,
   useEffect,
   useRef,
@@ -187,10 +185,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
           if (height === undefined) {
             const rowCells = tableRow.getChildren<TableCellNode>();
             height = Math.min(
-              ...rowCells.map(
-                // eslint-disable-next-line @typescript-eslint/no-use-before-define
-                (cell) => getCellNodeHeight(cell, editor) ?? Infinity,
-              ),
+              ...rowCells.map((cell) => getCellNodeHeight(cell, editor) ?? Infinity),
             );
           }
 
@@ -234,10 +229,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
           if (height === undefined) {
             const rowCells = tableRow.getChildren<TableCellNode>();
             height = Math.min(
-              ...rowCells.map(
-                // eslint-disable-next-line @typescript-eslint/no-use-before-define
-                (cell) => getCellNodeHeight(cell, editor) ?? Infinity,
-              ),
+              ...rowCells.map((cell) => getCellNodeHeight(cell, editor) ?? Infinity),
             );
           }
 

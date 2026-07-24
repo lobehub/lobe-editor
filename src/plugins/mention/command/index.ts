@@ -1,10 +1,10 @@
 import { $wrapNodeInElement } from '@lexical/utils';
+import type { LexicalEditor } from 'lexical';
 import {
   $createParagraphNode,
   $insertNodes,
   $isRootOrShadowRoot,
   COMMAND_PRIORITY_HIGH,
-  LexicalEditor,
   createCommand,
 } from 'lexical';
 

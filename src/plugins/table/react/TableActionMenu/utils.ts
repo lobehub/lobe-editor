@@ -1,9 +1,5 @@
-import {
-  $getNodeTriplet,
-  $isTableCellNode,
-  $isTableSelection,
-  TableSelection,
-} from '@lexical/table';
+import type { TableSelection } from '@lexical/table';
+import { $getNodeTriplet, $isTableCellNode, $isTableSelection } from '@lexical/table';
 import {
   $getSelection,
   $isElementNode,

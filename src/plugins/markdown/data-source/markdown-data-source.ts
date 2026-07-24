@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-for-loop */
 import { $isTableSelection } from '@lexical/table';
 import type {
   ElementNode,
@@ -26,8 +25,8 @@ import type { IServiceID } from '@/types';
 
 import type { MarkdownShortCutService } from '../service/shortcut';
 import { logger } from '../utils/logger';
-import { MarkdownWriterContext } from './markdown-writer-context';
 import { parseMarkdownToLexical } from './markdown/parse';
+import { MarkdownWriterContext } from './markdown-writer-context';
 
 export default class MarkdownDataSource extends DataSource {
   private formatMarkdown(markdown: string): string {
@@ -88,8 +87,9 @@ export default class MarkdownDataSource extends DataSource {
           const lastNode = selectedNodes[lastIndex];
           const [anchorOffset, focusOffset] = $getCharacterOffsets(selection);
 
-          let lastElement: Array<SerializedElementNode<SerializedLexicalNode> & { $key: string }> =
-            [];
+          const lastElement: Array<
+            SerializedElementNode<SerializedLexicalNode> & { $key: string }
+          > = [];
           const rootNodes: Array<SerializedLexicalNode & { $key: string }> = [];
 
           for (let i = 0; i < selectedNodes.length; i++) {

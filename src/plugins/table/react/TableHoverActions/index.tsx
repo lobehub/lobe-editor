@@ -1,3 +1,4 @@
+import type { TableCellNode, TableRowNode } from '@lexical/table';
 import {
   $getTableAndElementByKey,
   $getTableColumnIndexFromTableCellNode,
@@ -6,15 +7,14 @@ import {
   $insertTableRowAtSelection,
   $isTableCellNode,
   $isTableNode,
-  TableCellNode,
-  TableNode,
-  TableRowNode,
   getTableElement,
+  TableNode,
 } from '@lexical/table';
 import { $findMatchingParent, mergeRegister } from '@lexical/utils';
 import { ActionIcon } from '@lobehub/ui';
 import { cx } from 'antd-style';
-import { $getNearestNodeFromDOMNode, LexicalEditor, NodeKey } from 'lexical';
+import type { LexicalEditor, NodeKey } from 'lexical';
+import { $getNearestNodeFromDOMNode } from 'lexical';
 import { PlusIcon } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 

@@ -6,10 +6,10 @@ import { type FC, type ReactNode, useEffect, useMemo, useRef } from 'react';
 import type { IEditor } from '@/types';
 
 import Editor from '../';
+import type { LexicalComposerContextWithEditor } from './react-context';
 import {
-  LexicalComposerContext,
-  LexicalComposerContextWithEditor,
   createLexicalComposerContext,
+  LexicalComposerContext,
   useLexicalComposerContext,
 } from './react-context';
 

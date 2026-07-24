@@ -1,8 +1,8 @@
 import { cx } from 'antd-style';
 import { type FC, useEffect, useState } from 'react';
 
-import { BlockImageNode } from '../../node/block-image-node';
-import { ImageNode } from '../../node/image-node';
+import type { BlockImageNode } from '../../node/block-image-node';
+import type { ImageNode } from '../../node/image-node';
 import BrokenImage from './BrokenImage';
 import { styles } from './style';
 import { useSuspenseImage } from './useSupenseImage';
@@ -16,7 +16,7 @@ interface LazyImageProps {
   newWidth?: number | null;
   node: ImageNode | BlockImageNode;
   onError?: () => void;
-  // eslint-disable-next-line unused-imports/no-unused-vars
+
   onLoad?: (dimensions: { height: number; width: number }) => void;
 }
 

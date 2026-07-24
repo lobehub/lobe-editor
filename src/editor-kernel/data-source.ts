@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable unused-imports/no-unused-vars */
-import { LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 
 export interface IWriteOptions {
   // get selection data

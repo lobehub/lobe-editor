@@ -1,4 +1,5 @@
-import { LexicalEditor, createCommand } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { createCommand } from 'lexical';
 
 export const HOVER_COMMAND = createCommand<MouseEvent>();
 

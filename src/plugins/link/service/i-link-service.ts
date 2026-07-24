@@ -1,9 +1,7 @@
-/* eslint-disable no-redeclare */
-/* eslint-disable @typescript-eslint/no-redeclare */
 import EventEmitter from 'eventemitter3';
 
 import { genServiceId } from '@/editor-kernel';
-import { IServiceID } from '@/types';
+import type { IServiceID } from '@/types';
 
 export interface ILinkService {
   setLinkToolbar(enable: boolean): void;

@@ -1,12 +1,12 @@
 import { $isAtNodeEnd } from '@lexical/selection';
-import { ElementNode, RangeSelection, TextNode } from 'lexical';
+import type { ElementNode, RangeSelection, TextNode } from 'lexical';
 
 const SUPPORTED_URL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'sms:', 'tel:']);
 
 export function sanitizeUrl(url: string): string {
   try {
     const parsedUrl = new URL(url);
-    // eslint-disable-next-line no-script-url
+
     if (!SUPPORTED_URL_PROTOCOLS.has(parsedUrl.protocol)) {
       return 'about:blank';
     }

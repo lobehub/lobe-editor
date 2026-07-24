@@ -22,16 +22,17 @@ import { createPortal } from 'react-dom';
 import { useLexicalEditor } from '@/editor-kernel/react';
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { useEditable } from '@/editor-kernel/react/useEditable';
-import { ILocaleKeys } from '@/types';
+import type { ILocaleKeys } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import { BlockPlugin, type BlockPluginOptions } from '../plugin';
-import { BlockMenuService, type IBlockMenuRenderContext, IBlockMenuService } from '../service';
+import type { BlockMenuService, IBlockMenuRenderContext } from '../service';
+import { IBlockMenuService } from '../service';
 import { HOVER_HIDE_DELAY } from './core/constants';
 import {
+  createRuntimeContext,
   type HoveredBlockState,
   type RuntimeContextRef,
-  createRuntimeContext,
 } from './core/runtime-context';
 import { type BlockDragTarget } from './core/types';
 import { startBlockDragSession } from './drag/drag-session';

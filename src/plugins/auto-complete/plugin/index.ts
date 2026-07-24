@@ -1,3 +1,4 @@
+import type { BaseSelection, LexicalEditor } from 'lexical';
 import {
   $getSelection,
   $isRangeSelection,
@@ -10,13 +11,11 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
-  LexicalEditor,
 } from 'lexical';
-import type { BaseSelection } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
-import { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import { PlaceholderBlockNode, PlaceholderNode } from '../node/placeholderNode';

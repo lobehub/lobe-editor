@@ -1,4 +1,4 @@
-import { CommandListenerPriority } from 'lexical';
+import type { CommandListenerPriority } from 'lexical';
 
 export const KeyEnum = {
   Alt: 'alt',

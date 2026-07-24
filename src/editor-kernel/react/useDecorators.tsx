@@ -13,7 +13,7 @@ import {
 import { createPortal, flushSync } from 'react-dom';
 
 import { CAN_USE_DOM } from '@/common/canUseDOM';
-import { IEditor } from '@/types';
+import type { IEditor } from '@/types';
 
 // This workaround is no longer necessary in React 19,
 // but we currently support React >=17.x
@@ -48,7 +48,7 @@ export function useDecorators(
 
   // Subscribe to changes
   useLayoutEffectImpl(() => {
-    let clears: Array<() => void> = [];
+    const clears: Array<() => void> = [];
     const handleInit = (editor: LexicalEditor) => {
       // Get initial decorators
       const initialDecorators = editor.getDecorators<JSX.Element>();
@@ -56,6 +56,7 @@ export function useDecorators(
 
       clears.push(
         editor.registerDecoratorListener<JSX.Element>((nextDecorators) => {
+          // eslint-disable-next-line @eslint-react/dom/no-flush-sync -- sync decorator updates with React tree
           flushSync(() => {
             setDecorators(nextDecorators);
           });

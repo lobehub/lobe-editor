@@ -6,7 +6,7 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 
 import { CodemirrorPlugin } from '../plugin';
 import ReactCodemirrorNode from './CodemirrorNode';
-import { ReactCodemirrorPluginProps } from './type';
+import type { ReactCodemirrorPluginProps } from './type';
 
 const ReactCodemirrorPlugin: FC<ReactCodemirrorPluginProps> = ({ className }) => {
   const [editor] = useLexicalComposerContext();

@@ -1,15 +1,7 @@
 import { $isAtNodeEnd, $setBlocksType } from '@lexical/selection';
 import { $findMatchingParent } from '@lexical/utils';
-import {
-  $createParagraphNode,
-  $getSelection,
-  $isRootOrShadowRoot,
-  ElementNode,
-  LexicalEditor,
-  LexicalNode,
-  RangeSelection,
-  TextNode,
-} from 'lexical';
+import type { ElementNode, LexicalEditor, LexicalNode, RangeSelection, TextNode } from 'lexical';
+import { $createParagraphNode, $getSelection, $isRootOrShadowRoot } from 'lexical';
 
 export const $findTopLevelElement = (node: LexicalNode) => {
   let topLevelElement =

@@ -1,15 +1,11 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { addClassNamesToElement } from '@lexical/utils';
+import type { EditorConfig, LexicalEditor, LexicalNode, SerializedElementNode } from 'lexical';
 import {
   $applyNodeReplacement,
   $createTextNode,
   $getSelection,
   $isNodeSelection,
   $isRangeSelection,
-  EditorConfig,
-  LexicalEditor,
-  LexicalNode,
-  SerializedElementNode,
 } from 'lexical';
 
 import {
@@ -35,12 +31,12 @@ export class CodeNode extends CardLikeElementNode {
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = document.createElement('span');
-    // eslint-disable-next-line unicorn/prefer-dom-node-dataset
+
     element.setAttribute('data-lexical-key', this.getKey());
     // const filler = document.createElement('t-filler');
     // filler.contentEditable = 'false';
     // filler.innerHTML = '\uFEFF';
-    // eslint-disable-next-line unicorn/prefer-dom-node-dataset
+
     // filler.setAttribute('data-lexical-cursor', 'true');
     // element.append(filler);
     const childContainer = document.createElement('ne-content');

@@ -1,18 +1,15 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { addClassNamesToElement } from '@lexical/utils';
-import {
-  $applyNodeReplacement,
+import type {
   DOMConversionMap,
   DOMConversionOutput,
   DOMExportOutput,
-  DecoratorNode,
   EditorConfig,
   LexicalEditor,
   LexicalNode,
   SerializedLexicalNode,
   Spread,
-  isHTMLElement,
 } from 'lexical';
+import { $applyNodeReplacement, DecoratorNode, isHTMLElement } from 'lexical';
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 

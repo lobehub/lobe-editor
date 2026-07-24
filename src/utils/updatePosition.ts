@@ -1,13 +1,10 @@
-import {
+import type {
   ComputePositionReturn,
   FloatingElement,
   Placement,
   ReferenceElement,
-  computePosition,
-  flip,
-  offset,
-  shift,
 } from '@floating-ui/dom';
+import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 
 export const updatePosition = ({
   floating,

@@ -1,3 +1,4 @@
+import type { InsertTableCommandPayloadHeaders, TableNode } from '@lexical/table';
 import {
   $computeTableMapSkipCellCheck,
   $createTableNodeWithDimensions,
@@ -9,10 +10,9 @@ import {
   $isTableNode,
   $isTableRowNode,
   $isTableSelection,
-  InsertTableCommandPayloadHeaders,
-  TableNode,
 } from '@lexical/table';
 import { $insertNodeToNearestRoot, mergeRegister } from '@lexical/utils';
+import type { ElementNode, LexicalEditor } from 'lexical';
 import {
   $getNodeByKey,
   $getPreviousSelection,
@@ -22,8 +22,6 @@ import {
   $isTextNode,
   $setSelection,
   COMMAND_PRIORITY_EDITOR,
-  ElementNode,
-  LexicalEditor,
   createCommand,
 } from 'lexical';
 
@@ -135,7 +133,7 @@ const $selectTableRows = (tableNode: TableNode, from: number, to: number) => {
   const firstRow = tableMap[from];
   const lastRow = tableMap[to];
   const firstCell = firstRow?.[0]?.cell;
-  const lastCell = lastRow?.[lastRow.length - 1]?.cell;
+  const lastCell = lastRow?.at(-1)?.cell;
 
   if (!firstCell || !lastCell) {
     return false;
@@ -283,7 +281,7 @@ export function registerTableCommand(editor: LexicalEditor) {
         const [tableMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
         const row = tableMap[rowIndex];
         const firstCell = row?.[0]?.cell;
-        const lastCell = row?.[row.length - 1]?.cell;
+        const lastCell = row?.at(-1)?.cell;
         if (!firstCell || !lastCell) {
           return false;
         }
@@ -463,7 +461,7 @@ export function registerTableCommand(editor: LexicalEditor) {
           const firstRow = tableMap[from];
           const lastRow = tableMap[to];
           const firstCell = firstRow?.[0]?.cell;
-          const lastCell = lastRow?.[lastRow.length - 1]?.cell;
+          const lastCell = lastRow?.at(-1)?.cell;
           if (!firstCell || !lastCell) return false;
 
           tableSelection.set(table, firstCell.getKey(), lastCell.getKey());
@@ -494,7 +492,7 @@ export function registerTableCommand(editor: LexicalEditor) {
         const firstRow = tableMap[0];
         const lastRow = tableMap.at(-1);
         const firstCell = firstRow?.[0]?.cell;
-        const lastCell = lastRow?.[lastRow.length - 1]?.cell;
+        const lastCell = lastRow?.at(-1)?.cell;
         if (!firstCell || !lastCell) return false;
 
         tableSelection.set(table, firstCell.getKey(), lastCell.getKey());

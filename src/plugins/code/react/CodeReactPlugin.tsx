@@ -8,7 +8,7 @@ import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { CodePlugin } from '../plugin';
 import { styles } from './style';
-import { ReactCodePluginProps } from './type';
+import type { ReactCodePluginProps } from './type';
 
 const ReactCodePlugin: FC<ReactCodePluginProps> = ({ className, enableHotkey = true }) => {
   const [editor] = useLexicalComposerContext();

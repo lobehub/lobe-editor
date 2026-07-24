@@ -1,6 +1,7 @@
-import type { LobeCustomStylish, LobeCustomToken } from '@lobehub/ui';
 import 'antd-style';
 import 'lexical/LexicalEditor';
+
+import type { LobeCustomStylish, LobeCustomToken } from '@lobehub/ui';
 import type { Data, Literal } from 'mdast';
 
 /**
@@ -49,9 +50,8 @@ export interface Subscript extends Literal {
 }
 
 declare module 'antd-style' {
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
   export interface CustomToken extends LobeCustomToken {}
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+
   export interface CustomStylish extends LobeCustomStylish {}
 }
 

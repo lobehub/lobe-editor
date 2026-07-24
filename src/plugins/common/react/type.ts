@@ -1,6 +1,6 @@
 import type {
-  CSSProperties,
   CompositionEvent,
+  CSSProperties,
   FocusEvent,
   MouseEvent,
   ReactElement,

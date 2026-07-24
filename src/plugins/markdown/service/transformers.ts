@@ -10,7 +10,7 @@ import {
   $setSelection,
 } from 'lexical';
 
-import { PUNCTUATION_OR_SPACE, getOpenTagStartIndex, isEqualSubString } from '../utils';
+import { getOpenTagStartIndex, isEqualSubString, PUNCTUATION_OR_SPACE } from '../utils';
 
 export type TextFormatTransformer = Readonly<{
   format?: ReadonlyArray<TextFormatType>;

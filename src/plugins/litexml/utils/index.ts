@@ -1,12 +1,11 @@
-import type { EditorState } from 'lexical';
-import {
-  $isElementNode,
+import type {
+  EditorState,
   LexicalEditor,
   LexicalNode,
   SerializedElementNode,
   SerializedLexicalNode,
-  resetRandomKey,
 } from 'lexical';
+import { $isElementNode, resetRandomKey } from 'lexical';
 
 const getNumericId = (id: unknown): number | null => {
   if (typeof id !== 'number' && typeof id !== 'string') return null;

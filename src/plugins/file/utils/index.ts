@@ -1,4 +1,5 @@
-import { $getSelection, $isNodeSelection, $isRangeSelection, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getSelection, $isNodeSelection, $isRangeSelection } from 'lexical';
 
 export function registerFileNodeSelectionObserver(editor: LexicalEditor): () => void {
   const selectFileKeys: string[] = [];

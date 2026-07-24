@@ -25,6 +25,7 @@ import type {
   LineBreakNode,
   NodeKey,
   RangeSelection,
+  TabNode,
 } from 'lexical';
 import {
   $createLineBreakNode,
@@ -53,11 +54,10 @@ import {
   MOVE_TO_END,
   MOVE_TO_START,
   OUTDENT_CONTENT_COMMAND,
-  TabNode,
   TextNode,
 } from 'lexical';
 
-import { INode } from '@/editor-kernel/inode';
+import type { INode } from '@/editor-kernel/inode';
 
 import {
   $getHighlightNodes,
@@ -109,7 +109,7 @@ export const ShikiTokenizer: Tokenizer = {
     return getHighlightSerializeNode(
       code,
       language || this.defaultLanguage,
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+
       toCodeTheme({
         defaultTheme: theme || this.defaultTheme,
       } as Tokenizer),
@@ -131,7 +131,6 @@ function $textNodeTransform(node: TextNode, editor: LexicalEditor, tokenizer: To
   // if node's parent is a code node and run highlighting if so
   const parentNode = node.getParent();
   if ($isCodeNode(parentNode)) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     codeNodeTransform(parentNode, editor, tokenizer);
   } else if ($isCodeHighlightNode(node)) {
     // When code block converted into paragraph or other element
@@ -232,7 +231,6 @@ function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tok
   // in its final state
   editor.update(
     () => {
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       $updateAndRetainSelection(nodeKey, () => {
         const currentNode = $getNodeByKey(nodeKey);
 
@@ -242,7 +240,7 @@ function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tok
 
         const lang = currentNode.getLanguage() || tokenizer.defaultLanguage;
         const highlightNodes = tokenizer.$tokenize(currentNode, lang);
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+
         const diffRange = getDiffRange(currentNode.getChildren(), highlightNodes);
         const { from, to, nodesForReplacement } = diffRange;
 
@@ -347,7 +345,6 @@ function getDiffRange(
 } {
   let leadingMatch = 0;
   while (leadingMatch < prevNodes.length) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     if (!isEqual(prevNodes[leadingMatch], nextNodes[leadingMatch])) {
       break;
     }
@@ -362,7 +359,6 @@ function getDiffRange(
   while (trailingMatch < maxTrailingMatch) {
     trailingMatch++;
     if (
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       !isEqual(
         prevNodes[prevNodesLength - trailingMatch],
         nextNodes[nextNodesLength - trailingMatch],
@@ -761,9 +757,7 @@ export function registerCodeHighlighting(editor: LexicalEditor, tokenizer?: Toke
     throw new Error('CodeHighlightPlugin: CodeNode or CodeHighlightNode not registered on editor');
   }
 
-  // eslint-disable-next-line eqeqeq
   if (tokenizer == null) {
-    // eslint-disable-next-line no-param-reassign
     tokenizer = ShikiTokenizer;
   }
 

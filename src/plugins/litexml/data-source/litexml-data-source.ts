@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { DOMParser } from '@xmldom/xmldom';
 import type { ElementNode, LexicalEditor } from 'lexical';
 import { $getRoot, $getSelection, $isElementNode, $isRangeSelection } from 'lexical';
@@ -7,7 +6,7 @@ import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { INodeService } from '@/plugins/inode';
-import { IServiceID } from '@/types';
+import type { IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import type { ILitexmlService, IWriterContext, IXmlNode } from '../service/litexml-service';
@@ -144,7 +143,7 @@ export default class LitexmlDataSource extends DataSource {
   /**
    * Parse XML string using browser's built-in parser
    */
-  private parseXMLString(xmlString: string): Document {
+  private parseXMLString(xmlString: string): any {
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlString, 'text/xml');
 
@@ -158,7 +157,7 @@ export default class LitexmlDataSource extends DataSource {
   /**
    * Convert XML document to Lexical node structure
    */
-  private xmlToLexical(xml: Document): any {
+  private xmlToLexical(xml: any): any {
     const rootNode = INodeHelper.createRootNode();
 
     // Process XML root element's children
@@ -173,7 +172,7 @@ export default class LitexmlDataSource extends DataSource {
   /**
    * Recursively process XML elements and convert to Lexical nodes
    */
-  private processXMLElement(xmlElement: Element, parentNode: any): void {
+  private processXMLElement(xmlElement: any, parentNode: any): void {
     const tagName = xmlElement.tagName.toLowerCase();
     const customReaders = this.litexmlService.getXMLReaders();
 
@@ -232,12 +231,14 @@ export default class LitexmlDataSource extends DataSource {
 
       case 'ul':
       case 'ol': {
-        xmlElement.querySelectorAll(':scope > li').forEach((li) => {
+        Array.from(xmlElement.childNodes as any[]).forEach((child: any) => {
+          if (child.nodeType !== 1) return;
+          if (String(child.tagName).toLowerCase() !== 'li') return;
           const listItem = INodeHelper.createElementNode('listitem', {
             children: [],
             value: 1,
           });
-          this.processXMLChildren(li, listItem);
+          this.processXMLChildren(child, listItem);
           INodeHelper.appendChild(parentNode, listItem);
         });
         break;
@@ -279,13 +280,11 @@ export default class LitexmlDataSource extends DataSource {
   /**
    * Process XML element's children
    */
-  private processXMLChildren(xmlElement: Element | Document, parentNode: any): void {
-    Array.from(xmlElement.childNodes).forEach((child) => {
+  private processXMLChildren(xmlElement: any, parentNode: any): void {
+    Array.from(xmlElement.childNodes as any[]).forEach((child: any) => {
       if (child.nodeType === 1) {
-        // Element node
-        this.processXMLElement(child as Element, parentNode);
+        this.processXMLElement(child, parentNode);
       } else if (child.nodeType === 3) {
-        // Text node
         const text = child.textContent || '';
         if (text.trim()) {
           const textNode = INodeHelper.createTextNode(text);

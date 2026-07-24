@@ -1,11 +1,10 @@
-import { LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerRichKeydown } from './register';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface VirtualBlockPluginOptions {
   theme?: string;
 }

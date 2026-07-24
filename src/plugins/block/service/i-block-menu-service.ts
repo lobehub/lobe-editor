@@ -59,7 +59,6 @@ export interface IBlockMenuService {
   subscribe(listener: () => void): () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare, no-redeclare
 export const IBlockMenuService: IServiceID<IBlockMenuService> =
   genServiceId<IBlockMenuService>('BlockMenuService');
 

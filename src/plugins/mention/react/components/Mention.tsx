@@ -1,10 +1,11 @@
 import { cx } from 'antd-style';
-import { CLICK_COMMAND, COMMAND_PRIORITY_LOW, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { CLICK_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { type FC, useCallback, useEffect, useRef } from 'react';
 
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 
-import { MentionNode } from '../../node/MentionNode';
+import type { MentionNode } from '../../node/MentionNode';
 
 interface MentionProps {
   className?: string;

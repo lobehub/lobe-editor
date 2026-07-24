@@ -1,15 +1,11 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { addClassNamesToElement } from '@lexical/utils';
+import type { EditorConfig, LexicalEditor, LexicalNode, SerializedElementNode } from 'lexical';
 import {
   $applyNodeReplacement,
   $getSelection,
   $isNodeSelection,
   $isRangeSelection,
-  EditorConfig,
   ElementNode,
-  LexicalEditor,
-  LexicalNode,
-  SerializedElementNode,
 } from 'lexical';
 
 import { createDebugLogger } from '@/utils/debug';

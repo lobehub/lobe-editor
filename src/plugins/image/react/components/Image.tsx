@@ -2,13 +2,14 @@ import { Icon } from '@lobehub/ui';
 import { cx } from 'antd-style';
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
 import { LoaderCircleIcon } from 'lucide-react';
-import React, { Suspense, memo, useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, Suspense, useCallback, useMemo, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 
-import { $isBlockImageNode, BlockImageNode } from '../../node/block-image-node';
-import { ImageNode } from '../../node/image-node';
+import type { BlockImageNode } from '../../node/block-image-node';
+import { $isBlockImageNode } from '../../node/block-image-node';
+import type { ImageNode } from '../../node/image-node';
 import BrokenImage from './BrokenImage';
 import ImageEditPopover from './ImageEditPopover';
 import LazyImage from './LazyImage';
@@ -50,7 +51,7 @@ const Image = memo<ImageProps>(
       editorRef.current = editor;
       const unregister = editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
         (_, _activeEditor) => {
           return false;
         },

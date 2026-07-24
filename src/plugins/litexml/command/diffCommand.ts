@@ -1,5 +1,6 @@
 import { mergeRegister } from '@lexical/utils';
-import { $getNodeByKey, $isElementNode, COMMAND_PRIORITY_EDITOR, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getNodeByKey, $isElementNode, COMMAND_PRIORITY_EDITOR } from 'lexical';
 
 import { DiffNode } from '../node/DiffNode';
 import { DiffAction, LITEXML_DIFFNODE_ALL_COMMAND, LITEXML_DIFFNODE_COMMAND } from './symbols';

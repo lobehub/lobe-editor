@@ -8,7 +8,7 @@ import { UploadPlugin } from '@/plugins/upload';
 import { ImagePlugin } from '../plugin';
 import Image from './components/Image';
 import { styles } from './style';
-import { ReactImagePluginProps } from './type';
+import type { ReactImagePluginProps } from './type';
 
 const getImageWidth = (file: File): Promise<number> =>
   new Promise((resolve) => {

@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { $isListItemNode } from '@lexical/list';
 import { mergeRegister } from '@lexical/utils';
+import type { LexicalEditor, LexicalNode } from 'lexical';
 import {
   $createParagraphNode,
   $getNodeByKey,
@@ -8,8 +8,6 @@ import {
   $insertNodes,
   $isElementNode,
   COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
-  LexicalNode,
 } from 'lexical';
 
 import { $closest } from '@/editor-kernel';

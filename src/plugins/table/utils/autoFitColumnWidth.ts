@@ -1,4 +1,5 @@
-import { $computeTableMapSkipCellCheck, TableNode } from '@lexical/table';
+import type { TableNode } from '@lexical/table';
+import { $computeTableMapSkipCellCheck } from '@lexical/table';
 import type { LexicalEditor } from 'lexical';
 
 import { createDefaultTableColWidths } from '.';

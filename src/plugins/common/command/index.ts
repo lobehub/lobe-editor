@@ -1,13 +1,9 @@
-import { $createHeadingNode, $createQuoteNode, HeadingTagType } from '@lexical/rich-text';
+import type { HeadingTagType } from '@lexical/rich-text';
+import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
 import { $setBlocksType } from '@lexical/selection';
 import { mergeRegister } from '@lexical/utils';
-import {
-  $getSelection,
-  $isRangeSelection,
-  COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
-  createCommand,
-} from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR, createCommand } from 'lexical';
 
 export const INSERT_QUOTE_COMMAND = createCommand<unknown>('INSERT_QUOTE_COMMAND');
 export const INSERT_HEADING_COMMAND = createCommand<{ tag: HeadingTagType }>(

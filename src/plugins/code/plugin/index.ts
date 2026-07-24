@@ -1,4 +1,5 @@
-import { $setSelection, LexicalEditor, TextNode } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $setSelection, TextNode } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';

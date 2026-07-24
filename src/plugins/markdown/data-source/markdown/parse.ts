@@ -131,7 +131,7 @@ function convertMdastToLexical(
 
       let children: MarkdownReadNode[] = [];
       if ('children' in node && Array.isArray(node.children)) {
-        let htmlStack: Array<IHTMLStack> = []; // 当前循环是否包含 HTML 标签
+        const htmlStack: Array<IHTMLStack> = []; // 当前循环是否包含 HTML 标签
         children = node.children
           .reduce(
             (ret, child, index) => {
@@ -297,7 +297,7 @@ function registerDefaultReaders(markdownReaders: TransformerRecord) {
     markdownReaders['heading'] = (node: Heading, children: MarkdownReadNode[]) => {
       const headingType = `h${Math.min(Math.max(node.depth, 1), 6)}`;
       return INodeHelper.createElementNode('heading', {
-        children: children,
+        children,
         direction: 'ltr',
         format: '',
         indent: 0,

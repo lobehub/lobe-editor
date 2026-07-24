@@ -1,4 +1,5 @@
-import { $insertNodes, COMMAND_PRIORITY_EDITOR, LexicalEditor, createCommand } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $insertNodes, COMMAND_PRIORITY_EDITOR, createCommand } from 'lexical';
 
 import { $createHorizontalRuleNode } from '../node/HorizontalRuleNode';
 

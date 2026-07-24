@@ -1,17 +1,15 @@
-/* eslint-disable no-redeclare */
-/* eslint-disable @typescript-eslint/no-redeclare */
-import { BaseSelection, ElementNode, LexicalEditor, LexicalNode, TextNode } from 'lexical';
+import type { BaseSelection, ElementNode, LexicalEditor, LexicalNode, TextNode } from 'lexical';
 
 import { genServiceId } from '@/editor-kernel';
-import { IRootNode } from '@/editor-kernel/inode';
+import type { IRootNode } from '@/editor-kernel/inode';
 import type { IEditorKernel, IServiceID } from '@/types/kernel';
 import { createDebugLogger } from '@/utils/debug';
 
 import {
   type MarkdownReaderFunc,
+  parseMarkdownToLexical,
   type TransformerRecord,
   type TransfromerRecordArray,
-  parseMarkdownToLexical,
 } from '../data-source/markdown/parse';
 import { indexBy, insertIRootNode } from '../utils';
 import type {

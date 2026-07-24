@@ -1,6 +1,7 @@
-import { $isElementNode, LexicalNode } from 'lexical';
+import type { LexicalNode } from 'lexical';
+import { $isElementNode } from 'lexical';
 
-import { IMarkdownWriterContext, MarkdownShortCutService } from '../service/shortcut';
+import type { IMarkdownWriterContext, MarkdownShortCutService } from '../service/shortcut';
 
 export class MarkdownWriterContext implements IMarkdownWriterContext {
   private before = '';

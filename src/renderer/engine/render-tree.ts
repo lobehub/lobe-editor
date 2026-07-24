@@ -3,8 +3,8 @@ import { $isElementNode, $isTextNode } from 'lexical';
 import type { ReactNode } from 'react';
 
 import type {
-  HeadlessRenderContext,
   HeadlessRenderableNode,
+  HeadlessRenderContext,
   LexicalRendererContext,
   NodeRenderer,
   RendererRegistry,

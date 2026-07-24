@@ -1,4 +1,5 @@
 import { $findMatchingParent, mergeRegister } from '@lexical/utils';
+import type { LexicalEditor } from 'lexical';
 import {
   $createNodeSelection,
   $createParagraphNode,
@@ -8,7 +9,6 @@ import {
   $isRangeSelection,
   $setSelection,
   COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
   createCommand,
 } from 'lexical';
 

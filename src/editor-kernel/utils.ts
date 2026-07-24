@@ -1,12 +1,5 @@
-import {
-  $getNodeByKey,
-  EditorConfig,
-  ElementNode,
-  LexicalEditor,
-  LexicalNode,
-  NodeKey,
-  createEditor,
-} from 'lexical';
+import type { EditorConfig, ElementNode, LexicalEditor, LexicalNode, NodeKey } from 'lexical';
+import { $getNodeByKey, createEditor } from 'lexical';
 
 import type { IEditorKernel, IServiceID } from '@/types';
 

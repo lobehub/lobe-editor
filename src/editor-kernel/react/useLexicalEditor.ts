@@ -1,4 +1,4 @@
-import { LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import { useEffect } from 'react';
 
 import { useLexicalComposerContext } from './react-context';
@@ -10,7 +10,7 @@ export function useLexicalEditor(
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    let lexicalEditor = editor.getLexicalEditor();
+    const lexicalEditor = editor.getLexicalEditor();
     if (lexicalEditor) {
       return handleEditor(lexicalEditor);
     } else {

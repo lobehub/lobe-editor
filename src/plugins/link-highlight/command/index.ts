@@ -1,10 +1,10 @@
+import type { LexicalEditor } from 'lexical';
 import {
   $createTextNode,
   $getSelection,
   $insertNodes,
   $isRangeSelection,
   COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
   createCommand,
 } from 'lexical';
 

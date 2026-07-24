@@ -1,19 +1,15 @@
-import { $createTextNode, COMMAND_PRIORITY_NORMAL, LexicalEditor, PASTE_COMMAND } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $createTextNode, COMMAND_PRIORITY_NORMAL, PASTE_COMMAND } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { INSERT_LINK_COMMAND, registerLinkCommand } from '../command';
-import {
-  $createLinkNode,
-  $isLinkNode,
-  AutoLinkNode,
-  LinkAttributes,
-  LinkNode,
-} from '../node/LinkNode';
+import type { LinkAttributes } from '../node/LinkNode';
+import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
 import { ILinkService, LinkService } from '../service/i-link-service';
 import { registerLinkCommands } from './registry';
 
@@ -146,7 +142,7 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
       .requireService(IMarkdownShortCutService)
       ?.registerMarkdownReader('link', (node, children) => {
         const linkNode = INodeHelper.createElementNode('link', {
-          children: children,
+          children,
           direction: 'ltr',
           format: '',
           indent: 0,

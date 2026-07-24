@@ -1,8 +1,9 @@
 import { mergeRegister } from '@lexical/utils';
-import { $getNodeByKey, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $getNodeByKey } from 'lexical';
 
 import { $createCursorNode } from '@/plugins/common/node/cursor';
-import { IEditorKernel } from '@/types';
+import type { IEditorKernel } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 
 import { INSERT_LINK_HIGHLIGHT_COMMAND } from '../command';

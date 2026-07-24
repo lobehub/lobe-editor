@@ -1,5 +1,5 @@
-import { TableCellNode, TableMapType } from '@lexical/table';
-import { LexicalEditor } from 'lexical';
+import type { TableCellNode, TableMapType } from '@lexical/table';
+import type { LexicalEditor } from 'lexical';
 
 export const getCellColumnIndex = (tableCellNode: TableCellNode, tableMap: TableMapType) => {
   for (const element of tableMap) {

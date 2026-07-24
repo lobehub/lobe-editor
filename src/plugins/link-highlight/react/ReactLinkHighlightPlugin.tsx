@@ -6,7 +6,7 @@ import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { LinkHighlightPlugin } from '../plugin';
 import { styles } from './style';
-import { ReactLinkHighlightPluginProps } from './type';
+import type { ReactLinkHighlightPluginProps } from './type';
 
 const ReactLinkHighlightPlugin: FC<ReactLinkHighlightPluginProps> = ({
   className,

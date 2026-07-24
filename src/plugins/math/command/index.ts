@@ -1,15 +1,16 @@
 import { $wrapNodeInElement, mergeRegister } from '@lexical/utils';
+import type { LexicalEditor } from 'lexical';
 import {
   $createParagraphNode,
   $getNodeByKey,
   $insertNodes,
   $isRootOrShadowRoot,
   COMMAND_PRIORITY_HIGH,
-  LexicalEditor,
   createCommand,
 } from 'lexical';
 
-import { $createMathInlineNode, MathInlineNode } from '../node/index';
+import type { MathInlineNode } from '../node/index';
+import { $createMathInlineNode } from '../node/index';
 
 export const INSERT_MATH_COMMAND = createCommand<{
   code: string;

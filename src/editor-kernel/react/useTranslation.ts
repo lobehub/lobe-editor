@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { ILocaleKeys, TFunction } from '@/types';
+import type { ILocaleKeys, TFunction } from '@/types';
 
 import { useLexicalComposerContext } from './react-context';
 

@@ -1,6 +1,5 @@
-import {
+import type {
   DOMExportOutput,
-  DecoratorNode,
   EditorConfig,
   LexicalEditor,
   LexicalUpdateJSON,
@@ -8,6 +7,7 @@ import {
   SerializedLexicalNode,
   Spread,
 } from 'lexical';
+import { DecoratorNode } from 'lexical';
 
 export interface ImagePayload {
   altText: string;
@@ -52,7 +52,7 @@ export class BaseImageNode extends DecoratorNode<any> {
 
   static importJSON(serializedNode: SerializedImageNode): BaseImageNode {
     const { altText, height, width, maxWidth, src } = serializedNode;
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+
     return new BaseImageNode(src, altText, maxWidth, width, height);
   }
 

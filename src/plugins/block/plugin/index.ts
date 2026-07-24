@@ -1,8 +1,9 @@
 import {
   $getClipboardDataFromSelection,
-  type LexicalClipboardData,
   copyToClipboard,
+  type LexicalClipboardData,
 } from '@lexical/clipboard';
+import type { LexicalEditor, LexicalNode, LexicalNodeConfig } from 'lexical';
 import {
   $createNodeSelection,
   $createRangeSelection,
@@ -10,14 +11,11 @@ import {
   $isElementNode,
   $isTextNode,
   $setSelection,
-  LexicalEditor,
-  LexicalNode,
-  LexicalNodeConfig,
   ParagraphNode,
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerBlockMoveCommand } from '../command';
 import { BlockMenuService, IBlockMenuService } from '../service';

@@ -39,7 +39,6 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
       opacity: 0;
       background: ${cssVar.colorFillQuaternary};
       backdrop-filter: blur(8px);
-      backdrop-filter: blur(8px);
 
       transition: opacity 0.1s;
     }

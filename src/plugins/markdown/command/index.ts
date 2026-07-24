@@ -1,20 +1,20 @@
 import type { HistoryStateEntry } from '@lexical/history';
 import { mergeRegister } from '@lexical/utils';
+import type { LexicalEditor } from 'lexical';
 import {
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_HIGH,
+  createCommand,
   HISTORIC_TAG,
   HISTORY_PUSH_TAG,
-  LexicalEditor,
-  createCommand,
 } from 'lexical';
 
-import { IEditorKernel } from '@/types';
+import type { IEditorKernel } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import { parseMarkdownToLexical } from '../data-source/markdown/parse';
-import { MarkdownShortCutService } from '../service/shortcut';
+import type { MarkdownShortCutService } from '../service/shortcut';
 import { $generateNodesFromSerializedNodes, $insertGeneratedNodes } from '../utils';
 
 const logger = createDebugLogger('plugin', 'markdown');

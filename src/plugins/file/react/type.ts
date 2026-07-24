@@ -1,4 +1,4 @@
-import { FileNode } from '@/plugins/file/node/FileNode';
+import type { FileNode } from '@/plugins/file/node/FileNode';
 import type { ILocaleKeys } from '@/types';
 
 export interface ReactFilePluginProps {

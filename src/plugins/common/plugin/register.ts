@@ -1,6 +1,7 @@
 import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code-core';
 import { $isHeadingNode, QuoteNode } from '@lexical/rich-text';
 import { mergeRegister } from '@lexical/utils';
+import type { ElementNode, LexicalEditor, LexicalNode, PointType, RangeSelection } from 'lexical';
 import {
   $createNodeSelection,
   $createParagraphNode,
@@ -17,23 +18,18 @@ import {
   COMMAND_PRIORITY_EDITOR,
   COMMAND_PRIORITY_LOW,
   COMMAND_PRIORITY_NORMAL,
-  ElementNode,
   FORMAT_TEXT_COMMAND,
   HISTORIC_TAG,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
-  LexicalEditor,
-  LexicalNode,
-  PointType,
   REDO_COMMAND,
-  RangeSelection,
   UNDO_COMMAND,
 } from 'lexical';
 
 import { $closest } from '@/editor-kernel';
-import { IEditor } from '@/types';
+import type { IEditor } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 import { createDebugLogger } from '@/utils/debug';
 

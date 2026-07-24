@@ -32,8 +32,7 @@ export interface ITableControllerMenuSeparatorItem extends ITableControllerBaseM
 }
 
 export type ITableControllerMenuItem =
-  | ITableControllerMenuActionItem
-  | ITableControllerMenuSeparatorItem;
+  ITableControllerMenuActionItem | ITableControllerMenuSeparatorItem;
 
 export interface ITableControllerMenuService {
   getItems(context: ITableControllerMenuRenderContext): ITableControllerMenuItem[];
@@ -41,7 +40,6 @@ export interface ITableControllerMenuService {
   subscribe(listener: () => void): () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare, no-redeclare
 export const ITableControllerMenuService: IServiceID<ITableControllerMenuService> =
   genServiceId<ITableControllerMenuService>('TableControllerMenuService');
 

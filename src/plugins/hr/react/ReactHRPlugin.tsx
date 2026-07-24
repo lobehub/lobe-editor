@@ -7,7 +7,7 @@ import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { HRPlugin } from '../plugin';
 import HRNode from './components/HRNode';
-import { ReactHRPluginProps } from './type';
+import type { ReactHRPluginProps } from './type';
 
 const ReactHRPlugin: FC<ReactHRPluginProps> = ({ className }) => {
   const [editor] = useLexicalComposerContext();

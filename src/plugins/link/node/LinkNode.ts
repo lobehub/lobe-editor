@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { $findMatchingParent, addClassNamesToElement, isHTMLAnchorElement } from '@lexical/utils';
 import type {
   BaseSelection,
@@ -13,6 +12,7 @@ import type {
   Point,
   RangeSelection,
   SerializedElementNode,
+  Spread,
 } from 'lexical';
 import {
   $applyNodeReplacement,
@@ -22,9 +22,8 @@ import {
   $isRangeSelection,
   $normalizeSelection__EXPERIMENTAL,
   $setSelection,
-  ElementNode,
-  Spread,
   createCommand,
+  ElementNode,
 } from 'lexical';
 
 import { assert } from '@/editor-kernel/utils';
@@ -119,7 +118,7 @@ export class LinkNode extends ElementNode {
   updateLinkDOM(
     prevNode: this | null,
     anchor: LinkHTMLElementType,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     _config: EditorConfig,
   ) {
     if (isHTMLAnchorElement(anchor)) {
@@ -168,11 +167,10 @@ export class LinkNode extends ElementNode {
   }
 
   sanitizeUrl(url: string): string {
-    // eslint-disable-next-line no-param-reassign
     url = formatUrl(url);
     try {
       const parsedUrl = new URL(formatUrl(url));
-      // eslint-disable-next-line no-script-url
+
       if (!SUPPORTED_URL_PROTOCOLS.has(parsedUrl.protocol)) {
         return 'about:blank';
       }

@@ -1,13 +1,13 @@
-import { LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 
-import { INode } from '@/editor-kernel/inode';
+import type { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { INodeService } from '@/plugins/inode';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { INSERT_IMAGE_COMMAND, registerImageCommand } from '../command';
 import { $isBlockImageNode, BlockImageNode } from '../node/block-image-node';

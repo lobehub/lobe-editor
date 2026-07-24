@@ -8,11 +8,12 @@ import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 
 import { LinkPlugin } from '../plugin';
-import { ILinkService, LinkService } from '../service/i-link-service';
+import type { LinkService } from '../service/i-link-service';
+import { ILinkService } from '../service/i-link-service';
 import LinkEdit from './components/LinkEdit';
 import LinkToolbar from './components/LinkToolbar';
 import { styles } from './style';
-import { ReactLinkPluginProps } from './type';
+import type { ReactLinkPluginProps } from './type';
 
 export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
   theme,

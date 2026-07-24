@@ -7,7 +7,7 @@ import { type KeyboardEvent, memo, useCallback, useEffect, useRef, useState } fr
 import { CONTROL_OR_META } from '@/common/sys';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
-import { MathBlockNode, MathInlineNode } from '../../node';
+import type { MathBlockNode, MathInlineNode } from '../../node';
 import { styles } from '../style';
 
 export interface MathEditorContentProps {

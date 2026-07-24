@@ -4,14 +4,15 @@ import {
   $deleteTableColumnAtSelection,
   $deleteTableRowAtSelection,
   $isTableNode,
-  TableCellNode,
-  TableRowNode,
   registerTableCellUnmergeTransform,
   registerTablePlugin,
   registerTableSelectionObserver,
   setScrollableTablesActive,
+  TableCellNode,
+  TableRowNode,
 } from '@lexical/table';
-import { $setSelection, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $setSelection } from 'lexical';
 import type { ReactNode } from 'react';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -27,10 +28,10 @@ import {
   DISTRIBUTE_TABLE_COLUMN_WIDTH_COMMAND,
   INSERT_TABLE_COLUMN_COMMAND,
   INSERT_TABLE_ROW_COMMAND,
-  SYNC_TABLE_COLUMN_WIDTH_COMMAND,
   registerTableCommand,
+  SYNC_TABLE_COLUMN_WIDTH_COMMAND,
 } from '../command';
-import { TableNode, patchTableNode } from '../node';
+import { patchTableNode, TableNode } from '../node';
 import { ITableControllerMenuService, TableControllerMenuService } from '../service';
 import { createDefaultTableColWidths } from '../utils';
 
@@ -142,7 +143,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
           const [tableMap] = $computeTableMapSkipCellCheck(node, null, null);
           const firstCell = tableMap[0]?.[0]?.cell;
           const lastRow = [...tableMap].reverse().find((row) => row.length > 0);
-          const lastCell = lastRow?.[lastRow.length - 1]?.cell;
+          const lastCell = lastRow?.at(-1)?.cell;
 
           if (!firstCell || !lastCell) {
             return false;
@@ -353,7 +354,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     litexmlService.registerXMLReader('table', (xmlNode, children) => {
       const colWidthsAttr = xmlNode.getAttribute('colWidths');
       const colWidths = colWidthsAttr
-        ? colWidthsAttr.split(',').map((width) => parseInt(width, 10))
+        ? colWidthsAttr.split(',').map((width: string) => parseInt(width, 10))
         : [];
       let maxTdlen = 1;
       for (const child of children) {

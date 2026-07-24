@@ -1,10 +1,11 @@
-import { $createNodeSelection, $setSelection, DecoratorNode, LexicalEditor } from 'lexical';
+import type { DecoratorNode, LexicalEditor } from 'lexical';
+import { $createNodeSelection, $setSelection } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import { registerMathCommand } from '../command';
@@ -16,7 +17,6 @@ import {
 } from '../node';
 import { isLikelyMathContent } from '../utils';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface MathPluginOptions {
   decorator?: (node: MathInlineNode | MathBlockNode, editor: LexicalEditor) => unknown;
   theme?: {

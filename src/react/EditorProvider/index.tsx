@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, createContext, use, useMemo } from 'react';
+import { createContext, type ReactNode, use, useMemo } from 'react';
 
 type LocaleType = typeof import('@/locale').default;
 
@@ -31,7 +31,7 @@ export const EditorProvider = ({ children, config = {} }: EditorProviderProps) =
     [config],
   );
 
-  return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
+  return <EditorContext value={value}>{children}</EditorContext>;
 };
 
 export const useEditorContent = (): EditorContextValue => {

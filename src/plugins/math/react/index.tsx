@@ -9,7 +9,7 @@ import { MathPlugin } from '../plugin';
 import MathEdit from './components/MathEditor';
 import MathInline from './components/MathInline';
 import { styles } from './style';
-import { ReactMathPluginProps } from './type';
+import type { ReactMathPluginProps } from './type';
 
 export const ReactMathPlugin: FC<ReactMathPluginProps> = ({ className, renderComp, theme }) => {
   const [editor] = useLexicalComposerContext();
