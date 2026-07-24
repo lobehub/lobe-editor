@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.23.0](https://github.com/lobehub/lobe-editor/compare/v4.22.0...v4.23.0)
+<sup>Released on **2026-07-24**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Trigger release.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Trigger release ([0308323](https://github.com/lobehub/lobe-editor/commit/0308323))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.22.0](https://github.com/lobehub/lobe-editor/compare/v4.21.0...v4.22.0)
 <sup>Released on **2026-07-17**</sup>
 
