@@ -14,12 +14,12 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       overflow: auto hidden;
       padding: 3px;
 
-      .base {
+      .katex-base {
         margin-block: 0;
         margin-inline: auto;
       }
 
-      .tag {
+      .katex-tag {
         position: relative !important;
         display: inline-block;
         padding-inline-start: 0.5rem;
