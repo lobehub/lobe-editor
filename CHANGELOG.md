@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.23.1](https://github.com/lobehub/lobe-editor/compare/v4.23.0...v4.23.1)
+<sup>Released on **2026-07-25**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Update katex selectors for v0.18 class prefixes.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Update katex selectors for v0.18 class prefixes ([54223ca](https://github.com/lobehub/lobe-editor/commit/54223ca))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.23.0](https://github.com/lobehub/lobe-editor/compare/v4.22.0...v4.23.0)
 <sup>Released on **2026-07-24**</sup>
 
