@@ -114,6 +114,33 @@ describe('HeadlessEditor', () => {
     expect(findTextNode(editorData.root, 'Second')).not.toBeNull();
   });
 
+  it('preserves LaTeX syntax in Markdown projection', () => {
+    const editor = createHeadlessEditor();
+    const markdown = String.raw`$$
+\boxed
+$$
+
+$$
+\boxed{48}
+$$
+
+$$
+abc \;\Longleftrightarrow\; xyz
+$$
+
+$$
+\begin{cases}
+x = 1 \\[2pt]
+y = 2
+\end{cases}
+$$`;
+
+    editor.hydrateMarkdown(markdown);
+
+    expect(editor.export().markdown).toBe(`${markdown}\n`);
+    editor.destroy();
+  });
+
   it('preserves Markdown links in headless editor data and Markdown projection', () => {
     const editor = createHeadlessEditor();
     const url = 'https://github.com/lobehub/lobehub/pull/14436';
