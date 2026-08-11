@@ -1,6 +1,8 @@
 import {
+  INSERT_MENTION_COMMAND,
   ReactEditor,
   ReactEditorContent,
+  ReactMentionPlugin,
   ReactPlainText,
   ReactSlashOption,
   ReactSlashPlugin,
@@ -26,6 +28,7 @@ export default () => {
           type={'text'}
         />
       </ReactPlainText>
+      <ReactMentionPlugin />
       <ReactSlashPlugin>
         <ReactSlashOption
           items={async (search) => {
@@ -34,8 +37,11 @@ export default () => {
             const query = search?.matchingString.toLowerCase() ?? '';
             return FILE_OPTIONS.filter((option) => option.key.toLowerCase().includes(query));
           }}
-          onSelect={(_, option) => {
-            console.info('Selected file:', option.key);
+          onSelect={(editor, option) => {
+            editor.dispatchCommand(INSERT_MENTION_COMMAND, {
+              label: String(option.label),
+              metadata: { path: option.key },
+            });
           }}
           trigger={'@'}
         />
