@@ -21,6 +21,7 @@ import {
   isSlashSectionOption,
 } from '../../service/i-slash-service';
 import type { SlashMenuProps } from '../type';
+import { shouldShowLoadingPlaceholder } from './menuLoading';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   popup: css`
@@ -145,7 +146,11 @@ const renderItems = (
   loading: boolean | undefined,
   onSelect: (option: ISlashMenuOption) => void,
 ): ReactNode => {
-  if (loading) return <div className={menuSharedStyles.empty}>Loading...</div>;
+  // Async searches retain their previous options. Keep rendering those options
+  // while the next query is loading instead of flashing a transient placeholder.
+  if (shouldShowLoadingPlaceholder(loading, options)) {
+    return <div className={menuSharedStyles.empty}>Loading...</div>;
+  }
   return options.map((opt, index) => {
     if (isSlashDividerOption(opt)) {
       return <div className={menuSharedStyles.separator} key={`__divider_${index}`} />;

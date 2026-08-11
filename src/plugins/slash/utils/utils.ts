@@ -121,7 +121,10 @@ export const scrollIntoViewIfNeeded = (target: HTMLElement) => {
   target.scrollIntoView({ block: 'nearest' });
 };
 
-export const PUNCTUATION = '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
+// `/` remains a valid query character for non-slash triggers so typeaheads such
+// as `@src/components/Button` can search path-like values. A `/` trigger still
+// excludes the character through the trigger-specific part of the matcher.
+export const PUNCTUATION = '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\!%\'"~=<>_:;';
 
 export function getBasicTypeaheadTriggerMatch(
   trigger: string,

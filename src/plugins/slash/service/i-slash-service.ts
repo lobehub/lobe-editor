@@ -78,8 +78,14 @@ export interface SlashOptions {
   trigger: string;
 }
 
+export interface SlashTriggerResolution {
+  leadOffset: number;
+  trigger: string;
+}
+
 export interface ISlashService {
   registerSlash(options: SlashOptions): void;
+  resolveTrigger(text: string): SlashTriggerResolution | null;
   updateOptions(options: SlashOptions[]): void;
 }
 
@@ -130,6 +136,19 @@ export class SlashService implements ISlashService {
     this.triggerMap.clear();
     this.triggerFnMap.clear();
     this.triggerFuseMap.clear();
+  }
+
+  resolveTrigger(text: string): SlashTriggerResolution | null {
+    let resolution: SlashTriggerResolution | null = null;
+
+    for (const [trigger, triggerFn] of this.triggerFnMap) {
+      const match = triggerFn(text);
+      if (!match || (resolution && match.leadOffset <= resolution.leadOffset)) continue;
+
+      resolution = { leadOffset: match.leadOffset, trigger };
+    }
+
+    return resolution;
   }
 
   updateOptions(options: SlashOptions[]): void {
