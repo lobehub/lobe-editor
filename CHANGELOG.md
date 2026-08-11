@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.23.2](https://github.com/lobehub/lobe-editor/compare/v4.23.1...v4.23.2)
+<sup>Released on **2026-08-11**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **slash**: Preserve typeahead scope during search.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **slash**: Preserve typeahead scope during search, closes [#196](https://github.com/lobehub/lobe-editor/issues/196) ([b6d52b8](https://github.com/lobehub/lobe-editor/commit/b6d52b8))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.23.1](https://github.com/lobehub/lobe-editor/compare/v4.23.0...v4.23.1)
 <sup>Released on **2026-07-25**</sup>
 
