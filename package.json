@@ -153,7 +153,7 @@
     "@emotion/is-prop-valid": "^1.4.0",
     "@lobehub/docs-kit": "^5.23.4",
     "@lobehub/lint": "^2.1.5",
-    "@lobehub/ui": "^5.23.4",
+    "@lobehub/ui": "^5.29.1",
     "@react-router/dev": "8.2.0",
     "@shikijs/types": "^4.3.1",
     "@types/debug": "^4.1.12",

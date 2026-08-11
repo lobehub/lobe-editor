@@ -228,11 +228,11 @@ describe('LexicalRenderer', () => {
     const html = toHTML(value);
     expect(html).toContain('data-code-type="mermaid"');
     expect(html).toContain('mermaid.svg');
-    expect(html).toContain('Loading...');
+    expect(html).toContain('<svg');
     expect(html).not.toContain('renderer-cm-header');
   });
 
-  it('renders mermaid loading state on server render', () => {
+  it('renders mermaid graph svg on server render', () => {
     const value = makeEditorState([
       {
         code: 'graph TD\nA-->B',
@@ -247,7 +247,7 @@ describe('LexicalRenderer', () => {
     const html = toHTML(value);
     expect(html).toContain('data-code-type="mermaid"');
     expect(html).toContain('mermaid.svg');
-    expect(html).toContain('Loading...');
+    expect(html).toContain('<svg');
   });
 
   it('renders horizontal rule', () => {
