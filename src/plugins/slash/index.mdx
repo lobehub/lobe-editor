@@ -4,6 +4,7 @@ description: Slash plugin enables powerful slash commands (/command) in the edit
 category: Plugins
 ---
 
+import DemoFileTypeahead from './demos/fileTypeahead.tsx?demo';
 import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
@@ -13,6 +14,16 @@ Slash plugin provides a sophisticated slash command system that allows users to 
 ## Basic Usage
 
 <Demo of={DemoIndex} />
+
+## Async File Typeahead
+
+This demo registers both `@` file search and `/` commands. The file search intentionally waits 600 ms so the loading transition remains observable.
+
+- Type `@src/components/` to verify that path separators remain in the file-search scope.
+- Continue typing while a request is pending to verify that the previous results remain visible.
+- Type `@src/components!` to close the scope, then backspace over `!` to verify that file search reopens.
+
+<Demo of={DemoFileTypeahead} />
 
 ## Core Architecture
 
