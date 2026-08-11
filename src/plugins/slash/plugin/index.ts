@@ -212,8 +212,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
             // Do not trigger inside code
             selection.hasFormat('code') ||
             text === null ||
-            range === null ||
-            (this.currentSlashTrigger === null && text.length > 1 && text.at(-2) !== ' ')
+            range === null
           ) {
             this.triggerClose();
             return;
@@ -227,8 +226,14 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
 
           let triggerText = this.currentSlashTrigger;
           if (triggerText === null) {
-            triggerText = text.slice(-1);
-            this.currentSlashTriggerIndex = text.length - 1;
+            const resolution = this.service?.resolveTrigger(text);
+            if (!resolution) {
+              this.triggerClose();
+              return;
+            }
+
+            triggerText = resolution.trigger;
+            this.currentSlashTriggerIndex = resolution.leadOffset;
           }
           const lastIndex = text.lastIndexOf(triggerText);
           if (lastIndex < this.currentSlashTriggerIndex) {
@@ -253,6 +258,11 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
           );
           const match = triggerFn?.(text.slice(this.currentSlashTriggerIndex));
 
+          if (!match) {
+            this.triggerClose();
+            return;
+          }
+
           // Check if there's a space in the current search text that should close the menu
           const searchText = text.slice(this.currentSlashTriggerIndex);
           const hasSpaceAfterTrigger = searchText.includes(' ') && !slashOptions?.allowWhitespace;
@@ -263,7 +273,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
           }
 
           const finalItems =
-            fuse && match && match.matchingString.length > 0
+            fuse && match.matchingString.length > 0
               ? fuse.search(match.matchingString).map((result) => result.item)
               : slashOptions.items;
           if (isRangePositioned !== null && finalItems.length > 0) {
