@@ -1,11 +1,13 @@
 import {
   type IEditor,
+  INSERT_COLLAPSIBLE_COMMAND,
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
   ReactCodePlugin,
   ReactCodemirrorPlugin,
+  ReactCollapsiblePlugin,
   ReactHRPlugin,
   ReactImagePlugin,
   ReactLinkHighlightPlugin,
@@ -16,7 +18,14 @@ import {
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
 import { Avatar, Text } from '@lobehub/ui';
-import { Heading1Icon, Heading2Icon, Heading3Icon, MinusIcon, Table2Icon } from 'lucide-react';
+import {
+  Heading1Icon,
+  Heading2Icon,
+  Heading3Icon,
+  ListCollapseIcon,
+  MinusIcon,
+  Table2Icon,
+} from 'lucide-react';
 import { type FC, type Ref, useMemo } from 'react';
 
 import { content } from './data';
@@ -81,6 +90,17 @@ const InputEditor: FC<InputEditorProps> = ({ editor, onSend, slashMenuRef }) => 
 
       {
         type: 'divider',
+      },
+      {
+        icon: ListCollapseIcon,
+        key: 'collapsible',
+        label: '折叠块',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_COLLAPSIBLE_COMMAND, {});
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
       },
       {
         icon: MinusIcon,
@@ -153,6 +173,7 @@ const InputEditor: FC<InputEditorProps> = ({ editor, onSend, slashMenuRef }) => 
         ReactLinkHighlightPlugin,
         ReactImagePlugin,
         ReactCodemirrorPlugin,
+        ReactCollapsiblePlugin,
         ReactHRPlugin,
         ReactCodePlugin,
         ReactTablePlugin,
@@ -161,6 +182,7 @@ const InputEditor: FC<InputEditorProps> = ({ editor, onSend, slashMenuRef }) => 
       slashOption={{
         items: slashItems,
         maxLength: 6,
+        searchKeys: ['key', 'label'],
       }}
       variant={'chat'}
     />

@@ -83,6 +83,29 @@ export const collectDragBlocks = (root: HTMLElement | null): DragBlockEntry[] =>
     .sort((a, b) => a.rect.top - b.rect.top);
 };
 
+const isCollapsibleBlockElement = (element: HTMLElement): boolean => {
+  return element.dataset.collapsible === 'true';
+};
+
+const isBlockInsideCollapsibleElement = (element: HTMLElement): boolean => {
+  const closestCollapsible = element.closest<HTMLElement>('[data-collapsible="true"]');
+
+  return Boolean(closestCollapsible && closestCollapsible !== element);
+};
+
+export const filterDragBlocksForSource = (
+  sourceBlockId: string,
+  blocks: DragBlockEntry[],
+): DragBlockEntry[] => {
+  const source = blocks.find((block) => block.blockId === sourceBlockId);
+
+  if (!source || !isCollapsibleBlockElement(source.block)) {
+    return blocks;
+  }
+
+  return blocks.filter((block) => !isBlockInsideCollapsibleElement(block.block));
+};
+
 export const resolveScrollContainers = (root: HTMLElement | null): HTMLElement[] => {
   if (!root) return [];
 
