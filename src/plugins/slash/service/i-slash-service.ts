@@ -13,8 +13,11 @@ export type ISlashDividerOption = {
 };
 
 export interface ISlashMenuOption extends DropdownMenuItemType {
+  description?: ReactNode;
+  layout?: 'compact' | 'tile' | 'wide';
   metadata?: Record<string, any>;
   onSelect?: (editor: IEditor, matchingString: string) => void;
+  shortcut?: ReactNode;
 }
 
 export interface ISlashSectionOption {

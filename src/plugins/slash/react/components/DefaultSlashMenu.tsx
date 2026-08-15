@@ -11,7 +11,15 @@ import {
 } from '@floating-ui/react';
 import { Icon, LOBE_THEME_APP_ID, menuSharedStyles } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
-import { type FC, type ReactNode, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import {
+  type FC,
+  isValidElement,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { createPortal } from 'react-dom';
 
 import {
@@ -24,6 +32,28 @@ import type { SlashMenuProps } from '../type';
 import { shouldShowLoadingPlaceholder } from './menuLoading';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
+  compact: css`
+    grid-column: span 1;
+    justify-content: center;
+    min-width: 0;
+
+    > :not(:first-child) {
+      display: none;
+    }
+  `,
+  divider: css`
+    grid-column: 1 / -1;
+  `,
+  items: css`
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px 6px;
+  `,
+  menuItem: css`
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+  `,
   popup: css`
     scrollbar-width: none;
 
@@ -54,6 +84,7 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     z-index: 1100;
   `,
   section: css`
+    grid-column: 1 / -1;
     margin-block-start: 6px;
   `,
   sectionFirst: css`
@@ -98,6 +129,12 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     color: ${cssVar.colorText};
     white-space: nowrap;
   `,
+  tile: css`
+    grid-column: span 3;
+  `,
+  wide: css`
+    grid-column: 1 / -1;
+  `,
 }));
 
 type DefaultSlashMenuProps = Omit<SlashMenuProps, 'customRender' | 'onActiveKeyChange' | 'editor'>;
@@ -109,12 +146,14 @@ const renderMenuItem = (
 ): ReactNode => {
   const isHighlighted = item.key === activeKey;
   const isDisabled = Boolean(item.disabled);
-  const description = item.metadata?.description as ReactNode | undefined;
+  const description = item.description ?? (item.metadata?.description as ReactNode | undefined);
+  const layoutClass = styles[item.layout ?? 'wide'];
+  const shortcut = item.shortcut ?? item.extra;
 
   return (
     <div
       aria-disabled={isDisabled || undefined}
-      className={menuSharedStyles.item}
+      className={`${menuSharedStyles.item} ${styles.menuItem} ${layoutClass}`}
       data-disabled={isDisabled ? '' : undefined}
       data-highlighted={isHighlighted ? '' : undefined}
       key={String(item.key)}
@@ -128,14 +167,14 @@ const renderMenuItem = (
     >
       {item.icon ? (
         <span className={menuSharedStyles.icon}>
-          <Icon icon={item.icon} />
+          {isValidElement(item.icon) ? item.icon : <Icon icon={item.icon} />}
         </span>
       ) : null}
       <span className={styles.text}>
         <span className={styles.textLabel}>{item.label}</span>
         {description ? <span className={styles.textDescription}>{description}</span> : null}
       </span>
-      {item.extra ? <span className={menuSharedStyles.extra}>{item.extra}</span> : null}
+      {shortcut ? <span className={menuSharedStyles.extra}>{shortcut}</span> : null}
     </div>
   );
 };
@@ -151,24 +190,61 @@ const renderItems = (
   if (shouldShowLoadingPlaceholder(loading, options)) {
     return <div className={menuSharedStyles.empty}>Loading...</div>;
   }
-  return options.map((opt, index) => {
-    if (isSlashDividerOption(opt)) {
-      return <div className={menuSharedStyles.separator} key={`__divider_${index}`} />;
-    }
-    if (isSlashSectionOption(opt)) {
-      return (
-        <div
-          className={`${styles.section} ${index === 0 ? styles.sectionFirst : ''}`}
-          key={String(opt.key ?? `__section_${index}`)}
-        >
-          <div className={styles.sectionLabel}>{opt.label}</div>
-          {opt.items.map((item) => renderMenuItem(item, activeKey, onSelect))}
-        </div>
-      );
-    }
-    return renderMenuItem(opt, activeKey, onSelect);
-  });
+  return (
+    <div className={styles.items}>
+      {options.map((opt, index) => {
+        if (isSlashDividerOption(opt)) {
+          return (
+            <div
+              className={`${menuSharedStyles.separator} ${styles.divider}`}
+              key={`__divider_${index}`}
+            />
+          );
+        }
+        if (isSlashSectionOption(opt)) {
+          return (
+            <div
+              className={`${styles.section} ${index === 0 ? styles.sectionFirst : ''}`}
+              key={String(opt.key ?? `__section_${index}`)}
+            >
+              <div className={styles.sectionLabel}>{opt.label}</div>
+              <div className={styles.items}>
+                {opt.items.map((item) => renderMenuItem(item, activeKey, onSelect))}
+              </div>
+            </div>
+          );
+        }
+        return renderMenuItem(opt, activeKey, onSelect);
+      })}
+    </div>
+  );
 };
+
+function useKeepActiveItemVisible(
+  open: boolean,
+  activeKey: null | string,
+  options: SlashMenuProps['options'],
+) {
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !activeKey) return;
+    const popup = popupRef.current;
+    const selectedItem = popup?.querySelector<HTMLElement>('[data-highlighted]');
+    if (!popup || !selectedItem) return;
+
+    const padding = 8;
+    const popupRect = popup.getBoundingClientRect();
+    const selectedRect = selectedItem.getBoundingClientRect();
+    if (selectedRect.top < popupRect.top + padding) {
+      popup.scrollTop -= popupRect.top + padding - selectedRect.top;
+    } else if (selectedRect.bottom > popupRect.bottom - padding) {
+      popup.scrollTop += selectedRect.bottom - (popupRect.bottom - padding);
+    }
+  }, [activeKey, open, options]);
+
+  return popupRef;
+}
 
 const resolvePortalContainer = (): HTMLElement | null => {
   if (typeof document === 'undefined') return null;
@@ -195,6 +271,7 @@ const FullWidthSlashMenu: FC<FullWidthSlashMenuProps> = ({
   placement,
 }) => {
   const resolvedPlacement: Placement = placement === 'bottom' ? 'bottom-start' : 'top-start';
+  const popupRef = useKeepActiveItemVisible(open, activeKey, options);
 
   const { refs, floatingStyles, isPositioned } = useFloating({
     elements: { reference: anchor },
@@ -224,7 +301,9 @@ const FullWidthSlashMenu: FC<FullWidthSlashMenuProps> = ({
       ref={refs.setFloating}
       style={{ ...floatingStyles, visibility: isPositioned ? 'visible' : 'hidden' }}
     >
-      <div className={styles.popup}>{renderItems(options, activeKey, loading, onSelect)}</div>
+      <div className={styles.popup} ref={popupRef}>
+        {renderItems(options, activeKey, loading, onSelect)}
+      </div>
     </div>,
     portalContainer,
   );
@@ -250,6 +329,7 @@ const CaretSlashMenu: FC<CaretSlashMenuProps> = ({
   position,
 }) => {
   const resolvedPlacement: Placement = forcePlacement ? `${forcePlacement}-start` : 'top-start';
+  const popupRef = useKeepActiveItemVisible(open, activeKey, options);
 
   const middleware = useMemo(
     () => [offset(8), ...(!forcePlacement ? [flip()] : []), shift({ padding: 8 })],
@@ -298,7 +378,9 @@ const CaretSlashMenu: FC<CaretSlashMenuProps> = ({
       ref={refs.setFloating}
       style={{ ...floatingStyles, visibility: isPositioned ? 'visible' : 'hidden' }}
     >
-      <div className={styles.popup}>{renderItems(options, activeKey, loading, onSelect)}</div>
+      <div className={styles.popup} ref={popupRef}>
+        {renderItems(options, activeKey, loading, onSelect)}
+      </div>
     </div>,
     portalContainer,
   );

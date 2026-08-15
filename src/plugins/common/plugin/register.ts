@@ -1,6 +1,6 @@
 import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code-core';
 import { $isListItemNode, $isListNode } from '@lexical/list';
-import { $isHeadingNode, QuoteNode } from '@lexical/rich-text';
+import { $isHeadingNode, $isQuoteNode, QuoteNode } from '@lexical/rich-text';
 import { mergeRegister } from '@lexical/utils';
 import type { ElementNode, LexicalEditor, LexicalNode, PointType, RangeSelection } from 'lexical';
 import {
@@ -145,7 +145,63 @@ function $isSelectionInList(selection: RangeSelection) {
   );
 }
 
-export function registerHeaderBackspace(editor: LexicalEditor) {
+function $getLeadingQuoteNode(selection: RangeSelection): QuoteNode | false {
+  const anchor = selection.anchor;
+  if (anchor.offset !== 0) return false;
+
+  let node = anchor.getNode();
+  let current: LexicalNode | null = node;
+  let quoteNode: QuoteNode | null = null;
+
+  while (current) {
+    if ($isQuoteNode(current)) {
+      quoteNode = current;
+      break;
+    }
+    current = current.getParent();
+  }
+
+  if (!quoteNode) return false;
+
+  while (node !== quoteNode) {
+    if (node.getIndexWithinParent() !== 0) return false;
+    const parent = node.getParent();
+    if (!parent) return false;
+    node = parent;
+  }
+
+  return quoteNode;
+}
+
+function $unwrapQuoteNode(quoteNode: QuoteNode) {
+  const children = quoteNode.getChildren();
+
+  if (children.length === 0) {
+    const paragraphNode = $createParagraphNode();
+    quoteNode.replace(paragraphNode);
+    paragraphNode.select(0, 0);
+    return;
+  }
+
+  let firstNode: LexicalNode | null = null;
+  for (const child of children) {
+    if ($isElementNode(child)) {
+      quoteNode.insertBefore(child);
+      firstNode ||= child;
+      continue;
+    }
+
+    const paragraphNode = $createParagraphNode();
+    paragraphNode.append(child);
+    quoteNode.insertBefore(paragraphNode);
+    firstNode ||= paragraphNode;
+  }
+
+  quoteNode.remove();
+  if ($isElementNode(firstNode)) firstNode.select(0, 0);
+}
+
+export function registerBlockBackspace(editor: LexicalEditor) {
   return editor.registerCommand(
     KEY_BACKSPACE_COMMAND,
     (payload) => {
@@ -187,6 +243,26 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
           const node = $createParagraphNode();
           headingNode.replace(node, true);
           node.select(0, 0);
+        });
+        return true;
+      }
+
+      const quoteNode = editor.getEditorState().read(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
+        return $getLeadingQuoteNode(selection);
+      });
+
+      if (quoteNode) {
+        payload.stopImmediatePropagation();
+        payload.preventDefault();
+        payload.stopPropagation();
+
+        editor.update(() => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection) || !selection.isCollapsed()) return;
+          const leadingQuoteNode = $getLeadingQuoteNode(selection);
+          if (leadingQuoteNode) $unwrapQuoteNode(leadingQuoteNode);
         });
         return true;
       }
