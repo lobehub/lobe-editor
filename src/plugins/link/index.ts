@@ -17,6 +17,9 @@ export type {
   LinkEmbedRule,
   LinkLabels,
   LinkToolbarAction,
+  LinkToolbarItem,
+  LinkToolbarItemIcon,
+  LinkToolbarRenderContext,
   ParsedSchemaUrl,
   SchemaRule,
 } from './service/i-link-service';

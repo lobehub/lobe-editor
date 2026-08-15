@@ -1,26 +1,26 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { mergeRegister } from '@lexical/utils';
-import { ActionIconGroup } from '@lobehub/ui';
-import type { LexicalEditor } from 'lexical';
+import type { IconProps } from '@lobehub/ui';
+import { Flexbox, Icon } from '@lobehub/ui';
+import type { LexicalEditor, NodeKey } from 'lexical';
+import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_NORMAL } from 'lexical';
 import {
-  $createRangeSelection,
-  $getNodeByKey,
-  $getSelection,
-  $isRangeSelection,
-  $isTextNode,
-  $setSelection,
-  COMMAND_PRIORITY_NORMAL,
-} from 'lexical';
-import { BaselineIcon, EditIcon, ExternalLinkIcon, LinkIcon, UnlinkIcon } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+  BaselineIcon,
+  CopyIcon,
+  EditIcon,
+  ExternalLinkIcon,
+  LinkIcon,
+  UnlinkIcon,
+} from 'lucide-react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
+import { useEditable } from '@/editor-kernel/react/useEditable';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { $getNearestNodeFromDOMNode } from '@/editor-kernel/utils';
 import { getSelectedNode } from '@/plugins/link/utils';
-import { cleanPosition } from '@/utils/updatePosition';
+import type { ILocaleKeys } from '@/types';
+import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
-import type { LinkNode } from '../../node/LinkNode';
 import {
   $isLinkToolbarNode,
   convertLinkNodeByKeyToSchema,
@@ -29,17 +29,16 @@ import {
   replaceNodeByKeyWithCardNode,
   replaceNodeByKeyWithIframeNode,
 } from '../../conversion';
-import { $isLinkCardNode } from '../../node/LinkCardNode';
-import { $isLinkIframeNode } from '../../node/LinkIframeNode';
-import {
-  $isLinkNode,
-  HOVER_LINK_COMMAND,
-  HOVER_OUT_LINK_COMMAND,
-  TOGGLE_LINK_COMMAND,
-} from '../../node/LinkNode';
-import { LinkService, LinkToolbarNode, getNodeUrl } from '../../service/i-link-service';
+import { $isLinkNode, HOVER_LINK_COMMAND, HOVER_OUT_LINK_COMMAND } from '../../node/LinkNode';
+import type {
+  LinkService,
+  LinkToolbarItem,
+  LinkToolbarItemIcon,
+  LinkToolbarNode,
+  LinkToolbarRenderContext,
+} from '../../service/i-link-service';
+import { getNodeUrl } from '../../service/i-link-service';
 import { styles } from '../style';
-import { EDIT_LINK_COMMAND } from './LinkEdit';
 
 interface LinkToolbarProps {
   editor: LexicalEditor;
@@ -47,303 +46,183 @@ interface LinkToolbarProps {
   linkService: LinkService | null;
 }
 
+interface ToolbarViewItem {
+  icon: IconProps['icon'];
+  key: string;
+  label: string;
+  onClick: () => void;
+}
+
+const HOVER_OPEN_DELAY = 180;
+const HOVER_CLOSE_DELAY = 500;
+
+const toolbarIconMap: Record<LinkToolbarItemIcon, IconProps['icon']> = {
+  copy: CopyIcon,
+  edit: EditIcon,
+  open: ExternalLinkIcon,
+  unlink: UnlinkIcon,
+};
+
 const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => {
   const divRef = useRef<HTMLDivElement>(null);
-  const LinkRef = useRef<HTMLDivElement>(null);
+  const linkDomRef = useRef<HTMLElement | null>(null);
   const [toolbarNode, setToolbarNode] = useState<LinkToolbarNode | null>(null);
-  const state = useRef<{ isLink: boolean }>({ isLink: false });
-  const t = useTranslation();
+  const [menuVersion, setMenuVersion] = useState(0);
+  const selectedLinkKeyRef = useRef<NodeKey | null>(null);
+  const toolbarHoverRef = useRef(false);
+  const visibleLinkKeyRef = useRef<NodeKey | null>(null);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | number>(-1);
-
-  const handleEdit = useCallback(() => {
-    if (!toolbarNode || !$isLinkNode(toolbarNode)) return;
-    editor.dispatchCommand(EDIT_LINK_COMMAND, {
-      linkNode: toolbarNode,
-      linkNodeDOM: editor.getElementByKey(toolbarNode.getKey()),
-    });
-  }, [editor, toolbarNode]);
+  const showTimerRef = useRef<ReturnType<typeof setTimeout> | number>(-1);
+  const { editable } = useEditable();
+  const t = useTranslation();
 
   const handleCancel = useCallback(() => {
     clearTimeout(clearTimerRef.current);
+    clearTimeout(showTimerRef.current);
+    linkDomRef.current?.classList.remove('hover');
+    linkDomRef.current = null;
+    toolbarHoverRef.current = false;
+    visibleLinkKeyRef.current = null;
     cleanPosition(divRef.current);
+    setToolbarNode(null);
   }, []);
 
-  const positionToolbar = useCallback((reference: HTMLElement) => {
-    const floating = divRef.current;
-    if (!floating) return;
-    LinkRef.current = reference as HTMLDivElement;
-
-    const referenceRect = reference.getBoundingClientRect();
-    const floatingRect = floating.getBoundingClientRect();
-    const viewportPadding = 8;
-    const offset = 4;
-    const maxLeft = window.innerWidth - floatingRect.width - viewportPadding;
-    const left = Math.min(
-      Math.max(referenceRect.left, viewportPadding),
-      Math.max(maxLeft, viewportPadding),
-    );
-    const topAbove = referenceRect.top - floatingRect.height - offset;
-    const topBelow = referenceRect.bottom + offset;
-    const top = topAbove >= viewportPadding ? topAbove : topBelow;
-
-    floating.style.left = `${left}px`;
-    floating.style.top = `${Math.max(top, viewportPadding)}px`;
-  }, []);
-
-  const scheduleCancel = useCallback(() => {
-    clearTimeout(clearTimerRef.current);
-    clearTimerRef.current = setTimeout(handleCancel, 700);
-  }, [handleCancel]);
-
-  useEffect(() => {
-    if (!enable) handleCancel();
-  }, [enable, handleCancel]);
-
-  const handleRemove = useCallback(() => {
-    if (!toolbarNode || !$isLinkNode(toolbarNode)) return;
-    editor.update(() => {
-      const node = $getNodeByKey(toolbarNode.getKey());
-      if (!$isLinkNode(node)) return;
-
-      let selection = $getSelection();
-      if (!selection || !$isRangeSelection(selection)) {
-        $setSelection($createRangeSelection());
-        selection = $getSelection();
-      }
-
-      const first = node.getFirstDescendant();
-      const last = node.getLastDescendant();
-
-      if (selection && $isRangeSelection(selection) && $isTextNode(first) && $isTextNode(last)) {
-        selection.anchor.set(first.getKey(), 0, 'text');
-        selection.focus.set(last.getKey(), last.getTextContentSize(), 'text');
-        editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
-        return;
-      }
-
-      const children = node.getChildren();
-      for (const child of children) {
-        node.insertBefore(child);
-      }
-      node.remove();
+  const updateToolbarPosition = useCallback(() => {
+    void updatePosition({
+      floating: divRef.current,
+      offset: 4,
+      placement: 'top-start',
+      reference: linkDomRef.current,
     });
-  }, [editor, toolbarNode]);
+  }, []);
 
-  const handleOpenLink = useCallback(() => {
-    if (!toolbarNode) return;
-    const url = editor.getEditorState().read(() => getNodeUrl(toolbarNode));
-    window.open(url, '_blank');
-  }, [editor, toolbarNode]);
+  const showToolbar = useCallback((nextNode: LinkToolbarNode, reference: HTMLElement) => {
+    clearTimeout(clearTimerRef.current);
+    linkDomRef.current?.classList.remove('hover');
+    linkDomRef.current = reference;
+    linkDomRef.current.classList.add('hover');
+    visibleLinkKeyRef.current = nextNode.getKey();
+    setToolbarNode(nextNode);
+  }, []);
 
-  const convertToLink = useCallback(() => {
-    if (!toolbarNode) return;
-    convertLinkToolbarNodeByKeyToLink(editor, toolbarNode.getKey());
-    handleCancel();
-  }, [editor, handleCancel, toolbarNode]);
-
-  const convertToCard = useCallback(() => {
-    if (!toolbarNode || !linkService) return;
-    replaceNodeByKeyWithCardNode(editor, toolbarNode.getKey(), linkService);
-    handleCancel();
-  }, [editor, handleCancel, linkService, toolbarNode]);
-
-  const convertToIframe = useCallback(() => {
-    if (!toolbarNode || !linkService) return;
-    replaceNodeByKeyWithIframeNode(editor, toolbarNode.getKey(), linkService);
-    handleCancel();
-  }, [editor, handleCancel, linkService, toolbarNode]);
-
-  const convertToSchema = useCallback(() => {
-    if (!toolbarNode || !linkService || !$isLinkNode(toolbarNode)) return;
-    convertLinkNodeByKeyToSchema(editor, toolbarNode.getKey(), linkService);
-    handleCancel();
-  }, [editor, handleCancel, linkService, toolbarNode]);
-
-  useLexicalEditor(
-    (editor) => {
-      let rootElement = editor.getRootElement();
-      const handleMouseOver = (event: MouseEvent) => {
-        if (!enable) return;
-        if (!editor.isEditable()) return;
-        if (divRef.current === null) return;
-        const reference = getLinkReferenceElement(event.target);
-        if (!reference || !rootElement?.contains(reference)) return;
-        if (event.relatedTarget instanceof Node && reference.contains(event.relatedTarget)) return;
-
-        const node = editor
-          .getEditorState()
-          .read(() => $getNearestLinkToolbarNodeFromDOMNode(reference, editor));
-        if (!node) return;
-
-        reference.classList.add('hover');
-        clearTimeout(clearTimerRef.current);
-        setToolbarNode(node);
-        positionToolbar(reference);
-      };
-      const handleMouseOut = (event: MouseEvent) => {
-        const reference = getLinkReferenceElement(event.target);
-        if (!reference || !rootElement?.contains(reference)) return;
-        if (event.relatedTarget instanceof Node && reference.contains(event.relatedTarget)) return;
-        if (event.relatedTarget instanceof Node && divRef.current?.contains(event.relatedTarget)) {
-          return;
-        }
-
-        reference.classList.remove('hover');
-        scheduleCancel();
-      };
-      const removeDocumentMouseListeners =
-        typeof document === 'undefined'
-          ? undefined
-          : (() => {
-              document.addEventListener('mouseover', handleMouseOver, true);
-              document.addEventListener('mouseout', handleMouseOut, true);
-              return () => {
-                document.removeEventListener('mouseover', handleMouseOver, true);
-                document.removeEventListener('mouseout', handleMouseOut, true);
-              };
-            })();
-
-      return mergeRegister(
-        editor.registerRootListener((nextRootElement, prevRootElement) => {
-          prevRootElement?.removeEventListener('mouseover', handleMouseOver);
-          prevRootElement?.removeEventListener('mouseout', handleMouseOut);
-          rootElement = nextRootElement;
-          nextRootElement?.addEventListener('mouseover', handleMouseOver);
-          nextRootElement?.addEventListener('mouseout', handleMouseOut);
-        }),
-        removeDocumentMouseListeners || (() => {}),
-        () => {
-          rootElement?.removeEventListener('mouseover', handleMouseOver);
-          rootElement?.removeEventListener('mouseout', handleMouseOut);
-        },
-        editor.registerUpdateListener(() => {
-          const selection = editor.getEditorState().read(() => $getSelection());
-          if (!selection) return;
-          if ($isRangeSelection(selection)) {
-            editor.getEditorState().read(() => {
-              const node = getSelectedNode(selection);
-              const parent = node.getParent();
-              const isLink = $isLinkNode(parent) || $isLinkNode(node);
-              if (isLink === state.current.isLink) return;
-              state.current.isLink = isLink;
-              if (isLink) {
-                const linkNode = $isLinkNode(parent) ? (parent as LinkNode) : (node as LinkNode);
-                editor.dispatchCommand(EDIT_LINK_COMMAND, {
-                  linkNode,
-                  linkNodeDOM: editor.getElementByKey(linkNode.getKey()),
-                });
-              } else {
-                editor.dispatchCommand(EDIT_LINK_COMMAND, {
-                  linkNode: null,
-                  linkNodeDOM: null,
-                });
-              }
-            });
-          } else {
-            state.current.isLink = false;
-          }
-        }),
-        editor.registerCommand(
-          HOVER_LINK_COMMAND,
-          (payload) => {
-            if (!enable) return false;
-            if (!editor.isEditable()) return false;
-            if (!$isLinkToolbarNode(payload.node)) return false;
-            if (!payload.event.target || divRef.current === null) return false;
-            const reference = getLinkReferenceElement(payload.event.target);
-            if (!reference) return false;
-            clearTimeout(clearTimerRef.current);
-            setToolbarNode(payload.node);
-            positionToolbar(reference);
-            return false;
-          },
-          COMMAND_PRIORITY_NORMAL,
-        ),
-        editor.registerCommand(
-          HOVER_OUT_LINK_COMMAND,
-          (payload) => {
-            if (
-              payload.event.relatedTarget instanceof Node &&
-              divRef.current?.contains(payload.event.relatedTarget)
-            ) {
-              return false;
-            }
-            scheduleCancel();
-            return true;
-          },
-          COMMAND_PRIORITY_NORMAL,
-        ),
-      );
+  const scheduleShowToolbar = useCallback(
+    (nextNode: LinkToolbarNode, reference: HTMLElement) => {
+      clearTimeout(clearTimerRef.current);
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = setTimeout(() => {
+        showToolbar(nextNode, reference);
+      }, HOVER_OPEN_DELAY);
     },
-    [enable, positionToolbar, scheduleCancel],
+    [showToolbar],
   );
 
-  const items = useMemo(() => {
+  const scheduleHideToolbar = useCallback(
+    (delay = HOVER_CLOSE_DELAY) => {
+      clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = setTimeout(() => {
+        if (!toolbarHoverRef.current) handleCancel();
+      }, delay);
+    },
+    [handleCancel],
+  );
+
+  useEffect(() => {
+    if (!enable || !editable) handleCancel();
+  }, [editable, enable, handleCancel]);
+
+  useEffect(() => {
+    if (!linkService) return;
+    return linkService.subscribe(() => {
+      setMenuVersion((version) => version + 1);
+    });
+  }, [linkService]);
+
+  const context = useMemo<LinkToolbarRenderContext | null>(() => {
+    if (!toolbarNode || !$isLinkNode(toolbarNode)) return null;
+    return {
+      close: handleCancel,
+      editor,
+      linkDom: linkDomRef.current,
+      linkNode: toolbarNode,
+    };
+  }, [editor, handleCancel, toolbarNode]);
+
+  const resolveLabel = useCallback(
+    (label: LinkToolbarItem['label']) => {
+      if (typeof label === 'function') return context ? label(context) : '';
+      return t(label as keyof ILocaleKeys);
+    },
+    [context, t],
+  );
+
+  const items = useMemo<ToolbarViewItem[]>(() => {
     if (!toolbarNode) return [];
+
+    const result: ToolbarViewItem[] = [];
     const labels = linkService?.getLabels();
     const capabilities = editor
       .getEditorState()
       .read(() => getLinkToolbarCapabilities(toolbarNode, editor, linkService));
-    const result = [];
 
-    if ($isLinkNode(toolbarNode)) {
+    if (context && linkService) {
+      result.push(
+        ...linkService.getToolbarItems(context).map((item) => ({
+          icon: toolbarIconMap[item.icon],
+          key: item.key,
+          label: resolveLabel(item.label),
+          onClick: () => {
+            void item.onClick(context);
+          },
+        })),
+      );
+    } else {
       result.push({
-        icon: EditIcon,
-        key: 'edit',
-        label: t('link.edit'),
-        onClick: handleEdit,
+        icon: ExternalLinkIcon,
+        key: 'open',
+        label: t('link.open'),
+        onClick: () => {
+          const url = editor.getEditorState().read(() => getNodeUrl(toolbarNode));
+          window.open(url, '_blank');
+        },
       });
     }
 
-    result.push({
-      icon: ExternalLinkIcon,
-      key: 'openLink',
-      label: t('link.open'),
-      onClick: handleOpenLink,
-    });
-
-    if (capabilities.canConvertToCard && $isLinkNode(toolbarNode)) {
+    if (capabilities.canConvertToCard) {
       result.push({
         icon: BaselineIcon,
         key: 'convertToCard',
         label: labels?.convertToCard || 'Convert to card',
-        onClick: convertToCard,
+        onClick: () => {
+          if (!linkService) return;
+          replaceNodeByKeyWithCardNode(editor, toolbarNode.getKey(), linkService);
+          handleCancel();
+        },
       });
     }
 
-    if (capabilities.canConvertToIframe && $isLinkNode(toolbarNode)) {
+    if (capabilities.canConvertToIframe) {
       result.push({
         icon: ExternalLinkIcon,
         key: 'convertToIframe',
         label: labels?.convertToIframe || 'Convert to iframe',
-        onClick: convertToIframe,
+        onClick: () => {
+          if (!linkService) return;
+          replaceNodeByKeyWithIframeNode(editor, toolbarNode.getKey(), linkService);
+          handleCancel();
+        },
       });
     }
 
-    if (capabilities.canConvertToIframe && $isLinkCardNode(toolbarNode)) {
-      result.push({
-        icon: ExternalLinkIcon,
-        key: 'convertCardToIframe',
-        label: labels?.convertToIframe || 'Convert to iframe',
-        onClick: convertToIframe,
-      });
-    }
-
-    if (capabilities.canConvertToCard && $isLinkIframeNode(toolbarNode)) {
-      result.push({
-        icon: BaselineIcon,
-        key: 'convertIframeToCard',
-        label: labels?.convertToCard || 'Convert to card',
-        onClick: convertToCard,
-      });
-    }
-
-    if (capabilities.canConvertToSchema) {
+    if (capabilities.canConvertToSchema && $isLinkNode(toolbarNode)) {
       result.push({
         icon: LinkIcon,
         key: 'convertToSchema',
         label: labels?.convertToSchema || 'Convert to schema',
-        onClick: convertToSchema,
+        onClick: () => {
+          if (!linkService) return;
+          convertLinkNodeByKeyToSchema(editor, toolbarNode.getKey(), linkService);
+          handleCancel();
+        },
       });
     }
 
@@ -352,17 +231,8 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
         icon: LinkIcon,
         key: 'convertToLink',
         label: labels?.convertToLink || 'Convert to link',
-        onClick: convertToLink,
-      });
-    }
-
-    if ($isLinkNode(toolbarNode)) {
-      result.push({
-        icon: UnlinkIcon,
-        key: 'unlink',
-        label: t('link.unlink'),
         onClick: () => {
-          handleRemove();
+          convertLinkToolbarNodeByKeyToLink(editor, toolbarNode.getKey());
           handleCancel();
         },
       });
@@ -371,7 +241,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
     if (linkService) {
       result.push(
         ...linkService.getToolbarActions({ editor, node: toolbarNode }).map((action) => ({
-          icon: action.icon as any,
+          icon: (action.icon || LinkIcon) as IconProps['icon'],
           key: action.key,
           label: action.label,
           onClick: () => {
@@ -383,59 +253,172 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
     }
 
     return result;
-  }, [
-    convertToCard,
-    convertToIframe,
-    convertToLink,
-    convertToSchema,
-    editor,
-    handleCancel,
-    handleEdit,
-    handleOpenLink,
-    handleRemove,
-    linkService,
-    t,
-    toolbarNode,
-  ]);
+  }, [context, editor, handleCancel, linkService, menuVersion, resolveLabel, t, toolbarNode]);
+
+  useLayoutEffect(() => {
+    if (!toolbarNode || items.length === 0) return;
+    updateToolbarPosition();
+  }, [items.length, menuVersion, toolbarNode, updateToolbarPosition]);
 
   useEffect(() => {
-    if (!toolbarNode || items.length === 0 || !LinkRef.current) return;
-    positionToolbar(LinkRef.current);
-  }, [items.length, positionToolbar, toolbarNode]);
+    if (!toolbarNode || typeof window === 'undefined') return;
+    const handleViewportChange = () => updateToolbarPosition();
+    window.addEventListener('resize', handleViewportChange, { passive: true });
+    window.addEventListener('scroll', handleViewportChange, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, { capture: true });
+    };
+  }, [toolbarNode, updateToolbarPosition]);
+
+  useLexicalEditor(
+    (lexicalEditor) => {
+      let rootElement = lexicalEditor.getRootElement();
+
+      const handleMouseOver = (event: MouseEvent) => {
+        if (!enable || !editable || !rootElement) return;
+        const reference = getLinkReferenceElement(event.target);
+        if (!reference || !rootElement.contains(reference)) return;
+        if (event.relatedTarget instanceof Node && reference.contains(event.relatedTarget)) return;
+
+        const node = lexicalEditor
+          .getEditorState()
+          .read(() => $getNearestLinkToolbarNodeFromDOMNode(reference, lexicalEditor));
+        if (!node) return;
+
+        if (visibleLinkKeyRef.current) showToolbar(node, reference);
+        else scheduleShowToolbar(node, reference);
+      };
+
+      const handleMouseOut = (event: MouseEvent) => {
+        const reference = getLinkReferenceElement(event.target);
+        if (!reference || !rootElement?.contains(reference)) return;
+        if (event.relatedTarget instanceof Node && reference.contains(event.relatedTarget)) return;
+        if (event.relatedTarget instanceof Node && divRef.current?.contains(event.relatedTarget)) {
+          return;
+        }
+
+        clearTimeout(showTimerRef.current);
+        if (visibleLinkKeyRef.current !== selectedLinkKeyRef.current) scheduleHideToolbar();
+      };
+
+      if (typeof document !== 'undefined') {
+        document.addEventListener('mouseover', handleMouseOver, true);
+        document.addEventListener('mouseout', handleMouseOut, true);
+      }
+
+      return mergeRegister(
+        lexicalEditor.registerRootListener((nextRootElement) => {
+          rootElement = nextRootElement;
+        }),
+        lexicalEditor.registerUpdateListener(() => {
+          if (!enable || !editable) {
+            selectedLinkKeyRef.current = null;
+            return;
+          }
+
+          const selection = lexicalEditor.getEditorState().read(() => $getSelection());
+          if (!$isRangeSelection(selection)) {
+            selectedLinkKeyRef.current = null;
+            scheduleHideToolbar();
+            return;
+          }
+
+          lexicalEditor.getEditorState().read(() => {
+            const selectedNode = getSelectedNode(selection);
+            const parent = selectedNode.getParent();
+            const selectedToolbarNode = $isLinkToolbarNode(selectedNode)
+              ? selectedNode
+              : $isLinkToolbarNode(parent)
+                ? parent
+                : null;
+
+            if (!selectedToolbarNode) {
+              selectedLinkKeyRef.current = null;
+              scheduleHideToolbar();
+              return;
+            }
+
+            const selectedLinkKey = selectedToolbarNode.getKey();
+            if (selectedLinkKey === selectedLinkKeyRef.current) return;
+            selectedLinkKeyRef.current = selectedLinkKey;
+            const dom = lexicalEditor.getElementByKey(selectedLinkKey);
+            if (dom) showToolbar(selectedToolbarNode, dom);
+          });
+        }),
+        lexicalEditor.registerCommand(
+          HOVER_LINK_COMMAND,
+          (payload) => {
+            if (!enable || !editable || !payload.event.target) return false;
+            const reference = getLinkReferenceElement(payload.event.target);
+            if (!reference || !$isLinkToolbarNode(payload.node)) return false;
+            if (visibleLinkKeyRef.current) showToolbar(payload.node, reference);
+            else scheduleShowToolbar(payload.node, reference);
+            return false;
+          },
+          COMMAND_PRIORITY_NORMAL,
+        ),
+        lexicalEditor.registerCommand(
+          HOVER_OUT_LINK_COMMAND,
+          () => {
+            clearTimeout(showTimerRef.current);
+            if (visibleLinkKeyRef.current !== selectedLinkKeyRef.current) scheduleHideToolbar();
+            return true;
+          },
+          COMMAND_PRIORITY_NORMAL,
+        ),
+        () => {
+          if (typeof document !== 'undefined') {
+            document.removeEventListener('mouseover', handleMouseOver, true);
+            document.removeEventListener('mouseout', handleMouseOut, true);
+          }
+          clearTimeout(clearTimerRef.current);
+          clearTimeout(showTimerRef.current);
+        },
+      );
+    },
+    [editable, enable, scheduleHideToolbar, scheduleShowToolbar, showToolbar],
+  );
+
+  if (items.length === 0) return <div className={styles.linkToolbar} ref={divRef} />;
 
   return (
     <div
       className={styles.linkToolbar}
-      onMouseDown={(event) => {
-        clearTimeout(clearTimerRef.current);
-        event.preventDefault();
-        event.stopPropagation();
-      }}
       onMouseEnter={() => {
+        toolbarHoverRef.current = true;
         clearTimeout(clearTimerRef.current);
       }}
       onMouseLeave={() => {
-        scheduleCancel();
-      }}
-      onMouseMove={() => {
-        clearTimeout(clearTimerRef.current);
+        toolbarHoverRef.current = false;
+        scheduleHideToolbar(120);
       }}
       ref={divRef}
     >
-      <ActionIconGroup
-        items={items}
-        onActionClick={({ domEvent }) => {
-          clearTimeout(clearTimerRef.current);
-          domEvent.preventDefault();
-          domEvent.stopPropagation();
+      <Flexbox
+        align={'center'}
+        gap={8}
+        horizontal
+        onMouseDown={(event) => {
+          event.preventDefault();
         }}
-        shadow
-        size={{
-          blockSize: 32,
-          size: 16,
-        }}
-        variant={'outlined'}
-      />
+      >
+        {items.map((item) => (
+          <Flexbox
+            align={'center'}
+            aria-label={item.label}
+            className={styles.popoverActionItem}
+            horizontal
+            justify={'center'}
+            key={item.key}
+            onClick={item.onClick}
+            role={'button'}
+            title={item.label}
+          >
+            <Icon icon={item.icon} size={{ size: 18 }} />
+          </Flexbox>
+        ))}
+      </Flexbox>
     </div>
   );
 });

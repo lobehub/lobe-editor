@@ -25,6 +25,8 @@ export default {
     replace: 'Replace',
   },
   link: {
+    copy: 'Copy Link',
+    copySuccess: 'Link copied',
     convertToCard: 'Convert to Card',
     convertToIframe: 'Convert to Iframe',
     convertToLink: 'Convert to Link',

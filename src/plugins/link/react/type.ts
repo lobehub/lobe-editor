@@ -10,11 +10,17 @@ import type {
   SchemaRenderer,
 } from './renderer-registry';
 
+export type ReactLinkDefaultToolbarItemKey = 'copy' | 'edit' | 'open' | 'unlink';
+
+export type ReactLinkDefaultToolbarItems =
+  boolean | Partial<Record<ReactLinkDefaultToolbarItemKey, boolean>>;
+
 export interface ReactLinkPluginProps {
   allowedProtocols?: string[];
   /** Registration-time option. Remount ReactLinkPlugin to apply changes. */
   attributes?: LinkAttributes;
   className?: string;
+  defaultToolbarItems?: ReactLinkDefaultToolbarItems;
   /** Registration-time option. Remount ReactLinkPlugin to apply changes. */
   enableHotkey?: boolean;
   labels?: Partial<LinkLabels>;

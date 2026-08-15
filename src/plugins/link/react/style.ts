@@ -59,13 +59,26 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
 
         overflow: hidden;
 
-        border: 1px solid ${cssVar.colorBorderSecondary};
+        padding-block: 6px;
+        padding-inline: 10px;
+        border: 1px solid ${cssVar.colorBorder};
         border-radius: 6px;
 
         background: ${cssVar.colorBgElevated};
         box-shadow: ${cssVar.boxShadowSecondary};
       `,
     ),
+
+    popoverActionItem: css`
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      border-radius: ${cssVar.borderRadius}px;
+
+      &:hover {
+        background: ${cssVar.colorFillQuaternary};
+      }
+    `,
 
     schemaLink: css`
       margin-block: 8px;

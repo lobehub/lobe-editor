@@ -1,6 +1,3 @@
-/* eslint-disable no-redeclare */
-/* eslint-disable @typescript-eslint/no-redeclare */
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import EventEmitter from 'eventemitter3';
 import type { LexicalEditor, LexicalNode } from 'lexical';
 
@@ -100,7 +97,26 @@ export interface LinkServiceConfig {
   toolbarActions?: LinkToolbarAction[];
 }
 
+export type LinkToolbarItemIcon = 'copy' | 'edit' | 'open' | 'unlink';
+
+export interface LinkToolbarRenderContext {
+  close: () => void;
+  editor: LexicalEditor;
+  linkDom: HTMLElement | null;
+  linkNode: LinkNode;
+}
+
+export interface LinkToolbarItem {
+  icon: LinkToolbarItemIcon;
+  key: string;
+  label: string | ((context: LinkToolbarRenderContext) => string);
+  onClick: (context: LinkToolbarRenderContext) => void | Promise<void>;
+  order?: number;
+  when?: (context: LinkToolbarRenderContext) => boolean;
+}
+
 export interface ILinkService {
+  readonly enableLinkToolbar: boolean;
   getAllowedProtocols(): Set<string>;
   getEmbedRule(url: string, context: LinkRuleContext): LinkEmbedRule | null;
   getLabels(): LinkLabels;
@@ -109,10 +125,13 @@ export interface ILinkService {
     context: LinkRuleContext & { schema?: ParsedSchemaUrl | null },
   ): SchemaRule | null;
   getToolbarActions(context: LinkToolbarActionContext): LinkToolbarAction[];
+  getToolbarItems(context: LinkToolbarRenderContext): LinkToolbarItem[];
   hasSchemaLinkRenderer(url: string): boolean;
   parseSchemaUrl(url: string): ParsedSchemaUrl | null;
+  registerToolbarItem(item: LinkToolbarItem): () => void;
   restoreLinkToolbar(token: symbol): void;
   setLinkToolbar(enable: boolean): void;
+  subscribe(listener: () => void): () => void;
   suppressLinkToolbar(reason?: string): symbol;
   updateConfig(config?: LinkServiceConfig): void;
 }
@@ -231,11 +250,15 @@ class LinkToolbarController {
   }
 }
 
-export class LinkService extends EventEmitter<'linkToolbarChange'> implements ILinkService {
+export class LinkService
+  extends EventEmitter<'change' | 'linkToolbarChange'>
+  implements ILinkService
+{
   private protocolPolicy = new LinkProtocolPolicy();
   private legacySchemaLinkRegistry = new LegacySchemaLinkRegistry();
   private ruleRegistry = new LinkRuleRegistry();
   private toolbarController = new LinkToolbarController();
+  private toolbarItems: Map<string, LinkToolbarItem> = new Map();
 
   public get enableLinkToolbar(): boolean {
     return this.toolbarController.enabled;
@@ -316,7 +339,6 @@ export class LinkService extends EventEmitter<'linkToolbarChange'> implements IL
   setLabels(labels?: Partial<LinkLabels>): void {
     this.toolbarController.setLabels(labels);
   }
-
   setSchemaLinkRenderers(renderers: SchemaLinkRendererConfig[] = []): void {
     this.legacySchemaLinkRegistry.setSchemaLinkRenderers(renderers);
   }
@@ -327,6 +349,23 @@ export class LinkService extends EventEmitter<'linkToolbarChange'> implements IL
 
   setToolbarActions(actions: LinkToolbarAction[] = []): void {
     this.toolbarController.setToolbarActions(actions);
+    this.emit('change');
+  }
+
+  getToolbarItems(context: LinkToolbarRenderContext): LinkToolbarItem[] {
+    return Array.from(this.toolbarItems.values())
+      .filter((item) => (item.when ? item.when(context) : true))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  registerToolbarItem(item: LinkToolbarItem): () => void {
+    this.toolbarItems.set(item.key, item);
+    this.emit('change');
+
+    return () => {
+      this.toolbarItems.delete(item.key);
+      this.emit('change');
+    };
   }
 
   setLinkToolbar(enable: boolean): void {
@@ -345,6 +384,14 @@ export class LinkService extends EventEmitter<'linkToolbarChange'> implements IL
     if (this.toolbarController.restore(token)) {
       this.emit('linkToolbarChange', this.toolbarController.enabled);
     }
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.on('change', listener);
+
+    return () => {
+      this.off('change', listener);
+    };
   }
 }
 

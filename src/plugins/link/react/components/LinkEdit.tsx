@@ -26,9 +26,9 @@ import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { cleanPosition, updatePosition } from '@/utils/updatePosition';
 
 import { UPDATE_LINK_TEXT_COMMAND } from '../../command';
-import type { LinkNode } from '../../node/LinkNode';
-import { EDIT_LINK_CARD_COMMAND } from '../../node/LinkCardNode';
 import type { LinkCardNode } from '../../node/LinkCardNode';
+import { EDIT_LINK_CARD_COMMAND } from '../../node/LinkCardNode';
+import type { LinkNode } from '../../node/LinkNode';
 import { styles } from '../style';
 
 export const EDIT_LINK_COMMAND = createCommand<{
@@ -185,6 +185,13 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
         floating: divRef.current,
         reference: linkDom,
       });
+      const focusTimer = setTimeout(() => {
+        linkInputRef.current?.focus();
+      });
+
+      return () => {
+        clearTimeout(focusTimer);
+      };
     } else {
       cleanPosition(divRef.current);
     }
