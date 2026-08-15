@@ -6,6 +6,35 @@ import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 import { MathPlugin } from '../plugin';
 
 describe('Math plugin', () => {
+  it('should keep inline math markdown as text when inline math is disabled', () => {
+    const editor = new Kernel();
+    editor.registerPlugins([
+      MarkdownPlugin,
+      CommonPlugin,
+      [MathPlugin, { enableInlineMath: false }],
+    ]);
+
+    editor.setRootElement(document.createElement('div'));
+    editor.setDocument('markdown', 'Budget variable: $x$');
+
+    expect(editor.getDocument('text')).toBe('Budget variable: $x$');
+    expect(JSON.stringify(editor.getDocument('json'))).not.toContain('"type":"math"');
+  });
+
+  it('should preserve block math parsing when inline math is disabled', () => {
+    const editor = new Kernel();
+    editor.registerPlugins([
+      MarkdownPlugin,
+      CommonPlugin,
+      [MathPlugin, { enableInlineMath: false }],
+    ]);
+
+    editor.setRootElement(document.createElement('div'));
+    editor.setDocument('markdown', '$$\nE=mc^2\n$$');
+
+    expect(JSON.stringify(editor.getDocument('json'))).toContain('"type":"mathBlock"');
+  });
+
   it('should math markdown writer work', () => {
     const editor = new Kernel();
     editor.registerPlugins([MarkdownPlugin, CommonPlugin, MathPlugin]);

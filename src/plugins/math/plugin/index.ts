@@ -19,6 +19,8 @@ import { isLikelyMathContent } from '../utils';
 
 export interface MathPluginOptions {
   decorator?: (node: MathInlineNode | MathBlockNode, editor: LexicalEditor) => unknown;
+  /** Enable `$...$` shortcuts and Markdown inline-math parsing. Defaults to true. */
+  enableInlineMath?: boolean;
   theme?: {
     mathBlock?: string;
     mathInline?: string;
@@ -107,26 +109,28 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
   registerMarkdown() {
     const markdownService = this.kernel.requireService(IMarkdownShortCutService);
 
-    markdownService?.registerMarkdownShortCut({
-      regExp: /\$([^\s$](?:[^$]*[^\s$])?)\$\s?$/,
-      replace: (textNode, match) => {
-        const [, code] = match;
+    if (this.config?.enableInlineMath !== false) {
+      markdownService?.registerMarkdownShortCut({
+        regExp: /\$([^\s$](?:[^$]*[^\s$])?)\$\s?$/,
+        replace: (textNode, match) => {
+          const [, code] = match;
 
-        if (!isLikelyMathContent(code)) return;
+          if (!isLikelyMathContent(code)) return;
 
-        const mathNode = $createMathInlineNode(code);
-        this.logger.debug('Math node inserted:', mathNode);
-        // textNode.replace(mathNode);
-        textNode.insertBefore(mathNode);
-        textNode.setTextContent('');
-        textNode.select();
-        // mathNode.selectEnd();
+          const mathNode = $createMathInlineNode(code);
+          this.logger.debug('Math node inserted:', mathNode);
+          // textNode.replace(mathNode);
+          textNode.insertBefore(mathNode);
+          textNode.setTextContent('');
+          textNode.select();
+          // mathNode.selectEnd();
 
-        return;
-      },
-      trigger: '$',
-      type: 'text-match',
-    });
+          return;
+        },
+        trigger: '$',
+        type: 'text-match',
+      });
+    }
 
     markdownService?.registerMarkdownShortCut({
       regExp: /^(\$\$)$/,
@@ -158,12 +162,14 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
       return true;
     });
 
-    markdownService?.registerMarkdownReader('inlineMath', (node) => {
-      return INodeHelper.createElementNode('math', {
-        code: node.value,
-        version: 1,
+    if (this.config?.enableInlineMath !== false) {
+      markdownService?.registerMarkdownReader('inlineMath', (node) => {
+        return INodeHelper.createElementNode('math', {
+          code: node.value,
+          version: 1,
+        });
       });
-    });
+    }
 
     markdownService?.registerMarkdownReader('math', (node) => {
       return INodeHelper.createElementNode('mathBlock', {

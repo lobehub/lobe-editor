@@ -11,18 +11,24 @@ import MathInline from './components/MathInline';
 import { styles } from './style';
 import type { ReactMathPluginProps } from './type';
 
-export const ReactMathPlugin: FC<ReactMathPluginProps> = ({ className, renderComp, theme }) => {
+export const ReactMathPlugin: FC<ReactMathPluginProps> = ({
+  className,
+  enableInlineMath,
+  renderComp,
+  theme,
+}) => {
   const [editor] = useLexicalComposerContext();
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(MathPlugin, {
+      enableInlineMath,
       decorator: (node, editor) => {
         return <MathInline className={className} editor={editor} node={node} />;
       },
       theme: theme || styles,
     });
-  }, [editor, className, theme, styles]);
+  }, [editor, className, enableInlineMath, theme]);
 
   return <MathEdit renderComp={renderComp} />;
 };
