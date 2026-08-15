@@ -13,6 +13,7 @@ import type {
   RangeSelection,
   SerializedElementNode,
   Spread,
+  ElementDOMSlot,
 } from 'lexical';
 import {
   $applyNodeReplacement,
@@ -26,8 +27,10 @@ import {
   ElementNode,
 } from 'lexical';
 
-import { assert } from '@/editor-kernel/utils';
+import { assert, getKernelFromEditorConfig } from '@/editor-kernel/utils';
 import { createDebugLogger } from '@/utils/debug';
+
+import { ILinkService, LinkService } from '../service/i-link-service';
 
 const logger = createDebugLogger('plugin', 'link');
 
@@ -52,7 +55,7 @@ const SUPPORTED_URL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'sms:', '
 
 export const HOVER_LINK_COMMAND = createCommand<{
   event: MouseEvent;
-  linkNode: LinkNode;
+  node: LexicalNode;
 }>('HOVER_LINK_COMMAND');
 export const HOVER_OUT_LINK_COMMAND = createCommand<{
   event: MouseEvent;
@@ -100,7 +103,7 @@ export class LinkNode extends ElementNode {
         event.target.classList.add('hover');
         editor.dispatchCommand(HOVER_LINK_COMMAND, {
           event: event as MouseEvent,
-          linkNode: this,
+          node: this,
         });
       }
     });
@@ -122,8 +125,9 @@ export class LinkNode extends ElementNode {
     _config: EditorConfig,
   ) {
     if (isHTMLAnchorElement(anchor)) {
+      const linkService = getLinkServiceFromConfig(_config);
       if (!prevNode || prevNode.__url !== this.__url) {
-        anchor.href = this.sanitizeUrl(this.__url);
+        anchor.href = this.sanitizeUrl(this.__url, linkService?.getAllowedProtocols());
       }
       for (const attr of ['target', 'rel', 'title'] as const) {
         const key = `__${attr}` as const;
@@ -166,12 +170,13 @@ export class LinkNode extends ElementNode {
       .setTitle(serializedNode.title || null);
   }
 
-  sanitizeUrl(url: string): string {
+  sanitizeUrl(url: string, allowedProtocols: Set<string> = SUPPORTED_URL_PROTOCOLS): string {
+    // eslint-disable-next-line no-param-reassign
     url = formatUrl(url);
     try {
       const parsedUrl = new URL(formatUrl(url));
-
-      if (!SUPPORTED_URL_PROTOCOLS.has(parsedUrl.protocol)) {
+      // eslint-disable-next-line no-script-url
+      if (!allowedProtocols.has(parsedUrl.protocol)) {
         return 'about:blank';
       }
     } catch {
@@ -278,6 +283,16 @@ export class LinkNode extends ElementNode {
   isWebSiteURI(): boolean {
     return this.__url.startsWith('https://') || this.__url.startsWith('http://');
   }
+
+  getDOMSlot(element: HTMLElement): ElementDOMSlot<HTMLElement> {
+    return super.getDOMSlot(element);
+  }
+}
+
+function getLinkServiceFromConfig(config: EditorConfig): LinkService | null {
+  return (
+    (getKernelFromEditorConfig(config)?.requireService(ILinkService) as LinkService | null) || null
+  );
 }
 
 function $convertAnchorElement(domNode: Node): DOMConversionOutput {
@@ -311,7 +326,9 @@ export function $createLinkNode(url: string = '', attributes?: LinkAttributes): 
  * @returns true if node is a LinkNode, false otherwise.
  */
 export function $isLinkNode(node: LexicalNode | null | undefined): node is LinkNode {
-  return node instanceof LinkNode;
+  return (
+    node instanceof LinkNode || node?.getType?.() === 'link' || node?.getType?.() === 'autolink'
+  );
 }
 
 export type SerializedAutoLinkNode = Spread<

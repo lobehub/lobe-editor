@@ -10,6 +10,7 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  type LinkEmbedRule,
   ReactAutoCompletePlugin,
   ReactBlockPlugin,
   ReactCodePlugin,
@@ -27,6 +28,7 @@ import {
   ReactToolbarPlugin,
   ReactVirtualBlockPlugin,
   ReactYjsPlugin,
+  type SchemaRule,
   type SlashOptions,
   type YjsProviderFactory,
   scrollIntoView,
@@ -47,6 +49,7 @@ import {
 } from 'lucide-react';
 import { type FC, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import linkDemoContent from '@/plugins/link/demos/data.json';
 import { devConsole } from '@/utils/debug';
 
 import { createBroadcastChannelYjsProvider } from './BroadcastChannelYjsProvider';
@@ -92,7 +95,7 @@ const getTabUser = () => {
   return user;
 };
 
-const styles = createStaticStyles(({ css }) => ({
+const styles = createStaticStyles(({ css, cssVar }) => ({
   controls: css`
     display: flex;
     flex-wrap: wrap;
@@ -106,6 +109,131 @@ const styles = createStaticStyles(({ css }) => ({
   `,
   editor: css`
     padding: 16px;
+  `,
+  linkCard: css`
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+
+    max-width: min(320px, 100%);
+    padding-block: 0;
+    padding-inline: 2px;
+
+    line-height: 1;
+    color: ${cssVar.colorLink};
+    text-decoration: none;
+    vertical-align: baseline;
+
+    &[data-selected='true'] {
+      border-radius: 5px;
+      outline: 2px solid ${cssVar.colorPrimaryBorder};
+      outline-offset: 1px;
+    }
+
+    &:hover {
+      color: ${cssVar.colorLinkHover};
+      text-decoration: none;
+    }
+  `,
+  linkCardIcon: css`
+    position: relative;
+    inset-block-start: 0.06em;
+
+    overflow: hidden;
+    display: grid;
+    flex: none;
+    place-items: center;
+
+    width: 1.1em;
+    height: 1.1em;
+    border-radius: 5px;
+
+    font-size: 11px;
+    line-height: 1;
+    color: ${cssVar.colorTextSecondary};
+
+    background: ${cssVar.colorFillQuaternary};
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  `,
+  linkCardTitle: css`
+    overflow: hidden;
+    display: inline-block;
+
+    min-width: 0;
+
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  linkIframe: css`
+    position: relative;
+
+    overflow: hidden;
+
+    width: 100%;
+    border: 1px solid ${cssVar.colorBorderSecondary};
+    border-radius: 8px;
+
+    &[data-selected='true'],
+    &:focus,
+    &:focus-within {
+      border-color: ${cssVar.colorPrimary};
+      outline: none;
+      box-shadow: 0 0 0 2px ${cssVar.colorPrimaryBg};
+    }
+  `,
+  linkIframeLoading: css`
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+
+    height: 320px;
+
+    font-size: 13px;
+    color: ${cssVar.colorTextSecondary};
+
+    background: ${cssVar.colorFillQuaternary};
+  `,
+  linkIframeSpinner: css`
+    width: 14px;
+    height: 14px;
+    border: 2px solid ${cssVar.colorBorderSecondary};
+    border-block-start-color: ${cssVar.colorPrimary};
+    border-radius: 50%;
+
+    animation: lobe-link-iframe-spin 1s linear infinite;
+
+    @keyframes lobe-link-iframe-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  `,
+  linkIframeTitle: css`
+    padding-block: 8px;
+    padding-inline: 10px;
+    border-block-end: 1px solid ${cssVar.colorBorderSecondary};
+
+    font-size: 12px;
+    color: ${cssVar.colorTextSecondary};
+  `,
+  schemaLink: css`
+    display: inline-grid;
+    gap: 4px;
+
+    padding-block: 8px;
+    padding-inline: 10px;
+    border: 1px solid ${cssVar.colorBorderSecondary};
+    border-radius: 8px;
+
+    background: ${cssVar.colorFillQuaternary};
   `,
   modeBar: css`
     display: flex;
@@ -124,9 +252,7 @@ const connectionStatusColors: Record<WebSocketYjsProviderStatus, string> = {
 };
 
 function getInitialYjsDemoMode(): 'broadcast' | 'websocket' {
-  if (typeof window === 'undefined') {
-    return 'broadcast';
-  }
+  if (typeof window === 'undefined') return 'broadcast';
 
   return new URLSearchParams(window.location.search).get('yjsMode') === 'websocket'
     ? 'websocket'
@@ -148,6 +274,60 @@ function getDocumentSafely<T>(editor: IEditor, type: string, fallback: T): T {
   }
 }
 
+const amapIcon =
+  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22%3E%3Crect width=%2248%22 height=%2248%22 rx=%2210%22 fill=%22%23f6fbff%22/%3E%3Cpath d=%22M8 24 40 8 27 40l-5-13-14-3Z%22 fill=%22%231677ff%22/%3E%3Cpath d=%22m22 27 18-19-13 32-5-13Z%22 fill=%22%2300b96b%22 opacity=%22.82%22/%3E%3Cpath d=%22M8 24 40 8 19 29l3-2-14-3Z%22 fill=%22%2369c0ff%22/%3E%3C/svg%3E';
+
+const amapRule: LinkEmbedRule = {
+  allowCard: true,
+  allowIframe: true,
+  getCardPayload: (url) => ({
+    icon: amapIcon,
+    title: '高德地图',
+    url,
+  }),
+  getIframePayload: (url) => ({
+    src: url,
+    title: 'Amap embed',
+    url,
+  }),
+  id: 'amap-share',
+  match: (url) => /(^https?:\/\/)?(uri\.amap\.com|amap\.com)\//.test(url),
+};
+
+const genericWebRule: LinkEmbedRule = {
+  allowCard: true,
+  allowIframe: true,
+  getCardPayload: (url, context) => ({
+    title: context.title || url,
+    url,
+  }),
+  id: 'generic-web',
+  match: (url) => /^https?:\/\//.test(url),
+};
+
+const schemaRules: SchemaRule[] = [
+  {
+    id: 'schema-card',
+    match: (url) => url.startsWith('schema://'),
+    parse: (url, schema) => ({
+      payload: schema,
+      schemaType: schema?.host || 'schema',
+      title: `Schema ${schema?.pathname || url}`,
+      url,
+    }),
+  },
+  {
+    id: 'alipay',
+    match: (url) => url.startsWith('alipay://'),
+    parse: (url, schema) => ({
+      payload: schema,
+      schemaType: 'alipay',
+      title: 'Alipay schema action',
+      url,
+    }),
+  },
+];
+
 const EditorDemo: FC<EditorDemoProps> = ({
   content,
   onEditorReady,
@@ -160,6 +340,18 @@ const EditorDemo: FC<EditorDemoProps> = ({
   const [markdown, setMarkdown] = useState('');
   const [xml, setXml] = useState('');
   const tabUser = useMemo(() => getTabUser(), []);
+  const editorContent = useMemo(() => {
+    const document = content as { root?: { children?: unknown[] } };
+    if (!document?.root?.children) return content;
+
+    return {
+      ...document,
+      root: {
+        ...document.root,
+        children: [...linkDemoContent.root.children, ...document.root.children],
+      },
+    };
+  }, [content]);
 
   const handleChange = useMemo(
     () =>
@@ -369,7 +561,7 @@ const EditorDemo: FC<EditorDemoProps> = ({
       </div>
       <Editor
         className={styles.editor}
-        content={content}
+        content={editorContent}
         editor={editor}
         lineEmptyPlaceholder={'Start typing here...'}
         mentionOption={{
@@ -393,7 +585,76 @@ const EditorDemo: FC<EditorDemoProps> = ({
           ReactLiteXmlPlugin,
           ReactBlockPlugin,
           ReactListPlugin,
-          ReactLinkPlugin,
+          Editor.withProps(ReactLinkPlugin, {
+            allowedProtocols: ['schema:', 'alipay:'],
+            labels: {
+              convertToCard: 'Card',
+              convertToIframe: 'Iframe',
+              convertToLink: 'Link',
+              convertToSchema: 'Schema',
+            },
+            linkEmbedRules: [amapRule, genericWebRule],
+            renderLinkCard: ({
+              icon,
+              isSelected,
+              onClickCapture,
+              onMouseDownCapture,
+              openTarget,
+              title,
+              url,
+            }) => (
+              <a
+                className={styles.linkCard}
+                data-selected={isSelected}
+                href={url}
+                onClickCapture={onClickCapture}
+                onMouseDownCapture={onMouseDownCapture}
+                rel="noreferrer"
+                target={openTarget || '_blank'}
+              >
+                <span aria-hidden className={styles.linkCardIcon}>
+                  {icon ? <img alt="" src={icon} /> : title.slice(0, 1).toUpperCase()}
+                </span>
+                <span className={styles.linkCardTitle}>{title}</span>
+              </a>
+            ),
+            renderLinkIframe: ({
+              isLoading,
+              isSelected,
+              onLoad,
+              onMouseDownCapture,
+              src,
+              title,
+            }) => (
+              <div className={styles.linkIframe} data-selected={isSelected} tabIndex={0}>
+                <div className={styles.linkIframeTitle} onMouseDownCapture={onMouseDownCapture}>
+                  {title}
+                </div>
+                {isLoading && (
+                  <div className={styles.linkIframeLoading}>
+                    <span className={styles.linkIframeSpinner} />
+                    Loading embed...
+                  </div>
+                )}
+                <iframe
+                  height={320}
+                  onLoad={onLoad}
+                  src={src}
+                  style={{ border: 0, display: isLoading ? 'none' : 'block', width: '100%' }}
+                  title={title}
+                />
+              </div>
+            ),
+            renderSchema: ({ payload, schema, schemaType, title, url }) => (
+              <div className={styles.schemaLink}>
+                <strong>{title}</strong>
+                <span>{schemaType}</span>
+                <code>{schema?.protocol || url}</code>
+                <small>{JSON.stringify(payload)}</small>
+              </div>
+            ),
+            schemaRules,
+          }),
           ReactImagePlugin,
           // ReactCodeblockPlugin,
           ReactVirtualBlockPlugin,

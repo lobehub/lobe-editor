@@ -4,13 +4,33 @@
       {
         "children": [
           {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "",
+            "text": "Hover these links and convert them: ",
+            "type": "text",
+            "version": 1
+          }
+        ],
+        "direction": "ltr",
+        "format": "",
+        "indent": 0,
+        "textFormat": 0,
+        "textStyle": "",
+        "type": "paragraph",
+        "version": 1
+      },
+      {
+        "children": [
+          {
             "children": [
               {
                 "detail": 0,
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "lobehub",
+                "text": "LobeHub website",
                 "type": "text",
                 "version": 1
               }
@@ -18,26 +38,123 @@
             "direction": "ltr",
             "format": "",
             "indent": 0,
-            "type": "link",
-            "version": 1,
             "rel": null,
             "target": null,
-            "title": "http://lobehub.com",
-            "url": "http://lobehub.com"
+            "title": "LobeHub website",
+            "type": "link",
+            "url": "https://lobehub.com",
+            "version": 1
           }
         ],
         "direction": "ltr",
         "format": "",
         "indent": 0,
-        "type": "paragraph",
-        "version": 1,
         "textFormat": 0,
-        "textStyle": ""
+        "textStyle": "",
+        "type": "paragraph",
+        "version": 1
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": "Amap share link",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": "ltr",
+            "format": "",
+            "indent": 0,
+            "rel": null,
+            "target": null,
+            "title": "Amap share link",
+            "type": "link",
+            "url": "https://uri.amap.com/marker?position=116.397428,39.90923&name=Beijing",
+            "version": 1
+          }
+        ],
+        "direction": "ltr",
+        "format": "",
+        "indent": 0,
+        "textFormat": 0,
+        "textStyle": "",
+        "type": "paragraph",
+        "version": 1
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": "Schema card",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": "ltr",
+            "format": "",
+            "indent": 0,
+            "rel": null,
+            "target": null,
+            "title": "Schema card",
+            "type": "link",
+            "url": "schema://card/123?source=demo",
+            "version": 1
+          }
+        ],
+        "direction": "ltr",
+        "format": "",
+        "indent": 0,
+        "textFormat": 0,
+        "textStyle": "",
+        "type": "paragraph",
+        "version": 1
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": "Alipay action",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": "ltr",
+            "format": "",
+            "indent": 0,
+            "rel": null,
+            "target": null,
+            "title": "Alipay action",
+            "type": "link",
+            "url": "alipay://pay/2088?amount=10",
+            "version": 1
+          }
+        ],
+        "direction": "ltr",
+        "format": "",
+        "indent": 0,
+        "textFormat": 0,
+        "textStyle": "",
+        "type": "paragraph",
+        "version": 1
       }
     ],
     "direction": "ltr",
-    "format": "",
-    "indent": 0,
     "type": "root",
     "version": 1
   }
