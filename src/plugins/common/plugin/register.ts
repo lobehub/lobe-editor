@@ -1,4 +1,5 @@
 import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code-core';
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import { $isHeadingNode, QuoteNode } from '@lexical/rich-text';
 import { mergeRegister } from '@lexical/utils';
 import type { ElementNode, LexicalEditor, LexicalNode, PointType, RangeSelection } from 'lexical';
@@ -52,7 +53,11 @@ function resolveElement(
       block = parent;
     }
   }
-  return block.getChildAtIndex(isBackward ? offset - 1 : offset);
+  const childIndex = isBackward ? offset - 1 : offset;
+  if (childIndex < 0 || childIndex >= block.getChildrenSize()) {
+    return null;
+  }
+  return block.getChildAtIndex(childIndex);
 }
 
 function isCodeNodeLastLine(focusNode: LexicalNode) {
@@ -132,6 +137,12 @@ export function $getDownUpNode(focus: PointType, isUp: boolean): null | LexicalN
 function $isSelectionAtEndOfRoot(selection: RangeSelection) {
   const focus = selection.focus;
   return focus.key === 'root' && focus.offset === $getRoot().getChildrenSize();
+}
+
+function $isSelectionInList(selection: RangeSelection) {
+  return Boolean(
+    $closest(selection.focus.getNode(), (node) => $isListNode(node) || $isListItemNode(node)),
+  );
 }
 
 export function registerHeaderBackspace(editor: LexicalEditor) {
@@ -280,6 +291,9 @@ export function registerRichKeydown(
             return true;
           }
         } else if ($isRangeSelection(selection)) {
+          if ($isSelectionInList(selection)) {
+            return false;
+          }
           const possibleNode = $getAdjacentNode(selection.focus, true);
           const upblock = possibleNode || $getDownUpNode(selection.focus, true);
           if (!event.shiftKey && $isDecoratorNode(possibleNode)) {
@@ -376,6 +390,9 @@ export function registerRichKeydown(
           if ($isSelectionAtEndOfRoot(selection)) {
             event.preventDefault();
             return true;
+          }
+          if ($isSelectionInList(selection)) {
+            return false;
           }
           const possibleNode = $getAdjacentNode(selection.focus, false);
           const upblock = possibleNode || $getDownUpNode(selection.focus, false);
