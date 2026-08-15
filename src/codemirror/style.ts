@@ -51,6 +51,48 @@ export const styles = createStaticStyles(
       transition: all 0.3s;
     }
 
+    &.collab-locked {
+      cursor: not-allowed;
+    }
+
+    &.collab-locked::after {
+      pointer-events: none;
+      content: '';
+
+      position: absolute;
+      z-index: 11;
+      inset: 0;
+
+      background: ${cssVar.colorFillSecondary};
+    }
+
+    &.collab-locked .cm-container {
+      opacity: 0.72;
+    }
+
+    .cm-collab-lock {
+      position: absolute;
+      z-index: 12;
+      inset-block-start: 8px;
+      inset-inline-end: 8px;
+
+      overflow: hidden;
+
+      max-width: min(240px, calc(100% - 16px));
+      padding-block: 2px;
+      padding-inline: 6px;
+      border-radius: 6px;
+
+      font-size: 12px;
+      line-height: 18px;
+      color: ${cssVar.colorTextSecondary};
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      background: ${cssVar.colorBgElevated};
+      box-shadow: ${cssVar.boxShadowTertiary};
+    }
+
     .cm-container {
       position: relative;
       width: 100%;
