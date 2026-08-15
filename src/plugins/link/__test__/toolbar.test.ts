@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getLinkToolbarCapabilities,
+  replaceNodeByKeyWithCardNode,
   replaceWithBlockIframeNode,
   replaceWithCardNode,
   replaceWithIframeNode,
@@ -206,6 +207,90 @@ describe('link toolbar conversions', () => {
 
     expect(childType).toBe('link-card');
     expect(title).toBe('Card title');
+  });
+
+  it('resolves asynchronous metadata when converting a link to a card', async () => {
+    const lexicalEditor = createEditor({
+      nodes: [LinkNode, LinkCardNode, LinkIframeNode, SchemaNode],
+    });
+    const linkService = new LinkService();
+    linkService.setEmbedRules([
+      {
+        allowCard: true,
+        getCardPayload: async (url) => ({
+          description: 'Fetched description',
+          icon: 'https://lobehub.com/favicon.ico',
+          title: 'Fetched title',
+          url,
+        }),
+        id: 'web',
+        match: (url) => /^https?:\/\//.test(url),
+      },
+    ]);
+
+    let linkKey = '';
+    await lexicalEditor.update(() => {
+      const paragraph = $createParagraphNode();
+      const linkNode = new LinkNode('https://lobehub.com', { title: 'Original title' });
+      linkNode.append($createTextNode('Original title'));
+      linkKey = linkNode.getKey();
+      paragraph.append(linkNode);
+      $getRoot().append(paragraph);
+    });
+
+    await replaceNodeByKeyWithCardNode(lexicalEditor, linkKey, linkService);
+
+    lexicalEditor.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChildOrThrow();
+      expect($isElementNode(paragraph)).toBe(true);
+      if (!$isElementNode(paragraph)) return;
+      const card = paragraph.getFirstChild();
+      expect(card).toBeInstanceOf(LinkCardNode);
+      if (!(card instanceof LinkCardNode)) return;
+      expect(card.getTitle()).toBe('Fetched title');
+      expect(card.getDescription()).toBe('Fetched description');
+      expect(card.getIcon()).toBe('https://lobehub.com/favicon.ico');
+    });
+  });
+
+  it('falls back to the original link when asynchronous metadata fails', async () => {
+    const lexicalEditor = createEditor({
+      nodes: [LinkNode, LinkCardNode, LinkIframeNode, SchemaNode],
+    });
+    const linkService = new LinkService();
+    linkService.setEmbedRules([
+      {
+        allowCard: true,
+        getCardPayload: async () => {
+          throw new Error('metadata unavailable');
+        },
+        id: 'web',
+        match: (url) => /^https?:\/\//.test(url),
+      },
+    ]);
+
+    let linkKey = '';
+    await lexicalEditor.update(() => {
+      const paragraph = $createParagraphNode();
+      const linkNode = new LinkNode('https://lobehub.com', { title: 'Original title' });
+      linkNode.append($createTextNode('Original title'));
+      linkKey = linkNode.getKey();
+      paragraph.append(linkNode);
+      $getRoot().append(paragraph);
+    });
+
+    await replaceNodeByKeyWithCardNode(lexicalEditor, linkKey, linkService);
+
+    lexicalEditor.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChildOrThrow();
+      expect($isElementNode(paragraph)).toBe(true);
+      if (!$isElementNode(paragraph)) return;
+      const card = paragraph.getFirstChild();
+      expect(card).toBeInstanceOf(LinkCardNode);
+      if (!(card instanceof LinkCardNode)) return;
+      expect(card.getTitle()).toBe('Original title');
+      expect(card.getURL()).toBe('https://lobehub.com');
+    });
   });
 
   it('converts a regular link node to a block iframe node', async () => {

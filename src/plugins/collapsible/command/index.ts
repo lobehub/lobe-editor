@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
+import type { LexicalEditor, LexicalNode, NodeKey } from 'lexical';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -7,9 +7,6 @@ import {
   $insertNodes,
   $isRangeSelection,
   COMMAND_PRIORITY_EDITOR,
-  LexicalEditor,
-  LexicalNode,
-  NodeKey,
   createCommand,
 } from 'lexical';
 
@@ -38,7 +35,10 @@ export const UPDATE_COLLAPSIBLE_COMMAND = createCommand<UpdateCollapsiblePayload
   'UPDATE_COLLAPSIBLE_COMMAND',
 );
 
-export function registerCollapsibleCommand(editor: LexicalEditor) {
+export function registerCollapsibleCommand(
+  editor: LexicalEditor,
+  canCollapse: (node: CollapsibleNode) => boolean = () => true,
+) {
   const unregisterInsert = editor.registerCommand(
     INSERT_COLLAPSIBLE_COMMAND,
     (payload = {}) => {
@@ -46,10 +46,7 @@ export function registerCollapsibleCommand(editor: LexicalEditor) {
         const payloadChildren = payload.children;
         const hasPayloadChildren = Boolean(payloadChildren?.length);
         const title = payload.title ?? (hasPayloadChildren ? 'Details' : '');
-        const collapsibleNode = $createCollapsibleNode(
-          title,
-          Boolean(payload.collapsed),
-        );
+        const collapsibleNode = $createCollapsibleNode(title, Boolean(payload.collapsed));
         let children: LexicalNode[];
         if (payloadChildren?.length) {
           children = ensureTitleChild(payloadChildren, title);
@@ -86,7 +83,7 @@ export function registerCollapsibleCommand(editor: LexicalEditor) {
           node.setTitle(title);
           updateTitleChild(node, title);
         }
-        if (collapsed !== undefined) {
+        if (collapsed !== undefined && (!collapsed || canCollapse(node))) {
           node.setCollapsed(collapsed);
         }
       });

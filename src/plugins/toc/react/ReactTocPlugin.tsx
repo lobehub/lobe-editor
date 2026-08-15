@@ -1,24 +1,38 @@
 'use client';
 
 import type { FC } from 'react';
+import { useInsertionEffect } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
+import type { IEditor } from '@/types';
 
-import TocView from './TocView';
+import { TocPlugin } from '../plugin';
 import type { ReactTocPluginProps } from './type';
 
-const TocViewWithContext: FC<Omit<ReactTocPluginProps, 'editor'>> = (props) => {
+const HeadlessTocPlugin: FC<ReactTocPluginProps & { editor: IEditor }> = ({
+  editor,
+  maxDepth = 6,
+  minDepth = 1,
+}) => {
+  useInsertionEffect(() => {
+    editor.registerPlugin(TocPlugin, { maxDepth, minDepth });
+  }, [editor, maxDepth, minDepth]);
+
+  return null;
+};
+
+const TocPluginWithContext: FC<Omit<ReactTocPluginProps, 'editor'>> = (props) => {
   const [editor] = useLexicalComposerContext();
 
-  return <TocView {...props} editor={editor} />;
+  return <HeadlessTocPlugin {...props} editor={editor} />;
 };
 
 const ReactTocPlugin: FC<ReactTocPluginProps> = ({ editor, ...props }) => {
   if (editor) {
-    return <TocView {...props} editor={editor} />;
+    return <HeadlessTocPlugin {...props} editor={editor} />;
   }
 
-  return <TocViewWithContext {...props} />;
+  return <TocPluginWithContext {...props} />;
 };
 
 ReactTocPlugin.displayName = 'ReactTocPlugin';

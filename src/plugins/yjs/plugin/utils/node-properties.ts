@@ -23,26 +23,6 @@ function shouldIgnoreNodeProperty(property: string, node: LexicalNode, binding: 
   return Boolean(excludedProperties?.has(property));
 }
 
-export function initializeYjsNodeProperties(binding: Binding): void {
-  binding.editor.update(
-    () => {
-      binding.editor._nodes.forEach(({ klass }) => {
-        const node = new klass();
-        const defaultProperties: Record<string, unknown> = {};
-
-        for (const [property, value] of Object.entries(node)) {
-          if (!shouldIgnoreNodeProperty(property, node, binding)) {
-            defaultProperties[property] = value;
-          }
-        }
-
-        binding.nodeProperties.set(node.__type, Object.freeze(defaultProperties));
-      });
-    },
-    { discrete: true },
-  );
-}
-
 function ensureYjsNodeProperties(binding: Binding, node: LexicalNode): void {
   if (binding.nodeProperties.has(node.__type)) {
     return;

@@ -208,8 +208,9 @@ When the last client leaves:
 
 1. The room becomes idle.
 2. Awareness is cleared.
-3. The room's `Y.Doc` is kept in memory for a while.
-4. Cleanup may evict the room later.
+3. The room's `Y.Doc` is kept in memory for up to the configured idle TTL.
+4. Cleanup evicts the room after the TTL, when the idle-room limit is exceeded,
+   or when heap pressure requires it.
 
 An idle room can be evicted when any of these conditions is met:
 
@@ -291,8 +292,10 @@ storage API behind the existing backend boundary.
 8. Verify the remote cursor label is visible in the other client.
 9. Click Save JSON and confirm `/documents/editor-demo` returns
    `source: "explicit-save"`.
-10. Close both clients and confirm `/rooms` eventually shows an idle room or no
-    room after cleanup.
+10. Close both clients and confirm `/rooms` reports the room as idle with zero
+    clients and zero awareness states.
+11. For lifecycle testing, restart the server with a short idle TTL and cleanup
+    interval, then confirm the idle room is eventually removed.
 
 ## AI Maintenance Guide
 

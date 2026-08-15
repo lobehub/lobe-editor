@@ -1,11 +1,11 @@
 import {
   type Binding,
   CONNECTED_COMMAND,
-  type Provider,
-  TOGGLE_CONNECT_COMMAND,
   createBinding,
+  type Provider,
   syncLexicalUpdateToYjs,
   syncYjsChangesToLexical,
+  TOGGLE_CONNECT_COMMAND,
 } from '@lexical/yjs';
 import {
   $getRoot,
@@ -14,7 +14,7 @@ import {
   type LexicalEditor,
   SKIP_COLLAB_TAG,
 } from 'lexical';
-import type { Doc, YEvent, Text as YText } from 'yjs';
+import type { Doc, Text as YText, YEvent } from 'yjs';
 import { UndoManager } from 'yjs';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
@@ -25,10 +25,7 @@ import type { YjsPluginOptions } from './types';
 import { getAwarenessUsers } from './utils/awareness';
 import { clearEditorSkipCollab, initializeEditor } from './utils/editor-state';
 import { registerYjsHistory } from './utils/history';
-import {
-  ensureYjsNodePropertiesFromEditorState,
-  initializeYjsNodeProperties,
-} from './utils/node-properties';
+import { ensureYjsNodePropertiesFromEditorState } from './utils/node-properties';
 import { hydrateLexicalFromYjsState, syncCurrentEditorStateToYjs } from './utils/sync';
 
 export type { YjsInitialEditorState, YjsPluginOptions, YjsProviderFactory } from './types';
@@ -360,8 +357,6 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
       this.docMap,
       excludedProperties,
     );
-    initializeYjsNodeProperties(binding);
-
     this.setServiceState(binding, id, provider, this.docMap.get(id));
     this.registerAwareness(provider);
     this.registerYjsTreeSync(binding, provider);

@@ -80,6 +80,11 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     }
   `,
   iframeLoading: css`
+    position: absolute;
+    z-index: 1;
+    inset-block-end: 0;
+    inset-inline: 0;
+
     display: flex;
     gap: 8px;
     align-items: center;
@@ -247,7 +252,12 @@ export default () => {
               height={320}
               onLoad={onLoad}
               src={src}
-              style={{ border: 0, display: isLoading ? 'none' : 'block', width: '100%' }}
+              style={{
+                border: 0,
+                display: 'block',
+                visibility: isLoading ? 'hidden' : 'visible',
+                width: '100%',
+              }}
               title={title}
             />
           </div>

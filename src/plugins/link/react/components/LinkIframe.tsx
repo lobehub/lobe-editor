@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import { $createNodeSelection, $getNodeByKey, $setSelection, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $createNodeSelection, $getNodeByKey, $setSelection } from 'lexical';
 import {
   type FC,
   type MouseEventHandler,
@@ -9,8 +9,8 @@ import {
   useState,
 } from 'react';
 
-import { LinkIframeNode } from '../../node/LinkIframeNode';
-import { LinkReactRendererRegistry } from '../renderer-registry';
+import type { LinkIframeNode } from '../../node/LinkIframeNode';
+import type { LinkReactRendererRegistry } from '../renderer-registry';
 
 interface LinkIframeProps {
   editor: LexicalEditor;
@@ -24,12 +24,9 @@ interface LinkIframeProps {
 const LinkIframe: FC<LinkIframeProps> = ({ editor, node, rendererRegistry, src, title, url }) => {
   const key = node.getKey();
   const [isSelected, setIsSelected] = useState(() => isNodeSelected(editor, key));
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const isLoading = loadedSrc !== src;
   const [, setRendererVersion] = useState(0);
-
-  useEffect(() => {
-    setIsLoading(true);
-  }, [src]);
 
   useEffect(() => {
     return editor.registerUpdateListener(() => {
@@ -48,8 +45,8 @@ const LinkIframe: FC<LinkIframeProps> = ({ editor, node, rendererRegistry, src, 
   }, [rendererRegistry]);
 
   const onLoad = useCallback(() => {
-    setIsLoading(false);
-  }, []);
+    setLoadedSrc(src);
+  }, [src]);
 
   const onMouseDownCapture = useCallback<MouseEventHandler<HTMLElement>>(
     (event) => {
@@ -94,7 +91,7 @@ function isNodeSelected(editor: LexicalEditor, key: string): boolean {
   });
 }
 
-function DefaultLinkIframe(props: {
+export function DefaultLinkIframe(props: {
   isEditable: boolean;
   isLoading: boolean;
   isSelected: boolean;
@@ -137,12 +134,17 @@ function DefaultLinkIframe(props: {
           style={{
             alignItems: 'center',
             background: 'rgba(0,0,0,0.03)',
+            bottom: 0,
             color: 'rgba(0,0,0,0.45)',
             display: 'flex',
             fontSize: 13,
             gap: 8,
             height: 320,
             justifyContent: 'center',
+            left: 0,
+            position: 'absolute',
+            right: 0,
+            zIndex: 1,
           }}
         >
           <span
@@ -165,8 +167,9 @@ function DefaultLinkIframe(props: {
         src={props.src}
         style={{
           border: 0,
-          display: props.isLoading ? 'none' : 'block',
+          display: 'block',
           height: 320,
+          visibility: props.isLoading ? 'hidden' : 'visible',
           width: '100%',
         }}
         title={props.title}

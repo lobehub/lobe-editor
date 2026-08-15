@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -354,7 +356,12 @@ function handleSocketConnection(socket, request) {
   }
 
   const id = decodeURIComponent(roomMatch[1]);
-  const clientId = Number(url.searchParams.get('clientId') || Date.now());
+  const clientIdParam = url.searchParams.get('clientId');
+  const requestedClientId = Number(clientIdParam);
+  const clientId =
+    clientIdParam !== null && Number.isSafeInteger(requestedClientId) && requestedClientId >= 0
+      ? requestedClientId
+      : Date.now();
   const room = getRoom(id);
 
   socket.isAlive = true;
@@ -402,18 +409,18 @@ function handleSocketConnection(socket, request) {
         return;
       }
       room.lastActiveAt = Date.now();
-      broadcast(room, socket, message);
+      broadcast(room, socket, { ...message, sender: clientId });
       return;
     }
 
     if (message.type === 'awareness') {
       if (message.state) {
-        room.awareness.set(message.sender, message.state);
+        room.awareness.set(clientId, message.state);
       } else {
-        room.awareness.delete(message.sender);
+        room.awareness.delete(clientId);
       }
 
-      broadcast(room, socket, message);
+      broadcast(room, socket, { ...message, sender: clientId });
     }
   });
 

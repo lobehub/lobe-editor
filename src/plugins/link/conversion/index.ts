@@ -1,25 +1,27 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
+import type { LexicalEditor, LexicalNode } from 'lexical';
 import {
   $createParagraphNode,
   $createTextNode,
   $getNodeByKey,
   $isParagraphNode,
   $isRootNode,
-  LexicalEditor,
-  LexicalNode,
 } from 'lexical';
 
-import { $createLinkCardNode, $isLinkCardNode, LinkCardNode } from '../node/LinkCardNode';
-import { $createLinkIframeNode, $isLinkIframeNode, LinkIframeNode } from '../node/LinkIframeNode';
-import { $createLinkNode, $isLinkNode, LinkNode } from '../node/LinkNode';
-import { $createSchemaNode, $isSchemaNode, SchemaNode } from '../node/SchemaNode';
-import {
+import type { LinkCardNode } from '../node/LinkCardNode';
+import { $createLinkCardNode, $isLinkCardNode } from '../node/LinkCardNode';
+import type { LinkIframeNode } from '../node/LinkIframeNode';
+import { $createLinkIframeNode, $isLinkIframeNode } from '../node/LinkIframeNode';
+import type { LinkNode } from '../node/LinkNode';
+import { $createLinkNode, $isLinkNode } from '../node/LinkNode';
+import type { SchemaNode } from '../node/SchemaNode';
+import { $createSchemaNode, $isSchemaNode } from '../node/SchemaNode';
+import type {
+  LinkEmbedRule,
   LinkRuleContext,
   LinkService,
   LinkToolbarNode,
-  getNodeTitle,
-  getNodeUrl,
 } from '../service/i-link-service';
+import { getNodeTitle, getNodeUrl } from '../service/i-link-service';
 
 export interface LinkToolbarCapabilities {
   canConvertToCard: boolean;
@@ -124,26 +126,76 @@ export function replaceWithCardNode(
   const context = createRuleContext(editor, title, title);
   const rule = linkService.getEmbedRule(url, context);
   const payload = rule?.getCardPayload?.(url, context);
+
+  if (isPromiseLike(payload)) {
+    throw new TypeError(
+      'Async link card payloads require replaceNodeByKeyWithCardNode so the Lexical update does not cross an await boundary.',
+    );
+  }
+
+  return replaceWithResolvedCardNode(node, payload, { title, url });
+}
+
+function replaceWithResolvedCardNode(
+  node: LinkNode | LinkIframeNode,
+  payload: Awaited<ReturnType<NonNullable<LinkEmbedRule['getCardPayload']>>> | undefined,
+  fallback: { title: string; url: string },
+): LinkCardNode {
   const cardNode = $createLinkCardNode({
     description: payload?.description,
     icon: payload?.icon,
     openTarget: payload?.openTarget || ($isLinkNode(node) ? node.getTarget() : null) || '_blank',
-    title: payload?.title || title,
-    url: payload?.url || url,
+    title: payload?.title || fallback.title,
+    url: payload?.url || fallback.url,
   });
   replaceWithInlineNode(node, cardNode);
   return cardNode;
 }
 
-export function replaceNodeByKeyWithCardNode(
+export async function replaceNodeByKeyWithCardNode(
   editor: LexicalEditor,
   key: string,
   linkService: LinkService,
-): void {
+): Promise<void> {
+  let request:
+    | {
+        payload: ReturnType<NonNullable<LinkEmbedRule['getCardPayload']>> | undefined;
+        title: string;
+        url: string;
+      }
+    | undefined;
+
+  editor.getEditorState().read(() => {
+    const node = $getNodeByKey(key);
+    if (!$isLinkNode(node) && !$isLinkIframeNode(node)) return;
+
+    const url = getNodeUrl(node);
+    const title = getNodeTitle(node);
+    const context = createRuleContext(editor, title, title);
+    const rule = linkService.getEmbedRule(url, context);
+    request = {
+      payload: rule?.getCardPayload?.(url, context),
+      title,
+      url,
+    };
+  });
+
+  if (!request) return;
+  const resolvedRequest = request;
+
+  let payload: Awaited<typeof resolvedRequest.payload> | undefined;
+  try {
+    payload = await resolvedRequest.payload;
+  } catch {
+    payload = undefined;
+  }
+
   editor.update(() => {
     const node = $getNodeByKey(key);
     if (!$isLinkNode(node) && !$isLinkIframeNode(node)) return;
-    replaceWithCardNode(node, editor, linkService);
+    if (getNodeUrl(node) !== resolvedRequest.url) return;
+
+    replaceWithResolvedCardNode(node, payload, resolvedRequest);
   });
 }
 
@@ -234,6 +286,10 @@ export function $isLinkToolbarNode(node: LexicalNode | null | undefined): node i
 
 function createRuleContext(editor: LexicalEditor, text: string, title: string): LinkRuleContext {
   return { editor, text, title };
+}
+
+function isPromiseLike<T>(value: T | Promise<T> | undefined): value is Promise<T> {
+  return Boolean(value && typeof (value as Promise<T>).then === 'function');
 }
 
 function normalizeSchemaPayload(payload: Record<string, unknown>): Record<string, unknown> {

@@ -49,7 +49,10 @@ export interface SchemaPayload {
 export interface LinkEmbedRule {
   allowCard?: boolean;
   allowIframe?: boolean;
-  getCardPayload?: (url: string, context: LinkRuleContext) => LinkCardPayload;
+  getCardPayload?: (
+    url: string,
+    context: LinkRuleContext,
+  ) => LinkCardPayload | Promise<LinkCardPayload>;
   getIframePayload?: (url: string, context: LinkRuleContext) => LinkIframePayload;
   id: string;
   match: (url: string, context: LinkRuleContext) => boolean;

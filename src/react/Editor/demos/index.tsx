@@ -50,18 +50,18 @@ import {
 import { type FC, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import linkDemoContent from '@/plugins/link/demos/data.json';
-import { devConsole } from '@/utils/debug';
-
-import { createBroadcastChannelYjsProvider } from './BroadcastChannelYjsProvider';
-import Container from './Container';
-import Toolbar from './Toolbar';
 import {
   type WebSocketYjsProviderStatus,
   createWebSocketYjsProvider,
   fetchWebSocketDemoDocument,
   saveWebSocketDemoDocument,
   snapshotWebSocketDemoDocument,
-} from './WebSocketYjsProvider';
+} from '@/plugins/yjs/websocket-provider';
+import { devConsole } from '@/utils/debug';
+
+import { createBroadcastChannelYjsProvider } from './BroadcastChannelYjsProvider';
+import Container from './Container';
+import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
 import localContent from './data.json';
 
@@ -105,7 +105,7 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
 
     padding-block: 12px;
     padding-inline: 16px;
-    border-block-end: 1px solid rgba(0, 0, 0, 6%);
+    border-block-end: 1px solid rgb(0 0 0 / 6%);
   `,
   editor: css`
     padding: 16px;
@@ -189,6 +189,11 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     }
   `,
   linkIframeLoading: css`
+    position: absolute;
+    z-index: 1;
+    inset-block-end: 0;
+    inset-inline: 0;
+
     display: flex;
     gap: 8px;
     align-items: center;
@@ -640,7 +645,12 @@ const EditorDemo: FC<EditorDemoProps> = ({
                   height={320}
                   onLoad={onLoad}
                   src={src}
-                  style={{ border: 0, display: isLoading ? 'none' : 'block', width: '100%' }}
+                  style={{
+                    border: 0,
+                    display: 'block',
+                    visibility: isLoading ? 'hidden' : 'visible',
+                    width: '100%',
+                  }}
                   title={title}
                 />
               </div>
@@ -664,10 +674,7 @@ const EditorDemo: FC<EditorDemoProps> = ({
           ReactTablePlugin,
           ReactMathPlugin,
           ReactCodePlugin,
-          Editor.withProps(ReactTocPlugin, {
-            offsetTop: 88,
-            reserveGap: 24,
-          }),
+          ReactTocPlugin,
           Editor.withProps(ReactYjsPlugin, {
             cursorColor: tabUser.color,
             id: 'editor-demo',

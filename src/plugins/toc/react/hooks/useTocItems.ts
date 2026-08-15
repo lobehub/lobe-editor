@@ -5,7 +5,7 @@ import type { IEditor } from '@/types';
 import { ITocService, type ITocService as TocService } from '../../service';
 import type { TocItem } from '../../types';
 
-interface UseTocItemsOptions {
+export interface UseTocItemsOptions {
   editor: IEditor;
   maxDepth: number;
   minDepth: number;

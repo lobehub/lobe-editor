@@ -1,16 +1,17 @@
 import type { Provider, ProviderAwareness, UserState } from '@lexical/yjs';
-import { Doc, applyUpdate, encodeStateAsUpdate } from 'yjs';
+import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 
 const DEFAULT_HTTP_BASE_URL = 'http://localhost:12345';
 const DEFAULT_WS_BASE_URL = 'ws://localhost:12345';
 const MAX_RECONNECT_DELAY_MS = 10_000;
 const MIN_RECONNECT_DELAY_MS = 500;
 
+export interface CreateWebSocketYjsProviderOptions {
+  wsBaseUrl?: string;
+}
+
 export type WebSocketYjsProviderStatus =
-  | 'connected'
-  | 'connecting'
-  | 'disconnected'
-  | 'reconnecting';
+  'connected' | 'connecting' | 'disconnected' | 'reconnecting';
 
 type ProviderEventMap = {
   reload: (doc: Doc) => void;
@@ -366,11 +367,12 @@ export class WebSocketYjsProvider implements Provider {
 export function createWebSocketYjsProvider(
   id: string,
   yjsDocMap: Map<string, Doc>,
+  options: CreateWebSocketYjsProviderOptions = {},
 ): WebSocketYjsProvider {
   const doc = yjsDocMap.get(id) || new Doc();
   yjsDocMap.set(id, doc);
 
-  return new WebSocketYjsProvider(id, doc);
+  return new WebSocketYjsProvider(id, doc, options.wsBaseUrl);
 }
 
 export async function fetchWebSocketDemoDocument(id: string): Promise<unknown> {

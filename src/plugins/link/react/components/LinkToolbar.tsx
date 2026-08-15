@@ -194,7 +194,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
         label: labels?.convertToCard || 'Convert to card',
         onClick: () => {
           if (!linkService) return;
-          replaceNodeByKeyWithCardNode(editor, toolbarNode.getKey(), linkService);
+          void replaceNodeByKeyWithCardNode(editor, toolbarNode.getKey(), linkService);
           handleCancel();
         },
       });

@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
+import { getAnchorAndFocusCollabNodesForUserState } from '@lexical/yjs';
+import type { LexicalEditor, LexicalNode, RangeSelection } from 'lexical';
 import {
   $createParagraphNode,
   $getNodeByKey,
@@ -10,9 +11,6 @@ import {
   COMMAND_PRIORITY_EDITOR,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
-  LexicalEditor,
-  LexicalNode,
-  RangeSelection,
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
 
@@ -22,6 +20,7 @@ import { $getNearestNodeFromDOMNode } from '@/editor-kernel/utils';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { INSERT_TABLE_COMMAND } from '@/plugins/table/command';
+import { IYjsService, type YjsPluginState } from '@/plugins/yjs/service';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCollapsibleCommand } from '../command';
@@ -55,7 +54,11 @@ export const CollapsiblePlugin: IEditorPluginConstructor<CollapsiblePluginOption
   }
 
   onInit(editor: LexicalEditor): void {
-    this.register(registerCollapsibleCommand(editor));
+    const canCollapse = (node: CollapsibleNode) =>
+      !hasRemoteSelectionInsideCollapsible(this.kernel, node);
+
+    this.register(registerCollapsibleCommand(editor, canCollapse));
+    this.register(registerCollaborativeCollapseGuard(editor, this.kernel));
     this.register(registerCollapsibleDomBehavior(editor));
     this.register(registerCollapsedSelectionGuard(editor));
     this.register(registerTableInsertionBoundary(editor));
@@ -128,6 +131,90 @@ export const CollapsiblePlugin: IEditorPluginConstructor<CollapsiblePluginOption
     });
   }
 };
+
+function registerCollaborativeCollapseGuard(editor: LexicalEditor, kernel: IEditorKernel) {
+  const handleClick = (event: MouseEvent) => {
+    if (event.defaultPrevented) return;
+
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const toggle = target.closest<HTMLElement>(TOGGLE_SELECTOR);
+    const section = toggle?.closest<HTMLElement>(COLLAPSIBLE_SELECTOR);
+    if (!section) return;
+
+    let shouldBlock = false;
+    editor.getEditorState().read(() => {
+      const node = $getCollapsibleNodeFromSection(section, editor);
+      shouldBlock = Boolean(
+        node && !node.isCollapsed() && hasRemoteSelectionInsideCollapsible(kernel, node),
+      );
+    });
+
+    if (!shouldBlock) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+
+  return editor.registerRootListener((rootElement, prevRootElement) => {
+    prevRootElement?.removeEventListener('click', handleClick, true);
+    rootElement?.addEventListener('click', handleClick, true);
+  });
+}
+
+function hasRemoteSelectionInsideCollapsible(
+  kernel: IEditorKernel,
+  collapsible: CollapsibleNode,
+): boolean {
+  const collaborationState = kernel.requireService(IYjsService)?.getState();
+  if (!collaborationState) return false;
+
+  const awarenessStates = collaborationState.provider.awareness.getStates();
+  for (const [clientId, userState] of awarenessStates) {
+    if (clientId === collaborationState.binding.clientID) continue;
+
+    const selectionNodes = getRemoteSelectionNodes(collaborationState, clientId, userState);
+    if (selectionNodes.some((node) => isDescendantOf(node, collapsible))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getRemoteSelectionNodes(
+  collaborationState: YjsPluginState,
+  clientId: number,
+  userState: ReturnType<YjsPluginState['provider']['awareness']['getLocalState']>,
+): LexicalNode[] {
+  if (!userState) return [];
+
+  try {
+    const { anchorCollabNode, focusCollabNode } = getAnchorAndFocusCollabNodesForUserState(
+      collaborationState.binding,
+      userState,
+    );
+    const anchorNode = anchorCollabNode?.getNode() as LexicalNode | null | undefined;
+    const focusNode = focusCollabNode?.getNode() as LexicalNode | null | undefined;
+    return [anchorNode, focusNode].filter((node): node is LexicalNode => Boolean(node));
+  } catch {
+    const selection = collaborationState.binding.cursors.get(clientId)?.selection;
+    if (!selection) return [];
+
+    const nodes = [$getNodeByKey(selection.anchor.key), $getNodeByKey(selection.focus.key)];
+    return nodes.filter((node): node is LexicalNode => Boolean(node));
+  }
+}
+
+function isDescendantOf(node: LexicalNode, ancestor: LexicalNode): boolean {
+  let current: LexicalNode | null = node;
+  while (current) {
+    if (current.is(ancestor)) return true;
+    current = current.getParent();
+  }
+  return false;
+}
 
 function getHtmlTagName(value: string): string {
   const match = value.match(/^<\/?\s*([\da-z-]+)/i);
@@ -326,12 +413,7 @@ function moveCollapsibleSelection(
     if (direction === 'down') {
       return collapsible.isCollapsed()
         ? selectAfterCollapsedBlock(collapsible)
-        : selectExpandedAdjacentChildOrBlock(
-            collapsible,
-            childIndex,
-            true,
-            temporaryParagraphKeys,
-          );
+        : selectExpandedAdjacentChildOrBlock(collapsible, childIndex, true, temporaryParagraphKeys);
     }
 
     if (collapsible.isCollapsed()) {
@@ -353,7 +435,9 @@ function moveCollapsibleSelection(
     direction === 'down' ? topLevelNode.getNextSibling() : topLevelNode.getPreviousSibling();
   if (!$isCollapsibleNode(adjacent)) return false;
 
-  return direction === 'down' ? selectFirstVisibleChild(adjacent) : selectLastVisibleChild(adjacent);
+  return direction === 'down'
+    ? selectFirstVisibleChild(adjacent)
+    : selectLastVisibleChild(adjacent);
 }
 
 function moveCollapsibleSelectionFromDOM(
@@ -375,12 +459,7 @@ function moveCollapsibleSelectionFromDOM(
   if (direction === 'down') {
     return collapsible.isCollapsed()
       ? selectAfterCollapsedBlock(collapsible)
-      : selectExpandedAdjacentChildOrBlock(
-          collapsible,
-          childIndex,
-          true,
-          temporaryParagraphKeys,
-        );
+      : selectExpandedAdjacentChildOrBlock(collapsible, childIndex, true, temporaryParagraphKeys);
   }
 
   if (collapsible.isCollapsed()) {
@@ -389,20 +468,14 @@ function moveCollapsibleSelectionFromDOM(
       : selectBeforeBlock(collapsible, temporaryParagraphKeys);
   }
 
-  return selectExpandedAdjacentChildOrBlock(
-    collapsible,
-    childIndex,
-    false,
-    temporaryParagraphKeys,
-  );
+  return selectExpandedAdjacentChildOrBlock(collapsible, childIndex, false, temporaryParagraphKeys);
 }
 
 function getSelectionCollapsibleSection(selection: Selection | null): HTMLElement | null {
   const anchorNode = selection?.anchorNode;
   if (!anchorNode) return null;
 
-  const anchorElement =
-    anchorNode instanceof HTMLElement ? anchorNode : anchorNode.parentElement;
+  const anchorElement = anchorNode instanceof HTMLElement ? anchorNode : anchorNode.parentElement;
   return anchorElement?.closest<HTMLElement>(COLLAPSIBLE_SELECTOR) || null;
 }
 
@@ -411,8 +484,7 @@ function getDOMSelectionChildIndex(section: HTMLElement, selection: Selection | 
   const anchorNode = selection?.anchorNode;
   if (!content || !anchorNode) return -1;
 
-  const anchorElement =
-    anchorNode instanceof HTMLElement ? anchorNode : anchorNode.parentElement;
+  const anchorElement = anchorNode instanceof HTMLElement ? anchorNode : anchorNode.parentElement;
   if (!anchorElement || !content.contains(anchorElement)) return -1;
 
   const directChild = anchorElement.closest<HTMLElement>(`${CONTENT_SELECTOR} > *`);
@@ -558,9 +630,12 @@ function registerCollapsedSelectionGuard(editor: LexicalEditor) {
     cleanupScheduled = true;
     queueMicrotask(() => {
       cleanupScheduled = false;
-      editor.update(() => {
-        cleanupTemporaryParagraphs(temporaryParagraphKeys);
-      }, { discrete: true });
+      editor.update(
+        () => {
+          cleanupTemporaryParagraphs(temporaryParagraphKeys);
+        },
+        { discrete: true },
+      );
     });
   };
 
@@ -623,18 +698,24 @@ function registerCollapsedSelectionGuard(editor: LexicalEditor) {
 
     let moved = false;
     const ownerDocument = getEventOwnerDocument(event);
-    editor.update(() => {
-      const direction = event.key === 'ArrowDown' ? 'down' : 'up';
-      moved =
-        moveCollapsibleSelection(direction, temporaryParagraphKeys) ||
-        moveCollapsibleSelectionFromDOM(editor, ownerDocument, direction, temporaryParagraphKeys);
-    }, { discrete: true });
+    editor.update(
+      () => {
+        const direction = event.key === 'ArrowDown' ? 'down' : 'up';
+        moved =
+          moveCollapsibleSelection(direction, temporaryParagraphKeys) ||
+          moveCollapsibleSelectionFromDOM(editor, ownerDocument, direction, temporaryParagraphKeys);
+      },
+      { discrete: true },
+    );
 
     if (!moved) return;
 
-    editor.update(() => {
-      cleanupTemporaryParagraphs(temporaryParagraphKeys);
-    }, { discrete: true });
+    editor.update(
+      () => {
+        cleanupTemporaryParagraphs(temporaryParagraphKeys);
+      },
+      { discrete: true },
+    );
     event.preventDefault();
     event.stopImmediatePropagation();
   };

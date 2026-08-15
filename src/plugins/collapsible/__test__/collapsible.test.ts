@@ -23,10 +23,15 @@ import { HRPlugin, INSERT_HORIZONTAL_RULE_COMMAND } from '@/plugins/hr';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import { INSERT_TABLE_COMMAND, TablePlugin } from '@/plugins/table';
-import { IEditor } from '@/types';
+import { IYjsService, YjsService } from '@/plugins/yjs/service';
+import { IEditor, IEditorKernel } from '@/types';
 
 import { INSERT_COLLAPSIBLE_COMMAND } from '../command';
-import { $createCollapsibleNode, $isCollapsibleNode, CollapsibleNode } from '../node/CollapsibleNode';
+import {
+  $createCollapsibleNode,
+  $isCollapsibleNode,
+  CollapsibleNode,
+} from '../node/CollapsibleNode';
 import { CollapsiblePlugin } from '../plugin';
 
 describe('collapsible plugin', () => {
@@ -102,10 +107,7 @@ describe('collapsible plugin', () => {
   });
 
   it('imports markdown summary as the first visible child', () => {
-    editor.setDocument(
-      'markdown',
-      '<details>\n<summary>More</summary>\n\nHidden text\n</details>',
-    );
+    editor.setDocument('markdown', '<details>\n<summary>More</summary>\n\nHidden text\n</details>');
 
     const json = editor.getDocument('json') as unknown as any;
     const collapsible = json.root.children[0];
@@ -349,20 +351,20 @@ describe('collapsible plugin', () => {
   it.each(['heading', 'horizontalrule', 'code'])(
     'keeps %s insertion inside collapsible',
     (expectedType) => {
-    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+      const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
 
-    setupSingleCollapsibleDocument(lexicalEditor, false);
-    selectSingleCollapsibleChild(lexicalEditor, 'body');
+      setupSingleCollapsibleDocument(lexicalEditor, false);
+      selectSingleCollapsibleChild(lexicalEditor, 'body');
 
-    if (expectedType === 'heading') {
-      lexicalEditor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
-    } else if (expectedType === 'horizontalrule') {
-      lexicalEditor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined);
-    } else {
-      lexicalEditor.dispatchCommand(INSERT_CODEMIRROR_COMMAND, undefined);
-    }
-    lexicalEditor.update(() => {}, { discrete: true });
-    expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', expectedType]);
+      if (expectedType === 'heading') {
+        lexicalEditor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
+      } else if (expectedType === 'horizontalrule') {
+        lexicalEditor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined);
+      } else {
+        lexicalEditor.dispatchCommand(INSERT_CODEMIRROR_COMMAND, undefined);
+      }
+      lexicalEditor.update(() => {}, { discrete: true });
+      expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', expectedType]);
     },
   );
 
@@ -394,13 +396,92 @@ describe('collapsible plugin', () => {
       setupSingleCollapsibleDocument(lexicalEditor, false);
       lexicalEditor.update(() => {}, { discrete: true });
 
-      const blockElements = Array.from(rootElement.querySelectorAll<HTMLElement>('[data-block-id]'));
+      const blockElements = Array.from(
+        rootElement.querySelectorAll<HTMLElement>('[data-block-id]'),
+      );
       expect(blockElements.map((element) => element.tagName)).toEqual(['SECTION', 'P']);
 
       const title = rootElement.querySelector<HTMLElement>(
         '[data-collapsible-content="true"] > :first-child',
       );
       expect(title?.dataset.blockId).toBeUndefined();
+    } finally {
+      editor.setRootElement(document.createElement('div'));
+      rootElement.remove();
+    }
+  });
+
+  it('prevents collapsing while a remote collaborator has a cursor inside', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    const rootElement = document.createElement('div');
+    document.body.append(rootElement);
+    editor.setRootElement(rootElement);
+
+    try {
+      setupSingleCollapsibleDocument(lexicalEditor, false);
+      lexicalEditor.update(() => {}, { discrete: true });
+
+      let bodyKey = '';
+      lexicalEditor.getEditorState().read(() => {
+        const collapsible = $getRoot().getChildren().find($isCollapsibleNode);
+        bodyKey = collapsible?.getChildAtIndex(1)?.getKey() || '';
+      });
+
+      const remoteSelection = {
+        anchor: { key: bodyKey, offset: 0 },
+        focus: { key: bodyKey, offset: 0 },
+      };
+      const awarenessStates = new Map([
+        [
+          2,
+          {
+            anchorPos: {} as never,
+            awarenessData: {},
+            color: '#dc2626',
+            focusPos: {} as never,
+            focusing: true,
+            name: 'Remote collaborator',
+          },
+        ],
+      ]);
+      const yjsService = new YjsService();
+      yjsService.setState({
+        binding: {
+          clientID: 1,
+          cursors: new Map([
+            [
+              2,
+              {
+                color: '#dc2626',
+                name: 'Remote collaborator',
+                selection: remoteSelection,
+              },
+            ],
+          ]),
+        } as never,
+        doc: undefined,
+        docMap: new Map(),
+        id: 'collapsible-room',
+        provider: {
+          awareness: {
+            getStates: () => awarenessStates,
+          },
+        } as never,
+      });
+      (editor as IEditorKernel).registerServiceHotReload(IYjsService, yjsService);
+
+      const toggle = rootElement.querySelector<HTMLButtonElement>(
+        '[data-collapsible-toggle="true"]',
+      );
+      toggle?.click();
+
+      expect(getCollapsibleCollapsed(lexicalEditor)).toBe(false);
+
+      awarenessStates.clear();
+      toggle?.click();
+      lexicalEditor.update(() => {}, { discrete: true });
+
+      expect(getCollapsibleCollapsed(lexicalEditor)).toBe(true);
     } finally {
       editor.setRootElement(document.createElement('div'));
       rootElement.remove();
@@ -519,28 +600,34 @@ function setupSingleCollapsibleDocument(editor: LexicalEditor, collapsed: boolea
 }
 
 function selectNode(editor: LexicalEditor, label: 'after' | 'before' | 'body' | 'title') {
-  editor.update(() => {
-    if (label === 'before') {
-      $getRoot().getChildAtIndex(0)?.selectStart();
-      return;
-    }
-    if (label === 'after') {
-      $getRoot().getChildAtIndex(2)?.selectStart();
-      return;
-    }
+  editor.update(
+    () => {
+      if (label === 'before') {
+        $getRoot().getChildAtIndex(0)?.selectStart();
+        return;
+      }
+      if (label === 'after') {
+        $getRoot().getChildAtIndex(2)?.selectStart();
+        return;
+      }
 
-    const collapsible = $getRoot().getChildAtIndex(1);
-    if (!$isCollapsibleNode(collapsible)) throw new Error('Missing collapsible node');
-    collapsible.getChildAtIndex(label === 'title' ? 0 : 1)?.selectStart();
-  }, { discrete: true });
+      const collapsible = $getRoot().getChildAtIndex(1);
+      if (!$isCollapsibleNode(collapsible)) throw new Error('Missing collapsible node');
+      collapsible.getChildAtIndex(label === 'title' ? 0 : 1)?.selectStart();
+    },
+    { discrete: true },
+  );
 }
 
 function selectSingleCollapsibleChild(editor: LexicalEditor, label: 'body' | 'title') {
-  editor.update(() => {
-    const collapsible = $getRoot().getChildren().find($isCollapsibleNode);
-    if (!$isCollapsibleNode(collapsible)) throw new Error('Missing collapsible node');
-    collapsible.getChildAtIndex(label === 'title' ? 0 : 1)?.selectStart();
-  }, { discrete: true });
+  editor.update(
+    () => {
+      const collapsible = $getRoot().getChildren().find($isCollapsibleNode);
+      if (!$isCollapsibleNode(collapsible)) throw new Error('Missing collapsible node');
+      collapsible.getChildAtIndex(label === 'title' ? 0 : 1)?.selectStart();
+    },
+    { discrete: true },
+  );
 }
 
 function dispatchArrow(editor: LexicalEditor, direction: 'down' | 'up') {
@@ -605,7 +692,9 @@ function getRootChildTypes(editor: LexicalEditor): string[] {
   let types: string[] = [];
 
   editor.getEditorState().read(() => {
-    types = $getRoot().getChildren().map((node) => node.getType());
+    types = $getRoot()
+      .getChildren()
+      .map((node) => node.getType());
   });
 
   return types;
@@ -622,6 +711,17 @@ function getCollapsibleChildTypes(editor: LexicalEditor): string[] {
   });
 
   return types;
+}
+
+function getCollapsibleCollapsed(editor: LexicalEditor): boolean | null {
+  let collapsed: boolean | null = null;
+
+  editor.getEditorState().read(() => {
+    const collapsible = $getRoot().getChildren().find($isCollapsibleNode);
+    collapsed = $isCollapsibleNode(collapsible) ? collapsible.isCollapsed() : null;
+  });
+
+  return collapsed;
 }
 
 function getSelectionDebug(editor: LexicalEditor): string[] {

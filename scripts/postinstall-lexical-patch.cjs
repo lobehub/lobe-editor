@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -7,6 +8,7 @@ const path = require('node:path');
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 const PATCH_FILE = path.join(PACKAGE_ROOT, 'patches', 'lexical@0.42.0.patch');
 const SUPPORTED_VERSION = '0.42.0';
+const SUPPORTED_YJS_VERSION = '0.42.0';
 
 const FILE_HASHES = {
   'Lexical.dev.js': {
@@ -233,8 +235,100 @@ function patchLexical() {
   }
 }
 
+function resolveLexicalYjsRoot() {
+  const override = process.env.LOBE_EDITOR_LEXICAL_YJS_ROOT;
+
+  if (override) {
+    return path.resolve(override);
+  }
+
+  const lexicalYjsEntryPath = require.resolve('@lexical/yjs', {
+    paths: [PACKAGE_ROOT],
+  });
+
+  return path.dirname(lexicalYjsEntryPath);
+}
+
+function replaceExactlyOnce(content, filename, source, replacement) {
+  if (content.includes(replacement)) {
+    return content;
+  }
+
+  const firstIndex = content.indexOf(source);
+
+  if (firstIndex === -1 || content.includes(source, firstIndex + source.length)) {
+    throw new Error(`[lobe-editor] Lexical Yjs patch context mismatch in ${filename}`);
+  }
+
+  return content.replace(source, replacement);
+}
+
+function patchLexicalYjs() {
+  const lexicalYjsRoot = resolveLexicalYjsRoot();
+  const lexicalYjsPackage = JSON.parse(
+    fs.readFileSync(path.join(lexicalYjsRoot, 'package.json'), 'utf8'),
+  );
+
+  if (lexicalYjsPackage.version !== SUPPORTED_YJS_VERSION) {
+    console.warn(
+      `[lobe-editor] Skip Lexical Yjs patch: expected ${SUPPORTED_YJS_VERSION}, found ${lexicalYjsPackage.version}.`,
+    );
+    return;
+  }
+
+  const devSource = [
+    '  const nextState = nextLexicalNode.__state;',
+    "  const existingState = sharedTypeGet(sharedType, '__state');",
+  ].join('\n');
+  const devReplacement = [
+    '  const nextState = nextLexicalNode.__state;',
+    '  // Backport facebook/lexical#8347: detached Yjs types cannot contain existing state.',
+    "  const existingState = sharedType.doc === null ? undefined : sharedTypeGet(sharedType, '__state');",
+  ].join('\n');
+  const prodPatches = {
+    'LexicalYjs.prod.js': {
+      replacement: 'const i=s.__state,r=null===n.doc?void 0:O(n,"__state");if(!i)return;',
+      source: 'const i=s.__state,r=O(n,"__state");if(!i)return;',
+    },
+    'LexicalYjs.prod.mjs': {
+      replacement: 'const s=o.__state,i=null===t.doc?void 0:be(t,"__state");if(!s)return;',
+      source: 'const s=o.__state,i=be(t,"__state");if(!s)return;',
+    },
+  };
+  const patchedFiles = [];
+
+  for (const filename of ['LexicalYjs.dev.js', 'LexicalYjs.dev.mjs']) {
+    const targetPath = path.join(lexicalYjsRoot, filename);
+    const currentContent = fs.readFileSync(targetPath, 'utf8');
+    const patchedContent = replaceExactlyOnce(currentContent, filename, devSource, devReplacement);
+
+    if (patchedContent !== currentContent) {
+      fs.writeFileSync(targetPath, patchedContent);
+      patchedFiles.push(filename);
+    }
+  }
+
+  for (const [filename, { replacement, source }] of Object.entries(prodPatches)) {
+    const targetPath = path.join(lexicalYjsRoot, filename);
+    const currentContent = fs.readFileSync(targetPath, 'utf8');
+    const patchedContent = replaceExactlyOnce(currentContent, filename, source, replacement);
+
+    if (patchedContent !== currentContent) {
+      fs.writeFileSync(targetPath, patchedContent);
+      patchedFiles.push(filename);
+    }
+  }
+
+  if (patchedFiles.length > 0) {
+    console.log(
+      `[lobe-editor] Applied Lexical Yjs compatibility patch to ${patchedFiles.join(', ')}.`,
+    );
+  }
+}
+
 try {
   patchLexical();
+  patchLexicalYjs();
 } catch (error) {
   console.error(
     `[lobe-editor] Failed to patch Lexical automatically: ${error instanceof Error ? error.message : String(error)}`,
