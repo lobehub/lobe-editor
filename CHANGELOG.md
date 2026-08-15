@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.24.0](https://github.com/lobehub/lobe-editor/compare/v4.23.2...v4.24.0)
+<sup>Released on **2026-08-15**</sup>
+
+
+#### ✨ Features
+
+- **math**: Make inline parsing configurable.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **math**: Make inline parsing configurable, closes [#197](https://github.com/lobehub/lobe-editor/issues/197) ([2198dec](https://github.com/lobehub/lobe-editor/commit/2198dec))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.23.2](https://github.com/lobehub/lobe-editor/compare/v4.23.1...v4.23.2)
 <sup>Released on **2026-08-11**</sup>
 
