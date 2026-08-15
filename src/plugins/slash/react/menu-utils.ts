@@ -1,22 +1,27 @@
 import type { Key } from 'react';
 
-import type { ISlashMenuOption, ISlashOption } from '../service/i-slash-service';
+import {
+  flattenSlashOptions,
+  type ISlashMenuOption,
+  type ISlashOption,
+  isSlashDividerOption as isServiceSlashDividerOption,
+  isSlashMenuOption as isServiceSlashMenuOption,
+  isSlashSectionOption,
+} from '../service/i-slash-service';
 
 export type SlashMenuDirection = 'backward' | 'forward';
 export type SlashMenuSpatialDirection = 'down' | 'left' | 'right' | 'up';
 
 export function isSlashDividerOption(option: ISlashOption): boolean {
-  return 'type' in option && option.type === 'divider';
+  return isServiceSlashDividerOption(option);
 }
 
 export function isSlashMenuOption(option: ISlashOption): option is ISlashMenuOption {
-  return !isSlashDividerOption(option) && 'key' in option && Boolean(option.key);
+  return isServiceSlashMenuOption(option) && Boolean(option.key);
 }
 
 export function getSelectableSlashOptions(options: ISlashOption[]): ISlashMenuOption[] {
-  return options.filter(
-    (item): item is ISlashMenuOption => isSlashMenuOption(item) && !item.disabled,
-  );
+  return flattenSlashOptions(options).filter((item) => Boolean(item.key) && !item.disabled);
 }
 
 export function getNextSlashActiveKey(
@@ -49,8 +54,7 @@ export function findSlashOptionByKey(
 ): ISlashMenuOption | null {
   if (key === null) return null;
 
-  for (const option of options) {
-    if (!isSlashMenuOption(option)) continue;
+  for (const option of flattenSlashOptions(options)) {
     if (option.key === String(key)) return option;
   }
 
@@ -76,7 +80,12 @@ function getOptionRows(options: ISlashOption[]): ISlashMenuOption[][] {
     pendingRow = [];
   };
 
-  for (const option of options) {
+  const expandedOptions: ISlashOption[] = options.flatMap((option) => {
+    if (!isSlashSectionOption(option)) return [option];
+    return [{ type: 'divider' as const }, ...option.items, { type: 'divider' as const }];
+  });
+
+  for (const option of expandedOptions) {
     if (!isSlashMenuOption(option) || option.disabled) {
       flushPendingRow();
       pendingLayout = null;

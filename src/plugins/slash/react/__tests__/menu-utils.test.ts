@@ -27,6 +27,25 @@ describe('slash menu utils', () => {
     expect(findSlashOptionByKey(options, 'missing')).toBeNull();
   });
 
+  it('navigates selectable options inside sections', () => {
+    const sectionOptions: ISlashOption[] = [
+      {
+        items: [
+          { key: 'paragraph', label: 'Paragraph' },
+          { disabled: true, key: 'disabled', label: 'Disabled' },
+          { key: 'quote', label: 'Quote' },
+        ],
+        key: 'basic',
+        label: 'Basic blocks',
+        type: 'section',
+      },
+    ];
+
+    expect(getNextSlashActiveKey(sectionOptions, null, 'forward')).toBe('paragraph');
+    expect(getNextSlashActiveKey(sectionOptions, 'paragraph', 'forward')).toBe('quote');
+    expect(findSlashOptionByKey(sectionOptions, 'quote')?.label).toBe('Quote');
+  });
+
   it('moves active key spatially in grid layouts', () => {
     const gridOptions: ISlashOption[] = [
       { key: 'h1', label: 'H1', layout: 'compact' },
