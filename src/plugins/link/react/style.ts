@@ -21,7 +21,9 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
 
       display: inline-block;
 
-      max-width: 100%;
+      /* Inline decorator wrappers otherwise use the untruncated title as
+         their intrinsic width even when the rendered card is capped at 320px. */
+      max-width: min(320px, 100%);
       border-radius: 5px;
 
       line-height: 1;
@@ -29,6 +31,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
 
       &[data-link-card-layout='block'] {
         display: block;
+        max-width: 100%;
         margin-block: 8px;
       }
 

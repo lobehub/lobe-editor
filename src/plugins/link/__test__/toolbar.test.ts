@@ -22,7 +22,10 @@ import { LinkBlockCardNode } from '../node/LinkBlockCardNode';
 import { LinkIframeNode } from '../node/LinkIframeNode';
 import { LinkNode } from '../node/LinkNode';
 import { SchemaNode } from '../node/SchemaNode';
-import { readToolbarNode } from '../react/components/LinkToolbar';
+import {
+  readToolbarNode,
+  shouldRunToolbarActionFromPointer,
+} from '../react/components/LinkToolbar';
 import { LinkService } from '../service/i-link-service';
 
 async function readCapabilities(
@@ -41,6 +44,14 @@ async function readCapabilities(
 }
 
 describe('link toolbar conversions', () => {
+  it('uses the pointer path for primary mouse, touch, pen, and synthetic activation', () => {
+    expect(shouldRunToolbarActionFromPointer({ button: 0, pointerType: 'mouse' })).toBe(true);
+    expect(shouldRunToolbarActionFromPointer({ button: 0, pointerType: '' })).toBe(true);
+    expect(shouldRunToolbarActionFromPointer({ button: 0, pointerType: 'touch' })).toBe(true);
+    expect(shouldRunToolbarActionFromPointer({ button: -1, pointerType: 'pen' })).toBe(true);
+    expect(shouldRunToolbarActionFromPointer({ button: 2, pointerType: 'touch' })).toBe(false);
+  });
+
   it('does not read a stale node after the hovered node is replaced', async () => {
     const lexicalEditor = createEditor({
       nodes: [LinkNode, LinkCardNode, LinkBlockCardNode, LinkIframeNode, SchemaNode],

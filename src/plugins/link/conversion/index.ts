@@ -77,11 +77,14 @@ export function convertLinkToolbarNodeToLink(node: LinkToolbarNode): LinkNode {
 }
 
 export function convertLinkToolbarNodeByKeyToLink(editor: LexicalEditor, key: string): void {
-  editor.update(() => {
-    const node = $getNodeByKey(key);
-    if (!$isLinkToolbarNode(node)) return;
-    convertLinkToolbarNodeToLink(node).selectEnd();
-  });
+  editor.update(
+    () => {
+      const node = $getNodeByKey(key);
+      if (!$isLinkToolbarNode(node)) return;
+      convertLinkToolbarNodeToLink(node).selectEnd();
+    },
+    { discrete: true },
+  );
 }
 
 export function convertLinkNodeToSchema(
@@ -117,11 +120,14 @@ export function convertLinkNodeByKeyToSchema(
   key: string,
   linkService: LinkService,
 ): void {
-  editor.update(() => {
-    const node = $getNodeByKey(key);
-    if (!$isLinkNode(node)) return;
-    convertLinkNodeToSchema(node, editor, linkService);
-  });
+  editor.update(
+    () => {
+      const node = $getNodeByKey(key);
+      if (!$isLinkNode(node)) return;
+      convertLinkNodeToSchema(node, editor, linkService);
+    },
+    { discrete: true },
+  );
 }
 
 export function replaceWithCardNode(
@@ -321,11 +327,14 @@ export function replaceNodeByKeyWithIframeNode(
   key: string,
   linkService: LinkService,
 ): void {
-  editor.update(() => {
-    const node = $getNodeByKey(key);
-    if (!$isLinkNode(node) && !$isLinkCardNode(node)) return;
-    replaceWithIframeNode(node, editor, linkService);
-  });
+  editor.update(
+    () => {
+      const node = $getNodeByKey(key);
+      if (!$isLinkNode(node) && !$isLinkCardNode(node)) return;
+      replaceWithIframeNode(node, editor, linkService);
+    },
+    { discrete: true },
+  );
 }
 
 export function replaceWithInlineNode(node: LexicalNode, inlineNode: LexicalNode): void {

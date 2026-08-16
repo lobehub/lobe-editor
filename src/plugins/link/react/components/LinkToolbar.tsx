@@ -74,6 +74,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
   const [toolbarNodeKey, setToolbarNodeKey] = useState<NodeKey | null>(null);
   const [menuVersion, setMenuVersion] = useState(0);
   const selectedLinkKeyRef = useRef<NodeKey | null>(null);
+  const lastPointerActionAtRef = useRef(0);
   const toolbarHoverRef = useRef(false);
   const visibleLinkKeyRef = useRef<NodeKey | null>(null);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | number>(-1);
@@ -145,6 +146,24 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
     });
   }, [linkService]);
 
+  const resolveToolbarNodeKey = useCallback((): NodeKey | null => {
+    return editor.getEditorState().read(() => {
+      // Paste normalization, collaboration, and metadata hydration can commit
+      // a newer editor state while the floating toolbar is still visible.
+      // Resolve from the live DOM first so an action never targets a key that
+      // belonged to the render which originally opened the toolbar.
+      const currentNode = linkDomRef.current?.isConnected
+        ? $getNearestLinkToolbarNodeFromDOMNode(linkDomRef.current, editor)
+        : null;
+      if (currentNode) return currentNode.getKey();
+
+      const fallbackKey = visibleLinkKeyRef.current || toolbarNodeKey;
+      if (!fallbackKey) return null;
+      const fallbackNode = $getNodeByKey(fallbackKey);
+      return $isLinkToolbarNode(fallbackNode) ? fallbackNode.getKey() : null;
+    });
+  }, [editor, toolbarNodeKey]);
+
   const items = useMemo<ToolbarViewItem[]>(() => {
     // Link services notify when their asynchronous metadata/actions change.
     // Reading the version here intentionally invalidates this derived menu.
@@ -175,7 +194,9 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
                   ? item.label(context)
                   : t(item.label as keyof ILocaleKeys),
               onClick: () => {
-                readToolbarNode(editor, toolbarNodeKey, (currentNode) => {
+                const nodeKey = resolveToolbarNodeKey();
+                if (!nodeKey) return;
+                readToolbarNode(editor, nodeKey, (currentNode) => {
                   if (!$isLinkNode(currentNode)) return;
                   void item.onClick({
                     close: handleCancel,
@@ -204,7 +225,9 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             label: labels?.convertToCard || 'Convert to card',
             onClick: () => {
               if (!linkService) return;
-              void replaceNodeByKeyWithCardNode(editor, toolbarNodeKey, linkService);
+              const nodeKey = resolveToolbarNodeKey();
+              if (!nodeKey) return;
+              void replaceNodeByKeyWithCardNode(editor, nodeKey, linkService);
               handleCancel();
             },
           });
@@ -217,7 +240,9 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             label: labels?.convertToBlockCard || 'Convert to block card',
             onClick: () => {
               if (!linkService) return;
-              void replaceNodeByKeyWithBlockCardNode(editor, toolbarNodeKey, linkService);
+              const nodeKey = resolveToolbarNodeKey();
+              if (!nodeKey) return;
+              void replaceNodeByKeyWithBlockCardNode(editor, nodeKey, linkService);
               handleCancel();
             },
           });
@@ -230,7 +255,9 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             label: labels?.convertToIframe || 'Convert to iframe',
             onClick: () => {
               if (!linkService) return;
-              replaceNodeByKeyWithIframeNode(editor, toolbarNodeKey, linkService);
+              const nodeKey = resolveToolbarNodeKey();
+              if (!nodeKey) return;
+              replaceNodeByKeyWithIframeNode(editor, nodeKey, linkService);
               handleCancel();
             },
           });
@@ -243,7 +270,9 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             label: labels?.convertToSchema || 'Convert to schema',
             onClick: () => {
               if (!linkService) return;
-              convertLinkNodeByKeyToSchema(editor, toolbarNodeKey, linkService);
+              const nodeKey = resolveToolbarNodeKey();
+              if (!nodeKey) return;
+              convertLinkNodeByKeyToSchema(editor, nodeKey, linkService);
               handleCancel();
             },
           });
@@ -255,7 +284,9 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             key: 'convertToLink',
             label: labels?.convertToLink || 'Convert to link',
             onClick: () => {
-              convertLinkToolbarNodeByKeyToLink(editor, toolbarNodeKey);
+              const nodeKey = resolveToolbarNodeKey();
+              if (!nodeKey) return;
+              convertLinkToolbarNodeByKeyToLink(editor, nodeKey);
               handleCancel();
             },
           });
@@ -268,7 +299,9 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
               key: action.key,
               label: action.label,
               onClick: () => {
-                readToolbarNode(editor, toolbarNodeKey, (currentNode) => {
+                const nodeKey = resolveToolbarNodeKey();
+                if (!nodeKey) return;
+                readToolbarNode(editor, nodeKey, (currentNode) => {
                   action.onClick({ editor, node: currentNode });
                 });
                 handleCancel();
@@ -280,7 +313,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
         return result;
       }) || []
     );
-  }, [editor, handleCancel, linkService, menuVersion, t, toolbarNodeKey]);
+  }, [editor, handleCancel, linkService, menuVersion, resolveToolbarNodeKey, t, toolbarNodeKey]);
 
   useLayoutEffect(() => {
     if (!toolbarNodeKey || items.length === 0) return;
@@ -428,14 +461,32 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             className={styles.popoverActionItem}
             key={item.key}
             onClick={(event) => {
-              // Mouse and touch already run on pointer-down so the action
-              // survives toolbar teardown. A detail of zero is the native
-              // keyboard/assistive-technology click path.
+              // Pointer devices run before click so the action survives
+              // toolbar teardown. A detail of zero is the native keyboard /
+              // assistive-technology click path.
               if (event.detail === 0) item.onClick();
             }}
-            onPointerDown={(event) => {
+            onMouseDown={(event) => {
+              // Pointer-capable browsers have already executed the action in
+              // pointerdown. Keep mousedown only as a compatibility fallback.
+              if (Date.now() - lastPointerActionAtRef.current < 1000) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+              }
               if (event.button !== 0) return;
               event.preventDefault();
+              event.stopPropagation();
+              item.onClick();
+            }}
+            onPointerDown={(event) => {
+              if (!shouldRunToolbarActionFromPointer(event)) return;
+              // Run before the browser moves focus back into Lexical. That
+              // selection update can legitimately tear down this hover
+              // toolbar before the following mousedown/click events arrive.
+              lastPointerActionAtRef.current = Date.now();
+              event.preventDefault();
+              event.stopPropagation();
               item.onClick();
             }}
             title={item.label}
@@ -470,6 +521,16 @@ export function readToolbarNode<T>(
     const node = $getNodeByKey(key);
     return $isLinkToolbarNode(node) ? reader(node) : null;
   });
+}
+
+export function shouldRunToolbarActionFromPointer(event: {
+  button: number;
+  pointerType: string;
+}): boolean {
+  // React can report an empty pointerType for synthetic/test events. The
+  // primary-button contract is enough here and keeps mouse, touch, pen and
+  // automation on the same pre-focus action path.
+  return event.button <= 0;
 }
 
 function getLinkReferenceElement(target: EventTarget | null): HTMLElement | null {
