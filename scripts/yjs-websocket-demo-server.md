@@ -147,10 +147,19 @@ ws://localhost:12345/collaboration/:id?clientId=:clientId
 
 The browser provider sends its Yjs `clientID` as `clientId`.
 
-### Initial Server Message
+### Initial Sync Handshake
 
-The first client in an empty runtime room becomes its bootstrap owner and
-immediately receives:
+After every initial connection or reconnect, the browser requests the state it
+is missing by sending its Yjs state vector:
+
+```json
+{
+  "stateVector": "base64-yjs-state-vector",
+  "type": "sync-request"
+}
+```
+
+The server answers with the room update relative to that state vector:
 
 ```json
 {
@@ -165,7 +174,9 @@ immediately receives:
 }
 ```
 
-The `update` field is `encodeStateAsUpdate(room.doc)` encoded as base64.
+The `update` field is `encodeStateAsUpdate(room.doc, clientStateVector)` encoded
+as base64. After applying it, the browser publishes its local document state so
+edits made while disconnected also merge into the room.
 
 Only the bootstrap owner may seed an empty runtime room from persisted JSON.
 Clients that connect at the same time wait until the owner sends its first Yjs
@@ -285,9 +296,12 @@ backend save.
 
 ### Reconnect Boundary
 
-The browser provider reconnects with exponential backoff. After reconnecting it
-sends the local `Y.Doc` state back to the server so local edits made while
-offline can merge into the room.
+The browser provider reconnects with exponential backoff. Every fresh socket
+starts a state-vector handshake, so updates made by peers during the gap are
+requested from the room. After applying that response, the browser sends its
+local `Y.Doc` state back to the server so local edits made while offline merge
+in the other direction. Because Yjs updates are commutative and idempotent,
+both sides converge even when each changed during the disconnect.
 
 ### Deployment Boundary
 

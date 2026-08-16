@@ -19,16 +19,16 @@ import {
   type SerializedLexicalNode,
   type TextNode,
 } from 'lexical';
+import type { RelativePosition } from 'yjs';
 import {
-  Doc,
-  RelativePosition,
-  XmlElement,
-  XmlText,
   applyUpdate,
   createRelativePositionFromTypeIndex,
+  Doc,
   encodeStateAsUpdate,
   encodeStateVector,
   relativePositionToJSON,
+  XmlElement,
+  XmlText,
 } from 'yjs';
 
 import { registerCollaborationBinding } from '@/plugins/collaboration/utils';
@@ -43,12 +43,12 @@ import {
 } from './aiTools';
 import { bytesToBase64 } from './codec';
 import {
-  type SerializedRelativePosition,
-  type SerializedUserState,
   applyAwarenessUpdate,
   applyDocumentUpdate,
   clearAssistantAwareness,
   getSnapshotUpdate,
+  type SerializedRelativePosition,
+  type SerializedUserState,
 } from './rooms';
 
 const wait = (ms: number) =>
@@ -220,7 +220,11 @@ const publishHeadlessEditorUpdate = async (context: AiToolExecutionContext) => {
   publishDocumentDelta(context);
 };
 
-const createHeadlessCollaborationContext = (roomId: string, doc: Doc) => {
+export const createHeadlessCollaborationContext = (
+  roomId: string,
+  doc: Doc,
+  { shouldBootstrap = false }: { shouldBootstrap?: boolean } = {},
+) => {
   const lexicalEditor = createHeadlessEditor({
     editable: false,
     namespace: `ai-collaboration-${roomId}`,
@@ -236,6 +240,7 @@ const createHeadlessCollaborationContext = (roomId: string, doc: Doc) => {
     id: roomId,
     lexicalEditor,
     provider,
+    shouldBootstrap,
     syncCursorPositionsFn: () => {},
     yjsDocMap: new Map([[roomId, doc]]),
   });
@@ -316,11 +321,13 @@ const setLexicalRangeSelection = (
   return lexicalSelection;
 };
 
-const getLexicalTextLeafAtOffset = (offset: number) => {
+export const getLexicalTextLeafAtOffset = (offset: number) => {
+  if (!Number.isSafeInteger(offset) || offset < 0) return undefined;
+
   const leaves: LexicalTextLeaf[] = [];
   collectLexicalTextLeaves($getRoot(), leaves, { value: 0 });
 
-  return leaves.find((leaf) => offset >= leaf.start && offset <= leaf.end) ?? leaves.at(-1);
+  return leaves.find((leaf) => offset >= leaf.start && offset <= leaf.end);
 };
 
 const insertLexicalChunkAtOffset = (
@@ -599,7 +606,11 @@ const replaceSelectionWithStreamingText = async (
       selection.absoluteStart + insertedLength,
       chunk,
     );
-    if (!didInsert) return;
+    if (!didInsert) {
+      throw new Error(
+        `AI streaming cursor is outside the current document at offset ${selection.absoluteStart + insertedLength}`,
+      );
+    }
 
     await publishHeadlessEditorUpdate(context);
     insertedLength += chunk.length;

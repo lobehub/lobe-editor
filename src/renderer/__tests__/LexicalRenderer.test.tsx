@@ -197,6 +197,22 @@ describe('LexicalRenderer', () => {
     expect(html).toContain('const x = 1;');
   });
 
+  it('renders multiline code block with wrapping enabled', () => {
+    const value = makeEditorState([
+      {
+        code: 'line 1\nline 2',
+        language: 'plaintext',
+        type: 'code',
+        version: 1,
+      },
+    ]);
+
+    const html = toHTML(value);
+    expect(html).toContain('line 1');
+    expect(html).toContain('line 2');
+    expect(html).not.toContain('nowrap');
+  });
+
   it('renders mermaid code through dedicated renderer', () => {
     const value = makeEditorState([
       {

@@ -265,15 +265,19 @@ function broadcast(room, sender, message) {
   }
 }
 
-function sendRoomSync(room, socket, clientId) {
-  if (socket.readyState !== WebSocket.OPEN) {
+function sendRoomSync(room, socket, clientId, stateVector) {
+  if (socket.readyState !== WebSocket.OPEN || socket.hasSentInitialSync) {
     return;
   }
 
-  const initialUpdate = encodeStateAsUpdate(room.doc);
+  const initialUpdate = stateVector
+    ? encodeStateAsUpdate(room.doc, stateVector)
+    : encodeStateAsUpdate(room.doc);
+  socket.hasSentInitialSync = true;
   logRoomEvent('sync.sent', room, {
     clientId,
     stateBytes: initialUpdate.byteLength,
+    stateVectorBytes: stateVector?.byteLength || 0,
   });
   socket.send(
     JSON.stringify({
@@ -291,7 +295,10 @@ function assignBootstrapOwner(room, socket, clientId) {
   room.bootstrapOwner = socket;
   room.bootstrapOwnerClientId = clientId;
   logRoomEvent('bootstrap.owner-assigned', room, { clientId });
-  sendRoomSync(room, socket, clientId);
+
+  if (socket.syncRequestStateVector) {
+    sendRoomSync(room, socket, clientId, socket.syncRequestStateVector);
+  }
 }
 
 function flushDeferredSyncClients(room) {
@@ -299,7 +306,7 @@ function flushDeferredSyncClients(room) {
   room.deferredSyncClients.clear();
 
   for (const [socket, clientId] of deferredClients) {
-    sendRoomSync(room, socket, clientId);
+    sendRoomSync(room, socket, clientId, socket.syncRequestStateVector);
   }
 }
 
@@ -462,6 +469,8 @@ function handleSocketConnection(socket, request) {
   const room = getRoom(id);
 
   socket.isAlive = true;
+  socket.hasSentInitialSync = false;
+  socket.syncRequestStateVector = undefined;
   socket.on('pong', () => {
     socket.isAlive = true;
   });
@@ -482,8 +491,6 @@ function handleSocketConnection(socket, request) {
     });
   } else if (!room.hasReceivedUpdate) {
     assignBootstrapOwner(room, socket, clientId);
-  } else {
-    sendRoomSync(room, socket, clientId);
   }
 
   socket.on('message', (rawMessage) => {
@@ -498,6 +505,21 @@ function handleSocketConnection(socket, request) {
       message = JSON.parse(String(rawMessage));
     } catch {
       socket.close(1003, 'Invalid JSON message.');
+      return;
+    }
+
+    if (message.type === 'sync-request') {
+      try {
+        socket.syncRequestStateVector = decodeUpdate(message.stateVector);
+        room.lastActiveAt = Date.now();
+
+        if (room.hasReceivedUpdate || room.bootstrapOwner === socket) {
+          sendRoomSync(room, socket, clientId, socket.syncRequestStateVector);
+        }
+      } catch {
+        logRoomEvent('sync.rejected', room, { clientId, reason: 'invalid state vector' });
+        socket.close(1003, 'Invalid Yjs state vector.');
+      }
       return;
     }
 

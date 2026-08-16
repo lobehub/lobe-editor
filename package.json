@@ -163,9 +163,9 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/unist": "^3.0.3",
+    "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^4.1.10",
     "antd": "^6.5.2",
-    "@types/ws": "^8.18.1",
     "clean-package": "^2.2.0",
     "dpdm": "^4.2.0",
     "eslint": "^10.7.0",
@@ -207,6 +207,7 @@
       "chalk": "^4.1.2"
     },
     "patchedDependencies": {
+      "@lexical/yjs@0.42.0": "patches/@lexical__yjs@0.42.0.patch",
       "lexical@0.42.0": "patches/lexical@0.42.0.patch"
     }
   }

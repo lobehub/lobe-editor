@@ -1,5 +1,5 @@
 import type { Provider, ProviderAwareness, UserState } from '@lexical/yjs';
-import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
+import { applyUpdate, Doc, encodeStateAsUpdate, encodeStateVector } from 'yjs';
 
 const DEFAULT_HTTP_BASE_URL = 'http://localhost:12345';
 const DEFAULT_WS_BASE_URL = 'ws://localhost:12345';
@@ -25,20 +25,32 @@ type AwarenessSnapshot = {
   state: UserState | null;
 };
 
-type WebSocketMessage =
+type AwarenessMessage = {
+  sender: number;
+  state: UserState | null;
+  type: 'awareness';
+};
+
+type UpdateMessage = {
+  sender: number;
+  type: 'update';
+  update: string;
+};
+
+type ClientWebSocketMessage =
+  | AwarenessMessage
+  | UpdateMessage
+  | {
+      stateVector: string;
+      type: 'sync-request';
+    };
+
+type ServerWebSocketMessage =
+  | AwarenessMessage
+  | UpdateMessage
   | {
       awareness: AwarenessSnapshot[];
       type: 'sync';
-      update: string;
-    }
-  | {
-      sender: number;
-      state: UserState | null;
-      type: 'awareness';
-    }
-  | {
-      sender: number;
-      type: 'update';
       update: string;
     };
 
@@ -71,7 +83,7 @@ class WebSocketAwareness implements ProviderAwareness {
 
   constructor(
     private clientId: number,
-    private send: (message: WebSocketMessage) => void,
+    private send: (message: ClientWebSocketMessage) => void,
   ) {}
 
   getLocalState(): UserState | null {
@@ -252,6 +264,7 @@ export class WebSocketYjsProvider implements Provider {
       this.reconnectAttempt = 0;
       this.doc.on('update', this.updateHandler);
       this.emit('status', { status: 'connected' });
+      this.requestServerDocumentState();
 
       const localState = this.awareness.getLocalState();
 
@@ -276,6 +289,13 @@ export class WebSocketYjsProvider implements Provider {
       sender: this.doc.clientID,
       type: 'update',
       update: encodeUint8Array(encodeStateAsUpdate(this.doc)),
+    });
+  }
+
+  private requestServerDocumentState(): void {
+    this.send({
+      stateVector: encodeUint8Array(encodeStateVector(this.doc)),
+      type: 'sync-request',
     });
   }
 
@@ -311,10 +331,10 @@ export class WebSocketYjsProvider implements Provider {
       return;
     }
 
-    let message: WebSocketMessage;
+    let message: ServerWebSocketMessage;
 
     try {
-      message = JSON.parse(event.data) as WebSocketMessage;
+      message = JSON.parse(event.data) as ServerWebSocketMessage;
     } catch {
       this.emit('status', { status: 'disconnected' });
       return;
@@ -355,7 +375,7 @@ export class WebSocketYjsProvider implements Provider {
     }
   }
 
-  private send(message: WebSocketMessage): void {
+  private send(message: ClientWebSocketMessage): void {
     if (this.socket?.readyState !== WebSocket.OPEN) {
       return;
     }

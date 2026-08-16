@@ -1,0 +1,33 @@
+---
+title: Collapsible
+description: Collapsible blocks keep a visible title, editable nested content, and collaboration-safe collapse and keyboard behavior.
+category: Plugins
+---
+
+## Introduction
+
+The collapsible plugin represents a disclosure section as one `CollapsibleNode`. Its first child is the visible title; the remaining children are the body and are hidden when the node is collapsed. The title remains part of the Lexical document so serialization, selection, and collaboration all use the same tree.
+
+## Containment model
+
+Collapsible content supports paragraphs and the regular inline and block conversions used by the editor. Two structural commands deliberately cross the collapsible boundary:
+
+- Table insertion moves the selection to a paragraph immediately after the current collapsible, then lets the table plugin insert at that root-level position.
+- Inserting another collapsible while the selection is inside one places the new block immediately after the current collapsible instead of nesting it.
+
+This keeps tables and disclosure sections as root-level layout blocks and avoids nested editing surfaces whose selection and drag boundaries would be ambiguous. It is an intentional user-visible behavior, not a fallback from failed insertion.
+
+## Keyboard boundary handling
+
+Arrow navigation and empty-block Backspace use two complementary event paths:
+
+1. Critical-priority Lexical commands handle normal editor keyboard dispatch.
+2. Capture-phase DOM `keydown` listeners cover native selection movement that may bypass Lexical commands around nested `contentEditable` and empty block boundaries.
+
+The DOM path is scoped to the editor root (or a selection/focus inside it), and only prevents the browser event after the plugin has moved the selection or removed an empty collapsible. Both paths call the same selection helpers, so they enforce one containment policy rather than two independent behaviors.
+
+When arrow navigation needs a caret target beside an edge collapsible or a decorator block, the plugin creates a temporary paragraph and removes it after the selection leaves. A collapsed section also redirects any selection that resolves into a hidden child back to the visible title.
+
+## Collaboration behavior
+
+An expanded collapsible cannot be collapsed while a remote collaborator has a cursor inside it. The guard checks both Yjs relative positions and the materialized Lexical cursor selection because either representation can be temporarily unavailable while an update is being applied.
