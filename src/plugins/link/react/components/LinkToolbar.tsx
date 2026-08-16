@@ -55,6 +55,12 @@ interface ToolbarViewItem {
   onClick: () => void;
 }
 
+export interface ToolbarActionGestureState {
+  pressHandled: boolean;
+}
+
+export type ToolbarActionEventType = 'click' | 'mousedown' | 'pointerdown';
+
 const HOVER_OPEN_DELAY = 180;
 const HOVER_CLOSE_DELAY = 500;
 
@@ -74,7 +80,8 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
   const [toolbarNodeKey, setToolbarNodeKey] = useState<NodeKey | null>(null);
   const [menuVersion, setMenuVersion] = useState(0);
   const selectedLinkKeyRef = useRef<NodeKey | null>(null);
-  const lastPointerActionAtRef = useRef(0);
+  const toolbarActionGestureRef = useRef<ToolbarActionGestureState>({ pressHandled: false });
+  const toolbarActionResetTimerRef = useRef<ReturnType<typeof setTimeout> | number>(-1);
   const toolbarHoverRef = useRef(false);
   const visibleLinkKeyRef = useRef<NodeKey | null>(null);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | number>(-1);
@@ -133,6 +140,22 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
       }, delay);
     },
     [handleCancel],
+  );
+
+  const scheduleToolbarActionGestureReset = useCallback(() => {
+    clearTimeout(toolbarActionResetTimerRef.current);
+    // Normally click consumes the press synchronously. This timeout only
+    // recovers from a cancelled gesture whose click never reaches the button.
+    toolbarActionResetTimerRef.current = setTimeout(() => {
+      toolbarActionGestureRef.current.pressHandled = false;
+    }, 1000);
+  }, []);
+
+  useEffect(
+    () => () => {
+      clearTimeout(toolbarActionResetTimerRef.current);
+    },
+    [],
   );
 
   useEffect(() => {
@@ -465,20 +488,36 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             className={styles.popoverActionItem}
             key={item.key}
             onClick={(event) => {
-              // Pointer devices run before click so the action survives
-              // toolbar teardown. A detail of zero is the native keyboard /
-              // assistive-technology click path.
-              if (event.detail === 0) item.onClick();
-            }}
-            onMouseDown={(event) => {
-              // Pointer-capable browsers have already executed the action in
-              // pointerdown. Keep mousedown only as a compatibility fallback.
-              if (Date.now() - lastPointerActionAtRef.current < 1000) {
+              const shouldRun = shouldRunToolbarActionFromEvent(
+                toolbarActionGestureRef.current,
+                'click',
+              );
+              clearTimeout(toolbarActionResetTimerRef.current);
+              if (!shouldRun) {
                 event.preventDefault();
                 event.stopPropagation();
                 return;
               }
+              // This is both the keyboard path and the final safety net when
+              // a floating-layer/selection update interrupted earlier pointer
+              // events. Never discard a genuine click just because it came
+              // from a pointer device.
+              event.preventDefault();
+              event.stopPropagation();
+              item.onClick();
+            }}
+            onMouseDown={(event) => {
               if (event.button !== 0) return;
+              const shouldRun = shouldRunToolbarActionFromEvent(
+                toolbarActionGestureRef.current,
+                'mousedown',
+              );
+              if (!shouldRun) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+              }
+              scheduleToolbarActionGestureReset();
               event.preventDefault();
               event.stopPropagation();
               item.onClick();
@@ -488,7 +527,8 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
               // Run before the browser moves focus back into Lexical. That
               // selection update can legitimately tear down this hover
               // toolbar before the following mousedown/click events arrive.
-              lastPointerActionAtRef.current = Date.now();
+              shouldRunToolbarActionFromEvent(toolbarActionGestureRef.current, 'pointerdown');
+              scheduleToolbarActionGestureReset();
               event.preventDefault();
               event.stopPropagation();
               item.onClick();
@@ -535,6 +575,29 @@ export function shouldRunToolbarActionFromPointer(event: {
   // primary-button contract is enough here and keeps mouse, touch, pen and
   // automation on the same pre-focus action path.
   return event.button <= 0;
+}
+
+export function shouldRunToolbarActionFromEvent(
+  state: ToolbarActionGestureState,
+  eventType: ToolbarActionEventType,
+): boolean {
+  if (eventType === 'pointerdown') {
+    state.pressHandled = true;
+    return true;
+  }
+
+  if (eventType === 'mousedown') {
+    if (state.pressHandled) return false;
+    state.pressHandled = true;
+    return true;
+  }
+
+  if (state.pressHandled) {
+    state.pressHandled = false;
+    return false;
+  }
+
+  return true;
 }
 
 function getLinkReferenceElement(target: EventTarget | null): HTMLElement | null {

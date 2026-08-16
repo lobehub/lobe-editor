@@ -24,6 +24,7 @@ import { LinkNode } from '../node/LinkNode';
 import { SchemaNode } from '../node/SchemaNode';
 import {
   readToolbarNode,
+  shouldRunToolbarActionFromEvent,
   shouldRunToolbarActionFromPointer,
 } from '../react/components/LinkToolbar';
 import { LinkService } from '../service/i-link-service';
@@ -44,6 +45,27 @@ async function readCapabilities(
 }
 
 describe('link toolbar conversions', () => {
+  it('runs one action for a full pointer gesture and allows the next gesture immediately', () => {
+    const state = { pressHandled: false };
+
+    expect(shouldRunToolbarActionFromEvent(state, 'pointerdown')).toBe(true);
+    expect(shouldRunToolbarActionFromEvent(state, 'mousedown')).toBe(false);
+    expect(shouldRunToolbarActionFromEvent(state, 'click')).toBe(false);
+
+    expect(shouldRunToolbarActionFromEvent(state, 'pointerdown')).toBe(true);
+    expect(shouldRunToolbarActionFromEvent(state, 'mousedown')).toBe(false);
+    expect(shouldRunToolbarActionFromEvent(state, 'click')).toBe(false);
+  });
+
+  it('keeps mouse-only and keyboard click fallbacks single-shot', () => {
+    const mouseState = { pressHandled: false };
+    expect(shouldRunToolbarActionFromEvent(mouseState, 'mousedown')).toBe(true);
+    expect(shouldRunToolbarActionFromEvent(mouseState, 'click')).toBe(false);
+
+    const keyboardState = { pressHandled: false };
+    expect(shouldRunToolbarActionFromEvent(keyboardState, 'click')).toBe(true);
+  });
+
   it('uses the pointer path for primary mouse, touch, pen, and synthetic activation', () => {
     expect(shouldRunToolbarActionFromPointer({ button: 0, pointerType: 'mouse' })).toBe(true);
     expect(shouldRunToolbarActionFromPointer({ button: 0, pointerType: '' })).toBe(true);
