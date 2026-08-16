@@ -4,6 +4,7 @@ import type { LexicalEditor, LexicalNode } from 'lexical';
 import { genServiceId } from '@/editor-kernel';
 import type { IServiceID } from '@/types';
 
+import type { LinkBlockCardNode } from '../node/LinkBlockCardNode';
 import type { LinkCardNode } from '../node/LinkCardNode';
 import type { LinkIframeNode } from '../node/LinkIframeNode';
 import type { LinkNode } from '../node/LinkNode';
@@ -47,6 +48,7 @@ export interface SchemaPayload {
 }
 
 export interface LinkEmbedRule {
+  allowBlockCard?: boolean;
   allowCard?: boolean;
   allowIframe?: boolean;
   getCardPayload?: (
@@ -65,13 +67,15 @@ export interface SchemaRule {
 }
 
 export interface LinkLabels {
+  convertToBlockCard: string;
   convertToCard: string;
   convertToIframe: string;
   convertToLink: string;
   convertToSchema: string;
 }
 
-export type LinkToolbarNode = LinkNode | LinkCardNode | LinkIframeNode | SchemaNode;
+export type LinkToolbarNode =
+  LinkNode | LinkCardNode | LinkBlockCardNode | LinkIframeNode | SchemaNode;
 
 export interface LinkToolbarActionContext {
   editor: LexicalEditor;
@@ -142,6 +146,7 @@ export interface ILinkService {
 export const ILinkService: IServiceID<ILinkService> = genServiceId<ILinkService>('LinkService');
 
 const DEFAULT_LABELS: LinkLabels = {
+  convertToBlockCard: 'Convert to block card',
   convertToCard: 'Convert to card',
   convertToIframe: 'Convert to iframe',
   convertToLink: 'Convert to link',

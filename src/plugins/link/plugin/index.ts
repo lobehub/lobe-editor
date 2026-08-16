@@ -8,9 +8,10 @@ import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { INSERT_LINK_COMMAND, registerLinkCommand } from '../command';
-import type { LinkAttributes } from '../node/LinkNode';
+import { $isLinkBlockCardNode, LinkBlockCardNode } from '../node/LinkBlockCardNode';
 import { $isLinkCardNode, LinkCardNode } from '../node/LinkCardNode';
 import { $isLinkIframeNode, LinkIframeNode } from '../node/LinkIframeNode';
+import type { LinkAttributes } from '../node/LinkNode';
 import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
 import { $isSchemaNode, SchemaNode } from '../node/SchemaNode';
 import { normalizeSchemaLinkNode } from '../normalization';
@@ -21,10 +22,7 @@ import type {
   SchemaLinkRendererConfig,
   SchemaRule,
 } from '../service/i-link-service';
-import {
-  ILinkService,
-  LinkService,
-} from '../service/i-link-service';
+import { ILinkService, LinkService } from '../service/i-link-service';
 import { registerLinkCommands } from './registry';
 
 export interface LinkPluginOptions {
@@ -70,11 +68,21 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
   ) {
     super();
     // Register the link nodes
-    kernel.registerNodes([LinkNode, AutoLinkNode, LinkCardNode, LinkIframeNode, SchemaNode]);
+    kernel.registerNodes([
+      LinkNode,
+      AutoLinkNode,
+      LinkCardNode,
+      LinkBlockCardNode,
+      LinkIframeNode,
+      SchemaNode,
+    ]);
     this.service.updateConfig(config);
     kernel.registerService(ILinkService, this.service);
     this.registerDecorator(kernel, LinkCardNode.getType(), (node, editor) =>
       config?.decoratorCard ? config.decoratorCard(node as LinkCardNode, editor) : null,
+    );
+    this.registerDecorator(kernel, LinkBlockCardNode.getType(), (node, editor) =>
+      config?.decoratorCard ? config.decoratorCard(node as LinkBlockCardNode, editor) : null,
     );
     this.registerDecorator(kernel, LinkIframeNode.getType(), (node, editor) =>
       config?.decoratorIframe ? config.decoratorIframe(node as LinkIframeNode, editor) : null,
@@ -172,17 +180,36 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
         title: node.getTitle(),
       });
     });
+    litexmlService.registerXMLWriter(LinkBlockCardNode.getType(), (node, ctx) => {
+      if (!$isLinkBlockCardNode(node)) return false;
+      return ctx.createXmlNode('link-card', {
+        description: node.getDescription(),
+        href: node.getURL(),
+        icon: node.getIcon(),
+        layout: 'block',
+        openTarget: node.getOpenTarget() || '_blank',
+        title: node.getTitle(),
+      });
+    });
     litexmlService.registerXMLReader('link-card', (xmlNode) => {
       return [
-        INodeHelper.createTypeNode(LinkCardNode.getType(), {
-          description: xmlNode.getAttribute('description') || '',
-          icon: xmlNode.getAttribute('icon') || '',
-          openTarget: xmlNode.getAttribute('openTarget') || '_blank',
-          title: xmlNode.getAttribute('title') || xmlNode.getAttribute('href') || '',
-          type: LinkCardNode.getType(),
-          url: xmlNode.getAttribute('href') || '',
-          version: 1,
-        }),
+        INodeHelper.createTypeNode(
+          xmlNode.getAttribute('layout') === 'block'
+            ? LinkBlockCardNode.getType()
+            : LinkCardNode.getType(),
+          {
+            description: xmlNode.getAttribute('description') || '',
+            icon: xmlNode.getAttribute('icon') || '',
+            openTarget: xmlNode.getAttribute('openTarget') || '_blank',
+            title: xmlNode.getAttribute('title') || xmlNode.getAttribute('href') || '',
+            type:
+              xmlNode.getAttribute('layout') === 'block'
+                ? LinkBlockCardNode.getType()
+                : LinkCardNode.getType(),
+            url: xmlNode.getAttribute('href') || '',
+            version: 1,
+          },
+        ),
       ];
     });
 
@@ -258,6 +285,15 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
       .requireService(IMarkdownShortCutService)
       ?.registerMarkdownWriter(LinkCardNode.getType(), (ctx, node) => {
         if ($isLinkCardNode(node)) {
+          ctx.appendLine(`[${node.getTitle()}](${node.getURL()})\n`);
+          return true;
+        }
+      });
+
+    this.kernel
+      .requireService(IMarkdownShortCutService)
+      ?.registerMarkdownWriter(LinkBlockCardNode.getType(), (ctx, node) => {
+        if ($isLinkBlockCardNode(node)) {
           ctx.appendLine(`[${node.getTitle()}](${node.getURL()})\n`);
           return true;
         }

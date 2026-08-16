@@ -2,13 +2,15 @@ import { mergeRegister } from '@lexical/utils';
 import type { IconProps } from '@lobehub/ui';
 import { Flexbox, Icon } from '@lobehub/ui';
 import type { LexicalEditor, NodeKey } from 'lexical';
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_NORMAL } from 'lexical';
+import { $getNodeByKey, $getSelection, $isRangeSelection, COMMAND_PRIORITY_NORMAL } from 'lexical';
 import {
-  BaselineIcon,
   CopyIcon,
   EditIcon,
   ExternalLinkIcon,
+  GalleryHorizontalEndIcon,
   LinkIcon,
+  PanelsTopLeftIcon,
+  PanelTopOpenIcon,
   UnlinkIcon,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -26,13 +28,13 @@ import {
   convertLinkNodeByKeyToSchema,
   convertLinkToolbarNodeByKeyToLink,
   getLinkToolbarCapabilities,
+  replaceNodeByKeyWithBlockCardNode,
   replaceNodeByKeyWithCardNode,
   replaceNodeByKeyWithIframeNode,
 } from '../../conversion';
 import { $isLinkNode, HOVER_LINK_COMMAND, HOVER_OUT_LINK_COMMAND } from '../../node/LinkNode';
 import type {
   LinkService,
-  LinkToolbarItem,
   LinkToolbarItemIcon,
   LinkToolbarNode,
   LinkToolbarRenderContext,
@@ -66,7 +68,10 @@ const toolbarIconMap: Record<LinkToolbarItemIcon, IconProps['icon']> = {
 const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const linkDomRef = useRef<HTMLElement | null>(null);
-  const [toolbarNode, setToolbarNode] = useState<LinkToolbarNode | null>(null);
+  // Lexical nodes are immutable editor-state snapshots. Holding one in React
+  // state makes it stale as soon as collaboration or any other update commits.
+  // Keep only the stable key and resolve the node inside the active read scope.
+  const [toolbarNodeKey, setToolbarNodeKey] = useState<NodeKey | null>(null);
   const [menuVersion, setMenuVersion] = useState(0);
   const selectedLinkKeyRef = useRef<NodeKey | null>(null);
   const toolbarHoverRef = useRef(false);
@@ -84,7 +89,10 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
     toolbarHoverRef.current = false;
     visibleLinkKeyRef.current = null;
     cleanPosition(divRef.current);
-    setToolbarNode(null);
+    // The same reset is shared by pointer handlers and the enable/editable
+    // synchronization effect, so it belongs in this single cancellation path.
+    // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
+    setToolbarNodeKey(null);
   }, []);
 
   const updateToolbarPosition = useCallback(() => {
@@ -96,21 +104,21 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
     });
   }, []);
 
-  const showToolbar = useCallback((nextNode: LinkToolbarNode, reference: HTMLElement) => {
+  const showToolbar = useCallback((nextNodeKey: NodeKey, reference: HTMLElement) => {
     clearTimeout(clearTimerRef.current);
     linkDomRef.current?.classList.remove('hover');
     linkDomRef.current = reference;
     linkDomRef.current.classList.add('hover');
-    visibleLinkKeyRef.current = nextNode.getKey();
-    setToolbarNode(nextNode);
+    visibleLinkKeyRef.current = nextNodeKey;
+    setToolbarNodeKey(nextNodeKey);
   }, []);
 
   const scheduleShowToolbar = useCallback(
-    (nextNode: LinkToolbarNode, reference: HTMLElement) => {
+    (nextNodeKey: NodeKey, reference: HTMLElement) => {
       clearTimeout(clearTimerRef.current);
       clearTimeout(showTimerRef.current);
       showTimerRef.current = setTimeout(() => {
-        showToolbar(nextNode, reference);
+        showToolbar(nextNodeKey, reference);
       }, HOVER_OPEN_DELAY);
     },
     [showToolbar],
@@ -137,131 +145,173 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
     });
   }, [linkService]);
 
-  const context = useMemo<LinkToolbarRenderContext | null>(() => {
-    if (!toolbarNode || !$isLinkNode(toolbarNode)) return null;
-    return {
-      close: handleCancel,
-      editor,
-      linkDom: linkDomRef.current,
-      linkNode: toolbarNode,
-    };
-  }, [editor, handleCancel, toolbarNode]);
+  const resolveToolbarNodeKey = useCallback((): NodeKey | null => {
+    return editor.getEditorState().read(() => {
+      const currentNode = linkDomRef.current
+        ? $getNearestLinkToolbarNodeFromDOMNode(linkDomRef.current, editor)
+        : null;
+      if (currentNode) return currentNode.getKey();
+      if (!toolbarNodeKey) return null;
 
-  const resolveLabel = useCallback(
-    (label: LinkToolbarItem['label']) => {
-      if (typeof label === 'function') return context ? label(context) : '';
-      return t(label as keyof ILocaleKeys);
-    },
-    [context, t],
-  );
+      const fallbackNode = $getNodeByKey(toolbarNodeKey);
+      return $isLinkToolbarNode(fallbackNode) ? fallbackNode.getKey() : null;
+    });
+  }, [editor, toolbarNodeKey]);
 
   const items = useMemo<ToolbarViewItem[]>(() => {
-    if (!toolbarNode) return [];
+    // Link services notify when their asynchronous metadata/actions change.
+    // Reading the version here intentionally invalidates this derived menu.
+    void menuVersion;
+    if (!toolbarNodeKey) return [];
 
-    const result: ToolbarViewItem[] = [];
-    const labels = linkService?.getLabels();
-    const capabilities = editor
-      .getEditorState()
-      .read(() => getLinkToolbarCapabilities(toolbarNode, editor, linkService));
+    return (
+      readToolbarNode(editor, toolbarNodeKey, (toolbarNode) => {
+        const result: ToolbarViewItem[] = [];
+        const labels = linkService?.getLabels();
+        const capabilities = getLinkToolbarCapabilities(toolbarNode, editor, linkService);
+        const context: LinkToolbarRenderContext | null = $isLinkNode(toolbarNode)
+          ? {
+              close: handleCancel,
+              editor,
+              linkDom: linkDomRef.current,
+              linkNode: toolbarNode,
+            }
+          : null;
 
-    if (context && linkService) {
-      result.push(
-        ...linkService.getToolbarItems(context).map((item) => ({
-          icon: toolbarIconMap[item.icon],
-          key: item.key,
-          label: resolveLabel(item.label),
-          onClick: () => {
-            void item.onClick(context);
-          },
-        })),
-      );
-    } else {
-      result.push({
-        icon: ExternalLinkIcon,
-        key: 'open',
-        label: t('link.open'),
-        onClick: () => {
-          const url = editor.getEditorState().read(() => getNodeUrl(toolbarNode));
-          window.open(url, '_blank');
-        },
-      });
-    }
+        if (context && linkService) {
+          result.push(
+            ...linkService.getToolbarItems(context).map((item) => ({
+              icon: toolbarIconMap[item.icon],
+              key: item.key,
+              label:
+                typeof item.label === 'function'
+                  ? item.label(context)
+                  : t(item.label as keyof ILocaleKeys),
+              onClick: () => {
+                readToolbarNode(editor, toolbarNodeKey, (currentNode) => {
+                  if (!$isLinkNode(currentNode)) return;
+                  void item.onClick({
+                    close: handleCancel,
+                    editor,
+                    linkDom: linkDomRef.current,
+                    linkNode: currentNode,
+                  });
+                });
+              },
+            })),
+          );
+        } else {
+          const url = getNodeUrl(toolbarNode);
+          result.push({
+            icon: ExternalLinkIcon,
+            key: 'open',
+            label: t('link.open'),
+            onClick: () => window.open(url, '_blank'),
+          });
+        }
 
-    if (capabilities.canConvertToCard) {
-      result.push({
-        icon: BaselineIcon,
-        key: 'convertToCard',
-        label: labels?.convertToCard || 'Convert to card',
-        onClick: () => {
-          if (!linkService) return;
-          void replaceNodeByKeyWithCardNode(editor, toolbarNode.getKey(), linkService);
-          handleCancel();
-        },
-      });
-    }
+        if (capabilities.canConvertToCard) {
+          result.push({
+            icon: GalleryHorizontalEndIcon,
+            key: 'convertToCard',
+            label: labels?.convertToCard || 'Convert to card',
+            onClick: () => {
+              if (!linkService) return;
+              const nodeKey = resolveToolbarNodeKey();
+              if (!nodeKey) return;
+              void replaceNodeByKeyWithCardNode(editor, nodeKey, linkService);
+              handleCancel();
+            },
+          });
+        }
 
-    if (capabilities.canConvertToIframe) {
-      result.push({
-        icon: ExternalLinkIcon,
-        key: 'convertToIframe',
-        label: labels?.convertToIframe || 'Convert to iframe',
-        onClick: () => {
-          if (!linkService) return;
-          replaceNodeByKeyWithIframeNode(editor, toolbarNode.getKey(), linkService);
-          handleCancel();
-        },
-      });
-    }
+        if (capabilities.canConvertToBlockCard) {
+          result.push({
+            icon: PanelsTopLeftIcon,
+            key: 'convertToBlockCard',
+            label: labels?.convertToBlockCard || 'Convert to block card',
+            onClick: () => {
+              if (!linkService) return;
+              const nodeKey = resolveToolbarNodeKey();
+              if (!nodeKey) return;
+              void replaceNodeByKeyWithBlockCardNode(editor, nodeKey, linkService);
+              handleCancel();
+            },
+          });
+        }
 
-    if (capabilities.canConvertToSchema && $isLinkNode(toolbarNode)) {
-      result.push({
-        icon: LinkIcon,
-        key: 'convertToSchema',
-        label: labels?.convertToSchema || 'Convert to schema',
-        onClick: () => {
-          if (!linkService) return;
-          convertLinkNodeByKeyToSchema(editor, toolbarNode.getKey(), linkService);
-          handleCancel();
-        },
-      });
-    }
+        if (capabilities.canConvertToIframe) {
+          result.push({
+            icon: PanelTopOpenIcon,
+            key: 'convertToIframe',
+            label: labels?.convertToIframe || 'Convert to iframe',
+            onClick: () => {
+              if (!linkService) return;
+              const nodeKey = resolveToolbarNodeKey();
+              if (!nodeKey) return;
+              replaceNodeByKeyWithIframeNode(editor, nodeKey, linkService);
+              handleCancel();
+            },
+          });
+        }
 
-    if (capabilities.canConvertToLink) {
-      result.push({
-        icon: LinkIcon,
-        key: 'convertToLink',
-        label: labels?.convertToLink || 'Convert to link',
-        onClick: () => {
-          convertLinkToolbarNodeByKeyToLink(editor, toolbarNode.getKey());
-          handleCancel();
-        },
-      });
-    }
+        if (capabilities.canConvertToSchema && $isLinkNode(toolbarNode)) {
+          result.push({
+            icon: LinkIcon,
+            key: 'convertToSchema',
+            label: labels?.convertToSchema || 'Convert to schema',
+            onClick: () => {
+              if (!linkService) return;
+              const nodeKey = resolveToolbarNodeKey();
+              if (!nodeKey) return;
+              convertLinkNodeByKeyToSchema(editor, nodeKey, linkService);
+              handleCancel();
+            },
+          });
+        }
 
-    if (linkService) {
-      result.push(
-        ...linkService.getToolbarActions({ editor, node: toolbarNode }).map((action) => ({
-          icon: (action.icon || LinkIcon) as IconProps['icon'],
-          key: action.key,
-          label: action.label,
-          onClick: () => {
-            action.onClick({ editor, node: toolbarNode });
-            handleCancel();
-          },
-        })),
-      );
-    }
+        if (capabilities.canConvertToLink) {
+          result.push({
+            icon: LinkIcon,
+            key: 'convertToLink',
+            label: labels?.convertToLink || 'Convert to link',
+            onClick: () => {
+              const nodeKey = resolveToolbarNodeKey();
+              if (!nodeKey) return;
+              convertLinkToolbarNodeByKeyToLink(editor, nodeKey);
+              handleCancel();
+            },
+          });
+        }
 
-    return result;
-  }, [context, editor, handleCancel, linkService, menuVersion, resolveLabel, t, toolbarNode]);
+        if (linkService) {
+          result.push(
+            ...linkService.getToolbarActions({ editor, node: toolbarNode }).map((action) => ({
+              icon: (action.icon || LinkIcon) as IconProps['icon'],
+              key: action.key,
+              label: action.label,
+              onClick: () => {
+                readToolbarNode(editor, toolbarNodeKey, (currentNode) => {
+                  action.onClick({ editor, node: currentNode });
+                });
+                handleCancel();
+              },
+            })),
+          );
+        }
+
+        return result;
+      }) || []
+    );
+  }, [editor, handleCancel, linkService, menuVersion, resolveToolbarNodeKey, t, toolbarNodeKey]);
 
   useLayoutEffect(() => {
-    if (!toolbarNode || items.length === 0) return;
+    if (!toolbarNodeKey || items.length === 0) return;
     updateToolbarPosition();
-  }, [items.length, menuVersion, toolbarNode, updateToolbarPosition]);
+  }, [items.length, menuVersion, toolbarNodeKey, updateToolbarPosition]);
 
   useEffect(() => {
-    if (!toolbarNode || typeof window === 'undefined') return;
+    if (!toolbarNodeKey || typeof window === 'undefined') return;
     const handleViewportChange = () => updateToolbarPosition();
     window.addEventListener('resize', handleViewportChange, { passive: true });
     window.addEventListener('scroll', handleViewportChange, { capture: true, passive: true });
@@ -269,7 +319,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
       window.removeEventListener('resize', handleViewportChange);
       window.removeEventListener('scroll', handleViewportChange, { capture: true });
     };
-  }, [toolbarNode, updateToolbarPosition]);
+  }, [toolbarNodeKey, updateToolbarPosition]);
 
   useLexicalEditor(
     (lexicalEditor) => {
@@ -286,8 +336,9 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
           .read(() => $getNearestLinkToolbarNodeFromDOMNode(reference, lexicalEditor));
         if (!node) return;
 
-        if (visibleLinkKeyRef.current) showToolbar(node, reference);
-        else scheduleShowToolbar(node, reference);
+        const nodeKey = node.getKey();
+        if (visibleLinkKeyRef.current) showToolbar(nodeKey, reference);
+        else scheduleShowToolbar(nodeKey, reference);
       };
 
       const handleMouseOut = (event: MouseEvent) => {
@@ -317,14 +368,10 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             return;
           }
 
-          const selection = lexicalEditor.getEditorState().read(() => $getSelection());
-          if (!$isRangeSelection(selection)) {
-            selectedLinkKeyRef.current = null;
-            scheduleHideToolbar();
-            return;
-          }
+          const selectedLinkKey = lexicalEditor.getEditorState().read(() => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection)) return null;
 
-          lexicalEditor.getEditorState().read(() => {
             const selectedNode = getSelectedNode(selection);
             const parent = selectedNode.getParent();
             const selectedToolbarNode = $isLinkToolbarNode(selectedNode)
@@ -333,18 +380,19 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
                 ? parent
                 : null;
 
-            if (!selectedToolbarNode) {
-              selectedLinkKeyRef.current = null;
-              scheduleHideToolbar();
-              return;
-            }
-
-            const selectedLinkKey = selectedToolbarNode.getKey();
-            if (selectedLinkKey === selectedLinkKeyRef.current) return;
-            selectedLinkKeyRef.current = selectedLinkKey;
-            const dom = lexicalEditor.getElementByKey(selectedLinkKey);
-            if (dom) showToolbar(selectedToolbarNode, dom);
+            return selectedToolbarNode?.getKey() || null;
           });
+
+          if (!selectedLinkKey) {
+            selectedLinkKeyRef.current = null;
+            scheduleHideToolbar();
+            return;
+          }
+
+          if (selectedLinkKey === selectedLinkKeyRef.current) return;
+          selectedLinkKeyRef.current = selectedLinkKey;
+          const dom = lexicalEditor.getElementByKey(selectedLinkKey);
+          if (dom) showToolbar(selectedLinkKey, dom);
         }),
         lexicalEditor.registerCommand(
           HOVER_LINK_COMMAND,
@@ -352,8 +400,9 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             if (!enable || !editable || !payload.event.target) return false;
             const reference = getLinkReferenceElement(payload.event.target);
             if (!reference || !$isLinkToolbarNode(payload.node)) return false;
-            if (visibleLinkKeyRef.current) showToolbar(payload.node, reference);
-            else scheduleShowToolbar(payload.node, reference);
+            const nodeKey = payload.node.getKey();
+            if (visibleLinkKeyRef.current) showToolbar(nodeKey, reference);
+            else scheduleShowToolbar(nodeKey, reference);
             return false;
           },
           COMMAND_PRIORITY_NORMAL,
@@ -433,6 +482,17 @@ function $getNearestLinkToolbarNodeFromDOMNode(
     node = node.getParent();
   }
   return null;
+}
+
+export function readToolbarNode<T>(
+  editor: LexicalEditor,
+  key: NodeKey,
+  reader: (node: LinkToolbarNode) => T,
+): T | null {
+  return editor.getEditorState().read(() => {
+    const node = $getNodeByKey(key);
+    return $isLinkToolbarNode(node) ? reader(node) : null;
+  });
 }
 
 function getLinkReferenceElement(target: EventTarget | null): HTMLElement | null {

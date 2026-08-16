@@ -1,11 +1,8 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { addClassNamesToElement } from '@lexical/utils';
-import {
-  $applyNodeReplacement,
+import type {
   DOMConversionMap,
   DOMConversionOutput,
   DOMExportOutput,
-  DecoratorNode,
   EditorConfig,
   LexicalEditor,
   LexicalNode,
@@ -13,8 +10,8 @@ import {
   NodeKey,
   SerializedLexicalNode,
   Spread,
-  createCommand,
 } from 'lexical';
+import { $applyNodeReplacement, createCommand, DecoratorNode } from 'lexical';
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 
@@ -79,7 +76,11 @@ export class LinkCardNode extends DecoratorNode<unknown> {
   static importDOM(): DOMConversionMap | null {
     return {
       a: (node) => {
-        if (node instanceof HTMLAnchorElement && node.dataset.linkCard === 'true') {
+        if (
+          node instanceof HTMLAnchorElement &&
+          node.dataset.linkCard === 'true' &&
+          node.dataset.linkCardLayout !== 'block'
+        ) {
           return {
             conversion: $convertLinkCardElement,
             priority: 2,
@@ -134,7 +135,7 @@ export class LinkCardNode extends DecoratorNode<unknown> {
     return false;
   }
 
-  isInline(): true {
+  isInline(): boolean {
     return true;
   }
 

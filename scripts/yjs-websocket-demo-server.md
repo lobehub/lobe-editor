@@ -132,6 +132,11 @@ Returns demo diagnostics:
 Use this while testing connection count, awareness cleanup, and idle room
 eviction.
 
+The diagnostics also expose the current bootstrap client and the number of
+clients waiting for the first room update. The server emits structured
+`[yjs-demo]` JSON logs for room creation, connection, initial sync, deferred
+sync, applied or rejected updates, awareness, disconnection, and eviction.
+
 ## WebSocket API
 
 Connect to:
@@ -144,7 +149,8 @@ The browser provider sends its Yjs `clientID` as `clientId`.
 
 ### Initial Server Message
 
-On connection, the server immediately sends:
+The first client in an empty runtime room becomes its bootstrap owner and
+immediately receives:
 
 ```json
 {
@@ -160,6 +166,11 @@ On connection, the server immediately sends:
 ```
 
 The `update` field is `encodeStateAsUpdate(room.doc)` encoded as base64.
+
+Only the bootstrap owner may seed an empty runtime room from persisted JSON.
+Clients that connect at the same time wait until the owner sends its first Yjs
+update, then receive the initialized room state. This prevents every browser
+session from inserting the same persisted document once.
 
 ### Client Update Message
 
@@ -238,6 +249,15 @@ Example:
 
 ```bash
 YJS_DEMO_PORT=12346 YJS_DEMO_ROOM_IDLE_TTL_MS=60000 npm run demo:yjs-server
+```
+
+For a fast lifecycle acceptance run, keep the default unchanged and override
+the room TTL and cleanup interval locally:
+
+```bash
+YJS_DEMO_ROOM_IDLE_TTL_MS=30000 \
+  YJS_DEMO_ROOM_CLEANUP_INTERVAL_MS=1000 \
+  npm run demo:yjs-server
 ```
 
 ## Design Notes

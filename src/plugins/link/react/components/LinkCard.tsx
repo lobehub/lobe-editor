@@ -1,9 +1,10 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import { $createNodeSelection, $getNodeByKey, $setSelection, LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
+import { $createNodeSelection, $getNodeByKey, $setSelection } from 'lexical';
 import { type FC, type MouseEventHandler, useCallback, useEffect, useState } from 'react';
 
-import { EDIT_LINK_CARD_COMMAND, LinkCardNode } from '../../node/LinkCardNode';
-import { LinkReactRendererRegistry } from '../renderer-registry';
+import type { LinkCardNode } from '../../node/LinkCardNode';
+import { EDIT_LINK_CARD_COMMAND } from '../../node/LinkCardNode';
+import type { LinkReactRendererRegistry } from '../renderer-registry';
 
 interface LinkCardProps {
   description: string;
@@ -84,6 +85,7 @@ const LinkCard: FC<LinkCardProps> = ({
     editor,
     icon,
     isSelected,
+    layout: node.isInline() ? ('inline' as const) : ('block' as const),
     node,
     onClickCapture,
     onMouseDownCapture,
@@ -110,12 +112,65 @@ function DefaultLinkCard(props: {
   description: string;
   icon: string;
   isSelected: boolean;
+  layout: 'block' | 'inline';
   onClickCapture: MouseEventHandler<HTMLElement>;
   onMouseDownCapture: MouseEventHandler<HTMLElement>;
   openTarget: null | string;
   title: string;
   url: string;
 }) {
+  if (props.layout === 'block') {
+    return (
+      <a
+        href={props.url}
+        onClickCapture={props.onClickCapture}
+        onMouseDownCapture={props.onMouseDownCapture}
+        rel="noreferrer"
+        style={{
+          alignItems: 'center',
+          border: '1px solid rgba(0,0,0,0.12)',
+          borderRadius: 12,
+          color: 'inherit',
+          display: 'grid',
+          gap: 12,
+          gridTemplateColumns: '40px minmax(0, 1fr)',
+          maxWidth: 520,
+          outline: props.isSelected ? '2px solid rgba(22,119,255,0.45)' : undefined,
+          outlineOffset: props.isSelected ? 1 : undefined,
+          padding: 12,
+          textDecoration: 'none',
+          width: '100%',
+        }}
+        target={props.openTarget || '_blank'}
+      >
+        {props.icon ? (
+          <img
+            alt=""
+            src={props.icon}
+            style={{ borderRadius: 8, height: 40, objectFit: 'cover', width: 40 }}
+          />
+        ) : null}
+        <span style={{ display: 'grid', gap: 4, minWidth: 0 }}>
+          <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {props.title}
+          </strong>
+          {props.description ? (
+            <span
+              style={{
+                opacity: 0.65,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {props.description}
+            </span>
+          ) : null}
+        </span>
+      </a>
+    );
+  }
+
   return (
     <a
       href={props.url}

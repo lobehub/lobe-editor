@@ -24,6 +24,19 @@ const documents = new Map();
 const documentMetadata = new Map();
 const rooms = new Map();
 
+function logRoomEvent(event, room, details = {}) {
+  console.info(
+    `[yjs-demo] ${JSON.stringify({
+      awarenessCount: room.awareness.size,
+      clientCount: room.clients.size,
+      event,
+      roomId: room.id,
+      timestamp: new Date().toISOString(),
+      ...details,
+    })}`,
+  );
+}
+
 function cloneJson(value) {
   return structuredClone(value);
 }
@@ -156,13 +169,18 @@ function getRoom(id) {
     const now = Date.now();
     room = {
       awareness: new Map(),
+      bootstrapOwner: null,
+      bootstrapOwnerClientId: null,
       clients: new Set(),
+      deferredSyncClients: new Map(),
       doc: new Doc(),
+      hasReceivedUpdate: false,
       id,
       lastActiveAt: now,
       lastEmptyAt: now,
     };
     rooms.set(id, room);
+    logRoomEvent('room.created', room);
   }
 
   return room;
@@ -202,10 +220,11 @@ function getMemoryStats() {
 }
 
 function evictRoom(room, reason) {
+  logRoomEvent('room.evicted', room, { reason });
   room.doc.destroy();
   room.awareness.clear();
+  room.deferredSyncClients.clear();
   rooms.delete(room.id);
-  console.info(`[yjs-demo] evicted idle room "${room.id}" (${reason})`);
 }
 
 function cleanupIdleRooms() {
@@ -246,6 +265,82 @@ function broadcast(room, sender, message) {
   }
 }
 
+function sendRoomSync(room, socket, clientId) {
+  if (socket.readyState !== WebSocket.OPEN) {
+    return;
+  }
+
+  const initialUpdate = encodeStateAsUpdate(room.doc);
+  logRoomEvent('sync.sent', room, {
+    clientId,
+    stateBytes: initialUpdate.byteLength,
+  });
+  socket.send(
+    JSON.stringify({
+      awareness: Array.from(room.awareness, ([awarenessClientId, state]) => ({
+        clientId: awarenessClientId,
+        state,
+      })),
+      type: 'sync',
+      update: encodeUpdate(initialUpdate),
+    }),
+  );
+}
+
+function assignBootstrapOwner(room, socket, clientId) {
+  room.bootstrapOwner = socket;
+  room.bootstrapOwnerClientId = clientId;
+  logRoomEvent('bootstrap.owner-assigned', room, { clientId });
+  sendRoomSync(room, socket, clientId);
+}
+
+function flushDeferredSyncClients(room) {
+  const deferredClients = Array.from(room.deferredSyncClients);
+  room.deferredSyncClients.clear();
+
+  for (const [socket, clientId] of deferredClients) {
+    sendRoomSync(room, socket, clientId);
+  }
+}
+
+function completeRoomBootstrap(room, clientId) {
+  if (room.hasReceivedUpdate) {
+    return;
+  }
+
+  room.hasReceivedUpdate = true;
+  room.bootstrapOwner = null;
+  room.bootstrapOwnerClientId = null;
+  logRoomEvent('bootstrap.completed', room, {
+    clientId,
+    deferredClientCount: room.deferredSyncClients.size,
+  });
+  flushDeferredSyncClients(room);
+}
+
+function releaseBootstrapClient(room, socket) {
+  room.deferredSyncClients.delete(socket);
+
+  if (room.bootstrapOwner !== socket || room.hasReceivedUpdate) {
+    return;
+  }
+
+  room.bootstrapOwner = null;
+  room.bootstrapOwnerClientId = null;
+
+  const nextOwner = Array.from(room.deferredSyncClients).find(
+    ([candidate]) => candidate.readyState === WebSocket.OPEN,
+  );
+
+  if (!nextOwner) {
+    return;
+  }
+
+  const [nextSocket, nextClientId] = nextOwner;
+  room.deferredSyncClients.delete(nextSocket);
+  assignBootstrapOwner(room, nextSocket, nextClientId);
+}
+
 function getRawMessageSize(rawMessage) {
   if (typeof rawMessage === 'string') {
     return Buffer.byteLength(rawMessage);
@@ -280,7 +375,9 @@ function getRoomsDiagnostics() {
   const roomList = Array.from(rooms.values()).map((room) => ({
     awareness: getAwarenessDiagnostics(room),
     awarenessCount: room.awareness.size,
+    bootstrapClientId: room.bootstrapOwnerClientId,
     clientCount: room.clients.size,
+    deferredSyncClientCount: room.deferredSyncClients.size,
     id: room.id,
     lastActiveAt: toIsoString(room.lastActiveAt),
     lastEmptyAt: toIsoString(room.lastEmptyAt),
@@ -372,19 +469,22 @@ function handleSocketConnection(socket, request) {
   room.clients.add(socket);
   room.lastActiveAt = Date.now();
   room.lastEmptyAt = null;
+  logRoomEvent('client.connected', room, { clientId });
 
-  // Storage stays JSON. The browser loads JSON over HTTP first, then the editor/Yjs
-  // plugin bootstraps that state into this empty runtime Y.Doc room.
-  socket.send(
-    JSON.stringify({
-      awareness: Array.from(room.awareness, ([awarenessClientId, state]) => ({
-        clientId: awarenessClientId,
-        state,
-      })),
-      type: 'sync',
-      update: encodeUpdate(encodeStateAsUpdate(room.doc)),
-    }),
-  );
+  // Storage stays JSON. Exactly one client may bootstrap an empty runtime Y.Doc.
+  // Other simultaneous clients wait for that first state update, preventing the
+  // same database snapshot from being inserted once per browser session.
+  if (!room.hasReceivedUpdate && room.bootstrapOwner) {
+    room.deferredSyncClients.set(socket, clientId);
+    logRoomEvent('sync.deferred', room, {
+      bootstrapClientId: room.bootstrapOwnerClientId,
+      clientId,
+    });
+  } else if (!room.hasReceivedUpdate) {
+    assignBootstrapOwner(room, socket, clientId);
+  } else {
+    sendRoomSync(room, socket, clientId);
+  }
 
   socket.on('message', (rawMessage) => {
     let message;
@@ -402,13 +502,22 @@ function handleSocketConnection(socket, request) {
     }
 
     if (message.type === 'update') {
+      let update;
       try {
-        applyUpdate(room.doc, decodeUpdate(message.update), socket);
+        update = decodeUpdate(message.update);
+        applyUpdate(room.doc, update, socket);
       } catch {
+        logRoomEvent('update.rejected', room, { clientId, reason: 'invalid update' });
         socket.close(1003, 'Invalid Yjs update.');
         return;
       }
       room.lastActiveAt = Date.now();
+      completeRoomBootstrap(room, clientId);
+      logRoomEvent('update.applied', room, {
+        clientId,
+        stateBytes: encodeStateAsUpdate(room.doc).byteLength,
+        updateBytes: update.byteLength,
+      });
       broadcast(room, socket, { ...message, sender: clientId });
       return;
     }
@@ -420,11 +529,19 @@ function handleSocketConnection(socket, request) {
         room.awareness.delete(clientId);
       }
 
+      logRoomEvent('awareness.updated', room, {
+        clientId,
+        editingBlock: message.state?.awarenessData?.editingBlock?.key || null,
+        focusing: Boolean(message.state?.focusing),
+        hasSelection: Boolean(message.state?.anchorPos && message.state?.focusPos),
+        name: typeof message.state?.name === 'string' ? message.state.name : null,
+      });
       broadcast(room, socket, { ...message, sender: clientId });
     }
   });
 
   socket.on('close', () => {
+    releaseBootstrapClient(room, socket);
     room.clients.delete(socket);
     room.awareness.delete(clientId);
     broadcast(room, socket, {
@@ -437,6 +554,11 @@ function handleSocketConnection(socket, request) {
       room.awareness.clear();
       room.lastEmptyAt = Date.now();
     }
+
+    logRoomEvent('client.disconnected', room, {
+      clientId,
+      idleSince: toIsoString(room.lastEmptyAt),
+    });
   });
 }
 
@@ -482,6 +604,16 @@ async function start() {
     );
     console.info(
       `[yjs-demo] Idle rooms are retained until TTL, room limit, or heap pressure cleanup.`,
+    );
+    console.info(
+      `[yjs-demo] ${JSON.stringify({
+        cleanupIntervalMs: ROOM_CLEANUP_INTERVAL_MS,
+        event: 'server.config',
+        heartbeatIntervalMs: HEARTBEAT_INTERVAL_MS,
+        maxIdleRooms: MAX_IDLE_ROOMS,
+        roomIdleTtlMs: ROOM_IDLE_TTL_MS,
+        timestamp: new Date().toISOString(),
+      })}`,
     );
   });
 

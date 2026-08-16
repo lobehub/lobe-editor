@@ -11,6 +11,7 @@ import {
   COMMAND_PRIORITY_EDITOR,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
+  KEY_BACKSPACE_COMMAND,
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
 
@@ -61,6 +62,7 @@ export const CollapsiblePlugin: IEditorPluginConstructor<CollapsiblePluginOption
     this.register(registerCollaborativeCollapseGuard(editor, this.kernel));
     this.register(registerCollapsibleDomBehavior(editor));
     this.register(registerCollapsedSelectionGuard(editor));
+    this.register(registerEmptyCollapsibleBackspace(editor));
     this.register(registerTableInsertionBoundary(editor));
     this.registerMarkdown();
     this.registerLiteXml();
@@ -190,6 +192,8 @@ function getRemoteSelectionNodes(
 ): LexicalNode[] {
   if (!userState) return [];
 
+  const nodes: LexicalNode[] = [];
+
   try {
     const { anchorCollabNode, focusCollabNode } = getAnchorAndFocusCollabNodesForUserState(
       collaborationState.binding,
@@ -197,14 +201,26 @@ function getRemoteSelectionNodes(
     );
     const anchorNode = anchorCollabNode?.getNode() as LexicalNode | null | undefined;
     const focusNode = focusCollabNode?.getNode() as LexicalNode | null | undefined;
-    return [anchorNode, focusNode].filter((node): node is LexicalNode => Boolean(node));
+    nodes.push(...[anchorNode, focusNode].filter((node): node is LexicalNode => Boolean(node)));
   } catch {
-    const selection = collaborationState.binding.cursors.get(clientId)?.selection;
-    if (!selection) return [];
-
-    const nodes = [$getNodeByKey(selection.anchor.key), $getNodeByKey(selection.focus.key)];
-    return nodes.filter((node): node is LexicalNode => Boolean(node));
+    // A relative cursor can temporarily be unresolved while a Yjs update is
+    // being applied. The materialized cursor selection below is still usable.
   }
+
+  // `syncCursorPositions` materializes awareness positions as local Lexical
+  // keys. Keep this as a second source even when relative-position resolution
+  // did not throw: it can legitimately return null or an adjacent collab node
+  // during an in-flight tree update.
+  const selection = collaborationState.binding.cursors.get(clientId)?.selection;
+  if (selection) {
+    nodes.push(
+      ...[$getNodeByKey(selection.anchor.key), $getNodeByKey(selection.focus.key)].filter(
+        (node): node is LexicalNode => Boolean(node),
+      ),
+    );
+  }
+
+  return nodes.filter((node): node is LexicalNode => Boolean(node));
 }
 
 function isDescendantOf(node: LexicalNode, ancestor: LexicalNode): boolean {
@@ -564,6 +580,64 @@ function registerTableInsertionBoundary(editor: LexicalEditor) {
     },
     COMMAND_PRIORITY_CRITICAL,
   );
+}
+
+function registerEmptyCollapsibleBackspace(editor: LexicalEditor) {
+  const removeCollapsible = (collapsible: CollapsibleNode, event: KeyboardEvent) => {
+    if (collapsible.getTextContent().trim().length > 0) return false;
+
+    const paragraph = $createParagraphNode();
+    collapsible.replace(paragraph);
+    paragraph.selectStart();
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    return true;
+  };
+
+  const unregisterCommand = editor.registerCommand<KeyboardEvent>(
+    KEY_BACKSPACE_COMMAND,
+    (event) => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
+
+      const collapsible = getCollapsibleAncestor(selection.anchor.getNode());
+      return collapsible ? removeCollapsible(collapsible, event) : false;
+    },
+    COMMAND_PRIORITY_CRITICAL,
+  );
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== 'Backspace' || event.defaultPrevented) return;
+
+    const ownerDocument = (event.currentTarget as HTMLElement | null)?.ownerDocument;
+    const domSelection = ownerDocument?.getSelection();
+    if (!domSelection?.isCollapsed) return;
+
+    const section = getSelectionCollapsibleSection(domSelection);
+    if (!section) return;
+
+    let handled = false;
+    editor.update(
+      () => {
+        const collapsible = $getCollapsibleNodeFromSection(section, editor);
+        if (collapsible) handled = removeCollapsible(collapsible, event);
+      },
+      { discrete: true },
+    );
+
+    if (handled) event.preventDefault();
+  };
+
+  const unregisterRootListener = editor.registerRootListener((rootElement, prevRootElement) => {
+    prevRootElement?.removeEventListener('keydown', handleKeyDown, true);
+    rootElement?.addEventListener('keydown', handleKeyDown, true);
+  });
+
+  return () => {
+    unregisterCommand();
+    unregisterRootListener();
+  };
 }
 
 function hasNativeCaretTarget(event: MouseEvent, directChild: HTMLElement): boolean {

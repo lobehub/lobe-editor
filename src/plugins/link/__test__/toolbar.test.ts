@@ -11,22 +11,25 @@ import { describe, expect, it } from 'vitest';
 import {
   getLinkToolbarCapabilities,
   replaceNodeByKeyWithCardNode,
+  replaceWithBlockCardNode,
   replaceWithBlockIframeNode,
   replaceWithCardNode,
   replaceWithIframeNode,
   replaceWithInlineNode,
 } from '../conversion';
 import { LinkCardNode } from '../node/LinkCardNode';
+import { LinkBlockCardNode } from '../node/LinkBlockCardNode';
 import { LinkIframeNode } from '../node/LinkIframeNode';
 import { LinkNode } from '../node/LinkNode';
 import { SchemaNode } from '../node/SchemaNode';
+import { readToolbarNode } from '../react/components/LinkToolbar';
 import { LinkService } from '../service/i-link-service';
 
 async function readCapabilities(
   callback: (editor: LexicalEditor) => ReturnType<typeof getLinkToolbarCapabilities>,
 ) {
   const lexicalEditor = createEditor({
-    nodes: [LinkNode, LinkCardNode, LinkIframeNode, SchemaNode],
+    nodes: [LinkNode, LinkCardNode, LinkBlockCardNode, LinkIframeNode, SchemaNode],
   });
   let capabilities: ReturnType<typeof getLinkToolbarCapabilities> | undefined;
 
@@ -38,10 +41,32 @@ async function readCapabilities(
 }
 
 describe('link toolbar conversions', () => {
+  it('does not read a stale node after the hovered node is replaced', async () => {
+    const lexicalEditor = createEditor({
+      nodes: [LinkNode, LinkCardNode, LinkBlockCardNode, LinkIframeNode, SchemaNode],
+    });
+    let iframeKey = '';
+
+    await lexicalEditor.update(() => {
+      const iframeNode = new LinkIframeNode('https://lobehub.com', undefined, 'LobeHub');
+      iframeKey = iframeNode.getKey();
+      $getRoot().append(iframeNode);
+    });
+
+    await lexicalEditor.update(() => {
+      $getRoot()
+        .getFirstChildOrThrow()
+        .replace(new LinkBlockCardNode('https://lobehub.com', 'LobeHub'));
+    });
+
+    expect(readToolbarNode(lexicalEditor, iframeKey, (node) => node.getURL())).toBeNull();
+  });
+
   it('shows card and iframe conversion for matching regular links', async () => {
     const linkService = new LinkService();
     linkService.setEmbedRules([
       {
+        allowBlockCard: true,
         allowCard: true,
         allowIframe: true,
         id: 'web',
@@ -58,6 +83,7 @@ describe('link toolbar conversions', () => {
         ),
       ),
     ).resolves.toEqual({
+      canConvertToBlockCard: true,
       canConvertToCard: true,
       canConvertToIframe: true,
       canConvertToLink: false,
@@ -83,6 +109,7 @@ describe('link toolbar conversions', () => {
         ),
       ),
     ).resolves.toEqual({
+      canConvertToBlockCard: false,
       canConvertToCard: false,
       canConvertToIframe: false,
       canConvertToLink: false,
@@ -102,6 +129,7 @@ describe('link toolbar conversions', () => {
         ),
       ),
     ).resolves.toEqual({
+      canConvertToBlockCard: true,
       canConvertToCard: false,
       canConvertToIframe: true,
       canConvertToLink: true,
@@ -117,8 +145,29 @@ describe('link toolbar conversions', () => {
         ),
       ),
     ).resolves.toEqual({
+      canConvertToBlockCard: true,
       canConvertToCard: true,
       canConvertToIframe: false,
+      canConvertToLink: true,
+      canConvertToSchema: false,
+    });
+  });
+
+  it('allows a block card to convert to a title card, iframe, or link', async () => {
+    const linkService = new LinkService();
+
+    await expect(
+      readCapabilities((editor) =>
+        getLinkToolbarCapabilities(
+          new LinkBlockCardNode('https://lobehub.com', 'LobeHub'),
+          editor,
+          linkService,
+        ),
+      ),
+    ).resolves.toEqual({
+      canConvertToBlockCard: false,
+      canConvertToCard: true,
+      canConvertToIframe: true,
       canConvertToLink: true,
       canConvertToSchema: false,
     });
@@ -136,6 +185,7 @@ describe('link toolbar conversions', () => {
         ),
       ),
     ).resolves.toEqual({
+      canConvertToBlockCard: false,
       canConvertToCard: false,
       canConvertToIframe: false,
       canConvertToLink: true,
@@ -207,6 +257,40 @@ describe('link toolbar conversions', () => {
 
     expect(childType).toBe('link-card');
     expect(title).toBe('Card title');
+  });
+
+  it('converts a regular link node to a block card node', async () => {
+    const lexicalEditor = createEditor({
+      nodes: [LinkNode, LinkCardNode, LinkBlockCardNode, LinkIframeNode, SchemaNode],
+    });
+    const linkService = new LinkService();
+    linkService.setEmbedRules([
+      {
+        allowBlockCard: true,
+        getCardPayload: (url) => ({ description: 'Description', title: 'Card title', url }),
+        id: 'web',
+        match: (url) => /^https?:\/\//.test(url),
+      },
+    ]);
+
+    await lexicalEditor.update(() => {
+      const paragraph = $createParagraphNode();
+      const linkNode = new LinkNode('https://lobehub.com', { title: 'LobeHub' });
+      linkNode.append($createTextNode('LobeHub'));
+      paragraph.append(linkNode);
+      $getRoot().append(paragraph);
+
+      replaceWithBlockCardNode(linkNode, lexicalEditor, linkService);
+    });
+
+    lexicalEditor.getEditorState().read(() => {
+      const card = $getRoot().getFirstChild();
+      expect(card).toBeInstanceOf(LinkBlockCardNode);
+      if (!(card instanceof LinkBlockCardNode)) return;
+      expect(card.getTitle()).toBe('Card title');
+      expect(card.getDescription()).toBe('Description');
+      expect(card.isInline()).toBe(false);
+    });
   });
 
   it('resolves asynchronous metadata when converting a link to a card', async () => {

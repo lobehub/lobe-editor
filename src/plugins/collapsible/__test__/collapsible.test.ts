@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -7,6 +7,7 @@ import {
   $isRangeSelection,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
+  KEY_BACKSPACE_COMMAND,
   LexicalEditor,
   LexicalNode,
 } from 'lexical';
@@ -92,6 +93,94 @@ describe('collapsible plugin', () => {
     expect(collapsible.children).toHaveLength(2);
     expect(collapsible.children[0].children[0].text).toBe('折叠块');
     expect(collapsible.children[1].children).toHaveLength(0);
+  });
+
+  it('removes an empty collapsible block with Backspace', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    setupSingleCollapsibleDocument(lexicalEditor, false);
+    selectSingleCollapsibleChild(lexicalEditor, 'title');
+
+    const event = {
+      preventDefault: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+      stopPropagation: vi.fn(),
+    } as unknown as KeyboardEvent;
+
+    expect(lexicalEditor.dispatchCommand(KEY_BACKSPACE_COMMAND, event)).toBe(true);
+    lexicalEditor.update(() => {}, { discrete: true });
+
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['paragraph']);
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+  });
+
+  it('removes an empty collapsible block from any empty child', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    setupSingleCollapsibleDocument(lexicalEditor, false);
+    selectSingleCollapsibleChild(lexicalEditor, 'body');
+
+    const event = {
+      preventDefault: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+      stopPropagation: vi.fn(),
+    } as unknown as KeyboardEvent;
+
+    expect(lexicalEditor.dispatchCommand(KEY_BACKSPACE_COMMAND, event)).toBe(true);
+    lexicalEditor.update(() => {}, { discrete: true });
+
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['paragraph']);
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+  });
+
+  it('removes an empty collapsible block on a real root keydown', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    const rootElement = document.createElement('div');
+    document.body.append(rootElement);
+    editor.setRootElement(rootElement);
+
+    try {
+      setupSingleCollapsibleDocument(lexicalEditor, false);
+      selectSingleCollapsibleChild(lexicalEditor, 'body');
+
+      const event = new KeyboardEvent('keydown', {
+        bubbles: true,
+        cancelable: true,
+        key: 'Backspace',
+      });
+      rootElement.dispatchEvent(event);
+      lexicalEditor.update(() => {}, { discrete: true });
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(getRootChildTypes(lexicalEditor)).toEqual(['paragraph']);
+    } finally {
+      editor.setRootElement(document.createElement('div'));
+      rootElement.remove();
+    }
+  });
+
+  it('keeps a non-empty collapsible block on Backspace', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    setupSingleCollapsibleDocument(lexicalEditor, false);
+    lexicalEditor.update(
+      () => {
+        const collapsible = $getRoot().getChildren().find($isCollapsibleNode);
+        const title = $createParagraphNode();
+        title.append($createTextNode('Keep me'));
+        collapsible?.getFirstChild()?.replace(title);
+        title.selectStart();
+      },
+      { discrete: true },
+    );
+
+    const event = {
+      preventDefault: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+      stopPropagation: vi.fn(),
+    } as unknown as KeyboardEvent;
+
+    lexicalEditor.dispatchCommand(KEY_BACKSPACE_COMMAND, event);
+    lexicalEditor.update(() => {}, { discrete: true });
+
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible']);
   });
 
   it('reads markdown details blocks', () => {

@@ -27,6 +27,11 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       line-height: 1;
       vertical-align: baseline;
 
+      &[data-link-card-layout='block'] {
+        display: block;
+        margin-block: 8px;
+      }
+
       &.hover,
       &.selected {
         outline: 2px solid ${cssVar.colorPrimaryBorder};

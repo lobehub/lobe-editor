@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import EventEmitter from 'eventemitter3';
 import type { LexicalEditor } from 'lexical';
 import type { FC, MouseEventHandler, ReactEventHandler, ReactNode } from 'react';
@@ -15,6 +14,7 @@ export interface LinkCardRendererProps {
   editor: LexicalEditor;
   icon: string;
   isSelected: boolean;
+  layout: 'block' | 'inline';
   node: LinkCardNode;
   onClickCapture: MouseEventHandler<HTMLElement>;
   onMouseDownCapture: MouseEventHandler<HTMLElement>;

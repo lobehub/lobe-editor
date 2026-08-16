@@ -7,6 +7,7 @@ import {
   $isRootNode,
 } from 'lexical';
 
+import { $createLinkBlockCardNode, $isLinkBlockCardNode } from '../node/LinkBlockCardNode';
 import type { LinkCardNode } from '../node/LinkCardNode';
 import { $createLinkCardNode, $isLinkCardNode } from '../node/LinkCardNode';
 import type { LinkIframeNode } from '../node/LinkIframeNode';
@@ -24,6 +25,7 @@ import type {
 import { getNodeTitle, getNodeUrl } from '../service/i-link-service';
 
 export interface LinkToolbarCapabilities {
+  canConvertToBlockCard: boolean;
   canConvertToCard: boolean;
   canConvertToIframe: boolean;
   canConvertToLink: boolean;
@@ -47,8 +49,14 @@ export function getLinkToolbarCapabilities(
     });
 
   return {
+    canConvertToBlockCard:
+      ($isLinkNode(node) && Boolean(embedRule?.allowBlockCard)) ||
+      ($isLinkCardNode(node) && !$isLinkBlockCardNode(node)) ||
+      $isLinkIframeNode(node),
     canConvertToCard:
-      ($isLinkNode(node) && Boolean(embedRule?.allowCard)) || $isLinkIframeNode(node),
+      ($isLinkNode(node) && Boolean(embedRule?.allowCard)) ||
+      $isLinkIframeNode(node) ||
+      $isLinkBlockCardNode(node),
     canConvertToIframe:
       ($isLinkNode(node) && Boolean(embedRule?.allowIframe)) || $isLinkCardNode(node),
     canConvertToLink: !$isLinkNode(node),
@@ -133,22 +141,59 @@ export function replaceWithCardNode(
     );
   }
 
-  return replaceWithResolvedCardNode(node, payload, { title, url });
+  return replaceWithResolvedCardNode(node, payload, { title, url }, 'inline');
+}
+
+export function replaceWithBlockCardNode(
+  node: LinkNode | LinkCardNode | LinkIframeNode,
+  editor: LexicalEditor,
+  linkService: LinkService,
+): LinkCardNode {
+  const url = getNodeUrl(node);
+  const title = getNodeTitle(node);
+  const context = createRuleContext(editor, title, title);
+  const rule = linkService.getEmbedRule(url, context);
+  const payload = $isLinkCardNode(node)
+    ? getExistingCardPayload(node)
+    : rule?.getCardPayload?.(url, context);
+
+  if (isPromiseLike(payload)) {
+    throw new TypeError(
+      'Async link card payloads require replaceNodeByKeyWithBlockCardNode so the Lexical update does not cross an await boundary.',
+    );
+  }
+
+  return replaceWithResolvedCardNode(node, payload, { title, url }, 'block');
 }
 
 function replaceWithResolvedCardNode(
-  node: LinkNode | LinkIframeNode,
+  node: LinkNode | LinkCardNode | LinkIframeNode,
   payload: Awaited<ReturnType<NonNullable<LinkEmbedRule['getCardPayload']>>> | undefined,
   fallback: { title: string; url: string },
+  layout: 'block' | 'inline',
 ): LinkCardNode {
-  const cardNode = $createLinkCardNode({
+  const cardPayload = {
     description: payload?.description,
     icon: payload?.icon,
-    openTarget: payload?.openTarget || ($isLinkNode(node) ? node.getTarget() : null) || '_blank',
+    openTarget:
+      payload?.openTarget ||
+      ($isLinkNode(node)
+        ? node.getTarget()
+        : $isLinkCardNode(node)
+          ? node.getOpenTarget()
+          : null) ||
+      '_blank',
     title: payload?.title || fallback.title,
     url: payload?.url || fallback.url,
-  });
-  replaceWithInlineNode(node, cardNode);
+  };
+  const cardNode =
+    layout === 'block' ? $createLinkBlockCardNode(cardPayload) : $createLinkCardNode(cardPayload);
+
+  if (layout === 'block') {
+    replaceWithBlockNode(node, cardNode);
+  } else {
+    replaceWithInlineNode(node, cardNode);
+  }
   return cardNode;
 }
 
@@ -156,6 +201,7 @@ export async function replaceNodeByKeyWithCardNode(
   editor: LexicalEditor,
   key: string,
   linkService: LinkService,
+  layout: 'block' | 'inline' = 'inline',
 ): Promise<void> {
   let request:
     | {
@@ -167,14 +213,16 @@ export async function replaceNodeByKeyWithCardNode(
 
   editor.getEditorState().read(() => {
     const node = $getNodeByKey(key);
-    if (!$isLinkNode(node) && !$isLinkIframeNode(node)) return;
+    if (!$isLinkNode(node) && !$isLinkCardNode(node) && !$isLinkIframeNode(node)) return;
 
     const url = getNodeUrl(node);
     const title = getNodeTitle(node);
     const context = createRuleContext(editor, title, title);
     const rule = linkService.getEmbedRule(url, context);
     request = {
-      payload: rule?.getCardPayload?.(url, context),
+      payload: $isLinkCardNode(node)
+        ? getExistingCardPayload(node)
+        : rule?.getCardPayload?.(url, context),
       title,
       url,
     };
@@ -192,11 +240,19 @@ export async function replaceNodeByKeyWithCardNode(
 
   editor.update(() => {
     const node = $getNodeByKey(key);
-    if (!$isLinkNode(node) && !$isLinkIframeNode(node)) return;
+    if (!$isLinkNode(node) && !$isLinkCardNode(node) && !$isLinkIframeNode(node)) return;
     if (getNodeUrl(node) !== resolvedRequest.url) return;
 
-    replaceWithResolvedCardNode(node, payload, resolvedRequest);
+    replaceWithResolvedCardNode(node, payload, resolvedRequest, layout);
   });
+}
+
+export function replaceNodeByKeyWithBlockCardNode(
+  editor: LexicalEditor,
+  key: string,
+  linkService: LinkService,
+): Promise<void> {
+  return replaceNodeByKeyWithCardNode(editor, key, linkService, 'block');
 }
 
 export function replaceWithIframeNode(
@@ -242,9 +298,13 @@ export function replaceWithInlineNode(node: LexicalNode, inlineNode: LexicalNode
 }
 
 export function replaceWithBlockIframeNode(node: LexicalNode, iframeNode: LinkIframeNode): void {
+  replaceWithBlockNode(node, iframeNode);
+}
+
+export function replaceWithBlockNode(node: LexicalNode, blockNode: LexicalNode): void {
   const parent = node.getParent();
   if (parent && !$isRootNode(parent) && !parent.isInline() && parent.getChildrenSize() === 1) {
-    parent.replace(iframeNode);
+    parent.replace(blockNode);
     return;
   }
   if (parent && $isParagraphNode(parent)) {
@@ -252,14 +312,14 @@ export function replaceWithBlockIframeNode(node: LexicalNode, iframeNode: LinkIf
     const nextSiblings = node.getNextSiblings();
 
     if (previousSiblings.length === 0) {
-      parent.insertBefore(iframeNode);
+      parent.insertBefore(blockNode);
       node.remove();
       if (parent.getChildrenSize() === 0) parent.remove();
       return;
     }
 
     if (nextSiblings.length === 0) {
-      parent.insertAfter(iframeNode);
+      parent.insertAfter(blockNode);
       node.remove();
       return;
     }
@@ -270,12 +330,12 @@ export function replaceWithBlockIframeNode(node: LexicalNode, iframeNode: LinkIf
     nextParagraph.setDirection(parent.getDirection());
     nextParagraph.append(...nextSiblings);
 
-    parent.insertAfter(iframeNode);
-    iframeNode.insertAfter(nextParagraph);
+    parent.insertAfter(blockNode);
+    blockNode.insertAfter(nextParagraph);
     node.remove();
     return;
   }
-  node.replace(iframeNode);
+  node.replace(blockNode);
 }
 
 export function $isLinkToolbarNode(node: LexicalNode | null | undefined): node is LinkToolbarNode {
@@ -290,6 +350,16 @@ function createRuleContext(editor: LexicalEditor, text: string, title: string): 
 
 function isPromiseLike<T>(value: T | Promise<T> | undefined): value is Promise<T> {
   return Boolean(value && typeof (value as Promise<T>).then === 'function');
+}
+
+function getExistingCardPayload(node: LinkCardNode) {
+  return {
+    description: node.getDescription(),
+    icon: node.getIcon(),
+    openTarget: node.getOpenTarget(),
+    title: node.getTitle(),
+    url: node.getURL(),
+  };
 }
 
 function normalizeSchemaPayload(payload: Record<string, unknown>): Record<string, unknown> {

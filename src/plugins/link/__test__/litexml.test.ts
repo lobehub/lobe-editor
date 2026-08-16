@@ -49,6 +49,15 @@ describe('link litexml', () => {
             version: 1,
           },
           {
+            description: 'Block description',
+            icon: '',
+            openTarget: '_blank',
+            title: 'Block card title',
+            type: 'link-block-card',
+            url: 'https://lobehub.com/block',
+            version: 1,
+          },
+          {
             src: 'https://lobehub.com',
             title: 'Iframe title',
             type: 'link-iframe',
@@ -73,6 +82,7 @@ describe('link litexml', () => {
     const markdown = editor.getDocument('markdown') as unknown as string;
     expect(markdown).toBe(
       '[Card title](https://lobehub.com)\n' +
+        '[Block card title](https://lobehub.com/block)\n' +
         '[Iframe title](https://lobehub.com/embed)\n' +
         '[Schema title](schema://card/123)\n',
     );
@@ -83,6 +93,7 @@ describe('link litexml', () => {
       'litexml',
       '<?xml version="1.0" encoding="UTF-8"?><root>' +
         '<link-card id="1" href="https://lobehub.com" title="Card title" description="Home page" openTarget="_self"/>' +
+        '<link-card id="4" href="https://lobehub.com/block" title="Block card title" description="Block description" layout="block"/>' +
         '<link-iframe id="2" href="https://lobehub.com/embed" ' +
         'src="https://lobehub.com" title="Iframe title"/>' +
         '<schema-link id="3" href="schema://card/123" schemaType="card" ' +
@@ -93,12 +104,14 @@ describe('link litexml', () => {
     const markdown = editor.getDocument('markdown') as unknown as string;
     expect(markdown).toBe(
       '[Card title](https://lobehub.com)\n' +
+        '[Block card title](https://lobehub.com/block)\n' +
         '[Iframe title](https://lobehub.com/embed)\n' +
         '[Schema title](schema://card/123)\n',
     );
 
     const xml = editor.getDocument('litexml') as unknown as string;
     expect(xml).toContain('<link-card');
+    expect(xml).toContain('layout="block"');
     expect(xml).toContain('openTarget="_self"');
     expect(xml).toContain('<link-iframe');
     expect(xml).toContain('<schema-link');
