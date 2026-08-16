@@ -134,11 +134,13 @@ export interface ILinkService {
   getToolbarActions(context: LinkToolbarActionContext): LinkToolbarAction[];
   getToolbarItems(context: LinkToolbarRenderContext): LinkToolbarItem[];
   hasSchemaLinkRenderer(url: string): boolean;
+  isCardMetadataLoading(nodeKey: string): boolean;
   parseSchemaUrl(url: string): ParsedSchemaUrl | null;
   registerToolbarItem(item: LinkToolbarItem): () => void;
   restoreLinkToolbar(token: symbol): void;
   setLinkToolbar(enable: boolean): void;
   subscribe(listener: () => void): () => void;
+  subscribeCardMetadata(listener: () => void): () => void;
   suppressLinkToolbar(reason?: string): symbol;
   updateConfig(config?: LinkServiceConfig): void;
 }
@@ -259,9 +261,10 @@ class LinkToolbarController {
 }
 
 export class LinkService
-  extends EventEmitter<'change' | 'linkToolbarChange'>
+  extends EventEmitter<'cardMetadataChange' | 'change' | 'linkToolbarChange'>
   implements ILinkService
 {
+  private cardMetadataLoadingKeys = new Set<string>();
   private protocolPolicy = new LinkProtocolPolicy();
   private legacySchemaLinkRegistry = new LegacySchemaLinkRegistry();
   private ruleRegistry = new LinkRuleRegistry();
@@ -286,6 +289,21 @@ export class LinkService
 
   hasSchemaLinkRenderer(url: string): boolean {
     return this.legacySchemaLinkRegistry.hasSchemaLinkRenderer(url);
+  }
+
+  isCardMetadataLoading(nodeKey: string): boolean {
+    return this.cardMetadataLoadingKeys.has(nodeKey);
+  }
+
+  setCardMetadataLoading(nodeKey: string, loading: boolean): void {
+    const changed = loading
+      ? !this.cardMetadataLoadingKeys.has(nodeKey)
+      : this.cardMetadataLoadingKeys.has(nodeKey);
+    if (!changed) return;
+
+    if (loading) this.cardMetadataLoadingKeys.add(nodeKey);
+    else this.cardMetadataLoadingKeys.delete(nodeKey);
+    this.emit('cardMetadataChange');
   }
 
   getSchemaRule(
@@ -399,6 +417,14 @@ export class LinkService
 
     return () => {
       this.off('change', listener);
+    };
+  }
+
+  subscribeCardMetadata(listener: () => void): () => void {
+    this.on('cardMetadataChange', listener);
+
+    return () => {
+      this.off('cardMetadataChange', listener);
     };
   }
 }

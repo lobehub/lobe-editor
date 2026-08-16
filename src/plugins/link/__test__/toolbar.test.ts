@@ -337,7 +337,109 @@ describe('link toolbar conversions', () => {
     });
   });
 
-  it('falls back to the original link when asynchronous metadata fails', async () => {
+  it('converts immediately before asynchronous card metadata resolves', async () => {
+    const lexicalEditor = createEditor({
+      nodes: [LinkNode, LinkCardNode, LinkIframeNode, SchemaNode],
+    });
+    const linkService = new LinkService();
+    let resolveMetadata:
+      ((payload: { description: string; title: string; url: string }) => void) | undefined;
+    const metadata = new Promise<{ description: string; title: string; url: string }>((resolve) => {
+      resolveMetadata = resolve;
+    });
+    linkService.setEmbedRules([
+      {
+        allowCard: true,
+        getCardPayload: () => metadata,
+        id: 'web',
+        match: (url) => /^https?:\/\//.test(url),
+      },
+    ]);
+
+    let linkKey = '';
+    await lexicalEditor.update(() => {
+      const paragraph = $createParagraphNode();
+      const linkNode = new LinkNode('https://lobehub.com', { title: 'Original title' });
+      linkNode.append($createTextNode('Original title'));
+      linkKey = linkNode.getKey();
+      paragraph.append(linkNode);
+      $getRoot().append(paragraph);
+    });
+
+    const conversion = replaceNodeByKeyWithCardNode(lexicalEditor, linkKey, linkService);
+
+    let cardKey = '';
+    lexicalEditor.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChildOrThrow();
+      expect($isElementNode(paragraph)).toBe(true);
+      if (!$isElementNode(paragraph)) return;
+      const card = paragraph.getFirstChild();
+      expect(card).toBeInstanceOf(LinkCardNode);
+      if (!(card instanceof LinkCardNode)) return;
+      cardKey = card.getKey();
+      expect(card.getTitle()).toBe('Original title');
+    });
+    expect(linkService.isCardMetadataLoading(cardKey)).toBe(true);
+
+    resolveMetadata?.({
+      description: 'Fetched description',
+      title: 'Fetched title',
+      url: 'https://lobehub.com',
+    });
+    await conversion;
+
+    lexicalEditor.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChildOrThrow();
+      if (!$isElementNode(paragraph)) return;
+      const card = paragraph.getFirstChild();
+      expect(card).toBeInstanceOf(LinkCardNode);
+      if (!(card instanceof LinkCardNode)) return;
+      expect(card.getTitle()).toBe('Fetched title');
+      expect(card.getDescription()).toBe('Fetched description');
+    });
+    expect(linkService.isCardMetadataLoading(cardKey)).toBe(false);
+  });
+
+  it('still converts when the metadata provider throws synchronously', async () => {
+    const lexicalEditor = createEditor({
+      nodes: [LinkNode, LinkCardNode, LinkIframeNode, SchemaNode],
+    });
+    const linkService = new LinkService();
+    linkService.setEmbedRules([
+      {
+        allowCard: true,
+        getCardPayload: () => {
+          throw new Error('metadata provider failed before returning a promise');
+        },
+        id: 'web',
+        match: (url) => /^https?:\/\//.test(url),
+      },
+    ]);
+
+    let linkKey = '';
+    await lexicalEditor.update(() => {
+      const paragraph = $createParagraphNode();
+      const linkNode = new LinkNode('https://lobehub.com', { title: 'Original title' });
+      linkNode.append($createTextNode('Original title'));
+      linkKey = linkNode.getKey();
+      paragraph.append(linkNode);
+      $getRoot().append(paragraph);
+    });
+
+    await replaceNodeByKeyWithCardNode(lexicalEditor, linkKey, linkService);
+
+    lexicalEditor.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChildOrThrow();
+      if (!$isElementNode(paragraph)) return;
+      const card = paragraph.getFirstChild();
+      expect(card).toBeInstanceOf(LinkCardNode);
+      if (!(card instanceof LinkCardNode)) return;
+      expect(card.getTitle()).toBe('Original title');
+      expect(card.getURL()).toBe('https://lobehub.com');
+    });
+  });
+
+  it('keeps the fallback card when asynchronous metadata fails', async () => {
     const lexicalEditor = createEditor({
       nodes: [LinkNode, LinkCardNode, LinkIframeNode, SchemaNode],
     });

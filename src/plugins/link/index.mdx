@@ -45,6 +45,25 @@ The plugin implements custom link nodes:
 - **Validation**: URL format validation and correction
 - **Custom Styling**: Flexible link appearance customization
 
+### Asynchronous card metadata
+
+Card conversion replaces the link immediately with a usable fallback card. If `getCardPayload` returns a promise, metadata is hydrated into that card when the promise resolves; a rejected request leaves the fallback card in place.
+
+The pending state is editor-local and is not serialized into Lexical or Yjs. Custom `renderLinkCard` renderers receive `isLoading` and can choose their own spinner or skeleton without owning the conversion lifecycle:
+
+```tsx
+<ReactLinkPlugin
+  linkEmbedRules={rules}
+  renderLinkCard={({ isLoading, title, url, ...props }) =>
+    isLoading ? (
+      <LinkCardSkeleton title={title} />
+    ) : (
+      <RichLinkCard {...props} title={title} url={url} />
+    )
+  }
+/>
+```
+
 ## Components
 
 ### ReactLinkPlugin

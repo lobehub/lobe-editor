@@ -67,4 +67,21 @@ describe('LinkService', () => {
 
     expect(listener).toHaveBeenCalledTimes(2);
   });
+
+  it('keeps card metadata loading state local to the editor service', () => {
+    const service = new LinkService();
+    const listener = vi.fn();
+    const unsubscribe = service.subscribeCardMetadata(listener);
+
+    service.setCardMetadataLoading('card-1', true);
+    service.setCardMetadataLoading('card-1', true);
+    expect(service.isCardMetadataLoading('card-1')).toBe(true);
+
+    service.setCardMetadataLoading('card-1', false);
+    unsubscribe();
+    service.setCardMetadataLoading('card-2', true);
+
+    expect(service.isCardMetadataLoading('card-1')).toBe(false);
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
 });

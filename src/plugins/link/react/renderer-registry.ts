@@ -13,6 +13,7 @@ export interface LinkCardRendererProps {
   description: string;
   editor: LexicalEditor;
   icon: string;
+  isLoading: boolean;
   isSelected: boolean;
   layout: 'block' | 'inline';
   node: LinkCardNode;

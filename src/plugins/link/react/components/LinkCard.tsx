@@ -1,9 +1,19 @@
 import type { LexicalEditor } from 'lexical';
 import { $createNodeSelection, $getNodeByKey, $setSelection } from 'lexical';
-import { type FC, type MouseEventHandler, useCallback, useEffect, useState } from 'react';
+import {
+  type FC,
+  type MouseEventHandler,
+  useCallback,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+
+import { getKernelFromEditor } from '@/editor-kernel/utils';
 
 import type { LinkCardNode } from '../../node/LinkCardNode';
 import { EDIT_LINK_CARD_COMMAND } from '../../node/LinkCardNode';
+import { ILinkService } from '../../service/i-link-service';
 import type { LinkReactRendererRegistry } from '../renderer-registry';
 
 interface LinkCardProps {
@@ -28,6 +38,20 @@ const LinkCard: FC<LinkCardProps> = ({
   url,
 }) => {
   const key = node.getKey();
+  const linkService = getKernelFromEditor(editor)?.requireService(ILinkService);
+  const subscribeCardMetadata = useCallback(
+    (listener: () => void) => linkService?.subscribeCardMetadata(listener) || (() => {}),
+    [linkService],
+  );
+  const getCardMetadataSnapshot = useCallback(
+    () => linkService?.isCardMetadataLoading(key) ?? false,
+    [key, linkService],
+  );
+  const isLoading = useSyncExternalStore(
+    subscribeCardMetadata,
+    getCardMetadataSnapshot,
+    getCardMetadataSnapshot,
+  );
   const [isSelected, setIsSelected] = useState(() => isNodeSelected(editor, key));
   const [, setRendererVersion] = useState(0);
 
@@ -84,6 +108,7 @@ const LinkCard: FC<LinkCardProps> = ({
     description,
     editor,
     icon,
+    isLoading,
     isSelected,
     layout: node.isInline() ? ('inline' as const) : ('block' as const),
     node,
@@ -108,9 +133,10 @@ function isNodeSelected(editor: LexicalEditor, key: string): boolean {
   });
 }
 
-function DefaultLinkCard(props: {
+export function DefaultLinkCard(props: {
   description: string;
   icon: string;
+  isLoading: boolean;
   isSelected: boolean;
   layout: 'block' | 'inline';
   onClickCapture: MouseEventHandler<HTMLElement>;
@@ -122,6 +148,7 @@ function DefaultLinkCard(props: {
   if (props.layout === 'block') {
     return (
       <a
+        aria-busy={props.isLoading}
         href={props.url}
         onClickCapture={props.onClickCapture}
         onMouseDownCapture={props.onMouseDownCapture}
@@ -143,7 +170,9 @@ function DefaultLinkCard(props: {
         }}
         target={props.openTarget || '_blank'}
       >
-        {props.icon ? (
+        {props.isLoading ? (
+          <LinkCardLoadingIndicator size={18} />
+        ) : props.icon ? (
           <img
             alt=""
             src={props.icon}
@@ -154,7 +183,9 @@ function DefaultLinkCard(props: {
           <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {props.title}
           </strong>
-          {props.description ? (
+          {props.isLoading ? (
+            <span style={{ fontSize: 12, opacity: 0.65 }}>Loading preview...</span>
+          ) : props.description ? (
             <span
               style={{
                 opacity: 0.65,
@@ -173,6 +204,7 @@ function DefaultLinkCard(props: {
 
   return (
     <a
+      aria-busy={props.isLoading}
       href={props.url}
       onClickCapture={props.onClickCapture}
       onMouseDownCapture={props.onMouseDownCapture}
@@ -192,7 +224,9 @@ function DefaultLinkCard(props: {
       }}
       target={props.openTarget || '_blank'}
     >
-      {props.icon ? (
+      {props.isLoading ? (
+        <LinkCardLoadingIndicator size={'1.1em'} />
+      ) : props.icon ? (
         <img
           alt=""
           src={props.icon}
@@ -248,5 +282,28 @@ function DefaultLinkCard(props: {
         </span>
       </span>
     </a>
+  );
+}
+
+function LinkCardLoadingIndicator({ size }: { size: number | string }) {
+  return (
+    <>
+      <style>{'@keyframes lobe-link-card-spin{to{transform:rotate(360deg)}}'}</style>
+      <span
+        aria-label="Loading link preview"
+        role="status"
+        style={{
+          animation: 'lobe-link-card-spin 1s linear infinite',
+          border: '2px solid rgba(0,0,0,0.12)',
+          borderRadius: '50%',
+          borderTopColor: '#1677ff',
+          boxSizing: 'border-box',
+          display: 'inline-block',
+          flex: '0 0 auto',
+          height: size,
+          width: size,
+        }}
+      />
+    </>
   );
 }

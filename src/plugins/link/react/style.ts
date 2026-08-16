@@ -76,9 +76,20 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
 
     popoverActionItem: css`
       cursor: pointer;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
       width: 28px;
       height: 28px;
+      padding: 0;
+      border: 0;
       border-radius: ${cssVar.borderRadius}px;
+
+      color: inherit;
+
+      background: transparent;
 
       &:hover {
         background: ${cssVar.colorFillQuaternary};

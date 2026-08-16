@@ -145,19 +145,6 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
     });
   }, [linkService]);
 
-  const resolveToolbarNodeKey = useCallback((): NodeKey | null => {
-    return editor.getEditorState().read(() => {
-      const currentNode = linkDomRef.current
-        ? $getNearestLinkToolbarNodeFromDOMNode(linkDomRef.current, editor)
-        : null;
-      if (currentNode) return currentNode.getKey();
-      if (!toolbarNodeKey) return null;
-
-      const fallbackNode = $getNodeByKey(toolbarNodeKey);
-      return $isLinkToolbarNode(fallbackNode) ? fallbackNode.getKey() : null;
-    });
-  }, [editor, toolbarNodeKey]);
-
   const items = useMemo<ToolbarViewItem[]>(() => {
     // Link services notify when their asynchronous metadata/actions change.
     // Reading the version here intentionally invalidates this derived menu.
@@ -217,9 +204,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             label: labels?.convertToCard || 'Convert to card',
             onClick: () => {
               if (!linkService) return;
-              const nodeKey = resolveToolbarNodeKey();
-              if (!nodeKey) return;
-              void replaceNodeByKeyWithCardNode(editor, nodeKey, linkService);
+              void replaceNodeByKeyWithCardNode(editor, toolbarNodeKey, linkService);
               handleCancel();
             },
           });
@@ -232,9 +217,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             label: labels?.convertToBlockCard || 'Convert to block card',
             onClick: () => {
               if (!linkService) return;
-              const nodeKey = resolveToolbarNodeKey();
-              if (!nodeKey) return;
-              void replaceNodeByKeyWithBlockCardNode(editor, nodeKey, linkService);
+              void replaceNodeByKeyWithBlockCardNode(editor, toolbarNodeKey, linkService);
               handleCancel();
             },
           });
@@ -247,9 +230,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             label: labels?.convertToIframe || 'Convert to iframe',
             onClick: () => {
               if (!linkService) return;
-              const nodeKey = resolveToolbarNodeKey();
-              if (!nodeKey) return;
-              replaceNodeByKeyWithIframeNode(editor, nodeKey, linkService);
+              replaceNodeByKeyWithIframeNode(editor, toolbarNodeKey, linkService);
               handleCancel();
             },
           });
@@ -262,9 +243,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             label: labels?.convertToSchema || 'Convert to schema',
             onClick: () => {
               if (!linkService) return;
-              const nodeKey = resolveToolbarNodeKey();
-              if (!nodeKey) return;
-              convertLinkNodeByKeyToSchema(editor, nodeKey, linkService);
+              convertLinkNodeByKeyToSchema(editor, toolbarNodeKey, linkService);
               handleCancel();
             },
           });
@@ -276,9 +255,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             key: 'convertToLink',
             label: labels?.convertToLink || 'Convert to link',
             onClick: () => {
-              const nodeKey = resolveToolbarNodeKey();
-              if (!nodeKey) return;
-              convertLinkToolbarNodeByKeyToLink(editor, nodeKey);
+              convertLinkToolbarNodeByKeyToLink(editor, toolbarNodeKey);
               handleCancel();
             },
           });
@@ -303,7 +280,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
         return result;
       }) || []
     );
-  }, [editor, handleCancel, linkService, menuVersion, resolveToolbarNodeKey, t, toolbarNodeKey]);
+  }, [editor, handleCancel, linkService, menuVersion, t, toolbarNodeKey]);
 
   useLayoutEffect(() => {
     if (!toolbarNodeKey || items.length === 0) return;
@@ -444,28 +421,28 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
       }}
       ref={divRef}
     >
-      <Flexbox
-        align={'center'}
-        gap={8}
-        horizontal
-        onMouseDown={(event) => {
-          event.preventDefault();
-        }}
-      >
+      <Flexbox align={'center'} gap={8} horizontal>
         {items.map((item) => (
-          <Flexbox
-            align={'center'}
+          <button
             aria-label={item.label}
             className={styles.popoverActionItem}
-            horizontal
-            justify={'center'}
             key={item.key}
-            onClick={item.onClick}
-            role={'button'}
+            onClick={(event) => {
+              // Mouse and touch already run on pointer-down so the action
+              // survives toolbar teardown. A detail of zero is the native
+              // keyboard/assistive-technology click path.
+              if (event.detail === 0) item.onClick();
+            }}
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              event.preventDefault();
+              item.onClick();
+            }}
             title={item.label}
+            type={'button'}
           >
             <Icon icon={item.icon} size={{ size: 18 }} />
-          </Flexbox>
+          </button>
         ))}
       </Flexbox>
     </div>

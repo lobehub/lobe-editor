@@ -1,4 +1,4 @@
-import type { LexicalEditor, LexicalNode } from 'lexical';
+import type { LexicalEditor, LexicalNode, NodeKey } from 'lexical';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -219,10 +219,18 @@ export async function replaceNodeByKeyWithCardNode(
     const title = getNodeTitle(node);
     const context = createRuleContext(editor, title, title);
     const rule = linkService.getEmbedRule(url, context);
-    request = {
-      payload: $isLinkCardNode(node)
+    let payload: ReturnType<NonNullable<LinkEmbedRule['getCardPayload']>> | undefined;
+    try {
+      payload = $isLinkCardNode(node)
         ? getExistingCardPayload(node)
-        : rule?.getCardPayload?.(url, context),
+        : rule?.getCardPayload?.(url, context);
+    } catch {
+      // Metadata is an enhancement. A synchronous provider failure must not
+      // turn a valid toolbar action into a silent no-op.
+      payload = undefined;
+    }
+    request = {
+      payload,
       title,
       url,
     };
@@ -231,20 +239,54 @@ export async function replaceNodeByKeyWithCardNode(
   if (!request) return;
   const resolvedRequest = request;
 
-  let payload: Awaited<typeof resolvedRequest.payload> | undefined;
-  try {
-    payload = await resolvedRequest.payload;
-  } catch {
-    payload = undefined;
-  }
-
-  editor.update(() => {
+  let replacementKey: NodeKey | null = null;
+  const replaceCurrentNode = (
+    payload: Awaited<typeof resolvedRequest.payload> | undefined,
+  ): void => {
     const node = $getNodeByKey(key);
     if (!$isLinkNode(node) && !$isLinkCardNode(node) && !$isLinkIframeNode(node)) return;
     if (getNodeUrl(node) !== resolvedRequest.url) return;
 
-    replaceWithResolvedCardNode(node, payload, resolvedRequest, layout);
-  });
+    replacementKey = replaceWithResolvedCardNode(node, payload, resolvedRequest, layout).getKey();
+  };
+
+  const initialPayload = resolvedRequest.payload;
+  if (!isPromiseLike(initialPayload)) {
+    editor.update(() => replaceCurrentNode(initialPayload), { discrete: true });
+    return;
+  }
+
+  // Give the pointer action immediate, deterministic feedback. Metadata can
+  // be slow or never settle, so first create a usable fallback card and then
+  // hydrate that exact replacement by key when the request completes.
+  editor.update(() => replaceCurrentNode(undefined), { discrete: true });
+  if (!replacementKey) return;
+  const cardKey = replacementKey;
+  linkService.setCardMetadataLoading(cardKey, true);
+
+  try {
+    const resolvedPayload = await initialPayload;
+    if (!resolvedPayload) return;
+
+    editor.update(
+      () => {
+        const cardNode = $getNodeByKey(cardKey);
+        if (!$isLinkCardNode(cardNode) || getNodeUrl(cardNode) !== resolvedRequest.url) return;
+
+        cardNode
+          .setURL(resolvedPayload.url || resolvedRequest.url)
+          .setTitle(resolvedPayload.title || resolvedRequest.title)
+          .setIcon(resolvedPayload.icon)
+          .setDescription(resolvedPayload.description)
+          .setOpenTarget(resolvedPayload.openTarget || cardNode.getOpenTarget() || '_blank');
+      },
+      { discrete: true },
+    );
+  } catch {
+    return;
+  } finally {
+    linkService.setCardMetadataLoading(cardKey, false);
+  }
 }
 
 export function replaceNodeByKeyWithBlockCardNode(
