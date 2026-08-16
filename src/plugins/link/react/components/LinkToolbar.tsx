@@ -287,7 +287,11 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
               const nodeKey = resolveToolbarNodeKey();
               if (!nodeKey) return;
               convertLinkToolbarNodeByKeyToLink(editor, nodeKey);
-              handleCancel();
+              // convertLinkToolbarNodeByKeyToLink selects the replacement.
+              // The synchronous Lexical update listener rebinds this toolbar
+              // to that new link node; cancelling here would immediately tear
+              // the refreshed toolbar back down and leave the next click
+              // targeting controls derived from the removed card node.
             },
           });
         }
