@@ -5,6 +5,7 @@ const LEXICAL_CLIPBOARD_TYPE = 'application/x-lexical-editor';
 
 interface SerializedClipboardNode {
   children?: SerializedClipboardNode[];
+  text?: string;
   type?: string;
 }
 
@@ -19,22 +20,68 @@ const countNodesByType = (node: SerializedClipboardNode, type: string): number =
   return ownCount + childrenCount;
 };
 
-const isSingleCellLexicalTable = (serializedClipboard: string): boolean | undefined => {
+interface LexicalTableClipboardResult {
+  cell?: SerializedClipboardNode;
+  isSingleCell: boolean;
+}
+
+const parseLexicalTableClipboard = (
+  serializedClipboard: string,
+): LexicalTableClipboardResult | undefined => {
   if (!serializedClipboard) return undefined;
 
   try {
     const clipboard = JSON.parse(serializedClipboard) as { nodes?: SerializedClipboardNode[] };
-    if (!Array.isArray(clipboard.nodes) || clipboard.nodes.length !== 1) return false;
+    if (!Array.isArray(clipboard.nodes) || clipboard.nodes.length !== 1) {
+      return { isSingleCell: false };
+    }
 
     const [rootNode] = clipboard.nodes;
-    if (rootNode?.type !== 'table') return false;
+    if (rootNode?.type !== 'table') return { isSingleCell: false };
 
-    return (
-      countNodesByType(rootNode, 'table') === 1 && countNodesByType(rootNode, 'tablecell') === 1
-    );
+    const cells: SerializedClipboardNode[] = [];
+    const collectCells = (node: SerializedClipboardNode) => {
+      if (node.type === 'tablecell') cells.push(node);
+      node.children?.forEach(collectCells);
+    };
+    collectCells(rootNode);
+
+    const isSingleCell = countNodesByType(rootNode, 'table') === 1 && cells.length === 1;
+
+    return { cell: isSingleCell ? cells[0] : undefined, isSingleCell };
   } catch {
     return undefined;
   }
+};
+
+const getSerializedNodeText = (node: SerializedClipboardNode): string => {
+  if (node.type === 'text') return node.text || '';
+  if (node.type === 'linebreak') return '\n';
+  if (node.type === 'tab') return '\t';
+
+  return node.children?.map(getSerializedNodeText).join('') || '';
+};
+
+const getSerializedCellText = (cell: SerializedClipboardNode): string => {
+  return cell.children?.map(getSerializedNodeText).join('\n') || '';
+};
+
+const getSingleCellHTMLText = (html: string): string | undefined => {
+  if (!isSingleCellHTMLTable(html) || typeof DOMParser === 'undefined') return undefined;
+
+  const document = new DOMParser().parseFromString(html, 'text/html');
+  const cell = document.body.querySelector('td, th');
+  if (!cell) return undefined;
+
+  cell.querySelectorAll('br').forEach((node) => node.replaceWith('\n'));
+
+  return (
+    Array.from(cell.children)
+      .map((node) => node.textContent || '')
+      .join('\n') ||
+    cell.textContent ||
+    ''
+  );
 };
 
 const isSingleCellHTMLTable = (html: string): boolean => {
@@ -56,14 +103,20 @@ const isSingleCellHTMLTable = (html: string): boolean => {
 };
 
 export const isSingleCellTableClipboard = (clipboardData: ClipboardDataReader): boolean => {
-  const lexicalResult = isSingleCellLexicalTable(clipboardData.getData(LEXICAL_CLIPBOARD_TYPE));
+  const lexicalResult = parseLexicalTableClipboard(clipboardData.getData(LEXICAL_CLIPBOARD_TYPE));
 
-  if (lexicalResult !== undefined) return lexicalResult;
+  if (lexicalResult !== undefined) return lexicalResult.isSingleCell;
 
   return isSingleCellHTMLTable(clipboardData.getData('text/html'));
 };
 
 export const getSingleCellPlainText = (clipboardData: ClipboardDataReader): string => {
+  const lexicalResult = parseLexicalTableClipboard(clipboardData.getData(LEXICAL_CLIPBOARD_TYPE));
+  if (lexicalResult?.cell) return getSerializedCellText(lexicalResult.cell);
+
+  const htmlText = getSingleCellHTMLText(clipboardData.getData('text/html'));
+  if (htmlText !== undefined) return htmlText;
+
   return clipboardData.getData('text/plain').replace(/(?:\r\n|\n)$/, '');
 };
 

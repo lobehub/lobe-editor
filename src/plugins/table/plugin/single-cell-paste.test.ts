@@ -116,10 +116,29 @@ describe('single-cell table paste', () => {
     expect(getSingleCellPlainText(clipboardData)).toBe('First\nSecond');
   });
 
+  it('uses the Lexical cell text instead of the markdown-like Page plain text', () => {
+    const clipboardData = createClipboardData({
+      'application/x-lexical-editor': createLexicalClipboard(1),
+      'text/html': '<table><tbody><tr><td><p>Cell 1</p></td></tr></tbody></table>',
+      'text/plain': '\n|\n\nCell 1\n',
+    });
+
+    expect(getSingleCellPlainText(clipboardData)).toBe('Cell 1');
+  });
+
+  it('uses the only HTML cell text when no Lexical payload is available', () => {
+    const clipboardData = createClipboardData({
+      'text/html': '<table><tbody><tr><td><p>First</p><p>Second</p></td></tr></tbody></table>',
+      'text/plain': '\n|\n\nFirst\nSecond\n',
+    });
+
+    expect(getSingleCellPlainText(clipboardData)).toBe('First\nSecond');
+  });
+
   it('inserts a single copied cell as ordinary text', () => {
     const clipboardData = createClipboardData({
       'application/x-lexical-editor': createLexicalClipboard(1),
-      'text/plain': 'Cell content\n',
+      'text/plain': '\n|\n\nCell 1\n',
     });
     const preventDefault = vi.fn();
     const dispatchCommand = vi.fn(() => true);
@@ -127,6 +146,6 @@ describe('single-cell table paste', () => {
 
     expect(handleSingleCellTablePaste({ dispatchCommand } as never, event)).toBe(true);
     expect(preventDefault).toHaveBeenCalledOnce();
-    expect(dispatchCommand).toHaveBeenCalledWith(CONTROLLED_TEXT_INSERTION_COMMAND, 'Cell content');
+    expect(dispatchCommand).toHaveBeenCalledWith(CONTROLLED_TEXT_INSERTION_COMMAND, 'Cell 1');
   });
 });
