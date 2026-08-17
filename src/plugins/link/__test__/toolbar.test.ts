@@ -9,6 +9,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import {
+  convertLinkToolbarNodeByKeyToLink,
   getLinkToolbarCapabilities,
   replaceNodeByKeyWithCardNode,
   replaceWithBlockCardNode,
@@ -93,6 +94,57 @@ describe('link toolbar conversions', () => {
     });
 
     expect(readToolbarNode(lexicalEditor, iframeKey, (node) => node.getURL())).toBeNull();
+  });
+
+  it('returns each replacement key so card to link to card can repeat', async () => {
+    const lexicalEditor = createEditor({
+      nodes: [LinkNode, LinkCardNode, LinkBlockCardNode, LinkIframeNode, SchemaNode],
+    });
+    const linkService = new LinkService();
+    linkService.setEmbedRules([
+      {
+        allowCard: true,
+        id: 'web',
+        match: (url) => /^https?:\/\//.test(url),
+      },
+    ]);
+    let cardKey = '';
+
+    await lexicalEditor.update(() => {
+      const paragraph = $createParagraphNode();
+      const cardNode = new LinkCardNode('https://lobehub.com', 'LobeHub');
+      cardKey = cardNode.getKey();
+      paragraph.append(cardNode);
+      $getRoot().append(paragraph);
+    });
+
+    const linkKey = convertLinkToolbarNodeByKeyToLink(lexicalEditor, cardKey);
+    expect(linkKey).not.toBeNull();
+    expect(readToolbarNode(lexicalEditor, cardKey, (node) => node.getType())).toBeNull();
+    expect(readToolbarNode(lexicalEditor, linkKey!, (node) => node.getType())).toBe('link');
+
+    await replaceNodeByKeyWithCardNode(lexicalEditor, linkKey!, linkService);
+
+    let replacementCardKey = '';
+    lexicalEditor.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChildOrThrow();
+      expect($isElementNode(paragraph)).toBe(true);
+      if (!$isElementNode(paragraph)) return;
+      const replacementCard = paragraph.getFirstChild();
+      expect(replacementCard).toBeInstanceOf(LinkCardNode);
+      replacementCardKey = replacementCard!.getKey();
+    });
+
+    const secondLinkKey = convertLinkToolbarNodeByKeyToLink(lexicalEditor, replacementCardKey);
+    expect(secondLinkKey).not.toBeNull();
+    await replaceNodeByKeyWithCardNode(lexicalEditor, secondLinkKey!, linkService);
+
+    lexicalEditor.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChildOrThrow();
+      expect($isElementNode(paragraph)).toBe(true);
+      if (!$isElementNode(paragraph)) return;
+      expect(paragraph.getFirstChild()).toBeInstanceOf(LinkCardNode);
+    });
   });
 
   it('shows card and iframe conversion for matching regular links', async () => {

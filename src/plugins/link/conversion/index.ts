@@ -76,15 +76,22 @@ export function convertLinkToolbarNodeToLink(node: LinkToolbarNode): LinkNode {
   return linkNode;
 }
 
-export function convertLinkToolbarNodeByKeyToLink(editor: LexicalEditor, key: string): void {
+export function convertLinkToolbarNodeByKeyToLink(
+  editor: LexicalEditor,
+  key: string,
+): NodeKey | null {
+  let replacementKey: NodeKey | null = null;
   editor.update(
     () => {
       const node = $getNodeByKey(key);
       if (!$isLinkToolbarNode(node)) return;
-      convertLinkToolbarNodeToLink(node).selectEnd();
+      const linkNode = convertLinkToolbarNodeToLink(node);
+      replacementKey = linkNode.getKey();
+      linkNode.selectEnd();
     },
     { discrete: true },
   );
+  return replacementKey;
 }
 
 export function convertLinkNodeToSchema(
@@ -124,7 +131,7 @@ export function convertLinkNodeByKeyToSchema(
     () => {
       const node = $getNodeByKey(key);
       if (!$isLinkNode(node)) return;
-      convertLinkNodeToSchema(node, editor, linkService);
+      convertLinkNodeToSchema(node, editor, linkService)?.selectNext();
     },
     { discrete: true },
   );
@@ -253,7 +260,13 @@ export async function replaceNodeByKeyWithCardNode(
     if (!$isLinkNode(node) && !$isLinkCardNode(node) && !$isLinkIframeNode(node)) return;
     if (getNodeUrl(node) !== resolvedRequest.url) return;
 
-    replacementKey = replaceWithResolvedCardNode(node, payload, resolvedRequest, layout).getKey();
+    const replacement = replaceWithResolvedCardNode(node, payload, resolvedRequest, layout);
+    replacementKey = replacement.getKey();
+    // Toolbar actions preserve the range selection on the source link. Move
+    // it away from that node before the update commits; otherwise Lexical
+    // rejects the update because the selected node was removed, making the
+    // conversion look like a silent no-op.
+    replacement.selectNext();
   };
 
   const initialPayload = resolvedRequest.payload;
@@ -331,7 +344,7 @@ export function replaceNodeByKeyWithIframeNode(
     () => {
       const node = $getNodeByKey(key);
       if (!$isLinkNode(node) && !$isLinkCardNode(node)) return;
-      replaceWithIframeNode(node, editor, linkService);
+      replaceWithIframeNode(node, editor, linkService).selectNext();
     },
     { discrete: true },
   );

@@ -85,6 +85,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
   const toolbarHoverRef = useRef(false);
   const visibleLinkKeyRef = useRef<NodeKey | null>(null);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | number>(-1);
+  const rebindFrameRef = useRef<number>(-1);
   const showTimerRef = useRef<ReturnType<typeof setTimeout> | number>(-1);
   const { editable } = useEditable();
   const t = useTranslation();
@@ -92,6 +93,7 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
   const handleCancel = useCallback(() => {
     clearTimeout(clearTimerRef.current);
     clearTimeout(showTimerRef.current);
+    if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(rebindFrameRef.current);
     linkDomRef.current?.classList.remove('hover');
     linkDomRef.current = null;
     toolbarHoverRef.current = false;
@@ -120,6 +122,36 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
     visibleLinkKeyRef.current = nextNodeKey;
     setToolbarNodeKey(nextNodeKey);
   }, []);
+
+  const rebindToolbarToNode = useCallback(
+    (nextNodeKey: NodeKey) => {
+      selectedLinkKeyRef.current = nextNodeKey;
+      const bind = () => {
+        const dom = editor.getElementByKey(nextNodeKey);
+        if (!dom) {
+          handleCancel();
+          return;
+        }
+        showToolbar(nextNodeKey, dom);
+      };
+
+      const dom = editor.getElementByKey(nextNodeKey);
+      if (dom) {
+        showToolbar(nextNodeKey, dom);
+        return;
+      }
+
+      // Decorator -> inline conversions can commit the Lexical state before
+      // React has reconciled the replacement DOM. Rebind on the next frame so
+      // the toolbar never keeps the removed card key/reference.
+      if (typeof requestAnimationFrame === 'function') {
+        rebindFrameRef.current = requestAnimationFrame(bind);
+      } else {
+        handleCancel();
+      }
+    },
+    [editor, handleCancel, showToolbar],
+  );
 
   const scheduleShowToolbar = useCallback(
     (nextNodeKey: NodeKey, reference: HTMLElement) => {
@@ -179,6 +211,21 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
         ? $getNearestLinkToolbarNodeFromDOMNode(linkDomRef.current, editor)
         : null;
       if (currentNode) return currentNode.getKey();
+
+      // A node replacement disconnects the old decorator DOM immediately.
+      // Resolve the replacement from the active Lexical selection before
+      // falling back to the key captured by the previous toolbar render.
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const selectedNode = getSelectedNode(selection);
+        const parent = selectedNode.getParent();
+        const selectedToolbarNode = $isLinkToolbarNode(selectedNode)
+          ? selectedNode
+          : $isLinkToolbarNode(parent)
+            ? parent
+            : null;
+        if (selectedToolbarNode) return selectedToolbarNode.getKey();
+      }
 
       const fallbackKey = visibleLinkKeyRef.current || toolbarNodeKey;
       if (!fallbackKey) return null;
@@ -309,12 +356,12 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             onClick: () => {
               const nodeKey = resolveToolbarNodeKey();
               if (!nodeKey) return;
-              convertLinkToolbarNodeByKeyToLink(editor, nodeKey);
-              // convertLinkToolbarNodeByKeyToLink selects the replacement.
-              // The synchronous Lexical update listener rebinds this toolbar
-              // to that new link node; cancelling here would immediately tear
-              // the refreshed toolbar back down and leave the next click
-              // targeting controls derived from the removed card node.
+              const replacementKey = convertLinkToolbarNodeByKeyToLink(editor, nodeKey);
+              if (!replacementKey) {
+                handleCancel();
+                return;
+              }
+              rebindToolbarToNode(replacementKey);
             },
           });
         }
@@ -340,7 +387,16 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
         return result;
       }) || []
     );
-  }, [editor, handleCancel, linkService, menuVersion, resolveToolbarNodeKey, t, toolbarNodeKey]);
+  }, [
+    editor,
+    handleCancel,
+    linkService,
+    menuVersion,
+    rebindToolbarToNode,
+    resolveToolbarNodeKey,
+    t,
+    toolbarNodeKey,
+  ]);
 
   useLayoutEffect(() => {
     if (!toolbarNodeKey || items.length === 0) return;
@@ -459,6 +515,9 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
             document.removeEventListener('mouseout', handleMouseOut, true);
           }
           clearTimeout(clearTimerRef.current);
+          if (typeof cancelAnimationFrame === 'function') {
+            cancelAnimationFrame(rebindFrameRef.current);
+          }
           clearTimeout(showTimerRef.current);
         },
       );
