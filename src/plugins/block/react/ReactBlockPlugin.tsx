@@ -29,6 +29,7 @@ import { BlockPlugin, type BlockPluginOptions } from '../plugin';
 import type { BlockMenuService, IBlockMenuRenderContext } from '../service';
 import { IBlockMenuService } from '../service';
 import { HOVER_HIDE_DELAY } from './core/constants';
+import { resolveBlockMenuTop } from './core/menu-position';
 import {
   createRuntimeContext,
   type HoveredBlockState,
@@ -56,7 +57,6 @@ export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'classNa
 const logger = createDebugLogger('plugin', 'block-react');
 const OPERATION_MENU_OVERLAY_CLASS = 'lobe-block-operation-dropdown';
 const TABLE_FOCUSED_MENU_OFFSET = 8;
-const BLOCK_MENU_OPTICAL_OFFSET_Y = -2;
 
 type HoverResolveResult = NonNullable<HoveredBlockState> & {
   source: 'direct' | 'existing' | 'padding';
@@ -766,6 +766,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       }
 
       const menuWidth = menuRef.current?.offsetWidth || 32;
+      const menuHeight = menuRef.current?.offsetHeight || 32;
       const gap = 8;
       const listItemOffset = menuContext.blockElement.tagName === 'LI' ? 16 : 0;
       const isTableBlock = isTableBlockElement(menuContext.blockElement);
@@ -789,9 +790,16 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
         rawAnchorTop >= blockRect.top - 1 && rawAnchorTop <= blockRect.bottom + 1
           ? rawAnchorTop
           : blockRect.top;
+      const lineHeight = window.getComputedStyle(menuContext.blockElement).lineHeight;
       const position = {
         left: Math.max(gap, anchorLeft - menuWidth - gap - listItemOffset - tableMenuOffset),
-        top: anchorTop + BLOCK_MENU_OPTICAL_OFFSET_Y,
+        top: resolveBlockMenuTop({
+          anchorTop,
+          blockHeight: blockRect.height,
+          blockTagName: menuContext.blockElement.tagName,
+          lineHeight,
+          menuHeight,
+        }),
       };
 
       setMenuPosition(position);
