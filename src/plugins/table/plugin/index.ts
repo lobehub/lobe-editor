@@ -34,6 +34,7 @@ import {
 import { patchTableNode, TableNode } from '../node';
 import { ITableControllerMenuService, TableControllerMenuService } from '../service';
 import { createDefaultTableColWidths } from '../utils';
+import { registerSingleCellTablePaste } from './single-cell-paste';
 
 export interface TablePluginOptions {
   decoratorCol?: (node: TableNode, editor: LexicalEditor) => ReactNode;
@@ -112,6 +113,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     this.register(registerTableCellUnmergeTransform(editor));
+    this.register(registerSingleCellTablePaste(editor));
 
     if (!isHeadlessEditor(editor)) {
       setScrollableTablesActive(editor, true);
