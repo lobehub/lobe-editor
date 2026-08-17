@@ -56,6 +56,7 @@ export interface ReactBlockPluginProps extends Omit<BlockPluginOptions, 'classNa
 const logger = createDebugLogger('plugin', 'block-react');
 const OPERATION_MENU_OVERLAY_CLASS = 'lobe-block-operation-dropdown';
 const TABLE_FOCUSED_MENU_OFFSET = 8;
+const BLOCK_MENU_OPTICAL_OFFSET_Y = -2;
 
 type HoverResolveResult = NonNullable<HoveredBlockState> & {
   source: 'direct' | 'existing' | 'padding';
@@ -790,7 +791,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
           : blockRect.top;
       const position = {
         left: Math.max(gap, anchorLeft - menuWidth - gap - listItemOffset - tableMenuOffset),
-        top: anchorTop,
+        top: anchorTop + BLOCK_MENU_OPTICAL_OFFSET_Y,
       };
 
       setMenuPosition(position);
