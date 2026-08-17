@@ -18,6 +18,7 @@ import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerBlockMoveCommand } from '../command';
+import { COLLAPSIBLE_NODE_TYPE, isTableDescendant } from '../layout-policy';
 import { BlockMenuService, IBlockMenuService } from '../service';
 
 export interface BlockPluginOptions {
@@ -147,9 +148,10 @@ const patchBlockNodeCreateDOM = (nodeClass: LexicalNodeClass, attributeName: str
     const nodeKey = typeof latestNode.getKey === 'function' ? latestNode.getKey() : this.getKey();
     const nodeType = typeof latestNode.getType === 'function' ? latestNode.getType() : '';
     const isCollapsibleTitleChild =
-      parentNode?.getType?.() === 'collapsible' &&
+      parentNode?.getType?.() === COLLAPSIBLE_NODE_TYPE &&
       typeof latestNode.getIndexWithinParent === 'function' &&
       latestNode.getIndexWithinParent() === 0;
+    const isInsideTable = isTableDescendant(latestNode);
 
     const isRootChildBlock =
       dom &&
@@ -157,7 +159,8 @@ const patchBlockNodeCreateDOM = (nodeClass: LexicalNodeClass, attributeName: str
       !latestNode.isInline() &&
       nodeType !== 'list' &&
       isBlockChainToEditableRoot &&
-      !isCollapsibleTitleChild;
+      !isCollapsibleTitleChild &&
+      !isInsideTable;
 
     if (isRootChildBlock) {
       dom.dataset.blockId = nodeKey;

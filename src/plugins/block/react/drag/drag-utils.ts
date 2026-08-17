@@ -87,10 +87,24 @@ const isCollapsibleBlockElement = (element: HTMLElement): boolean => {
   return element.dataset.collapsible === 'true';
 };
 
-const isBlockInsideCollapsibleElement = (element: HTMLElement): boolean => {
-  const closestCollapsible = element.closest<HTMLElement>('[data-collapsible="true"]');
+const isTableLayoutBlockElement = (element: HTMLElement): boolean => {
+  return (
+    element instanceof HTMLTableElement ||
+    (element.classList.contains('editor_table_scrollable_wrapper') &&
+      Boolean(element.querySelector('table.editor_table')))
+  );
+};
 
-  return Boolean(closestCollapsible && closestCollapsible !== element);
+const isRootLevelLayoutBlockElement = (element: HTMLElement): boolean => {
+  return isCollapsibleBlockElement(element) || isTableLayoutBlockElement(element);
+};
+
+const isBlockInsideRootLevelLayoutBlock = (element: HTMLElement): boolean => {
+  const closestLayoutBlock = element.closest<HTMLElement>(
+    '[data-collapsible="true"], .editor_table_scrollable_wrapper[data-block-id], table[data-block-id]',
+  );
+
+  return Boolean(closestLayoutBlock && closestLayoutBlock !== element);
 };
 
 export const filterDragBlocksForSource = (
@@ -99,11 +113,11 @@ export const filterDragBlocksForSource = (
 ): DragBlockEntry[] => {
   const source = blocks.find((block) => block.blockId === sourceBlockId);
 
-  if (!source || !isCollapsibleBlockElement(source.block)) {
+  if (!source || !isRootLevelLayoutBlockElement(source.block)) {
     return blocks;
   }
 
-  return blocks.filter((block) => !isBlockInsideCollapsibleElement(block.block));
+  return blocks.filter((block) => !isBlockInsideRootLevelLayoutBlock(block.block));
 };
 
 export const resolveScrollContainers = (root: HTMLElement | null): HTMLElement[] => {

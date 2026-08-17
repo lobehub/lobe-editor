@@ -14,6 +14,7 @@ Collapsible content supports paragraphs and the regular inline and block convers
 
 - Table insertion moves the selection to a paragraph immediately after the current collapsible, then lets the table plugin insert at that root-level position.
 - Inserting another collapsible while the selection is inside one places the new block immediately after the current collapsible instead of nesting it.
+- Dragging a table or collapsible over nested content promotes the drop to the outer layout block's before/after edge. Drops on a collapsible title follow the same boundary rule, and table rows, cells, and cell content are not block-drag targets.
 
 This keeps tables and disclosure sections as root-level layout blocks and avoids nested editing surfaces whose selection and drag boundaries would be ambiguous. It is an intentional user-visible behavior, not a fallback from failed insertion.
 

@@ -20,6 +20,13 @@ import {
 
 import { createDebugLogger } from '@/utils/debug';
 
+import {
+  COLLAPSIBLE_NODE_TYPE,
+  isRootLevelLayoutBlock,
+  isTableDescendant,
+  TABLE_NODE_TYPE,
+} from '../layout-policy';
+
 export interface BlockMovePayload {
   placement: 'after' | 'before';
   sourceBlockId: string;
@@ -93,25 +100,50 @@ const cleanupEmptyListForItem = (listItem: ListItemNode) => {
   }
 };
 
-const hasAncestorOfType = (node: LexicalNode, type: string): boolean => {
+const getAncestorOfType = (node: LexicalNode, type: string): LexicalNode | null => {
   let parent = node.getParent();
 
   while (parent) {
     if (parent.getType() === type) {
-      return true;
+      return parent;
     }
 
     parent = parent.getParent();
   }
 
-  return false;
+  return null;
+};
+
+const getOutermostLayoutAncestor = (node: LexicalNode): LexicalNode | null => {
+  let parent = node.getParent();
+  let layoutAncestor: LexicalNode | null = null;
+
+  while (parent) {
+    if (isRootLevelLayoutBlock(parent)) {
+      layoutAncestor = parent;
+    }
+
+    parent = parent.getParent();
+  }
+
+  return layoutAncestor;
+};
+
+const getCollapsibleTitleParent = (node: LexicalNode): LexicalNode | null => {
+  const parent = node.getParent();
+
+  if (parent?.getType() !== COLLAPSIBLE_NODE_TYPE) {
+    return null;
+  }
+
+  return parent.getFirstChild()?.is(node) ? parent : null;
 };
 
 const isDescendantOf = (node: LexicalNode, ancestor: LexicalNode): boolean => {
   let parent = node.getParent();
 
   while (parent) {
-    if (parent === ancestor) {
+    if (parent.is(ancestor)) {
       return true;
     }
 
@@ -121,33 +153,46 @@ const isDescendantOf = (node: LexicalNode, ancestor: LexicalNode): boolean => {
   return false;
 };
 
-const moveBlockNode = (payload: BlockMovePayload) => {
+const moveBlockNode = (payload: BlockMovePayload): boolean => {
   logger.debug('start', payload);
 
   const sourceNode = $getNodeByKey(payload.sourceBlockId);
-  const targetNode = $getNodeByKey(payload.targetBlockId);
+  const requestedTargetNode = $getNodeByKey(payload.targetBlockId);
 
-  if (!sourceNode || !targetNode) {
+  if (!sourceNode || !requestedTargetNode) {
     logger.debug('abort: node-not-found', {
       sourceFound: Boolean(sourceNode),
-      targetFound: Boolean(targetNode),
+      targetFound: Boolean(requestedTargetNode),
     });
-    return;
+    return false;
   }
 
-  if (sourceNode === targetNode) {
+  if (sourceNode.is(requestedTargetNode)) {
     logger.debug('abort: source-equals-target');
-    return;
+    return false;
   }
 
-  if (isDescendantOf(targetNode, sourceNode)) {
+  if (isDescendantOf(requestedTargetNode, sourceNode)) {
     logger.debug('abort: target-inside-source');
-    return;
+    return false;
   }
 
-  if (sourceNode.getType() === 'collapsible' && hasAncestorOfType(targetNode, 'collapsible')) {
-    logger.debug('abort: collapsible-inside-collapsible');
-    return;
+  if (!isRootLevelLayoutBlock(sourceNode) && isTableDescendant(sourceNode)) {
+    logger.debug('abort: table-descendant-source', { sourceType: sourceNode.getType() });
+    return false;
+  }
+
+  const targetNode = isRootLevelLayoutBlock(sourceNode)
+    ? getOutermostLayoutAncestor(requestedTargetNode) || requestedTargetNode
+    : getCollapsibleTitleParent(requestedTargetNode) ||
+      getAncestorOfType(requestedTargetNode, TABLE_NODE_TYPE) ||
+      requestedTargetNode;
+
+  if (!targetNode.is(requestedTargetNode)) {
+    logger.debug('promote: outside-layout-block', {
+      requestedTargetType: requestedTargetNode.getType(),
+      targetType: targetNode.getType(),
+    });
   }
 
   if (!$isListItemNode(targetNode)) {
@@ -179,7 +224,7 @@ const moveBlockNode = (payload: BlockMovePayload) => {
     }
 
     logger.debug('done: normal-block-target');
-    return;
+    return true;
   }
 
   const targetListItem = targetNode;
@@ -223,7 +268,7 @@ const moveBlockNode = (payload: BlockMovePayload) => {
 
     logger.debug('done: list-insert-with-item-or-paragraph');
 
-    return;
+    return true;
   }
 
   const topContext = getTopListContextFromItem(targetListItem);
@@ -240,7 +285,7 @@ const moveBlockNode = (payload: BlockMovePayload) => {
     }
 
     logger.debug('done: list-target-without-top-list');
-    return;
+    return true;
   }
 
   const tailStart = payload.placement === 'before' ? topListItem : topListItem.getNextSibling();
@@ -250,14 +295,14 @@ const moveBlockNode = (payload: BlockMovePayload) => {
     logger.debug('branch: split-list-head-insert-before-list');
     topListNode.insertBefore(sourceNode);
     logger.debug('done: split-list-head-insert-before-list');
-    return;
+    return true;
   }
 
   if (!tailStart) {
     logger.debug('branch: split-list-tail-insert-after-list');
     topListNode.insertAfter(sourceNode);
     logger.debug('done: split-list-tail-insert-after-list');
-    return;
+    return true;
   }
 
   const listStartValue =
@@ -292,6 +337,7 @@ const moveBlockNode = (payload: BlockMovePayload) => {
   }
 
   logger.debug('done: split-list-middle');
+  return true;
 };
 
 export function registerBlockMoveCommand(editor: LexicalEditor) {
@@ -299,8 +345,7 @@ export function registerBlockMoveCommand(editor: LexicalEditor) {
     MOVE_BLOCK_COMMAND,
     (payload) => {
       logger.debug('received-command', payload);
-      moveBlockNode(payload);
-      return true;
+      return moveBlockNode(payload);
     },
     COMMAND_PRIORITY_EDITOR,
   );

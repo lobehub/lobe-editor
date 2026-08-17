@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { $createTableNodeWithDimensions } from '@lexical/table';
 import {
   $createParagraphNode,
   $createTextNode,
   $getRoot,
   $getSelection,
+  $isElementNode,
   $isRangeSelection,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
@@ -612,7 +614,450 @@ describe('collapsible plugin', () => {
     ]);
   });
 
-  it('does not move a collapsible block into another collapsible by command', () => {
+  it('filters layout-block inner targets when dragging a table block', () => {
+    const source = document.createElement('div');
+    source.classList.add('editor_table_scrollable_wrapper');
+    source.dataset.blockId = 'source';
+    const table = document.createElement('table');
+    table.classList.add('editor_table');
+    source.append(table);
+
+    const target = document.createElement('section');
+    target.dataset.blockId = 'target';
+    target.dataset.collapsible = 'true';
+
+    const targetBody = document.createElement('p');
+    targetBody.dataset.blockId = 'target-body';
+    target.append(targetBody);
+
+    const outside = document.createElement('p');
+    outside.dataset.blockId = 'outside';
+
+    const blocks = [source, target, targetBody, outside].map((block, index) => ({
+      block,
+      blockId: block.dataset.blockId!,
+      rect: {
+        bottom: index * 10 + 10,
+        height: 10,
+        left: 0,
+        top: index * 10,
+        width: 100,
+      },
+    }));
+
+    expect(filterDragBlocksForSource('source', blocks).map((block) => block.blockId)).toEqual([
+      'source',
+      'target',
+      'outside',
+    ]);
+  });
+
+  it('does not treat a wrapper containing a table as a table drag source', () => {
+    const source = document.createElement('div');
+    source.dataset.blockId = 'source';
+    source.append(document.createElement('table'));
+
+    const target = document.createElement('section');
+    target.dataset.blockId = 'target';
+    target.dataset.collapsible = 'true';
+
+    const targetBody = document.createElement('p');
+    targetBody.dataset.blockId = 'target-body';
+    target.append(targetBody);
+
+    const blocks = [source, target, targetBody].map((block, index) => ({
+      block,
+      blockId: block.dataset.blockId!,
+      rect: {
+        bottom: index * 10 + 10,
+        height: 10,
+        left: 0,
+        top: index * 10,
+        width: 100,
+      },
+    }));
+
+    expect(filterDragBlocksForSource('source', blocks)).toEqual(blocks);
+  });
+
+  it('marks only the table node, not its structural descendants, as a drag block', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    const rootElement = document.createElement('div');
+    let tableKey = '';
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        disconnect() {}
+        observe() {}
+        unobserve() {}
+      },
+    );
+    document.body.append(rootElement);
+    editor.setRootElement(rootElement);
+
+    try {
+      lexicalEditor.update(
+        () => {
+          const root = $getRoot();
+          root.clear();
+          const table = $createTableNodeWithDimensions(2, 2, false);
+          tableKey = table.getKey();
+          root.append(table);
+        },
+        { discrete: true },
+      );
+
+      const tableBlock = rootElement.querySelector<HTMLElement>(`[data-block-id="${tableKey}"]`);
+      expect(tableBlock?.classList.contains('editor_table_scrollable_wrapper')).toBe(true);
+      expect(tableBlock?.querySelector('table.editor_table')).not.toBeNull();
+      expect(tableBlock?.querySelectorAll('[data-block-id]')).toHaveLength(0);
+    } finally {
+      editor.setRootElement(document.createElement('div'));
+      rootElement.remove();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('does not move a collapsible block into its own child', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    let sourceKey = '';
+    let childKey = '';
+
+    lexicalEditor.update(
+      () => {
+        const root = $getRoot();
+        root.clear();
+
+        const source = $createCollapsibleNode('Source', false);
+        const title = $createParagraphNode().append($createTextNode('Source'));
+        const body = $createParagraphNode().append($createTextNode('Body'));
+        source.append(title, body);
+
+        sourceKey = source.getKey();
+        childKey = body.getKey();
+        root.append(source);
+      },
+      { discrete: true },
+    );
+
+    expect(
+      lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+        placement: 'after',
+        sourceBlockId: sourceKey,
+        targetBlockId: childKey,
+      }),
+    ).toBe(false);
+    lexicalEditor.update(() => {}, { discrete: true });
+
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible']);
+    expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', 'paragraph']);
+  });
+
+  it('moves a collapsible next to another collapsible when targeting the node itself', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    let sourceKey = '';
+    let targetKey = '';
+
+    lexicalEditor.update(
+      () => {
+        const root = $getRoot();
+        root.clear();
+
+        const source = $createCollapsibleNode('Source', false);
+        source.append($createParagraphNode().append($createTextNode('Source')));
+        const target = $createCollapsibleNode('Target', false);
+        target.append($createParagraphNode().append($createTextNode('Target')));
+
+        sourceKey = source.getKey();
+        targetKey = target.getKey();
+        root.append(source, target);
+      },
+      { discrete: true },
+    );
+
+    expect(
+      lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+        placement: 'after',
+        sourceBlockId: sourceKey,
+        targetBlockId: targetKey,
+      }),
+    ).toBe(true);
+    lexicalEditor.update(() => {}, { discrete: true });
+
+    expect(getRootCollapsibleTitles(lexicalEditor)).toEqual(['Target', 'Source']);
+  });
+
+  it('promotes a table outside collapsible when targeting its body', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    let sourceKey = '';
+    let targetBodyKey = '';
+
+    lexicalEditor.update(
+      () => {
+        const root = $getRoot();
+        root.clear();
+
+        const table = $createTableNodeWithDimensions(2, 2, false);
+        const target = $createCollapsibleNode('Target', false);
+        const title = $createParagraphNode().append($createTextNode('Target'));
+        const body = $createParagraphNode().append($createTextNode('Body'));
+        target.append(title, body);
+
+        sourceKey = table.getKey();
+        targetBodyKey = body.getKey();
+        root.append(table, target);
+      },
+      { discrete: true },
+    );
+
+    expect(
+      lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+        placement: 'after',
+        sourceBlockId: sourceKey,
+        targetBlockId: targetBodyKey,
+      }),
+    ).toBe(true);
+    lexicalEditor.update(() => {}, { discrete: true });
+
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible', 'table']);
+    expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', 'paragraph']);
+  });
+
+  it('allows moving a paragraph into a collapsible body', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    let sourceKey = '';
+    let targetBodyKey = '';
+
+    lexicalEditor.update(
+      () => {
+        const root = $getRoot();
+        root.clear();
+
+        const source = $createParagraphNode().append($createTextNode('Source'));
+        const target = $createCollapsibleNode('Target', false);
+        const title = $createParagraphNode().append($createTextNode('Target'));
+        const body = $createParagraphNode().append($createTextNode('Body'));
+        target.append(title, body);
+
+        sourceKey = source.getKey();
+        targetBodyKey = body.getKey();
+        root.append(source, target);
+      },
+      { discrete: true },
+    );
+
+    expect(
+      lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+        placement: 'after',
+        sourceBlockId: sourceKey,
+        targetBlockId: targetBodyKey,
+      }),
+    ).toBe(true);
+    lexicalEditor.update(() => {}, { discrete: true });
+
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible']);
+    expect(getCollapsibleChildTypes(lexicalEditor)).toEqual([
+      'paragraph',
+      'paragraph',
+      'paragraph',
+    ]);
+  });
+
+  it.each(['before', 'after'] as const)(
+    'promotes a paragraph %s collapsible when targeting its title',
+    (placement) => {
+      const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+      let sourceKey = '';
+      let titleKey = '';
+
+      lexicalEditor.update(
+        () => {
+          const root = $getRoot();
+          root.clear();
+
+          const target = $createCollapsibleNode('Target', false);
+          const title = $createParagraphNode().append($createTextNode('Target'));
+          target.append(title, $createParagraphNode().append($createTextNode('Body')));
+          const source = $createParagraphNode().append($createTextNode('Source'));
+
+          sourceKey = source.getKey();
+          titleKey = title.getKey();
+          root.append(target, source);
+        },
+        { discrete: true },
+      );
+
+      expect(
+        lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+          placement,
+          sourceBlockId: sourceKey,
+          targetBlockId: titleKey,
+        }),
+      ).toBe(true);
+      lexicalEditor.update(() => {}, { discrete: true });
+
+      expect(getRootChildTypes(lexicalEditor)).toEqual(
+        placement === 'before' ? ['paragraph', 'collapsible'] : ['collapsible', 'paragraph'],
+      );
+      expect(getRootCollapsibleTitles(lexicalEditor)).toEqual(['Target']);
+      expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', 'paragraph']);
+    },
+  );
+
+  it('promotes a table outside another table when targeting cell content', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    let sourceKey = '';
+    let targetKey = '';
+    let targetParagraphKey = '';
+
+    lexicalEditor.update(
+      () => {
+        const root = $getRoot();
+        root.clear();
+
+        const source = $createTableNodeWithDimensions(1, 1, false);
+        const target = $createTableNodeWithDimensions(1, 1, false);
+        const { paragraph } = getTableStructureNodes(target);
+
+        sourceKey = source.getKey();
+        targetKey = target.getKey();
+        targetParagraphKey = paragraph.getKey();
+        root.append(source, target);
+      },
+      { discrete: true },
+    );
+
+    expect(
+      lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+        placement: 'after',
+        sourceBlockId: sourceKey,
+        targetBlockId: targetParagraphKey,
+      }),
+    ).toBe(true);
+    lexicalEditor.update(() => {}, { discrete: true });
+
+    expect(getRootChildKeys(lexicalEditor)).toEqual([targetKey, sourceKey]);
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['table', 'table']);
+  });
+
+  it('uses the outermost layout target for a table inside an invalid nested layout tree', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    let sourceKey = '';
+    let outerTableKey = '';
+    let nestedTitleKey = '';
+
+    lexicalEditor.update(
+      () => {
+        const root = $getRoot();
+        root.clear();
+
+        const source = $createTableNodeWithDimensions(1, 1, false);
+        const outerTable = $createTableNodeWithDimensions(1, 1, false);
+        const tablecell = getTableStructureNodes(outerTable).tablecell;
+        const nested = $createCollapsibleNode('Nested', false);
+        const title = $createParagraphNode().append($createTextNode('Nested'));
+        nested.append(title, $createParagraphNode().append($createTextNode('Body')));
+        tablecell.clear().append(nested);
+
+        sourceKey = source.getKey();
+        outerTableKey = outerTable.getKey();
+        nestedTitleKey = title.getKey();
+        root.append(source, outerTable);
+      },
+      { discrete: true },
+    );
+
+    expect(
+      lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+        placement: 'after',
+        sourceBlockId: sourceKey,
+        targetBlockId: nestedTitleKey,
+      }),
+    ).toBe(true);
+    lexicalEditor.update(() => {}, { discrete: true });
+
+    expect(getRootChildKeys(lexicalEditor)).toEqual([outerTableKey, sourceKey]);
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['table', 'table']);
+  });
+
+  it.each(['tablerow', 'tablecell', 'paragraph'] as const)(
+    'promotes a paragraph outside table when targeting %s',
+    (targetType) => {
+      const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+      let sourceKey = '';
+      let targetKey = '';
+
+      lexicalEditor.update(
+        () => {
+          const root = $getRoot();
+          root.clear();
+
+          const table = $createTableNodeWithDimensions(1, 1, false);
+          const tableNodes = getTableStructureNodes(table);
+          const source = $createParagraphNode().append($createTextNode('Source'));
+
+          sourceKey = source.getKey();
+          targetKey = tableNodes[targetType].getKey();
+          root.append(table, source);
+        },
+        { discrete: true },
+      );
+
+      expect(
+        lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+          placement: 'before',
+          sourceBlockId: sourceKey,
+          targetBlockId: targetKey,
+        }),
+      ).toBe(true);
+      lexicalEditor.update(() => {}, { discrete: true });
+
+      expect(getRootChildTypes(lexicalEditor)).toEqual(['paragraph', 'table']);
+    },
+  );
+
+  it('rejects moving a table descendant as a block source', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    let cellKey = '';
+    let targetKey = '';
+
+    lexicalEditor.update(
+      () => {
+        const root = $getRoot();
+        root.clear();
+
+        const table = $createTableNodeWithDimensions(1, 1, false);
+        cellKey = getTableStructureNodes(table).tablecell.getKey();
+        const target = $createParagraphNode().append($createTextNode('Target'));
+        targetKey = target.getKey();
+        root.append(table, target);
+      },
+      { discrete: true },
+    );
+
+    expect(
+      lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+        placement: 'after',
+        sourceBlockId: cellKey,
+        targetBlockId: targetKey,
+      }),
+    ).toBe(false);
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['table', 'paragraph']);
+  });
+
+  it('returns false when a move command node does not exist', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+
+    expect(
+      lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+        placement: 'after',
+        sourceBlockId: 'missing-source',
+        targetBlockId: 'missing-target',
+      }),
+    ).toBe(false);
+  });
+
+  it('promotes a collapsible outside another collapsible by command', () => {
     const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
     let sourceKey = '';
     let targetBodyKey = '';
@@ -623,7 +1068,9 @@ describe('collapsible plugin', () => {
         root.clear();
 
         const source = $createCollapsibleNode('Source', false);
-        source.append($createParagraphNode(), $createParagraphNode());
+        const sourceTitle = $createParagraphNode();
+        sourceTitle.append($createTextNode('Source'));
+        source.append(sourceTitle, $createParagraphNode());
 
         const target = $createCollapsibleNode('Target', false);
         const targetTitle = $createParagraphNode();
@@ -640,14 +1087,17 @@ describe('collapsible plugin', () => {
       { discrete: true },
     );
 
-    lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
-      placement: 'after',
-      sourceBlockId: sourceKey,
-      targetBlockId: targetBodyKey,
-    });
+    expect(
+      lexicalEditor.dispatchCommand(MOVE_BLOCK_COMMAND, {
+        placement: 'after',
+        sourceBlockId: sourceKey,
+        targetBlockId: targetBodyKey,
+      }),
+    ).toBe(true);
     lexicalEditor.update(() => {}, { discrete: true });
 
     expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible', 'collapsible']);
+    expect(getRootCollapsibleTitles(lexicalEditor)).toEqual(['Target', 'Source']);
     expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', 'paragraph']);
   });
 });
@@ -789,6 +1239,31 @@ function getRootChildTypes(editor: LexicalEditor): string[] {
   return types;
 }
 
+function getRootChildKeys(editor: LexicalEditor): string[] {
+  let keys: string[] = [];
+
+  editor.getEditorState().read(() => {
+    keys = $getRoot()
+      .getChildren()
+      .map((node) => node.getKey());
+  });
+
+  return keys;
+}
+
+function getRootCollapsibleTitles(editor: LexicalEditor): string[] {
+  let titles: string[] = [];
+
+  editor.getEditorState().read(() => {
+    titles = $getRoot()
+      .getChildren()
+      .filter($isCollapsibleNode)
+      .map((node) => node.getTitle());
+  });
+
+  return titles;
+}
+
 function getCollapsibleChildTypes(editor: LexicalEditor): string[] {
   let types: string[] = [];
 
@@ -811,6 +1286,17 @@ function getCollapsibleCollapsed(editor: LexicalEditor): boolean | null {
   });
 
   return collapsed;
+}
+
+function getTableStructureNodes(table: LexicalNode) {
+  if (!$isElementNode(table)) throw new Error('Expected table element');
+  const tablerow = table.getFirstChildOrThrow();
+  if (!$isElementNode(tablerow)) throw new Error('Expected table row element');
+  const tablecell = tablerow.getFirstChildOrThrow();
+  if (!$isElementNode(tablecell)) throw new Error('Expected table cell element');
+  const paragraph = tablecell.getFirstChildOrThrow();
+
+  return { paragraph, tablecell, tablerow };
 }
 
 function getSelectionDebug(editor: LexicalEditor): string[] {
