@@ -178,10 +178,13 @@ The `update` field is `encodeStateAsUpdate(room.doc, clientStateVector)` encoded
 as base64. After applying it, the browser publishes its local document state so
 edits made while disconnected also merge into the room.
 
-Only the bootstrap owner may seed an empty runtime room from persisted JSON.
-Clients that connect at the same time wait until the owner sends its first Yjs
-update, then receive the initialized room state. This prevents every browser
-session from inserting the same persisted document once.
+Only the first client that sends a valid sync request becomes the bootstrap
+owner and may seed an empty runtime room from persisted JSON. Merely opening a
+WebSocket or publishing awareness does not claim ownership. Clients that send
+sync requests at the same time wait until the owner sends its first Yjs update,
+then receive the initialized room state. This prevents stale reconnecting
+clients from blocking bootstrap and prevents every browser session from
+inserting the same persisted document once.
 
 ### Client Update Message
 

@@ -480,19 +480,6 @@ function handleSocketConnection(socket, request) {
   room.lastEmptyAt = null;
   logRoomEvent('client.connected', room, { clientId });
 
-  // Storage stays JSON. Exactly one client may bootstrap an empty runtime Y.Doc.
-  // Other simultaneous clients wait for that first state update, preventing the
-  // same database snapshot from being inserted once per browser session.
-  if (!room.hasReceivedUpdate && room.bootstrapOwner) {
-    room.deferredSyncClients.set(socket, clientId);
-    logRoomEvent('sync.deferred', room, {
-      bootstrapClientId: room.bootstrapOwnerClientId,
-      clientId,
-    });
-  } else if (!room.hasReceivedUpdate) {
-    assignBootstrapOwner(room, socket, clientId);
-  }
-
   socket.on('message', (rawMessage) => {
     let message;
 
@@ -513,8 +500,19 @@ function handleSocketConnection(socket, request) {
         socket.syncRequestStateVector = decodeUpdate(message.stateVector);
         room.lastActiveAt = Date.now();
 
-        if (room.hasReceivedUpdate || room.bootstrapOwner === socket) {
+        if (room.hasReceivedUpdate) {
           sendRoomSync(room, socket, clientId, socket.syncRequestStateVector);
+        } else if (!room.bootstrapOwner) {
+          room.deferredSyncClients.delete(socket);
+          assignBootstrapOwner(room, socket, clientId);
+        } else if (room.bootstrapOwner === socket) {
+          sendRoomSync(room, socket, clientId, socket.syncRequestStateVector);
+        } else {
+          room.deferredSyncClients.set(socket, clientId);
+          logRoomEvent('sync.deferred', room, {
+            bootstrapClientId: room.bootstrapOwnerClientId,
+            clientId,
+          });
         }
       } catch {
         logRoomEvent('sync.rejected', room, { clientId, reason: 'invalid state vector' });
