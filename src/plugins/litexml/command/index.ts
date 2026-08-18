@@ -1,4 +1,5 @@
 import { $isListItemNode } from '@lexical/list';
+import { $isTableNode, $isTableRowNode } from '@lexical/table';
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import {
@@ -15,6 +16,7 @@ import { createDebugLogger } from '@/utils/debug';
 
 import type LitexmlDataSource from '../data-source/litexml-data-source';
 import { $createDiffNode, DiffNode } from '../node/DiffNode';
+import { $areTableRowStructuresCompatible, $createTableRowDiffFromRow } from '../table-row-diff';
 import { $cloneNode, $parseSerializedNodeImpl, charToId } from '../utils';
 import {
   LITEXML_APPLY_COMMAND,
@@ -47,6 +49,25 @@ function handleReplaceForApplyDelay(
   diffNodeMap: Map<string, DiffNode>,
   editor: LexicalEditor,
 ) {
+  if ($isTableRowNode(oldNode) || $isTableRowNode(newNode)) {
+    if (
+      !$isTableRowNode(oldNode) ||
+      !$isTableRowNode(newNode) ||
+      !$isTableNode(oldNode.getParent()) ||
+      !$areTableRowStructuresCompatible(oldNode, newNode)
+    ) {
+      logger.error(`❌ Invalid table row modification for row ${oldNode.getKey()}.`);
+      return;
+    }
+
+    const changeId = `${oldNode.getKey()}:${newNode.getKey()}`;
+    const removeRow = $createTableRowDiffFromRow(editor, oldNode, 'remove', changeId);
+    const addRow = $createTableRowDiffFromRow(editor, newNode, 'add', changeId);
+    oldNode.replace(removeRow, false);
+    removeRow.insertAfter(addRow);
+    return;
+  }
+
   const oldBlock = $closest(oldNode, (node) => node.isInline() === false);
   if (!oldBlock) {
     throw new Error('Old block node not found for diffing.');
@@ -304,6 +325,11 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
       return;
     }
 
+    if ($isTableRowNode(node) && $isTableNode(node.getParent())) {
+      node.replace($createTableRowDiffFromRow(editor, node, 'remove'), false);
+      return;
+    }
+
     // delay removal: show a diff
     if (node.isInline() === false) {
       const originDiffNode = $closest(
@@ -423,6 +449,34 @@ function handleInsert(
             if (referenceNode) {
               referenceNode = referenceNode.insertAfter(node);
             }
+          });
+        }
+        return;
+      }
+
+      const referencesTableRow = $isTableRowNode(referenceNode);
+      const insertsOnlyTableRows = newNodes.every($isTableRowNode);
+      if (referencesTableRow || insertsOnlyTableRows) {
+        if (
+          !referencesTableRow ||
+          !insertsOnlyTableRows ||
+          !$isTableNode(referenceNode.getParent())
+        ) {
+          logger.error('❌ Table rows can only be inserted next to another row in the same table.');
+          return;
+        }
+
+        if (isBefore) {
+          newNodes.reverse().forEach((node: LexicalNode) => {
+            if (!$isTableRowNode(node)) return;
+            const diffRow = $createTableRowDiffFromRow(editor, node, 'add');
+            referenceNode = referenceNode!.insertBefore(diffRow);
+          });
+        } else {
+          newNodes.forEach((node: LexicalNode) => {
+            if (!$isTableRowNode(node)) return;
+            const diffRow = $createTableRowDiffFromRow(editor, node, 'add');
+            referenceNode = referenceNode!.insertAfter(diffRow);
           });
         }
         return;

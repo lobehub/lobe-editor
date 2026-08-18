@@ -1,3 +1,4 @@
+import { $isTableNode } from '@lexical/table';
 import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
 import { $nodesOfType, HISTORIC_TAG } from 'lexical';
 
@@ -9,7 +10,9 @@ import { registerLiteXMLCommand } from '../command';
 import { registerLiteXMLDiffCommand } from '../command/diffCommand';
 import LitexmlDataSource from '../data-source/litexml-data-source';
 import { DiffNode } from '../node/DiffNode';
+import { $isTableRowDiffNode, TableRowDiffNode } from '../node/TableRowDiffNode';
 import { ILitexmlService, LitexmlService } from '../service/litexml-service';
+import { registerTableRowDiffNormalization } from '../table-row-diff';
 
 /**
  * LitexmlPluginOptions - Configuration options for the Litexml plugin
@@ -21,6 +24,7 @@ export interface LitexmlPluginOptions {
    * @default true
    */
   enabled?: boolean;
+  tableRowDiffTheme?: string;
   theme?: string;
 }
 
@@ -44,6 +48,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
 
     kernel.registerThemes({
       diffNode: config?.theme || 'editor_diffNode',
+      tableRowDiff: config?.tableRowDiffTheme || 'editor_tableRowDiff',
     });
 
     // Create and register the Litexml service
@@ -59,7 +64,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     );
 
     // register diff node type
-    kernel.registerNodes([DiffNode]);
+    kernel.registerNodes([DiffNode, TableRowDiffNode]);
     kernel.registerDecorator(DiffNode.getType(), {
       queryDOM: (el: HTMLElement) => el.querySelector('.toolbar')!,
       render: (node: LexicalNode, editor: LexicalEditor) => {
@@ -77,6 +82,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     // Plugin initialization logic can be added here if needed
     this.register(registerLiteXMLCommand(editor, this.datasource));
     this.register(registerLiteXMLDiffCommand(editor));
+    this.register(registerTableRowDiffNormalization(editor));
 
     this.register(
       editor.registerNodeTransform(DiffNode, (node) => {
@@ -146,10 +152,37 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
         lines,
       };
     });
+
+    this.service.registerXMLWriter(TableRowDiffNode.getType(), (node, ctx) => {
+      if (!$isTableRowDiffNode(node)) return false;
+      if (node.getDiffType() === 'remove') return { lines: [] };
+      return ctx.createXmlNode('tr', {});
+    });
   }
 
   private registerMarkdown() {
     const markdownService = this.kernel.requireService(IMarkdownShortCutService);
+    markdownService?.registerMarkdownWriter(TableRowDiffNode.getType(), (ctx, node) => {
+      if (!$isTableRowDiffNode(node)) return false;
+      if (node.getDiffType() === 'remove') return true;
+
+      const parent = node.getParent();
+      if (!$isTableNode(parent)) return true;
+      const hasPreviousProjectedRow = node
+        .getPreviousSiblings()
+        .some((sibling) => !$isTableRowDiffNode(sibling) || sibling.getDiffType() !== 'remove');
+      if (hasPreviousProjectedRow) {
+        ctx.wrap('', '\n');
+      } else {
+        ctx.wrap(
+          '',
+          `\n${parent
+            .getColWidths()
+            ?.map(() => '|:--')
+            .join('')}|\n`,
+        );
+      }
+    });
     markdownService?.registerMarkdownWriter(DiffNode.getType(), (ctx, node) => {
       const diffNode = node as DiffNode;
       switch (diffNode.diffType) {

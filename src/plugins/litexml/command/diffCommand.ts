@@ -3,9 +3,49 @@ import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, $isElementNode, COMMAND_PRIORITY_EDITOR } from 'lexical';
 
 import { DiffNode } from '../node/DiffNode';
+import type { TableRowDiffNode } from '../node/TableRowDiffNode';
+import { $isTableRowDiffNode } from '../node/TableRowDiffNode';
+import { $createPlainTableRowFromDiff, $getTableRowDiffPair } from '../table-row-diff';
 import { DiffAction, LITEXML_DIFFNODE_ALL_COMMAND, LITEXML_DIFFNODE_COMMAND } from './symbols';
 
-function doAction(node: DiffNode, action: DiffAction) {
+function doTableRowAction(editor: LexicalEditor, node: TableRowDiffNode, action: DiffAction) {
+  const pair = $getTableRowDiffPair(node);
+  if (pair) {
+    const survivingRow = action === DiffAction.Accept ? pair.add : pair.remove;
+    const discardedRow = action === DiffAction.Accept ? pair.remove : pair.add;
+    const plainRow = $createPlainTableRowFromDiff(editor, survivingRow);
+    discardedRow.remove();
+    survivingRow.replace(plainRow, false);
+    plainRow.selectStart();
+    return;
+  }
+
+  if (node.getDiffType() === 'remove') {
+    if (action === DiffAction.Accept) {
+      node.remove();
+    } else {
+      const plainRow = $createPlainTableRowFromDiff(editor, node);
+      node.replace(plainRow, false);
+      plainRow.selectStart();
+    }
+    return;
+  }
+
+  if (action === DiffAction.Accept) {
+    const plainRow = $createPlainTableRowFromDiff(editor, node);
+    node.replace(plainRow, false);
+    plainRow.selectStart();
+  } else {
+    node.remove();
+  }
+}
+
+function doAction(editor: LexicalEditor, node: DiffNode | TableRowDiffNode, action: DiffAction) {
+  if ($isTableRowDiffNode(node)) {
+    doTableRowAction(editor, node, action);
+    return;
+  }
+
   if (node.diffType === 'modify') {
     const children = node.getChildren();
     if (action === DiffAction.Accept) {
@@ -91,14 +131,10 @@ export function registerLiteXMLDiffCommand(editor: LexicalEditor) {
       LITEXML_DIFFNODE_COMMAND,
       (payload) => {
         const { action, nodeKey } = payload;
-        const node = editor.getEditorState().read(() => {
-          return $getNodeByKey(nodeKey) as DiffNode | null;
-        });
-        if (!node) {
-          return false;
-        }
         editor.update(() => {
-          doAction(node, action);
+          const node = $getNodeByKey(nodeKey);
+          if (!(node instanceof DiffNode) && !$isTableRowDiffNode(node)) return;
+          doAction(editor, node, action);
         });
 
         return false;
@@ -109,17 +145,32 @@ export function registerLiteXMLDiffCommand(editor: LexicalEditor) {
       LITEXML_DIFFNODE_ALL_COMMAND,
       (payload) => {
         const { action } = payload;
-        const nodes = editor.getEditorState().read(() => {
-          return Array.from(editor._editorState._nodeMap.values()).filter(
-            (n) => n instanceof DiffNode && !!n.getParent(),
-          ) as DiffNode[];
+        const nodeKeys = editor.getEditorState().read(() => {
+          return Array.from(editor._editorState._nodeMap.values())
+            .filter(
+              (node) =>
+                (node instanceof DiffNode || $isTableRowDiffNode(node)) && !!node.getParent(),
+            )
+            .map((node) => node.getKey());
         });
-        if (!nodes.length) {
+        if (!nodeKeys.length) {
           return false;
         }
         editor.update(() => {
-          nodes.forEach((node) => {
-            doAction(node, action);
+          const handled = new Set<string>();
+          nodeKeys.forEach((nodeKey) => {
+            if (handled.has(nodeKey)) return;
+            const node = $getNodeByKey(nodeKey);
+            if (!(node instanceof DiffNode) && !$isTableRowDiffNode(node)) return;
+
+            const pair = $isTableRowDiffNode(node) ? $getTableRowDiffPair(node) : null;
+            if (pair) {
+              handled.add(pair.remove.getKey());
+              handled.add(pair.add.getKey());
+            } else {
+              handled.add(nodeKey);
+            }
+            doAction(editor, node, action);
           });
         });
 

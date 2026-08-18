@@ -122,3 +122,18 @@ export const styles = createStaticStyles(
     }
   `,
 );
+
+export const tableRowDiffStyles = createStaticStyles(
+  ({ css, cssVar }) => css`
+    &[data-diff-type='remove'] {
+      color: ${cssVar.colorTextQuaternary};
+      text-decoration: line-through;
+      background: ${cssVar.colorErrorBg};
+    }
+
+    &[data-diff-type='add'] {
+      background: ${cssVar.colorSuccessBg};
+      box-shadow: inset 3px 0 0 ${cssVar.colorSuccess};
+    }
+  `,
+);
