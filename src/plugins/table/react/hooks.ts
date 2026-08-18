@@ -6,7 +6,7 @@
  *
  */
 import type { TableNode } from '@lexical/table';
-import { $findTableNode, $isTableSelection } from '@lexical/table';
+import { $findTableNode, $isTableNode, $isTableSelection } from '@lexical/table';
 import { debounce } from 'es-toolkit/compat';
 import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
@@ -51,7 +51,11 @@ const readTableControllerSelection = (
     const selection = $getSelection();
     const tableNode = $getNodeByKey<TableNode>(tableKey);
 
-    if (!tableNode) {
+    // A collaborative/headless document replacement can briefly leave the old
+    // controller mounted while its key already resolves to a node in the new
+    // editor state. Never assume a key captured by React still points at a
+    // TableNode.
+    if (!$isTableNode(tableNode)) {
       return {
         isTableFocused: false,
         isTableSelected: false,

@@ -1,5 +1,5 @@
-import type { TableNode } from '@lexical/table';
-import type { LexicalEditor } from 'lexical';
+import { $isTableNode, type TableNode } from '@lexical/table';
+import { $getNodeByKey, type LexicalEditor } from 'lexical';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { syncTableWidthDOM } from '../../utils';
@@ -27,7 +27,9 @@ const getTableElement = (element: HTMLElement | null) => {
 
 const readNodeColWidths = (editor: LexicalEditor, node: TableNode) => {
   return editor.getEditorState().read(() => {
-    const latestNode = node.getLatest();
+    const latestNode = $getNodeByKey(node.getKey());
+    if (!$isTableNode(latestNode)) return [];
+
     const columnCount = latestNode.getColumnCount();
     const colWidths = latestNode.getColWidths();
 
