@@ -416,6 +416,59 @@ describe('LexicalRenderer', () => {
     expect(html).toContain('item 2');
   });
 
+  it('renders table colgroup from serialized colWidths', () => {
+    const cell = (text: string) => ({
+      backgroundColor: null,
+      children: [
+        {
+          children: [
+            { detail: 0, format: 0, mode: 'normal', style: '', text, type: 'text', version: 1 },
+          ],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          textFormat: 0,
+          textStyle: '',
+          type: 'paragraph',
+          version: 1,
+        },
+      ],
+      colSpan: 1,
+      direction: 'ltr',
+      format: '',
+      headerState: 0,
+      indent: 0,
+      rowSpan: 1,
+      type: 'tablecell',
+      version: 1,
+    });
+
+    const value = makeEditorState([
+      {
+        children: [
+          {
+            children: [cell('a'), cell('b')],
+            direction: 'ltr',
+            format: '',
+            indent: 0,
+            type: 'tablerow',
+            version: 1,
+          },
+        ],
+        colWidths: [375, 375],
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        type: 'table',
+        version: 1,
+      },
+    ]);
+
+    const html = toHTML(value);
+    expect(html).toContain('<colgroup>');
+    expect(html).toContain('<col style="width:375px"/>');
+  });
+
   it('applies variant CSS variables', () => {
     const value = makeEditorState([
       {

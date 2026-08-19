@@ -60,13 +60,7 @@ function makeHeading(text: string, tag: 'h1' | 'h2' | 'h3' = 'h1') {
 
 function makeDiffNode(
   diffType:
-    | 'add'
-    | 'remove'
-    | 'modify'
-    | 'unchanged'
-    | 'listItemModify'
-    | 'listItemRemove'
-    | 'listItemAdd',
+    'add' | 'remove' | 'modify' | 'unchanged' | 'listItemModify' | 'listItemRemove' | 'listItemAdd',
   children: any[],
 ) {
   return {
@@ -99,6 +93,36 @@ function makeList(items: string[], listType: 'bullet' | 'number' = 'bullet') {
     start: 1,
     tag: listType === 'number' ? 'ol' : 'ul',
     type: 'list',
+    version: 1,
+  };
+}
+
+function makeTable(rows: string[][], colWidths: number[]) {
+  return {
+    children: rows.map((cells) => ({
+      children: cells.map((text) => ({
+        backgroundColor: null,
+        children: [makeParagraph(text)],
+        colSpan: 1,
+        direction: 'ltr',
+        format: '',
+        headerState: 0,
+        indent: 0,
+        rowSpan: 1,
+        type: 'tablecell',
+        version: 1,
+      })),
+      direction: 'ltr',
+      format: '',
+      indent: 0,
+      type: 'tablerow',
+      version: 1,
+    })),
+    colWidths,
+    direction: 'ltr',
+    format: '',
+    indent: 0,
+    type: 'table',
     version: 1,
   };
 }
@@ -358,6 +382,19 @@ describe('LexicalDiff', () => {
     expect(overrideHtml).toContain('<section');
     expect(overrideHtml).toContain('override');
     expect(overrideHtml).toContain('--ant-color-success');
+  });
+
+  it('keeps table column widths on both sides', () => {
+    const html = renderToStaticMarkup(
+      <LexicalDiff
+        newValue={makeEditorState([makeTable([['a', 'b']], [375, 375])])}
+        oldValue={makeEditorState([makeTable([['a', 'b']], [200, 550])])}
+      />,
+    );
+
+    expect(html).toContain('<col style="width:200px"/>');
+    expect(html).toContain('<col style="width:550px"/>');
+    expect(html).toContain('<col style="width:375px"/>');
   });
 
   it('renders serialized diff nodes through the inner LexicalRenderer', () => {

@@ -54,6 +54,18 @@ function textToSlug(text: string): string {
     .replaceAll(/^-+|-+$/g, '');
 }
 
+// `.editor_table` sets `table-layout: fixed`, so a table without column widths
+// collapses to its minimum width instead of filling the container.
+const FLUID_TABLE_STYLE: CSSProperties = { width: '100%' };
+
+function toTableColWidths(value: unknown): number[] | null {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null;
+  }
+
+  return value.every((width) => Number.isFinite(width) && width > 0) ? (value as number[]) : null;
+}
+
 const DIFF_ROOT_STYLE: CSSProperties = {
   position: 'relative',
 };
@@ -242,9 +254,18 @@ export function renderBuiltinNode(
       );
     }
     case 'table': {
+      const colWidths = toTableColWidths(node.colWidths);
+
       return (
         <div className={getTableWrapperClassName()} key={key}>
-          <table className="editor_table">
+          <table className="editor_table" style={colWidths ? undefined : FLUID_TABLE_STYLE}>
+            {colWidths && (
+              <colgroup>
+                {colWidths.map((width, index) => (
+                  <col key={index} style={{ width }} />
+                ))}
+              </colgroup>
+            )}
             <tbody>{children}</tbody>
           </table>
         </div>
