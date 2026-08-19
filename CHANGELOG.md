@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.24.1](https://github.com/lobehub/lobe-editor/compare/v4.24.0...v4.24.1)
+<sup>Released on **2026-08-19**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **renderer**: Render table column widths from colWidths.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **renderer**: Render table column widths from colWidths, closes [#201](https://github.com/lobehub/lobe-editor/issues/201) ([2e22938](https://github.com/lobehub/lobe-editor/commit/2e22938))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.24.0](https://github.com/lobehub/lobe-editor/compare/v4.23.2...v4.24.0)
 <sup>Released on **2026-08-15**</sup>
 
