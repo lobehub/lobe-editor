@@ -9,6 +9,7 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID
 import { registerLiteXMLCommand } from '../command';
 import { registerLiteXMLDiffCommand } from '../command/diffCommand';
 import LitexmlDataSource from '../data-source/litexml-data-source';
+import { $isDiffContentNode, DiffContentNode } from '../node/DiffContentNode';
 import { DiffNode } from '../node/DiffNode';
 import { $isTableRowDiffNode, TableRowDiffNode } from '../node/TableRowDiffNode';
 import { ILitexmlService, LitexmlService } from '../service/litexml-service';
@@ -64,7 +65,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     );
 
     // register diff node type
-    kernel.registerNodes([DiffNode, TableRowDiffNode]);
+    kernel.registerNodes([DiffNode, DiffContentNode, TableRowDiffNode]);
     kernel.registerDecorator(DiffNode.getType(), {
       queryDOM: (el: HTMLElement) => el.querySelector('.toolbar')!,
       render: (node: LexicalNode, editor: LexicalEditor) => {
@@ -128,7 +129,12 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
       const lines: string[] = [];
       switch (diffNode.diffType) {
         case 'modify': {
-          nodeToXML(diffNode.getChildAtIndex(1), lines, indent);
+          const after = diffNode.getChildAtIndex(1);
+          if ($isDiffContentNode(after)) {
+            after.getChildren().forEach((child) => nodeToXML(child, lines, indent));
+          } else {
+            nodeToXML(after, lines, indent);
+          }
           break;
         }
         case 'add': {
@@ -187,7 +193,12 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
       const diffNode = node as DiffNode;
       switch (diffNode.diffType) {
         case 'modify': {
-          ctx.processChild(ctx, diffNode.getChildAtIndex(1) as LexicalNode);
+          const after = diffNode.getChildAtIndex(1);
+          if ($isDiffContentNode(after)) {
+            after.getChildren().forEach((child) => ctx.processChild(ctx, child));
+          } else {
+            ctx.processChild(ctx, after as LexicalNode);
+          }
           break;
         }
         case 'add': {

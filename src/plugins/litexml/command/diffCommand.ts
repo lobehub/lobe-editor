@@ -2,6 +2,7 @@ import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, $isElementNode, COMMAND_PRIORITY_EDITOR } from 'lexical';
 
+import { $isDiffContentNode } from '../node/DiffContentNode';
 import { DiffNode } from '../node/DiffNode';
 import type { TableRowDiffNode } from '../node/TableRowDiffNode';
 import { $isTableRowDiffNode } from '../node/TableRowDiffNode';
@@ -48,10 +49,14 @@ function doAction(editor: LexicalEditor, node: DiffNode | TableRowDiffNode, acti
 
   if (node.diffType === 'modify') {
     const children = node.getChildren();
-    if (action === DiffAction.Accept) {
-      node.replace(children[1], false).selectEnd();
-    } else if (action === DiffAction.Reject) {
-      node.replace(children[0], false).selectEnd();
+    const selectedChild = action === DiffAction.Accept ? children[1] : children[0];
+    if ($isDiffContentNode(selectedChild)) {
+      const parent = node.getParentOrThrow();
+      selectedChild.getChildren().forEach((child) => node.insertBefore(child));
+      node.remove();
+      if ($isElementNode(parent)) parent.selectEnd();
+    } else if (selectedChild) {
+      node.replace(selectedChild, false).selectEnd();
     }
   }
   if (node.diffType === 'remove') {

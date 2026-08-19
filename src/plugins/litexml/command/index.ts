@@ -1,5 +1,5 @@
 import { $isListItemNode } from '@lexical/list';
-import { $isTableNode, $isTableRowNode } from '@lexical/table';
+import { $isTableCellNode, $isTableNode, $isTableRowNode } from '@lexical/table';
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import {
@@ -15,6 +15,7 @@ import { $closest } from '@/editor-kernel';
 import { createDebugLogger } from '@/utils/debug';
 
 import type LitexmlDataSource from '../data-source/litexml-data-source';
+import { $createDiffContentNode } from '../node/DiffContentNode';
 import { $createDiffNode, DiffNode } from '../node/DiffNode';
 import { $areTableRowStructuresCompatible, $createTableRowDiffFromRow } from '../table-row-diff';
 import { $cloneNode, $parseSerializedNodeImpl, charToId } from '../utils';
@@ -65,6 +66,19 @@ function handleReplaceForApplyDelay(
     const addRow = $createTableRowDiffFromRow(editor, newNode, 'add', changeId);
     oldNode.replace(removeRow, false);
     removeRow.insertAfter(addRow);
+    return;
+  }
+
+  if ($isTableCellNode(oldNode) && $isTableCellNode(newNode)) {
+    const before = $createDiffContentNode('before');
+    const after = $createDiffContentNode('after');
+    oldNode.getChildren().forEach((child) => before.append($cloneNode(child, editor)));
+    newNode.getChildren().forEach((child) => after.append($cloneNode(child, editor)));
+
+    const diffNode = $createDiffNode('modify');
+    diffNode.append(before, after);
+    oldNode.clear();
+    oldNode.append(diffNode);
     return;
   }
 
