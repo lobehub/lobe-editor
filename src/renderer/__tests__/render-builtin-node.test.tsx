@@ -81,6 +81,25 @@ describe('renderBuiltinNode', () => {
     expect(html).toContain('<tbody>');
   });
 
+  it('renders table colgroup from colWidths', () => {
+    const html = toHTML({ colWidths: [375, 200], type: 'table' }, ['row']);
+    expect(html).toContain('<colgroup>');
+    expect(html).toContain('<col style="width:375px"/>');
+    expect(html).toContain('<col style="width:200px"/>');
+  });
+
+  it('renders table without colWidths as full width', () => {
+    const html = toHTML({ type: 'table' }, ['row']);
+    expect(html).not.toContain('<colgroup>');
+    expect(html).toContain('width:100%');
+  });
+
+  it('ignores unusable colWidths', () => {
+    const html = toHTML({ colWidths: [0, Number.NaN], type: 'table' }, ['row']);
+    expect(html).not.toContain('<colgroup>');
+    expect(html).toContain('width:100%');
+  });
+
   it('renders tablecell as th with class', () => {
     const html = toHTML({ headerState: 1, type: 'tablecell' }, ['Header']);
     expect(html).toContain('<th');
