@@ -14,6 +14,7 @@ import { DiffNode } from '../node/DiffNode';
 import { $isTableCellDiffNode, TableCellDiffNode } from '../node/TableCellDiffNode';
 import { $isTableRowDiffNode, TableRowDiffNode } from '../node/TableRowDiffNode';
 import { ILitexmlService, LitexmlService } from '../service/litexml-service';
+import { registerLegacyTableCellDiffNormalization } from '../table-cell-diff';
 import { registerTableRowDiffNormalization } from '../table-row-diff';
 
 /**
@@ -86,6 +87,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     // Plugin initialization logic can be added here if needed
     this.register(registerLiteXMLCommand(editor, this.datasource));
     this.register(registerLiteXMLDiffCommand(editor));
+    this.register(registerLegacyTableCellDiffNormalization(editor));
     this.register(registerTableRowDiffNormalization(editor));
 
     this.register(

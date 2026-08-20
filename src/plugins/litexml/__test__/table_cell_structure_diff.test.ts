@@ -13,6 +13,8 @@ import { MarkdownPlugin } from '@/plugins/markdown';
 import { TablePlugin } from '@/plugins/table/plugin';
 import type { IEditor } from '@/types';
 
+import { $normalizeLegacyTableCellDiffs } from '../table-cell-diff';
+
 const source = `<?xml version="1.0" encoding="UTF-8"?><root><table id="itfs" colWidths="250,250,250"><tr id="iz03"><td id="j4ke"><p>名称</p></td><td id="jl9b"><p>数量</p></td><td id="k1y8"><p>备注</p></td></tr><tr id="kin5"><td id="ko7g"><p>橙子</p></td><td id="l4wd"><p>30</p></td><td id="llla"><p>整体修改</p></td></tr><tr id="m2a7"><td id="m7ui"><p>苹果</p></td><td id="mzo1"><p>50</p></td><td id="nrhk"><p>随机填写</p></td></tr></table></root>`;
 
 const insertTwoColumns = [
@@ -58,6 +60,53 @@ const assertRowsContainOnlyCells = (rows: any[]) => {
     ),
   ).toBe(true);
   expect(rows.some((row) => row.children.some((child: any) => child.type === 'diff'))).toBe(false);
+};
+
+const createLegacyCellDiffJson = (
+  editor: IEditor,
+  diffType: 'add' | 'remove',
+  cellGroups: string[][],
+) => {
+  const json = structuredClone(editor.getDocument('json') as any);
+  const table = json.root.children[0];
+
+  table.children.forEach((row: any, rowIndex: number) => {
+    const cells = cellGroups[rowIndex].map((text) => ({
+      children: [
+        {
+          children: [
+            { detail: 0, format: 0, mode: 'normal', style: '', text, type: 'text', version: 1 },
+          ],
+          direction: null,
+          format: '',
+          indent: 0,
+          textFormat: 0,
+          textStyle: '',
+          type: 'paragraph',
+          version: 1,
+        },
+      ],
+      colSpan: 1,
+      direction: null,
+      format: '',
+      headerState: 0,
+      indent: 0,
+      rowSpan: 1,
+      type: 'tablecell',
+      version: 1,
+    }));
+    row.children.push({
+      children: cells,
+      diffType,
+      direction: null,
+      format: '',
+      indent: 0,
+      type: 'diff',
+      version: 1,
+    });
+  });
+
+  return json;
 };
 
 describe('LiteXML structural table cell diffs', () => {
@@ -242,5 +291,103 @@ describe('LiteXML structural table cell diffs', () => {
     expect(cell.type).toBe('tablecell');
     expect(cell.children).toHaveLength(3);
     expect(cell.children.map(getText)).toEqual(['第一行', '第二行', '第三行']);
+  });
+
+  it('migrates one legacy added td per diff and extends table widths', async () => {
+    editor.setDocument(
+      'json',
+      createLegacyCellDiffJson(editor, 'add', [['单价'], ['5元'], ['8元']]),
+    );
+    await moment();
+
+    const table = getTable(editor);
+    const rows = getRows(editor);
+    assertRowsContainOnlyCells(rows);
+    expect(table.colWidths).toEqual([250, 250, 250, 250]);
+    rows.forEach((row) => {
+      expect(row.children[3]).toMatchObject({ diffType: 'add', type: 'table-cell-diff' });
+    });
+    expect(rows.map((row) => getText(row.children[3]))).toEqual(['单价', '5元', '8元']);
+  });
+
+  it('expands two legacy td children into adjacent cell diffs and pads 3 widths to 5', async () => {
+    editor.setDocument(
+      'json',
+      createLegacyCellDiffJson(editor, 'add', [
+        ['单价', '状态'],
+        ['5元', '已上架'],
+        ['8元', '已下架'],
+      ]),
+    );
+    await moment();
+
+    const table = getTable(editor);
+    const rows = getRows(editor);
+    assertRowsContainOnlyCells(rows);
+    expect(table.colWidths).toEqual([250, 250, 250, 250, 250]);
+    expect(rows.map((row) => row.children.length)).toEqual([5, 5, 5]);
+    expect(rows.map((row) => row.children.slice(3).map(getText))).toEqual([
+      ['单价', '状态'],
+      ['5元', '已上架'],
+      ['8元', '已下架'],
+    ]);
+  });
+
+  it.each([
+    ['add', DiffAction.Accept, 4, '新增列'],
+    ['add', DiffAction.Reject, 3, undefined],
+    ['remove', DiffAction.Accept, 3, undefined],
+    ['remove', DiffAction.Reject, 4, '待删除列'],
+  ] as const)(
+    'supports %s legacy cells after %s',
+    async (diffType, action, expectedColumns, expectedText) => {
+      editor.setDocument(
+        'json',
+        createLegacyCellDiffJson(editor, diffType, [
+          [diffType === 'add' ? '新增列' : '待删除列'],
+          ['值 1'],
+          ['值 2'],
+        ]),
+      );
+      await moment();
+      await resolveAll(action);
+
+      const rows = getRows(editor);
+      assertRowsContainOnlyCells(rows);
+      expect(rows.map((row) => row.children.length)).toEqual(
+        Array.from({ length: 3 }, () => expectedColumns),
+      );
+      if (expectedText) expect(getText(rows[0].children[3])).toBe(expectedText);
+    },
+  );
+
+  it('stays structurally valid and unchanged after JSON reload and repeated normalization', async () => {
+    editor.setDocument(
+      'json',
+      createLegacyCellDiffJson(editor, 'add', [
+        ['单价', '状态'],
+        ['5元', '已上架'],
+        ['8元', '已下架'],
+      ]),
+    );
+    await moment();
+    const migratedJson = editor.getDocument('json');
+
+    editor.setDocument('json', migratedJson, { keepId: true });
+    await moment();
+    const reloadedJson = editor.getDocument('json');
+    const normalizationResults: boolean[] = [];
+    editor.getLexicalEditor()!.update(
+      () => {
+        normalizationResults.push($normalizeLegacyTableCellDiffs(editor.getLexicalEditor()!));
+        normalizationResults.push($normalizeLegacyTableCellDiffs(editor.getLexicalEditor()!));
+      },
+      { discrete: true },
+    );
+
+    expect(reloadedJson).toEqual(migratedJson);
+    expect(editor.getDocument('json')).toEqual(reloadedJson);
+    expect(normalizationResults).toEqual([false, false]);
+    assertRowsContainOnlyCells(getRows(editor));
   });
 });

@@ -3,8 +3,8 @@ import {
   $isTableCellNode,
   $isTableNode,
   $isTableRowNode,
+  TableNode,
   type TableCellNode,
-  type TableNode,
 } from '@lexical/table';
 import type { LexicalEditor } from 'lexical';
 import { $nodesOfType } from 'lexical';
@@ -156,4 +156,102 @@ export function $shrinkTableWidthsAfterCellRemoval(
   const next = [...widths];
   next.splice(columnIndex, span);
   table.setColWidths(next);
+}
+
+function $getMaximumLogicalColumnCount(table: TableNode): number {
+  return table.getChildren().reduce((maximum, row) => {
+    if (!$isTableRowNode(row)) return maximum;
+    const columnCount = row.getChildren().reduce((total, cell) => {
+      return total + ($isTableCellNode(cell) ? cell.getColSpan() : 0);
+    }, 0);
+    return Math.max(maximum, columnCount);
+  }, 0);
+}
+
+function $hasLegacyTableCellDiffs(): boolean {
+  return $nodesOfType(DiffNode).some((diff) => {
+    return (
+      (diff.diffType === 'add' || diff.diffType === 'remove') &&
+      $isTableRowNode(diff.getParent()) &&
+      diff.getChildren().some($isTableCellNode)
+    );
+  });
+}
+
+function $hasIncompleteTableWidths(): boolean {
+  return $nodesOfType(TableNode).some((table) => {
+    return (table.getColWidths()?.length || 0) < $getMaximumLogicalColumnCount(table);
+  });
+}
+
+/**
+ * Migrates the old `TableRow > DiffNode > TableCellNode` representation into
+ * cell-shaped diff nodes and makes sure the table has a width for every
+ * logical column. Safe to call repeatedly.
+ */
+export function $normalizeLegacyTableCellDiffs(editor: LexicalEditor): boolean {
+  let changed = false;
+
+  $nodesOfType(DiffNode).forEach((legacyDiff) => {
+    const diffType = legacyDiff.diffType;
+    if ((diffType !== 'add' && diffType !== 'remove') || !$isTableRowNode(legacyDiff.getParent())) {
+      return;
+    }
+
+    const cells = legacyDiff.getChildren().filter($isTableCellNode);
+    if (cells.length === 0) return;
+
+    const changeId = `legacy-table-cell-${legacyDiff.getKey()}`;
+    cells.forEach((cell) => {
+      legacyDiff.insertBefore($createTableCellDiffFromCell(editor, cell, diffType, changeId));
+    });
+    legacyDiff.remove();
+    changed = true;
+  });
+
+  $nodesOfType(TableNode).forEach((table) => {
+    const requiredWidthCount = $getMaximumLogicalColumnCount(table);
+    const currentWidths = table.getColWidths() || [];
+    if (currentWidths.length >= requiredWidthCount) return;
+
+    const fallback = currentWidths.at(-1) || 250;
+    table.setColWidths([
+      ...currentWidths,
+      ...Array.from({ length: requiredWidthCount - currentWidths.length }, () => fallback),
+    ]);
+    changed = true;
+  });
+
+  return changed;
+}
+
+export function registerLegacyTableCellDiffNormalization(editor: LexicalEditor): () => void {
+  let destroyed = false;
+  let scheduled = false;
+
+  const unregister = editor.registerUpdateListener(() => {
+    if (scheduled || destroyed) return;
+    scheduled = true;
+    queueMicrotask(() => {
+      scheduled = false;
+      if (destroyed) return;
+
+      const shouldNormalize = editor
+        .getEditorState()
+        .read(() => $hasLegacyTableCellDiffs() || $hasIncompleteTableWidths());
+      if (!shouldNormalize) return;
+
+      editor.update(
+        () => {
+          $normalizeLegacyTableCellDiffs(editor);
+        },
+        { discrete: true },
+      );
+    });
+  });
+
+  return () => {
+    destroyed = true;
+    unregister();
+  };
 }
