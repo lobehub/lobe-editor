@@ -221,6 +221,8 @@ const normalizeToolCall = (block: AnthropicToolUseBlock): AiToolCall | null => {
   return null;
 };
 
+const isAiToolCall = (toolCall: AiToolCall | null): toolCall is AiToolCall => toolCall !== null;
+
 export const runAnthropicModel = async (
   prompt: string,
   selectedText?: string,
@@ -277,7 +279,7 @@ export const runAnthropicModel = async (
     result.content
       ?.filter((block): block is AnthropicToolUseBlock => block.type === 'tool_use')
       .map(normalizeToolCall)
-      .filter(Boolean) ?? [];
+      .filter(isAiToolCall) ?? [];
 
   if (toolCalls.length === 0) {
     if (selectedText) {
