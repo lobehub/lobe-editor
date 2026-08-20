@@ -4,17 +4,17 @@ export const styles = createStaticStyles(
   ({ css, cssVar }) => css`
     position: relative;
 
-    .toolbar {
+    > .toolbar {
       position: absolute;
       z-index: 10;
-      inset-block-end: 0;
-      inset-inline-end: 8px;
+      inset-block-start: 0;
+      inset-inline-start: 8px;
 
       opacity: 0;
     }
 
     &:hover {
-      .toolbar {
+      > .toolbar {
         opacity: 1;
       }
     }
