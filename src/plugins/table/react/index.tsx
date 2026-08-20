@@ -36,6 +36,7 @@ import TableCellResizePlugin from './TableResize';
 import TableRowController from './TableRowController';
 import type { ReactTablePluginProps } from './type';
 import { useAutoFitPastedTable } from './useAutoFitPastedTable';
+import { useScrollFocusedTableCellIntoView } from './useScrollFocusedTableCellIntoView';
 
 type SelectionOutlinePreviewSide = 'bottom' | 'left' | 'right' | 'top';
 
@@ -66,6 +67,7 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
   }, []);
 
   useAutoFitPastedTable(lexicalEditor);
+  useScrollFocusedTableCellIntoView(lexicalEditor);
 
   const selectionOutlineStyle = useMemo<CSSProperties | undefined>(() => {
     if (!selectionOutlineRect) {
