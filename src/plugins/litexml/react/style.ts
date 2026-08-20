@@ -4,30 +4,17 @@ export const styles = createStaticStyles(
   ({ css, cssVar }) => css`
     position: relative;
 
-    /*
-     * Tables have a generic toolbar rule for their row/column controllers.
-     * It intentionally turns pointer events off and creates a low stacking
-     * layer. A DiffNode rendered inside a table cell also uses that class, so without
-     * the direct-child selector the table rule wins in the composed Page UI:
-     * the visible approval buttons are covered by the content layer and cannot be
-     * clicked.
-     */
-    & > .toolbar {
-      pointer-events: auto;
-
+    .toolbar {
       position: absolute;
-      z-index: 10002;
+      z-index: 10;
       inset-block-end: 0;
       inset-inline-end: 8px;
-
-      width: auto;
-      height: auto;
 
       opacity: 0;
     }
 
     &:hover {
-      & > .toolbar {
+      .toolbar {
         opacity: 1;
       }
     }
