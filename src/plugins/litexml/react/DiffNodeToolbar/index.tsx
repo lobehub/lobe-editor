@@ -2,7 +2,7 @@ import { ActionIcon, Block } from '@lobehub/ui';
 import { useThemeMode } from 'antd-style';
 import type { LexicalEditor } from 'lexical';
 import { Check, X } from 'lucide-react';
-import type { FC } from 'react';
+import type { FC, PointerEvent as ReactPointerEvent } from 'react';
 
 import { LexicalPortalContainer } from '@/editor-kernel/react';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
@@ -20,6 +20,17 @@ interface ReactDiffNodeToolbarProps {
 const ReactDiffNodeToolbar: FC<ReactDiffNodeToolbarProps> = ({ editor, node }) => {
   const t = useTranslation();
   const { isDarkMode } = useThemeMode();
+  const handleActionPointerDown = (event: ReactPointerEvent, action: DiffAction) => {
+    // A pointer down inside a content-editable table can move the Lexical selection
+    // and unmount this hover toolbar before click fires. Resolve the diff immediately.
+    event.preventDefault();
+    event.stopPropagation();
+    editor.dispatchCommand(LITEXML_DIFFNODE_COMMAND, {
+      action,
+      nodeKey: node.getKey(),
+    });
+  };
+
   return (
     <LexicalPortalContainer editor={editor} node={node}>
       <Block
@@ -35,12 +46,7 @@ const ReactDiffNodeToolbar: FC<ReactDiffNodeToolbarProps> = ({ editor, node }) =
           className={styles.reject}
           danger
           icon={X}
-          onClick={() => {
-            editor.dispatchCommand(LITEXML_DIFFNODE_COMMAND, {
-              action: DiffAction.Reject,
-              nodeKey: node.getKey(),
-            });
-          }}
+          onPointerDown={(event) => handleActionPointerDown(event, DiffAction.Reject)}
           size={{
             blockSize: 28,
             size: 16,
@@ -51,12 +57,7 @@ const ReactDiffNodeToolbar: FC<ReactDiffNodeToolbarProps> = ({ editor, node }) =
           aria-label="Accept change"
           className={styles.accept}
           icon={Check}
-          onClick={() => {
-            editor.dispatchCommand(LITEXML_DIFFNODE_COMMAND, {
-              action: DiffAction.Accept,
-              nodeKey: node.getKey(),
-            });
-          }}
+          onPointerDown={(event) => handleActionPointerDown(event, DiffAction.Accept)}
           size={{
             blockSize: 28,
             size: 16,
