@@ -137,3 +137,5 @@ export const tableRowDiffStyles = createStaticStyles(
     }
   `,
 );
+
+export const tableCellDiffStyles = tableRowDiffStyles;

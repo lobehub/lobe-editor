@@ -7,7 +7,7 @@ import { INodePlugin } from '@/plugins/inode';
 
 import { LitexmlPlugin } from '../plugin';
 import ReactDiffNodeToolbar from './DiffNodeToolbar';
-import { styles, tableRowDiffStyles } from './style';
+import { styles, tableCellDiffStyles, tableRowDiffStyles } from './style';
 import TableRowDiffToolbar from './TableRowDiffToolbar';
 
 export const ReactLiteXmlPlugin: FC<void> = () => {
@@ -19,6 +19,7 @@ export const ReactLiteXmlPlugin: FC<void> = () => {
     editor.registerPlugin(LitexmlPlugin, {
       decorator: (node, editor) => <ReactDiffNodeToolbar editor={editor} node={node} />,
       tableRowDiffTheme: tableRowDiffStyles,
+      tableCellDiffTheme: tableCellDiffStyles,
       theme: styles,
     });
   }, [editor]);
