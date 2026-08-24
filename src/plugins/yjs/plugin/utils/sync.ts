@@ -1,6 +1,6 @@
 import { type Binding, type Provider, syncLexicalUpdateToYjs } from '@lexical/yjs';
-import { COLLABORATION_TAG } from 'lexical';
 import type { EditorState } from 'lexical';
+import { COLLABORATION_TAG } from 'lexical';
 
 import { createEmptyPreviousEditorState } from './editor-state';
 import { ensureYjsNodePropertiesFromEditorState } from './node-properties';
@@ -25,7 +25,10 @@ export function syncCurrentEditorStateToYjs(
   );
 }
 
-export function hydrateLexicalFromYjsState(binding: Binding): void {
+export function hydrateLexicalFromYjsState(
+  binding: Binding,
+  options: { discrete?: boolean } = {},
+): void {
   const root = binding.root as Binding['root'] & {
     applyChildrenYjsDelta: (binding: Binding, deltas: unknown) => void;
     syncChildrenFromYjs: (binding: Binding) => void;
@@ -38,6 +41,7 @@ export function hydrateLexicalFromYjsState(binding: Binding): void {
       root.syncChildrenFromYjs(binding);
     },
     {
+      discrete: options.discrete ? true : undefined,
       skipTransforms: true,
       tag: COLLABORATION_TAG,
     },
