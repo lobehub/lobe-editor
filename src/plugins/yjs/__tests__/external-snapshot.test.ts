@@ -63,12 +63,14 @@ describe('YjsService external snapshots', () => {
     const serviceB = new YjsService();
     const ownerTransactions: unknown[] = [];
     const clientBTransactions: unknown[] = [];
+    const remoteTransactions: unknown[] = [];
 
     docA.on('afterTransaction', (transaction) => {
       if (transaction.origin === bindingA) ownerTransactions.push(transaction);
     });
     docB.on('afterTransaction', (transaction) => {
       if (transaction.origin === bindingB) clientBTransactions.push(transaction);
+      else remoteTransactions.push(transaction);
     });
 
     serviceA.setState({
@@ -96,6 +98,7 @@ describe('YjsService external snapshots', () => {
     expect(serviceA.applyExternalEditorData(initialSnapshot)).toBe(true);
     expect(ownerTransactions).toHaveLength(1);
     applyUpdate(docB, encodeStateAsUpdate(docA));
+    expect(remoteTransactions).toHaveLength(1);
     expect(serviceB.applyExternalEditorData(initialSnapshot)).toBe(false);
     expect(getShape(editorB)).toEqual(initialShape);
 
@@ -105,7 +108,9 @@ describe('YjsService external snapshots', () => {
     ownerTransactions.length = 0;
     expect(serviceA.applyExternalEditorData(aiSnapshot)).toBe(true);
     expect(ownerTransactions).toHaveLength(1);
+    remoteTransactions.length = 0;
     applyUpdate(docB, encodeStateAsUpdate(docA));
+    expect(remoteTransactions).toHaveLength(1);
     // A client may receive the Yjs update and the server result in either
     // order. The first call replaces its stale local binding exactly once;
     // repeating the same result is an idempotent no-op.
