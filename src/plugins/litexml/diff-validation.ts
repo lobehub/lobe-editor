@@ -91,6 +91,26 @@ export function collectIllegalNestedDiffPaths(root: SerializedDiffTreeNode): str
   return violations;
 }
 
+export function findNewIllegalDiffPaths(
+  previous: SerializedDiffDocument,
+  projected: SerializedDiffDocument,
+): string[] {
+  const previousCounts = new Map<string, number>();
+  collectIllegalNestedDiffPaths(previous.root).forEach((path) => {
+    previousCounts.set(path, (previousCounts.get(path) || 0) + 1);
+  });
+
+  const newPaths: string[] = [];
+  const projectedCounts = new Map<string, number>();
+  collectIllegalNestedDiffPaths(projected.root).forEach((path) => {
+    const count = (projectedCounts.get(path) || 0) + 1;
+    projectedCounts.set(path, count);
+    if (count > (previousCounts.get(path) || 0)) newPaths.push(path);
+  });
+
+  return newPaths;
+}
+
 interface NodeLocation {
   ancestors: SerializedDiffTreeNode[];
   index: number;

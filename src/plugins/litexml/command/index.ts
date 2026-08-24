@@ -16,7 +16,7 @@ import { createDebugLogger } from '@/utils/debug';
 
 import type LitexmlDataSource from '../data-source/litexml-data-source';
 import {
-  collectIllegalNestedDiffPaths,
+  findNewIllegalDiffPaths,
   type LiteXmlProjectionOperation,
   projectLiteXmlOperation,
   type SerializedDiffDocument,
@@ -53,8 +53,7 @@ function hasNewIllegalDiffs(
   previous: SerializedDiffDocument,
   projected: SerializedDiffDocument,
 ): string[] {
-  const previousPaths = new Set(collectIllegalNestedDiffPaths(previous.root));
-  return collectIllegalNestedDiffPaths(projected.root).filter((path) => !previousPaths.has(path));
+  return findNewIllegalDiffPaths(previous, projected);
 }
 
 function projectOperation(
