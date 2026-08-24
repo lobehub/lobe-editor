@@ -11,12 +11,19 @@ import {
   COMMAND_PRIORITY_EDITOR,
 } from 'lexical';
 
-import { $closest } from '@/editor-kernel';
+import { $closest, getKernelFromEditor } from '@/editor-kernel';
 import { createDebugLogger } from '@/utils/debug';
 
 import type LitexmlDataSource from '../data-source/litexml-data-source';
-import { $createDiffContentNode } from '../node/DiffContentNode';
-import { $createDiffNode, DiffNode } from '../node/DiffNode';
+import {
+  collectIllegalNestedDiffPaths,
+  type LiteXmlProjectionOperation,
+  projectLiteXmlOperation,
+  type SerializedDiffDocument,
+} from '../diff-validation';
+import { $createDiffContentNode, $isDiffContentNode } from '../node/DiffContentNode';
+import { $createDiffNode, $isDiffNode, DiffNode } from '../node/DiffNode';
+import { $isTableCellDiffNode } from '../node/TableCellDiffNode';
 import {
   $createTableCellDiffFromCell,
   $getLogicalRowWidth,
@@ -40,6 +47,50 @@ const logger = createDebugLogger('plugin', 'litexml');
 // Helpers to reduce duplication and improve readability
 function toArrayXml(litexml: string | string[]) {
   return Array.isArray(litexml) ? litexml : [litexml];
+}
+
+function hasNewIllegalDiffs(
+  previous: SerializedDiffDocument,
+  projected: SerializedDiffDocument,
+): string[] {
+  const previousPaths = new Set(collectIllegalNestedDiffPaths(previous.root));
+  return collectIllegalNestedDiffPaths(projected.root).filter((path) => !previousPaths.has(path));
+}
+
+function projectOperation(
+  dataSource: LitexmlDataSource,
+  document: SerializedDiffDocument,
+  operation: LiteXmlProjectionOperation,
+): SerializedDiffDocument | null {
+  try {
+    const projected = projectLiteXmlOperation(document, operation, (xml) =>
+      dataSource.readLiteXMLToInode(xml),
+    );
+    const newIllegalDiffs = hasNewIllegalDiffs(document, projected);
+    if (newIllegalDiffs.length > 0) {
+      logger.warn('⚠️ Skipping operation with illegal nested diff', newIllegalDiffs);
+      return null;
+    }
+    return projected;
+  } catch (error) {
+    logger.error('❌ Failed to preflight LiteXML operation:', error);
+    return null;
+  }
+}
+
+function toProjectionOperation(operation: LiteXmlProjectionOperation): LiteXmlProjectionOperation {
+  if (operation.action === 'remove') {
+    return { ...operation, id: charToId(operation.id) };
+  }
+  if (operation.action === 'insert') {
+    return {
+      ...operation,
+      ...('beforeId' in operation
+        ? { beforeId: operation.beforeId === 'root' ? 'root' : charToId(operation.beforeId) }
+        : { afterId: operation.afterId === 'root' ? 'root' : charToId(operation.afterId) }),
+    };
+  }
+  return operation;
 }
 
 function tryParseChild(child: any, editor: LexicalEditor) {
@@ -79,6 +130,28 @@ function handleReplaceForApplyDelay(
   }
 
   if ($isTableCellNode(oldNode) && $isTableCellNode(newNode)) {
+    const existingDiff = oldNode.getChildren().find($isDiffNode);
+    if (existingDiff) {
+      if ($isTableCellDiffNode(oldNode)) {
+        existingDiff.clear();
+        newNode.getChildren().forEach((child) => {
+          existingDiff.append($cloneNode(child, editor));
+        });
+        return;
+      }
+
+      const after = existingDiff
+        .getChildren()
+        .find((child) => $isDiffContentNode(child) && child.side === 'after');
+      if (existingDiff.diffType === 'modify' && after && $isDiffContentNode(after)) {
+        after.clear();
+        newNode.getChildren().forEach((child) => {
+          after.append($cloneNode(child, editor));
+        });
+        return;
+      }
+    }
+
     const before = $createDiffContentNode('before');
     const after = $createDiffContentNode('after');
     oldNode.getChildren().forEach((child) => before.append($cloneNode(child, editor)));
@@ -201,8 +274,22 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
           },
           [] as typeof payload,
         );
+        let projectedDocument = getKernelFromEditor(editor).getDocument(
+          'json',
+        ) as unknown as SerializedDiffDocument;
+        const safePayload = resultPayload.filter((item) => {
+          const nextProjection = projectOperation(
+            dataSource,
+            projectedDocument,
+            toProjectionOperation(item),
+          );
+          if (!nextProjection) return false;
+          projectedDocument = nextProjection;
+          return true;
+        });
+
         try {
-          resultPayload.forEach((item) => {
+          safePayload.forEach((item) => {
             const { action } = item;
             switch (action) {
               case 'modify': {
@@ -248,7 +335,18 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
       (payload) => {
         const { litexml, delay } = payload;
         const arrayXml = toArrayXml(litexml);
-        handleModify(editor, dataSource, arrayXml, delay);
+        if (!delay) {
+          handleModify(editor, dataSource, arrayXml, delay);
+          return false;
+        }
+
+        const operation = { action: 'modify' as const, litexml };
+        const document = getKernelFromEditor(editor).getDocument(
+          'json',
+        ) as unknown as SerializedDiffDocument;
+        if (projectOperation(dataSource, document, toProjectionOperation(operation))) {
+          handleModify(editor, dataSource, arrayXml, delay);
+        }
         return false;
       },
       COMMAND_PRIORITY_EDITOR, // Priority
@@ -258,7 +356,18 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
       (payload) => {
         const { id, delay } = payload;
         const key = charToId(id);
-        handleRemove(editor, key, delay);
+        if (!delay) {
+          handleRemove(editor, key, delay);
+          return false;
+        }
+
+        const operation = { action: 'remove' as const, id };
+        const document = getKernelFromEditor(editor).getDocument(
+          'json',
+        ) as unknown as SerializedDiffDocument;
+        if (projectOperation(dataSource, document, toProjectionOperation(operation))) {
+          handleRemove(editor, key, delay);
+        }
         return false;
       },
       COMMAND_PRIORITY_EDITOR, // Priority
@@ -266,7 +375,26 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
     editor.registerCommand(
       LITEXML_INSERT_COMMAND,
       (payload) => {
-        handleInsert(editor, payload, dataSource);
+        if (!payload.delay) {
+          handleInsert(editor, payload, dataSource);
+          return false;
+        }
+
+        const document = getKernelFromEditor(editor).getDocument(
+          'json',
+        ) as unknown as SerializedDiffDocument;
+        if (
+          projectOperation(
+            dataSource,
+            document,
+            toProjectionOperation({
+              action: 'insert',
+              ...payload,
+            }),
+          )
+        ) {
+          handleInsert(editor, payload, dataSource);
+        }
         return false;
       },
       COMMAND_PRIORITY_EDITOR, // Priority
