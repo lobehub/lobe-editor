@@ -22,6 +22,7 @@ export default {
   },
   image: {
     broken: 'Broken image',
+    preview: 'Preview image',
     replace: 'Replace',
   },
   link: {

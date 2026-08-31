@@ -83,6 +83,13 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     color: ${cssVar.colorTextSecondary};
   `,
 
+  previewAction: css`
+    position: absolute;
+    z-index: 10000;
+    inset-block-start: 8px;
+    inset-inline-end: 8px;
+  `,
+
   resizeHandle: css`
     pointer-events: auto;
     cursor: col-resize;

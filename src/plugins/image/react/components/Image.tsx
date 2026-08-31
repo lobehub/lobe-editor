@@ -1,11 +1,13 @@
-import { Icon } from '@lobehub/ui';
+import { ActionIcon, Icon } from '@lobehub/ui';
+import { Image as AntImage } from 'antd';
 import { cx } from 'antd-style';
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
-import { LoaderCircleIcon } from 'lucide-react';
+import { LoaderCircleIcon, ZoomInIcon } from 'lucide-react';
 import React, { memo, Suspense, useCallback, useMemo, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
+import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import type { BlockImageNode } from '../../node/block-image-node';
 import { $isBlockImageNode } from '../../node/block-image-node';
@@ -35,6 +37,7 @@ const Image = memo<ImageProps>(
   ({ node, className, showScaleInfo = false, handleUpload, onPickFile }) => {
     const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
     const [isHovered, setIsHovered] = useState(false);
+    const [previewOpen, setPreviewOpen] = useState(false);
     const [scale, setScale] = useState(1);
     const [size, setSize] = useState({ height: 0, width: 0 });
     const [newWidth, setNewWidth] = useState<number | null>(null);
@@ -43,6 +46,7 @@ const Image = memo<ImageProps>(
     const editorRef = useRef<any>(null);
     const startWidthRef = useRef<number>(0);
     const lastLoadedSrcRef = useRef<string | null>(null);
+    const t = useTranslation();
     const isBlock = useMemo(() => {
       return $isBlockImageNode(node);
     }, [node]);
@@ -132,6 +136,12 @@ const Image = memo<ImageProps>(
     // Mouse leave handler
     const handleMouseLeave = useCallback(() => {
       setIsHovered(false);
+    }, []);
+
+    const handlePreview = useCallback((e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setPreviewOpen(true);
     }, []);
 
     const children = useMemo(() => {
@@ -225,6 +235,24 @@ const Image = memo<ImageProps>(
               <Icon icon={LoaderCircleIcon} size={24} spin />
             </div>
           )}
+
+          {(isHovered || isSelected) && node.status === 'uploaded' && (
+            <ActionIcon
+              aria-label={t('image.preview')}
+              glass
+              className={styles.previewAction}
+              icon={ZoomInIcon}
+              onClick={handlePreview}
+              size="small"
+              title={t('image.preview')}
+              variant="filled"
+            />
+          )}
+
+          <AntImage.PreviewGroup
+            items={[node.src]}
+            preview={{ open: previewOpen, onOpenChange: setPreviewOpen }}
+          />
 
           {/* Scale info display */}
           {showScaleInfo && isSelected && scale !== 1 && (
