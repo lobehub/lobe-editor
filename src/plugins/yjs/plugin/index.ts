@@ -11,6 +11,7 @@ import {
   $getRoot,
   COLLABORATION_TAG,
   COMMAND_PRIORITY_CRITICAL,
+  HISTORIC_TAG,
   type LexicalEditor,
   SKIP_COLLAB_TAG,
 } from 'lexical';
@@ -23,9 +24,13 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 import { IYjsService, YjsService } from '../service';
 import type { YjsPluginOptions } from './types';
 import { getAwarenessUsers } from './utils/awareness';
+import { createRemoteCaretViewportStabilizer } from './utils/caret-viewport-anchor';
 import { clearEditorSkipCollab, initializeEditor } from './utils/editor-state';
 import { registerYjsHistory } from './utils/history';
-import { ensureYjsNodePropertiesFromEditorState } from './utils/node-properties';
+import {
+  $syncAnnotationNodePropertiesFromYjs,
+  ensureYjsNodePropertiesFromEditorState,
+} from './utils/node-properties';
 import { hydrateLexicalFromYjsState, syncCurrentEditorStateToYjs } from './utils/sync';
 
 export type { YjsInitialEditorState, YjsPluginOptions, YjsProviderFactory } from './types';
@@ -44,6 +49,34 @@ interface ConnectionState {
 interface SyncState {
   documentHasChanged: boolean;
   providerHasSynced: boolean;
+}
+
+type YjsStateEventTarget = {
+  _item?: { parentSub?: string } | null;
+  keysChanged?: Set<string>;
+  parent?: unknown;
+};
+
+function getAnnotationStateTarget(event: YEvent<YText>): unknown {
+  const target = event.target as unknown as YjsStateEventTarget;
+  const keysChanged = (event as unknown as { keysChanged?: Set<string> }).keysChanged;
+  if (keysChanged?.has('__state')) return target;
+  if (target._item?.parentSub === '__state') return target.parent;
+  return undefined;
+}
+
+function collectAnnotationStateNodeKeys(
+  binding: Binding,
+  events: ReadonlyArray<YEvent<YText>>,
+): Set<string> {
+  const targets = new Set(events.map(getAnnotationStateTarget).filter(Boolean));
+  if (targets.size === 0) return new Set();
+
+  const nodeKeys = new Set<string>();
+  binding.collabNodeMap.forEach((collabNode, nodeKey) => {
+    if (targets.has(collabNode.getSharedType())) nodeKeys.add(nodeKey);
+  });
+  return nodeKeys;
 }
 
 export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
@@ -69,9 +102,35 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
 
   destroy(): void {
     super.destroy();
+    // KernelPlugin preserves cleanup registrations for backwards-compatible
+    // repeated destroy calls. Yjs reconfiguration is different: its old
+    // provider/binding resources must not be torn down a second time after
+    // the replacement has been initialized.
+    this.clears = [];
     this.bootstrapCurrentEditorState = null;
+    this.hasInitialized = false;
+    this.isReloadingDoc = false;
     this.markDocumentChanged = null;
     this.service.setState(null);
+  }
+
+  /**
+   * Rebuild the binding/provider when a React collaboration plugin receives a
+   * refreshed ticket or a new room after the kernel has already initialized.
+   * The Yjs document map is deliberately retained so a provider replacement
+   * can resume from the existing CRDT state vector instead of bootstrapping a
+   * second tree.
+   */
+  onConfigChange(config: YjsPluginOptions): void {
+    if (this.config === config) return;
+    this.config = config;
+
+    const editor = this.kernel.getLexicalEditor();
+    if (!this.hasInitialized || !editor) return;
+
+    this.destroy();
+    this.config = config;
+    this.onInit(editor);
   }
 
   onDocumentChange(): void {
@@ -234,10 +293,14 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     connectionState: ConnectionState,
   ): void {
     this.register(() => {
+      const disconnect = () => provider.disconnect();
+
+      // Close immediately even when a provider's connect promise is still
+      // pending. Waiting only on that promise leaks a stale socket during a
+      // ticket/room reconfiguration.
+      disconnect();
       if (connectionState.connection) {
-        connectionState.connection.then(() => provider.disconnect());
-      } else if (connectionState.hasConnected) {
-        provider.disconnect();
+        connectionState.connection.then(disconnect, disconnect);
       }
 
       binding.root.destroy(binding);
@@ -245,19 +308,52 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     });
   }
 
-  private registerYjsTreeSync(binding: Binding, provider: Provider): void {
+  private registerYjsTreeSync(
+    editor: LexicalEditor,
+    binding: Binding,
+    provider: Provider,
+    syncState: SyncState,
+  ): void {
+    const caretViewportStabilizer = createRemoteCaretViewportStabilizer(editor);
+    this.register(caretViewportStabilizer.dispose);
+
     const onYjsTreeChanges: OnYjsTreeChanges = (events, transaction) => {
       if (transaction.origin === binding) {
         return;
       }
 
-      syncYjsChangesToLexical(
-        binding,
-        provider,
-        events,
-        transaction.origin instanceof UndoManager,
-        () => undefined,
-      );
+      const isFromUndoManager = transaction.origin instanceof UndoManager;
+      const annotationStateNodeKeys = collectAnnotationStateNodeKeys(binding, events);
+      if (syncState.providerHasSynced) {
+        if (isFromUndoManager) {
+          caretViewportStabilizer.cancelPending();
+        } else {
+          caretViewportStabilizer.captureBeforeRemoteUpdate();
+        }
+      }
+
+      try {
+        syncYjsChangesToLexical(
+          binding,
+          provider,
+          events,
+          isFromUndoManager,
+          (_binding, _provider) => {
+            caretViewportStabilizer.scheduleAfterRemoteUpdate();
+            if (annotationStateNodeKeys.size === 0) return;
+            // Yjs 0.42 can leave a deleted `__state` map reflected in Lexical's
+            // previous NodeState. Reconcile only the annotation state after the
+            // upstream tree sync; this preserves text, structure, and selection.
+            editor.update(
+              () => $syncAnnotationNodePropertiesFromYjs(binding, annotationStateNodeKeys),
+              { tag: isFromUndoManager ? HISTORIC_TAG : COLLABORATION_TAG },
+            );
+          },
+        );
+      } catch (error) {
+        caretViewportStabilizer.cancelPending();
+        throw error;
+      }
     };
 
     binding.root.getSharedType().observeDeep(onYjsTreeChanges);
@@ -359,7 +455,12 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     );
     this.setServiceState(binding, id, provider, this.docMap.get(id));
     this.registerAwareness(provider);
-    this.registerYjsTreeSync(binding, provider);
+    // The history bridge must be registered before the editor -> Yjs sync
+    // listener. It closes Yjs capture on HISTORY_PUSH_TAG before the tagged
+    // transaction is written, keeping standalone commands (for example
+    // comment creation) separate from nearby typing.
+    this.register(registerYjsHistory(editor, binding));
+    this.registerYjsTreeSync(editor, binding, provider, syncState);
     this.registerEditorSync(editor, binding, provider, shouldBootstrap, syncState);
     this.setBootstrapCurrentEditorState(
       editor,
@@ -379,7 +480,6 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
 
     this.registerProviderEvents(editor, binding, provider, id, syncState);
     this.registerProviderToggleCommand(editor, provider);
-    this.register(registerYjsHistory(editor, binding));
 
     if (initialEditorState) {
       this.connectProvider(provider, connectionState);

@@ -1,6 +1,8 @@
 export * from './editor-kernel';
 export * from './editor-kernel/react';
 export * from './headless';
+export * from './plugins/ai-session';
+export * from './plugins/artifact';
 export * from './plugins/auto-complete';
 export * from './plugins/block';
 export * from './plugins/code';
@@ -21,6 +23,7 @@ export * from './plugins/litexml';
 export * from './plugins/markdown';
 export * from './plugins/math';
 export * from './plugins/mention';
+export * from './plugins/properties';
 export * from './plugins/slash';
 export * from './plugins/table';
 export * from './plugins/toc';

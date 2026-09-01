@@ -11,6 +11,7 @@ import type {
 } from 'lexical';
 
 import type DataSource from '@/editor-kernel/data-source';
+import type { IWriteOptions } from '@/editor-kernel/data-source';
 import type { HotkeyId } from '@/types/hotkey';
 import type { HotkeyOptions, HotkeysEvent } from '@/utils/hotkey/registerHotkey';
 
@@ -124,7 +125,7 @@ export interface IEditor {
   /**
    * Get editor content of specified type
    */
-  getDocument(type: string): DataSource | undefined;
+  getDocument(type: string, options?: IWriteOptions): DataSource | undefined;
   /**
    * Lexical history state (undo stack metadata)
    */
@@ -402,6 +403,11 @@ export interface IEditorPlugin<IConfig> {
    * Editor destruction
    */
   destroy(): void;
+  /**
+   * Update live resources when a React-facing plugin receives new runtime
+   * configuration after the Lexical editor has already been created.
+   */
+  onConfigChange?(config: IConfig): void;
   /**
    * After editor document content is written by setDocument
    */

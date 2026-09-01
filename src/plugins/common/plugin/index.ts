@@ -39,8 +39,10 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
-import { CursorNode, registerCursorNode } from '../node/cursor';
+import { $isCursorNode, CursorNode, registerCursorNode } from '../node/cursor';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
+import { $isHoleNode, HoleNode } from '../node/hole';
+import { reconcileHoleNodes, registerHoleNode } from '../node/hole-controller';
 import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
 import { registerMDReader } from './mdReader';
 import {
@@ -144,7 +146,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     // Register the text data source
     kernel.registerDataSource(new TextDataSource('text'));
     // Register common nodes and themes
-    kernel.registerNodes([HeadingNode, QuoteNode, CursorNode]);
+    kernel.registerNodes([HeadingNode, QuoteNode, CursorNode, HoleNode]);
     if (config?.theme) {
       kernel.registerThemes({
         quote: config.theme.quote,
@@ -286,6 +288,18 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       ctx.wrap('', breakMark);
     });
 
+    // Hole is a runtime boundary, not a Markdown construct. Project its
+    // payload children directly and never leak the persistent cursor markers.
+    markdownService.registerMarkdownWriter(HoleNode.getType(), (ctx, node) => {
+      if (!$isHoleNode(node)) return false;
+      node.getChildren().forEach((child) => {
+        if (!$isCursorNode(child)) {
+          ctx.processChild(ctx, child);
+        }
+      });
+      return true;
+    });
+
     // Register quote writer only if quote format is enabled
     if (formats.quote) {
       markdownService.registerMarkdownWriter('quote', (ctx, node) => {
@@ -373,6 +387,9 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const append = textContent.trimEnd();
       const lastChar = append.at(-1);
       ctx.appendLine(append);
+      const nextSibling = node.getNextSibling();
+      const nextTextStartsWithSpace =
+        $isTextNode(nextSibling) && /^\s/.test(nextSibling.getTextContent());
 
       if (isSubscript) {
         ctx.appendLine('~');
@@ -395,7 +412,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
       if (tailSpace) {
         ctx.appendLine(tailSpace);
-      } else if (lastChar && isPunctuationChar(lastChar)) {
+      } else if (lastChar && isPunctuationChar(lastChar) && !nextTextStartsWithSpace) {
         ctx.appendLine(' ');
       }
     });
@@ -409,6 +426,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     // 注册 markdown reader
     //
     registerMDReader(markdownService);
+  }
+
+  onDocumentChange(): void {
+    reconcileHoleNodes(this.kernel.getLexicalEditor());
   }
 
   onInit(editor: LexicalEditor): void {
@@ -460,6 +481,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       }),
       registerCommands(editor),
       registerBreakLineClick(editor),
+      registerHoleNode(editor),
       registerCursorNode(editor),
       registerLastElement(editor),
       // Convert soft line breaks (Shift+Enter) to hard line breaks (paragraph breaks)
@@ -516,6 +538,20 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     }
 
     const formats = this.formats;
+
+    // The Hole wrapper is intentionally transparent in LiteXML. Returning
+    // lines bypasses the generic wrapper while preserving the payload's own
+    // registered XML writers (Artifact, table, and future complex blocks).
+    litexmlService.registerXMLWriter(HoleNode.getType(), (node, _ctx, indent, nodeToXML) => {
+      if (!$isHoleNode(node)) return false;
+      const lines: string[] = [];
+      node.getChildren().forEach((child) => {
+        if (!$isCursorNode(child)) {
+          nodeToXML(child, lines, indent);
+        }
+      });
+      return { lines };
+    });
 
     litexmlService.registerXMLWriter(TextNode.getType(), (node, ctx) => {
       const attr = {} as Record<string, string>;

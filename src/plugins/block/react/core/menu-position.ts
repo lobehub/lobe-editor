@@ -1,8 +1,12 @@
+import type { BlockMenuAnchorAlignment } from './types';
+
 const TEXT_LINE_BLOCK_TAGS = new Set(['BLOCKQUOTE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'P']);
 
 export const BLOCK_MENU_OPTICAL_OFFSET_Y = -2;
 
 interface ResolveBlockMenuTopOptions {
+  anchorAlignment?: BlockMenuAnchorAlignment;
+  anchorHeight?: number;
   anchorTop: number;
   blockHeight: number;
   blockTagName: string;
@@ -11,12 +15,19 @@ interface ResolveBlockMenuTopOptions {
 }
 
 export const resolveBlockMenuTop = ({
+  anchorAlignment = 'top',
+  anchorHeight,
   anchorTop,
   blockHeight,
   blockTagName,
   lineHeight,
   menuHeight,
 }: ResolveBlockMenuTopOptions): number => {
+  if (anchorAlignment === 'center') {
+    const measuredHeight = anchorHeight ?? blockHeight;
+    return anchorTop + (measuredHeight - menuHeight) / 2;
+  }
+
   if (!TEXT_LINE_BLOCK_TAGS.has(blockTagName.toUpperCase())) {
     return anchorTop + BLOCK_MENU_OPTICAL_OFFSET_Y;
   }

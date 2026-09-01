@@ -1,0 +1,19 @@
+---
+title: Artifact
+description: Artifact blocks provide side-by-side HTML source editing and sandboxed iframe previews, with preview-only rendering in readonly editors.
+category: Plugins
+---
+
+## Introduction
+
+The Artifact plugin provides a split HTML authoring block. Editable editors show a CodeMirror source pane beside a live iframe preview. Readonly editors render only the iframe preview.
+
+```tsx
+import { ReactArtifactPlugin } from '@lobehub/editor';
+
+<Editor plugins={[ReactArtifactPlugin]} />;
+```
+
+The preview always uses a sandboxed opaque-origin iframe. Scripts are disabled by default. A host can opt in with `Editor.withProps(ReactArtifactPlugin, { allowScripts: true })`; this adds only the `allow-scripts` sandbox token and never grants same-origin or top-navigation permissions.
+
+The React plugin registers the Artifact Markdown reader/writer. Add `ReactLiteXmlPlugin` when the editor also needs the LiteXML data source.

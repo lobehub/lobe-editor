@@ -7,7 +7,7 @@ import { MOVE_BLOCK_COMMAND } from '../../command';
 import { type IBlockMenuRenderContext } from '../../service';
 import { DRAG_AUTO_SCROLL_EDGE, DRAG_START_DISTANCE } from '../core/constants';
 import type { RuntimeContextRef } from '../core/runtime-context';
-import type { BlockDragTarget } from '../core/types';
+import { BLOCK_STRUCTURAL_ID_ATTRIBUTE, type BlockDragTarget } from '../core/types';
 import {
   collectDragBlocks,
   filterDragBlocksForSource,
@@ -155,6 +155,9 @@ export const startBlockDragSession = ({
   contextRef.current.draggingSource = {
     blockElement: menuContext.blockElement,
     blockId: menuContext.blockId,
+    structuralBlockId:
+      menuContext.blockElement.getAttribute(BLOCK_STRUCTURAL_ID_ATTRIBUTE) ||
+      menuContext.blockId,
   };
   contextRef.current.dragPointerY = clientY;
   contextRef.current.dragBlocks = collectDragBlocks(editor.getRootElement());
@@ -175,8 +178,8 @@ export const startBlockDragSession = ({
       return;
     }
 
-    const validBlocks = filterDragBlocksForSource(source.blockId, blocks);
-    const bestSlot = resolveNearestInsertionSlot(source.blockId, validBlocks, y);
+    const validBlocks = filterDragBlocksForSource(source.structuralBlockId, blocks);
+    const bestSlot = resolveNearestInsertionSlot(source.structuralBlockId, validBlocks, y);
     if (!bestSlot) {
       clearDragPreview();
       return;

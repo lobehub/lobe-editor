@@ -1,5 +1,9 @@
 import { mergeRegister } from '@lexical/utils';
-import type { LexicalEditor, LexicalNode, SerializedLexicalNode } from 'lexical';
+import type {
+  LexicalEditor,
+  LexicalNode,
+  SerializedLexicalNode,
+} from 'lexical';
 import {
   $createTextNode,
   $getNodeByKey,
@@ -21,10 +25,26 @@ import { createDebugLogger } from '@/utils/debug';
 
 const logger = createDebugLogger('common', 'cursor');
 
+export type BoundaryCursorSide = 'before' | 'after';
+export type BoundaryCursorDirection = 'left' | 'right';
+
 export class CardLikeElementNode extends ElementNode {
   isCardLike(): boolean {
     return true;
   }
+
+  /**
+   * Return the boundary represented by a direct cursor child, if any.
+   *
+   * The default is deliberately inert so existing CardLikeElementNode users
+   * (notably CodeNode) retain their current cursor behavior. Complex blocks
+   * such as HoleNode use the marker to let their own controller consume the
+   * boundary before this generic cursor path runs.
+   */
+  getBoundaryCursorSide(_cursor: LexicalNode): BoundaryCursorSide | null {
+    return null;
+  }
+
 }
 
 export const cursorNodeSerialized = {
@@ -144,7 +164,7 @@ export function registerCursorNode(editor: LexicalEditor) {
       editor.getEditorState().read(() => {
         const selection = $getSelection();
         const isComposing = editor.isComposing();
-        if (isComposing) {
+        if (isComposing || !editor.isEditable()) {
           return false;
         }
         if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
@@ -152,21 +172,32 @@ export function registerCursorNode(editor: LexicalEditor) {
         }
         const node = selection.anchor.getNode();
         if (node instanceof CursorNode) {
+          const parent = node.getParent();
+          if (
+            $isCardLikeElementNode(parent) &&
+            parent.getBoundaryCursorSide(node) !== null
+          ) {
+            return false;
+          }
           if (node.__text !== '\uFEFF') {
-            editor.update(
-              () => {
-                node.setTextContent('\uFEFF');
-                const data = node.__text.replace('\uFEFF', '');
-                if (data) {
+            const data = node.__text.replaceAll('\uFEFF', '');
+            if (data) {
+              const cursorKey = node.getKey();
+              editor.update(
+                () => {
+                  const cursor = $getNodeByKey(cursorKey);
+                  if (!(cursor instanceof CursorNode)) return;
+
+                  cursor.setTextContent('\uFEFF');
                   const textNode = $createTextNode(data);
-                  node.insertAfter(textNode);
+                  cursor.insertAfter(textNode);
                   textNode.selectEnd();
-                }
-              },
-              {
-                tag: HISTORY_MERGE_TAG,
-              },
-            );
+                },
+                {
+                  tag: HISTORY_MERGE_TAG,
+                },
+              );
+            }
           }
           return false;
         }
@@ -181,9 +212,12 @@ export function registerCursorNode(editor: LexicalEditor) {
         }
         const node = selection.anchor.getNode();
         if (node instanceof CursorNode) {
+          const parent = node.getParent();
+          if ($isCardLikeElementNode(parent) && parent.getBoundaryCursorSide(node) !== null) {
+            return false;
+          }
           event.preventDefault();
           const prev = node.getPreviousSibling();
-          const parent = node.getParent();
           const parentPrev = parent?.getPreviousSibling();
           let needDispatch = false;
           if ($isDecoratorNode(prev)) {
@@ -222,6 +256,14 @@ export function registerCursorNode(editor: LexicalEditor) {
           return false;
         }
         const focusNode = selection.focus.getNode();
+        const boundaryParent = focusNode.getParent();
+        if (
+          focusNode instanceof CursorNode &&
+          $isCardLikeElementNode(boundaryParent) &&
+          boundaryParent.getBoundaryCursorSide(focusNode) !== null
+        ) {
+          return false;
+        }
         if (!event.shiftKey) {
           if (
             focusNode instanceof CursorNode &&
@@ -269,8 +311,16 @@ export function registerCursorNode(editor: LexicalEditor) {
         if (!$isRangeSelection(selection)) {
           return false;
         }
+        const focusNode = selection.focus.getNode();
+        const boundaryParent = focusNode.getParent();
+        if (
+          focusNode instanceof CursorNode &&
+          $isCardLikeElementNode(boundaryParent) &&
+          boundaryParent.getBoundaryCursorSide(focusNode) !== null
+        ) {
+          return false;
+        }
         if (!event.shiftKey) {
-          const focusNode = selection.focus.getNode();
           if (
             focusNode instanceof CursorNode &&
             !$isCardLikeElementNode(focusNode.getParent()) &&
@@ -282,7 +332,6 @@ export function registerCursorNode(editor: LexicalEditor) {
         }
         const { key: anchorKey, offset: anchorOffset, type: anchorType } = selection.anchor;
         const { key: focusKey, offset: focusOffset, type: focusType } = selection.focus;
-        const focusNode = selection.focus.getNode();
         if (
           (focusType === 'text' && focusOffset !== focusNode.getTextContentSize()) ||
           (focusType === 'element' && focusOffset !== (focusNode as ElementNode).getChildrenSize())

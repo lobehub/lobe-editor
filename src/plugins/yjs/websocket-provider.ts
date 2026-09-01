@@ -1,387 +1,51 @@
-import type { Provider, ProviderAwareness, UserState } from '@lexical/yjs';
-import { applyUpdate, Doc, encodeStateAsUpdate, encodeStateVector } from 'yjs';
+import type { Provider, UserState } from '@lexical/yjs';
+import { Doc } from 'yjs';
+
+import type { WebSocketYjsProviderOptions } from './websocket-provider-core';
+import { WebSocketYjsProviderCore } from './websocket-provider-core';
 
 const DEFAULT_HTTP_BASE_URL = 'http://localhost:12345';
 const DEFAULT_WS_BASE_URL = 'ws://localhost:12345';
-const MAX_RECONNECT_DELAY_MS = 10_000;
-const MIN_RECONNECT_DELAY_MS = 500;
 
-export interface CreateWebSocketYjsProviderOptions {
-  wsBaseUrl?: string;
-}
+export type { WebSocketConstructor, WebSocketYjsProviderStatus } from './websocket-provider-core';
+export type {
+  WebSocketLike,
+  WebSocketMessageEvent,
+  WebSocketYjsProviderOptions,
+} from './websocket-provider-core';
+export { WebSocketAwareness, WebSocketYjsProviderCore } from './websocket-provider-core';
 
-export type WebSocketYjsProviderStatus =
-  'connected' | 'connecting' | 'disconnected' | 'reconnecting';
-
-type ProviderEventMap = {
-  reload: (doc: Doc) => void;
-  status: (event: { status: WebSocketYjsProviderStatus }) => void;
-  sync: (isSynced: boolean) => void;
-  update: (event: unknown) => void;
-};
-
-type AwarenessSnapshot = {
-  clientId: number;
-  state: UserState | null;
-};
-
-type AwarenessMessage = {
-  sender: number;
-  state: UserState | null;
-  type: 'awareness';
-};
-
-type UpdateMessage = {
-  sender: number;
-  type: 'update';
-  update: string;
-};
-
-type ClientWebSocketMessage =
-  | AwarenessMessage
-  | UpdateMessage
-  | {
-      stateVector: string;
-      type: 'sync-request';
-    };
-
-type ServerWebSocketMessage =
-  | AwarenessMessage
-  | UpdateMessage
-  | {
-      awareness: AwarenessSnapshot[];
-      type: 'sync';
-      update: string;
-    };
-
-function encodeUint8Array(update: Uint8Array): string {
-  let binary = '';
-  const chunkSize = 8192;
-
-  for (let index = 0; index < update.length; index += chunkSize) {
-    binary += String.fromCharCode(...update.slice(index, index + chunkSize));
-  }
-
-  return window.btoa(binary);
-}
-
-function decodeUint8Array(value: string): Uint8Array {
-  const binary = window.atob(value);
-  const update = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    update[index] = binary.charCodeAt(index);
-  }
-
-  return update;
-}
-
-class WebSocketAwareness implements ProviderAwareness {
-  private listeners = new Set<() => void>();
-  private localState: UserState | null = null;
-  private states = new Map<number, UserState>();
-
+/**
+ * Browser provider kept as a compatibility facade for the existing Page demo.
+ * New callers can opt into `lobe-yjs-v1` with `legacyProtocol: false`; the
+ * default remains legacy until every deployed Page room server has upgraded.
+ */
+export class WebSocketYjsProvider extends WebSocketYjsProviderCore {
   constructor(
-    private clientId: number,
-    private send: (message: ClientWebSocketMessage) => void,
-  ) {}
-
-  getLocalState(): UserState | null {
-    return this.localState;
-  }
-
-  getStates(): Map<number, UserState> {
-    return this.states;
-  }
-
-  off(type: 'update', cb: () => void): void {
-    if (type === 'update') {
-      this.listeners.delete(cb);
-    }
-  }
-
-  on(type: 'update', cb: () => void): void {
-    if (type === 'update') {
-      this.listeners.add(cb);
-    }
-  }
-
-  setLocalState(state: UserState | null): void {
-    this.localState = state;
-
-    if (state) {
-      this.states.set(this.clientId, state);
-    } else {
-      this.states.delete(this.clientId);
-    }
-
-    this.emitUpdate();
-    this.send({
-      sender: this.clientId,
-      state,
-      type: 'awareness',
-    });
-  }
-
-  setLocalStateField(field: string, value: unknown): void {
-    const nextState = {
-      ...this.localState,
-      [field]: value,
-    } as UserState;
-
-    this.setLocalState(nextState);
-  }
-
-  updateRemoteState(clientId: number, state: UserState | null): void {
-    if (clientId === this.clientId) {
-      return;
-    }
-
-    if (state) {
-      this.states.set(clientId, state);
-    } else {
-      this.states.delete(clientId);
-    }
-
-    this.emitUpdate();
-  }
-
-  private emitUpdate(): void {
-    this.listeners.forEach((listener) => listener());
-  }
-}
-
-export class WebSocketYjsProvider implements Provider {
-  awareness: WebSocketAwareness;
-
-  private listeners: {
-    [K in keyof ProviderEventMap]: Set<ProviderEventMap[K]>;
-  } = {
-    reload: new Set(),
-    status: new Set(),
-    sync: new Set(),
-    update: new Set(),
-  };
-  private reconnectAttempt = 0;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private shouldConnect = false;
-  private socket: WebSocket | null = null;
-
-  private updateHandler = (update: Uint8Array, origin: unknown) => {
-    if (origin === this) {
-      return;
-    }
-
-    this.send({
-      sender: this.doc.clientID,
-      type: 'update',
-      update: encodeUint8Array(update),
-    });
-  };
-
-  constructor(
-    private id: string,
-    private doc: Doc,
-    private wsBaseUrl = DEFAULT_WS_BASE_URL,
+    id: string,
+    doc: Doc,
+    optionsOrWsBaseUrl: CreateWebSocketYjsProviderOptions | string = DEFAULT_WS_BASE_URL,
   ) {
-    this.awareness = new WebSocketAwareness(this.doc.clientID, (message) => this.send(message));
-  }
+    const options =
+      typeof optionsOrWsBaseUrl === 'string'
+        ? { wsBaseUrl: optionsOrWsBaseUrl }
+        : optionsOrWsBaseUrl;
 
-  connect(): void {
-    this.shouldConnect = true;
-
-    if (this.socket || this.reconnectTimer) {
-      return;
-    }
-
-    this.openSocket('connecting');
-  }
-
-  disconnect(): void {
-    this.shouldConnect = false;
-    this.clearReconnectTimer();
-
-    if (!this.socket) {
-      return;
-    }
-
-    this.awareness.setLocalState(null);
-    this.doc.off('update', this.updateHandler);
-    this.socket.close();
-    this.socket = null;
-    this.emit('sync', false);
-    this.emit('status', { status: 'disconnected' });
-  }
-
-  off<T extends keyof ProviderEventMap>(type: T, cb: ProviderEventMap[T]): void {
-    this.listeners[type].delete(cb as never);
-  }
-
-  on<T extends keyof ProviderEventMap>(type: T, cb: ProviderEventMap[T]): void {
-    this.listeners[type].add(cb as never);
-  }
-
-  private clearReconnectTimer(): void {
-    if (!this.reconnectTimer) {
-      return;
-    }
-
-    clearTimeout(this.reconnectTimer);
-    this.reconnectTimer = null;
-  }
-
-  private emit<T extends keyof ProviderEventMap>(
-    type: T,
-    ...args: Parameters<ProviderEventMap[T]>
-  ): void {
-    this.listeners[type].forEach((listener) => {
-      (listener as (...listenerArgs: Parameters<ProviderEventMap[T]>) => void)(...args);
+    super(id, doc, {
+      ...options,
+      clientKind: 'browser',
+      legacyProtocol: options.legacyProtocol ?? true,
+      wsBaseUrl: options.wsBaseUrl ?? DEFAULT_WS_BASE_URL,
     });
   }
+}
 
-  private getReconnectDelay(): number {
-    const exponentialDelay = MIN_RECONNECT_DELAY_MS * 2 ** this.reconnectAttempt;
-    const jitter = Math.floor(Math.random() * MIN_RECONNECT_DELAY_MS);
-
-    return Math.min(exponentialDelay + jitter, MAX_RECONNECT_DELAY_MS);
-  }
-
-  private openSocket(status: WebSocketYjsProviderStatus): void {
-    const socket = new WebSocket(
-      `${this.wsBaseUrl}/collaboration/${encodeURIComponent(this.id)}?clientId=${this.doc.clientID}`,
-    );
-
-    this.socket = socket;
-    socket.binaryType = 'arraybuffer';
-    this.emit('status', { status });
-
-    socket.addEventListener('open', () => {
-      if (this.socket !== socket) {
-        socket.close();
-        return;
-      }
-
-      this.reconnectAttempt = 0;
-      this.doc.on('update', this.updateHandler);
-      this.emit('status', { status: 'connected' });
-      this.requestServerDocumentState();
-
-      const localState = this.awareness.getLocalState();
-
-      if (localState) {
-        this.send({
-          sender: this.doc.clientID,
-          state: localState,
-          type: 'awareness',
-        });
-      }
-    });
-
-    socket.addEventListener('message', (event) => this.handleMessage(socket, event));
-    socket.addEventListener('close', () => this.handleClose(socket));
-    socket.addEventListener('error', () => {
-      this.emit('status', { status: 'disconnected' });
-    });
-  }
-
-  private publishLocalDocumentState(): void {
-    this.send({
-      sender: this.doc.clientID,
-      type: 'update',
-      update: encodeUint8Array(encodeStateAsUpdate(this.doc)),
-    });
-  }
-
-  private requestServerDocumentState(): void {
-    this.send({
-      stateVector: encodeUint8Array(encodeStateVector(this.doc)),
-      type: 'sync-request',
-    });
-  }
-
-  private scheduleReconnect(): void {
-    if (!this.shouldConnect || this.reconnectTimer) {
-      return;
-    }
-
-    const delay = this.getReconnectDelay();
-    this.reconnectAttempt += 1;
-    this.emit('status', { status: 'reconnecting' });
-
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      this.openSocket('reconnecting');
-    }, delay);
-  }
-
-  private handleClose(socket: WebSocket): void {
-    if (this.socket !== socket) {
-      return;
-    }
-
-    this.doc.off('update', this.updateHandler);
-    this.socket = null;
-    this.emit('sync', false);
-    this.emit('status', { status: 'disconnected' });
-    this.scheduleReconnect();
-  }
-
-  private handleMessage(socket: WebSocket, event: MessageEvent<string>) {
-    if (this.socket !== socket) {
-      return;
-    }
-
-    let message: ServerWebSocketMessage;
-
-    try {
-      message = JSON.parse(event.data) as ServerWebSocketMessage;
-    } catch {
-      this.emit('status', { status: 'disconnected' });
-      return;
-    }
-
-    if (message.type === 'awareness') {
-      this.awareness.updateRemoteState(message.sender, message.state);
-      return;
-    }
-
-    if (message.type === 'sync') {
-      try {
-        applyUpdate(this.doc, decodeUint8Array(message.update), this);
-      } catch {
-        this.emit('status', { status: 'disconnected' });
-        return;
-      }
-
-      for (const awareness of message.awareness) {
-        this.awareness.updateRemoteState(awareness.clientId, awareness.state);
-      }
-
-      this.emit('sync', true);
-      this.publishLocalDocumentState();
-      return;
-    }
-
-    if (message.sender === this.doc.clientID) {
-      return;
-    }
-
-    try {
-      const update = decodeUint8Array(message.update);
-      applyUpdate(this.doc, update, this);
-      this.emit('update', update);
-    } catch {
-      this.emit('status', { status: 'disconnected' });
-    }
-  }
-
-  private send(message: ClientWebSocketMessage): void {
-    if (this.socket?.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
-    this.socket.send(JSON.stringify(message));
-  }
+export interface CreateWebSocketYjsProviderOptions extends Omit<
+  WebSocketYjsProviderOptions,
+  'clientKind' | 'legacyProtocol'
+> {
+  /** Set false to use the authenticated lobe-yjs-v1 wire protocol. */
+  legacyProtocol?: boolean;
 }
 
 export function createWebSocketYjsProvider(
@@ -392,8 +56,14 @@ export function createWebSocketYjsProvider(
   const doc = yjsDocMap.get(id) || new Doc();
   yjsDocMap.set(id, doc);
 
-  return new WebSocketYjsProvider(id, doc, options.wsBaseUrl);
+  return new WebSocketYjsProvider(id, doc, options);
 }
+
+/**
+ * Type-only compatibility helper for consumers that import UserState from the
+ * provider module while migrating to the shared protocol module.
+ */
+export type { Provider, UserState };
 
 export async function fetchWebSocketDemoDocument(id: string): Promise<unknown> {
   const response = await fetch(`${DEFAULT_HTTP_BASE_URL}/documents/${encodeURIComponent(id)}`);
@@ -438,9 +108,7 @@ export function snapshotWebSocketDemoDocument(id: string, content: unknown): voi
   if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
     const blob = new Blob([body], { type: 'text/plain;charset=UTF-8' });
 
-    if (navigator.sendBeacon(url, blob)) {
-      return;
-    }
+    if (navigator.sendBeacon(url, blob)) return;
   }
 
   void fetch(url, {
