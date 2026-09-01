@@ -77,4 +77,21 @@ describe('editor root lifecycle', () => {
     kernel.setDocument('text', 'reinitialized');
     expect(kernel.getDocument('text')).toBe('reinitialized');
   });
+
+  it('does not attach dragon support for headless editors', () => {
+    const addEventListener = vi.spyOn(window, 'addEventListener');
+    const removeEventListener = vi.spyOn(window, 'removeEventListener');
+    const kernel = Editor.createEditor().registerPlugins([CommonPlugin]);
+    kernels.push(kernel);
+
+    kernel.initHeadlessEditor();
+
+    expect(addEventListener.mock.calls.filter(([type]) => type === 'message')).toHaveLength(0);
+
+    kernel.destroy();
+
+    expect(removeEventListener.mock.calls.filter(([type]) => type === 'message')).toHaveLength(0);
+    addEventListener.mockRestore();
+    removeEventListener.mockRestore();
+  });
 });

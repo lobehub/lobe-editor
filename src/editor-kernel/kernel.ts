@@ -797,6 +797,14 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     };
   }
 
+  registerRootListener(listener: (rootElement: HTMLElement | null) => void): () => void {
+    if (!this.editor || this.headlessEditor) {
+      return noop;
+    }
+
+    return this.editor.registerRootListener(listener);
+  }
+
   private getEditorId(): string {
     return this.themes[EDITOR_THEME_KEY] as string;
   }

@@ -363,6 +363,13 @@ export interface IEditorKernel extends IEditor {
    */
   registerRootClassName(className: string): () => void;
   /**
+   * Register a callback for root attach/detach events.
+   *
+   * Headless kernels return a no-op cleanup because headless Lexical editors
+   * do not support root listeners.
+   */
+  registerRootListener(listener: (rootElement: HTMLElement | null) => void): () => void;
+  /**
    * Register service
    * @param serviceId
    * @param service

@@ -370,6 +370,22 @@ The Editor component also provides static methods:
 - `useEditor()`: Hook for creating editor instance
 - `useEditorState(editor)`: Hook for accessing editor state and toolbar methods
 
+### Editor lifecycle
+
+`useEditor()` owns a kernel reference and uses a reversible root detach during React cleanup by default. Detaching releases the editor from the library's global root registry and removes root-scoped DOM and dragon listeners while preserving the Lexical editor state, history, and plugin configuration for a later Activity reattach.
+
+The default detach is compatible with React `<Activity>`: hiding a subtree must not destroy the editor that will be shown again. It also does not promise garbage collection if application code stores the `IEditor` in a provider, zustand store, or another long-lived reference. Remove that reference and unmount the owner when the instance is no longer needed.
+
+Use `useEditor({ autoDestroy: true })` only when the hook owner is guaranteed to be permanently unmounted. `autoDestroy: true` is mutually exclusive with `<Activity>` because Activity runs the same cleanup while hiding a subtree and would destroy the editor before it can be shown again. An editor supplied to another component can also be released explicitly with `editor.destroy()`; after destruction, the React editor lifecycle can initialize a fresh Lexical runtime when it is attached again.
+
+```typescript
+// Activity-safe default: detach while hidden, preserve state, and reattach.
+const editor = useEditor();
+
+// Permanent owner only: destroy all runtime resources on unmount.
+const editor = useEditor({ autoDestroy: true });
+```
+
 ### Modern Usage Example
 
 ```typescript

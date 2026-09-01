@@ -451,24 +451,26 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     // Dragon installs a window-level message listener whose closure captures
     // the editor. Tie it to the root lifecycle so Activity can detach the
     // listener while keeping the same editor/plugins alive for reattachment.
-    if (!(editor as LexicalEditor & { _headless?: boolean })._headless) {
-      let dragonCleanup: (() => void) | undefined;
-      const clearDragon = () => {
-        dragonCleanup?.();
-        dragonCleanup = undefined;
-      };
+    let dragonCleanup: (() => void) | undefined;
+    const clearDragon = () => {
+      dragonCleanup?.();
+      dragonCleanup = undefined;
+    };
 
-      this.register(
-        editor.registerRootListener((rootElement) => {
-          clearDragon();
-          if (!rootElement || !CAN_USE_DOM) {
-            return;
-          }
-          dragonCleanup = registerDragonSupport(editor);
-        }),
-      );
-      this.register(clearDragon);
-    }
+    // Kernel root listeners are a no-op for headless editors because headless
+    // Lexical instances do not support registerRootListener. This keeps the
+    // lifecycle independent of Lexical's private `_headless` implementation
+    // detail while still following every DOM root attach/detach.
+    this.register(
+      this.kernel.registerRootListener((rootElement) => {
+        clearDragon();
+        if (!rootElement || !CAN_USE_DOM) {
+          return;
+        }
+        dragonCleanup = registerDragonSupport(editor);
+      }),
+    );
+    this.register(clearDragon);
 
     this.registerClears(
       registerRichText(editor),
