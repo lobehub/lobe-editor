@@ -7,6 +7,7 @@ export * from './plugins/code';
 export * from './plugins/codeblock';
 export * from './plugins/codemirror-block';
 export * from './plugins/collaboration';
+export * from './plugins/collapsible';
 export * from './plugins/common';
 export * from './plugins/content-blocks';
 export * from './plugins/file';
@@ -22,9 +23,11 @@ export * from './plugins/math';
 export * from './plugins/mention';
 export * from './plugins/slash';
 export * from './plugins/table';
+export * from './plugins/toc';
 export * from './plugins/toolbar';
 export * from './plugins/upload';
 export * from './plugins/virtual-block';
+export * from './plugins/yjs';
 export type { IEditor } from './types';
 
 // Hotkey utilities

@@ -114,6 +114,76 @@ describe('HeadlessEditor', () => {
     expect(findTextNode(editorData.root, 'Second')).not.toBeNull();
   });
 
+  it('hydrates editor data containing a collapsible block', () => {
+    const editor = createHeadlessEditor();
+    const editorData = {
+      root: {
+        children: [
+          {
+            children: [
+              {
+                children: [
+                  {
+                    detail: 0,
+                    format: 0,
+                    mode: 'normal',
+                    style: '',
+                    text: 'Acceptance details',
+                    type: 'text',
+                    version: 1,
+                  },
+                ],
+                direction: null,
+                format: '',
+                indent: 0,
+                type: 'paragraph',
+                version: 1,
+              },
+              {
+                children: [
+                  {
+                    detail: 0,
+                    format: 0,
+                    mode: 'normal',
+                    style: '',
+                    text: 'Hidden body',
+                    type: 'text',
+                    version: 1,
+                  },
+                ],
+                direction: null,
+                format: '',
+                indent: 0,
+                type: 'paragraph',
+                version: 1,
+              },
+            ],
+            collapsed: false,
+            direction: null,
+            format: '',
+            indent: 0,
+            title: 'Acceptance details',
+            type: 'collapsible',
+            version: 1,
+          },
+        ],
+        direction: null,
+        format: '',
+        indent: 0,
+        type: 'root',
+        version: 1,
+      },
+    } as unknown as SerializedEditorState<SerializedLexicalNode>;
+
+    editor.hydrateEditorData(editorData, { keepId: true });
+
+    const snapshot = editor.export();
+    expect(findNodeByType(snapshot.editorData.root, 'collapsible')).not.toBeNull();
+    expect(snapshot.markdown).toContain('<summary>Acceptance details</summary>');
+    expect(snapshot.markdown).toContain('Hidden body');
+    editor.destroy();
+  });
+
   it('preserves Markdown links in headless editor data and Markdown projection', () => {
     const editor = createHeadlessEditor();
     const url = 'https://github.com/lobehub/lobehub/pull/14436';

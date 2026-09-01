@@ -62,6 +62,7 @@
     "build:watch": "tsdown --watch",
     "ci": "npm run lint:circular && npm run lint && npm run type-check",
     "clean": "rm -r es lib dist coverage .react-router .eslintcache node_modules/.cache",
+    "demo:yjs-server": "node ./scripts/yjs-websocket-demo-server.cjs",
     "dev": "lobedocs dev",
     "docs:build": "lobedocs build",
     "docs:build-analyze": "ANALYZE=1 lobedocs build",
@@ -162,6 +163,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/unist": "^3.0.3",
+    "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^4.1.10",
     "antd": "^6.5.2",
     "clean-package": "^2.2.0",
@@ -184,7 +186,8 @@
     "tsx": "^4.23.0",
     "typescript": "^6.0.3",
     "vite": "8.1.4",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "ws": "^8.21.0"
   },
   "peerDependencies": {
     "@lobehub/ui": "^5.0.0",
@@ -204,6 +207,7 @@
       "chalk": "^4.1.2"
     },
     "patchedDependencies": {
+      "@lexical/yjs@0.42.0": "patches/@lexical__yjs@0.42.0.patch",
       "lexical@0.42.0": "patches/lexical@0.42.0.patch"
     }
   }

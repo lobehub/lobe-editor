@@ -29,6 +29,7 @@ import { BlockPlugin, type BlockPluginOptions } from '../plugin';
 import type { BlockMenuService, IBlockMenuRenderContext } from '../service';
 import { IBlockMenuService } from '../service';
 import { HOVER_HIDE_DELAY } from './core/constants';
+import { resolveBlockMenuTop } from './core/menu-position';
 import {
   createRuntimeContext,
   type HoveredBlockState,
@@ -69,6 +70,22 @@ const getTableMenuAnchorRect = (element: HTMLElement) => {
     left: rect.left,
     top: rect.top,
   };
+};
+
+const isBlockInsideElement = (block: HTMLElement, container: HTMLElement): boolean => {
+  return block !== container && container.contains(block);
+};
+
+const getElementDepth = (element: HTMLElement, stopAt: HTMLElement): number => {
+  let depth = 0;
+  let current: HTMLElement | null = element;
+
+  while (current && current !== stopAt) {
+    depth += 1;
+    current = current.parentElement;
+  }
+
+  return depth;
 };
 
 const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
@@ -289,6 +306,34 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       return nextDistance < prevDistance ? next : prev;
     };
 
+    const resolveNestedBlockByY = (
+      rects: ReturnType<typeof collectDragBlocks>,
+      container: HTMLElement,
+      y: number,
+    ): (typeof rects)[number] | null => {
+      const candidates = rects.filter(
+        (entry) =>
+          isBlockInsideElement(entry.block, container) &&
+          y >= entry.rect.top &&
+          y <= entry.rect.bottom,
+      );
+
+      if (candidates.length === 0) {
+        return null;
+      }
+
+      return candidates.sort((a, b) => {
+        const depthA = getElementDepth(a.block, container);
+        const depthB = getElementDepth(b.block, container);
+
+        if (depthA !== depthB) {
+          return depthB - depthA;
+        }
+
+        return a.rect.height - b.rect.height;
+      })[0];
+    };
+
     const isInRootLeftPaddingArea = (root: HTMLElement, clientX: number, clientY: number) => {
       const rootRect = root.getBoundingClientRect();
       const inRootBounds =
@@ -348,6 +393,22 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       const blockElement = targetElement.closest('[data-block-id]');
 
       if (blockElement instanceof HTMLElement && root.contains(blockElement)) {
+        if (blockElement.dataset.collapsible === 'true') {
+          const nestedEntry = resolveNestedBlockByY(getBlockRects(root), blockElement, clientY);
+
+          if (nestedEntry) {
+            const nestedBlockElement = resolveCurrentBlockElement(root, nestedEntry.blockId);
+
+            if (nestedBlockElement) {
+              return {
+                blockElement: nestedBlockElement,
+                blockId: nestedEntry.blockId,
+                source: 'direct',
+              };
+            }
+          }
+        }
+
         const blockId = blockElement.dataset.blockId;
         if (!blockId) {
           return null;
@@ -705,6 +766,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       }
 
       const menuWidth = menuRef.current?.offsetWidth || 32;
+      const menuHeight = menuRef.current?.offsetHeight || 32;
       const gap = 8;
       const listItemOffset = menuContext.blockElement.tagName === 'LI' ? 16 : 0;
       const isTableBlock = isTableBlockElement(menuContext.blockElement);
@@ -728,9 +790,16 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
         rawAnchorTop >= blockRect.top - 1 && rawAnchorTop <= blockRect.bottom + 1
           ? rawAnchorTop
           : blockRect.top;
+      const lineHeight = window.getComputedStyle(menuContext.blockElement).lineHeight;
       const position = {
         left: Math.max(gap, anchorLeft - menuWidth - gap - listItemOffset - tableMenuOffset),
-        top: anchorTop,
+        top: resolveBlockMenuTop({
+          anchorTop,
+          blockHeight: blockRect.height,
+          blockTagName: menuContext.blockElement.tagName,
+          lineHeight,
+          menuHeight,
+        }),
       };
 
       setMenuPosition(position);

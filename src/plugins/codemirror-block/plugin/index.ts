@@ -10,6 +10,7 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 import { registerCodeMirrorCommand } from '../command';
 import { modeMatch } from '../lib/mode';
 import { $createCodeMirrorNode, CodeMirrorNode } from '../node/CodeMirrorNode';
+import { CodemirrorEditLockService, ICodemirrorEditLockService } from '../service';
 
 export interface CodemirrorPluginOptions {
   decorator?: (node: CodeMirrorNode, editor: LexicalEditor) => any;
@@ -32,6 +33,7 @@ export const CodemirrorPlugin: IEditorPluginConstructor<CodemirrorPluginOptions>
     kernel.registerThemes({
       hr: config?.theme || '',
     });
+    kernel.registerServiceHotReload(ICodemirrorEditLockService, new CodemirrorEditLockService());
     this.registerDecorator(
       kernel,
       'codemirror',

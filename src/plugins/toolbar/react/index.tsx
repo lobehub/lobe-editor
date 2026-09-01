@@ -14,6 +14,7 @@ import { createPortal } from 'react-dom';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
 import { ILinkService } from '@/plugins/link';
+import type { LinkService } from '@/plugins/link/service/i-link-service';
 import { createDebugLogger } from '@/utils/debug';
 
 import { HIDE_TOOLBAR_COMMAND, registerToolbarCommand } from '../command';
@@ -40,6 +41,7 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({
   const [kernelEditor] = useLexicalComposerContext();
   const { isDarkMode } = useThemeMode();
   const isMouseDownRef = useRef(false);
+  const linkToolbarSuppressionTokenRef = useRef<symbol | null>(null);
   const logger = createDebugLogger('plugin', 'toolbar');
 
   const resolvePortalContainer = useCallback(() => {
@@ -52,6 +54,23 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({
     const nextContainer = resolvePortalContainer();
     setPortalContainer((current) => (current === nextContainer ? current : nextContainer));
   }, [resolvePortalContainer]);
+
+  const getLinkService = useCallback(() => {
+    return kernelEditor.requireService(ILinkService) as LinkService | null;
+  }, [kernelEditor]);
+
+  const suppressLinkToolbar = useCallback(() => {
+    const linkService = getLinkService();
+    if (!linkService || linkToolbarSuppressionTokenRef.current) return;
+    linkToolbarSuppressionTokenRef.current = linkService.suppressLinkToolbar('text-format-toolbar');
+  }, [getLinkService]);
+
+  const restoreLinkToolbar = useCallback(() => {
+    const token = linkToolbarSuppressionTokenRef.current;
+    if (!token) return;
+    linkToolbarSuppressionTokenRef.current = null;
+    getLinkService()?.restoreLinkToolbar(token);
+  }, [getLinkService]);
 
   const $updateTextFormatFloatingToolbar = useCallback(
     (editor: LexicalEditor) => {
@@ -80,12 +99,14 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({
         logger.debug('🔍 rangeRect', rangeRect);
 
         setFloatingElemPosition(rangeRect, popupCharStylesEditorElem, anchorElemRef.current, false);
+        suppressLinkToolbar();
       } else {
         popupCharStylesEditorElem.style.opacity = '0';
         popupCharStylesEditorElem.style.transform = 'translate(-10000px, -10000px)';
+        restoreLinkToolbar();
       }
     },
-    [anchorElemRef],
+    [anchorElemRef, restoreLinkToolbar, suppressLinkToolbar],
   );
 
   const $hideFloatingToolbar = useCallback(() => {
@@ -101,7 +122,8 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({
 
     popupCharStylesEditorElem.style.opacity = '0';
     popupCharStylesEditorElem.style.transform = 'translate(-10000px, -10000px)';
-  }, [anchorElemRef]);
+    restoreLinkToolbar();
+  }, [anchorElemRef, restoreLinkToolbar]);
 
   const handleMouseDownFactory = useCallback(
     (updateToolbar: () => void) => (e: MouseEvent) => {
@@ -127,16 +149,6 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({
     [],
   );
 
-  useLexicalEditor(() => {
-    const service = kernelEditor.requireService(ILinkService);
-    if (service) {
-      service.setLinkToolbar(false);
-      return () => {
-        service.setLinkToolbar(true);
-      };
-    }
-  }, []);
-
   useLexicalEditor(
     (editor) => {
       if (!usePortal) {
@@ -151,96 +163,98 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({
     [syncPortalContainer, usePortal],
   );
 
-  useLexicalEditor((editor) => {
-    const handleMouseDown = handleMouseDownFactory(() => {
-      editor.dispatchCommand(HIDE_TOOLBAR_COMMAND, undefined);
-    });
-    const handleMouseUp = handleMouseUpFactory(() => {
-      editor.update(() => {
-        $updateTextFormatFloatingToolbar(editor);
+  useLexicalEditor(
+    (editor) => {
+      const handleMouseDown = handleMouseDownFactory(() => {
+        editor.dispatchCommand(HIDE_TOOLBAR_COMMAND, undefined);
       });
-    });
-
-    const rootElement = editor.getRootElement();
-    const editorWindow =
-      editor._window ?? rootElement?.ownerDocument.defaultView ?? globalThis.window ?? null;
-    let animationFrameId: number | null = null;
-    const updateToolbarPosition = () => {
-      if (!editorWindow || isMouseDownRef.current || animationFrameId !== null) {
-        return;
-      }
-
-      animationFrameId = editorWindow.requestAnimationFrame(() => {
-        animationFrameId = null;
-        editor.getEditorState().read(() => {
+      const handleMouseUp = handleMouseUpFactory(() => {
+        editor.update(() => {
           $updateTextFormatFloatingToolbar(editor);
         });
       });
-    };
-    const scrollListenerOptions = { capture: true, passive: true } as const;
-    const scrollCleanupOptions = { capture: true } as const;
-    const resizeListenerOptions = { passive: true } as const;
 
-    if (rootElement) {
-      rootElement.addEventListener('mousedown', handleMouseDown);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-    if (editorWindow) {
-      editorWindow.addEventListener('scroll', updateToolbarPosition, scrollListenerOptions);
-      editorWindow.document.addEventListener(
-        'scroll',
-        updateToolbarPosition,
-        scrollListenerOptions,
-      );
-      editorWindow.addEventListener('resize', updateToolbarPosition, resizeListenerOptions);
-    }
+      const rootElement = editor.getRootElement();
+      const editorWindow =
+        editor._window ?? rootElement?.ownerDocument.defaultView ?? globalThis.window ?? null;
+      let animationFrameId: number | null = null;
+      const updateToolbarPosition = () => {
+        if (!editorWindow || isMouseDownRef.current || animationFrameId !== null) return;
 
-    return mergeRegister(
-      registerToolbarCommand(editor, {
-        onHide: $hideFloatingToolbar,
-      }),
-
-      editor.registerUpdateListener(({ editorState }) => {
-        // Only update when mouse is not pressed
-        if (!isMouseDownRef.current) {
-          editorState.read(() => {
+        animationFrameId = editorWindow.requestAnimationFrame(() => {
+          animationFrameId = null;
+          editor.getEditorState().read(() => {
             $updateTextFormatFloatingToolbar(editor);
           });
-        }
-      }),
+        });
+      };
+      const scrollListenerOptions = { capture: true, passive: true } as const;
+      const scrollCleanupOptions = { capture: true } as const;
+      const resizeListenerOptions = { passive: true } as const;
 
-      editor.registerCommand(
-        SELECTION_CHANGE_COMMAND,
-        () => {
+      if (rootElement) {
+        rootElement.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('mouseup', handleMouseUp);
+      }
+      if (editorWindow) {
+        editorWindow.addEventListener('scroll', updateToolbarPosition, scrollListenerOptions);
+        editorWindow.document.addEventListener(
+          'scroll',
+          updateToolbarPosition,
+          scrollListenerOptions,
+        );
+        editorWindow.addEventListener('resize', updateToolbarPosition, resizeListenerOptions);
+      }
+
+      return mergeRegister(
+        registerToolbarCommand(editor, {
+          onHide: $hideFloatingToolbar,
+        }),
+
+        editor.registerUpdateListener(({ editorState }) => {
           // Only update when mouse is not pressed
           if (!isMouseDownRef.current) {
-            $updateTextFormatFloatingToolbar(editor);
+            editorState.read(() => {
+              $updateTextFormatFloatingToolbar(editor);
+            });
           }
-          return false;
-        },
-        COMMAND_PRIORITY_LOW,
-      ),
+        }),
 
-      () => {
-        if (rootElement) {
-          rootElement.removeEventListener('mousedown', handleMouseDown);
-          document.removeEventListener('mouseup', handleMouseUp);
-        }
-        if (editorWindow) {
-          editorWindow.removeEventListener('scroll', updateToolbarPosition, scrollCleanupOptions);
-          editorWindow.document.removeEventListener(
-            'scroll',
-            updateToolbarPosition,
-            scrollCleanupOptions,
-          );
-          editorWindow.removeEventListener('resize', updateToolbarPosition);
-          if (animationFrameId !== null) {
-            editorWindow.cancelAnimationFrame(animationFrameId);
+        editor.registerCommand(
+          SELECTION_CHANGE_COMMAND,
+          () => {
+            // Only update when mouse is not pressed
+            if (!isMouseDownRef.current) {
+              $updateTextFormatFloatingToolbar(editor);
+            }
+            return false;
+          },
+          COMMAND_PRIORITY_LOW,
+        ),
+
+        () => {
+          restoreLinkToolbar();
+          if (rootElement) {
+            rootElement.removeEventListener('mousedown', handleMouseDown);
+            document.removeEventListener('mouseup', handleMouseUp);
           }
-        }
-      },
-    );
-  });
+          if (editorWindow) {
+            editorWindow.removeEventListener('scroll', updateToolbarPosition, scrollCleanupOptions);
+            editorWindow.document.removeEventListener(
+              'scroll',
+              updateToolbarPosition,
+              scrollCleanupOptions,
+            );
+            editorWindow.removeEventListener('resize', updateToolbarPosition);
+            if (animationFrameId !== null) {
+              editorWindow.cancelAnimationFrame(animationFrameId);
+            }
+          }
+        },
+      );
+    },
+    [restoreLinkToolbar],
+  );
 
   const toolbarNode = (
     <div

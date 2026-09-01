@@ -1,5 +1,6 @@
 import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code-core';
-import { $isHeadingNode, QuoteNode } from '@lexical/rich-text';
+import { $isListItemNode, $isListNode } from '@lexical/list';
+import { $isHeadingNode, $isQuoteNode, QuoteNode } from '@lexical/rich-text';
 import { mergeRegister } from '@lexical/utils';
 import type { ElementNode, LexicalEditor, LexicalNode, PointType, RangeSelection } from 'lexical';
 import {
@@ -52,7 +53,11 @@ function resolveElement(
       block = parent;
     }
   }
-  return block.getChildAtIndex(isBackward ? offset - 1 : offset);
+  const childIndex = isBackward ? offset - 1 : offset;
+  if (childIndex < 0 || childIndex >= block.getChildrenSize()) {
+    return null;
+  }
+  return block.getChildAtIndex(childIndex);
 }
 
 function isCodeNodeLastLine(focusNode: LexicalNode) {
@@ -134,7 +139,69 @@ function $isSelectionAtEndOfRoot(selection: RangeSelection) {
   return focus.key === 'root' && focus.offset === $getRoot().getChildrenSize();
 }
 
-export function registerHeaderBackspace(editor: LexicalEditor) {
+function $isSelectionInList(selection: RangeSelection) {
+  return Boolean(
+    $closest(selection.focus.getNode(), (node) => $isListNode(node) || $isListItemNode(node)),
+  );
+}
+
+function $getLeadingQuoteNode(selection: RangeSelection): QuoteNode | false {
+  const anchor = selection.anchor;
+  if (anchor.offset !== 0) return false;
+
+  let node = anchor.getNode();
+  let current: LexicalNode | null = node;
+  let quoteNode: QuoteNode | null = null;
+
+  while (current) {
+    if ($isQuoteNode(current)) {
+      quoteNode = current;
+      break;
+    }
+    current = current.getParent();
+  }
+
+  if (!quoteNode) return false;
+
+  while (node !== quoteNode) {
+    if (node.getIndexWithinParent() !== 0) return false;
+    const parent = node.getParent();
+    if (!parent) return false;
+    node = parent;
+  }
+
+  return quoteNode;
+}
+
+function $unwrapQuoteNode(quoteNode: QuoteNode) {
+  const children = quoteNode.getChildren();
+
+  if (children.length === 0) {
+    const paragraphNode = $createParagraphNode();
+    quoteNode.replace(paragraphNode);
+    paragraphNode.select(0, 0);
+    return;
+  }
+
+  let firstNode: LexicalNode | null = null;
+  for (const child of children) {
+    if ($isElementNode(child)) {
+      quoteNode.insertBefore(child);
+      firstNode ||= child;
+      continue;
+    }
+
+    const paragraphNode = $createParagraphNode();
+    paragraphNode.append(child);
+    quoteNode.insertBefore(paragraphNode);
+    firstNode ||= paragraphNode;
+  }
+
+  quoteNode.remove();
+  if ($isElementNode(firstNode)) firstNode.select(0, 0);
+}
+
+export function registerBlockBackspace(editor: LexicalEditor) {
   return editor.registerCommand(
     KEY_BACKSPACE_COMMAND,
     (payload) => {
@@ -176,6 +243,26 @@ export function registerHeaderBackspace(editor: LexicalEditor) {
           const node = $createParagraphNode();
           headingNode.replace(node, true);
           node.select(0, 0);
+        });
+        return true;
+      }
+
+      const quoteNode = editor.getEditorState().read(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
+        return $getLeadingQuoteNode(selection);
+      });
+
+      if (quoteNode) {
+        payload.stopImmediatePropagation();
+        payload.preventDefault();
+        payload.stopPropagation();
+
+        editor.update(() => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection) || !selection.isCollapsed()) return;
+          const leadingQuoteNode = $getLeadingQuoteNode(selection);
+          if (leadingQuoteNode) $unwrapQuoteNode(leadingQuoteNode);
         });
         return true;
       }
@@ -280,6 +367,9 @@ export function registerRichKeydown(
             return true;
           }
         } else if ($isRangeSelection(selection)) {
+          if ($isSelectionInList(selection)) {
+            return false;
+          }
           const possibleNode = $getAdjacentNode(selection.focus, true);
           const upblock = possibleNode || $getDownUpNode(selection.focus, true);
           if (!event.shiftKey && $isDecoratorNode(possibleNode)) {
@@ -376,6 +466,9 @@ export function registerRichKeydown(
           if ($isSelectionAtEndOfRoot(selection)) {
             event.preventDefault();
             return true;
+          }
+          if ($isSelectionInList(selection)) {
+            return false;
           }
           const possibleNode = $getAdjacentNode(selection.focus, false);
           const upblock = possibleNode || $getDownUpNode(selection.focus, false);

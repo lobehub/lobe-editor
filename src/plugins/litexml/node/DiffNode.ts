@@ -26,7 +26,7 @@ export type SerializedDiffNode = Spread<
   SerializedElementNode
 >;
 
-/** DiffNode - contains two block children: original and modified */
+/** DiffNode - contains the original and modified sides, optionally grouped into multiple blocks. */
 export class DiffNode extends CardLikeElementNode {
   static getType(): string {
     return 'diff';

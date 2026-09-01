@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import type { IEditor } from '@/types';
 
-function hasDiffNode(editor?: IEditor): boolean {
+export function hasDiffNode(editor?: IEditor): boolean {
   if (!editor) {
     return false;
   }
@@ -11,7 +11,8 @@ function hasDiffNode(editor?: IEditor): boolean {
     return false;
   }
   for (const node of values) {
-    if (node.getType() === 'diff') {
+    const nodeType = node.getType();
+    if (nodeType === 'diff' || nodeType === 'table-row-diff') {
       return true;
     }
   }

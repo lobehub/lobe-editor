@@ -1,3 +1,4 @@
+import { $isTableNode } from '@lexical/table';
 import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
 import { $nodesOfType, HISTORIC_TAG } from 'lexical';
 
@@ -8,8 +9,13 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID
 import { registerLiteXMLCommand } from '../command';
 import { registerLiteXMLDiffCommand } from '../command/diffCommand';
 import LitexmlDataSource from '../data-source/litexml-data-source';
+import { $isDiffContentNode, DiffContentNode } from '../node/DiffContentNode';
 import { DiffNode } from '../node/DiffNode';
+import { $isTableCellDiffNode, TableCellDiffNode } from '../node/TableCellDiffNode';
+import { $isTableRowDiffNode, TableRowDiffNode } from '../node/TableRowDiffNode';
 import { ILitexmlService, LitexmlService } from '../service/litexml-service';
+import { registerLegacyTableCellDiffNormalization } from '../table-cell-diff';
+import { registerTableRowDiffNormalization } from '../table-row-diff';
 
 /**
  * LitexmlPluginOptions - Configuration options for the Litexml plugin
@@ -21,6 +27,8 @@ export interface LitexmlPluginOptions {
    * @default true
    */
   enabled?: boolean;
+  tableRowDiffTheme?: string;
+  tableCellDiffTheme?: string;
   theme?: string;
 }
 
@@ -44,6 +52,8 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
 
     kernel.registerThemes({
       diffNode: config?.theme || 'editor_diffNode',
+      tableRowDiff: config?.tableRowDiffTheme || 'editor_tableRowDiff',
+      tableCellDiff: config?.tableCellDiffTheme || 'editor_tableCellDiff',
     });
 
     // Create and register the Litexml service
@@ -59,7 +69,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     );
 
     // register diff node type
-    kernel.registerNodes([DiffNode]);
+    kernel.registerNodes([DiffNode, DiffContentNode, TableRowDiffNode, TableCellDiffNode]);
     kernel.registerDecorator(DiffNode.getType(), {
       queryDOM: (el: HTMLElement) => el.querySelector('.toolbar')!,
       render: (node: LexicalNode, editor: LexicalEditor) => {
@@ -77,6 +87,8 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     // Plugin initialization logic can be added here if needed
     this.register(registerLiteXMLCommand(editor, this.datasource));
     this.register(registerLiteXMLDiffCommand(editor));
+    this.register(registerLegacyTableCellDiffNormalization(editor));
+    this.register(registerTableRowDiffNormalization(editor));
 
     this.register(
       editor.registerNodeTransform(DiffNode, (node) => {
@@ -122,11 +134,16 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
       const lines: string[] = [];
       switch (diffNode.diffType) {
         case 'modify': {
-          nodeToXML(diffNode.getChildAtIndex(1), lines, indent);
+          const after = diffNode.getChildAtIndex(1);
+          if ($isDiffContentNode(after)) {
+            after.getChildren().forEach((child) => nodeToXML(child, lines, indent));
+          } else {
+            nodeToXML(after, lines, indent);
+          }
           break;
         }
         case 'add': {
-          nodeToXML(diffNode.getChildAtIndex(0), lines, indent);
+          diffNode.getChildren().forEach((child) => nodeToXML(child, lines, indent));
           break;
         }
         case 'remove': {
@@ -146,19 +163,68 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
         lines,
       };
     });
+
+    this.service.registerXMLWriter(TableRowDiffNode.getType(), (node, ctx) => {
+      if (!$isTableRowDiffNode(node)) return false;
+      if (node.getDiffType() === 'remove') return { lines: [] };
+      return ctx.createXmlNode('tr', {});
+    });
+
+    this.service.registerXMLWriter(TableCellDiffNode.getType(), (node, ctx) => {
+      if (!$isTableCellDiffNode(node)) return false;
+      if (node.getDiffType() === 'remove') return { lines: [] };
+      const attributes: Record<string, string> = {};
+      if (node.getColSpan() > 1) attributes.colSpan = String(node.getColSpan());
+      if (node.getRowSpan() > 1) attributes.rowSpan = String(node.getRowSpan());
+      if (node.getBackgroundColor()) attributes.backgroundColor = node.getBackgroundColor()!;
+      return ctx.createXmlNode('td', attributes);
+    });
   }
 
   private registerMarkdown() {
     const markdownService = this.kernel.requireService(IMarkdownShortCutService);
+    markdownService?.registerMarkdownWriter(TableCellDiffNode.getType(), (ctx, node) => {
+      if (!$isTableCellDiffNode(node)) return false;
+      if (node.getDiffType() === 'remove') return true;
+      if (!node.getNextSibling()) ctx.wrap('|', '|');
+      else ctx.wrap('|', '');
+      return true;
+    });
+    markdownService?.registerMarkdownWriter(TableRowDiffNode.getType(), (ctx, node) => {
+      if (!$isTableRowDiffNode(node)) return false;
+      if (node.getDiffType() === 'remove') return true;
+
+      const parent = node.getParent();
+      if (!$isTableNode(parent)) return true;
+      const hasPreviousProjectedRow = node
+        .getPreviousSiblings()
+        .some((sibling) => !$isTableRowDiffNode(sibling) || sibling.getDiffType() !== 'remove');
+      if (hasPreviousProjectedRow) {
+        ctx.wrap('', '\n');
+      } else {
+        ctx.wrap(
+          '',
+          `\n${parent
+            .getColWidths()
+            ?.map(() => '|:--')
+            .join('')}|\n`,
+        );
+      }
+    });
     markdownService?.registerMarkdownWriter(DiffNode.getType(), (ctx, node) => {
       const diffNode = node as DiffNode;
       switch (diffNode.diffType) {
         case 'modify': {
-          ctx.processChild(ctx, diffNode.getChildAtIndex(1) as LexicalNode);
+          const after = diffNode.getChildAtIndex(1);
+          if ($isDiffContentNode(after)) {
+            after.getChildren().forEach((child) => ctx.processChild(ctx, child));
+          } else {
+            ctx.processChild(ctx, after as LexicalNode);
+          }
           break;
         }
         case 'add': {
-          ctx.processChild(ctx, diffNode.getChildAtIndex(0) as LexicalNode);
+          diffNode.getChildren().forEach((child) => ctx.processChild(ctx, child));
           break;
         }
         case 'remove': {

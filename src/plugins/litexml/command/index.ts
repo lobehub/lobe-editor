@@ -1,4 +1,5 @@
 import { $isListItemNode } from '@lexical/list';
+import { $isTableCellNode, $isTableNode, $isTableRowNode } from '@lexical/table';
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor, LexicalNode } from 'lexical';
 import {
@@ -10,11 +11,29 @@ import {
   COMMAND_PRIORITY_EDITOR,
 } from 'lexical';
 
-import { $closest } from '@/editor-kernel';
+import { $closest, getKernelFromEditor } from '@/editor-kernel';
 import { createDebugLogger } from '@/utils/debug';
 
 import type LitexmlDataSource from '../data-source/litexml-data-source';
-import { $createDiffNode, DiffNode } from '../node/DiffNode';
+import {
+  findNewIllegalDiffPaths,
+  type LiteXmlProjectionOperation,
+  projectLiteXmlOperation,
+  type SerializedDiffDocument,
+} from '../diff-validation';
+import { $createDiffContentNode, $isDiffContentNode } from '../node/DiffContentNode';
+import { $createDiffNode, $isDiffNode, DiffNode } from '../node/DiffNode';
+import { $isTableCellDiffNode } from '../node/TableCellDiffNode';
+import {
+  $createTableCellDiffFromCell,
+  $getLogicalRowWidth,
+  $getTableCellColumnIndex,
+  $getTableForCell,
+  $shrinkTableWidthsAfterCellRemoval,
+  $updateTableWidthsForCellInsertion,
+  type AnyTableCell,
+} from '../table-cell-diff';
+import { $areTableRowStructuresCompatible, $createTableRowDiffFromRow } from '../table-row-diff';
 import { $cloneNode, $parseSerializedNodeImpl, charToId } from '../utils';
 import {
   LITEXML_APPLY_COMMAND,
@@ -28,6 +47,49 @@ const logger = createDebugLogger('plugin', 'litexml');
 // Helpers to reduce duplication and improve readability
 function toArrayXml(litexml: string | string[]) {
   return Array.isArray(litexml) ? litexml : [litexml];
+}
+
+function hasNewIllegalDiffs(
+  previous: SerializedDiffDocument,
+  projected: SerializedDiffDocument,
+): string[] {
+  return findNewIllegalDiffPaths(previous, projected);
+}
+
+function projectOperation(
+  dataSource: LitexmlDataSource,
+  document: SerializedDiffDocument,
+  operation: LiteXmlProjectionOperation,
+): SerializedDiffDocument | null {
+  try {
+    const projected = projectLiteXmlOperation(document, operation, (xml) =>
+      dataSource.readLiteXMLToInode(xml),
+    );
+    const newIllegalDiffs = hasNewIllegalDiffs(document, projected);
+    if (newIllegalDiffs.length > 0) {
+      logger.warn('⚠️ Skipping operation with illegal nested diff', newIllegalDiffs);
+      return null;
+    }
+    return projected;
+  } catch (error) {
+    logger.error('❌ Failed to preflight LiteXML operation:', error);
+    return null;
+  }
+}
+
+function toProjectionOperation(operation: LiteXmlProjectionOperation): LiteXmlProjectionOperation {
+  if (operation.action === 'remove') {
+    return { ...operation, id: charToId(operation.id) };
+  }
+  if (operation.action === 'insert') {
+    return {
+      ...operation,
+      ...('beforeId' in operation
+        ? { beforeId: operation.beforeId === 'root' ? 'root' : charToId(operation.beforeId) }
+        : { afterId: operation.afterId === 'root' ? 'root' : charToId(operation.afterId) }),
+    };
+  }
+  return operation;
 }
 
 function tryParseChild(child: any, editor: LexicalEditor) {
@@ -47,6 +109,60 @@ function handleReplaceForApplyDelay(
   diffNodeMap: Map<string, DiffNode>,
   editor: LexicalEditor,
 ) {
+  if ($isTableRowNode(oldNode) || $isTableRowNode(newNode)) {
+    if (
+      !$isTableRowNode(oldNode) ||
+      !$isTableRowNode(newNode) ||
+      !$isTableNode(oldNode.getParent()) ||
+      !$areTableRowStructuresCompatible(oldNode, newNode)
+    ) {
+      logger.error(`❌ Invalid table row modification for row ${oldNode.getKey()}.`);
+      return;
+    }
+
+    const changeId = `${oldNode.getKey()}:${newNode.getKey()}`;
+    const removeRow = $createTableRowDiffFromRow(editor, oldNode, 'remove', changeId);
+    const addRow = $createTableRowDiffFromRow(editor, newNode, 'add', changeId);
+    oldNode.replace(removeRow, false);
+    removeRow.insertAfter(addRow);
+    return;
+  }
+
+  if ($isTableCellNode(oldNode) && $isTableCellNode(newNode)) {
+    const existingDiff = oldNode.getChildren().find($isDiffNode);
+    if (existingDiff) {
+      if ($isTableCellDiffNode(oldNode)) {
+        existingDiff.clear();
+        newNode.getChildren().forEach((child) => {
+          existingDiff.append($cloneNode(child, editor));
+        });
+        return;
+      }
+
+      const after = existingDiff
+        .getChildren()
+        .find((child) => $isDiffContentNode(child) && child.side === 'after');
+      if (existingDiff.diffType === 'modify' && after && $isDiffContentNode(after)) {
+        after.clear();
+        newNode.getChildren().forEach((child) => {
+          after.append($cloneNode(child, editor));
+        });
+        return;
+      }
+    }
+
+    const before = $createDiffContentNode('before');
+    const after = $createDiffContentNode('after');
+    oldNode.getChildren().forEach((child) => before.append($cloneNode(child, editor)));
+    newNode.getChildren().forEach((child) => after.append($cloneNode(child, editor)));
+
+    const diffNode = $createDiffNode('modify');
+    diffNode.append(before, after);
+    oldNode.clear();
+    oldNode.append(diffNode);
+    return;
+  }
+
   const oldBlock = $closest(oldNode, (node) => node.isInline() === false);
   if (!oldBlock) {
     throw new Error('Old block node not found for diffing.');
@@ -157,8 +273,22 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
           },
           [] as typeof payload,
         );
+        let projectedDocument = getKernelFromEditor(editor).getDocument(
+          'json',
+        ) as unknown as SerializedDiffDocument;
+        const safePayload = resultPayload.filter((item) => {
+          const nextProjection = projectOperation(
+            dataSource,
+            projectedDocument,
+            toProjectionOperation(item),
+          );
+          if (!nextProjection) return false;
+          projectedDocument = nextProjection;
+          return true;
+        });
+
         try {
-          resultPayload.forEach((item) => {
+          safePayload.forEach((item) => {
             const { action } = item;
             switch (action) {
               case 'modify': {
@@ -204,7 +334,18 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
       (payload) => {
         const { litexml, delay } = payload;
         const arrayXml = toArrayXml(litexml);
-        handleModify(editor, dataSource, arrayXml, delay);
+        if (!delay) {
+          handleModify(editor, dataSource, arrayXml, delay);
+          return false;
+        }
+
+        const operation = { action: 'modify' as const, litexml };
+        const document = getKernelFromEditor(editor).getDocument(
+          'json',
+        ) as unknown as SerializedDiffDocument;
+        if (projectOperation(dataSource, document, toProjectionOperation(operation))) {
+          handleModify(editor, dataSource, arrayXml, delay);
+        }
         return false;
       },
       COMMAND_PRIORITY_EDITOR, // Priority
@@ -214,7 +355,18 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
       (payload) => {
         const { id, delay } = payload;
         const key = charToId(id);
-        handleRemove(editor, key, delay);
+        if (!delay) {
+          handleRemove(editor, key, delay);
+          return false;
+        }
+
+        const operation = { action: 'remove' as const, id };
+        const document = getKernelFromEditor(editor).getDocument(
+          'json',
+        ) as unknown as SerializedDiffDocument;
+        if (projectOperation(dataSource, document, toProjectionOperation(operation))) {
+          handleRemove(editor, key, delay);
+        }
         return false;
       },
       COMMAND_PRIORITY_EDITOR, // Priority
@@ -222,7 +374,26 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
     editor.registerCommand(
       LITEXML_INSERT_COMMAND,
       (payload) => {
-        handleInsert(editor, payload, dataSource);
+        if (!payload.delay) {
+          handleInsert(editor, payload, dataSource);
+          return false;
+        }
+
+        const document = getKernelFromEditor(editor).getDocument(
+          'json',
+        ) as unknown as SerializedDiffDocument;
+        if (
+          projectOperation(
+            dataSource,
+            document,
+            toProjectionOperation({
+              action: 'insert',
+              ...payload,
+            }),
+          )
+        ) {
+          handleInsert(editor, payload, dataSource);
+        }
         return false;
       },
       COMMAND_PRIORITY_EDITOR, // Priority
@@ -300,7 +471,34 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
     if (!node) return;
 
     if (!delay) {
+      if ($isTableCellNode(node)) {
+        const table = $getTableForCell(node);
+        const columnIndex = $getTableCellColumnIndex(node);
+        const span = node.getColSpan();
+        node.remove();
+        if (table && columnIndex >= 0) {
+          $shrinkTableWidthsAfterCellRemoval(table, columnIndex, span);
+        }
+        return;
+      }
       node.remove();
+      return;
+    }
+
+    if ($isTableCellNode(node)) {
+      const table = $getTableForCell(node);
+      const columnIndex = $getTableCellColumnIndex(node);
+      if (!table || columnIndex < 0) {
+        logger.error(`❌ Table cell ${node.getKey()} is not attached to a valid table row.`);
+        return;
+      }
+      const changeId = `${table.getKey()}:column:${columnIndex}`;
+      node.replace($createTableCellDiffFromCell(editor, node, 'remove', changeId), false);
+      return;
+    }
+
+    if ($isTableRowNode(node) && $isTableNode(node.getParent())) {
+      node.replace($createTableRowDiffFromRow(editor, node, 'remove'), false);
       return;
     }
 
@@ -413,6 +611,57 @@ function handleInsert(
       const newNodes = inode.root.children.map((child: any) =>
         $parseSerializedNodeImpl(child, editor),
       );
+
+      const referencesTableCell = $isTableCellNode(referenceNode);
+      const insertsOnlyTableCells = newNodes.length > 0 && newNodes.every($isTableCellNode);
+      if (referencesTableCell || insertsOnlyTableCells) {
+        if (!referencesTableCell || !insertsOnlyTableCells) {
+          logger.error('❌ Table cells can only be inserted next to another cell in the same row.');
+          return;
+        }
+        const cellReference = referenceNode as AnyTableCell;
+        const table = $getTableForCell(cellReference);
+        const referenceIndex = $getTableCellColumnIndex(cellReference);
+        if (!table || referenceIndex < 0) {
+          logger.error('❌ Table cell insertion requires a valid table parent.');
+          return;
+        }
+        const rowWidthBefore = $getLogicalRowWidth(cellReference);
+        const insertionIndex = isBefore
+          ? referenceIndex
+          : referenceIndex + cellReference.getColSpan();
+        const insertedSpan = newNodes.reduce(
+          (total: number, node: LexicalNode) =>
+            total + ($isTableCellNode(node) ? node.getColSpan() : 0),
+          0,
+        );
+        $updateTableWidthsForCellInsertion(table, rowWidthBefore, insertionIndex, insertedSpan);
+
+        let spanOffset = 0;
+        const cells = (newNodes as AnyTableCell[]).map((node) => {
+          const result = delay
+            ? $createTableCellDiffFromCell(
+                editor,
+                node,
+                'add',
+                `${table.getKey()}:column:${insertionIndex + spanOffset}`,
+              )
+            : node;
+          spanOffset += node.getColSpan();
+          return result;
+        });
+        if (isBefore) {
+          cells.reverse().forEach((cell: LexicalNode) => {
+            referenceNode = referenceNode!.insertBefore(cell);
+          });
+        } else {
+          cells.forEach((cell: LexicalNode) => {
+            referenceNode = referenceNode!.insertAfter(cell);
+          });
+        }
+        return;
+      }
+
       if (!delay) {
         if (isBefore) {
           newNodes.reverse().forEach((node: LexicalNode) => {
@@ -423,6 +672,34 @@ function handleInsert(
             if (referenceNode) {
               referenceNode = referenceNode.insertAfter(node);
             }
+          });
+        }
+        return;
+      }
+
+      const referencesTableRow = $isTableRowNode(referenceNode);
+      const insertsOnlyTableRows = newNodes.every($isTableRowNode);
+      if (referencesTableRow || insertsOnlyTableRows) {
+        if (
+          !referencesTableRow ||
+          !insertsOnlyTableRows ||
+          !$isTableNode(referenceNode.getParent())
+        ) {
+          logger.error('❌ Table rows can only be inserted next to another row in the same table.');
+          return;
+        }
+
+        if (isBefore) {
+          newNodes.reverse().forEach((node: LexicalNode) => {
+            if (!$isTableRowNode(node)) return;
+            const diffRow = $createTableRowDiffFromRow(editor, node, 'add');
+            referenceNode = referenceNode!.insertBefore(diffRow);
+          });
+        } else {
+          newNodes.forEach((node: LexicalNode) => {
+            if (!$isTableRowNode(node)) return;
+            const diffRow = $createTableRowDiffFromRow(editor, node, 'add');
+            referenceNode = referenceNode!.insertAfter(diffRow);
           });
         }
         return;

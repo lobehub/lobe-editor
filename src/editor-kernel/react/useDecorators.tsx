@@ -10,14 +10,11 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { createPortal, flushSync } from 'react-dom';
+import { createPortal } from 'react-dom';
 
 import { CAN_USE_DOM } from '@/common/canUseDOM';
 import type { IEditor } from '@/types';
 
-// This workaround is no longer necessary in React 19,
-// but we currently support React >=17.x
-// https://github.com/facebook/react/pull/26395
 const useLayoutEffectImpl: typeof useLayoutEffect = CAN_USE_DOM ? useLayoutEffect : useEffect;
 
 type ErrorBoundaryProps = {
@@ -56,10 +53,7 @@ export function useDecorators(
 
       clears.push(
         editor.registerDecoratorListener<JSX.Element>((nextDecorators) => {
-          // eslint-disable-next-line @eslint-react/dom/no-flush-sync -- sync decorator updates with React tree
-          flushSync(() => {
-            setDecorators(nextDecorators);
-          });
+          setDecorators(nextDecorators);
         }),
       );
     };

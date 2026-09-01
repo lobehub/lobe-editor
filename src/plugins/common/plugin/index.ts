@@ -51,7 +51,8 @@ import {
   type PasteHandlerConfig,
   runPasteHandlers,
 } from './paste-handler';
-import { registerHeaderBackspace, registerLastElement, registerRichKeydown } from './register';
+import { registerProgressiveSelectAll } from './progressive-select-all';
+import { registerBlockBackspace, registerLastElement, registerRichKeydown } from './register';
 
 patchBreakLine();
 
@@ -450,9 +451,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     );
     this.registerClears(
       registerRichText(editor),
+      registerProgressiveSelectAll(editor),
       CAN_USE_DOM ? registerDragonSupport(editor) : noop,
       registerHistory(editor, this.kernel.getHistoryState(), 300),
-      registerHeaderBackspace(editor),
+      registerBlockBackspace(editor),
       registerRichKeydown(editor, this.kernel, {
         enableHotkey: this.config?.enableHotkey,
       }),

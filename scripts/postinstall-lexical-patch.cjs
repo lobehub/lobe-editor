@@ -1,27 +1,55 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
-const PATCH_FILE = path.join(PACKAGE_ROOT, 'patches', 'lexical@0.42.0.patch');
-const SUPPORTED_VERSION = '0.42.0';
-
-const FILE_HASHES = {
-  'Lexical.dev.js': {
-    patched: '7c81a9785b397dc09ce0ecc9f3126d3e4903cdfd12d5c51318965ed74b0e3ccb',
+const PATCH_CONFIGS = [
+  {
+    displayName: 'Lexical',
+    fileHashes: {
+      'Lexical.dev.js': {
+        patched: '7c81a9785b397dc09ce0ecc9f3126d3e4903cdfd12d5c51318965ed74b0e3ccb',
+      },
+      'Lexical.dev.mjs': {
+        patched: '880f22f2ec2d873e1699766de39edce5123b4730009bb88bb33d7e4da98a4ad9',
+      },
+      'Lexical.prod.js': {
+        patched: '9f97867340b84853cf82bbd2d60ef9f944ee61ef058daa37007b820c2780a103',
+      },
+      'Lexical.prod.mjs': {
+        patched: 'f7b2993582b2cc0573ca468373831b17971e0bb7383f5ca8785d4b93ab967c0b',
+      },
+    },
+    packageName: 'lexical',
+    patchFile: path.join(PACKAGE_ROOT, 'patches', 'lexical@0.42.0.patch'),
+    rootOverride: process.env.LOBE_EDITOR_LEXICAL_ROOT,
+    supportedVersion: '0.42.0',
   },
-  'Lexical.dev.mjs': {
-    patched: '880f22f2ec2d873e1699766de39edce5123b4730009bb88bb33d7e4da98a4ad9',
+  {
+    displayName: 'Lexical Yjs',
+    fileHashes: {
+      'LexicalYjs.dev.js': {
+        patched: '0c40721d2b2a6e91b54c34ad139d25dbdfed2e7ab2ecd04006da64117a0c24d4',
+      },
+      'LexicalYjs.dev.mjs': {
+        patched: 'ae555880fcce31f97ceab37942079726b4f887068022386e958462ea8e4aef74',
+      },
+      'LexicalYjs.prod.js': {
+        patched: '21e752d10bb9ec0684097ede5d963064cd945608613de84e60c680db97b6162d',
+      },
+      'LexicalYjs.prod.mjs': {
+        patched: 'f541806c095bf0f674dabf5a34ea09a69fc044febe6f91434267b47674ab2c9e',
+      },
+    },
+    packageName: '@lexical/yjs',
+    patchFile: path.join(PACKAGE_ROOT, 'patches', '@lexical__yjs@0.42.0.patch'),
+    rootOverride: process.env.LOBE_EDITOR_LEXICAL_YJS_ROOT,
+    supportedVersion: '0.42.0',
   },
-  'Lexical.prod.js': {
-    patched: '9f97867340b84853cf82bbd2d60ef9f944ee61ef058daa37007b820c2780a103',
-  },
-  'Lexical.prod.mjs': {
-    patched: 'f7b2993582b2cc0573ca468373831b17971e0bb7383f5ca8785d4b93ab967c0b',
-  },
-};
+];
 
 function sha256(content) {
   return crypto.createHash('sha256').update(content).digest('hex');
@@ -161,42 +189,38 @@ function applyPatchToContent(content, filePatch) {
   return output.join('\n');
 }
 
-function resolveLexicalRoot() {
-  const override = process.env.LOBE_EDITOR_LEXICAL_ROOT;
-
-  if (override) {
-    return path.resolve(override);
+function resolvePackageRoot({ packageName, rootOverride }) {
+  if (rootOverride) {
+    return path.resolve(rootOverride);
   }
 
-  const lexicalEntryPath = require.resolve('lexical', {
+  const packageEntryPath = require.resolve(packageName, {
     paths: [PACKAGE_ROOT],
   });
 
-  return path.dirname(lexicalEntryPath);
+  return path.dirname(packageEntryPath);
 }
 
-function patchLexical() {
-  const lexicalRoot = resolveLexicalRoot();
-  const lexicalPackage = JSON.parse(
-    fs.readFileSync(path.join(lexicalRoot, 'package.json'), 'utf8'),
-  );
+function patchPackage({ displayName, fileHashes, packageName, patchFile, ...config }) {
+  const packageRoot = resolvePackageRoot({ packageName, ...config });
+  const packageJson = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
 
-  if (lexicalPackage.version !== SUPPORTED_VERSION) {
+  if (packageJson.version !== config.supportedVersion) {
     console.warn(
-      `[lobe-editor] Skip Lexical patch: expected ${SUPPORTED_VERSION}, found ${lexicalPackage.version}.`,
+      `[lobe-editor] Skip ${displayName} patch: expected ${config.supportedVersion}, found ${packageJson.version}.`,
     );
     return;
   }
 
-  const patchText = fs.readFileSync(PATCH_FILE, 'utf8');
+  const patchText = fs.readFileSync(patchFile, 'utf8');
   const patches = parsePatch(patchText);
   const patchedFiles = [];
 
-  for (const [filename, hashes] of Object.entries(FILE_HASHES)) {
-    const targetPath = path.join(lexicalRoot, filename);
+  for (const [filename, hashes] of Object.entries(fileHashes)) {
+    const targetPath = path.join(packageRoot, filename);
 
     if (!fs.existsSync(targetPath)) {
-      throw new Error(`[lobe-editor] Missing Lexical file: ${targetPath}`);
+      throw new Error(`[lobe-editor] Missing ${displayName} file: ${targetPath}`);
     }
 
     const currentContent = fs.readFileSync(targetPath, 'utf8');
@@ -229,15 +253,17 @@ function patchLexical() {
   }
 
   if (patchedFiles.length > 0) {
-    console.log(`[lobe-editor] Applied Lexical compatibility patch to ${patchedFiles.join(', ')}.`);
+    console.log(
+      `[lobe-editor] Applied ${displayName} compatibility patch to ${patchedFiles.join(', ')}.`,
+    );
   }
 }
 
 try {
-  patchLexical();
+  PATCH_CONFIGS.forEach(patchPackage);
 } catch (error) {
   console.error(
-    `[lobe-editor] Failed to patch Lexical automatically: ${error instanceof Error ? error.message : String(error)}`,
+    `[lobe-editor] Failed to patch Lexical dependencies automatically: ${error instanceof Error ? error.message : String(error)}`,
   );
   process.exitCode = 1;
 }

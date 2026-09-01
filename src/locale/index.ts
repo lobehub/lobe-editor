@@ -25,6 +25,12 @@ export default {
     replace: 'Replace',
   },
   link: {
+    copy: 'Copy Link',
+    copySuccess: 'Link copied',
+    convertToCard: 'Convert to Card',
+    convertToIframe: 'Convert to Iframe',
+    convertToLink: 'Convert to Link',
+    convertToSchema: 'Convert to Schema',
     edit: 'Edit Link',
     editLinkTitle: 'Link',
     editTextTitle: 'Text',
@@ -59,5 +65,13 @@ export default {
     insertColumnRight: 'Insert {{count}} column(s) to the right',
     insertRowAbove: 'Insert {{count}} row(s) above',
     insertRowBelow: 'Insert {{count}} row(s) below',
+  },
+  toc: {
+    ariaLabel: 'Table of contents',
+    empty: 'No headings',
+    expand: 'Expand table of contents',
+    pin: 'Pin table of contents',
+    title: 'TOC',
+    unpin: 'Unpin table of contents',
   },
 };

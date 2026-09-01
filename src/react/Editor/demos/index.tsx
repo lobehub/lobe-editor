@@ -2,6 +2,7 @@ import {
   type IEditor,
   INSERT_CODEINLINE_COMMAND,
   INSERT_CODEMIRROR_COMMAND,
+  INSERT_COLLAPSIBLE_COMMAND,
   INSERT_FILE_COMMAND,
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
@@ -9,10 +10,12 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  type LinkEmbedRule,
   ReactAutoCompletePlugin,
   ReactBlockPlugin,
   ReactCodePlugin,
   ReactCodemirrorPlugin,
+  ReactCollapsiblePlugin,
   ReactFilePlugin,
   ReactHRPlugin,
   ReactImagePlugin,
@@ -21,53 +24,346 @@ import {
   ReactLiteXmlPlugin,
   ReactMathPlugin,
   ReactTablePlugin,
+  ReactTocPlugin,
   ReactToolbarPlugin,
   ReactVirtualBlockPlugin,
+  ReactYjsPlugin,
+  type SchemaRule,
   type SlashOptions,
+  type YjsProviderFactory,
   scrollIntoView,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
+import { Alert, Button, Segmented, Space, Tag } from 'antd';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
   Heading1Icon,
   Heading2Icon,
   Heading3Icon,
+  ListCollapseIcon,
   MinusIcon,
   SigmaIcon,
   Table2Icon,
 } from 'lucide-react';
-import { type FC, useMemo, useState } from 'react';
+import { type FC, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import linkDemoContent from '@/plugins/link/demos/data.json';
+import {
+  type WebSocketYjsProviderStatus,
+  createWebSocketYjsProvider,
+  fetchWebSocketDemoDocument,
+  saveWebSocketDemoDocument,
+  snapshotWebSocketDemoDocument,
+} from '@/plugins/yjs/websocket-provider';
 import { devConsole } from '@/utils/debug';
 
+import { createBroadcastChannelYjsProvider } from './BroadcastChannelYjsProvider';
 import Container from './Container';
 import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
-import content from './data.json';
+import localContent from './data.json';
 
 // @ts-expect-error not error
 window.__scrollIntoView = scrollIntoView;
 
-const styles = createStaticStyles(({ css }) => ({
+const cursorColors = ['#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ea580c', '#0891b2'];
+
+const getTabUser = () => {
+  if (typeof window === 'undefined') {
+    return {
+      color: cursorColors[0],
+      name: 'Demo user',
+    };
+  }
+
+  const cacheKey = 'lobe-editor-demo-yjs-user';
+  const cached = window.sessionStorage.getItem(cacheKey);
+
+  if (cached) {
+    return JSON.parse(cached) as { color: string; name: string };
+  }
+
+  const index = Math.floor(Math.random() * cursorColors.length);
+  const user = {
+    color: cursorColors[index],
+    name: `Demo user ${Math.floor(Math.random() * 900 + 100)}`,
+  };
+
+  window.sessionStorage.setItem(cacheKey, JSON.stringify(user));
+  return user;
+};
+
+const styles = createStaticStyles(({ css, cssVar }) => ({
+  controls: css`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+
+    padding-block: 12px;
+    padding-inline: 16px;
+    border-block-end: 1px solid rgb(0 0 0 / 6%);
+  `,
   editor: css`
     padding: 16px;
   `,
+  linkCard: css`
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+
+    max-width: min(320px, 100%);
+    padding-block: 0;
+    padding-inline: 2px;
+
+    line-height: 1;
+    color: ${cssVar.colorLink};
+    text-decoration: none;
+    vertical-align: baseline;
+
+    &[data-selected='true'] {
+      border-radius: 5px;
+      outline: 2px solid ${cssVar.colorPrimaryBorder};
+      outline-offset: 1px;
+    }
+
+    &:hover {
+      color: ${cssVar.colorLinkHover};
+      text-decoration: none;
+    }
+  `,
+  linkCardIcon: css`
+    position: relative;
+    inset-block-start: 0.06em;
+
+    overflow: hidden;
+    display: grid;
+    flex: none;
+    place-items: center;
+
+    width: 1.1em;
+    height: 1.1em;
+    border-radius: 5px;
+
+    font-size: 11px;
+    line-height: 1;
+    color: ${cssVar.colorTextSecondary};
+
+    background: ${cssVar.colorFillQuaternary};
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  `,
+  linkCardTitle: css`
+    overflow: hidden;
+    display: inline-block;
+
+    min-width: 0;
+
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  linkIframe: css`
+    position: relative;
+
+    overflow: hidden;
+
+    width: 100%;
+    border: 1px solid ${cssVar.colorBorderSecondary};
+    border-radius: 8px;
+
+    &[data-selected='true'],
+    &:focus,
+    &:focus-within {
+      border-color: ${cssVar.colorPrimary};
+      outline: none;
+      box-shadow: 0 0 0 2px ${cssVar.colorPrimaryBg};
+    }
+  `,
+  linkIframeLoading: css`
+    position: absolute;
+    z-index: 1;
+    inset-block-end: 0;
+    inset-inline: 0;
+
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+
+    height: 320px;
+
+    font-size: 13px;
+    color: ${cssVar.colorTextSecondary};
+
+    background: ${cssVar.colorFillQuaternary};
+  `,
+  linkIframeSpinner: css`
+    width: 14px;
+    height: 14px;
+    border: 2px solid ${cssVar.colorBorderSecondary};
+    border-block-start-color: ${cssVar.colorPrimary};
+    border-radius: 50%;
+
+    animation: lobe-link-iframe-spin 1s linear infinite;
+
+    @keyframes lobe-link-iframe-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  `,
+  linkIframeTitle: css`
+    padding-block: 8px;
+    padding-inline: 10px;
+    border-block-end: 1px solid ${cssVar.colorBorderSecondary};
+
+    font-size: 12px;
+    color: ${cssVar.colorTextSecondary};
+  `,
+  schemaLink: css`
+    display: inline-grid;
+    gap: 4px;
+
+    padding-block: 8px;
+    padding-inline: 10px;
+    border: 1px solid ${cssVar.colorBorderSecondary};
+    border-radius: 8px;
+
+    background: ${cssVar.colorFillQuaternary};
+  `,
+  modeBar: css`
+    display: flex;
+    justify-content: flex-end;
+    padding-block: 12px;
+    padding-inline: 0;
+  `,
 }));
 
-const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+const WEBSOCKET_DOCUMENT_ID = 'editor-demo';
+const connectionStatusColors: Record<WebSocketYjsProviderStatus, string> = {
+  connected: 'success',
+  connecting: 'processing',
+  disconnected: 'error',
+  reconnecting: 'warning',
+};
+
+function getInitialYjsDemoMode(): 'broadcast' | 'websocket' {
+  if (typeof window === 'undefined') return 'broadcast';
+
+  return new URLSearchParams(window.location.search).get('yjsMode') === 'websocket'
+    ? 'websocket'
+    : 'broadcast';
+}
+
+type EditorDemoProps = Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'> & {
+  content: unknown;
+  onEditorReady?: (editor: IEditor) => void;
+  providerFactory: YjsProviderFactory;
+  renderControls?: (editor: IEditor) => ReactNode;
+};
+
+function getDocumentSafely<T>(editor: IEditor, type: string, fallback: T): T {
+  try {
+    return (editor.getDocument(type) as T) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+const amapIcon =
+  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22%3E%3Crect width=%2248%22 height=%2248%22 rx=%2210%22 fill=%22%23f6fbff%22/%3E%3Cpath d=%22M8 24 40 8 27 40l-5-13-14-3Z%22 fill=%22%231677ff%22/%3E%3Cpath d=%22m22 27 18-19-13 32-5-13Z%22 fill=%22%2300b96b%22 opacity=%22.82%22/%3E%3Cpath d=%22M8 24 40 8 19 29l3-2-14-3Z%22 fill=%22%2369c0ff%22/%3E%3C/svg%3E';
+
+const amapRule: LinkEmbedRule = {
+  allowCard: true,
+  allowIframe: true,
+  getCardPayload: (url) => ({
+    icon: amapIcon,
+    title: '高德地图',
+    url,
+  }),
+  getIframePayload: (url) => ({
+    src: url,
+    title: 'Amap embed',
+    url,
+  }),
+  id: 'amap-share',
+  match: (url) => /(^https?:\/\/)?(uri\.amap\.com|amap\.com)\//.test(url),
+};
+
+const genericWebRule: LinkEmbedRule = {
+  allowCard: true,
+  allowIframe: true,
+  getCardPayload: (url, context) => ({
+    title: context.title || url,
+    url,
+  }),
+  id: 'generic-web',
+  match: (url) => /^https?:\/\//.test(url),
+};
+
+const schemaRules: SchemaRule[] = [
+  {
+    id: 'schema-card',
+    match: (url) => url.startsWith('schema://'),
+    parse: (url, schema) => ({
+      payload: schema,
+      schemaType: schema?.host || 'schema',
+      title: `Schema ${schema?.pathname || url}`,
+      url,
+    }),
+  },
+  {
+    id: 'alipay',
+    match: (url) => url.startsWith('alipay://'),
+    parse: (url, schema) => ({
+      payload: schema,
+      schemaType: 'alipay',
+      title: 'Alipay schema action',
+      url,
+    }),
+  },
+];
+
+const EditorDemo: FC<EditorDemoProps> = ({
+  content,
+  onEditorReady,
+  providerFactory,
+  renderControls,
+  ...props
+}) => {
   const editor = useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');
   const [xml, setXml] = useState('');
+  const tabUser = useMemo(() => getTabUser(), []);
+  const editorContent = useMemo(() => {
+    const document = content as { root?: { children?: unknown[] } };
+    if (!document?.root?.children) return content;
+
+    return {
+      ...document,
+      root: {
+        ...document.root,
+        children: [...linkDemoContent.root.children, ...document.root.children],
+      },
+    };
+  }, [content]);
 
   const handleChange = useMemo(
     () =>
       debounce((editor: IEditor) => {
-        const markdownContent = editor.getDocument('markdown') as unknown as string;
-        const jsonContent = editor.getDocument('json') as unknown as Record<string, any>;
-        const xmlContent = editor.getDocument('litexml') as unknown as string;
+        const markdownContent = getDocumentSafely(editor, 'markdown', '');
+        const jsonContent = getDocumentSafely<Record<string, any>>(editor, 'json', {});
+        const xmlContent = getDocumentSafely(editor, 'litexml', '');
         setMarkdown(markdownContent || '');
         setJson(JSON.stringify(jsonContent || {}, null, 2));
         setXml(xmlContent || '');
@@ -89,6 +385,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
   const handleInit = (editor: IEditor) => {
     // @ts-expect-error not error：
     window.editor = editor;
+    onEditorReady?.(editor);
     handleChange(editor);
   };
 
@@ -177,6 +474,17 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         type: 'divider',
       },
       {
+        icon: ListCollapseIcon,
+        key: 'collapsible',
+        label: '折叠块',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_COLLAPSIBLE_COMMAND, {});
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
+      {
         key: 'file',
         label: 'File',
         onSelect: (editor) => {
@@ -252,10 +560,13 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
       xml={xml}
       {...props}
     >
-      <Toolbar editor={editor} />
+      <div className={styles.controls}>
+        <Toolbar editor={editor} />
+        {renderControls?.(editor)}
+      </div>
       <Editor
         className={styles.editor}
-        content={content}
+        content={editorContent}
         editor={editor}
         lineEmptyPlaceholder={'Start typing here...'}
         mentionOption={{
@@ -279,15 +590,97 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
           ReactLiteXmlPlugin,
           ReactBlockPlugin,
           ReactListPlugin,
-          ReactLinkPlugin,
+          Editor.withProps(ReactLinkPlugin, {
+            allowedProtocols: ['schema:', 'alipay:'],
+            labels: {
+              convertToCard: 'Card',
+              convertToIframe: 'Iframe',
+              convertToLink: 'Link',
+              convertToSchema: 'Schema',
+            },
+            linkEmbedRules: [amapRule, genericWebRule],
+            renderLinkCard: ({
+              icon,
+              isSelected,
+              onClickCapture,
+              onMouseDownCapture,
+              openTarget,
+              title,
+              url,
+            }) => (
+              <a
+                className={styles.linkCard}
+                data-selected={isSelected}
+                href={url}
+                onClickCapture={onClickCapture}
+                onMouseDownCapture={onMouseDownCapture}
+                rel="noreferrer"
+                target={openTarget || '_blank'}
+              >
+                <span aria-hidden className={styles.linkCardIcon}>
+                  {icon ? <img alt="" src={icon} /> : title.slice(0, 1).toUpperCase()}
+                </span>
+                <span className={styles.linkCardTitle}>{title}</span>
+              </a>
+            ),
+            renderLinkIframe: ({
+              isLoading,
+              isSelected,
+              onLoad,
+              onMouseDownCapture,
+              src,
+              title,
+            }) => (
+              <div className={styles.linkIframe} data-selected={isSelected} tabIndex={0}>
+                <div className={styles.linkIframeTitle} onMouseDownCapture={onMouseDownCapture}>
+                  {title}
+                </div>
+                {isLoading && (
+                  <div className={styles.linkIframeLoading}>
+                    <span className={styles.linkIframeSpinner} />
+                    Loading embed...
+                  </div>
+                )}
+                <iframe
+                  height={320}
+                  onLoad={onLoad}
+                  src={src}
+                  style={{
+                    border: 0,
+                    display: 'block',
+                    visibility: isLoading ? 'hidden' : 'visible',
+                    width: '100%',
+                  }}
+                  title={title}
+                />
+              </div>
+            ),
+            renderSchema: ({ payload, schema, schemaType, title, url }) => (
+              <div className={styles.schemaLink}>
+                <strong>{title}</strong>
+                <span>{schemaType}</span>
+                <code>{schema?.protocol || url}</code>
+                <small>{JSON.stringify(payload)}</small>
+              </div>
+            ),
+            schemaRules,
+          }),
           ReactImagePlugin,
           // ReactCodeblockPlugin,
           ReactVirtualBlockPlugin,
           ReactCodemirrorPlugin,
+          ReactCollapsiblePlugin,
           ReactHRPlugin,
           ReactTablePlugin,
           ReactMathPlugin,
           ReactCodePlugin,
+          ReactTocPlugin,
+          Editor.withProps(ReactYjsPlugin, {
+            cursorColor: tabUser.color,
+            id: 'editor-demo',
+            providerFactory,
+            username: tabUser.name,
+          }),
           Editor.withProps(ReactToolbarPlugin, {
             children: <Toolbar editor={editor} floating />,
           }),
@@ -370,9 +763,164 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
         ]}
         slashOption={{
           items: slashItems,
+          maxLength: 16,
+          searchKeys: ['key', 'label'],
         }}
       />
     </Container>
+  );
+};
+
+const WebSocketJsonDemo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+  const [content, setContent] = useState<unknown>(null);
+  const [connectionStatus, setConnectionStatus] =
+    useState<WebSocketYjsProviderStatus>('disconnected');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState('Not saved');
+  const editorReference = useRef<IEditor | null>(null);
+  const providersReference = useRef(new Set<ReturnType<typeof createWebSocketYjsProvider>>());
+
+  const providerFactory = useCallback<YjsProviderFactory>((id, yjsDocMap) => {
+    const provider = createWebSocketYjsProvider(id, yjsDocMap);
+    providersReference.current.add(provider);
+
+    provider.on('status', ({ status }) => {
+      setConnectionStatus(status);
+    });
+
+    return provider;
+  }, []);
+
+  const snapshotCurrentDocument = useCallback(() => {
+    if (!editorReference.current) {
+      return;
+    }
+
+    snapshotWebSocketDemoDocument(
+      WEBSOCKET_DOCUMENT_ID,
+      getDocumentSafely(editorReference.current, 'json', {}),
+    );
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchWebSocketDemoDocument(WEBSOCKET_DOCUMENT_ID)
+      .then((data) => {
+        if (!isMounted) return;
+        setContent(data);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        setLoadError(error instanceof Error ? error.message : 'Failed to load document');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', snapshotCurrentDocument);
+
+    return () => {
+      snapshotCurrentDocument();
+      providersReference.current.forEach((provider) => provider.disconnect());
+      providersReference.current.clear();
+      window.removeEventListener('beforeunload', snapshotCurrentDocument);
+    };
+  }, [snapshotCurrentDocument]);
+
+  if (loadError) {
+    return (
+      <Alert message={`WebSocket demo server is not ready: ${loadError}`} showIcon type="warning" />
+    );
+  }
+
+  if (!content) {
+    return <Alert message="Loading document JSON from demo server..." showIcon type="info" />;
+  }
+
+  return (
+    <EditorDemo
+      content={content}
+      onEditorReady={(editor) => {
+        editorReference.current = editor;
+      }}
+      providerFactory={providerFactory}
+      renderControls={(editor) => (
+        <Space size={8}>
+          <Tag color={connectionStatusColors[connectionStatus]}>{connectionStatus}</Tag>
+          <Text code fontSize={12} type="secondary">
+            {saveStatus}
+          </Text>
+          <Button
+            onClick={async () => {
+              setSaveStatus('Saving...');
+              try {
+                await saveWebSocketDemoDocument(
+                  WEBSOCKET_DOCUMENT_ID,
+                  getDocumentSafely(editor, 'json', {}),
+                );
+                setSaveStatus(`Saved ${new Date().toLocaleTimeString()}`);
+              } catch (error) {
+                setSaveStatus(error instanceof Error ? error.message : 'Save failed');
+              }
+            }}
+            size="small"
+          >
+            Save JSON
+          </Button>
+        </Space>
+      )}
+      {...props}
+    />
+  );
+};
+
+const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+  const [mode, setMode] = useState<'broadcast' | 'websocket'>(getInitialYjsDemoMode);
+
+  return (
+    <>
+      <div className={styles.modeBar}>
+        <Segmented
+          onChange={(value) => {
+            const nextMode = value as 'broadcast' | 'websocket';
+            setMode(nextMode);
+
+            if (typeof window !== 'undefined') {
+              const url = new URL(window.location.href);
+
+              if (nextMode === 'websocket') {
+                url.searchParams.set('yjsMode', 'websocket');
+              } else {
+                url.searchParams.delete('yjsMode');
+              }
+
+              window.history.replaceState(null, '', url);
+            }
+          }}
+          options={[
+            { label: 'BroadcastChannel', value: 'broadcast' },
+            { label: 'WebSocket JSON', value: 'websocket' },
+          ]}
+          size="small"
+          value={mode}
+        />
+      </div>
+      {mode === 'websocket' ? (
+        <WebSocketJsonDemo key="websocket" {...props} />
+      ) : (
+        <EditorDemo
+          content={localContent}
+          key="broadcast"
+          providerFactory={createBroadcastChannelYjsProvider}
+          {...props}
+        />
+      )}
+    </>
   );
 };
 

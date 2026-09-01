@@ -7,20 +7,24 @@ import { INodePlugin } from '@/plugins/inode';
 
 import { LitexmlPlugin } from '../plugin';
 import ReactDiffNodeToolbar from './DiffNodeToolbar';
-import { styles } from './style';
+import { styles, tableCellDiffStyles, tableRowDiffStyles } from './style';
+import TableRowDiffToolbar from './TableRowDiffToolbar';
 
 export const ReactLiteXmlPlugin: FC<void> = () => {
   const [editor] = useLexicalComposerContext();
+  const lexicalEditor = editor.getLexicalEditor();
 
   useLayoutEffect(() => {
     editor.registerPlugin(INodePlugin);
     editor.registerPlugin(LitexmlPlugin, {
       decorator: (node, editor) => <ReactDiffNodeToolbar editor={editor} node={node} />,
+      tableRowDiffTheme: tableRowDiffStyles,
+      tableCellDiffTheme: tableCellDiffStyles,
       theme: styles,
     });
   }, [editor]);
 
-  return null;
+  return lexicalEditor ? <TableRowDiffToolbar editor={lexicalEditor} /> : null;
 };
 
 ReactLiteXmlPlugin.displayName = 'ReactLiteXmlPlugin';

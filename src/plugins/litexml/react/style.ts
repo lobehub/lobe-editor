@@ -4,17 +4,17 @@ export const styles = createStaticStyles(
   ({ css, cssVar }) => css`
     position: relative;
 
-    .toolbar {
+    > .toolbar {
       position: absolute;
       z-index: 10;
-      inset-block-end: 0;
-      inset-inline-end: 8px;
+      inset-block-start: 0;
+      inset-inline-start: 8px;
 
       opacity: 0;
     }
 
     &:hover {
-      .toolbar {
+      > .toolbar {
         opacity: 1;
       }
     }
@@ -122,3 +122,20 @@ export const styles = createStaticStyles(
     }
   `,
 );
+
+export const tableRowDiffStyles = createStaticStyles(
+  ({ css, cssVar }) => css`
+    &[data-diff-type='remove'] {
+      color: ${cssVar.colorTextQuaternary};
+      text-decoration: line-through;
+      background: ${cssVar.colorErrorBg};
+    }
+
+    &[data-diff-type='add'] {
+      background: ${cssVar.colorSuccessBg};
+      box-shadow: inset 3px 0 0 ${cssVar.colorSuccess};
+    }
+  `,
+);
+
+export const tableCellDiffStyles = tableRowDiffStyles;

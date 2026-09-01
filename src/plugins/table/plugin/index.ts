@@ -11,7 +11,7 @@ import {
   TableCellNode,
   TableRowNode,
 } from '@lexical/table';
-import type { LexicalEditor } from 'lexical';
+import type { LexicalEditor, LexicalNode } from 'lexical';
 import { $setSelection } from 'lexical';
 import type { ReactNode } from 'react';
 
@@ -34,6 +34,7 @@ import {
 import { patchTableNode, TableNode } from '../node';
 import { ITableControllerMenuService, TableControllerMenuService } from '../service';
 import { createDefaultTableColWidths } from '../utils';
+import { registerSingleCellTablePaste } from './single-cell-paste';
 
 export interface TablePluginOptions {
   decoratorCol?: (node: TableNode, editor: LexicalEditor) => ReactNode;
@@ -44,6 +45,12 @@ export interface TablePluginOptions {
 const tableCellProcessor = (before: string, content: string, after: string) => {
   return before + content.replace(/\n+$/, '').replaceAll(/\n+/g, '<br />') + after;
 };
+
+const isRemovedTableRowDiff = (node: LexicalNode): boolean =>
+  node.getType() === 'table-row-diff' &&
+  'getDiffType' in node &&
+  typeof node.getDiffType === 'function' &&
+  node.getDiffType() === 'remove';
 
 function isHeadlessEditor(editor: LexicalEditor): boolean {
   return editor._headless === true;
@@ -112,6 +119,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     this.register(registerTableCellUnmergeTransform(editor));
+    this.register(registerSingleCellTablePaste(editor));
 
     if (!isHeadlessEditor(editor)) {
       setScrollableTablesActive(editor, true);
@@ -419,7 +427,10 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
       if (!$isTableNode(parent)) {
         return;
       }
-      if (!node.getPreviousSibling()) {
+      const hasPreviousProjectedRow = node
+        .getPreviousSiblings()
+        .some((sibling) => !isRemovedTableRowDiff(sibling));
+      if (!hasPreviousProjectedRow) {
         ctx.wrap(
           '',
           `\n${parent

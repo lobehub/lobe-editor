@@ -50,9 +50,17 @@ export const styles = createStaticStyles(
       );
     }
 
-    .toolbar,
-    .toolbar-col,
-    .toolbar-row {
+    /*
+     * These hosts belong to the table controller only. Keep the selector scoped
+     * to the table root / scroll wrapper so a nested editor feature using the
+     * generic toolbar class (for example a LiteXML DiffNode inside a cell) is
+     * not made click-through or collapsed to zero height.
+     */
+    > .toolbar,
+    > .toolbar-col,
+    > .toolbar-row,
+    > .lobe-editor-table-scroll-wrapper > .toolbar-col,
+    > .lobe-editor-table-scroll-wrapper > .toolbar-row {
       pointer-events: none;
 
       position: absolute;
@@ -64,8 +72,10 @@ export const styles = createStaticStyles(
       height: 0;
     }
 
-    .toolbar-col,
-    .toolbar-row {
+    > .toolbar-col,
+    > .toolbar-row,
+    > .lobe-editor-table-scroll-wrapper > .toolbar-col,
+    > .lobe-editor-table-scroll-wrapper > .toolbar-row {
       inset-inline-start: var(--lobe-block-anchor-padding, 54px);
     }
 

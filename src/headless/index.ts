@@ -23,6 +23,8 @@ import { MentionPlugin } from '@/plugins/mention/plugin';
 import { TablePlugin } from '@/plugins/table/plugin';
 import type { IDocumentOptions, IEditor, IPlugin } from '@/types';
 
+import { HeadlessCollapsiblePlugin } from './collapsible-plugin';
+
 export type { FileListItem, ImageListItem, MediaLists } from './extract-media-from-editor-state';
 export { extractMediaFromEditorState } from './extract-media-from-editor-state';
 
@@ -262,6 +264,7 @@ export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   HRPlugin,
   ListPlugin,
   TablePlugin,
+  HeadlessCollapsiblePlugin,
   LitexmlPlugin,
 ];
 
