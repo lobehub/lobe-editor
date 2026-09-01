@@ -10,7 +10,7 @@ function CodeBlockRenderer({ node }: { node: Record<string, any> }) {
   const code = (node.code as string) || '';
 
   return (
-    <Highlighter defaultExpand language={language || 'text'} variant="filled" wrap>
+    <Highlighter defaultExpand language={language || 'text'} variant="filled">
       {code}
     </Highlighter>
   );
