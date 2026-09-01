@@ -168,10 +168,24 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     }, [editor]);
 
     useEffect(() => {
+      // The attach effect above can initialize the kernel during the same
+      // commit. Keep this dependency so a first render that observes no
+      // Lexical editor retries after setRootElement() succeeds. Activity also
+      // re-runs passive effects on reveal, which rebinds this listener after a
+      // reversible root detach.
+      if (!isInitialized) {
+        return;
+      }
+
+      const lexicalEditor = editor.getLexicalEditor();
+      if (!lexicalEditor) {
+        return;
+      }
+
       // Track previous content for onTextChange comparison
       let previousContent: string | undefined;
 
-      return editor.getLexicalEditor()?.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
+      return lexicalEditor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
         // Always trigger onChange for any update
         onChange?.(editor);
 
@@ -188,7 +202,7 @@ const ReactPlainText = memo<ReactPlainTextProps>(
           }
         }
       });
-    }, [editor, type, onChange, onTextChange]);
+    }, [editor, isInitialized, type, onChange, onTextChange]);
 
     useEffect(() => {
       if (!isInitialized) return;

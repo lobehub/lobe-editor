@@ -365,8 +365,12 @@ export interface IEditorKernel extends IEditor {
   /**
    * Register a callback for root attach/detach events.
    *
-   * Headless kernels return a no-op cleanup because headless Lexical editors
-   * do not support root listeners.
+   * Call this after the kernel's Lexical editor has been initialized (usually
+   * from plugin onInit). Lexical immediately invokes a newly registered root
+   * listener with the current root, so listeners registered after the initial
+   * setRootElement still receive the first root attach. Headless kernels
+   * return a no-op cleanup because headless Lexical editors do not support
+   * root listeners.
    */
   registerRootListener(listener: (rootElement: HTMLElement | null) => void): () => void;
   /**

@@ -85,6 +85,70 @@ describe('React editor root lifecycle', () => {
     expect(initialEditor.getDocument('text')).toBe('after show');
   });
 
+  it('registers change listeners after attach and after Activity reattach', async () => {
+    const onChange = vi.fn();
+    const onTextChange = vi.fn();
+    let editor: IEditor | undefined;
+    let mode: 'hidden' | 'visible' = 'visible';
+
+    const renderEditor = () =>
+      root!.render(
+        <Activity mode={mode}>
+          <Editor
+            content="initial"
+            debounceWait={0}
+            onChange={onChange}
+            onInit={(nextEditor) => {
+              editor = nextEditor;
+            }}
+            onTextChange={onTextChange}
+            type="text"
+          />
+        </Activity>,
+      );
+    const flushDebouncedCallbacks = () =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
+    const setDocumentAndFlush = async (content: string) => {
+      await act(async () => {
+        editor!.setDocument('text', content);
+        await flushDebouncedCallbacks();
+      });
+    };
+
+    act(renderEditor);
+    expect(editor?.getLexicalEditor()).toBeDefined();
+
+    // The initial document is loaded before the update listener is attached.
+    // Clear any delayed initial work so the assertions cover later updates.
+    await act(async () => {
+      await flushDebouncedCallbacks();
+    });
+    onChange.mockClear();
+    onTextChange.mockClear();
+
+    await setDocumentAndFlush('first update');
+    await setDocumentAndFlush('second update');
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onTextChange).toHaveBeenCalledTimes(1);
+
+    mode = 'hidden';
+    act(renderEditor);
+    expect(editor?.getRootElement()).toBeNull();
+
+    mode = 'visible';
+    act(renderEditor);
+    expect(editor?.getLexicalEditor()).toBeDefined();
+    onChange.mockClear();
+    onTextChange.mockClear();
+
+    await setDocumentAndFlush('after reattach');
+    await setDocumentAndFlush('after second reattach');
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onTextChange).toHaveBeenCalledTimes(1);
+  });
+
   it('rebuilds the React editor runtime after an external destroy before reattach', () => {
     const externalEditor = EditorKernel.createEditor();
     let mode: 'hidden' | 'visible' = 'visible';
