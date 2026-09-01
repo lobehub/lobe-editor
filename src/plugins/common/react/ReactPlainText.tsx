@@ -110,6 +110,9 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     const {
       props: { type, content, placeholder, lineEmptyPlaceholder },
     } = Children.only(children);
+    const initialDocumentRef = useRef({ content, type });
+    const editableRef = useRef(editable);
+    editableRef.current = editable;
 
     useLayoutEffect(() => {
       editor.registerPlugin(MarkdownPlugin, {
@@ -139,15 +142,32 @@ const ReactPlainText = memo<ReactPlainTextProps>(
 
     useEffect(() => {
       const container = editorContainerRef.current;
-      if (container && !isInitialized) {
-        // Initialize the editor
-        editor.setRootElement(container, editable);
-
-        // Set initial document content only once
-        editor.setDocument(type, content);
-        setIsInitialized(true);
+      if (!container) {
+        return;
       }
 
+      const lexicalEditor = editor.getLexicalEditor();
+      if (!lexicalEditor) {
+        // Initialize the editor
+        editor.setRootElement(container, editableRef.current);
+
+        // Set initial document content only once
+        editor.setDocument(initialDocumentRef.current.type, initialDocumentRef.current.content);
+        setIsInitialized(true);
+      } else if (editor.getRootElement() !== container) {
+        // React Activity cleans up effects while hiding a subtree. Reattach
+        // the existing Lexical editor instead of reinitializing plugins/state.
+        editor.setRootElement(container, editableRef.current);
+      }
+
+      return () => {
+        if (editor.getRootElement() === container) {
+          editor.setRootElement(null);
+        }
+      };
+    }, [editor]);
+
+    useEffect(() => {
       // Track previous content for onTextChange comparison
       let previousContent: string | undefined;
 
@@ -168,14 +188,14 @@ const ReactPlainText = memo<ReactPlainTextProps>(
           }
         }
       });
-    }, [editor, type, content, onChange, onTextChange, isInitialized]);
+    }, [editor, type, onChange, onTextChange]);
 
     useEffect(() => {
       if (!isInitialized) return;
       if (typeof editable === 'boolean') {
         editor.setEditable(editable);
       }
-    }, [isInitialized, editable]);
+    }, [editor, isInitialized, editable]);
 
     useEffect(() => {
       if (editor && onPressEnter) {

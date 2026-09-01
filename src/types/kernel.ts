@@ -274,6 +274,7 @@ export interface IEditor {
    * @param dom
    */
   setRootElement(dom: HTMLElement, editable?: boolean): LexicalEditor;
+  setRootElement(dom: null, editable?: boolean): LexicalEditor | null;
 
   /**
    * set editor selection

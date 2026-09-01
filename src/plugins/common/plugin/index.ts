@@ -28,7 +28,6 @@ import {
   TextNode,
 } from 'lexical';
 
-import { noop } from '@/editor-kernel';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
@@ -449,10 +448,31 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         COMMAND_PRIORITY_CRITICAL,
       ),
     );
+    // Dragon installs a window-level message listener whose closure captures
+    // the editor. Tie it to the root lifecycle so Activity can detach the
+    // listener while keeping the same editor/plugins alive for reattachment.
+    if (!(editor as LexicalEditor & { _headless?: boolean })._headless) {
+      let dragonCleanup: (() => void) | undefined;
+      const clearDragon = () => {
+        dragonCleanup?.();
+        dragonCleanup = undefined;
+      };
+
+      this.register(
+        editor.registerRootListener((rootElement) => {
+          clearDragon();
+          if (!rootElement || !CAN_USE_DOM) {
+            return;
+          }
+          dragonCleanup = registerDragonSupport(editor);
+        }),
+      );
+      this.register(clearDragon);
+    }
+
     this.registerClears(
       registerRichText(editor),
       registerProgressiveSelectAll(editor),
-      CAN_USE_DOM ? registerDragonSupport(editor) : noop,
       registerHistory(editor, this.kernel.getHistoryState(), 300),
       registerBlockBackspace(editor),
       registerRichKeydown(editor, this.kernel, {
