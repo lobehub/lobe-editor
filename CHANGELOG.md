@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.25.1](https://github.com/lobehub/lobe-editor/compare/v4.25.0...v4.25.1)
+<sup>Released on **2026-09-02**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Release editor resources on root detach.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Release editor resources on root detach, closes [#205](https://github.com/lobehub/lobe-editor/issues/205) ([1423ee6](https://github.com/lobehub/lobe-editor/commit/1423ee6))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.25.0](https://github.com/lobehub/lobe-editor/compare/v4.24.1...v4.25.0)
 <sup>Released on **2026-09-02**</sup>
 
