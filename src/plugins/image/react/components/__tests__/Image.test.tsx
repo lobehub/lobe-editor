@@ -17,8 +17,32 @@ const mocks = vi.hoisted(() => {
 
   return {
     editor,
+    isSelected: false,
     resizeHandleProps: [] as ResizeHandleProps[],
+    setSelected: vi.fn(),
   };
+});
+
+vi.mock('@lobehub/ui', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  ActionIcon: ({
+    'aria-label': ariaLabel,
+    onClick,
+  }: {
+    'aria-label'?: string;
+    'onClick'?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  }) => <button aria-label={ariaLabel} type="button" onClick={onClick} />,
+}));
+
+vi.mock('antd', async (importOriginal) => {
+  const original = await importOriginal<typeof import('antd')>();
+  const MockImage = Object.assign(() => null, {
+    PreviewGroup: ({ preview }: { preview?: { open?: boolean } }) => (
+      <div data-preview-open={String(preview?.open)} />
+    ),
+  });
+
+  return { ...original, Image: MockImage };
 });
 
 vi.mock('@/editor-kernel/react/useLexicalEditor', async () => {
@@ -34,7 +58,11 @@ vi.mock('@/editor-kernel/react/useLexicalEditor', async () => {
 });
 
 vi.mock('@/editor-kernel/react/useLexicalNodeSelection', () => ({
-  useLexicalNodeSelection: () => [false, vi.fn(), vi.fn(), false],
+  useLexicalNodeSelection: () => [mocks.isSelected, mocks.setSelected, vi.fn(), false],
+}));
+
+vi.mock('@/editor-kernel/react/useTranslation', () => ({
+  useTranslation: () => (key: string) => key,
 }));
 
 vi.mock('../ImageEditPopover', () => ({
@@ -83,6 +111,7 @@ describe('Image resize', () => {
     host = document.createElement('div');
     document.body.append(host);
     root = createRoot(host);
+    mocks.isSelected = false;
     mocks.resizeHandleProps.length = 0;
     vi.clearAllMocks();
   });
@@ -134,5 +163,38 @@ describe('Image resize', () => {
 
     expect(node.setWidth).toHaveBeenCalledWith(140);
     expect(node.setMaxWidth).toHaveBeenCalledWith(140);
+  });
+
+  it('opens the image preview from the hover action without selecting the node', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    expect(host.querySelector('[aria-label="image.preview"]')).toBeNull();
+
+    const image = host.querySelector<HTMLImageElement>('[data-testid="image"]');
+    await act(async () => {
+      image!.parentElement!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+
+    const previewButton = host.querySelector<HTMLButtonElement>('[aria-label="image.preview"]');
+    expect(previewButton).not.toBeNull();
+
+    await act(async () => {
+      previewButton!.click();
+    });
+
+    expect(host.querySelector('[data-preview-open="true"]')).not.toBeNull();
+    expect(mocks.setSelected).not.toHaveBeenCalled();
   });
 });

@@ -83,6 +83,33 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     color: ${cssVar.colorTextSecondary};
   `,
 
+  previewAction: css`
+    position: absolute;
+    z-index: 10000;
+    inset-block-start: 8px;
+    inset-inline-end: 8px;
+
+    && {
+      border: 1px solid rgb(255 255 255 / 24%);
+
+      color: rgb(255 255 255 / 96%);
+
+      background: rgb(0 0 0 / 58%);
+      backdrop-filter: saturate(120%) blur(12px);
+      box-shadow: 0 2px 8px rgb(0 0 0 / 36%);
+    }
+
+    &&:hover {
+      color: rgb(255 255 255);
+      background: rgb(0 0 0 / 72%);
+    }
+
+    &&:active {
+      color: rgb(255 255 255);
+      background: rgb(0 0 0 / 80%);
+    }
+  `,
+
   resizeHandle: css`
     pointer-events: auto;
     cursor: col-resize;
