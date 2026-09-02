@@ -1,26 +1,21 @@
-import type { Binding, Provider } from '@lexical/yjs';
-import type { LexicalNode, PointType, RangeSelection } from 'lexical';
+import type { Provider } from '@lexical/yjs';
+import type { LexicalNode, RangeSelection } from 'lexical';
 import {
   $getRoot,
   $getSelection,
   $isDecoratorNode,
   $isElementNode,
-  $isLineBreakNode,
   $isRangeSelection,
-  $isTextNode,
 } from 'lexical';
-import {
-  type AbstractType,
-  createRelativePositionFromTypeIndex,
-  encodeStateVector,
-  relativePositionToJSON,
-} from 'yjs';
+import { encodeStateVector, relativePositionToJSON } from 'yjs';
 
 import { hashRewriteText, normalizeRewriteText } from '@/plugins/litexml/command';
 import { $getNodeId, $isNodeIdentityBlockTarget } from '@/plugins/properties/utils';
 import type { IEditor } from '@/types';
+import { getBlockOffset } from '@/utils/linear-text';
 
 import { encodeYjsBase64, type SerializedRelativePosition } from './protocol';
+import { createRelativePositionForLexicalPoint } from './relative-position';
 import { IYjsService, type YjsPluginState } from './service';
 
 /**
@@ -72,12 +67,6 @@ export interface CaptureCollaborativeRewriteSelectionOptions {
   capturedAt?: Date | string;
 }
 
-interface CollabNodePosition {
-  _parent?: { _xmlText?: AbstractType<unknown> };
-  getOffset?: () => number;
-  getSharedType?: () => AbstractType<unknown>;
-}
-
 const getBlockAncestor = (node: LexicalNode): LexicalNode | null => {
   let current: LexicalNode | null = node;
 
@@ -87,118 +76,6 @@ const getBlockAncestor = (node: LexicalNode): LexicalNode | null => {
   }
 
   return null;
-};
-
-interface LinearTextSegment {
-  end: number;
-  node: LexicalNode;
-  start: number;
-}
-
-/** Keep selection offsets aligned with Lexical text, including atomic breaks. */
-const getLinearTextSegments = (node: LexicalNode): LinearTextSegment[] => {
-  const segments: LinearTextSegment[] = [];
-  let cursor = 0;
-
-  const visit = (candidate: LexicalNode): void => {
-    if ($isLineBreakNode(candidate)) {
-      const length = Math.max(1, candidate.getTextContent().length);
-      segments.push({ end: cursor + length, node: candidate, start: cursor });
-      cursor += length;
-      return;
-    }
-    if ($isTextNode(candidate)) {
-      const length = candidate.getTextContentSize();
-      segments.push({ end: cursor + length, node: candidate, start: cursor });
-      cursor += length;
-      return;
-    }
-    if ($isDecoratorNode(candidate)) {
-      if (candidate.isInline()) {
-        const length = candidate.getTextContent().length;
-        if (length > 0) {
-          segments.push({ end: cursor + length, node: candidate, start: cursor });
-          cursor += length;
-        }
-      }
-      return;
-    }
-    if ($isElementNode(candidate)) candidate.getChildren().forEach(visit);
-  };
-
-  visit(node);
-  return segments;
-};
-
-/** Return the character offset of a point relative to its containing block. */
-const getBlockOffset = (point: PointType, block: LexicalNode): number | null => {
-  if (!$isElementNode(block) || !Number.isSafeInteger(point.offset) || point.offset < 0) {
-    return null;
-  }
-
-  const segments = getLinearTextSegments(block);
-  if ($isTextNode(point.getNode())) {
-    const segment = segments.find((candidate) => candidate.node === point.getNode());
-    return segment
-      ? segment.start + Math.min(point.offset, point.getNode().getTextContentSize())
-      : null;
-  }
-
-  if (point.getNode() === block && point.type === 'element') {
-    const children = block.getChildren();
-    return children
-      .slice(0, point.offset)
-      .reduce((offset, child) => offset + (getLinearTextSegments(child).at(-1)?.end ?? 0), 0);
-  }
-
-  return null;
-};
-
-/**
- * Convert a Lexical point to the corresponding v1 Yjs position. This mirrors
- * @lexical/yjs' internal helper because that helper is intentionally not part
- * of its public API. Only the private binding mapping is read; no raw Yjs
- * object leaves this module.
- */
-const createRelativePosition = (
-  point: PointType,
-  binding: Binding,
-): ReturnType<typeof createRelativePositionFromTypeIndex> | null => {
-  const collabNode = binding.collabNodeMap.get(point.key) as CollabNodePosition | undefined;
-  if (!collabNode) return null;
-
-  try {
-    let sharedType: AbstractType<unknown> | undefined;
-    let offset = point.offset;
-
-    if (point.type === 'text') {
-      sharedType = collabNode._parent?._xmlText;
-      const currentOffset = collabNode.getOffset?.();
-      if (!sharedType || currentOffset === undefined || currentOffset < 0) return null;
-      offset = currentOffset + 1 + point.offset;
-    } else if (point.type === 'element') {
-      sharedType = collabNode.getSharedType?.();
-      const parent = point.getNode();
-      if (!sharedType || !$isElementNode(parent)) return null;
-
-      let accumulatedOffset = 0;
-      let index = 0;
-      let child = parent.getFirstChild();
-      while (child !== null && index++ < point.offset) {
-        accumulatedOffset += $isTextNode(child) ? child.getTextContentSize() + 1 : 1;
-        child = child.getNextSibling();
-      }
-      offset = accumulatedOffset;
-    } else {
-      return null;
-    }
-
-    return createRelativePositionFromTypeIndex(sharedType, offset);
-  } catch {
-    // A point can briefly be detached while a remote Yjs update is being
-    // materialized. Let the caller use the durable block fallback instead.
-    return null;
-  }
 };
 
 const getStateVector = (state: YjsPluginState): string | null => {
@@ -321,8 +198,8 @@ export const captureCollaborativeRewriteSelection = (
     const baseStateVector = getStateVector(state);
     if (!roomId || !baseStateVector) return fallback;
 
-    const anchorPosition = createRelativePosition(selection.anchor, state.binding);
-    const focusPosition = createRelativePosition(selection.focus, state.binding);
+    const anchorPosition = createRelativePositionForLexicalPoint(selection.anchor, state.binding);
+    const focusPosition = createRelativePositionForLexicalPoint(selection.focus, state.binding);
     if (!anchorPosition || !focusPosition) return fallback;
 
     return {

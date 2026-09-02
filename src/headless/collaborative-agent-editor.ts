@@ -1,9 +1,4 @@
-import {
-  type Binding,
-  getAnchorAndFocusCollabNodesForUserState,
-  type Provider,
-  type UserState,
-} from '@lexical/yjs';
+import { type Provider } from '@lexical/yjs';
 import type {
   BaseSelection,
   LexicalCommand,
@@ -12,16 +7,13 @@ import type {
   RangeSelection,
   SerializedEditorState,
   SerializedLexicalNode,
-  TextNode,
 } from 'lexical';
 import {
   $createRangeSelection,
-  $createTextNode,
   $getNodeByKey,
   $getRoot,
   $isDecoratorNode,
   $isElementNode,
-  $isLineBreakNode,
   $isRangeSelection,
   $isTextNode,
   $setSelection,
@@ -29,7 +21,6 @@ import {
 } from 'lexical';
 import {
   createRelativePositionFromJSON,
-  createRelativePositionFromTypeIndex,
   Doc,
   encodeStateVector,
   type RelativePosition,
@@ -58,7 +49,6 @@ import {
   $getStreamingGenerationRegion,
   $isNodeIdentityBlockTarget,
   $markNodeAsStreamingGenerationRegion,
-  $markNodesAsAIGenerated,
   $setStreamingGenerationRegionRange,
 } from '@/plugins/properties/utils';
 import {
@@ -76,10 +66,24 @@ import {
   isAgentRewriteRange,
   type SerializedRelativePosition,
 } from '@/plugins/yjs/protocol';
+import {
+  createRelativePositionForLexicalPoint,
+  resolveRelativeAnchorOffset,
+  resolveRelativeSelectionPoints,
+} from '@/plugins/yjs/relative-position';
 import { IYjsService } from '@/plugins/yjs/service';
 import type { IEditor, IPlugin } from '@/types';
+import { getBlockOffset, getBlockPoint } from '@/utils/linear-text';
 
 import { DEFAULT_HEADLESS_EDITOR_PLUGINS } from './default-plugins';
+import {
+  clearStreamingRegionMetadata,
+  getStreamingInsertionOffset,
+  getStreamingTargetIssue,
+  insertPlainTextAtBlockOffset,
+  insertStreamingTextAtBlockOffset,
+  readStreamingTargetTexts,
+} from './streaming';
 
 export type { CollaborativeAgentCommand } from '@/plugins/litexml/command/gateway';
 
@@ -340,59 +344,6 @@ const getBlockAncestor = (node: LexicalNode): LexicalNode | null => {
   return null;
 };
 
-interface LinearTextSegment {
-  end: number;
-  node: LexicalNode;
-  start: number;
-}
-
-/**
- * Flatten a block into the same character coordinate space used by Lexical's
- * selected text. LineBreakNodes and inline decorators are atoms in that
- * space; omitting them makes a point after `<br>` resolve before the break.
- */
-const getLinearTextSegments = (node: LexicalNode): LinearTextSegment[] => {
-  const segments: LinearTextSegment[] = [];
-  let cursor = 0;
-
-  const visit = (candidate: LexicalNode): void => {
-    if ($isLineBreakNode(candidate)) {
-      const length = Math.max(1, candidate.getTextContent().length);
-      segments.push({ end: cursor + length, node: candidate, start: cursor });
-      cursor += length;
-      return;
-    }
-    if ($isTextNode(candidate)) {
-      const length = candidate.getTextContentSize();
-      segments.push({ end: cursor + length, node: candidate, start: cursor });
-      cursor += length;
-      return;
-    }
-    if ($isDecoratorNode(candidate)) {
-      // Block decorators cannot be part of a text rewrite. Inline decorators
-      // still occupy a character position so adjacent points remain stable;
-      // insertion into the atom is rejected by the caller below.
-      if (candidate.isInline()) {
-        const length = candidate.getTextContent().length;
-        if (length > 0) {
-          segments.push({ end: cursor + length, node: candidate, start: cursor });
-          cursor += length;
-        }
-      }
-      return;
-    }
-    if ($isElementNode(candidate)) candidate.getChildren().forEach(visit);
-  };
-
-  visit(node);
-  return segments;
-};
-
-const getLinearTextLength = (node: LexicalNode): number => {
-  const segments = getLinearTextSegments(node);
-  return segments.at(-1)?.end ?? 0;
-};
-
 const selectionContainsInlineDecorator = (selection: RangeSelection): boolean => {
   const visit = (node: LexicalNode): boolean => {
     if ($isDecoratorNode(node) && node.isInline()) return true;
@@ -402,91 +353,11 @@ const selectionContainsInlineDecorator = (selection: RangeSelection): boolean =>
   return selection.getNodes().some(visit);
 };
 
-/** Return a Lexical point's character offset relative to a durable block. */
-const getBlockOffset = (
-  point: {
-    getNode: () => LexicalNode;
-    offset: number;
-    type: 'element' | 'text';
-  },
-  block: LexicalNode,
-): number | null => {
-  if (!$isElementNode(block) || !Number.isSafeInteger(point.offset) || point.offset < 0) {
-    return null;
-  }
-
-  const segments = getLinearTextSegments(block);
-  const pointNode = point.getNode();
-  const segment = segments.find((candidate) => candidate.node === pointNode);
-  if (segment && $isTextNode(pointNode)) {
-    return segment.start + Math.min(point.offset, pointNode.getTextContentSize());
-  }
-
-  if (pointNode === block && point.type === 'element') {
-    return block
-      .getChildren()
-      .slice(0, point.offset)
-      .reduce((offset, child) => offset + getLinearTextLength(child), 0);
-  }
-  return null;
-};
-
 interface LexicalPoint {
   key: string;
   offset: number;
   type: 'element' | 'text';
 }
-
-const getBlockPoint = (
-  block: LexicalNode,
-  offset: number,
-  direction: 'end' | 'start',
-): LexicalPoint | null => {
-  if (!$isElementNode(block)) return null;
-  if (!Number.isSafeInteger(offset) || offset < 0) return null;
-
-  const segments = getLinearTextSegments(block);
-  const textLength = segments.at(-1)?.end ?? 0;
-  if (offset > textLength) return null;
-
-  const textSegments = segments.filter((segment) => $isTextNode(segment.node));
-  if (textSegments.length === 0) {
-    return { key: block.getKey(), offset: 0, type: 'element' };
-  }
-
-  const containing = textSegments.find((segment) => offset > segment.start && offset < segment.end);
-  if (containing) {
-    const textNode = containing.node as TextNode;
-    return { key: textNode.getKey(), offset: offset - containing.start, type: 'text' };
-  }
-
-  // Prefer the text node beginning at an atom's end. At offset 2 in
-  // `a<br>bc`, for example, the correct point is the start of `bc`, not the
-  // end of `a` (which is the point before the break at offset 1).
-  const atStart = textSegments.find((segment) => segment.start === offset);
-  if (atStart) {
-    const textNode = atStart.node as TextNode;
-    return { key: textNode.getKey(), offset: 0, type: 'text' };
-  }
-  const atEnd = [...textSegments].reverse().find((segment) => segment.end === offset);
-  if (atEnd) {
-    const textNode = atEnd.node as TextNode;
-    return { key: textNode.getKey(), offset: textNode.getTextContentSize(), type: 'text' };
-  }
-
-  // A point at a line-break/decorator boundary has no Lexical text node of its
-  // own. Pick the nearest text side, preserving the requested caret direction.
-  const previous = [...textSegments].reverse().find((segment) => segment.end <= offset);
-  const next = textSegments.find((segment) => segment.start >= offset);
-  const boundary = direction === 'end' ? (next ?? previous) : (previous ?? next);
-  if (boundary) {
-    const textNode = boundary.node as TextNode;
-    const boundaryOffset = boundary === previous ? textNode.getTextContentSize() : 0;
-    return { key: textNode.getKey(), offset: boundaryOffset, type: 'text' };
-  }
-
-  return null;
-};
 
 const setRangePoint = (
   selection: RangeSelection,
@@ -494,174 +365,6 @@ const setRangePoint = (
   side: 'anchor' | 'focus',
 ): void => {
   selection[side].set(point.key, point.offset, point.type);
-};
-
-const STREAMING_TEXT_CONTAINERS = new Set(['heading', 'paragraph', 'quote', 'tablecell']);
-
-const findStreamingTextContainer = (node: LexicalNode): LexicalNode | null => {
-  if (!$isElementNode(node)) return null;
-  if (STREAMING_TEXT_CONTAINERS.has(node.getType())) return node;
-
-  for (const child of node.getChildren()) {
-    const container = findStreamingTextContainer(child);
-    if (container) return container;
-  }
-  return node;
-};
-
-/**
- * Insert one generated chunk as its own formatted TextNode. Keeping the
- * generated node separate from prefix/suffix leaves is important: provenance
- * and the temporary generation-region marker are node properties, so merging
- * into a human-authored leaf would make the protection boundary ambiguous.
- */
-const insertStreamingTextAtBlockOffset = (
-  block: LexicalNode,
-  offset: number,
-  text: string,
-  region: Pick<CollaborativeRewriteStreamState, 'generationId' | 'sessionId'>,
-  provenance: {
-    createdAt?: string;
-    generationId: string;
-    model?: string;
-    provider?: string;
-    requestId: string;
-    sessionId?: string;
-    turnIndex?: number;
-  },
-): boolean => {
-  if (!$isElementNode(block) || !text) return false;
-
-  const segments = getLinearTextSegments(block);
-  const generated = $createTextNode(text);
-  const template = segments.find(
-    (segment) => $isTextNode(segment.node) && offset >= segment.start && offset <= segment.end,
-  )?.node;
-
-  if ($isTextNode(template)) {
-    generated
-      .setFormat(template.getFormat())
-      .setDetail(template.getDetail())
-      .setMode(template.getMode())
-      .setStyle(template.getStyle());
-  }
-
-  // Set both properties while detached. Lexical's normalization can merge
-  // adjacent text nodes; a pre-existing provenance/region state makes this
-  // generated leaf non-human-owned before it enters the attached tree.
-  $markNodesAsAIGenerated([generated], provenance);
-  $markNodeAsStreamingGenerationRegion(generated, region);
-
-  if (!template) {
-    const container = findStreamingTextContainer(block);
-    if (!$isElementNode(container)) return false;
-    container.append(generated);
-    return true;
-  }
-
-  for (const segment of segments) {
-    if (offset <= segment.start) {
-      segment.node.insertBefore(generated);
-      return true;
-    }
-    if (offset < segment.end) {
-      if (!$isTextNode(segment.node)) return false;
-      const localOffset = offset - segment.start;
-      const split = segment.node.splitText(localOffset);
-      const left = split[0];
-      if (!left) return false;
-      left.insertAfter(generated);
-      return true;
-    }
-    if (offset === segment.end) {
-      segment.node.insertAfter(generated);
-      return true;
-    }
-  }
-
-  segments.at(-1)?.node.insertAfter(generated);
-  return true;
-};
-
-const insertPlainTextAtBlockOffset = (
-  block: LexicalNode,
-  offset: number,
-  text: string,
-): TextNode | null => {
-  if (!$isElementNode(block) || !text) return null;
-  const segments = getLinearTextSegments(block);
-  const inserted = $createTextNode(text).setDetail('unmergable');
-  const container = findStreamingTextContainer(block);
-
-  if (segments.length === 0) {
-    if (!$isElementNode(container)) return null;
-    container.append(inserted);
-    return inserted;
-  }
-
-  for (const segment of segments) {
-    if (offset <= segment.start) {
-      segment.node.insertBefore(inserted);
-      return inserted;
-    }
-    if (offset < segment.end) {
-      if (!$isTextNode(segment.node)) return null;
-      const split = segment.node.splitText(offset - segment.start);
-      if (!split[0]) return null;
-      split[0].insertAfter(inserted);
-      return inserted;
-    }
-    if (offset === segment.end) {
-      segment.node.insertAfter(inserted);
-      return inserted;
-    }
-  }
-  segments.at(-1)?.node.insertAfter(inserted);
-  return inserted;
-};
-
-interface StreamingCollabNodePosition {
-  _parent?: { _xmlText?: unknown };
-  getOffset?: () => number;
-  getSharedType?: () => unknown;
-}
-
-/** Convert a durable block/offset caret to a RelativePosition for cursor UI. */
-const createRelativePositionForLexicalPoint = (
-  point: LexicalPoint,
-  binding: Binding,
-): RelativePosition | null => {
-  const collabNode = binding.collabNodeMap.get(point.key) as
-    StreamingCollabNodePosition | undefined;
-  if (!collabNode) return null;
-
-  try {
-    let sharedType: unknown;
-    let offset = point.offset;
-    if (point.type === 'text') {
-      sharedType = collabNode._parent?._xmlText;
-      const currentOffset = collabNode.getOffset?.();
-      if (!sharedType || currentOffset === undefined || currentOffset < 0) return null;
-      offset = currentOffset + 1 + point.offset;
-    } else {
-      sharedType = collabNode.getSharedType?.();
-      const node = $getNodeByKey(point.key);
-      if (!sharedType || !$isElementNode(node)) return null;
-
-      let accumulatedOffset = 0;
-      let index = 0;
-      let child = node.getFirstChild();
-      while (child !== null && index++ < point.offset) {
-        accumulatedOffset += $isTextNode(child) ? child.getTextContentSize() + 1 : 1;
-        child = child.getNextSibling();
-      }
-      offset = accumulatedOffset;
-    }
-
-    return createRelativePositionFromTypeIndex(sharedType as never, offset);
-  } catch {
-    return null;
-  }
 };
 
 const isValidNodeId = (value: unknown): value is string =>
@@ -1610,7 +1313,10 @@ export class CollaborativeAgentEditor {
         createRelativePositionForLexicalPoint(point, yjsState.binding) ?? undefined;
     });
 
-    const currentTargetTexts = this.readStreamingTargetTexts(resolved.targetNodeIds).texts;
+    const currentTargetTexts = readStreamingTargetTexts(
+      this.getLexicalEditor(),
+      resolved.targetNodeIds,
+    ).texts;
     const knownMissingTargetNodeIds = new Set<string>();
     for (const nodeId of resolved.targetNodeIds) {
       if (!currentTargetTexts.has(nodeId)) knownMissingTargetNodeIds.add(nodeId);
@@ -1618,7 +1324,7 @@ export class CollaborativeAgentEditor {
     // The containing start block must survive start; otherwise there is no
     // durable place where a later chunk could be safely inserted.
     if (!currentTargetTexts.has(anchor.nodeId)) {
-      this.clearStreamingRegionMetadata(sessionId);
+      clearStreamingRegionMetadata(this.getLexicalEditor(), sessionId);
       return this.createStandaloneStreamResult(
         sessionId,
         generationId,
@@ -1743,12 +1449,34 @@ export class CollaborativeAgentEditor {
         return this.streamResultWithError(state, 'chunk-sequence-out-of-order', 'failed');
       }
     }
-    const targetIssue = this.getStreamingTargetIssue(state);
+    const targetIssue = getStreamingTargetIssue(this.getLexicalEditor(), state);
     if (targetIssue) {
       return this.stopStreamingSession(state, 'conflict', targetIssue);
     }
 
-    const insertionOffset = this.getStreamingInsertionOffset(state);
+    const lexicalEditor = this.getLexicalEditor();
+    if (!lexicalEditor) {
+      return this.stopStreamingSession(state, 'stopped', 'stream-lexical-editor-unavailable');
+    }
+
+    const insertionOffset = getStreamingInsertionOffset(lexicalEditor, state, (streamState) => {
+      const regionAnchorPosition = streamState.regionAnchorPosition;
+      const yjsState = this.getYjsServiceState();
+      if (!regionAnchorPosition || !yjsState) return null;
+
+      let offset: number | null = null;
+      lexicalEditor.getEditorState().read(() => {
+        const block = $findNodeById(streamState.caret.nodeId);
+        if (block) {
+          offset = resolveRelativeAnchorOffset(
+            yjsState.binding,
+            regionAnchorPosition as RelativePosition,
+            block,
+          );
+        }
+      });
+      return offset;
+    });
     if (insertionOffset === null) {
       return this.stopStreamingSession(state, 'conflict', 'stream-caret-invalid');
     }
@@ -1758,11 +1486,6 @@ export class CollaborativeAgentEditor {
         : insertionOffset;
     if (regionStartOffset < 0) {
       return this.stopStreamingSession(state, 'conflict', 'stream-caret-invalid');
-    }
-
-    const lexicalEditor = this.getLexicalEditor();
-    if (!lexicalEditor) {
-      return this.stopStreamingSession(state, 'stopped', 'stream-lexical-editor-unavailable');
     }
 
     let didAppend = chunk.length === 0;
@@ -1814,7 +1537,10 @@ export class CollaborativeAgentEditor {
       nodeId: state.caret.nodeId,
       offset: insertionOffset + chunk.length,
     };
-    state.expectedBlockTexts = this.readStreamingTargetTexts(state.selectionTargetNodeIds).texts;
+    state.expectedBlockTexts = readStreamingTargetTexts(
+      this.getLexicalEditor(),
+      state.selectionTargetNodeIds,
+    ).texts;
     const stateVector = this.getStateVectorSafely();
     state.lastResult = this.createStandaloneStreamResult(
       state.sessionId,
@@ -1844,7 +1570,7 @@ export class CollaborativeAgentEditor {
     if (!this.isReadyForStreaming()) {
       return this.stopStreamingSession(state, 'stopped', 'stream-stopped-provider-disconnected');
     }
-    const targetIssue = this.getStreamingTargetIssue(state);
+    const targetIssue = getStreamingTargetIssue(this.getLexicalEditor(), state);
     if (targetIssue) {
       return this.stopStreamingSession(state, 'conflict', targetIssue);
     }
@@ -2206,225 +1932,6 @@ export class CollaborativeAgentEditor {
     return text === undefined ? null : text;
   }
 
-  private readStreamingTargetTexts(targetNodeIds: ReadonlyArray<string>): {
-    duplicateNodeIds: Set<string>;
-    missingNodeIds: Set<string>;
-    texts: Map<string, string>;
-  } {
-    const texts = new Map<string, string>();
-    const missingNodeIds = new Set<string>();
-    const duplicateNodeIds = new Set<string>();
-    const lexicalEditor = this.getLexicalEditor();
-    if (!lexicalEditor) {
-      targetNodeIds.forEach((nodeId) => missingNodeIds.add(nodeId));
-      return { duplicateNodeIds, missingNodeIds, texts };
-    }
-
-    lexicalEditor.getEditorState().read(() => {
-      for (const nodeId of targetNodeIds) {
-        const nodes = $findNodesById(nodeId).filter((node) => node.isAttached());
-        if (nodes.length !== 1) {
-          if (nodes.length > 1) duplicateNodeIds.add(nodeId);
-          else missingNodeIds.add(nodeId);
-          continue;
-        }
-        texts.set(nodeId, nodes[0].getTextContent());
-      }
-    });
-    return { duplicateNodeIds, missingNodeIds, texts };
-  }
-
-  /** Read the durable region marker and generated leaves in one editor read. */
-  private readStreamingRegionSnapshot(state: CollaborativeRewriteStreamState): {
-    generatedNodeCount: number;
-    generatedStartOffset?: number;
-    generatedText: string;
-    marker?: {
-      generationId: string;
-      length?: number;
-      requestId?: string;
-      sessionId: string;
-      startOffset?: number;
-    };
-    generatedEndOffset?: number;
-    generatedContiguous: boolean;
-  } {
-    const snapshot: {
-      generatedNodeCount: number;
-      generatedStartOffset?: number;
-      generatedText: string;
-      marker?: {
-        generationId: string;
-        length?: number;
-        requestId?: string;
-        sessionId: string;
-        startOffset?: number;
-      };
-      generatedEndOffset?: number;
-      generatedContiguous: boolean;
-    } = {
-      generatedNodeCount: 0,
-      generatedText: '',
-      generatedContiguous: true,
-    };
-    const lexicalEditor = this.getLexicalEditor();
-    if (!lexicalEditor) return snapshot;
-
-    lexicalEditor.getEditorState().read(() => {
-      const block = $findNodeById(state.caret.nodeId);
-      if (!block) return;
-
-      const marker = $getStreamingGenerationRegion(block);
-      if (marker) snapshot.marker = marker;
-
-      const generatedSegments = getLinearTextSegments(block).filter((segment) => {
-        if (!$isTextNode(segment.node)) return false;
-        const region = $getStreamingGenerationRegion(segment.node);
-        return (
-          region?.sessionId === state.sessionId &&
-          region.generationId === state.generationId &&
-          region.startOffset === undefined &&
-          region.length === undefined
-        );
-      });
-      if (generatedSegments.length === 0) return;
-
-      snapshot.generatedNodeCount = generatedSegments.length;
-      snapshot.generatedStartOffset = generatedSegments[0].start;
-      snapshot.generatedEndOffset = generatedSegments.at(-1)!.end;
-      snapshot.generatedText = generatedSegments
-        .map((segment) => segment.node.getTextContent())
-        .join('');
-      snapshot.generatedContiguous =
-        snapshot.generatedEndOffset - snapshot.generatedStartOffset ===
-        snapshot.generatedText.length;
-    });
-    return snapshot;
-  }
-
-  /** Resolve a node's current linear offset inside the streaming block. */
-  private readStreamingNodeOffset(
-    state: CollaborativeRewriteStreamState,
-    nodeKey: string,
-  ): number | null {
-    const lexicalEditor = this.getLexicalEditor();
-    if (!lexicalEditor) return null;
-    let offset: number | null = null;
-    lexicalEditor.getEditorState().read(() => {
-      const block = $findNodeById(state.caret.nodeId);
-      if (!block) return;
-      const segment = getLinearTextSegments(block).find(
-        (candidate) => candidate.node.getKey() === nodeKey,
-      );
-      if (segment) offset = segment.start;
-    });
-    return offset;
-  }
-
-  /**
-   * Resolve the start of a zero-length region through its Yjs anchor. The
-   * relative position tracks edits to the human prefix, whereas the generated
-   * leaves below provide an exact boundary once the first chunk exists.
-   */
-  private readStreamingRelativeAnchorOffset(state: CollaborativeRewriteStreamState): number | null {
-    const regionAnchorPosition = state.regionAnchorPosition;
-    if (!regionAnchorPosition) return null;
-    const yjsState = this.getYjsServiceState();
-    const lexicalEditor = yjsState?.binding.editor;
-    if (!yjsState || !lexicalEditor) return null;
-
-    let offset: number | null = null;
-    lexicalEditor.getEditorState().read(() => {
-      const points = getAnchorAndFocusCollabNodesForUserState(yjsState.binding, {
-        anchorPos: regionAnchorPosition,
-        awarenessData: {},
-        color: '#7c3aed',
-        focusPos: regionAnchorPosition,
-        focusing: true,
-        name: 'AI Agent',
-      });
-      const node = points.anchorCollabNode?.getNode();
-      const block = $findNodeById(state.caret.nodeId);
-      if (!node || !block) return;
-      const point = {
-        getNode: () => node,
-        offset: points.anchorOffset,
-        type: $isElementNode(node) ? ('element' as const) : ('text' as const),
-      };
-      offset = getBlockOffset(point, block);
-    });
-    return offset;
-  }
-
-  /** Compute the current insertion boundary after prefix edits and retries. */
-  private getStreamingInsertionOffset(state: CollaborativeRewriteStreamState): number | null {
-    const snapshot = this.readStreamingRegionSnapshot(state);
-    if (snapshot.generatedNodeCount > 0) {
-      if (!snapshot.generatedContiguous || snapshot.generatedEndOffset === undefined) return null;
-      return snapshot.generatedEndOffset;
-    }
-
-    if (state.boundarySeparatorKey) {
-      const separatorOffset = this.readStreamingNodeOffset(state, state.boundarySeparatorKey);
-      if (separatorOffset !== null) return separatorOffset;
-    }
-
-    return this.readStreamingRelativeAnchorOffset(state) ?? state.regionStartOffset;
-  }
-
-  private getStreamingTargetIssue(
-    state: CollaborativeRewriteStreamState,
-  ): 'generation_conflict' | 'region_missing' | null {
-    const region = this.readStreamingRegionSnapshot(state);
-    if (
-      !region.marker ||
-      region.marker.sessionId !== state.sessionId ||
-      region.marker.generationId !== state.generationId ||
-      (region.marker.requestId !== undefined && region.marker.requestId !== state.requestId) ||
-      region.marker.length !== state.generatedText.length
-    ) {
-      return 'region_missing';
-    }
-    const current = this.readStreamingTargetTexts(state.selectionTargetNodeIds);
-    if (current.duplicateNodeIds.size > 0) return 'generation_conflict';
-
-    // Generated chunks are individually marked. If a user/peer removes the
-    // entire generated run while the block itself survives, the durable block
-    // range still exists but the region content is gone. Report that distinct
-    // condition so the worker can settle the request as an explicit user
-    // cancellation rather than a generic same-target edit conflict.
-    const hasGeneratedNodes = region.generatedNodeCount > 0;
-
-    if (state.generatedText.length > 0) {
-      if (!hasGeneratedNodes) return 'region_missing';
-      if (!region.generatedContiguous || region.generatedText !== state.generatedText) {
-        return 'generation_conflict';
-      }
-    }
-
-    for (const nodeId of state.selectionTargetNodeIds) {
-      const wasMissing = state.knownMissingTargetNodeIds.has(nodeId);
-      const expected = state.expectedBlockTexts.get(nodeId);
-      const actual = current.texts.get(nodeId);
-      if (wasMissing) {
-        // A target removed by the initial selection operation remains outside
-        // the protected live region. If it reappears, another client has
-        // mutated the target and the session must not guess how to merge it.
-        if (actual !== undefined) return 'generation_conflict';
-        continue;
-      }
-      if (actual === undefined) return 'generation_conflict';
-      // The host block is intentionally editable outside the generated run.
-      // Its whole text therefore cannot be compared with the post-start
-      // snapshot; generated leaves and the durable region marker above are the
-      // authoritative proof for that block.
-      if (nodeId !== state.caret.nodeId && expected !== actual) {
-        return 'generation_conflict';
-      }
-    }
-    return null;
-  }
-
   private hasRemoteStreamingConflict(
     selectionRange: AgentRewriteRange,
     targetNodeIds: ReadonlyArray<string>,
@@ -2524,7 +2031,7 @@ export class CollaborativeAgentEditor {
     error: string,
   ): CollaborativeRewriteStreamResult {
     if (state.status !== 'streaming') return this.copyStreamingResult(state.lastResult);
-    this.clearStreamingRegionMetadata(state.sessionId);
+    clearStreamingRegionMetadata(this.getLexicalEditor(), state.sessionId);
     state.status = status;
     state.lastResult = this.createStandaloneStreamResult(
       state.sessionId,
@@ -2543,25 +2050,6 @@ export class CollaborativeAgentEditor {
       // progress.
     }
     return this.copyStreamingResult(state.lastResult);
-  }
-
-  private clearStreamingRegionMetadata(sessionId: string): void {
-    const lexicalEditor = this.getLexicalEditor();
-    if (!lexicalEditor) return;
-    try {
-      lexicalEditor.update(
-        () => {
-          const visit = (node: LexicalNode): void => {
-            $clearStreamingGenerationRegion(node, sessionId);
-            if ($isElementNode(node)) node.getChildren().forEach(visit);
-          };
-          visit($getRoot());
-        },
-        { discrete: true },
-      );
-    } catch {
-      // The region may already have been deleted by a structural operation.
-    }
   }
 
   getRewriteResult(requestId = this.requestId): RewriteCommandResult | undefined {
@@ -2688,24 +2176,12 @@ export class CollaborativeAgentEditor {
     } catch {
       return null;
     }
-    const userState: UserState = {
-      anchorPos,
-      awarenessData: {},
-      color: '#7c3aed',
-      focusPos,
-      focusing: true,
-      name: 'AI Agent',
-    };
-
     let result: ResolvedRewriteSelection | null = null;
     lexicalEditor.getEditorState().read(() => {
-      const points = getAnchorAndFocusCollabNodesForUserState(binding, userState);
-      const anchorNode = points.anchorCollabNode?.getNode();
-      const focusNode = points.focusCollabNode?.getNode();
-      if (!anchorNode || !focusNode) return;
+      const points = resolveRelativeSelectionPoints(binding, anchorPos, focusPos);
+      if (!points) return;
 
-      const anchorKey = anchorNode.getKey();
-      const focusKey = focusNode.getKey();
+      const { anchorKey, anchorOffset, focusKey, focusOffset } = points;
       const anchorLexicalNode = $getNodeByKey(anchorKey);
       const focusLexicalNode = $getNodeByKey(focusKey);
       if (!anchorLexicalNode || !focusLexicalNode) return;
@@ -2713,8 +2189,8 @@ export class CollaborativeAgentEditor {
       const anchorType = $isElementNode(anchorLexicalNode) ? 'element' : 'text';
       const focusType = $isElementNode(focusLexicalNode) ? 'element' : 'text';
       if (
-        !isValidLexicalPoint(anchorKey, points.anchorOffset, anchorType) ||
-        !isValidLexicalPoint(focusKey, points.focusOffset, focusType)
+        !isValidLexicalPoint(anchorKey, anchorOffset, anchorType) ||
+        !isValidLexicalPoint(focusKey, focusOffset, focusType)
       ) {
         return;
       }
@@ -2724,7 +2200,7 @@ export class CollaborativeAgentEditor {
         range,
         {
           key: anchorKey,
-          offset: points.anchorOffset,
+          offset: anchorOffset,
           type: anchorType,
         },
         'anchor',
@@ -2733,7 +2209,7 @@ export class CollaborativeAgentEditor {
         range,
         {
           key: focusKey,
-          offset: points.focusOffset,
+          offset: focusOffset,
           type: focusType,
         },
         'focus',

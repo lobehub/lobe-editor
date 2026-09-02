@@ -1,12 +1,8 @@
 import type { BaseSelection, LexicalCommand, LexicalEditor, LexicalNode, PointType } from 'lexical';
 import {
   $getSelection,
-  $isDecoratorNode,
-  $isElementNode,
-  $isLineBreakNode,
   $isNodeSelection,
   $isRangeSelection,
-  $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
   CONTROLLED_TEXT_INSERTION_COMMAND,
   CUT_COMMAND,
@@ -27,6 +23,8 @@ import {
   REMOVE_TEXT_COMMAND,
   SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
 } from 'lexical';
+
+import { getBlockOffset, getLinearTextLength } from '@/utils/linear-text';
 
 import { $getStreamingGenerationRegion } from './utils';
 
@@ -71,65 +69,6 @@ const isProtectedDescendant = (node: LexicalNode | null): boolean => {
   }
 
   return false;
-};
-
-interface LinearTextSegment {
-  end: number;
-  node: LexicalNode;
-  start: number;
-}
-
-const getLinearTextSegments = (node: LexicalNode): LinearTextSegment[] => {
-  const segments: LinearTextSegment[] = [];
-  let cursor = 0;
-
-  const visit = (candidate: LexicalNode): void => {
-    if ($isLineBreakNode(candidate)) {
-      const length = Math.max(1, candidate.getTextContent().length);
-      segments.push({ end: cursor + length, node: candidate, start: cursor });
-      cursor += length;
-      return;
-    }
-    if ($isTextNode(candidate)) {
-      const length = candidate.getTextContentSize();
-      segments.push({ end: cursor + length, node: candidate, start: cursor });
-      cursor += length;
-      return;
-    }
-    if ($isDecoratorNode(candidate)) {
-      if (candidate.isInline()) {
-        const length = candidate.getTextContent().length;
-        if (length > 0) {
-          segments.push({ end: cursor + length, node: candidate, start: cursor });
-          cursor += length;
-        }
-      }
-      return;
-    }
-    if ($isElementNode(candidate)) candidate.getChildren().forEach(visit);
-  };
-
-  visit(node);
-  return segments;
-};
-
-const getLinearTextLength = (node: LexicalNode): number =>
-  getLinearTextSegments(node).at(-1)?.end ?? 0;
-
-const getBlockOffset = (point: PointType, block: LexicalNode): number | null => {
-  if (!$isElementNode(block)) return null;
-  const segments = getLinearTextSegments(block);
-  if ($isTextNode(point.getNode())) {
-    const segment = segments.find((candidate) => candidate.node === point.getNode());
-    return segment ? segment.start + point.offset : null;
-  }
-  if (point.getNode() === block && point.type === 'element') {
-    return block
-      .getChildren()
-      .slice(0, point.offset)
-      .reduce((offset, child) => offset + getLinearTextLength(child), 0);
-  }
-  return null;
 };
 
 const findProtectedBlock = (
