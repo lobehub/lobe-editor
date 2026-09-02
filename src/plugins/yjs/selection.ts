@@ -1,6 +1,14 @@
 import type { Binding, Provider } from '@lexical/yjs';
-import type { LexicalNode, PointType, RangeSelection, TextNode } from 'lexical';
-import { $getRoot, $getSelection, $isElementNode, $isRangeSelection, $isTextNode } from 'lexical';
+import type { LexicalNode, PointType, RangeSelection } from 'lexical';
+import {
+  $getRoot,
+  $getSelection,
+  $isDecoratorNode,
+  $isElementNode,
+  $isLineBreakNode,
+  $isRangeSelection,
+  $isTextNode,
+} from 'lexical';
 import {
   type AbstractType,
   createRelativePositionFromTypeIndex,
@@ -81,11 +89,45 @@ const getBlockAncestor = (node: LexicalNode): LexicalNode | null => {
   return null;
 };
 
-const getTextLeaves = (node: LexicalNode): TextNode[] => {
-  if ($isTextNode(node)) return [node];
-  if (!$isElementNode(node)) return [];
+interface LinearTextSegment {
+  end: number;
+  node: LexicalNode;
+  start: number;
+}
 
-  return node.getChildren().flatMap((child) => getTextLeaves(child));
+/** Keep selection offsets aligned with Lexical text, including atomic breaks. */
+const getLinearTextSegments = (node: LexicalNode): LinearTextSegment[] => {
+  const segments: LinearTextSegment[] = [];
+  let cursor = 0;
+
+  const visit = (candidate: LexicalNode): void => {
+    if ($isLineBreakNode(candidate)) {
+      const length = Math.max(1, candidate.getTextContent().length);
+      segments.push({ end: cursor + length, node: candidate, start: cursor });
+      cursor += length;
+      return;
+    }
+    if ($isTextNode(candidate)) {
+      const length = candidate.getTextContentSize();
+      segments.push({ end: cursor + length, node: candidate, start: cursor });
+      cursor += length;
+      return;
+    }
+    if ($isDecoratorNode(candidate)) {
+      if (candidate.isInline()) {
+        const length = candidate.getTextContent().length;
+        if (length > 0) {
+          segments.push({ end: cursor + length, node: candidate, start: cursor });
+          cursor += length;
+        }
+      }
+      return;
+    }
+    if ($isElementNode(candidate)) candidate.getChildren().forEach(visit);
+  };
+
+  visit(node);
+  return segments;
 };
 
 /** Return the character offset of a point relative to its containing block. */
@@ -94,23 +136,19 @@ const getBlockOffset = (point: PointType, block: LexicalNode): number | null => 
     return null;
   }
 
-  const leaves = getTextLeaves(block);
+  const segments = getLinearTextSegments(block);
   if ($isTextNode(point.getNode())) {
-    let offset = 0;
-    for (const leaf of leaves) {
-      if (leaf === point.getNode()) {
-        return offset + Math.min(point.offset, leaf.getTextContentSize());
-      }
-      offset += leaf.getTextContentSize();
-    }
-    return null;
+    const segment = segments.find((candidate) => candidate.node === point.getNode());
+    return segment
+      ? segment.start + Math.min(point.offset, point.getNode().getTextContentSize())
+      : null;
   }
 
   if (point.getNode() === block && point.type === 'element') {
     const children = block.getChildren();
     return children
       .slice(0, point.offset)
-      .reduce((offset, child) => offset + child.getTextContentSize(), 0);
+      .reduce((offset, child) => offset + (getLinearTextSegments(child).at(-1)?.end ?? 0), 0);
   }
 
   return null;
@@ -212,8 +250,14 @@ const getTargetNodeIds = (selection: RangeSelection): string[] | null => {
     : null;
 };
 
+const hasInlineDecorator = (node: LexicalNode): boolean => {
+  if ($isDecoratorNode(node) && node.isInline()) return true;
+  return $isElementNode(node) && node.getChildren().some(hasInlineDecorator);
+};
+
 const makeBlockFallback = (selection: RangeSelection): CapturedBlockRewriteSelection | null => {
   if (selection.isCollapsed()) return null;
+  if (selection.getNodes().some(hasInlineDecorator)) return null;
 
   const startPoint = selection.isBackward() ? selection.focus : selection.anchor;
   const endPoint = selection.isBackward() ? selection.anchor : selection.focus;

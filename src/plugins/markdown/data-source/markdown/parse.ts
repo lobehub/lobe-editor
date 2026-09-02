@@ -110,6 +110,7 @@ const isRecordNode = (value: unknown): value is MarkdownReadNode =>
 
 const consumeNodeIdMarkers = (
   nodes: Array<MarkdownReadNode | MarkdownNodeIdMarker>,
+  options: { bindTrailingNodeMarker?: boolean } = {},
 ): MarkdownReadNode[] => {
   const result: MarkdownReadNode[] = [];
   const pendingMarkers: MarkdownNodeIdMarker[] = [];
@@ -129,6 +130,23 @@ const consumeNodeIdMarkers = (
       pendingMarkers.length = 0;
     }
     result.push(node);
+  }
+
+  // Remark keeps a comment-only tail as an HTML node, so a marker emitted for
+  // Lexical's automatic trailing empty paragraph has no following block to
+  // consume it. Bind exactly one well-formed node marker to a synthetic empty
+  // paragraph at the root. Tree markers (and ambiguous multiple markers) are
+  // deliberately dropped: there is no safe structural target at EOF for
+  // their path entries.
+  if (
+    options.bindTrailingNodeMarker &&
+    pendingMarkers.length === 1 &&
+    pendingMarkers[0].kind === 'node' &&
+    pendingMarkers[0].nodeId
+  ) {
+    const paragraph = INodeHelper.createParagraph();
+    attachNodeId(paragraph, pendingMarkers[0].nodeId);
+    result.push(paragraph);
   }
   return result;
 };
@@ -417,7 +435,9 @@ function convertMdastToLexical(
       // marker is consumed at the same AST level as the following block so
       // nested lists/quotes retain their IDs without exposing metadata in the
       // rendered document.
-      children = consumeNodeIdMarkers(children);
+      children = consumeNodeIdMarkers(children, {
+        bindTrailingNodeMarker: node.type === 'root',
+      });
 
       if (markdownReaders[node.type]) {
         const reader = markdownReaders[node.type];

@@ -219,10 +219,13 @@ export function $ensureNodeId(node: LexicalNode): string | undefined {
   const current = $getNodeId(node);
   if (current) return current;
 
-  // A migration must be safe when two Yjs clients observe the same legacy
-  // node at once. Random IDs would create competing writes for one logical
-  // block; the structural seed is stable across those clients.
-  const nodeId = node.isAttached() ? getDeterministicNodeId(node) : createNodeId();
+  // `$ensureNodeId` is also called by node transforms for freshly-created
+  // attached nodes. A structural path is not an identity: inserting another
+  // block before an existing one gives both nodes the same path seed while
+  // the old node still carries its previously assigned ID. Allocate fresh
+  // IDs here; legacy/collaborative migrations use `$ensureNodeIdsInTree`,
+  // which deliberately keeps the deterministic stable-identity path below.
+  const nodeId = createNodeId();
   $setNodeProperties(node, (previous) => ({ ...previous, nodeId }));
   return nodeId;
 }

@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { createBinding, type Provider, type ProviderAwareness, type UserState } from '@lexical/yjs';
 import {
+  $createLineBreakNode,
   $createRangeSelection,
+  $createTextNode,
   $getRoot,
   $isElementNode,
   $isTextNode,
@@ -200,6 +202,35 @@ const seedDocument = (): Uint8Array => {
   const editor = source.kernel.getLexicalEditor()!;
   const binding = createBinding(
     editor,
+    provider,
+    'stream-room',
+    doc,
+    new Map([['stream-room', doc]]),
+  );
+  syncCurrentEditorStateToYjs(binding, provider);
+  const update = encodeStateAsUpdate(doc);
+  binding.root.destroy(binding);
+  doc.destroy();
+  source.destroy();
+  return update;
+};
+
+const seedLinebreakDocument = async (): Promise<Uint8Array> => {
+  const source = new HeadlessEditor();
+  source.hydrateMarkdown('placeholder');
+  const sourceEditor = source.kernel.getLexicalEditor()!;
+  sourceEditor.update(() => {
+    const paragraph = $getRoot().getFirstChild();
+    if (!$isElementNode(paragraph)) throw new Error('linebreak paragraph missing');
+    paragraph.clear();
+    paragraph.append($createTextNode('a'), $createLineBreakNode(), $createTextNode('bc'));
+  });
+  await flush();
+
+  const doc = new Doc();
+  const provider = new TestProvider(null, doc);
+  const binding = createBinding(
+    sourceEditor,
     provider,
     'stream-room',
     doc,
@@ -717,6 +748,183 @@ describe('CollaborativeAgentEditor streaming rewrite', () => {
     expect(secondLexical.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'WORLD')).toBe(true);
     setRange(0, 12);
     expect(secondLexical.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'blocked')).toBe(true);
+  });
+
+  it('keeps the stream caret after a line break when replacing text after it', async () => {
+    const room = new TestRoom(await seedLinebreakDocument());
+    rooms.push(room);
+    const first = createAgent(room, 'stream-request-linebreak');
+    agents.push(first.agent);
+    docs.push(first.doc);
+    await first.agent.connect();
+
+    const internal = first.agent as unknown as {
+      kernel: { getLexicalEditor: () => ReturnType<HeadlessEditor['kernel']['getLexicalEditor']> };
+    };
+    const lexical = internal.kernel.getLexicalEditor()!;
+    lexical.update(
+      () => {
+        const text = $getRoot()
+          .getAllTextNodes()
+          .find((node) => node.getTextContent() === 'bc');
+        if (!$isTextNode(text)) throw new Error('linebreak target text missing');
+        const selection = $createRangeSelection();
+        selection.anchor.set(text.getKey(), 0, 'text');
+        selection.focus.set(text.getKey(), 1, 'text');
+        $setSelection(selection);
+      },
+      { discrete: true },
+    );
+    const selection = captureCollaborativeRewriteSelection(internal.kernel as never, {
+      roomId: 'stream-room',
+    });
+    if (!selection) throw new Error('linebreak selection capture failed');
+    expect(selection.startOffset).toBe(2);
+    expect(selection.endOffset).toBe(3);
+
+    const blockSelection = {
+      endNodeId: selection.endNodeId,
+      endOffset: selection.endOffset,
+      kind: 'block' as const,
+      quotedText: 'b',
+      quotedTextHash: hashRewriteText('b'),
+      startNodeId: selection.startNodeId,
+      startOffset: selection.startOffset,
+      targetNodeIds: selection.targetNodeIds,
+    };
+    const resolvedBlock = first.agent.resolveSelection(blockSelection);
+    expect(resolvedBlock).toMatchObject({ startOffset: 2, endOffset: 3 });
+    lexical.getEditorState().read(() => {
+      expect(resolvedBlock?.selection.anchor.getNode().getTextContent()).toBe('bc');
+      expect(resolvedBlock?.selection.anchor.offset).toBe(0);
+    });
+
+    const started = await first.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('b'),
+      generationId: 'stream-generation-linebreak',
+      requestId: 'stream-request-linebreak',
+      sessionId: 'stream-session-linebreak',
+      selection,
+    });
+    expect(started.status).toBe('streaming');
+    await first.agent.appendRewriteChunk({
+      chunk: 'X',
+      chunkId: 'linebreak-1',
+      sessionId: 'stream-session-linebreak',
+    });
+    expect(
+      (await first.agent.finalizeRewriteSession({ sessionId: 'stream-session-linebreak' })).status,
+    ).toBe('applied');
+
+    lexical.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChild();
+      if (!$isElementNode(paragraph)) throw new Error('linebreak paragraph missing after rewrite');
+      expect(paragraph.getChildren().map((node) => node.getTextContent())).toEqual([
+        'a',
+        '\n',
+        'X',
+        'c',
+      ]);
+    });
+  });
+
+  it('repositions the zero-length stream region when its prefix changes', async () => {
+    const room = new TestRoom(seedDocument());
+    rooms.push(room);
+    const first = createAgent(room, 'stream-request-prefix-reposition');
+    agents.push(first.agent);
+    docs.push(first.doc);
+    await first.agent.connect();
+    const selection = captureText(first.agent, 'collaborative');
+    if (!selection) throw new Error('prefix selection capture failed');
+
+    const started = await first.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('collaborative'),
+      generationId: 'stream-generation-prefix-reposition',
+      requestId: 'stream-request-prefix-reposition',
+      sessionId: 'stream-session-prefix-reposition',
+      selection,
+    });
+    expect(started.status).toBe('streaming');
+
+    const internal = first.agent as unknown as {
+      kernel: { getLexicalEditor: () => ReturnType<HeadlessEditor['kernel']['getLexicalEditor']> };
+    };
+    const lexical = internal.kernel.getLexicalEditor()!;
+    lexical.update(() => {
+      const text = $getRoot().getAllTextNodes()[0];
+      if (!$isTextNode(text)) throw new Error('prefix text missing');
+      const prefix = $createRangeSelection();
+      prefix.anchor.set(text.getKey(), 0, 'text');
+      prefix.focus.set(text.getKey(), 5, 'text');
+      $setSelection(prefix);
+    });
+    expect(lexical.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'H')).toBe(true);
+    await flush();
+    const appended = await first.agent.appendRewriteChunk({
+      chunk: 'X',
+      chunkId: 'prefix-reposition-1',
+      sessionId: 'stream-session-prefix-reposition',
+    });
+    expect(appended).toMatchObject({ status: 'streaming', caret: { offset: 3 } });
+    const finalized = await first.agent.finalizeRewriteSession({
+      sessionId: 'stream-session-prefix-reposition',
+    });
+    expect(finalized.status).toBe('applied');
+
+    const projection = await __exportCollaborativeAgentEditorProjectionForPersistence(first.agent);
+    expect(projection.markdown).toContain('H X world');
+    expect(projection.markdown).not.toContain('HX');
+  });
+
+  it('repositions the stream region when its prefix grows', async () => {
+    const room = new TestRoom(seedDocument());
+    rooms.push(room);
+    const first = createAgent(room, 'stream-request-prefix-growth');
+    agents.push(first.agent);
+    docs.push(first.doc);
+    await first.agent.connect();
+    const selection = captureText(first.agent, 'collaborative');
+    if (!selection) throw new Error('prefix growth selection capture failed');
+
+    const started = await first.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('collaborative'),
+      generationId: 'stream-generation-prefix-growth',
+      requestId: 'stream-request-prefix-growth',
+      sessionId: 'stream-session-prefix-growth',
+      selection,
+    });
+    expect(started.status).toBe('streaming');
+
+    const internal = first.agent as unknown as {
+      kernel: { getLexicalEditor: () => ReturnType<HeadlessEditor['kernel']['getLexicalEditor']> };
+    };
+    const lexical = internal.kernel.getLexicalEditor()!;
+    lexical.update(() => {
+      const text = $getRoot().getAllTextNodes()[0];
+      if (!$isTextNode(text)) throw new Error('prefix growth text missing');
+      const prefix = $createRangeSelection();
+      prefix.anchor.set(text.getKey(), 0, 'text');
+      prefix.focus.set(text.getKey(), 5, 'text');
+      $setSelection(prefix);
+    });
+    expect(lexical.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'Hello expanded ')).toBe(
+      true,
+    );
+    await flush();
+
+    const appended = await first.agent.appendRewriteChunk({
+      chunk: 'X',
+      chunkId: 'prefix-growth-1',
+      sessionId: 'stream-session-prefix-growth',
+    });
+    expect(appended).toMatchObject({ status: 'streaming', caret: { offset: 17 } });
+    expect(
+      (await first.agent.finalizeRewriteSession({ sessionId: 'stream-session-prefix-growth' }))
+        .status,
+    ).toBe('applied');
+    const projection = await __exportCollaborativeAgentEditorProjectionForPersistence(first.agent);
+    expect(projection.markdown).toContain('Hello expanded  X world');
   });
 
   it('streams a cross-block selection into the first durable block', async () => {

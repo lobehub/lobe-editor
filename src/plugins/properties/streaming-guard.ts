@@ -1,7 +1,9 @@
 import type { BaseSelection, LexicalCommand, LexicalEditor, LexicalNode, PointType } from 'lexical';
 import {
   $getSelection,
+  $isDecoratorNode,
   $isElementNode,
+  $isLineBreakNode,
   $isNodeSelection,
   $isRangeSelection,
   $isTextNode,
@@ -71,28 +73,61 @@ const isProtectedDescendant = (node: LexicalNode | null): boolean => {
   return false;
 };
 
-const getTextLeaves = (node: LexicalNode): LexicalNode[] => {
-  if ($isTextNode(node)) return [node];
-  if (!$isElementNode(node)) return [];
-  return node.getChildren().flatMap((child) => getTextLeaves(child));
+interface LinearTextSegment {
+  end: number;
+  node: LexicalNode;
+  start: number;
+}
+
+const getLinearTextSegments = (node: LexicalNode): LinearTextSegment[] => {
+  const segments: LinearTextSegment[] = [];
+  let cursor = 0;
+
+  const visit = (candidate: LexicalNode): void => {
+    if ($isLineBreakNode(candidate)) {
+      const length = Math.max(1, candidate.getTextContent().length);
+      segments.push({ end: cursor + length, node: candidate, start: cursor });
+      cursor += length;
+      return;
+    }
+    if ($isTextNode(candidate)) {
+      const length = candidate.getTextContentSize();
+      segments.push({ end: cursor + length, node: candidate, start: cursor });
+      cursor += length;
+      return;
+    }
+    if ($isDecoratorNode(candidate)) {
+      if (candidate.isInline()) {
+        const length = candidate.getTextContent().length;
+        if (length > 0) {
+          segments.push({ end: cursor + length, node: candidate, start: cursor });
+          cursor += length;
+        }
+      }
+      return;
+    }
+    if ($isElementNode(candidate)) candidate.getChildren().forEach(visit);
+  };
+
+  visit(node);
+  return segments;
 };
+
+const getLinearTextLength = (node: LexicalNode): number =>
+  getLinearTextSegments(node).at(-1)?.end ?? 0;
 
 const getBlockOffset = (point: PointType, block: LexicalNode): number | null => {
   if (!$isElementNode(block)) return null;
-  const leaves = getTextLeaves(block);
+  const segments = getLinearTextSegments(block);
   if ($isTextNode(point.getNode())) {
-    let offset = 0;
-    for (const leaf of leaves) {
-      if (leaf === point.getNode()) return offset + point.offset;
-      offset += leaf.getTextContentSize();
-    }
-    return null;
+    const segment = segments.find((candidate) => candidate.node === point.getNode());
+    return segment ? segment.start + point.offset : null;
   }
   if (point.getNode() === block && point.type === 'element') {
     return block
       .getChildren()
       .slice(0, point.offset)
-      .reduce((offset, child) => offset + child.getTextContentSize(), 0);
+      .reduce((offset, child) => offset + getLinearTextLength(child), 0);
   }
   return null;
 };
@@ -188,10 +223,7 @@ const selectionTouchesProtectedRegion = (
         // If one endpoint is in this block and the other is outside, the
         // selection continues to the corresponding block boundary. Use the
         // block's text length to decide whether that path crosses the region.
-        const blockLength = getTextLeaves(block).reduce(
-          (total, leaf) => total + leaf.getTextContentSize(),
-          0,
-        );
+        const blockLength = getLinearTextLength(block);
         if (anchorOffset !== null) {
           const boundaryStart = anchorOffset;
           const boundaryEnd = blockLength;

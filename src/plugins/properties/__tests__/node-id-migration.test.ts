@@ -4,7 +4,7 @@ import { type Provider, type ProviderAwareness, type UserState, createBinding } 
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 
 import { DEFAULT_HEADLESS_EDITOR_PLUGINS, HeadlessEditor } from '@/headless';
-import { $getRoot } from 'lexical';
+import { $createParagraphNode, $createTextNode, $getRoot } from 'lexical';
 import {
   hydrateLexicalFromYjsState,
   syncCurrentEditorStateToYjs,
@@ -147,6 +147,44 @@ describe('durable node identity migration', () => {
     expect(ids[0]).toBe('duplicate-id');
     expect(ids[1]).toBeTruthy();
     expect(ids[1]).not.toBe(ids[0]);
+  });
+
+  it('keeps an existing block ID when a new block is inserted at its old path', async () => {
+    const editor = new HeadlessEditor();
+    editors.push(editor);
+    editor.hydrateMarkdown('Original block');
+    await flush();
+
+    const lexical = editor.kernel.getLexicalEditor()!;
+    lexical.update(() => {
+      const original = $getRoot().getFirstChildOrThrow();
+      original.insertBefore($createParagraphNode().append($createTextNode('Inserted block')));
+    });
+    await flush();
+
+    const firstInsertedId = lexical
+      .getEditorState()
+      .read(() => $getNodeId($getRoot().getFirstChildOrThrow()));
+    const originalId = lexical
+      .getEditorState()
+      .read(() => $getNodeId($getRoot().getLastChildOrThrow()));
+
+    lexical.update(() => {
+      const firstInserted = $getRoot().getFirstChildOrThrow();
+      firstInserted.insertBefore($createParagraphNode().append($createTextNode('Inserted again')));
+    });
+    await flush();
+
+    const ids = lexical.getEditorState().read(() =>
+      $getRoot()
+        .getChildren()
+        .map((node) => $getNodeId(node)),
+    );
+    expect(ids).toHaveLength(3);
+    expect(ids[1]).toBe(firstInsertedId);
+    expect(ids[2]).toBe(originalId);
+    expect(ids.every((id): id is string => Boolean(id))).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('converges when two Yjs clients migrate the same legacy update concurrently', async () => {
