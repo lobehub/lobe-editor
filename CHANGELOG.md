@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.26.0](https://github.com/lobehub/lobe-editor/compare/v4.25.1...v4.26.0)
+<sup>Released on **2026-09-02**</sup>
+
+
+#### ✨ Features
+
+- **image**: Add preview action.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **image**: Add preview action, closes [#202](https://github.com/lobehub/lobe-editor/issues/202) ([3152bdc](https://github.com/lobehub/lobe-editor/commit/3152bdc))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.25.1](https://github.com/lobehub/lobe-editor/compare/v4.25.0...v4.25.1)
 <sup>Released on **2026-09-02**</sup>
 
