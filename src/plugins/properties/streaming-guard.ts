@@ -24,7 +24,7 @@ import {
   SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
 } from 'lexical';
 
-import { getBlockOffset, getLinearTextLength } from '@/utils/linear-text';
+import { getBlockOffset, getLinearTextLength } from '@/editor-kernel/linear-text';
 
 import { $getStreamingGenerationRegion } from './utils';
 

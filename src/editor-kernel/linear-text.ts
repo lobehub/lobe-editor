@@ -70,21 +70,41 @@ export const getBlockOffset = (point: LinearTextPoint, block: LexicalNode): numb
     return null;
   }
 
-  const pointNode = point.getNode();
-  const segments = getLinearTextSegments(block);
-  const segment = segments.find((candidate) => candidate.node === pointNode);
-  if (segment && $isTextNode(pointNode)) {
-    return segment.start + Math.min(point.offset, pointNode.getTextContentSize());
+  let pointNode: LexicalNode;
+  try {
+    pointNode = point.getNode();
+  } catch {
+    return null;
+  }
+  if (!pointNode.isAttached() || (!pointNode.is(block) && !block.isParentOf(pointNode))) {
+    return null;
   }
 
-  if (pointNode === block && point.type === 'element') {
-    return block
+  if (point.type === 'text') {
+    if (!$isTextNode(pointNode) || point.offset > pointNode.getTextContentSize()) return null;
+    const segment = getLinearTextSegments(block).find((candidate) => candidate.node === pointNode);
+    return segment ? segment.start + point.offset : null;
+  }
+
+  if (point.type !== 'element' || !$isElementNode(pointNode)) return null;
+  if (point.offset > pointNode.getChildrenSize()) return null;
+
+  let offset = pointNode
+    .getChildren()
+    .slice(0, point.offset)
+    .reduce((total, child) => total + getLinearTextLength(child), 0);
+  let current = pointNode;
+  while (!current.is(block)) {
+    const parent = current.getParent();
+    if (!parent || !$isElementNode(parent)) return null;
+    const index = current.getIndexWithinParent();
+    offset += parent
       .getChildren()
-      .slice(0, point.offset)
-      .reduce((offset, child) => offset + getLinearTextLength(child), 0);
+      .slice(0, index)
+      .reduce((total, child) => total + getLinearTextLength(child), 0);
+    current = parent;
   }
-
-  return null;
+  return offset;
 };
 
 export interface LinearTextPointResult {

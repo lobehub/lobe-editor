@@ -9,10 +9,10 @@ import {
 } from 'lexical';
 import { encodeStateVector, relativePositionToJSON } from 'yjs';
 
+import { getBlockOffset } from '@/editor-kernel/linear-text';
 import { hashRewriteText, normalizeRewriteText } from '@/plugins/litexml/command';
 import { $getNodeId, $isNodeIdentityBlockTarget } from '@/plugins/properties/utils';
 import type { IEditor } from '@/types';
-import { getBlockOffset } from '@/utils/linear-text';
 
 import { encodeYjsBase64, type SerializedRelativePosition } from './protocol';
 import { createRelativePositionForLexicalPoint } from './relative-position';

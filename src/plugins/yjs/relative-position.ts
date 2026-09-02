@@ -11,7 +11,7 @@ import {
   getBlockOffset,
   type LinearTextPoint,
   type LinearTextPointResult,
-} from '@/utils/linear-text';
+} from '@/editor-kernel/linear-text';
 
 interface CollabNodePosition {
   _parent?: { _xmlText?: unknown };

@@ -28,6 +28,7 @@ import {
 } from 'yjs';
 
 import Editor, { moment } from '@/editor-kernel';
+import { getBlockOffset, getBlockPoint } from '@/editor-kernel/linear-text';
 import {
   hashRewriteText,
   IRewriteCommandResultService,
@@ -73,7 +74,6 @@ import {
 } from '@/plugins/yjs/relative-position';
 import { IYjsService } from '@/plugins/yjs/service';
 import type { IEditor, IPlugin } from '@/types';
-import { getBlockOffset, getBlockPoint } from '@/utils/linear-text';
 
 import { DEFAULT_HEADLESS_EDITOR_PLUGINS } from './default-plugins';
 import {

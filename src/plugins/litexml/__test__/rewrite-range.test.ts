@@ -1,5 +1,7 @@
 import {
+  $createLineBreakNode,
   $createRangeSelection,
+  $createTextNode,
   $getRoot,
   $getSelection,
   $isElementNode,
@@ -341,6 +343,53 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       expect(acceptedIds.filter((candidate) => candidate === id)).toHaveLength(1);
     }
     expect(new Set(acceptedIds).size).toBe(acceptedIds.length);
+  });
+
+  it('rewrites text after a line break from a durable block-offset selection', async () => {
+    editor.setDocument('markdown', 'placeholder');
+    await moment();
+    const lexical = editor.getLexicalEditor()!;
+    let nodeId = '';
+    lexical.update(() => {
+      const paragraph = $getRoot().getFirstChildOrThrow();
+      if (!$isElementNode(paragraph)) throw new Error('paragraph missing');
+      paragraph.clear();
+      paragraph.append($createTextNode('a'), $createLineBreakNode(), $createTextNode('bc'));
+      nodeId = $getNodeId(paragraph) || '';
+    });
+    await moment();
+    expect(nodeId).toBeTruthy();
+
+    editor.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, {
+      delay: true,
+      expectedTextHash: hashRewriteText('b'),
+      generationId: 'generation-linebreak-command',
+      replacementText: 'X',
+      requestId: 'request-linebreak-command',
+      selection: {
+        anchor: { nodeId, offset: 2 },
+        focus: { nodeId, offset: 3 },
+        type: 'range',
+      },
+    });
+    await moment();
+    await moment();
+    expect(
+      editor.requireService(IRewriteCommandResultService)?.get('request-linebreak-command'),
+    ).toMatchObject({ status: 'diff-created' });
+
+    editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Accept });
+    await moment();
+    await moment();
+    lexical.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChildOrThrow();
+      if (!$isElementNode(paragraph)) throw new Error('paragraph missing after rewrite');
+      expect(paragraph.getChildren().map((node) => node.getTextContent())).toEqual([
+        'a',
+        '\n',
+        'Xc',
+      ]);
+    });
   });
 
   it('accepts inline LiteXML replacement and returns stale for hash drift', async () => {

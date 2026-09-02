@@ -1,6 +1,7 @@
 import type { LexicalEditor, LexicalNode, TextNode } from 'lexical';
 import { $createTextNode, $getRoot, $isElementNode, $isTextNode } from 'lexical';
 
+import { getLinearTextSegments } from '@/editor-kernel/linear-text';
 import {
   $clearStreamingGenerationRegion,
   $findNodeById,
@@ -11,7 +12,6 @@ import {
   $setStreamingGenerationRegionRange,
   type StreamingGenerationRegion,
 } from '@/plugins/properties/utils';
-import { getLinearTextSegments } from '@/utils/linear-text';
 
 /** Minimal stream state shape consumed by the private document helpers. */
 export interface StreamingStateView {

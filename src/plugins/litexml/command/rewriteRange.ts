@@ -11,7 +11,6 @@ import type {
 } from 'lexical';
 import {
   $createParagraphNode,
-  $createPoint,
   $createRangeSelection,
   $getRoot,
   $isDecoratorNode,
@@ -26,6 +25,7 @@ import {
 import { encodeStateVector } from 'yjs';
 
 import { genServiceId } from '@/editor-kernel';
+import { getBlockOffset, getBlockPoint, getLinearTextLength } from '@/editor-kernel/linear-text';
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 import { $setNodeProperties, createNodeId } from '@/plugins/properties/state';
 import type { JSONValue, NodeProvenance } from '@/plugins/properties/types';
@@ -547,47 +547,23 @@ function findRewriteBlock(node: LexicalNode): LexicalNode | null {
   return candidate;
 }
 
-function findTextLength(node: LexicalNode): number {
-  return node.getTextContent().length;
-}
-
-function pointOffsetInBlock(point: PointType, block: LexicalNode): number | null {
-  const node = point.getNode();
-  if (!node.isAttached() || (!node.is(block) && !block.isParentOf(node))) return null;
-
-  if (node.is(block)) {
-    if (!$isElementNode(node) || point.type !== 'element') return null;
-    if (point.offset < 0 || point.offset > node.getChildrenSize()) return null;
-    return node
-      .getChildren()
-      .slice(0, point.offset)
-      .reduce((total, child) => total + findTextLength(child), 0);
+/** Keep command-side point validation while sharing the editor-kernel offset math. */
+function getValidatedBlockOffset(point: PointType, block: LexicalNode): number | null {
+  let node: LexicalNode;
+  try {
+    node = point.getNode();
+  } catch {
+    return null;
   }
-
+  if (!node.isAttached() || (!node.is(block) && !block.isParentOf(node))) return null;
   if (point.type === 'text' && !$isTextNode(node)) return null;
   if (point.type === 'element' && !$isElementNode(node)) return null;
   if (point.offset < 0) return null;
   if (point.type === 'text' && point.offset > node.getTextContentSize()) return null;
-  if (
-    point.type === 'element' &&
-    (!$isElementNode(node) || point.offset > node.getChildrenSize())
-  ) {
+  if (point.type === 'element' && $isElementNode(node) && point.offset > node.getChildrenSize()) {
     return null;
   }
-
-  let offset = point.type === 'text' ? point.offset : 0;
-  let current: LexicalNode = node;
-  while (!current.is(block)) {
-    const parent = current.getParent();
-    if (!parent || !$isElementNode(parent)) return null;
-    const index = current.getIndexWithinParent();
-    offset += parent
-      .getChildren()
-      .slice(0, index)
-      .reduce((total, child) => total + findTextLength(child), 0);
-    current = parent;
-  }
-  return offset;
+  return getBlockOffset(point, block);
 }
 
 function collectRewriteBlocks(root: LexicalNode): LexicalNode[] {
@@ -609,52 +585,6 @@ function collectRewriteBlocks(root: LexicalNode): LexicalNode[] {
   };
   if ($isElementNode(root)) root.getChildren().forEach((child) => visit(child, false));
   return blocks;
-}
-
-function findPointAtBlockOffset(
-  block: LexicalNode,
-  offset: number,
-  preferEnd = false,
-): PointType | null {
-  if (!$isElementNode(block)) return null;
-  if (!Number.isSafeInteger(offset) || offset < 0) return null;
-  const textNodes: Array<{ node: LexicalNode; start: number; end: number }> = [];
-  let cursor = 0;
-  const visit = (node: LexicalNode): void => {
-    if ($isTextNode(node)) {
-      const end = cursor + node.getTextContentSize();
-      textNodes.push({ end, node, start: cursor });
-      cursor = end;
-      return;
-    }
-    if ($isLineBreakNode(node)) {
-      const end = cursor + node.getTextContent().length;
-      textNodes.push({ end, node, start: cursor });
-      cursor = end;
-      return;
-    }
-    if ($isElementNode(node)) node.getChildren().forEach(visit);
-  };
-  block.getChildren().forEach(visit);
-
-  if (textNodes.length === 0) {
-    if (offset > block.getChildrenSize()) return null;
-    return $createPoint(block.getKey(), Math.min(offset, block.getChildrenSize()), 'element');
-  }
-
-  const total = cursor;
-  if (offset > total) return null;
-  const target = offset;
-  const entry = preferEnd
-    ? [...textNodes].reverse().find((item) => target >= item.start)
-    : textNodes.find((item) => target <= item.end);
-  if (!entry) return null;
-  const localOffset = Math.max(0, Math.min(target - entry.start, entry.end - entry.start));
-  return $createPoint(
-    entry.node.getKey(),
-    localOffset,
-    $isTextNode(entry.node) ? 'text' : 'element',
-  );
 }
 
 interface SerializedSelectionProof {
@@ -711,8 +641,8 @@ function resolveSerializedSelection(
   const focusBlock = $findNodeById(selection.focus.nodeId);
   if (!anchorBlock || !focusBlock) return null;
 
-  const anchorPoint = findPointAtBlockOffset(anchorBlock, selection.anchor.offset);
-  const focusPoint = findPointAtBlockOffset(focusBlock, selection.focus.offset, true);
+  const anchorPoint = getBlockPoint(anchorBlock, selection.anchor.offset, 'start');
+  const focusPoint = getBlockPoint(focusBlock, selection.focus.offset, 'end');
   if (!anchorPoint || !focusPoint) return null;
   if (selection.anchor.type && selection.anchor.type !== anchorPoint.type) return null;
   if (selection.focus.type && selection.focus.type !== focusPoint.type) return null;
@@ -803,12 +733,12 @@ function validateSelection(
   if (hasAncestor(startNode, $isDiffNode) || hasAncestor(endNode, $isDiffNode)) {
     return failedResult({}, 'selection-inside-existing-diff', 'stale');
   }
-  const startOffset = pointOffsetInBlock(startPoint, startBlock);
-  const endOffset = pointOffsetInBlock(endPoint, endBlock);
-  if (startOffset === null || endOffset === null || startOffset > findTextLength(startBlock)) {
+  const startOffset = getValidatedBlockOffset(startPoint, startBlock);
+  const endOffset = getValidatedBlockOffset(endPoint, endBlock);
+  if (startOffset === null || endOffset === null || startOffset > getLinearTextLength(startBlock)) {
     return failedResult({}, 'selection-offset-invalid', 'stale');
   }
-  if (endOffset === null || endOffset > findTextLength(endBlock)) {
+  if (endOffset === null || endOffset > getLinearTextLength(endBlock)) {
     return failedResult({}, 'selection-offset-invalid', 'stale');
   }
 
@@ -897,7 +827,7 @@ function validateSelection(
     }
     if (hasAncestor(block, $isDiffNode))
       return failedResult({}, 'selection-inside-existing-diff', 'stale');
-    if (serializeTextLength(block) !== findTextLength(block)) {
+    if (serializeTextLength(block) !== getLinearTextLength(block)) {
       return failedResult({}, 'unsupported-non-text-inline-content');
     }
   }
@@ -1533,7 +1463,7 @@ export function executeRewriteRange(
     const isFirst = index === 0;
     const isLast = index === blocks.length - 1;
     const blockStart = isFirst ? startOffset : 0;
-    const blockEnd = isLast ? endOffset : findTextLength(block);
+    const blockEnd = isLast ? endOffset : getLinearTextLength(block);
     const transformed = rewriteSerializedBlock(
       block,
       blockStart,
