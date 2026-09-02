@@ -30,10 +30,8 @@ import {
 import Editor, { moment } from '@/editor-kernel';
 import { getBlockOffset, getBlockPoint } from '@/editor-kernel/linear-text';
 import {
-  hashRewriteText,
   IRewriteCommandResultService,
   LITEXML_REWRITE_RANGE_COMMAND,
-  normalizeRewriteText,
   type RewriteCommandResult,
   type RewriteCommandResultChannel,
 } from '@/plugins/litexml/command';
@@ -74,6 +72,7 @@ import {
 } from '@/plugins/yjs/relative-position';
 import { IYjsService } from '@/plugins/yjs/service';
 import type { IEditor, IPlugin } from '@/types';
+import { hashRewriteText, normalizeRewriteText } from '@/utils/rewrite-text';
 
 import { DEFAULT_HEADLESS_EDITOR_PLUGINS } from './default-plugins';
 import {
