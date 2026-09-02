@@ -2,6 +2,48 @@
 
 # Changelog
 
+## [Version&nbsp;4.25.0](https://github.com/lobehub/lobe-editor/compare/v4.24.1...v4.25.0)
+<sup>Released on **2026-09-02**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Integrate collaboration and rich document capabilities.
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Self-provide motion context in LexicalRenderer.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Integrate collaboration and rich document capabilities, closes [#198](https://github.com/lobehub/lobe-editor/issues/198) ([6a3f836](https://github.com/lobehub/lobe-editor/commit/6a3f836))
+
+
+
+#### What's fixed
+
+* **misc**: Self-provide motion context in LexicalRenderer, closes [#206](https://github.com/lobehub/lobe-editor/issues/206) ([04c3c0e](https://github.com/lobehub/lobe-editor/commit/04c3c0e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.24.1](https://github.com/lobehub/lobe-editor/compare/v4.24.0...v4.24.1)
 <sup>Released on **2026-08-19**</sup>
 
