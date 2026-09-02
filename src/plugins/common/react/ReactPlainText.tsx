@@ -110,6 +110,9 @@ const ReactPlainText = memo<ReactPlainTextProps>(
     const {
       props: { type, content, placeholder, lineEmptyPlaceholder },
     } = Children.only(children);
+    const initialDocumentRef = useRef({ content, type });
+    const editableRef = useRef(editable);
+    editableRef.current = editable;
 
     useLayoutEffect(() => {
       editor.registerPlugin(MarkdownPlugin, {
@@ -139,19 +142,50 @@ const ReactPlainText = memo<ReactPlainTextProps>(
 
     useEffect(() => {
       const container = editorContainerRef.current;
-      if (container && !isInitialized) {
+      if (!container) {
+        return;
+      }
+
+      const lexicalEditor = editor.getLexicalEditor();
+      if (!lexicalEditor) {
         // Initialize the editor
-        editor.setRootElement(container, editable);
+        editor.setRootElement(container, editableRef.current);
 
         // Set initial document content only once
-        editor.setDocument(type, content);
+        editor.setDocument(initialDocumentRef.current.type, initialDocumentRef.current.content);
         setIsInitialized(true);
+      } else if (editor.getRootElement() !== container) {
+        // React Activity cleans up effects while hiding a subtree. Reattach
+        // the existing Lexical editor instead of reinitializing plugins/state.
+        editor.setRootElement(container, editableRef.current);
+      }
+
+      return () => {
+        if (editor.getRootElement() === container) {
+          editor.setRootElement(null);
+        }
+      };
+    }, [editor]);
+
+    useEffect(() => {
+      // The attach effect above can initialize the kernel during the same
+      // commit. Keep this dependency so a first render that observes no
+      // Lexical editor retries after setRootElement() succeeds. Activity also
+      // re-runs passive effects on reveal, which rebinds this listener after a
+      // reversible root detach.
+      if (!isInitialized) {
+        return;
+      }
+
+      const lexicalEditor = editor.getLexicalEditor();
+      if (!lexicalEditor) {
+        return;
       }
 
       // Track previous content for onTextChange comparison
       let previousContent: string | undefined;
 
-      return editor.getLexicalEditor()?.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
+      return lexicalEditor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
         // Always trigger onChange for any update
         onChange?.(editor);
 
@@ -168,14 +202,14 @@ const ReactPlainText = memo<ReactPlainTextProps>(
           }
         }
       });
-    }, [editor, type, content, onChange, onTextChange, isInitialized]);
+    }, [editor, isInitialized, type, onChange, onTextChange]);
 
     useEffect(() => {
       if (!isInitialized) return;
       if (typeof editable === 'boolean') {
         editor.setEditable(editable);
       }
-    }, [isInitialized, editable]);
+    }, [editor, isInitialized, editable]);
 
     useEffect(() => {
       if (editor && onPressEnter) {

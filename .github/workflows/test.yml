@@ -27,6 +27,8 @@ jobs:
 
       - name: Test and coverage
         run: pnpm run test:coverage
+        env:
+          NODE_OPTIONS: --expose-gc
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
