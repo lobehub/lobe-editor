@@ -9,6 +9,7 @@ class FakeWebSocket {
   static OPEN = 1;
 
   binaryType = '';
+  closeCodes: number[] = [];
   readyState = 0;
   sent: string[] = [];
   url: string;
@@ -26,7 +27,11 @@ class FakeWebSocket {
     this.listeners.set(type, listeners);
   }
 
-  close(): void {
+  close(code?: number): void {
+    if (code !== undefined && code !== 1000 && (code < 3000 || code > 4999)) {
+      throw new Error(`Invalid client close code: ${code}`);
+    }
+    this.closeCodes.push(code ?? 1000);
     this.serverClose();
   }
 

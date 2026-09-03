@@ -15,7 +15,11 @@ export interface RuntimeContextRef {
   dragStartPoint: { x: number; y: number } | null;
   dragStarted: boolean;
   dragTarget: BlockDragTarget | null;
-  draggingSource: { blockElement: HTMLElement; blockId: string } | null;
+  draggingSource: {
+    blockElement: HTMLElement;
+    blockId: string;
+    structuralBlockId: string;
+  } | null;
   hideTimer: number | null;
   hoveredBlock: HoveredBlockState;
   ignoreNextHandleClick: boolean;

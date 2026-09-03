@@ -18,6 +18,7 @@ import {
   type LexicalNode,
 } from 'lexical';
 
+import { $resolveStructuralBlockNode } from '@/plugins/common/node/hole';
 import { createDebugLogger } from '@/utils/debug';
 
 export interface BlockMovePayload {
@@ -124,8 +125,10 @@ const isDescendantOf = (node: LexicalNode, ancestor: LexicalNode): boolean => {
 const moveBlockNode = (payload: BlockMovePayload) => {
   logger.debug('start', payload);
 
-  const sourceNode = $getNodeByKey(payload.sourceBlockId);
-  const targetNode = $getNodeByKey(payload.targetBlockId);
+  const sourceCandidate = $getNodeByKey(payload.sourceBlockId);
+  const targetCandidate = $getNodeByKey(payload.targetBlockId);
+  const sourceNode = sourceCandidate ? $resolveStructuralBlockNode(sourceCandidate) : null;
+  const targetNode = targetCandidate ? $resolveStructuralBlockNode(targetCandidate) : null;
 
   if (!sourceNode || !targetNode) {
     logger.debug('abort: node-not-found', {

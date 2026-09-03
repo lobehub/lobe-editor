@@ -3,6 +3,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
 import type { Klass, LexicalNode } from 'lexical';
 
+import { ArtifactNode } from '@/plugins/artifact/node/ArtifactNode';
 import {
   PlaceholderBlockNode,
   PlaceholderNode,
@@ -10,6 +11,7 @@ import {
 import { CodeNode } from '@/plugins/code/node/code';
 import { CodeMirrorNode } from '@/plugins/codemirror-block/node/CodeMirrorNode';
 import { CursorNode } from '@/plugins/common/node/cursor';
+import { HoleNode } from '@/plugins/common/node/hole';
 import { FileNode } from '@/plugins/file/node/FileNode';
 import { HorizontalRuleNode } from '@/plugins/hr/node/HorizontalRuleNode';
 import { BlockImageNode } from '@/plugins/image/node/block-image-node';
@@ -40,8 +42,10 @@ export const rendererNodes: Array<Klass<LexicalNode>> = [
   LinkNode,
   AutoLinkNode,
   CursorNode,
+  HoleNode,
   DiffNode,
   LinkHighlightNode,
   PlaceholderNode,
   PlaceholderBlockNode,
+  ArtifactNode,
 ];

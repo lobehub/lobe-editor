@@ -11,6 +11,146 @@ import { logger } from '../../utils/logger';
 
 export type MarkdownReadNode = INode | ITextNode | IElementNode;
 
+/** Invisible Markdown transport marker used to preserve durable block IDs. */
+export interface MarkdownNodeIdEntry {
+  nodeId: string;
+  path: number[];
+}
+
+export interface MarkdownNodeIdMarker {
+  nodeId: string;
+  type: '__lobe_node_id__';
+  kind: 'node' | 'tree';
+  entries?: MarkdownNodeIdEntry[];
+}
+
+const NODE_ID_MARKER = /^\s*<!--\s*lobe-node-id:([^\s]+)\s*-->\s*$/i;
+const NODE_IDS_MARKER = /^\s*<!--\s*lobe-node-ids:([^\s]+)\s*-->\s*$/i;
+
+const parseNodeIdMarker = (value: string): MarkdownNodeIdMarker | null => {
+  const match = value.match(NODE_ID_MARKER);
+  const nodeId = match?.[1]?.trim();
+  return nodeId ? { kind: 'node', nodeId, type: '__lobe_node_id__' } : null;
+};
+
+const parseNodeIdsMarker = (value: string): MarkdownNodeIdMarker | null => {
+  const match = value.match(NODE_IDS_MARKER);
+  if (!match?.[1]) return null;
+
+  try {
+    const decoded = JSON.parse(decodeURIComponent(match[1])) as unknown;
+    if (!Array.isArray(decoded)) return null;
+    const entries = decoded.filter((entry): entry is MarkdownNodeIdEntry => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
+      const candidate = entry as { nodeId?: unknown; path?: unknown };
+      return (
+        typeof candidate.nodeId === 'string' &&
+        candidate.nodeId.trim().length > 0 &&
+        Array.isArray(candidate.path) &&
+        candidate.path.every((part) => Number.isSafeInteger(part) && part >= 0)
+      );
+    });
+    return entries.length > 0
+      ? { entries, kind: 'tree', nodeId: '', type: '__lobe_node_id__' }
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const isNodeIdMarker = (
+  node: MarkdownReadNode | MarkdownNodeIdMarker,
+): node is MarkdownNodeIdMarker => node.type === '__lobe_node_id__';
+
+const attachNodeId = (node: MarkdownReadNode, nodeId: string): void => {
+  if (isNodeIdMarker(node) || !node || typeof node !== 'object') return;
+  const record = node as INode & {
+    $?: Record<string, unknown>;
+    children?: MarkdownReadNode[];
+  };
+  const state = record.$ && typeof record.$ === 'object' ? record.$ : {};
+  const properties =
+    state.properties && typeof state.properties === 'object' && !Array.isArray(state.properties)
+      ? state.properties
+      : {};
+  record.$ = {
+    ...state,
+    properties: {
+      ...properties,
+      nodeId,
+    },
+  };
+
+  // Artifact Markdown is represented by a transparent runtime Hole. Keep
+  // the identity on the logical payload as well as the wrapper so projected
+  // JSON and later LiteXML output address the Artifact itself.
+  if (record.type === 'hole' && Array.isArray(record.children)) {
+    const content = record.children.find((child) => isRecordNode(child) && child.type !== 'cursor');
+    if (content) attachNodeId(content, nodeId);
+  }
+};
+
+const attachNodeIdsByPaths = (node: MarkdownReadNode, entries: MarkdownNodeIdEntry[]): void => {
+  for (const entry of entries) {
+    let target: MarkdownReadNode | undefined = node;
+    for (const index of entry.path) {
+      const children = target && 'children' in target ? target.children : undefined;
+      if (!Array.isArray(children)) {
+        target = undefined;
+        break;
+      }
+      target = children[index] as MarkdownReadNode | undefined;
+    }
+    if (target) attachNodeId(target, entry.nodeId);
+  }
+};
+
+const isRecordNode = (value: unknown): value is MarkdownReadNode =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const consumeNodeIdMarkers = (
+  nodes: Array<MarkdownReadNode | MarkdownNodeIdMarker>,
+  options: { bindTrailingNodeMarker?: boolean } = {},
+): MarkdownReadNode[] => {
+  const result: MarkdownReadNode[] = [];
+  const pendingMarkers: MarkdownNodeIdMarker[] = [];
+  for (const node of nodes) {
+    if (isNodeIdMarker(node)) {
+      pendingMarkers.push(node);
+      continue;
+    }
+    if (pendingMarkers.length > 0) {
+      for (const marker of pendingMarkers) {
+        if (marker.kind === 'tree') {
+          if (marker.entries) attachNodeIdsByPaths(node, marker.entries);
+        } else if (marker.nodeId) {
+          attachNodeId(node, marker.nodeId);
+        }
+      }
+      pendingMarkers.length = 0;
+    }
+    result.push(node);
+  }
+
+  // Remark keeps a comment-only tail as an HTML node, so a marker emitted for
+  // Lexical's automatic trailing empty paragraph has no following block to
+  // consume it. Bind exactly one well-formed node marker to a synthetic empty
+  // paragraph at the root. Tree markers (and ambiguous multiple markers) are
+  // deliberately dropped: there is no safe structural target at EOF for
+  // their path entries.
+  if (
+    options.bindTrailingNodeMarker &&
+    pendingMarkers.length === 1 &&
+    pendingMarkers[0].kind === 'node' &&
+    pendingMarkers[0].nodeId
+  ) {
+    const paragraph = INodeHelper.createParagraph();
+    attachNodeId(paragraph, pendingMarkers[0].nodeId);
+    result.push(paragraph);
+  }
+  return result;
+};
+
 export type MarkdownNode = Root | RootContent | PhrasingContent;
 export type MarkdownNodeType = MarkdownNode['type'];
 
@@ -136,20 +276,36 @@ function convertMdastToLexical(
           .reduce(
             (ret, child, index) => {
               if (child.type === 'html') {
+                const isComment = child.value.startsWith('<!--') && child.value.endsWith('-->');
+                const marker = isComment
+                  ? (parseNodeIdMarker(child.value) ?? parseNodeIdsMarker(child.value))
+                  : null;
+                if (marker) {
+                  ret.push(marker as unknown as MarkdownReadNode);
+                  return ret;
+                }
+                // A malformed transport marker is still private metadata;
+                // never turn it into visible paragraph/cell text.
+                if (isComment && /^\s*<!--\s*lobe-node-ids?:/i.test(child.value)) {
+                  return ret;
+                }
                 if (!markdownReaders['html']) {
                   ret.push(INodeHelper.createTextNode(child.value));
                   return ret;
                 }
-                const isComment = child.value.startsWith('<!--') && child.value.endsWith('-->');
                 if (isComment) {
                   return ret;
                 }
                 const tag = getHtmlTagName(child.value);
                 const isEndTag = child.value.startsWith('</');
-                const pairedTag = child.value.match(/^<\s*([a-z0-9-]+)\b[^>]*>([\s\S]*)<\/\s*\1\s*>$/i);
+                const pairedTag = child.value.match(
+                  /^<\s*([a-z0-9-]+)\b[^>]*>([\s\S]*)<\/\s*\1\s*>$/i,
+                );
                 if (!isEndTag && pairedTag) {
                   const reader = markdownReaders['html'];
-                  const htmlChildren = pairedTag[2] ? [INodeHelper.createTextNode(pairedTag[2])] : [];
+                  const htmlChildren = pairedTag[2]
+                    ? [INodeHelper.createTextNode(pairedTag[2])]
+                    : [];
                   if (Array.isArray(reader)) {
                     for (const element of reader) {
                       const inode = element(child as unknown as any, htmlChildren, index);
@@ -274,6 +430,14 @@ function convertMdastToLexical(
           children = children.flat();
         }
       }
+
+      // Comments are the only Markdown-safe transport for node identity. The
+      // marker is consumed at the same AST level as the following block so
+      // nested lists/quotes retain their IDs without exposing metadata in the
+      // rendered document.
+      children = consumeNodeIdMarkers(children, {
+        bindTrailingNodeMarker: node.type === 'root',
+      });
 
       if (markdownReaders[node.type]) {
         const reader = markdownReaders[node.type];

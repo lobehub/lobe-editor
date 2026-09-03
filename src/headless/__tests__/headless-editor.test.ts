@@ -321,13 +321,17 @@ describe('HeadlessEditor', () => {
 
   it('uses the shared codemirror kernel plugin in headless mode', () => {
     const source = readFileSync(fileURLToPath(new URL('../index.ts', import.meta.url)), 'utf8');
+    const pluginSource = readFileSync(
+      fileURLToPath(new URL('../default-plugins.ts', import.meta.url)),
+      'utf8',
+    );
     const commandSource = readFileSync(
       fileURLToPath(new URL('../../plugins/codemirror-block/command/index.ts', import.meta.url)),
       'utf8',
     );
 
-    expect(source).toContain('@/plugins/codemirror-block/plugin');
-    expect(source).toContain('CodemirrorPlugin');
+    expect(pluginSource).toContain('@/plugins/codemirror-block/plugin');
+    expect(pluginSource).toContain('CodemirrorPlugin');
     expect(source).not.toContain('CodeblockPlugin');
     expect(source).not.toContain('HeadlessCodeblockPlugin');
     expect(commandSource).toContain('@/plugins/codeblock/command/symbols');

@@ -9,6 +9,11 @@ export const INSERT_QUOTE_COMMAND = createCommand<unknown>('INSERT_QUOTE_COMMAND
 export const INSERT_HEADING_COMMAND = createCommand<{ tag: HeadingTagType }>(
   'INSERT_HEADING_COMMAND',
 );
+/** Requests that a Hole's payload editor take focus at one of its edges. */
+export const ENTER_HOLE_CONTENT_COMMAND = createCommand<{
+  edge: 'end' | 'start';
+  key: string;
+}>('ENTER_HOLE_CONTENT_COMMAND');
 
 export function registerCommands(editor: LexicalEditor) {
   return mergeRegister(

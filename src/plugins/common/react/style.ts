@@ -102,6 +102,101 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
         animation: ${cursorBlink} 1.1s steps(2, start) infinite;
       }
     }
+
+    [data-hole='true'] {
+      --lobe-hole-cursor-gutter: 24px;
+
+      position: relative;
+      overflow: visible;
+      width: 100%;
+      min-width: 0;
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] {
+      position: relative;
+      width: 100%;
+      min-width: 0;
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:first-child,
+    [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:last-child {
+      cursor: text;
+      user-select: text;
+
+      position: absolute;
+      z-index: 1;
+      inset-block-end: 8px;
+
+      overflow: visible;
+      display: block;
+
+      box-sizing: border-box;
+      width: var(--lobe-hole-cursor-gutter);
+      min-width: 0;
+      height: 1em;
+
+      line-height: 1;
+      color: transparent;
+      text-align: center;
+
+      outline: none;
+      caret-color: ${cssVar.colorText};
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:first-child {
+      inset-inline-end: 100%;
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:last-child {
+      inset-inline-start: 100%;
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] > :not([data-lexical-text='true']) {
+      min-width: 0;
+    }
+
+    [data-hole='true'] > [data-hole-cursor-hit] {
+      cursor: text;
+      user-select: none;
+
+      position: absolute;
+      z-index: 2;
+      inset-block: 0;
+
+      width: var(--lobe-hole-cursor-gutter);
+    }
+
+    [data-hole='true'] > [data-hole-cursor-hit='before'] {
+      inset-inline-end: 100%;
+    }
+
+    [data-hole='true'] > [data-hole-cursor-hit='after'] {
+      inset-inline-start: 100%;
+    }
+
+    [contenteditable='false']
+      [data-hole='true']
+      > [data-hole-content='true']
+      > [data-lexical-text='true']:first-child,
+    [contenteditable='false']
+      [data-hole='true']
+      > [data-hole-content='true']
+      > [data-lexical-text='true']:last-child {
+      pointer-events: none;
+
+      overflow: hidden;
+
+      width: 0;
+      min-width: 0;
+      padding: 0;
+
+      visibility: hidden;
+    }
+
+    [contenteditable='false'] [data-hole='true'] > [data-hole-cursor-hit] {
+      pointer-events: none;
+      visibility: hidden;
+    }
   `;
 
   const header = css`

@@ -40,6 +40,7 @@ import { startBlockDragSession } from './drag/drag-session';
 import {
   collectDragBlocks,
   getBlockMeasureRect,
+  getBlockMenuAnchor,
   getTableBlockRect,
   isTableBlockElement,
 } from './drag/drag-utils';
@@ -767,6 +768,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
 
       const menuWidth = menuRef.current?.offsetWidth || 32;
       const menuHeight = menuRef.current?.offsetHeight || 32;
+      const menuAnchor = getBlockMenuAnchor(menuContext.blockElement);
       const gap = 8;
       const listItemOffset = menuContext.blockElement.tagName === 'LI' ? 16 : 0;
       const isTableBlock = isTableBlockElement(menuContext.blockElement);
@@ -784,8 +786,8 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       const anchorLeft =
         isTableBlock && tableAnchorRect
           ? Math.max(tableAnchorRect.left, minTableLeft)
-          : blockRect.left;
-      const rawAnchorTop = tableAnchorRect?.top ?? blockRect.top;
+          : (menuAnchor?.rect.left ?? blockRect.left);
+      const rawAnchorTop = tableAnchorRect?.top ?? menuAnchor?.rect.top ?? blockRect.top;
       const anchorTop =
         rawAnchorTop >= blockRect.top - 1 && rawAnchorTop <= blockRect.bottom + 1
           ? rawAnchorTop
@@ -794,6 +796,8 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       const position = {
         left: Math.max(gap, anchorLeft - menuWidth - gap - listItemOffset - tableMenuOffset),
         top: resolveBlockMenuTop({
+          anchorAlignment: menuAnchor?.alignment,
+          anchorHeight: menuAnchor?.rect.height,
           anchorTop,
           blockHeight: blockRect.height,
           blockTagName: menuContext.blockElement.tagName,

@@ -1,32 +1,159 @@
 import type { CommandPayloadType, SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import Editor, { moment } from '@/editor-kernel';
-import { CodePlugin } from '@/plugins/code/plugin';
-import { CodemirrorPlugin } from '@/plugins/codemirror-block/plugin';
-import { CommonPlugin } from '@/plugins/common/plugin';
-import { FilePlugin } from '@/plugins/file/plugin';
-import { HRPlugin } from '@/plugins/hr/plugin';
-import { ImagePlugin } from '@/plugins/image/plugin';
-import { INodePlugin } from '@/plugins/inode/plugin';
-import { LinkPlugin } from '@/plugins/link/plugin';
-import { ListPlugin } from '@/plugins/list/plugin';
 import {
   LITEXML_APPLY_COMMAND,
   LITEXML_INSERT_COMMAND,
   LITEXML_MODIFY_COMMAND,
   LITEXML_REMOVE_COMMAND,
 } from '@/plugins/litexml/command';
-import { LitexmlPlugin } from '@/plugins/litexml/plugin';
-import { MarkdownPlugin } from '@/plugins/markdown/plugin';
-import { MathPlugin } from '@/plugins/math/plugin';
-import { MentionPlugin } from '@/plugins/mention/plugin';
-import { TablePlugin } from '@/plugins/table/plugin';
 import type { IDocumentOptions, IEditor, IPlugin } from '@/types';
 
-import { HeadlessCollapsiblePlugin } from './collapsible-plugin';
+import { DEFAULT_HEADLESS_EDITOR_PLUGINS } from './default-plugins';
 
+export type {
+  BlockRewriteSelection,
+  CollaborativeAgentCommand,
+  CollaborativeAgentEditorConnectOptions,
+  CollaborativeRewriteSelection,
+  CollaborativeRewriteStreamAbortInput,
+  CollaborativeRewriteStreamAppendInput,
+  CollaborativeRewriteStreamFinalizeInput,
+  CollaborativeRewriteStreamRecoveryInput,
+  CollaborativeRewriteStreamResult,
+  CollaborativeRewriteStreamSession,
+  CollaborativeRewriteStreamStartInput,
+  CollaborativeRewriteStreamStatus,
+  ResolvedRewriteSelection,
+  RewriteSelection,
+  RewriteTargetInspection,
+  SerializedRewriteSelection,
+} from './collaborative-agent-editor';
+export {
+  CollaborativeAgentEditor,
+  deserializeRelativePosition,
+  hashRewriteText,
+  serializeRelativePosition,
+} from './collaborative-agent-editor';
+export { DEFAULT_HEADLESS_EDITOR_PLUGINS } from './default-plugins';
+export type { ExportYjsSnapshotProjectionInput, YjsSnapshotProjection } from './yjs-snapshot';
+export { exportYjsSnapshotProjection } from './yjs-snapshot';
+export type {
+  AgentAwarenessData,
+  AgentAwarenessInput,
+  AgentAwarenessState,
+  AgentAwarenessStatus,
+  AgentCaretAnchor,
+  AgentRewriteRange,
+  NodeWebSocketYjsProviderOptions,
+  RefreshTicket,
+  SerializedRelativePosition,
+  SerializedUserState,
+} from '@/plugins/yjs';
+
+// Targeted rewrite is exported from the headless entry so a Node Agent can
+// share the exact command symbol/gateway with the browser bundle.
+export type {
+  AISessionHighlightKind,
+  AISessionMark,
+  AISessionRange,
+  AISessionRangeInput,
+} from '@/plugins/ai-session';
+export {
+  $applyAISessionMark,
+  $removeAISessionMark,
+  AISessionService,
+  IAISessionService,
+} from '@/plugins/ai-session/service';
+export type {
+  CollaborativeAgentCommandGateway,
+  LiteXMLInsertCommandPayload,
+  LiteXMLModifyCommandOperation,
+  LiteXMLModifyCommandPayload,
+  LiteXMLRemoveCommandPayload,
+  LiteXMLReviewCommandPayload,
+  LiteXMLRewriteMetadata,
+  LiteXMLValidationOptions,
+  PendingRewriteReview,
+  RewriteCommandResult,
+  RewriteCommandResultChannel,
+  RewriteCommandStatus,
+  RewriteRangeCommandPayload,
+  RewriteRangeMode,
+  RewriteReviewEvent,
+  RewriteReviewListener,
+  RewriteReviewSettlementInput,
+  RewriteReviewSettlementResult,
+  RewriteSelectionInput,
+  SerializedBlockRewriteSelection,
+  SerializedRewritePoint,
+} from '@/plugins/litexml/command';
+export {
+  COLLABORATIVE_AGENT_COMMAND_ALLOWLIST,
+  createAgentCommandGateway,
+  createCollaborativeAgentCommandGateway,
+  InMemoryRewriteCommandResultChannel,
+  IRewriteCommandResultService,
+  IRewriteReviewService,
+  LITEXML_INSERT_COMMAND,
+  LITEXML_MODIFY_COMMAND,
+  LITEXML_REMOVE_COMMAND,
+  LITEXML_REVIEW_COMMAND,
+  LITEXML_REWRITE_RANGE_COMMAND,
+  normalizeRewriteText,
+  RewriteReviewService,
+  validateLiteXMLInput,
+} from '@/plugins/litexml/command';
+export { MARK_AI_GENERATED_COMMAND } from '@/plugins/properties/command';
+export {
+  createAgentYjsProvider,
+  createNodeWebSocketYjsProvider,
+  NodeWebSocketYjsProvider,
+} from '@/plugins/yjs/node-websocket-provider';
+export {
+  decodeBase64,
+  decodeYjsBase64,
+  encodeBase64,
+  encodeYjsBase64,
+  isAgentCaretAnchor,
+  isAgentRewriteRange,
+  LOBE_YJS_PROTOCOL,
+  LOBE_YJS_PROTOCOL_VERSION,
+  parseLobeYjsMessage,
+  YJS_PROTOCOL,
+  YJS_PROTOCOL_VERSION,
+} from '@/plugins/yjs/protocol';
+
+// Durable node identity is part of the headless/agent surface as well as the
+// browser bundle. Re-export the primitives here so a Node collaborator can
+// resolve and migrate targets without importing the DOM entrypoint.
 export type { FileListItem, ImageListItem, MediaLists } from './extract-media-from-editor-state';
 export { extractMediaFromEditorState } from './extract-media-from-editor-state';
+export type {
+  NodeIdentityMigrationOptions,
+  NodeIdentityMigrationResult,
+  NodeProperties,
+} from '@/plugins/properties';
+export {
+  createDeterministicNodeId,
+  createNodeId,
+  isNodeId,
+  propertiesState,
+} from '@/plugins/properties/state';
+export {
+  $ensureNodeId,
+  $ensureNodeIdsInTree,
+  $findNodeById,
+  $findNodesById,
+  $getNodeById,
+  $getNodeId,
+  $isNodeIdentityBlockTarget,
+  $isNodeIdentityTarget,
+  $migrateNodeIds,
+  $preserveNodeIdentity,
+  $resolveNodeIds,
+  $setNodeId,
+} from '@/plugins/properties/utils';
 
 export type HeadlessDocumentType = 'json' | 'litexml' | 'markdown' | (string & object);
 
@@ -37,6 +164,12 @@ export interface HeadlessEditorHydrationInput {
 }
 
 export interface HeadlessEditorExportOptions {
+  /**
+   * Include the invisible `lobe-node-id` Markdown transport comments. The
+   * default is presentation Markdown; editorData remains the canonical
+   * persistence projection when metadata is omitted.
+   */
+  includeNodeIds?: boolean;
   litexml?: boolean;
 }
 
@@ -250,23 +383,8 @@ const preserveSerializedCodeTextInEditorData = (
     root: preserveSerializedCodeText(editorData.root),
   }) as SerializedEditorState<SerializedLexicalNode>;
 
-export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
-  [CommonPlugin, { enableHotkey: false }],
-  INodePlugin,
-  MarkdownPlugin,
-  [LinkPlugin, { enableHotkey: false }],
-  CodePlugin,
-  CodemirrorPlugin,
-  ImagePlugin,
-  FilePlugin,
-  MathPlugin,
-  MentionPlugin,
-  HRPlugin,
-  ListPlugin,
-  TablePlugin,
-  HeadlessCollapsiblePlugin,
-  LitexmlPlugin,
-];
+const stripMarkdownNodeIdMarkers = (markdown: string): string =>
+  markdown.replaceAll(/^[ \t]*<!--\s*lobe-node-ids?:[^\n]*-->[ \t]*(?:\r?\n[ \t]*)*/gim, '');
 
 export class HeadlessEditor {
   readonly kernel: IEditor;
@@ -332,11 +450,14 @@ export class HeadlessEditor {
   }
 
   export(options: HeadlessEditorExportOptions = {}): HeadlessEditorExport {
+    const markdown = this.kernel.getDocument('markdown', {
+      includeNodeIds: options.includeNodeIds,
+    }) as unknown as string;
     const snapshot: HeadlessEditorExport = {
       editorData: preserveSerializedCodeTextInEditorData(
         this.kernel.getDocument('json') as unknown as SerializedEditorState<SerializedLexicalNode>,
       ),
-      markdown: this.kernel.getDocument('markdown') as unknown as string,
+      markdown: options.includeNodeIds ? markdown : stripMarkdownNodeIdMarkers(markdown),
     };
 
     if (options.litexml) {

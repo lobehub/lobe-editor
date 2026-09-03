@@ -12,6 +12,16 @@ import {
 } from 'lexical';
 
 import { $closest, getKernelFromEditor } from '@/editor-kernel';
+import { IAnnotationService } from '@/plugins/properties/service';
+import { $getNodeProperties, $setNodeProperties, createNodeId } from '@/plugins/properties/state';
+import {
+  $ensureNodeId,
+  $findNodeById,
+  $getNodeId,
+  $isNodeIdentityTarget,
+  $markNodesAsAIGenerated,
+  $preserveNodeIdentity,
+} from '@/plugins/properties/utils';
 import { createDebugLogger } from '@/utils/debug';
 
 import type LitexmlDataSource from '../data-source/litexml-data-source';
@@ -40,6 +50,7 @@ import {
   LITEXML_INSERT_COMMAND,
   LITEXML_MODIFY_COMMAND,
   LITEXML_REMOVE_COMMAND,
+  type LiteXMLRewriteMetadata,
 } from './symbols';
 
 const logger = createDebugLogger('plugin', 'litexml');
@@ -78,15 +89,23 @@ function projectOperation(
 }
 
 function toProjectionOperation(operation: LiteXmlProjectionOperation): LiteXmlProjectionOperation {
+  const toProjectionId = (id: string): string => {
+    // Durable NodeState IDs are opaque strings and must not be decoded as
+    // legacy base-36 LiteXML IDs. Legacy writers emit at most four
+    // alphanumeric characters, so this preserves the existing conversion
+    // while allowing stable IDs through the detached preflight.
+    if (id === 'root' || !/^[\da-z]{1,4}$/i.test(id)) return id;
+    return charToId(id);
+  };
   if (operation.action === 'remove') {
-    return { ...operation, id: charToId(operation.id) };
+    return { ...operation, id: toProjectionId(operation.id) };
   }
   if (operation.action === 'insert') {
     return {
       ...operation,
       ...('beforeId' in operation
-        ? { beforeId: operation.beforeId === 'root' ? 'root' : charToId(operation.beforeId) }
-        : { afterId: operation.afterId === 'root' ? 'root' : charToId(operation.afterId) }),
+        ? { beforeId: toProjectionId(operation.beforeId) }
+        : { afterId: toProjectionId(operation.afterId) }),
     };
   }
   return operation;
@@ -94,13 +113,181 @@ function toProjectionOperation(operation: LiteXmlProjectionOperation): LiteXmlPr
 
 function tryParseChild(child: any, editor: LexicalEditor) {
   try {
-    const oldNode = $getNodeByKey(child.id);
+    const oldNode = resolveLiteXMLTarget(child, editor);
     const newNode = $parseSerializedNodeImpl(child, editor);
+    if (oldNode && newNode) preserveTargetIdentity(oldNode, newNode);
     return { newNode, oldNode } as { newNode: LexicalNode; oldNode: LexicalNode | null };
   } catch (error) {
     logger.error('❌ Error parsing child node:', error);
     return { newNode: null, oldNode: null } as any;
   }
+}
+
+/** Resolve a production LiteXML target by NodeState identity first. */
+function resolveLiteXMLTarget(serializedNode: unknown, _editor: LexicalEditor): LexicalNode | null {
+  const node = serializedNode as {
+    id?: unknown;
+    $?: { properties?: { nodeId?: unknown } };
+  };
+  const stableId = node.$?.properties?.nodeId;
+  const directId =
+    typeof stableId === 'string' && stableId.length > 0
+      ? stableId
+      : typeof node.id === 'string'
+        ? node.id
+        : undefined;
+  if (directId) {
+    const stableNode = $findNodeById(directId);
+    if (stableNode) return stableNode;
+  }
+
+  if (typeof node.id !== 'string' && typeof node.id !== 'number') return null;
+  const encodedId = String(node.id);
+  const byKey = $getNodeByKey(encodedId);
+  if (byKey) return byKey;
+
+  // Legacy LiteXML ids are short base-36 encodings of numeric Lexical keys.
+  // This fallback is intentionally one-way: writers never call it.
+  if (!/^[\da-z]{1,4}$/i.test(encodedId)) return null;
+  try {
+    return $getNodeByKey(charToId(encodedId));
+  } catch {
+    return null;
+  }
+}
+
+const getSerializedTargetId = (serializedNode: unknown): string | number | undefined => {
+  const node = serializedNode as {
+    id?: unknown;
+    $?: { properties?: { nodeId?: unknown } };
+  };
+  const nodeId = node.$?.properties?.nodeId;
+  if (typeof nodeId === 'string' && nodeId.length > 0) return nodeId;
+  if (typeof node.id === 'string' || typeof node.id === 'number') return node.id;
+  return undefined;
+};
+
+/** Resolve a command target in a read transaction before scheduling an update. */
+function hasCurrentTarget(editor: LexicalEditor, id: string | number): boolean {
+  let found = false;
+  editor.getEditorState().read(() => {
+    found = Boolean(resolveLiteXMLTarget({ id }, editor));
+  });
+  return found;
+}
+
+/** Preserve the identity (and existing comment anchors) across replacements. */
+function preserveTargetIdentity(source: LexicalNode, replacement: LexicalNode): void {
+  $preserveNodeIdentity(source, replacement);
+}
+
+/** Ensure inserted XML cannot alias a node already present in the document. */
+function ensureInsertedNodeIds(node: LexicalNode, enabled: boolean): void {
+  if (enabled && $isNodeIdentityTarget(node)) {
+    const current = $getNodeId(node);
+    if (!current || $findNodeById(current)) {
+      const properties = $getNodeProperties(node);
+      $setNodeProperties(node, { ...properties, nodeId: createNodeId() });
+    }
+  }
+  if ($isElementNode(node)) {
+    node.getChildren().forEach((child) => ensureInsertedNodeIds(child, enabled));
+  }
+}
+
+const getRewriteMetadata = (payload: unknown): LiteXMLRewriteMetadata | undefined => {
+  if (!payload || (typeof payload !== 'object' && typeof payload !== 'function')) return undefined;
+  const value = payload as Record<string, unknown>;
+  const metadata: LiteXMLRewriteMetadata = {};
+  if (typeof value.requestId === 'string' && value.requestId.length > 0) {
+    metadata.requestId = value.requestId;
+  }
+  if (typeof value.commandId === 'string' && value.commandId.length > 0) {
+    metadata.commandId = value.commandId;
+  }
+  if (typeof value.createdAt === 'string' && value.createdAt.length > 0) {
+    metadata.createdAt = value.createdAt;
+  }
+  if (typeof value.generationId === 'string' && value.generationId.length > 0) {
+    metadata.generationId = value.generationId;
+  }
+  if (typeof value.model === 'string' && value.model.length > 0) metadata.model = value.model;
+  if (typeof value.provider === 'string' && value.provider.length > 0) {
+    metadata.provider = value.provider;
+  }
+  if (
+    typeof value.attempt === 'number' &&
+    Number.isSafeInteger(value.attempt) &&
+    value.attempt > 0
+  ) {
+    metadata.attempt = value.attempt;
+  }
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
+};
+
+/** Apply the request/review metadata to a persisted Diff wrapper. */
+function applyRewriteMetadata(
+  node: LexicalNode,
+  metadata: LiteXMLRewriteMetadata | undefined,
+): void {
+  if (!metadata) return;
+  const rewriteProperties = {
+    ...(metadata.requestId ? { rewriteRequestId: metadata.requestId } : {}),
+    ...(metadata.commandId ? { rewriteCommandId: metadata.commandId } : {}),
+    ...(metadata.attempt === undefined ? {} : { rewriteAttempt: metadata.attempt }),
+  };
+  const generationId = metadata.generationId ?? metadata.requestId;
+  const provenance = generationId
+    ? {
+        createdAt: metadata.createdAt ?? new Date().toISOString(),
+        generationId,
+        ...(metadata.model ? { model: metadata.model } : {}),
+        ...(metadata.provider ? { provider: metadata.provider } : {}),
+        ...(metadata.requestId ? { requestId: metadata.requestId } : {}),
+        source: 'ai' as const,
+      }
+    : undefined;
+  $setNodeProperties(node, (previous) => ({
+    ...previous,
+    ...rewriteProperties,
+    ...(provenance ? { provenance } : {}),
+  }));
+}
+
+function markGeneratedNodes(
+  nodes: ReadonlyArray<LexicalNode>,
+  metadata: LiteXMLRewriteMetadata | undefined,
+): void {
+  const generationId = metadata?.generationId ?? metadata?.requestId;
+  if (!generationId) return;
+  $markNodesAsAIGenerated(nodes, {
+    createdAt: metadata?.createdAt,
+    generationId,
+    model: metadata?.model,
+    provider: metadata?.provider,
+    requestId: metadata?.requestId,
+  });
+}
+
+/** Pairing tokens are persisted, so they must be opaque and key-independent. */
+function createOpaqueChangeId(): string {
+  // A pair only needs an opaque durable token. Keep the row ID out of the
+  // token so even a legacy/non-durable row cannot smuggle a runtime key into
+  // persisted JSON/Yjs metadata.
+  return createNodeId();
+}
+
+function createTableColumnChangeId(table: LexicalNode, columnIndex: number): string {
+  const tableId = $getNodeId(table) ?? $ensureNodeId(table) ?? createNodeId();
+  return `table:${tableId}:column:${columnIndex}`;
+}
+
+/** Keep the before/after sides of a delayed legacy modify logically distinct. */
+function assignPendingNodeIdentity(node: LexicalNode): string {
+  const nodeId = createNodeId();
+  const properties = $getNodeProperties(node);
+  $setNodeProperties(node, { ...properties, nodeId });
+  return nodeId;
 }
 function handleReplaceForApplyDelay(
   oldNode: LexicalNode,
@@ -108,6 +295,7 @@ function handleReplaceForApplyDelay(
   modifyBlockNodes: Set<string>,
   diffNodeMap: Map<string, DiffNode>,
   editor: LexicalEditor,
+  metadata?: LiteXMLRewriteMetadata,
 ) {
   if ($isTableRowNode(oldNode) || $isTableRowNode(newNode)) {
     if (
@@ -120,9 +308,12 @@ function handleReplaceForApplyDelay(
       return;
     }
 
-    const changeId = `${oldNode.getKey()}:${newNode.getKey()}`;
+    const changeId = createOpaqueChangeId();
     const removeRow = $createTableRowDiffFromRow(editor, oldNode, 'remove', changeId);
     const addRow = $createTableRowDiffFromRow(editor, newNode, 'add', changeId);
+    applyRewriteMetadata(removeRow, metadata);
+    applyRewriteMetadata(addRow, metadata);
+    markGeneratedNodes(addRow.getChildren(), metadata);
     oldNode.replace(removeRow, false);
     removeRow.insertAfter(addRow);
     return;
@@ -158,6 +349,8 @@ function handleReplaceForApplyDelay(
 
     const diffNode = $createDiffNode('modify');
     diffNode.append(before, after);
+    applyRewriteMetadata(diffNode, metadata);
+    markGeneratedNodes(after.getChildren(), metadata);
     oldNode.clear();
     oldNode.append(diffNode);
     return;
@@ -172,12 +365,26 @@ function handleReplaceForApplyDelay(
     (node) => node.getType() === DiffNode.getType(),
   ) as DiffNode;
   if (originDiffNode) {
+    applyRewriteMetadata(originDiffNode, metadata);
+    markGeneratedNodes([newNode], metadata);
     oldNode.replace(newNode, false);
     return;
   }
   if (oldNode === oldBlock) {
+    const before = $cloneNode(oldBlock, editor);
+    const originalNodeId = $getNodeId(oldBlock);
+    if (originalNodeId) {
+      assignPendingNodeIdentity(newNode);
+    }
     const diffNode = $createDiffNode('modify');
-    diffNode.append($cloneNode(oldBlock, editor), newNode);
+    if (originalNodeId) {
+      $setNodeProperties(diffNode, {
+        rewriteIdentityMap: [{ afterIndex: 1, beforeIndex: 0, nodeId: originalNodeId }] as any,
+      });
+    }
+    applyRewriteMetadata(diffNode, metadata);
+    markGeneratedNodes([newNode], metadata);
+    diffNode.append(before, newNode);
     oldNode.replace(diffNode, false);
   } else {
     if (!modifyBlockNodes.has(oldBlock.getKey())) {
@@ -194,6 +401,7 @@ function finalizeModifyBlocks(
   modifyBlockNodes: Set<string>,
   diffNodeMap: Map<string, DiffNode>,
   editor: LexicalEditor,
+  metadata?: LiteXMLRewriteMetadata,
 ) {
   for (const blockNodeKey of modifyBlockNodes) {
     const blockNode = $getNodeByKey(blockNodeKey);
@@ -213,10 +421,22 @@ function finalizeModifyBlocks(
           p.append(child);
         });
         newDiffNode.append(p);
+        applyRewriteMetadata(newDiffNode, metadata);
+        markGeneratedNodes(p.getChildren(), metadata);
         blockNode.append(newDiffNode);
         continue;
       } else {
-        diffNode.append($cloneNode(blockNode, editor));
+        const after = $cloneNode(blockNode, editor);
+        const originalNodeId = $getNodeId(blockNode);
+        if (originalNodeId) {
+          assignPendingNodeIdentity(after);
+          $setNodeProperties(diffNode, {
+            rewriteIdentityMap: [{ afterIndex: 1, beforeIndex: 0, nodeId: originalNodeId }] as any,
+          });
+        }
+        applyRewriteMetadata(diffNode, metadata);
+        markGeneratedNodes([after], metadata);
+        diffNode.append(after);
         blockNode.replace(diffNode, false);
       }
     }
@@ -229,7 +449,12 @@ function finalizeModifyBlocks(
  * the new block and replace it with the diff node. Useful for inline->block
  * transitions where we want to show a modify diff.
  */
-function wrapBlockModify(oldBlock: LexicalNode, editor: LexicalEditor, changeFn: () => void) {
+function wrapBlockModify(
+  oldBlock: LexicalNode,
+  editor: LexicalEditor,
+  changeFn: () => void,
+  metadata?: LiteXMLRewriteMetadata,
+) {
   if ($isListItemNode(oldBlock)) {
     const diffNode = $createDiffNode('listItemModify');
     const p = $createParagraphNode();
@@ -243,17 +468,30 @@ function wrapBlockModify(oldBlock: LexicalNode, editor: LexicalEditor, changeFn:
       pNew.append(child);
     });
     diffNode.append(pNew);
+    applyRewriteMetadata(diffNode, metadata);
+    markGeneratedNodes(pNew.getChildren(), metadata);
     oldBlock.append(diffNode);
     return;
   }
   const diffNode = $createDiffNode('modify');
-  diffNode.append($cloneNode(oldBlock, editor));
+  const before = $cloneNode(oldBlock, editor);
+  diffNode.append(before);
   changeFn();
   const newBlock = $getNodeByKey(oldBlock.getKey());
   if (!newBlock) {
     throw new Error('New block node not found for modify wrapper.');
   }
-  diffNode.append($cloneNode(newBlock, editor));
+  const after = $cloneNode(newBlock, editor);
+  const originalNodeId = $getNodeId(oldBlock);
+  if (originalNodeId) {
+    assignPendingNodeIdentity(after);
+    $setNodeProperties(diffNode, {
+      rewriteIdentityMap: [{ afterIndex: 1, beforeIndex: 0, nodeId: originalNodeId }] as any,
+    });
+  }
+  applyRewriteMetadata(diffNode, metadata);
+  markGeneratedNodes([after], metadata);
+  diffNode.append(after);
   newBlock.replace(diffNode, false);
 }
 
@@ -288,6 +526,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
         });
 
         try {
+          let handled = false;
           safePayload.forEach((item) => {
             const { action } = item;
             switch (action) {
@@ -295,25 +534,28 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
                 const { litexml } = item;
                 const arrayXml = toArrayXml(litexml);
                 // handle modfy action
-                handleModify(editor, dataSource, arrayXml, true);
+                handled =
+                  handleModify(editor, dataSource, arrayXml, true, getRewriteMetadata(payload)) ||
+                  handled;
                 break;
               }
               case 'remove': {
                 const { id } = item;
-                const key = charToId(id);
                 // handle remove action
-                handleRemove(editor, key, true);
+                handled = handleRemove(editor, id, true, getRewriteMetadata(payload)) || handled;
                 break;
               }
               case 'insert': {
-                handleInsert(
-                  editor,
-                  {
-                    ...item,
-                    delay: true,
-                  },
-                  dataSource,
-                );
+                handled =
+                  handleInsert(
+                    editor,
+                    {
+                      ...item,
+                      delay: true,
+                    },
+                    dataSource,
+                    getRewriteMetadata(payload),
+                  ) || handled;
                 break;
               }
               default: {
@@ -321,7 +563,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
               }
             }
           });
-          return false;
+          return handled;
         } catch (error) {
           logger.error('❌ Error processing LITEXML_MODIFY_COMMAND:', error);
           return false;
@@ -335,8 +577,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
         const { litexml, delay } = payload;
         const arrayXml = toArrayXml(litexml);
         if (!delay) {
-          handleModify(editor, dataSource, arrayXml, delay);
-          return false;
+          return handleModify(editor, dataSource, arrayXml, delay, getRewriteMetadata(payload));
         }
 
         const operation = { action: 'modify' as const, litexml };
@@ -344,7 +585,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
           'json',
         ) as unknown as SerializedDiffDocument;
         if (projectOperation(dataSource, document, toProjectionOperation(operation))) {
-          handleModify(editor, dataSource, arrayXml, delay);
+          return handleModify(editor, dataSource, arrayXml, delay, getRewriteMetadata(payload));
         }
         return false;
       },
@@ -354,10 +595,8 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
       LITEXML_REMOVE_COMMAND,
       (payload) => {
         const { id, delay } = payload;
-        const key = charToId(id);
         if (!delay) {
-          handleRemove(editor, key, delay);
-          return false;
+          return handleRemove(editor, id, delay, getRewriteMetadata(payload));
         }
 
         const operation = { action: 'remove' as const, id };
@@ -365,7 +604,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
           'json',
         ) as unknown as SerializedDiffDocument;
         if (projectOperation(dataSource, document, toProjectionOperation(operation))) {
-          handleRemove(editor, key, delay);
+          return handleRemove(editor, id, delay, getRewriteMetadata(payload));
         }
         return false;
       },
@@ -375,8 +614,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
       LITEXML_INSERT_COMMAND,
       (payload) => {
         if (!payload.delay) {
-          handleInsert(editor, payload, dataSource);
-          return false;
+          return handleInsert(editor, payload, dataSource, getRewriteMetadata(payload));
         }
 
         const document = getKernelFromEditor(editor).getDocument(
@@ -392,7 +630,7 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
             }),
           )
         ) {
-          handleInsert(editor, payload, dataSource);
+          return handleInsert(editor, payload, dataSource, getRewriteMetadata(payload));
         }
         return false;
       },
@@ -406,18 +644,34 @@ function handleModify(
   dataSource: LitexmlDataSource,
   arrayXml: string[],
   delay?: boolean,
-) {
+  metadata?: LiteXMLRewriteMetadata,
+): boolean {
+  const parsedInputs = arrayXml.map((xml) => dataSource.readLiteXMLToInode(xml));
+  const hasTarget = parsedInputs.some((inode) =>
+    (inode.root?.children ?? []).some((child: unknown) => {
+      const id = getSerializedTargetId(child);
+      return id !== undefined && hasCurrentTarget(editor, id);
+    }),
+  );
+  if (!hasTarget) return false;
+
   if (delay) {
     editor.update(() => {
       const modifyBlockNodes = new Set<string>();
       const diffNodeMap = new Map<string, DiffNode>();
-      arrayXml.forEach((xml) => {
-        const inode = dataSource.readLiteXMLToInode(xml);
+      parsedInputs.forEach((inode) => {
         inode.root.children.forEach((child: any) => {
           try {
             const { oldNode, newNode } = tryParseChild(child, editor);
             if (oldNode && newNode) {
-              handleReplaceForApplyDelay(oldNode, newNode, modifyBlockNodes, diffNodeMap, editor);
+              handleReplaceForApplyDelay(
+                oldNode,
+                newNode,
+                modifyBlockNodes,
+                diffNodeMap,
+                editor,
+                metadata,
+              );
             } else {
               logger.warn(`⚠️ Node with key ${child.id} not found for diffing.`);
             }
@@ -427,12 +681,11 @@ function handleModify(
         });
       });
       // replace modified block nodes with diff nodes
-      finalizeModifyBlocks(modifyBlockNodes, diffNodeMap, editor);
+      finalizeModifyBlocks(modifyBlockNodes, diffNodeMap, editor, metadata);
     });
   } else {
     editor.update(() => {
-      arrayXml.forEach((xml) => {
-        const inode = dataSource.readLiteXMLToInode(xml);
+      parsedInputs.forEach((inode) => {
         let prevNode: LexicalNode | null = null;
         inode.root.children.forEach((child: any) => {
           try {
@@ -463,11 +716,18 @@ function handleModify(
       });
     });
   }
+  return hasTarget;
 }
 
-function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
+function handleRemove(
+  editor: LexicalEditor,
+  key: string,
+  delay?: boolean,
+  metadata?: LiteXMLRewriteMetadata,
+): boolean {
+  if (!hasCurrentTarget(editor, key)) return false;
   editor.update(() => {
-    const node = $getNodeByKey(key);
+    const node = resolveLiteXMLTarget({ id: key }, editor);
     if (!node) return;
 
     if (!delay) {
@@ -492,13 +752,19 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
         logger.error(`❌ Table cell ${node.getKey()} is not attached to a valid table row.`);
         return;
       }
-      const changeId = `${table.getKey()}:column:${columnIndex}`;
-      node.replace($createTableCellDiffFromCell(editor, node, 'remove', changeId), false);
+      const changeId = createTableColumnChangeId(table, columnIndex);
+      const diffCell = $createTableCellDiffFromCell(editor, node, 'remove', changeId);
+      applyRewriteMetadata(diffCell, metadata);
+      const diff = diffCell.getFirstChild();
+      if (diff) applyRewriteMetadata(diff, metadata);
+      node.replace(diffCell, false);
       return;
     }
 
     if ($isTableRowNode(node) && $isTableNode(node.getParent())) {
-      node.replace($createTableRowDiffFromRow(editor, node, 'remove'), false);
+      const diffRow = $createTableRowDiffFromRow(editor, node, 'remove');
+      applyRewriteMetadata(diffRow, metadata);
+      node.replace(diffRow, false);
       return;
     }
 
@@ -518,11 +784,13 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
             const children = originDiffNode.getChildren();
             const newDiff = $createDiffNode('remove');
             newDiff.append(children[0]);
+            applyRewriteMetadata(newDiff, metadata);
             originDiffNode.replace(newDiff, false);
             return;
           }
           case 'listItemModify': {
             const children = originDiffNode.getChildren();
+            applyRewriteMetadata(originDiffNode, metadata);
             originDiffNode.replace(children[0], false).selectEnd();
             return;
           }
@@ -540,11 +808,13 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
         node.getChildren().forEach((child) => {
           diffNode.append($cloneNode(child, editor));
         });
+        applyRewriteMetadata(diffNode, metadata);
         node.clear();
         node.append(diffNode);
       } else {
         const diffNode = $createDiffNode('remove');
         diffNode.append($cloneNode(node, editor));
+        applyRewriteMetadata(diffNode, metadata);
         node.replace(diffNode, false);
       }
     } else {
@@ -561,11 +831,17 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
         return;
       }
       // wrap changes inside a modify diff
-      wrapBlockModify(oldBlock, editor, () => {
-        node.remove();
-      });
+      wrapBlockModify(
+        oldBlock,
+        editor,
+        () => {
+          node.remove();
+        },
+        metadata,
+      );
     }
   });
+  return true;
 }
 
 function handleInsert(
@@ -582,10 +858,21 @@ function handleInsert(
         litexml: string;
       },
   dataSource: LitexmlDataSource,
+  metadata?: LiteXMLRewriteMetadata,
 ) {
   const { litexml, delay } = payload;
   const isBefore = 'beforeId' in payload;
   const inode = dataSource.readLiteXMLToInode(litexml);
+  const rewriteMetadata = metadata ?? getRewriteMetadata(payload);
+  if (!Array.isArray(inode.root?.children) || inode.root.children.length === 0) return false;
+  const targetId = isBefore ? payload.beforeId : payload.afterId;
+  const hasReference = editor.getEditorState().read(() => {
+    if (targetId === 'root') {
+      return Boolean(isBefore ? $getRoot().getFirstChild() : $getRoot().getLastChild());
+    }
+    return Boolean(resolveLiteXMLTarget({ id: targetId }, editor));
+  });
+  if (!hasReference) return false;
 
   editor.update(() => {
     try {
@@ -594,13 +881,13 @@ function handleInsert(
         if (payload.beforeId === 'root') {
           referenceNode = $getRoot().getFirstChild();
         } else {
-          referenceNode = $getNodeByKey(charToId(payload.beforeId));
+          referenceNode = resolveLiteXMLTarget({ id: payload.beforeId }, editor);
         }
       } else {
         if (payload.afterId === 'root') {
           referenceNode = $getRoot().getLastChild();
         } else {
-          referenceNode = $getNodeByKey(charToId(payload.afterId));
+          referenceNode = resolveLiteXMLTarget({ id: payload.afterId }, editor);
         }
       }
 
@@ -611,6 +898,14 @@ function handleInsert(
       const newNodes = inode.root.children.map((child: any) =>
         $parseSerializedNodeImpl(child, editor),
       );
+      if (newNodes.length === 0) return;
+      // An insert creates new logical blocks. Ignore caller-supplied IDs that
+      // collide with an existing node and allocate missing IDs before the
+      // nodes enter the shared document.
+      const stableIdentityEnabled = Boolean(
+        getKernelFromEditor(editor)?.requireService(IAnnotationService),
+      );
+      newNodes.forEach((node: LexicalNode) => ensureInsertedNodeIds(node, stableIdentityEnabled));
 
       const referencesTableCell = $isTableCellNode(referenceNode);
       const insertsOnlyTableCells = newNodes.length > 0 && newNodes.every($isTableCellNode);
@@ -644,9 +939,15 @@ function handleInsert(
                 editor,
                 node,
                 'add',
-                `${table.getKey()}:column:${insertionIndex + spanOffset}`,
+                createTableColumnChangeId(table, insertionIndex + spanOffset),
               )
             : node;
+          if (delay && $isTableCellDiffNode(result)) {
+            applyRewriteMetadata(result, rewriteMetadata);
+            markGeneratedNodes(result.getChildren(), rewriteMetadata);
+            const diff = result.getFirstChild();
+            if (diff) applyRewriteMetadata(diff, rewriteMetadata);
+          }
           spanOffset += node.getColSpan();
           return result;
         });
@@ -693,12 +994,16 @@ function handleInsert(
           newNodes.reverse().forEach((node: LexicalNode) => {
             if (!$isTableRowNode(node)) return;
             const diffRow = $createTableRowDiffFromRow(editor, node, 'add');
+            applyRewriteMetadata(diffRow, rewriteMetadata);
+            markGeneratedNodes(diffRow.getChildren(), rewriteMetadata);
             referenceNode = referenceNode!.insertBefore(diffRow);
           });
         } else {
           newNodes.forEach((node: LexicalNode) => {
             if (!$isTableRowNode(node)) return;
             const diffRow = $createTableRowDiffFromRow(editor, node, 'add');
+            applyRewriteMetadata(diffRow, rewriteMetadata);
+            markGeneratedNodes(diffRow.getChildren(), rewriteMetadata);
             referenceNode = referenceNode!.insertAfter(diffRow);
           });
         }
@@ -718,6 +1023,8 @@ function handleInsert(
           const diffNodes = newNodes.map((node: LexicalNode) => {
             const diffNode = $createDiffNode('add');
             diffNode.append(node);
+            applyRewriteMetadata(diffNode, rewriteMetadata);
+            markGeneratedNodes([node], rewriteMetadata);
             return diffNode;
           });
           diffNodes.reverse().forEach((diffNode: DiffNode) => {
@@ -736,19 +1043,26 @@ function handleInsert(
           );
           if (originDiffNode) {
             // 可能是 modify / add，那么直接修改就好了
+            applyRewriteMetadata(originDiffNode, rewriteMetadata);
+            markGeneratedNodes(newNodes, rewriteMetadata);
             newNodes.forEach((node: LexicalNode) => {
               if (referenceNode) {
                 referenceNode = referenceNode.insertBefore(node);
               }
             });
           } else {
-            wrapBlockModify(refBlock, editor, () => {
-              newNodes.forEach((node: LexicalNode) => {
-                if (referenceNode) {
-                  referenceNode = referenceNode.insertBefore(node);
-                }
-              });
-            });
+            wrapBlockModify(
+              refBlock,
+              editor,
+              () => {
+                newNodes.forEach((node: LexicalNode) => {
+                  if (referenceNode) {
+                    referenceNode = referenceNode.insertBefore(node);
+                  }
+                });
+              },
+              rewriteMetadata,
+            );
           }
         }
       } else {
@@ -767,11 +1081,15 @@ function handleInsert(
                 node.getChildren().forEach((child) => {
                   diffNode.append(child);
                 });
+                applyRewriteMetadata(diffNode, rewriteMetadata);
+                markGeneratedNodes(diffNode.getChildren(), rewriteMetadata);
                 node.append(diffNode);
                 referenceNode = referenceNode.insertAfter(node);
               } else {
                 const diffNode = $createDiffNode('add');
                 diffNode.append(node);
+                applyRewriteMetadata(diffNode, rewriteMetadata);
+                markGeneratedNodes([node], rewriteMetadata);
                 referenceNode = referenceNode.insertAfter(diffNode);
               }
             }
@@ -787,19 +1105,26 @@ function handleInsert(
           );
           if (originDiffNode) {
             // 可能是 modify / add，那么直接修改就好了
+            applyRewriteMetadata(originDiffNode, rewriteMetadata);
+            markGeneratedNodes(newNodes, rewriteMetadata);
             newNodes.forEach((node: LexicalNode) => {
               if (referenceNode) {
                 referenceNode = referenceNode.insertAfter(node);
               }
             });
           } else {
-            wrapBlockModify(refBlock, editor, () => {
-              newNodes.forEach((node: LexicalNode) => {
-                if (referenceNode) {
-                  referenceNode = referenceNode.insertAfter(node);
-                }
-              });
-            });
+            wrapBlockModify(
+              refBlock,
+              editor,
+              () => {
+                newNodes.forEach((node: LexicalNode) => {
+                  if (referenceNode) {
+                    referenceNode = referenceNode.insertAfter(node);
+                  }
+                });
+              },
+              rewriteMetadata,
+            );
           }
         }
       }
@@ -807,13 +1132,66 @@ function handleInsert(
       logger.error('❌ Error inserting node:', error);
     }
   });
+  return hasReference;
 }
 
 // Command identities live in the side-effect-free `./symbols` module so they
 // keep a single runtime identity across the package's browser/node bundles.
+export type {
+  PendingRewriteReview,
+  RewriteReviewSettlementInput,
+  RewriteReviewSettlementResult,
+} from './diffCommand';
+export { IRewriteReviewService, RewriteReviewService } from './diffCommand';
+export type {
+  AllowedLiteXMLCommandPayload,
+  CollaborativeAgentCommand,
+  CollaborativeAgentCommandGateway,
+} from './gateway';
+export {
+  COLLABORATIVE_AGENT_COMMAND_ALLOWLIST,
+  createAgentCommandGateway,
+  createCollaborativeAgentCommandGateway,
+} from './gateway';
+export type {
+  LiteXMLValidationOptions,
+  RewriteCommandResult,
+  RewriteCommandResultChannel,
+  RewriteCommandStatus,
+  RewriteRangeCommandPayload,
+  RewriteRangeMode,
+  RewriteReviewEvent,
+  RewriteReviewListener,
+  RewriteSelectionInput,
+  SerializedBlockRewriteSelection,
+  SerializedRewriteCommandSelection,
+  SerializedRewritePoint,
+} from './rewriteRange';
+export {
+  executeRewriteRange,
+  hashRewriteText,
+  InMemoryRewriteCommandResultChannel,
+  IRewriteCommandResultService,
+  normalizeRewriteText,
+  getRewriteStateVector,
+  registerLiteXMLRewriteCommand,
+  validateLiteXMLInput,
+} from './rewriteRange';
+export type {
+  LiteXMLInsertCommandPayload,
+  LiteXMLModifyCommandOperation,
+  LiteXMLModifyCommandPayload,
+  LiteXMLRemoveCommandPayload,
+  LiteXMLReviewCommandPayload,
+  LiteXMLRewriteMetadata,
+} from './symbols';
 export {
   LITEXML_APPLY_COMMAND,
   LITEXML_INSERT_COMMAND,
   LITEXML_MODIFY_COMMAND,
   LITEXML_REMOVE_COMMAND,
+  LITEXML_REVIEW_COMMAND,
+  LITEXML_REWRITE_RANGE_COMMAND,
 } from './symbols';
+/** Alias used by request-layer code that refers to the durable range shape by its SDD name. */
+export type { SerializedRewriteCommandSelection as SerializedRewriteSelection } from './rewriteRange';

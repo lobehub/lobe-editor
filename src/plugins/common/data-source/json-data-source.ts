@@ -21,9 +21,86 @@ import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { $parseSerializedNodeImpl } from '@/plugins/litexml/utils';
+import {
+  notifyJSONDataSourceRead,
+  notifyJSONDataSourceWrite,
+} from '@/plugins/properties/service/json-metadata';
 
 import { cursorNodeSerialized } from '../node/cursor';
 import { exportNodeToJSON } from '../utils';
+
+type SerializedRecord = SerializedLexicalNode & {
+  children?: SerializedLexicalNode[];
+};
+
+/**
+ * Project runtime-only Hole boundaries out of persisted editor JSON.
+ * Cursor nodes outside Hole (for example CodeNode's cursor) are preserved.
+ */
+export const projectRuntimeHolesForJSON = (node: SerializedRecord): SerializedRecord[] => {
+  const children = Array.isArray(node.children) ? node.children : undefined;
+
+  if (node.type === 'hole') {
+    const projectedChildren = (children || [])
+      .filter((child) => child.type !== 'cursor')
+      .flatMap((child) => projectRuntimeHolesForJSON(child as SerializedRecord));
+
+    // Hole is runtime-only, but annotations/provenance may have been attached
+    // to its block host. Transfer that state to every projected payload node
+    // before dropping the wrapper, otherwise a JSON round-trip silently
+    // orphans block comments on Artifact/Hole content.
+    const wrapperState = getRecordProperty(node, '$');
+    if (!wrapperState) return projectedChildren;
+
+    const wrapperProperties = getRecordProperty(wrapperState, 'properties');
+    if (!wrapperProperties && Object.keys(wrapperState).length === 0) {
+      return projectedChildren;
+    }
+
+    return projectedChildren.map((child) => {
+      const childState = getRecordProperty(child, '$') || {};
+      const childProperties = getRecordProperty(childState, 'properties');
+      const mergedState = { ...wrapperState, ...childState };
+
+      if (wrapperProperties || childProperties) {
+        const mergedProperties: Record<string, any> = {};
+        if (wrapperProperties) Object.assign(mergedProperties, wrapperProperties);
+        if (childProperties) Object.assign(mergedProperties, childProperties);
+        const wrapperAnnotationIds = Array.isArray(wrapperProperties?.annotationIds)
+          ? wrapperProperties.annotationIds.filter((id): id is string => typeof id === 'string')
+          : [];
+        const childAnnotationIds = Array.isArray(childProperties?.annotationIds)
+          ? childProperties.annotationIds.filter((id): id is string => typeof id === 'string')
+          : [];
+        const annotationIds = Array.from(new Set([...wrapperAnnotationIds, ...childAnnotationIds]));
+        if (annotationIds.length > 0) mergedProperties.annotationIds = annotationIds;
+        else delete mergedProperties.annotationIds;
+        mergedState.properties = mergedProperties;
+      }
+
+      return { ...child, $: mergedState };
+    });
+  }
+
+  if (!children) return [node];
+
+  return [
+    {
+      ...node,
+      children: children.flatMap((child) => projectRuntimeHolesForJSON(child as SerializedRecord)),
+    },
+  ];
+};
+
+const getRecordProperty = (
+  record: SerializedRecord | Record<string, unknown>,
+  key: string,
+): Record<string, any> | undefined => {
+  const value = (record as Record<string, unknown>)[key];
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, any>)
+    : undefined;
+};
 
 export default class JSONDataSource extends DataSource {
   read(editor: LexicalEditor, data: any, options: Record<string, unknown> = {}) {
@@ -63,6 +140,7 @@ export default class JSONDataSource extends DataSource {
       }
     };
     process(dataObj.root);
+    notifyJSONDataSourceRead(editor, dataObj.root as unknown as Record<string, unknown>);
     // @ts-expect-error add id option
     if (dataObj.keepId || options.keepId) {
       const state = editor.parseEditorState(
@@ -208,13 +286,25 @@ export default class JSONDataSource extends DataSource {
             }
           }
 
-          return rootNodes;
+          // Selection exports are public API too. Keep the runtime Hole
+          // transparent here just as in full-document writes; otherwise
+          // getSelectionDocument('json') leaks boundary Cursor nodes.
+          return rootNodes.flatMap((node) =>
+            projectRuntimeHolesForJSON(node as unknown as SerializedRecord),
+          );
         } else if ($isTableSelection(selection)) {
           // todo
         }
-        return selection.getNodes().map((node) => exportNodeToJSON(node));
+        return selection.getNodes().flatMap((node) =>
+          projectRuntimeHolesForJSON(exportNodeToJSON(node) as unknown as SerializedRecord),
+        );
       });
     }
-    return editor.read(() => ({ root: exportNodeToJSON($getRoot()) }));
+    return editor.read(() => {
+      const runtimeRoot = exportNodeToJSON($getRoot()) as unknown as SerializedRecord;
+      const [root] = projectRuntimeHolesForJSON(runtimeRoot);
+      notifyJSONDataSourceWrite(editor, root as unknown as Record<string, unknown>);
+      return { root };
+    });
   }
 }

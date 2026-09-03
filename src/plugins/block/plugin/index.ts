@@ -15,9 +15,21 @@ import {
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import {
+  $resolveLogicalBlockNode,
+  $resolveStructuralBlockNode,
+} from '@/plugins/common/node/hole';
+import { OPEN_ANNOTATION_COMPOSER_COMMAND } from '@/plugins/properties/command';
+import { IAnnotationService } from '@/plugins/properties/service';
+import { $getNodeId } from '@/plugins/properties/utils';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerBlockMoveCommand } from '../command';
+import {
+  BLOCK_NODE_ID_ATTRIBUTE,
+  BLOCK_ID_ATTRIBUTE,
+  BLOCK_STRUCTURAL_ID_ATTRIBUTE,
+} from '../constants';
 import { BlockMenuService, IBlockMenuService } from '../service';
 
 export interface BlockPluginOptions {
@@ -43,31 +55,42 @@ type LexicalNodeClass = {
 
 const PATCHED_NODE_TYPES = new Set<string>();
 
-const getBlockClipboardData = (node: LexicalNode): LexicalClipboardData => {
-  if ($isElementNode(node)) {
+export const getBlockClipboardData = (node: LexicalNode): LexicalClipboardData => {
+  const clipboardNode = $resolveStructuralBlockNode(node);
+
+  if ($isElementNode(clipboardNode)) {
     const selection = $createRangeSelection();
-    const parent = node.getParent();
+    const parent = clipboardNode.getParent();
 
     if (parent) {
-      const index = node.getIndexWithinParent();
+      const index = clipboardNode.getIndexWithinParent();
       selection.anchor.set(parent.getKey(), index, 'element');
       selection.focus.set(parent.getKey(), index + 1, 'element');
     } else {
-      selection.anchor.set(node.getKey(), 0, 'element');
-      selection.focus.set(node.getKey(), node.getChildrenSize(), 'element');
+      selection.anchor.set(clipboardNode.getKey(), 0, 'element');
+      selection.focus.set(
+        clipboardNode.getKey(),
+        clipboardNode.getChildrenSize(),
+        'element',
+      );
     }
 
     return $getClipboardDataFromSelection(selection);
   }
 
-  if ($isTextNode(node)) {
+  if ($isTextNode(clipboardNode)) {
     const selection = $createRangeSelection();
-    selection.setTextNodeRange(node, 0, node, node.getTextContentSize());
+    selection.setTextNodeRange(
+      clipboardNode,
+      0,
+      clipboardNode,
+      clipboardNode.getTextContentSize(),
+    );
     return $getClipboardDataFromSelection(selection);
   }
 
   const selection = $createNodeSelection();
-  selection.add(node.getKey());
+  selection.add(clipboardNode.getKey());
   return $getClipboardDataFromSelection(selection);
 };
 
@@ -86,6 +109,11 @@ const selectBlockNode = (node: LexicalNode) => {
   selection.add(node.getKey());
   $setSelection(selection);
   return true;
+};
+
+const getLogicalBlockNodeByKey = (key: string): LexicalNode | null => {
+  const node = $getNodeByKey(key);
+  return node ? $resolveLogicalBlockNode(node) : null;
 };
 
 const resolveNodeClass = (node: LexicalNodeConfig): LexicalNodeClass | null => {
@@ -144,7 +172,10 @@ const patchBlockNodeCreateDOM = (nodeClass: LexicalNodeClass, attributeName: str
       return false;
     })();
 
-    const nodeKey = typeof latestNode.getKey === 'function' ? latestNode.getKey() : this.getKey();
+    const logicalNode = $resolveLogicalBlockNode(latestNode as LexicalNode);
+    const structuralNode = $resolveStructuralBlockNode(latestNode as LexicalNode);
+    const nodeKey = logicalNode.getKey();
+    const structuralNodeKey = structuralNode.getKey();
     const nodeType = typeof latestNode.getType === 'function' ? latestNode.getType() : '';
     const isCollapsibleTitleChild =
       parentNode?.getType?.() === 'collapsible' &&
@@ -161,8 +192,11 @@ const patchBlockNodeCreateDOM = (nodeClass: LexicalNodeClass, attributeName: str
 
     if (isRootChildBlock) {
       dom.dataset.blockId = nodeKey;
+      dom.setAttribute(BLOCK_STRUCTURAL_ID_ATTRIBUTE, structuralNodeKey);
+      const nodeId = $getNodeId(logicalNode);
+      if (nodeId) dom.setAttribute(BLOCK_NODE_ID_ATTRIBUTE, nodeId);
 
-      if (attributeName !== 'data-block-id') {
+      if (attributeName !== BLOCK_ID_ATTRIBUTE) {
         dom.setAttribute(attributeName, nodeKey);
       }
     }
@@ -185,7 +219,7 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
   ) {
     super();
 
-    const attributeName = config?.attributeName || 'data-block-id';
+    const attributeName = config?.attributeName || BLOCK_ID_ATTRIBUTE;
     const rootClassName = config?.className?.trim();
 
     kernel.registerServiceHotReload(IBlockMenuService, new BlockMenuService());
@@ -227,7 +261,7 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
 
           let clipboardData: LexicalClipboardData | undefined;
           lexicalEditor.read(() => {
-            const target = $getNodeByKey(context.blockId);
+            const target = getLogicalBlockNodeByKey(context.blockId);
             if (!target) return;
             clipboardData = getBlockClipboardData(target);
           });
@@ -247,12 +281,44 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
           if (!lexicalEditor) return;
 
           lexicalEditor.update(() => {
-            const target = $getNodeByKey(context.blockId);
+            const target = getLogicalBlockNodeByKey(context.blockId);
             if (!target) return;
             blockMenuService.selectNode(target);
           });
         },
         order: 997,
+      });
+
+      const unregisterCommentMenu = blockMenuService.registerMenu({
+        key: '__block_default_comment',
+        label: (context) => context.editor.t('block.comment'),
+        onClick: (context) => {
+          const lexicalEditor = context.editor.getLexicalEditor();
+          if (!lexicalEditor) return;
+
+          let quotedText = '';
+          let targetKey = '';
+          let targetExists = false;
+          lexicalEditor.read(() => {
+            const target = getLogicalBlockNodeByKey(context.blockId);
+            if (!target) return;
+            targetExists = true;
+            targetKey = target.getKey();
+            quotedText = target.getTextContent();
+          });
+          if (!targetExists) return;
+
+          context.editor.dispatchCommand(OPEN_ANNOTATION_COMPOSER_COMMAND, {
+            kind: 'comment',
+            nodeKeys: [targetKey],
+            payload: null,
+            quotedText,
+            rect: context.blockElement.getBoundingClientRect(),
+          });
+        },
+        order: 998.5,
+        when: (context) =>
+          context.editor.isEditable() && Boolean(context.editor.requireService(IAnnotationService)),
       });
 
       const unregisterDeleteMenu = blockMenuService.registerMenu({
@@ -263,7 +329,7 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
           if (!lexicalEditor) return;
 
           lexicalEditor.update(() => {
-            const target = $getNodeByKey(context.blockId);
+            const target = getLogicalBlockNodeByKey(context.blockId);
             if (!target) return;
             target.remove();
           });
@@ -273,6 +339,7 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
 
       this.register(unregisterDefaultSelectHandler);
       this.register(unregisterCopyMenu);
+      this.register(unregisterCommentMenu);
       this.register(unregisterSelectMenu);
       this.register(unregisterDeleteMenu);
     }
