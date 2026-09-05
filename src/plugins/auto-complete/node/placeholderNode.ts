@@ -19,7 +19,8 @@ export class PlaceholderNode extends ElementNode {
 
   createDOM(config: EditorConfig): HTMLElement {
     const element = document.createElement('span');
-
+    element.contentEditable = 'false';
+    element.setAttribute('data-auto-complete-preview', 'true');
     element.setAttribute('data-lexical-key', this.getKey());
     addClassNamesToElement(element, config.theme.placeholderInline);
     return element;
