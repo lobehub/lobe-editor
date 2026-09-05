@@ -30,6 +30,7 @@ export function $readCompletionContext(): CompletionContext | null {
     else input += text;
   };
   const visit = (node: LexicalNode) => {
+    // Exclude current previews and the legacy block format from request text.
     if (node instanceof PlaceholderNode || node instanceof PlaceholderBlockNode) return;
     if (node.is(target)) {
       if ($isElementNode(node)) {

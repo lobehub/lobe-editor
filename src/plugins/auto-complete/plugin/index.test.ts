@@ -189,6 +189,87 @@ describe('AutoCompletePlugin', () => {
     expect(preview(f.root)).toBeNull();
   });
 
+  it('normalizes split text after repeated preview cancellation', async () => {
+    const f = setup();
+    for (let attempt = 0; attempt < 8; attempt++) {
+      f.editor.update(
+        () => {
+          const paragraph = $getRoot().getFirstChildOrThrow();
+          if (!$isElementNode(paragraph)) throw new Error('missing paragraph');
+          const node = paragraph.getFirstChildOrThrow();
+          if (!$isTextNode(node)) throw new Error('missing text');
+          const offset = 2 + (attempt % 2);
+          node.select(offset, offset);
+        },
+        { discrete: true },
+      );
+      await show();
+      expect(preview(f.root)).not.toBeNull();
+      f.editor.dispatchCommand(KEY_ESCAPE_COMMAND, new KeyboardEvent('keydown', { key: 'Escape' }));
+      await flush();
+      f.editor.getEditorState().read(() => {
+        const paragraph = $getRoot().getFirstChildOrThrow();
+        if (!$isElementNode(paragraph)) throw new Error('missing paragraph');
+        expect(paragraph.getChildrenSize()).toBe(1);
+        expect(paragraph.getTextContent()).toBe('abcdef');
+      });
+    }
+  });
+
+  it('invalidates a preview when typing immediately after the response resolves', async () => {
+    let resolve!: (value: string) => void;
+    const f = setup(
+      vi.fn(
+        () =>
+          new Promise<string>((done) => {
+            resolve = done;
+          }),
+      ),
+    );
+    await show();
+    resolve('建议');
+    // Run the response continuation, but not the pending Lexical commit.
+    await Promise.resolve();
+    f.editor.update(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) throw new Error('missing selection');
+      selection.insertText('x');
+    });
+    await flush();
+    expect(preview(f.root)).toBeNull();
+    expect(text(f.editor)).toBe('abcxdef');
+    expect(f.rejected).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ reason: 'typing' }),
+    );
+  });
+
+  it('keeps pending user updates separate from a response and schedules for the new text', async () => {
+    let resolve!: (value: string) => void;
+    const f = setup(
+      vi.fn(
+        () =>
+          new Promise<string>((done) => {
+            resolve = done;
+          }),
+      ),
+    );
+    await show();
+    // The response continuation is queued first; the user update is executed
+    // before it, with its commit queued after it.
+    resolve('过期');
+    f.editor.update(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) throw new Error('missing selection');
+      selection.insertText('x');
+    });
+    await flush();
+    expect(preview(f.root)).toBeNull();
+    expect(text(f.editor)).toBe('abcxdef');
+    await show();
+    expect(f.onAutoComplete).toHaveBeenCalledTimes(2);
+    expect(f.onAutoComplete.mock.calls[1]).toEqual([expect.objectContaining({ input: 'abcx' })]);
+  });
+
   it('discards a late response after the paragraph changes at the same caret position', async () => {
     let resolve!: (value: string) => void;
     const f = setup(

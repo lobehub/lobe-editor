@@ -47,7 +47,11 @@ export interface AutoCompletePluginOptions {
     suggestionId: string;
     visibleMs: number;
   }) => void;
-  theme?: { placeholderBlock?: string; placeholderInline?: string };
+  theme?: {
+    /** Kept for rendering PlaceholderBlock nodes from older serialized documents. */
+    placeholderBlock?: string;
+    placeholderInline?: string;
+  };
 }
 
 type Phase = 'idle' | 'waiting' | 'requesting' | 'visible' | 'composing' | 'settling' | 'destroyed';
@@ -85,6 +89,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     public config?: AutoCompletePluginOptions,
   ) {
     super();
+    // New previews use PlaceholderNode; keep the old block type deserializable.
     kernel.registerNodes([PlaceholderNode, PlaceholderBlockNode]);
     if (config?.theme) kernel.registerThemes(config.theme);
   }
@@ -212,8 +217,10 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
   private scheduleSettlement(): void {
     this.cancelSettlement();
-    // Allow the final native input event AND its Lexical commit to finish.
-    // A microtask inside compositionend can run before the browser finishes.
+    // Yield past the current native event, but do not treat a timer as proof
+    // that composition finished. Safari may commit insertFromComposition in
+    // a later task: isComposing() gates removal, and the update listener
+    // re-arms settlement when Lexical finally releases its composition key.
     this.settleTimer = setTimeout(() => {
       this.settleTimer = null;
       if (this.phase !== 'settling' || this.editor?.isComposing()) return;
@@ -281,6 +288,9 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
 
   private showPreview(markdown: string, id: string, context: CompletionContext): void {
     const editor = this.editor!;
+    // Flush earlier user updates with their own tags before starting a preview
+    // transaction. `discrete` below also prevents later input joining this one.
+    if (editor.read($readCompletionContext)?.fingerprint !== context.fingerprint) return;
     editor.update(
       () => {
         if (
@@ -317,7 +327,7 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         };
         this.phase = 'visible';
       },
-      { tag: [PREVIEW_TAG, HISTORIC_TAG] },
+      { discrete: true, tag: [PREVIEW_TAG, HISTORIC_TAG] },
     );
   }
 

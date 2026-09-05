@@ -18,6 +18,11 @@ export class PlaceholderNode extends ElementNode {
   }
 
   createDOM(config: EditorConfig): HTMLElement {
+    // This transient wrapper can contain block DOM to preserve multiline
+    // layout without splitting the host paragraph. Such nesting is not a
+    // portable HTML serialization; `display: inline-block` would not change
+    // the HTML content model. Acceptance reparses the source Markdown instead
+    // of reusing this wrapper's innerHTML.
     const element = document.createElement('span');
     element.contentEditable = 'false';
     element.setAttribute('data-auto-complete-preview', 'true');
@@ -60,6 +65,7 @@ export class PlaceholderNode extends ElementNode {
   }
 }
 
+/** Legacy node type kept for deserializing previews saved by older versions. */
 export class PlaceholderBlockNode extends ElementNode {
   static getType(): string {
     return 'PlaceholderBlock';
