@@ -5,10 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ArtifactNode } from '../node/ArtifactNode';
-import {
-  SELECT_AFTER_ARTIFACT_COMMAND,
-  SELECT_BEFORE_ARTIFACT_COMMAND,
-} from '../command';
+import { SELECT_AFTER_ARTIFACT_COMMAND, SELECT_BEFORE_ARTIFACT_COMMAND } from '../command';
 import { ENTER_HOLE_CONTENT_COMMAND } from '@/plugins/common/command';
 import ArtifactView from './ArtifactView';
 import { artifactStyles } from './style';
@@ -23,7 +20,12 @@ const codeMirrorMock = vi.hoisted(() => ({
 }));
 
 vi.mock('@/editor-kernel/react/useLexicalNodeSelection', () => ({
-  useLexicalNodeSelection: () => [selectionMock.selected, selectionMock.set, selectionMock.clear, false],
+  useLexicalNodeSelection: () => [
+    selectionMock.selected,
+    selectionMock.set,
+    selectionMock.clear,
+    false,
+  ],
 }));
 
 vi.mock('@/codemirror', () => ({
@@ -46,6 +48,7 @@ describe('ArtifactView', () => {
     artifactSelectionMock.directNodeSelection = false;
     codeMirrorMock.loadCodeMirror.mockReset();
     codeMirrorMock.loadCodeMirror.mockImplementation(() => new Promise(() => {}));
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -70,9 +73,20 @@ describe('ArtifactView', () => {
 
     expect(markup).toContain('artifact-header');
     expect(markup).toContain('data-block-menu-anchor="center"');
+    expect(markup).toContain('data-artifact-view-mode="split"');
     expect(markup).toContain('class="cm-textarea"');
     expect(markup).toContain('<iframe');
     expect(markup).toContain('artifact-preview');
+    expect(markup).toContain('artifact-view-controls');
+    expect(markup).toContain('artifact-view-mode');
+    expect(markup).toContain('Split view');
+    expect(markup).toContain('Code only');
+    expect(markup).toContain('Preview only');
+    const staticSurface = document.createElement('div');
+    staticSurface.innerHTML = markup;
+    expect(staticSurface.querySelectorAll('.artifact-heading')).toHaveLength(1);
+    expect(staticSurface.querySelector('.artifact-heading .artifact-title')).not.toBeNull();
+    expect(staticSurface.querySelector('.artifact-view-controls')).not.toBeNull();
 
     const normalSurface = document.createElement('div');
     normalSurface.className = artifactStyles;
@@ -89,10 +103,258 @@ describe('ArtifactView', () => {
     expect(normalCodeContent.textContent).toBe('visible source');
   });
 
+  it('switches among all panes and persists the selected view by durable node id', async () => {
+    const editor = {
+      isEditable: () => true,
+      registerEditableListener: () => vi.fn(),
+      registerCommand: () => vi.fn(),
+      registerUpdateListener: () => vi.fn(),
+      update: vi.fn(),
+    } as unknown as LexicalEditor;
+    const node = {
+      getHtml: () => '<h1>Persistent view</h1>',
+      getKey: () => 'artifact-persistent-key',
+      getTitle: () => 'Persistent Artifact',
+    } as unknown as ArtifactNode;
+    const host = document.createElement('div');
+    document.body.append(host);
+    const root = createRoot(host);
+
+    const selectMode = async (label: string, hitArea: 'input' | 'label' = 'input') => {
+      const option = Array.from(host.querySelectorAll('label')).find((candidate) =>
+        candidate.textContent?.includes(label),
+      );
+      const input = option?.querySelector<HTMLInputElement>('input');
+      if (!input) throw new Error(`Artifact ${label} switch missing.`);
+      await act(async () => {
+        if (hitArea === 'label') option?.click();
+        else input.click();
+      });
+    };
+
+    await act(async () => {
+      root.render(
+        <ArtifactView allowScripts={false} editor={editor} node={node} previewHeight={400} />,
+      );
+    });
+
+    const surface = host.querySelector<HTMLElement>(`.${artifactStyles}`);
+    if (!surface) throw new Error('Artifact surface missing.');
+    expect(surface.dataset.artifactViewMode).toBe('split');
+    expect(surface.querySelector('.artifact-code')).not.toBeNull();
+    expect(surface.querySelector('.artifact-preview')).not.toBeNull();
+    const iframe = surface.querySelector<HTMLIFrameElement>('.artifact-frame');
+    if (!iframe) throw new Error('Artifact preview iframe missing.');
+    const focus = vi.spyOn(iframe, 'focus');
+
+    await selectMode('Code only', 'label');
+    expect(surface.dataset.artifactViewMode).toBe('code-only');
+    expect(surface.querySelector('.artifact-code')).not.toBeNull();
+    expect(surface.querySelector('.artifact-preview')).not.toBeNull();
+    expect(surface.querySelector('.artifact-preview-hidden')).not.toBeNull();
+    expect(localStorage.getItem('lobe-artifact-view-mode:artifact-persistent-key')).toBe(
+      'code-only',
+    );
+
+    await selectMode('Preview only', 'input');
+    expect(surface.dataset.artifactViewMode).toBe('preview-only');
+    expect(surface.querySelector('.artifact-code')).toBeNull();
+    expect(surface.querySelector('.artifact-preview')).not.toBeNull();
+    expect(surface.querySelector('.artifact-frame')).toBe(iframe);
+    expect(focus).toHaveBeenCalledOnce();
+    expect(localStorage.getItem('lobe-artifact-view-mode:artifact-persistent-key')).toBe(
+      'preview-only',
+    );
+
+    await act(async () => root.unmount());
+    const secondRoot = createRoot(host);
+    await act(async () => {
+      secondRoot.render(
+        <ArtifactView allowScripts={false} editor={editor} node={node} previewHeight={400} />,
+      );
+    });
+    const restoredSurface = host.querySelector<HTMLElement>(`.${artifactStyles}`);
+    expect(restoredSurface?.dataset.artifactViewMode).toBe('preview-only');
+    await selectMode('Split view', 'label');
+    expect(restoredSurface?.dataset.artifactViewMode).toBe('split');
+    expect(restoredSurface?.querySelector('.artifact-code')).not.toBeNull();
+    expect(localStorage.getItem('lobe-artifact-view-mode:artifact-persistent-key')).toBe('split');
+    await selectMode('Code only');
+    expect(restoredSurface?.dataset.artifactViewMode).toBe('code-only');
+    await act(async () => secondRoot.unmount());
+    focus.mockRestore();
+
+    const thirdRoot = createRoot(host);
+    await act(async () => {
+      thirdRoot.render(
+        <ArtifactView allowScripts={false} editor={editor} node={node} previewHeight={400} />,
+      );
+    });
+    expect(host.querySelector<HTMLElement>(`.${artifactStyles}`)?.dataset.artifactViewMode).toBe(
+      'code-only',
+    );
+    await act(async () => thirdRoot.unmount());
+  });
+
+  it('isolates pointer, mouse, and click events in the full-width view control', async () => {
+    const editor = {
+      isEditable: () => true,
+      registerCommand: () => vi.fn(),
+      registerEditableListener: () => vi.fn(),
+      update: vi.fn(),
+    } as unknown as LexicalEditor;
+    const node = {
+      getHtml: () => '<h1>Hit area</h1>',
+      getKey: () => 'artifact-hit-area-key',
+      getTitle: () => 'Hit area Artifact',
+    } as unknown as ArtifactNode;
+    const host = document.createElement('div');
+    document.body.append(host);
+    const root = createRoot(host);
+
+    await act(async () => {
+      root.render(
+        <ArtifactView allowScripts={false} editor={editor} node={node} previewHeight={400} />,
+      );
+    });
+
+    const control = host.querySelector<HTMLElement>('.artifact-view-controls');
+    if (!control) throw new Error('Artifact view control missing.');
+    selectionMock.set.mockReset();
+    const pointerDown = new Event('pointerdown', { bubbles: true, cancelable: true });
+    const mouseDown = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    control.dispatchEvent(pointerDown);
+    control.dispatchEvent(mouseDown);
+    control.dispatchEvent(click);
+    expect(pointerDown.defaultPrevented).toBe(false);
+    expect(mouseDown.defaultPrevented).toBe(false);
+    expect(click.defaultPrevented).toBe(false);
+    expect(selectionMock.set).not.toHaveBeenCalled();
+
+    const codeOnly = Array.from(control.querySelectorAll('label')).find((candidate) =>
+      candidate.textContent?.includes('Code only'),
+    );
+    if (!codeOnly) throw new Error('Code-only hit area missing.');
+    await act(async () => codeOnly.click());
+    expect(host.querySelector<HTMLElement>(`.${artifactStyles}`)?.dataset.artifactViewMode).toBe(
+      'code-only',
+    );
+    await act(async () => root.unmount());
+  });
+
+  it('keeps CodeMirror alive for code-visible modes and destroys it in preview-only mode', async () => {
+    const instance = {
+      blur: vi.fn(),
+      destroy: vi.fn(),
+      focus: vi.fn(),
+      getValue: () => '<h1>Lifecycle</h1>',
+      on: vi.fn(),
+      optionHelper: { theme: { reconfigure: vi.fn() } },
+      view: {
+        constructor: { theme: vi.fn(() => ({})) },
+        dispatch: vi.fn(),
+      },
+    };
+    const fromTextArea = vi.fn(() => instance);
+    codeMirrorMock.loadCodeMirror.mockResolvedValue({ fromTextArea } as never);
+    const editor = {
+      isEditable: () => true,
+      registerCommand: () => vi.fn(),
+      registerEditableListener: () => vi.fn(),
+      registerUpdateListener: () => vi.fn(),
+      update: vi.fn(),
+    } as unknown as LexicalEditor;
+    const node = {
+      getHtml: () => '<h1>Lifecycle</h1>',
+      getKey: () => 'artifact-lifecycle-key',
+      getTitle: () => 'Lifecycle Artifact',
+    } as unknown as ArtifactNode;
+    const host = document.createElement('div');
+    document.body.append(host);
+    const root = createRoot(host);
+
+    const selectMode = async (label: string) => {
+      const option = Array.from(host.querySelectorAll('label')).find((candidate) =>
+        candidate.textContent?.includes(label),
+      );
+      const input = option?.querySelector<HTMLInputElement>('input');
+      if (!input) throw new Error(`Artifact ${label} switch missing.`);
+      await act(async () => input.click());
+    };
+
+    await act(async () => {
+      root.render(
+        <ArtifactView allowScripts={false} editor={editor} node={node} previewHeight={400} />,
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fromTextArea).toHaveBeenCalledOnce();
+    expect(instance.destroy).not.toHaveBeenCalled();
+    const iframe = host.querySelector<HTMLIFrameElement>('.artifact-frame');
+    if (!iframe) throw new Error('Artifact preview iframe missing.');
+    await selectMode('Code only');
+    expect(host.querySelector<HTMLElement>(`.${artifactStyles}`)?.dataset.artifactViewMode).toBe(
+      'code-only',
+    );
+    expect(fromTextArea).toHaveBeenCalledOnce();
+    expect(instance.destroy).not.toHaveBeenCalled();
+    expect(host.querySelector('.artifact-frame')).toBe(iframe);
+
+    await selectMode('Preview only');
+    expect(host.querySelector<HTMLElement>(`.${artifactStyles}`)?.dataset.artifactViewMode).toBe(
+      'preview-only',
+    );
+    expect(instance.destroy).toHaveBeenCalledOnce();
+    expect(host.querySelector('.artifact-frame')).toBe(iframe);
+
+    await selectMode('Split view');
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(fromTextArea).toHaveBeenCalledTimes(2);
+    expect(instance.destroy).toHaveBeenCalledOnce();
+    expect(host.querySelector('.artifact-frame')).toBe(iframe);
+    await act(async () => root.unmount());
+  });
+
+  it('normalizes the legacy preview storage value to preview-only', async () => {
+    localStorage.setItem('lobe-artifact-view-mode:artifact-legacy-key', 'preview');
+    const editor = {
+      isEditable: () => true,
+      registerCommand: () => vi.fn(),
+      registerEditableListener: () => vi.fn(),
+      update: vi.fn(),
+    } as unknown as LexicalEditor;
+    const node = {
+      getHtml: () => '<h1>Legacy</h1>',
+      getKey: () => 'artifact-legacy-key',
+      getTitle: () => 'Legacy Artifact',
+    } as unknown as ArtifactNode;
+    const host = document.createElement('div');
+    document.body.append(host);
+    const root = createRoot(host);
+
+    await act(async () => {
+      root.render(
+        <ArtifactView allowScripts={false} editor={editor} node={node} previewHeight={400} />,
+      );
+    });
+    expect(host.querySelector<HTMLElement>(`.${artifactStyles}`)?.dataset.artifactViewMode).toBe(
+      'preview-only',
+    );
+    expect(host.querySelector('.artifact-code')).toBeNull();
+    await act(async () => root.unmount());
+  });
+
   it('uses one preview-height contract for both panes and supports custom heights', () => {
     const editor = {
       isEditable: () => true,
       registerEditableListener: () => vi.fn(),
+      registerCommand: () => vi.fn(),
       update: vi.fn(),
     } as unknown as LexicalEditor;
     const node = {
@@ -116,6 +378,7 @@ describe('ArtifactView', () => {
     const styleText = Array.from(document.styleSheets)
       .flatMap((sheet) => Array.from(sheet.cssRules))
       .map((rule) => rule.cssText)
+      .filter((rule) => rule.includes(`.${artifactStyles}`))
       .join('\n');
     expect(styleText).not.toContain('360px');
     expect(
@@ -124,6 +387,11 @@ describe('ArtifactView', () => {
     const bodyRule = styleText.split('\n').find((rule) => rule.includes('.artifact-body {'));
     expect(bodyRule).toContain('min-height: var(--lobe-artifact-preview-height, 420px)');
     expect(bodyRule).not.toMatch(/(?:^|[;{]\s*)height:/);
+    expect(styleText).toContain('.artifact-view-controls');
+    expect(styleText).toContain('display: flex');
+    expect(styleText).toContain('justify-content: flex-end');
+    expect(styleText).toContain('.artifact-view-mode .ant-segmented');
+    expect(styleText).toContain('width: 100%');
   });
 
   it('uses the block selection class instead of native surface selection', () => {
@@ -244,12 +512,29 @@ describe('ArtifactView', () => {
       );
     });
     await act(async () => {
-      host.querySelector(`.${artifactStyles}`)?.dispatchEvent(
-        new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
-      );
+      host
+        .querySelector(`.${artifactStyles}`)
+        ?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     });
 
     expect(selectionMock.set).toHaveBeenCalledWith(true);
+    const iframe = host.querySelector<HTMLIFrameElement>('.artifact-frame');
+    if (!iframe) throw new Error('Artifact preview iframe missing.');
+    const focus = vi.spyOn(iframe, 'focus');
+    await act(async () => {
+      host
+        .querySelector('.artifact-preview')
+        ?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    });
+    expect(focus).toHaveBeenCalledOnce();
+
+    host.setAttribute('data-collaborative-target-locked', 'true');
+    await act(async () => {
+      host
+        .querySelector('.artifact-preview')
+        ?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    });
+    expect(focus).toHaveBeenCalledOnce();
     await act(async () => root.unmount());
   });
 
@@ -530,6 +815,51 @@ describe('ArtifactView', () => {
     rejectLoad(new Error('late failure'));
     await Promise.resolve();
     expect(host.innerHTML).toBe('');
+  });
+
+  it('updates the preview source without replacing the iframe', async () => {
+    const editor = {
+      isEditable: () => false,
+      registerCommand: () => vi.fn(),
+      registerEditableListener: () => vi.fn(),
+      update: vi.fn(),
+    } as unknown as LexicalEditor;
+    const firstNode = {
+      getHtml: () => '<button>Old preview</button>',
+      getKey: () => 'artifact-reload-key',
+      getTitle: () => 'Reloadable Artifact',
+    } as unknown as ArtifactNode;
+    const host = document.createElement('div');
+    document.body.append(host);
+    const root = createRoot(host);
+
+    await act(async () => {
+      root.render(
+        <ArtifactView allowScripts editor={editor} node={firstNode} previewHeight={400} />,
+      );
+    });
+    const iframe = host.querySelector<HTMLIFrameElement>('.artifact-frame');
+    if (!iframe) throw new Error('Artifact preview iframe missing.');
+    expect(iframe.tabIndex).toBe(0);
+    expect(iframe.getAttribute('sandbox')).toBe('allow-scripts');
+    expect(iframe.getAttribute('srcdoc')).toContain('Old preview');
+
+    const nextNode = {
+      getHtml: () => '<button>New preview</button>',
+      getKey: () => 'artifact-reload-key',
+      getTitle: () => 'Reloadable Artifact',
+    } as unknown as ArtifactNode;
+    await act(async () => {
+      root.render(
+        <ArtifactView allowScripts editor={editor} node={nextNode} previewHeight={400} />,
+      );
+      await Promise.resolve();
+    });
+
+    const updatedIframe = host.querySelector<HTMLIFrameElement>('.artifact-frame');
+    expect(updatedIframe).toBe(iframe);
+    expect(updatedIframe?.getAttribute('srcdoc')).toContain('New preview');
+    await act(async () => root.unmount());
   });
 
   it('renders only the iframe preview when the editor is readonly', () => {

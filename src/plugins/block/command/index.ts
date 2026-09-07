@@ -18,8 +18,12 @@ import {
   type LexicalNode,
 } from 'lexical';
 
-import { $resolveStructuralBlockNode } from '@/plugins/common/node/hole';
+import { getKernelFromEditor } from '@/editor-kernel/utils';
+import { $resolveLogicalBlockNode, $resolveStructuralBlockNode } from '@/plugins/common/node/hole';
+import { $getNodeId } from '@/plugins/properties/utils';
 import { createDebugLogger } from '@/utils/debug';
+
+import { ICollaborativeTargetLeaseService } from '../service/target-lease';
 
 export interface BlockMovePayload {
   placement: 'after' | 'before';
@@ -302,6 +306,21 @@ export function registerBlockMoveCommand(editor: LexicalEditor) {
     MOVE_BLOCK_COMMAND,
     (payload) => {
       logger.debug('received-command', payload);
+      const sourceCandidate = $getNodeByKey(payload.sourceBlockId);
+      const targetCandidate = $getNodeByKey(payload.targetBlockId);
+      const leaseService = getKernelFromEditor(editor)?.requireService(
+        ICollaborativeTargetLeaseService,
+      );
+      for (const candidate of [sourceCandidate, targetCandidate]) {
+        const logicalNode = candidate ? $resolveLogicalBlockNode(candidate) : null;
+        const nodeId = logicalNode ? $getNodeId(logicalNode) : undefined;
+        if (
+          nodeId &&
+          (!leaseService || !leaseService.can({ nodeId, targetKind: 'node' }, 'move'))
+        ) {
+          return false;
+        }
+      }
       moveBlockNode(payload);
       return true;
     },
@@ -312,3 +331,9 @@ export function registerBlockMoveCommand(editor: LexicalEditor) {
     unregister();
   };
 }
+
+export {
+  APPLY_BLOCK_REWRITE_COMMAND,
+  type ApplyBlockRewritePayload,
+  registerBlockRewriteCommand,
+} from './rewrite';

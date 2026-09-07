@@ -109,6 +109,16 @@ export class HoleNode extends CardLikeElementNode {
     return element;
   }
 
+  /**
+   * The Hole wrapper DOM is stable; Lexical reconciles its child slot
+   * separately. Implementing this method is required for DOM-backed editors:
+   * ElementNode's inherited base implementation throws during reconciliation,
+   * which makes Lexical reset the commit and drop its update tags.
+   */
+  updateDOM(): false {
+    return false;
+  }
+
   getDOMSlot(element: HTMLElement): ElementDOMSlot<HTMLElement> {
     const content = element.querySelector<HTMLElement>('[data-hole-content="true"]');
     return content ? super.getDOMSlot(element).withElement(content) : super.getDOMSlot(element);

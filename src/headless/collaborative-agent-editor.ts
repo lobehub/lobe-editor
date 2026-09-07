@@ -7,6 +7,7 @@ import type {
   RangeSelection,
   SerializedEditorState,
   SerializedLexicalNode,
+  TextNode,
 } from 'lexical';
 import {
   $createRangeSelection,
@@ -29,6 +30,10 @@ import {
 
 import Editor, { moment } from '@/editor-kernel';
 import { getBlockOffset, getBlockPoint } from '@/editor-kernel/linear-text';
+import { IAISessionService } from '@/plugins/ai-session/service';
+import type { BlockRewriteOutputSchema } from '@/plugins/block/service/rewrite-adapter';
+import { IBlockRewriteAdapterService } from '@/plugins/block/service/rewrite-adapter';
+import { $getAtomicHoleForNode } from '@/plugins/common/node/atomic-hole-selection';
 import {
   IRewriteCommandResultService,
   LITEXML_REWRITE_RANGE_COMMAND,
@@ -40,6 +45,7 @@ import {
   type CollaborativeAgentCommandGateway,
   createCollaborativeAgentCommandGateway,
 } from '@/plugins/litexml/command/gateway';
+import { $getNodeProperties } from '@/plugins/properties/state';
 import {
   $clearStreamingGenerationRegion,
   $findNodeById,
@@ -85,6 +91,31 @@ import {
 } from './streaming';
 
 export type { CollaborativeAgentCommand } from '@/plugins/litexml/command/gateway';
+
+const getProvenanceSelectionText = (selection: RangeSelection): string => {
+  const textNodes = selection.getNodes().filter($isTextNode);
+  const firstPoint = selection.isBackward() ? selection.focus : selection.anchor;
+  const lastPoint = selection.isBackward() ? selection.anchor : selection.focus;
+  const firstNode = firstPoint.getNode();
+  const lastNode = lastPoint.getNode();
+  let previousBlock: LexicalNode | null = null;
+  let result = '';
+  for (const node of textNodes) {
+    if (node.getType() === 'cursor') continue;
+    const block = getBlockAncestor(node);
+    if (result && block && block !== previousBlock) result += ' ';
+    let text = node.getTextContent();
+    if (node === firstNode && node === lastNode) {
+      text = text.slice(firstPoint.offset, lastPoint.offset);
+    } else {
+      if (node === firstNode) text = text.slice(firstPoint.offset);
+      if (node === lastNode) text = text.slice(0, lastPoint.offset);
+    }
+    result += text;
+    previousBlock = block;
+  }
+  return result;
+};
 
 export interface SerializedRelativeRewriteSelection {
   anchorPos: SerializedRelativePosition;
@@ -188,6 +219,14 @@ export interface CollaborativeRewriteStreamSession {
 export type CollaborativeRewriteStreamStatus =
   'aborted' | 'applied' | 'conflict' | 'failed' | 'stopped' | 'streaming';
 
+/**
+ * A provider ticket can expire while the model is still producing chunks.
+ * Keep the rewrite session alive only for this bounded reconnect window; a
+ * terminal auth error or a provider which never reaches a fresh sync is
+ * fail-closed instead of writing after an unknown transport state.
+ */
+export const COLLABORATIVE_AGENT_STREAM_RECOVERY_TIMEOUT_MS = 30_000;
+
 export interface CollaborativeRewriteStreamResult {
   affectedNodeIds: string[];
   caret?: AgentCaretAnchor;
@@ -256,6 +295,19 @@ export interface RewriteTargetInspection {
   missingNodeIds: string[];
 }
 
+export interface ResolvedBlockRewriteTarget {
+  adapterId: string;
+  language?: string;
+  languageAliases?: readonly string[];
+  nodeId: string;
+  nodeType: string;
+  outputSchema: BlockRewriteOutputSchema;
+  source?: string;
+  sourceHash?: string;
+  summary?: string;
+  title?: string;
+}
+
 export interface CollaborativeAgentEditorConnectOptions {
   documentId: string;
   providerOptions?: NodeWebSocketYjsProviderOptions;
@@ -274,6 +326,7 @@ export interface CollaborativeAgentProvider extends Provider {
   clearAgentAwareness?: () => void;
   getStateVector?: () => string;
   setAgentAwareness?: (input: AgentAwarenessInput | AgentAwarenessState) => void;
+  waitForPendingUpdates?: (timeoutMs?: number) => Promise<void>;
   waitForSync?: () => Promise<void>;
 }
 
@@ -618,6 +671,8 @@ export class CollaborativeAgentEditor {
   private disconnected = false;
   private synced = false;
   private providerSyncPromise: Promise<void> | null = null;
+  private streamingRecoveryPromise: Promise<boolean> | null = null;
+  private streamingRecoveryCancel: (() => void) | null = null;
   /**
    * Streaming sessions are deliberately local orchestration state. The
    * document itself is the durable checkpoint: every chunk is already
@@ -740,6 +795,14 @@ export class CollaborativeAgentEditor {
     return encodeYjsBase64(encodeStateVector(service.doc));
   }
 
+  /** Wait until the provider has received acknowledgements for local updates. */
+  async waitForUpdateAck(timeoutMs = 10_000): Promise<void> {
+    if (this.disconnected) {
+      throw new Error('CollaborativeAgentEditor is disconnected.');
+    }
+    await this.provider.waitForPendingUpdates?.(timeoutMs);
+  }
+
   private getStateVectorSafely(): string | null {
     try {
       return this.getStateVector();
@@ -762,6 +825,34 @@ export class CollaborativeAgentEditor {
       (isFullAgentAwarenessState(input) && input.awarenessData.role !== 'agent')
     ) {
       throw new Error('Agent awareness identity does not match this request.');
+    }
+
+    // Durable block anchors are the request contract. Project them through the
+    // live binding so all providers use the same stock Yjs cursor protocol.
+    // Explicit null positions still mean "clear", not "resolve again".
+    if (!isFullAgentAwarenessState(input)) {
+      const { caret, selectionRange } = input;
+      const anchor =
+        caret ??
+        (selectionRange && {
+          nodeId: selectionRange.startNodeId,
+          offset: selectionRange.startOffset,
+        });
+      const focus =
+        caret ??
+        (selectionRange && {
+          nodeId: selectionRange.endNodeId,
+          offset: selectionRange.endOffset,
+        });
+      input = {
+        ...input,
+        ...(input.anchorPos === undefined && anchor
+          ? { anchorPos: this.getRelativePositionForCaret(anchor) }
+          : {}),
+        ...(input.focusPos === undefined && focus
+          ? { focusPos: this.getRelativePositionForCaret(focus) }
+          : {}),
+      };
     }
 
     if (typeof this.provider.setAgentAwareness === 'function') {
@@ -841,6 +932,82 @@ export class CollaborativeAgentEditor {
   }
 
   /**
+   * Re-locate a continuation after a Markdown block rewrite changed the
+   * structural node under the original Yjs relative anchors. The generated
+   * text is the durable source of truth for this fallback; a human edit that
+   * changes its text fails the same expected hash check as the anchor path.
+   */
+  resolveSelectionByProvenance(
+    sessionId: string,
+    expectedTextHash?: string,
+    targetNodeIds?: ReadonlyArray<string>,
+  ): ResolvedRewriteSelection | null {
+    if (!isValidStreamId(sessionId)) return null;
+    const service = this.kernel.requireService(IAISessionService);
+    const ranges = service?.getRanges(sessionId) ?? [];
+    if (ranges.length === 0) return null;
+
+    const lexicalEditor = this.getLexicalEditor();
+    if (!lexicalEditor) return null;
+
+    let result: ResolvedRewriteSelection | null = null;
+    lexicalEditor.getEditorState().read(() => {
+      const textNodes = ranges
+        .map((range) => $getNodeByKey(range.nodeKey ?? range.key))
+        .filter((node): node is TextNode => Boolean(node && $isTextNode(node)));
+      const firstText = textNodes[0];
+      const lastText = textNodes.at(-1);
+      if (!firstText || !lastText) return;
+      if (
+        textNodes.some((node) => {
+          if (node.getType() === 'cursor') return false;
+          const provenance = $getNodeProperties(node).provenance;
+          return provenance?.source !== 'ai' || provenance.sessionId !== sessionId;
+        })
+      ) {
+        return;
+      }
+
+      const range = $createRangeSelection();
+      range.setTextNodeRange(firstText, 0, lastText, lastText.getTextContentSize());
+      const quotedText = getProvenanceSelectionText(range);
+      if (expectedTextHash && hashRewriteText(quotedText) !== expectedTextHash) return;
+
+      const startBlock = getBlockAncestor(firstText);
+      const endBlock = getBlockAncestor(lastText);
+      if (!startBlock || !endBlock) return;
+      const startNodeId = $getNodeId(startBlock);
+      const endNodeId = $getNodeId(endBlock);
+      if (!startNodeId || !endNodeId) return;
+      let resolvedTargetNodeIds = validateTargetBlocks(range, startBlock, endBlock, targetNodeIds);
+      if (!resolvedTargetNodeIds && Array.isArray(targetNodeIds)) {
+        // The original block id may have been replaced by a new list/root
+        // node. The session provenance and text hash are the authoritative
+        // proof here; return the freshly resolved block projection instead of
+        // rejecting solely because the old target-id list is stale.
+        resolvedTargetNodeIds = validateTargetBlocks(range, startBlock, endBlock, undefined);
+      }
+      if (!resolvedTargetNodeIds) return;
+
+      const startOffset = getBlockOffset(range.anchor, startBlock);
+      const endOffset = getBlockOffset(range.focus, endBlock);
+      if (startOffset === null || endOffset === null) return;
+      result = {
+        endNodeId,
+        endOffset,
+        isBackward: false,
+        quotedText: normalizeRewriteText(quotedText),
+        selection: range,
+        startNodeId,
+        startOffset,
+        targetNodeIds: resolvedTargetNodeIds,
+        stateVectorDrifted: undefined,
+      };
+    });
+    return result;
+  }
+
+  /**
    * Return which durable rewrite targets still exist in this synced editor.
    * This is intentionally read-only and safe to call before the first stream
    * chunk, when selection-relative resolution may already be unavailable.
@@ -861,6 +1028,44 @@ export class CollaborativeAgentEditor {
       inspection = inspectDurableTargetNodeIds(requested);
     });
     return inspection;
+  }
+
+  /** Resolve one adapter-owned block using durable node identity only. */
+  resolveBlockRewriteTarget(input: {
+    adapterId: string;
+    nodeId: string;
+    sourceHash?: string;
+  }): ResolvedBlockRewriteTarget | null {
+    if (this.disconnected || !isValidNodeId(input?.adapterId) || !isValidNodeId(input?.nodeId)) {
+      return null;
+    }
+    const lexicalEditor = this.getLexicalEditor();
+    if (!lexicalEditor) return null;
+
+    let target: ResolvedBlockRewriteTarget | null = null;
+    lexicalEditor.getEditorState().read(() => {
+      const node = $findNodeById(input.nodeId);
+      const adapter = this.kernel
+        .requireService(IBlockRewriteAdapterService)
+        ?.getAdapterByKey(input.adapterId);
+      if (!node || !adapter) return;
+      const context = adapter.readContext(node);
+      if (!context || context.nodeId !== input.nodeId) return;
+      if (adapter.outputSchema !== 'source' && adapter.outputSchema !== 'patch') return;
+      target = {
+        adapterId: context.adapterKey,
+        ...(context.language ? { language: context.language } : {}),
+        ...(context.languageAliases ? { languageAliases: [...context.languageAliases] } : {}),
+        nodeId: context.nodeId,
+        nodeType: context.nodeType,
+        outputSchema: adapter.outputSchema,
+        source: context.source,
+        sourceHash: context.sourceHash,
+        summary: context.summary,
+        title: context.title,
+      };
+    });
+    return target;
   }
 
   setSelection(selection: BaseSelection): boolean {
@@ -1437,7 +1642,31 @@ export class CollaborativeAgentEditor {
     }
     if (state.status !== 'streaming') return this.copyStreamingResult(state.lastResult);
     if (!this.isReadyForStreaming()) {
-      return this.stopStreamingSession(state, 'stopped', 'stream-stopped-provider-disconnected');
+      const recovered = await this.waitForStreamingRecovery();
+      const latest = this.rewriteSessions.get(sessionId);
+      if (!latest || latest.status !== 'streaming') {
+        return latest
+          ? this.copyStreamingResult(latest.lastResult)
+          : this.copyStreamingResult(state.lastResult);
+      }
+      if (!recovered || !this.isReadyForStreaming()) {
+        return this.stopStreamingSession(latest, 'stopped', 'stream-stopped-provider-disconnected');
+      }
+    }
+    // Two callers can enter the same reconnect barrier before either one
+    // resumes. Re-check the idempotency map after that await so a retried
+    // chunk is returned, not inserted a second time.
+    const committedAfterRecovery = state.chunks.get(chunkId);
+    if (committedAfterRecovery) {
+      if (
+        committedAfterRecovery.text !== chunk ||
+        (committedAfterRecovery.sequence !== undefined &&
+          input.sequence !== undefined &&
+          committedAfterRecovery.sequence !== input.sequence)
+      ) {
+        return this.streamResultWithError(state, 'chunk-id-reused', 'failed');
+      }
+      return this.copyStreamingResult(state.lastResult);
     }
     if (input.sequence !== undefined) {
       if (!Number.isSafeInteger(input.sequence) || input.sequence < 0) {
@@ -1567,7 +1796,16 @@ export class CollaborativeAgentEditor {
     }
     if (state.status !== 'streaming') return this.copyStreamingResult(state.lastResult);
     if (!this.isReadyForStreaming()) {
-      return this.stopStreamingSession(state, 'stopped', 'stream-stopped-provider-disconnected');
+      const recovered = await this.waitForStreamingRecovery();
+      const latest = this.rewriteSessions.get(sessionId);
+      if (!latest || latest.status !== 'streaming') {
+        return latest
+          ? this.copyStreamingResult(latest.lastResult)
+          : this.copyStreamingResult(state.lastResult);
+      }
+      if (!recovered || !this.isReadyForStreaming()) {
+        return this.stopStreamingSession(latest, 'stopped', 'stream-stopped-provider-disconnected');
+      }
     }
     const targetIssue = getStreamingTargetIssue(this.getLexicalEditor(), state);
     if (targetIssue) {
@@ -1577,6 +1815,38 @@ export class CollaborativeAgentEditor {
     const lexicalEditor = this.getLexicalEditor();
     if (!lexicalEditor)
       return this.stopStreamingSession(state, 'stopped', 'stream-lexical-editor-unavailable');
+
+    // Streaming chunks are intentionally plain while the model is writing.
+    // Re-apply the final generated text through the direct rewrite gateway so
+    // the configured Markdown readers decide the final block/inline structure
+    // after completion. A syntax heuristic cannot distinguish a paragraph
+    // replacing a heading, or cover every supported Markdown block type.
+    if (state.generatedText.length > 0) {
+      const formatted = await this.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, {
+        expectedTextHash: hashRewriteText(state.generatedText),
+        generationId: state.generationId,
+        history: 'merge',
+        mode: 'direct',
+        replacementText: state.generatedText,
+        provenanceSessionId: state.provenanceSessionId,
+        requestId: state.requestId,
+        selection: {
+          endNodeId: state.caret.nodeId,
+          endOffset: state.regionStartOffset + state.generatedText.length,
+          kind: 'block',
+          startNodeId: state.caret.nodeId,
+          startOffset: state.regionStartOffset,
+        },
+        turnIndex: state.turnIndex,
+      });
+      if (formatted.status !== 'applied') {
+        return this.stopStreamingSession(
+          state,
+          'conflict',
+          formatted.error ?? 'stream-markdown-finalize-failed',
+        );
+      }
+    }
 
     try {
       lexicalEditor.update(
@@ -1992,7 +2262,26 @@ export class CollaborativeAgentEditor {
     lexicalEditor.getEditorState().read(() => {
       const block = $findNodeById(caret.nodeId);
       if (!block) return;
-      const point = getBlockPoint(block, caret.offset, 'end');
+      const hole = $getAtomicHoleForNode(block);
+      let point: ReturnType<typeof getBlockPoint>;
+      if (hole) {
+        const before = caret.offset <= 0;
+        const cursor = before ? hole.getBeforeCursor() : hole.getAfterCursor();
+        point = cursor
+          ? { key: cursor.getKey(), offset: before ? cursor.getTextContentSize() : 0, type: 'text' }
+          : null;
+      } else if ($isElementNode(block)) {
+        point = getBlockPoint(block, caret.offset, 'end');
+      } else {
+        const parent = block.getParent();
+        point = parent
+          ? {
+              key: parent.getKey(),
+              offset: block.getIndexWithinParent() + (caret.offset > 0 ? 1 : 0),
+              type: 'element',
+            }
+          : null;
+      }
       if (!point || !isValidLexicalPoint(point.key, point.offset, point.type)) return;
       position = createRelativePositionForLexicalPoint(point, service.binding);
     });
@@ -2048,6 +2337,7 @@ export class CollaborativeAgentEditor {
       // Keep the terminal state even if transport teardown is already in
       // progress.
     }
+    this.cancelStreamingRecoveryIfIdle();
     return this.copyStreamingResult(state.lastResult);
   }
 
@@ -2070,6 +2360,8 @@ export class CollaborativeAgentEditor {
     this.disconnected = true;
     this.connected = false;
     this.synced = false;
+    this.streamingRecoveryCancel?.();
+    this.streamingRecoveryCancel = null;
     this.syncWaiters.forEach(({ reject }) =>
       reject(new Error('CollaborativeAgentEditor disconnected.')),
     );
@@ -2097,17 +2389,17 @@ export class CollaborativeAgentEditor {
 
     this.transportUnavailable = true;
     this.synced = false;
-    // A stream owns a live Lexical caret. Once the transport is gone we do
-    // not guess whether a queued chunk was accepted by the room. Stop safely
-    // at the last committed text and leave that text in place; callers may
-    // start a fresh request after reconnecting.
-    for (const session of this.rewriteSessions.values()) {
-      if (session.status === 'streaming') {
-        this.stopStreamingSession(session, 'stopped', 'stream-stopped-provider-disconnected');
-      }
-    }
-    // A non-streaming Agent awareness state is left to the caller; stream
-    // awareness was cleared above because its caret is no longer live.
+    // `provider.waitForSync()` resolves once per connection. A reconnect
+    // must obtain a fresh promise so callers do not pass the command gate
+    // while the refreshed ticket is still authenticating/syncing.
+    this.providerSyncPromise = null;
+    // A ticket expiry is recoverable: keep the session and its idempotent
+    // chunk map while the provider obtains a fresh ticket and sync barrier.
+    // `waitForStreamingRecovery` also watches the provider's rejection path
+    // and stops the session on terminal auth errors or a bounded timeout.
+    this.beginStreamingRecovery();
+    // Keep the stream session and its idempotent chunk map alive until the
+    // provider either reaches fresh sync or reports a terminal failure.
   };
 
   /**
@@ -2147,6 +2439,76 @@ export class CollaborativeAgentEditor {
       }
     });
     return this.providerSyncPromise;
+  }
+
+  /**
+   * Wait for the provider's next complete sync without allowing a stream to
+   * wait forever. The provider owns ticket refresh/authentication; this
+   * facade only treats a resolved fresh sync as permission to continue.
+   */
+  private waitForStreamingRecovery(): Promise<boolean> {
+    if (this.isReadyForStreaming()) return Promise.resolve(true);
+    if (this.disconnected) return Promise.resolve(false);
+    if (this.streamingRecoveryPromise) return this.streamingRecoveryPromise;
+
+    const recovery = new Promise<boolean>((resolve) => {
+      const recoveryState: {
+        cancel?: () => void;
+        settled: boolean;
+        timer?: ReturnType<typeof setTimeout>;
+      } = { settled: false };
+      const finish = (ready: boolean): void => {
+        if (recoveryState.settled) return;
+        recoveryState.settled = true;
+        if (recoveryState.timer) clearTimeout(recoveryState.timer);
+        if (this.streamingRecoveryCancel === recoveryState.cancel) {
+          this.streamingRecoveryCancel = null;
+        }
+        resolve(ready && this.isReadyForStreaming());
+      };
+      const cancel = (): void => finish(false);
+      recoveryState.cancel = cancel;
+      recoveryState.timer = setTimeout(
+        () => finish(false),
+        COLLABORATIVE_AGENT_STREAM_RECOVERY_TIMEOUT_MS,
+      );
+      this.streamingRecoveryCancel = cancel;
+
+      try {
+        Promise.resolve(this.getProviderSyncPromise()).then(
+          () => finish(true),
+          () => finish(false),
+        );
+      } catch {
+        finish(false);
+      }
+    });
+    this.streamingRecoveryPromise = recovery;
+    void recovery.finally(() => {
+      if (this.streamingRecoveryPromise === recovery) this.streamingRecoveryPromise = null;
+    });
+    return recovery;
+  }
+
+  private beginStreamingRecovery(): void {
+    if (!Array.from(this.rewriteSessions.values()).some(({ status }) => status === 'streaming')) {
+      return;
+    }
+    void this.waitForStreamingRecovery().then((ready) => {
+      if (ready) return;
+      for (const session of this.rewriteSessions.values()) {
+        if (session.status === 'streaming') {
+          this.stopStreamingSession(session, 'stopped', 'stream-stopped-provider-disconnected');
+        }
+      }
+    });
+  }
+
+  private cancelStreamingRecoveryIfIdle(): void {
+    if (Array.from(this.rewriteSessions.values()).some(({ status }) => status === 'streaming')) {
+      return;
+    }
+    this.streamingRecoveryCancel?.();
   }
 
   private resolveRelativeSelection(
@@ -2215,7 +2577,12 @@ export class CollaborativeAgentEditor {
       );
       let quotedText: string;
       try {
-        quotedText = range.getTextContent();
+        const rawQuotedText = range.getTextContent();
+        const canonicalQuotedText = getProvenanceSelectionText(range);
+        quotedText =
+          hashRewriteText(rawQuotedText) === selection.quotedTextHash
+            ? rawQuotedText
+            : canonicalQuotedText;
       } catch {
         return;
       }
@@ -2329,7 +2696,12 @@ export class CollaborativeAgentEditor {
       setRangePoint(range, endPoint, 'focus');
       let quotedText: string;
       try {
-        quotedText = range.getTextContent();
+        const rawQuotedText = range.getTextContent();
+        const canonicalQuotedText = getProvenanceSelectionText(range);
+        quotedText =
+          selection.quotedTextHash && hashRewriteText(rawQuotedText) === selection.quotedTextHash
+            ? rawQuotedText
+            : canonicalQuotedText;
       } catch {
         return;
       }

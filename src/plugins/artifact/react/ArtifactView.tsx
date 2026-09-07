@@ -1,10 +1,12 @@
 'use client';
 
+import { Segmented } from 'antd';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
 import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, COMMAND_PRIORITY_HIGH } from 'lexical';
-import type { ChangeEvent, CSSProperties, FC, MouseEvent } from 'react';
+import { CodeXml, Columns2, Eye } from 'lucide-react';
+import type { ChangeEvent, CSSProperties, FC, MouseEvent, PointerEvent } from 'react';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 import type { ICodeMirrorInstance } from '@/codemirror';
@@ -12,11 +14,9 @@ import { loadCodeMirror, lobeTheme } from '@/codemirror';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { BLOCK_MENU_ANCHOR_ATTRIBUTE } from '@/plugins/block/react/core/types';
 import { ENTER_HOLE_CONTENT_COMMAND } from '@/plugins/common/command';
+import { $getNodeId } from '@/plugins/properties/utils';
 
-import {
-  SELECT_AFTER_ARTIFACT_COMMAND,
-  SELECT_BEFORE_ARTIFACT_COMMAND,
-} from '../command';
+import { SELECT_AFTER_ARTIFACT_COMMAND, SELECT_BEFORE_ARTIFACT_COMMAND } from '../command';
 import { $isArtifactNode, type ArtifactNode } from '../node/ArtifactNode';
 import ArtifactPreview from './ArtifactPreview';
 import { $getArtifactSelectionState, useArtifactSelectionState } from './selection';
@@ -32,6 +32,47 @@ interface ArtifactViewProps {
   previewHeight: number;
 }
 
+export type ArtifactViewMode = 'split' | 'code-only' | 'preview-only';
+
+const ARTIFACT_VIEW_MODE_STORAGE_PREFIX = 'lobe-artifact-view-mode:';
+
+const readStoredArtifactViewMode = (storageKey: string): ArtifactViewMode | undefined => {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const value = window.localStorage.getItem(storageKey);
+    if (value === 'preview') return 'preview-only';
+    return value === 'code-only' || value === 'preview-only' || value === 'split'
+      ? value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const getArtifactStorageKey = (editor: LexicalEditor, node: ArtifactNode): string => {
+  let identity = node.getKey();
+  try {
+    editor.getEditorState().read(() => {
+      const currentNode = $getNodeByKey(node.getKey());
+      identity = currentNode ? $getNodeId(currentNode) || identity : identity;
+    });
+  } catch {
+    // Runtime node keys still provide a session-local fallback when NodeState
+    // is unavailable during an early decorator render.
+  }
+  return `${ARTIFACT_VIEW_MODE_STORAGE_PREFIX}${identity}`;
+};
+
+const persistArtifactViewMode = (storageKey: string, mode: ArtifactViewMode): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(storageKey, mode);
+  } catch {
+    // Storage can be unavailable in private/embedded contexts; the in-memory
+    // state remains usable for the current mounted Artifact.
+  }
+};
+
 const ArtifactView: FC<ArtifactViewProps> = ({
   allowScripts,
   className,
@@ -41,6 +82,7 @@ const ArtifactView: FC<ArtifactViewProps> = ({
   previewHeight,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLIFrameElement>(null);
   const instanceRef = useRef<ICodeMirrorInstance | null>(null);
   const [editable, setEditable] = useState(editor.isEditable());
   const [html, dispatchHtml] = useReducer((_state: string, value: string) => value, node.getHtml());
@@ -61,6 +103,11 @@ const ArtifactView: FC<ArtifactViewProps> = ({
     (_current: boolean, next: boolean) => next,
     false,
   );
+  const [viewMode, setViewMode] = useState<ArtifactViewMode>(
+    () => readStoredArtifactViewMode(getArtifactStorageKey(editor, node)) ?? 'split',
+  );
+  const codePaneVisible = editable && viewMode !== 'preview-only';
+  const storageKeyRef = useRef(getArtifactStorageKey(editor, node));
   nodeKeyRef.current = node.getKey();
   htmlRef.current = html;
   const persistHtmlRef = useRef(
@@ -75,6 +122,17 @@ const ArtifactView: FC<ArtifactViewProps> = ({
   );
 
   useEffect(() => editor.registerEditableListener(setEditable), [editor]);
+
+  useEffect(() => {
+    const storageKey = getArtifactStorageKey(editor, node);
+    storageKeyRef.current = storageKey;
+    const stored = readStoredArtifactViewMode(storageKey);
+    if (stored) setViewMode(stored);
+  }, [editor, node]);
+
+  useEffect(() => {
+    persistArtifactViewMode(storageKeyRef.current, viewMode);
+  }, [viewMode]);
 
   useEffect(() => {
     if (!selectionState.covered) setBlockSelectionSuppressed(false);
@@ -129,7 +187,7 @@ const ArtifactView: FC<ArtifactViewProps> = ({
 
   useEffect(() => {
     dispatchCodeMirrorLoadFailed(false);
-    if (!editable || !textareaRef.current) {
+    if (!codePaneVisible || !textareaRef.current) {
       instanceRef.current?.destroy();
       instanceRef.current = null;
       return;
@@ -196,7 +254,7 @@ const ArtifactView: FC<ArtifactViewProps> = ({
       instanceRef.current?.destroy();
       instanceRef.current = null;
     };
-  }, [editable, editor]);
+  }, [codePaneVisible, editor]);
 
   useEffect(
     () => () => {
@@ -250,6 +308,34 @@ const ArtifactView: FC<ArtifactViewProps> = ({
     [clearSelection, editable, editor],
   );
 
+  const handleViewModeChange = useCallback((value: string | number) => {
+    const nextMode = String(value);
+    if (nextMode === 'code-only' || nextMode === 'preview-only' || nextMode === 'split') {
+      setViewMode(nextMode);
+      if (nextMode === 'preview-only') {
+        queueMicrotask(() => {
+          const preview = previewRef.current;
+          if (!preview || preview.closest('[data-collaborative-target-locked="true"]')) return;
+          preview.focus();
+        });
+      }
+    }
+  }, []);
+
+  const handlePreviewMouseDown = useCallback((event: MouseEvent) => {
+    event.stopPropagation();
+    const preview = previewRef.current;
+    if (!preview || preview.closest('[data-collaborative-target-locked="true"]')) return;
+    preview.focus();
+  }, []);
+
+  const stopViewControlEvent = useCallback(
+    (event: MouseEvent<HTMLElement> | PointerEvent<HTMLElement>) => {
+      event.stopPropagation();
+    },
+    [],
+  );
+
   if (!editable) {
     return (
       <div
@@ -266,6 +352,7 @@ const ArtifactView: FC<ArtifactViewProps> = ({
             allowScripts={allowScripts}
             height={previewHeight}
             html={html}
+            iframeRef={previewRef}
             title={title}
           />
         </div>
@@ -279,6 +366,7 @@ const ArtifactView: FC<ArtifactViewProps> = ({
     <div
       className={cx(artifactStyles, showBlockSelection && 'artifact-selected', className)}
       contentEditable={false}
+      data-artifact-view-mode={viewMode}
       onMouseDown={handleMouseDown}
       style={
         {
@@ -295,27 +383,81 @@ const ArtifactView: FC<ArtifactViewProps> = ({
             onMouseDown={(event) => event.stopPropagation()}
             value={title}
           />
-          <span>{labels?.code || 'HTML'}</span>
         </div>
-        <div className="artifact-heading">{labels?.preview || 'Preview'}</div>
+        <div
+          className="artifact-view-controls"
+          onClick={stopViewControlEvent}
+          onMouseDown={stopViewControlEvent}
+          onPointerDown={stopViewControlEvent}
+        >
+          <div aria-label={labels?.viewMode || 'Artifact view'} className="artifact-view-mode">
+            <Segmented
+              aria-label={labels?.viewMode || 'Artifact view'}
+              options={[
+                {
+                  label: (
+                    <span className="artifact-view-option">
+                      <Columns2 aria-hidden="true" size={13} />
+                      {labels?.splitView || 'Split view'}
+                    </span>
+                  ),
+                  value: 'split',
+                },
+                {
+                  label: (
+                    <span className="artifact-view-option">
+                      <CodeXml aria-hidden="true" size={13} />
+                      {labels?.codeOnly || 'Code only'}
+                    </span>
+                  ),
+                  value: 'code-only',
+                },
+                {
+                  label: (
+                    <span className="artifact-view-option">
+                      <Eye aria-hidden="true" size={13} />
+                      {labels?.previewOnly || 'Preview only'}
+                    </span>
+                  ),
+                  value: 'preview-only',
+                },
+              ]}
+              size="small"
+              value={viewMode}
+              onChange={handleViewModeChange}
+            />
+          </div>
+        </div>
       </div>
-      <div className="artifact-body">
-        <div className="artifact-code" onMouseDown={handleCodeMouseDown}>
-          <textarea
-            aria-label={labels?.code || 'HTML source'}
-            className={cx('cm-textarea', codeMirrorLoadFailed && 'artifact-code-fallback')}
-            onChange={handleTextareaChange}
-            ref={textareaRef}
-            readOnly={!codeMirrorLoadFailed}
-            style={codeMirrorLoadFailed ? { opacity: 1, resize: 'none' } : undefined}
-            value={html}
-          />
-        </div>
-        <div className="artifact-preview" onMouseDown={(event) => event.stopPropagation()}>
+      <div
+        className={cx(
+          'artifact-body',
+          viewMode === 'code-only' && 'artifact-code-only',
+          viewMode === 'preview-only' && 'artifact-preview-only',
+        )}
+      >
+        {viewMode !== 'preview-only' && (
+          <div className="artifact-code" onMouseDown={handleCodeMouseDown}>
+            <textarea
+              aria-label={labels?.code || 'HTML source'}
+              className={cx('cm-textarea', codeMirrorLoadFailed && 'artifact-code-fallback')}
+              onChange={handleTextareaChange}
+              ref={textareaRef}
+              readOnly={!codeMirrorLoadFailed}
+              style={codeMirrorLoadFailed ? { opacity: 1, resize: 'none' } : undefined}
+              value={html}
+            />
+          </div>
+        )}
+        <div
+          className={cx('artifact-preview', viewMode === 'code-only' && 'artifact-preview-hidden')}
+          onMouseDown={handlePreviewMouseDown}
+        >
           <ArtifactPreview
             allowScripts={allowScripts}
             height={previewHeight}
             html={html}
+            iframeRef={previewRef}
             title={title}
           />
         </div>

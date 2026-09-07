@@ -5,24 +5,43 @@ import { COLLABORATION_TAG } from 'lexical';
 import { createEmptyPreviousEditorState } from './editor-state';
 import { ensureYjsNodePropertiesFromEditorState } from './node-properties';
 
+/** Transactions performed for hydration, persistence replay, and server
+ * projection must never be captured by a browser's human undo manager. */
+export const YJS_SYSTEM_ORIGIN = Symbol('lobe-yjs-system');
+
+export function transactWithYjsOrigin<T>(
+  binding: Binding,
+  origin: unknown,
+  callback: () => T,
+): T {
+  let result!: T;
+  binding.doc.transact(() => {
+    result = callback();
+  }, origin);
+  return result;
+}
+
 export function syncCurrentEditorStateToYjs(
   binding: Binding,
   provider: Provider,
   prevEditorState: EditorState = createEmptyPreviousEditorState(binding.editor),
+  origin: unknown = YJS_SYSTEM_ORIGIN,
 ): void {
-  const editorState = binding.editor.getEditorState();
-  ensureYjsNodePropertiesFromEditorState(binding, editorState);
+  transactWithYjsOrigin(binding, origin, () => {
+    const editorState = binding.editor.getEditorState();
+    ensureYjsNodePropertiesFromEditorState(binding, editorState);
 
-  syncLexicalUpdateToYjs(
-    binding,
-    provider,
-    prevEditorState,
-    editorState,
-    new Map([['root', true as never]]),
-    new Set(),
-    new Set(),
-    new Set(),
-  );
+    syncLexicalUpdateToYjs(
+      binding,
+      provider,
+      prevEditorState,
+      editorState,
+      new Map([['root', true as never]]),
+      new Set(),
+      new Set(),
+      new Set(),
+    );
+  });
 }
 
 export function hydrateLexicalFromYjsState(

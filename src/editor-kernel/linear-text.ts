@@ -64,6 +64,38 @@ export interface LinearTextPoint {
   type: 'element' | 'text';
 }
 
+/**
+ * Check the point's structural relationship with a block without requiring
+ * either node to be attached to the root yet. Lexical marks nodes created by
+ * a pending update as unattached until the update is committed, even though
+ * their parent links already describe a valid subtree. `isAttached()` would
+ * reject those points and make a capture taken during collaboration resolve
+ * to the block fallback (or null).
+ */
+const isNodeWithinBlock = (node: LexicalNode, block: LexicalNode): boolean => {
+  if (node.is(block)) return true;
+
+  const visited = new Set<string>();
+  let current: LexicalNode | null = node;
+  while (current) {
+    const key = current.getKey();
+    if (visited.has(key)) return false;
+    visited.add(key);
+
+    let parent: LexicalNode | null;
+    try {
+      parent = current.getParent();
+    } catch {
+      return false;
+    }
+    if (!parent) return false;
+    if (parent.is(block)) return true;
+    current = parent;
+  }
+
+  return false;
+};
+
 /** Return a Lexical point's character offset relative to a containing block. */
 export const getBlockOffset = (point: LinearTextPoint, block: LexicalNode): number | null => {
   if (!$isElementNode(block) || !Number.isSafeInteger(point.offset) || point.offset < 0) {
@@ -76,13 +108,11 @@ export const getBlockOffset = (point: LinearTextPoint, block: LexicalNode): numb
   } catch {
     return null;
   }
-  if (!pointNode.isAttached() || (!pointNode.is(block) && !block.isParentOf(pointNode))) {
-    return null;
-  }
+  if (!isNodeWithinBlock(pointNode, block)) return null;
 
   if (point.type === 'text') {
     if (!$isTextNode(pointNode) || point.offset > pointNode.getTextContentSize()) return null;
-    const segment = getLinearTextSegments(block).find((candidate) => candidate.node === pointNode);
+    const segment = getLinearTextSegments(block).find((candidate) => candidate.node.is(pointNode));
     return segment ? segment.start + point.offset : null;
   }
 

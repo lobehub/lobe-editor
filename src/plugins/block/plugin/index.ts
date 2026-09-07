@@ -15,22 +15,29 @@ import {
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import {
-  $resolveLogicalBlockNode,
-  $resolveStructuralBlockNode,
-} from '@/plugins/common/node/hole';
+import { $resolveLogicalBlockNode, $resolveStructuralBlockNode } from '@/plugins/common/node/hole';
 import { OPEN_ANNOTATION_COMPOSER_COMMAND } from '@/plugins/properties/command';
 import { IAnnotationService } from '@/plugins/properties/service';
 import { $getNodeId } from '@/plugins/properties/utils';
-import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
+import type { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
-import { registerBlockMoveCommand } from '../command';
+import { registerBlockMoveCommand, registerBlockRewriteCommand } from '../command';
 import {
-  BLOCK_NODE_ID_ATTRIBUTE,
   BLOCK_ID_ATTRIBUTE,
+  BLOCK_NODE_ID_ATTRIBUTE,
   BLOCK_STRUCTURAL_ID_ATTRIBUTE,
 } from '../constants';
-import { BlockMenuService, IBlockMenuService } from '../service';
+import {
+  BlockMenuService,
+  BlockRewriteAdapterRegistry,
+  type CollaborativeTargetLeaseCapability,
+  CollaborativeTargetLeaseService,
+  type IBlockMenuRenderContext,
+  IBlockMenuService,
+  IBlockRewriteAdapterService,
+  ICollaborativeTargetLeaseService,
+} from '../service';
+import { registerTargetLeaseGuards } from './target-lease-guard';
 
 export interface BlockPluginOptions {
   /**
@@ -68,11 +75,7 @@ export const getBlockClipboardData = (node: LexicalNode): LexicalClipboardData =
       selection.focus.set(parent.getKey(), index + 1, 'element');
     } else {
       selection.anchor.set(clipboardNode.getKey(), 0, 'element');
-      selection.focus.set(
-        clipboardNode.getKey(),
-        clipboardNode.getChildrenSize(),
-        'element',
-      );
+      selection.focus.set(clipboardNode.getKey(), clipboardNode.getChildrenSize(), 'element');
     }
 
     return $getClipboardDataFromSelection(selection);
@@ -80,12 +83,7 @@ export const getBlockClipboardData = (node: LexicalNode): LexicalClipboardData =
 
   if ($isTextNode(clipboardNode)) {
     const selection = $createRangeSelection();
-    selection.setTextNodeRange(
-      clipboardNode,
-      0,
-      clipboardNode,
-      clipboardNode.getTextContentSize(),
-    );
+    selection.setTextNodeRange(clipboardNode, 0, clipboardNode, clipboardNode.getTextContentSize());
     return $getClipboardDataFromSelection(selection);
   }
 
@@ -114,6 +112,40 @@ const selectBlockNode = (node: LexicalNode) => {
 const getLogicalBlockNodeByKey = (key: string): LexicalNode | null => {
   const node = $getNodeByKey(key);
   return node ? $resolveLogicalBlockNode(node) : null;
+};
+
+const canUseBlockCapability = (
+  editor: IEditor,
+  node: LexicalNode | null,
+  capability: CollaborativeTargetLeaseCapability,
+): boolean => {
+  if (!node) return false;
+  try {
+    const logicalNode = $resolveLogicalBlockNode(node);
+    const nodeId = $getNodeId(logicalNode);
+    if (!nodeId) return true;
+    const leaseService = editor.requireService(ICollaborativeTargetLeaseService);
+    return Boolean(leaseService?.can({ nodeId, targetKind: 'node' }, capability));
+  } catch {
+    return false;
+  }
+};
+
+const canUseBlockContextCapability = (
+  context: IBlockMenuRenderContext,
+  capability: CollaborativeTargetLeaseCapability,
+): boolean => {
+  const lexicalEditor = context.editor.getLexicalEditor();
+  if (!lexicalEditor) return false;
+  let target: LexicalNode | null = null;
+  let nodeId: string | undefined;
+  lexicalEditor.getEditorState().read(() => {
+    target = getLogicalBlockNodeByKey(context.blockId);
+    nodeId = target ? $getNodeId(target) : undefined;
+  });
+  if (!target || !nodeId) return Boolean(target);
+  const leaseService = context.editor.requireService(ICollaborativeTargetLeaseService);
+  return Boolean(leaseService?.can({ nodeId, targetKind: 'node' }, capability));
 };
 
 const resolveNodeClass = (node: LexicalNodeConfig): LexicalNodeClass | null => {
@@ -223,6 +255,18 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
     const rootClassName = config?.className?.trim();
 
     kernel.registerServiceHotReload(IBlockMenuService, new BlockMenuService());
+    if (!kernel.requireService(IBlockRewriteAdapterService)) {
+      kernel.registerServiceHotReload(
+        IBlockRewriteAdapterService,
+        new BlockRewriteAdapterRegistry(),
+      );
+    }
+    if (!kernel.requireService(ICollaborativeTargetLeaseService)) {
+      kernel.registerServiceHotReload(
+        ICollaborativeTargetLeaseService,
+        new CollaborativeTargetLeaseService(),
+      );
+    }
 
     if (rootClassName) {
       this.registerRootClassName(kernel, rootClassName);
@@ -248,7 +292,8 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
     if (blockMenuService) {
       const unregisterDefaultSelectHandler = blockMenuService.registerSelectHandler({
         key: '__block_default_select_handler',
-        onSelect: selectBlockNode,
+        onSelect: (node) =>
+          canUseBlockCapability(this.kernel, node, 'select') && selectBlockNode(node),
         order: 999,
       });
 
@@ -282,11 +327,13 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
 
           lexicalEditor.update(() => {
             const target = getLogicalBlockNodeByKey(context.blockId);
-            if (!target) return;
+            if (!target || !canUseBlockCapability(context.editor, target, 'select')) return;
             blockMenuService.selectNode(target);
           });
         },
         order: 997,
+        when: (context) =>
+          context.editor.isEditable() && canUseBlockContextCapability(context, 'select'),
       });
 
       const unregisterCommentMenu = blockMenuService.registerMenu({
@@ -330,11 +377,13 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
 
           lexicalEditor.update(() => {
             const target = getLogicalBlockNodeByKey(context.blockId);
-            if (!target) return;
+            if (!target || !canUseBlockCapability(context.editor, target, 'delete')) return;
             target.remove();
           });
         },
         order: 999,
+        when: (context) =>
+          context.editor.isEditable() && canUseBlockContextCapability(context, 'delete'),
       });
 
       this.register(unregisterDefaultSelectHandler);
@@ -345,5 +394,9 @@ export const BlockPlugin: IEditorPluginConstructor<BlockPluginOptions> = class
     }
 
     this.register(registerBlockMoveCommand(editor));
+    this.register(registerBlockRewriteCommand(editor, this.kernel));
+    this.register(registerTargetLeaseGuards(editor));
   }
 };
+
+export { BlockRewritePlugin } from './rewrite';

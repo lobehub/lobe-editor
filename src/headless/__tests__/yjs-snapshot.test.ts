@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { Doc, encodeStateAsUpdate } from 'yjs';
 
 import { moment } from '@/editor-kernel';
-import { exportYjsSnapshotProjection } from '@/headless';
+import { createImmutableYjsSnapshotFromEditorData, exportYjsSnapshotProjection } from '@/headless';
 import { HeadlessEditor } from '@/headless';
 import { INSERT_ARTIFACT_COMMAND } from '@/plugins/artifact';
 import { ArtifactNode } from '@/plugins/artifact/node/ArtifactNode';
@@ -124,5 +124,86 @@ describe('exportYjsSnapshotProjection', () => {
     await expect(
       exportYjsSnapshotProjection({ roomId: 'page-snapshot', update: 'not-bytes' as never }),
     ).rejects.toThrow('requires a Uint8Array update');
+  });
+
+  it('creates an immutable bootstrap through the headless boundary without exposing a Doc', async () => {
+    const source = new HeadlessEditor();
+    editors.push(source);
+    source.hydrateMarkdown('database bootstrap');
+    const editorData = source.export().editorData;
+
+    const snapshot = await createImmutableYjsSnapshotFromEditorData({
+      editorData,
+      revision: 4,
+      roomId: 'bootstrap-snapshot',
+    });
+    expect(snapshot).toEqual({
+      revision: 4,
+      stateVector: expect.any(Uint8Array),
+      update: expect.any(Uint8Array),
+    });
+    expect(snapshot.update.byteLength).toBeGreaterThan(0);
+    expect(snapshot.stateVector.byteLength).toBeGreaterThan(0);
+    expect(snapshot).not.toHaveProperty('doc');
+    expect(snapshot).not.toHaveProperty('provider');
+    expect(snapshot).not.toHaveProperty('binding');
+
+    const projection = await exportYjsSnapshotProjection({
+      roomId: 'bootstrap-snapshot',
+      update: snapshot.update,
+    });
+    expect(projection.markdown).toContain('database bootstrap');
+  });
+
+  it('keeps malformed persisted JSON fail-closed while seeding empty documents', async () => {
+    await expect(
+      createImmutableYjsSnapshotFromEditorData({
+        content: '# Legacy body',
+        editorData: '{"root":{"children":"invalid"}}',
+        revision: 0,
+        roomId: 'malformed-bootstrap',
+      }),
+    ).rejects.toThrow('editorData is malformed');
+
+    const empty = await createImmutableYjsSnapshotFromEditorData({
+      content: '',
+      editorData: {},
+      revision: 0,
+      roomId: 'empty-bootstrap',
+    });
+    expect(empty.update.byteLength).toBeGreaterThan(0);
+    expect(empty.stateVector.byteLength).toBeGreaterThan(0);
+  });
+
+  it('preserves legacy code-node source through the same HeadlessEditor hydration path', async () => {
+    const snapshot = await createImmutableYjsSnapshotFromEditorData({
+      editorData: {
+        root: {
+          children: [
+            {
+              code: 'const answer = 42;\nconsole.log(answer);',
+              id: '1',
+              language: 'javascript',
+              type: 'code',
+              version: 1,
+            },
+          ],
+          direction: null,
+          format: '',
+          id: 'root',
+          indent: 0,
+          type: 'root',
+          version: 1,
+        },
+      },
+      revision: 1,
+      roomId: 'legacy-code-bootstrap',
+    });
+    const projection = await exportYjsSnapshotProjection({
+      roomId: 'legacy-code-bootstrap',
+      update: snapshot.update,
+    });
+    expect(projection.markdown).toContain('const answer = 42;');
+    expect(projection.markdown).toContain('console.log(answer);');
   });
 });

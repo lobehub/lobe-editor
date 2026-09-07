@@ -1,7 +1,11 @@
 export interface ArtifactLabels {
   code?: string;
+  codeOnly?: string;
+  previewOnly?: string;
   preview?: string;
+  splitView?: string;
   title?: string;
+  viewMode?: string;
 }
 
 export interface ReactArtifactPluginProps {

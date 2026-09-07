@@ -20,7 +20,7 @@ import remarkGfm from 'remark-gfm';
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
-import { INodeService } from '@/plugins/inode';
+import { INodeService } from '@/plugins/inode/service';
 import type { IServiceID } from '@/types';
 
 import type { MarkdownShortCutService } from '../service/shortcut';

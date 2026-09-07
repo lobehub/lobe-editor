@@ -1,11 +1,17 @@
 import { DOMParser } from '@xmldom/xmldom';
-import type { ElementNode, LexicalEditor } from 'lexical';
-import { $getRoot, $getSelection, $isElementNode, $isRangeSelection } from 'lexical';
+import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
+import {
+  $getRoot,
+  $getSelection,
+  $isElementNode,
+  $isRangeSelection,
+  resetRandomKey,
+} from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
-import { INodeService } from '@/plugins/inode';
+import { INodeService } from '@/plugins/inode/service';
 import { $getNodeId } from '@/plugins/properties/utils';
 import type { IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
@@ -16,6 +22,19 @@ import { $parseSerializedNodeImpl, charToId, idToChar } from '../utils';
 
 const LEGACY_LITEXML_ID = /^[\da-z]{1,4}$/i;
 const DURABLE_LITEXML_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const hasNumericSerializedNodeId = (node: unknown): boolean => {
+  if (!node || typeof node !== 'object') return false;
+  const record = node as { children?: unknown; id?: unknown };
+  if (
+    (typeof record.id === 'number' || typeof record.id === 'string') &&
+    Number.isInteger(Number(record.id)) &&
+    Number(record.id) >= 0
+  ) {
+    return true;
+  }
+  return Array.isArray(record.children) && record.children.some(hasNumericSerializedNodeId);
+};
 
 /**
  * IDs emitted by older LiteXML writers are short base-36 encodings of a
@@ -149,19 +168,36 @@ export default class LitexmlDataSource extends DataSource {
   read(editor: LexicalEditor, data: string): void {
     try {
       const inode = this.readLiteXMLToInode(data);
+      const hasExplicitIds = hasNumericSerializedNodeId(inode.root);
 
-      const newState = editor.parseEditorState(
-        {
-          root: INodeHelper.createRootNode(),
-        },
-        (state) => {
-          try {
-            const root = $parseSerializedNodeImpl(inode.root, editor, true, state);
-            state._nodeMap.set(root.getKey(), root);
-          } catch (error) {
-            console.error(error);
-          }
-        },
+      const newState = resetRandomKey(() =>
+        editor.parseEditorState(
+          {
+            root: INodeHelper.createRootNode(),
+          },
+          (state) => {
+            let root: LexicalNode | undefined;
+            try {
+              root = $parseSerializedNodeImpl(inode.root, editor, true, state);
+            } catch (error) {
+              console.error(error);
+            }
+
+            if (root) state._nodeMap.set(root.getKey(), root);
+
+            if (hasExplicitIds) {
+              let maxId = -1;
+              Array.from(state._nodeMap.keys()).forEach((key) => {
+                if (key === 'root') return;
+                const numericKey = Number(key);
+                if (Number.isInteger(numericKey) && numericKey >= 0) {
+                  maxId = Math.max(maxId, numericKey);
+                }
+              });
+              resetRandomKey(maxId + 1);
+            }
+          },
+        ),
       );
 
       editor.setEditorState(newState);

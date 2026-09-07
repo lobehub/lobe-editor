@@ -1,6 +1,6 @@
 import type { Provider, ProviderAwareness, UserState } from '@lexical/yjs';
 import type { Doc } from 'yjs';
-import { applyUpdate, encodeStateAsUpdate, encodeStateVector } from 'yjs';
+import { applyUpdate, encodeStateVector } from 'yjs';
 
 import {
   decodeYjsBase64,
@@ -32,6 +32,19 @@ const CLOSE_CODE_TICKET_REJECTED = 4401;
 
 export type WebSocketYjsProviderStatus =
   'connected' | 'connecting' | 'disconnected' | 'reconnecting';
+
+/** Safe public error metadata for provider sync/transport failures. */
+export class WebSocketYjsProviderError extends Error {
+  readonly code: string;
+  readonly fatal: boolean;
+
+  constructor(message: string, code: string, fatal = true) {
+    super(message);
+    this.name = 'WebSocketYjsProviderError';
+    this.code = code;
+    this.fatal = fatal;
+  }
+}
 
 export interface WebSocketMessageEvent {
   data?: ArrayBuffer | Uint8Array | string;
@@ -73,6 +86,11 @@ interface ProviderEventMap {
   status: (event: { status: WebSocketYjsProviderStatus }) => void;
   sync: (isSynced: boolean) => void;
   update: (event: unknown) => void;
+}
+
+interface PendingUpdateWaiter {
+  reject: (error: Error) => void;
+  resolve: () => void;
 }
 
 interface LegacyAwarenessMessage {
@@ -268,12 +286,16 @@ export class WebSocketYjsProviderCore implements Provider {
     reject: (error: Error) => void;
     resolve: () => void;
   }>();
+  private readonly pendingUpdateWaiters = new Set<PendingUpdateWaiter>();
   private readonly pendingUpdates: Array<{ id: string; update: Uint8Array }> = [];
   private readonly seenMessageIds = new Set<string>();
   private readonly unacknowledgedUpdates = new Map<string, Uint8Array>();
   private authenticated = false;
   private connectionTerminated = false;
+  private terminalError: WebSocketYjsProviderError | null = null;
   private isSynced = false;
+  /** Prevent the close callback from emitting a duplicate sync=false event. */
+  private syncInvalidatedBeforeClose = false;
   private openingSocket = false;
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -281,7 +303,6 @@ export class WebSocketYjsProviderCore implements Provider {
   private shouldConnect = false;
   private socket: WebSocketLike | null = null;
   private serverClientId: number;
-  private serverStateVector: Uint8Array | null = null;
   private readonly updateHandler = (update: Uint8Array, origin: unknown) => {
     if (origin === this) return;
 
@@ -332,12 +353,16 @@ export class WebSocketYjsProviderCore implements Provider {
     this.socket = null;
     this.authenticated = false;
     this.isSynced = false;
+    this.syncInvalidatedBeforeClose = false;
 
     if (socket) socket.close();
 
     this.emit('sync', false);
     this.emit('status', { status: 'disconnected' });
     this.rejectSyncWaiters(new Error('Yjs provider disconnected before initial sync.'));
+    this.rejectPendingUpdateWaiters(
+      new Error('Yjs provider disconnected before update acknowledgement.'),
+    );
   }
 
   /** Close is an explicit alias used by headless/Node callers. */
@@ -349,11 +374,64 @@ export class WebSocketYjsProviderCore implements Provider {
   waitForSync(): Promise<void> {
     if (this.isSynced) return Promise.resolve();
     if (this.connectionTerminated) {
-      return Promise.reject(new Error('Yjs provider cannot reconnect with this ticket.'));
+      return Promise.reject(
+        this.terminalError ??
+          new WebSocketYjsProviderError(
+            'Yjs provider cannot reconnect with this ticket.',
+            'provider_terminated',
+          ),
+      );
     }
 
     return new Promise<void>((resolve, reject) => {
       this.pendingSyncWaiters.add({ reject, resolve });
+    });
+  }
+
+  /**
+   * Resolve after every local Yjs update currently queued by this provider
+   * has received a room acknowledgement. The v1 room broadcasts an update
+   * to peers before sending this ack, so callers can safely close an Agent
+   * connection after this barrier without asking browsers to reload.
+   *
+   * Legacy rooms have no acknowledgement frame; once the update is handed to
+   * the socket the barrier is best-effort and resolves immediately. New Agent
+   * providers always use the v1 protocol.
+   */
+  waitForPendingUpdates(timeoutMs = 10_000): Promise<void> {
+    if (this.pendingUpdates.length === 0 && this.unacknowledgedUpdates.size === 0) {
+      return Promise.resolve();
+    }
+    if (this.connectionTerminated || !this.shouldConnect) {
+      return Promise.reject(new Error('Yjs provider disconnected before update acknowledgement.'));
+    }
+
+    const timeout = Number.isFinite(timeoutMs)
+      ? Math.min(Math.max(Math.trunc(timeoutMs), 1), 10 * 60_000)
+      : 10_000;
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const waiter: PendingUpdateWaiter = {
+        reject: (error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          this.pendingUpdateWaiters.delete(waiter);
+          reject(error);
+        },
+        resolve: () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          this.pendingUpdateWaiters.delete(waiter);
+          resolve();
+        },
+      };
+      const timer = setTimeout(() => {
+        waiter.reject(new Error('Yjs provider update acknowledgement timed out.'));
+      }, timeout);
+      this.pendingUpdateWaiters.add(waiter);
+      this.resolvePendingUpdateWaiters();
     });
   }
 
@@ -392,6 +470,21 @@ export class WebSocketYjsProviderCore implements Provider {
 
   private emitError(): void {
     this.emit('status', { status: 'disconnected' });
+  }
+
+  /**
+   * Invalidate the current auth/sync barrier before publishing a transport
+   * disconnect. The headless Agent uses the event order to avoid accepting an
+   * already-resolved waitForSync promise from the previous socket.
+   */
+  private emitTransportError(): void {
+    this.authenticated = false;
+    this.isSynced = false;
+    if (!this.syncInvalidatedBeforeClose) {
+      this.syncInvalidatedBeforeClose = true;
+      this.emit('sync', false);
+    }
+    this.emitError();
   }
 
   private getReconnectDelay(): number {
@@ -445,7 +538,7 @@ export class WebSocketYjsProviderCore implements Provider {
       this.socket = socket;
       this.authenticated = this.legacyProtocol;
       this.isSynced = false;
-      this.serverStateVector = null;
+      this.syncInvalidatedBeforeClose = false;
       this.emit('status', { status });
 
       socket.addEventListener('open', () => {
@@ -471,7 +564,7 @@ export class WebSocketYjsProviderCore implements Provider {
       socket.addEventListener('message', (event) => this.handleMessage(socket, event));
       socket.addEventListener('close', () => this.handleClose(socket));
       socket.addEventListener('error', () => {
-        if (this.socket === socket) this.emit('status', { status: 'disconnected' });
+        if (this.socket === socket) this.emitTransportError();
       });
     } catch (error) {
       this.failConnection(error instanceof Error ? error : new Error(String(error)));
@@ -486,17 +579,13 @@ export class WebSocketYjsProviderCore implements Provider {
   }
 
   private publishLocalDocumentState(): void {
-    const update = this.serverStateVector
-      ? encodeStateAsUpdate(this.doc, this.serverStateVector)
-      : encodeStateAsUpdate(this.doc);
-
-    if (update.byteLength === 0) {
-      this.flushPendingUpdates();
-      return;
-    }
-
-    this.sendUpdate(createMessageId(this.doc.clientID, ++this.sequence), update);
-    this.pendingUpdates.length = 0;
+    // The room snapshot is authoritative after the sync barrier. Resending a
+    // state-vector diff here also resends every historical struct retained by
+    // a reused Y.Doc; after a relay restart those structs can have different
+    // client IDs and merge into a second copy of the document. Local edits
+    // made while disconnected are already captured in pendingUpdates, while
+    // in-flight edits are covered by unacknowledgedUpdates below.
+    this.flushPendingUpdates();
   }
 
   private requestServerDocumentState(): void {
@@ -535,29 +624,42 @@ export class WebSocketYjsProviderCore implements Provider {
     if (this.socket !== socket) return;
 
     this.socket = null;
-    this.authenticated = false;
-    this.isSynced = false;
-    this.emit('sync', false);
-    this.emit('status', { status: 'disconnected' });
+    this.emitTransportError();
+    this.syncInvalidatedBeforeClose = false;
     if (this.options.autoReconnect === false) {
       this.shouldConnect = false;
       this.connectionTerminated = true;
       this.doc.off('update', this.updateHandler);
       this.pendingUpdates.length = 0;
-      this.rejectSyncWaiters(new Error('Yjs provider cannot reconnect with this ticket.'));
+      this.terminalError = new WebSocketYjsProviderError(
+        'Yjs provider cannot reconnect with this ticket.',
+        'provider_terminated',
+      );
+      this.rejectSyncWaiters(this.terminalError);
+      this.rejectPendingUpdateWaiters(
+        new WebSocketYjsProviderError(
+          'Yjs provider cannot reconnect before update acknowledgement.',
+          'provider_terminated',
+        ),
+      );
       return;
     }
     this.scheduleReconnect();
   }
 
   private failConnection(error: Error, terminal = false): void {
-    this.emitError();
+    this.emitTransportError();
     if (terminal || this.options.autoReconnect === false) {
+      this.terminalError =
+        error instanceof WebSocketYjsProviderError
+          ? error
+          : new WebSocketYjsProviderError(error.message, 'provider_transport', true);
       this.shouldConnect = false;
       this.connectionTerminated = true;
       this.doc.off('update', this.updateHandler);
       this.pendingUpdates.length = 0;
-      this.rejectSyncWaiters(error);
+      this.rejectSyncWaiters(this.terminalError);
+      this.rejectPendingUpdateWaiters(this.terminalError);
       return;
     }
     this.scheduleReconnect();
@@ -603,26 +705,47 @@ export class WebSocketYjsProviderCore implements Provider {
         return;
       }
       case 'error': {
-        this.emitError();
+        const providerError = new WebSocketYjsProviderError(
+          message.message,
+          message.code,
+          message.fatal !== false,
+        );
+        const canRefreshExpiredTicket =
+          message.code === 'ticket_expired' && typeof this.options.refreshTicket === 'function';
         const isTerminalTicketError =
           message.code === 'ticket_replayed' ||
           message.code === 'ticket_expired' ||
           message.code === 'replay_store_full';
+        if (canRefreshExpiredTicket) {
+          // The room deliberately expires each single-use Agent ticket. A
+          // provider with a refresh callback can safely reconnect with a new
+          // ticket; keep the Yjs document and pending updates so the next
+          // authenticated sync can resume the same request. Providers without
+          // refresh capability remain fail-closed below.
+          this.emitTransportError();
+          socket.close(CLOSE_CODE_TICKET_REJECTED, message.message);
+          return;
+        }
         if (message.fatal !== false || isTerminalTicketError) {
+          this.emitTransportError();
           this.shouldConnect = false;
           // A fatal protocol/auth error invalidates this provider session. A
           // later explicit connect must use a new provider or a new ticket;
           // never retry the consumed capability through this instance.
           this.connectionTerminated = true;
+          this.terminalError = providerError;
           this.doc.off('update', this.updateHandler);
           this.pendingUpdates.length = 0;
-          this.rejectSyncWaiters(new Error(message.message));
+          this.rejectSyncWaiters(providerError);
+          this.rejectPendingUpdateWaiters(providerError);
           socket.close(CLOSE_CODE_TICKET_REJECTED, message.message);
+        } else {
+          this.emitError();
         }
         return;
       }
       case 'sync': {
-        this.handleSync(message.update, message.awareness, message.serverStateVector);
+        this.handleSync(message.update, message.awareness);
         return;
       }
       case 'awareness': {
@@ -636,6 +759,7 @@ export class WebSocketYjsProviderCore implements Provider {
       case 'update-ack': {
         this.unacknowledgedUpdates.delete(message.messageId);
         this.rememberSeenMessageId(message.messageId);
+        this.resolvePendingUpdateWaiters();
         return;
       }
       default: {
@@ -666,13 +790,9 @@ export class WebSocketYjsProviderCore implements Provider {
   private handleSync(
     encodedUpdate: string,
     awareness: Array<{ clientId: number; sequence?: number; state: unknown }>,
-    encodedServerStateVector?: string,
   ): void {
     try {
       applyUpdate(this.doc, decodeYjsBase64(encodedUpdate), this);
-      this.serverStateVector = encodedServerStateVector
-        ? decodeYjsBase64(encodedServerStateVector)
-        : null;
     } catch {
       this.rejectSocket(this.socket, 'Invalid Yjs sync payload.');
       return;
@@ -765,8 +885,10 @@ export class WebSocketYjsProviderCore implements Provider {
     this.connectionTerminated = true;
     this.doc.off('update', this.updateHandler);
     this.pendingUpdates.length = 0;
-    this.emitError();
-    this.rejectSyncWaiters(new Error(reason));
+    this.terminalError = new WebSocketYjsProviderError(reason, 'invalid_protocol', true);
+    this.emitTransportError();
+    this.rejectSyncWaiters(this.terminalError);
+    this.rejectPendingUpdateWaiters(this.terminalError);
     socket?.close(CLOSE_CODE_INVALID_MESSAGE, reason);
   }
 
@@ -780,6 +902,17 @@ export class WebSocketYjsProviderCore implements Provider {
   private rejectSyncWaiters(error: Error): void {
     this.pendingSyncWaiters.forEach((waiter) => waiter.reject(error));
     this.pendingSyncWaiters.clear();
+  }
+
+  private rejectPendingUpdateWaiters(error: Error): void {
+    this.pendingUpdateWaiters.forEach((waiter) => waiter.reject(error));
+    this.pendingUpdateWaiters.clear();
+  }
+
+  private resolvePendingUpdateWaiters(): void {
+    if (this.pendingUpdates.length > 0 || this.unacknowledgedUpdates.size > 0) return;
+    this.pendingUpdateWaiters.forEach((waiter) => waiter.resolve());
+    this.pendingUpdateWaiters.clear();
   }
 
   private resolveSyncWaiters(): void {
@@ -820,6 +953,7 @@ export class WebSocketYjsProviderCore implements Provider {
         type: 'update',
         update: encodeYjsBase64(update),
       });
+      this.resolvePendingUpdateWaiters();
       return;
     }
 

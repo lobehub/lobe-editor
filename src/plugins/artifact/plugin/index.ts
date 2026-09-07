@@ -24,6 +24,7 @@ import {
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { registerBlockRewriteAdapter } from '@/plugins/block/service/rewrite-adapter';
 import { $isCursorNode, cursorNodeSerialized } from '@/plugins/common/node/cursor';
 import { $createHoleNode, $isHoleNode, HoleNode } from '@/plugins/common/node/hole';
 import { exportNodeToJSON } from '@/plugins/common/utils';
@@ -36,6 +37,7 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 
 import { registerArtifactCommand } from '../command';
 import { $isArtifactNode, ArtifactNode } from '../node/ArtifactNode';
+import { artifactBlockRewriteAdapter } from '../rewrite-adapter';
 
 export interface ArtifactPluginOptions {
   decorator?: (node: ArtifactNode, editor: LexicalEditor) => unknown;
@@ -61,6 +63,7 @@ export const ArtifactPlugin: IEditorPluginConstructor<ArtifactPluginOptions> = c
       (node: DecoratorNode<unknown>, editor: LexicalEditor) =>
         config?.decorator?.(node as ArtifactNode, editor) ?? null,
     );
+    this.register(registerBlockRewriteAdapter(kernel, artifactBlockRewriteAdapter));
   }
 
   onInit(editor: LexicalEditor): void {

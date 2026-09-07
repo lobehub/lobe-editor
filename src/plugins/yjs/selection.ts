@@ -47,14 +47,21 @@ export interface CapturedRelativeRewriteSelection {
  * Offsets are character offsets within their containing durable block.
  */
 export interface CapturedBlockRewriteSelection {
+  /** Adapter-owned atomic target metadata. Omitted for text-range blocks. */
+  adapterId?: string;
   endNodeId: string;
   endOffset: number;
   kind: 'block';
   quotedText: string;
   quotedTextHash: string;
+  sourceHash?: string;
   startNodeId: string;
   startOffset: number;
+  targetKind?: 'node' | 'text-range';
+  targetNodeId?: string;
   targetNodeIds: string[];
+  /** Explicit collaboration room when the host can provide one. */
+  roomId?: string;
 }
 
 export type CapturedCollaborativeRewriteSelection =
@@ -192,11 +199,11 @@ export const captureCollaborativeRewriteSelection = (
     if (!fallback) return null;
 
     const state = editor.requireService(IYjsService)?.getState();
-    if (!state) return fallback;
+    const roomId = options.roomId ?? state?.id;
+    if (!state) return roomId ? { ...fallback, roomId } : fallback;
 
-    const roomId = options.roomId ?? state.id;
     const baseStateVector = getStateVector(state);
-    if (!roomId || !baseStateVector) return fallback;
+    if (!roomId || !baseStateVector) return roomId ? { ...fallback, roomId } : fallback;
 
     const anchorPosition = createRelativePositionForLexicalPoint(selection.anchor, state.binding);
     const focusPosition = createRelativePositionForLexicalPoint(selection.focus, state.binding);

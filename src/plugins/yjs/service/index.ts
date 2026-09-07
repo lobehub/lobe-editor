@@ -2,6 +2,7 @@ import { type Binding, type Provider, type UserState } from '@lexical/yjs';
 import { SKIP_COLLAB_TAG } from 'lexical';
 import type { Doc } from 'yjs';
 
+import { projectRuntimeHolesForJSON } from '@/plugins/common/data-source/json-data-source';
 import type { IServiceID } from '@/types';
 
 import { createEmptyPreviousEditorState } from '../plugin/utils/editor-state';
@@ -23,10 +24,69 @@ export interface YjsPluginState {
 type YjsPluginStateListener = (state: YjsPluginState | null) => void;
 type YjsAwarenessUsersListener = (users: YjsAwarenessUser[]) => void;
 
+/**
+ * `getDocument('json')` includes each Lexical runtime node key as `id`. Those
+ * keys are intentionally local to one editor instance: the Agent and every
+ * browser peer deserialize the same Yjs tree with different keys. Comparing
+ * them makes the server's post-write echo look like a new document and causes
+ * `applyExternalEditorData` to replace the shared root a second time. That
+ * second replacement disconnects the existing binding history from later
+ * remote edits, so a browser Undo can consume another peer's change.
+ *
+ * Keep durable node properties (for example `$.properties.nodeId`) and nested
+ * payload data intact; only an `id` on a serialized Lexical node is runtime
+ * identity.
+ */
+const cloneComparableValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(cloneComparableValue);
+  if (!value || typeof value !== 'object') return value;
+
+  const cloned: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) cloned[key] = cloneComparableValue(child);
+  return cloned;
+};
+
+/** Remove runtime ids only while walking the serialized Lexical node tree. */
+const normalizeComparableLexicalNode = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(normalizeComparableLexicalNode);
+  if (!value || typeof value !== 'object') return cloneComparableValue(value);
+
+  const normalized: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'id') continue;
+    // `children` on a serialized Lexical node is the only place where nested
+    // `id` fields are known to be runtime node keys. Business payloads may
+    // themselves contain `{ id, type }` objects and must remain byte-stable.
+    normalized[key] =
+      key === 'children' && Array.isArray(child)
+        ? child.map(normalizeComparableLexicalNode)
+        : cloneComparableValue(child);
+  }
+  return normalized;
+};
+
+const normalizeComparableEditorData = (value: unknown): unknown => {
+  const cloned = cloneComparableValue(value) as Record<string, unknown> | null;
+  if (!cloned || typeof cloned !== 'object') return cloned;
+  if (cloned.root && typeof cloned.root === 'object') {
+    cloned.root = normalizeComparableLexicalNode(cloned.root);
+  }
+  return cloned;
+};
+
 const serializeComparableEditorState = (state: { toJSON: () => unknown }): string => {
-  const serialized = state.toJSON() as {
-    root?: { direction?: string | null };
+  const serialized = normalizeComparableEditorData(state.toJSON()) as {
+    root?: { direction?: string | null; [key: string]: unknown };
   };
+
+  // Artifact/code blocks are represented by an internal Hole with boundary
+  // Cursor nodes in a live Yjs binding, while persisted editorData projects
+  // that runtime wrapper away. Compare the public projection on both sides so
+  // a server echo does not look like a second structural replacement.
+  if (serialized.root && Array.isArray(serialized.root.children)) {
+    const [projectedRoot] = projectRuntimeHolesForJSON(serialized.root as never);
+    if (projectedRoot) serialized.root = projectedRoot as typeof serialized.root;
+  }
 
   // Lexical's root direction is a local default and is not represented by the
   // v1 Yjs binding. Treat the default `ltr` and hydrated `null` as equivalent;

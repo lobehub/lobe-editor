@@ -4,7 +4,7 @@ import { $nodesOfType, HISTORIC_TAG } from 'lexical';
 import { encodeStateVector } from 'yjs';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { encodeYjsBase64 } from '@/plugins/yjs/protocol';
 import { IYjsService } from '@/plugins/yjs/service';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';

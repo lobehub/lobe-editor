@@ -1,6 +1,8 @@
 import { AISessionPlugin } from '@/plugins/ai-session/plugin';
 import { ArtifactPlugin } from '@/plugins/artifact/plugin';
+import { BlockRewritePlugin } from '@/plugins/block/plugin/rewrite';
 import { CodePlugin } from '@/plugins/code/plugin';
+import { HeadlessCodeblockPlugin } from '@/plugins/codeblock/plugin/headless';
 import { CodemirrorPlugin } from '@/plugins/codemirror-block/plugin';
 import { CommonPlugin } from '@/plugins/common/plugin';
 import { FilePlugin } from '@/plugins/file/plugin';
@@ -25,10 +27,12 @@ import { HeadlessCollapsiblePlugin } from './collapsible-plugin';
  */
 export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   [CommonPlugin, { enableHotkey: false }],
+  BlockRewritePlugin,
   INodePlugin,
   MarkdownPlugin,
   [LinkPlugin, { enableHotkey: false }],
   CodePlugin,
+  HeadlessCodeblockPlugin,
   CodemirrorPlugin,
   ImagePlugin,
   FilePlugin,

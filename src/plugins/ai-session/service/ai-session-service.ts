@@ -234,6 +234,10 @@ export class AISessionService
     return this.editor.getEditorState().read(() => {
       const ranges: AISessionRange[] = [];
       for (const node of $getRoot().getAllTextNodes()) {
+        // Cursor nodes are invisible FEFF sentinels used by Code/adapter
+        // blocks. They may inherit generated provenance during recursive
+        // marking, but are not part of the user-visible rewrite text.
+        if (node.getType() === 'cursor') continue;
         const provenance = $getNodeProperties(node).provenance;
         if (provenance?.source !== 'ai' || provenance.sessionId !== sessionId) continue;
 

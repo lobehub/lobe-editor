@@ -13,6 +13,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
 } from 'react';
@@ -23,6 +24,7 @@ import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
+import { normalizeCodeMirrorLanguage } from '../lib/mode';
 import type { CodeMirrorNode } from '../node/CodeMirrorNode';
 import MermaidPreview from './MermaidPreview';
 import { useCodemirrorEditLock } from './useCodemirrorEditLock';
@@ -44,7 +46,8 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   const [isSelected, setSelected, clearSelection, isNodeSelected] = useLexicalNodeSelection(
     node.getKey(),
   );
-  const [selectedLang, setSelectedLang] = useState(node.lang || 'javascript');
+  const initialLanguage = normalizeCodeMirrorLanguage(node.lang) || 'plain';
+  const [selectedLang, setSelectedLang] = useState(initialLanguage);
   // use any to avoid strict typing on optional persistence fields
   const [tabSize, setTabSize] = useState<number>(node.options.tabSize ?? 2);
   const [useTabs, setUseTabs] = useState<boolean>(node.options.indentWithTabs ?? false);
@@ -53,7 +56,9 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   );
   const [expand, setExpand] = useState<boolean>(true);
   const [preview, setPreview] = useState<boolean>(false);
-  const [code, setCode] = useState<string>(node.code);
+  const [code, dispatchCode] = useReducer((_state: string, value: string) => value, node.code);
+  const nodeCodeRef = useRef(node.code);
+  const nodeLangRef = useRef(initialLanguage);
   const { acquireLock, isLockedByRemote, lockOwnerName, releaseLock } = useCodemirrorEditLock(
     node.getKey(),
     'CodeMirror block',
@@ -175,6 +180,34 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   );
 
   useEffect(() => {
+    const nextLanguage = normalizeCodeMirrorLanguage(node.lang) || 'plain';
+    const changedInEditor = nextLanguage !== nodeLangRef.current;
+    nodeLangRef.current = nextLanguage;
+    if (!changedInEditor) return;
+
+    setSelectedLang(nextLanguage);
+    instanceRef.current?.setOption('mode', nextLanguage);
+  }, [node]);
+
+  // The block rewrite command updates the Lexical CodeMirrorNode from a
+  // collaborative/headless editor. CodeMirror owns its rendered document, so
+  // a React decorator rerender alone does not update the visible editor.
+  // Mirror external node changes into the live instance while leaving local
+  // CodeMirror edits on their existing debounced persistence path.
+  useEffect(() => {
+    const nextCode = node.code;
+    const changedInEditor = nextCode !== nodeCodeRef.current;
+    nodeCodeRef.current = nextCode;
+    if (!changedInEditor) return;
+
+    isEmptyRef.current = !nextCode.trim();
+    dispatchCode(nextCode);
+    if (instanceRef.current && instanceRef.current.getValue() !== nextCode) {
+      instanceRef.current.setValue(nextCode);
+    }
+  }, [node]);
+
+  useEffect(() => {
     const sel = editor.getEditorState().read(() => $getSelection());
     // 鼠标主动点击导致的选中，不处理
     if (instanceRef.current?.view.hasFocus && sel === null) {
@@ -222,11 +255,14 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           // keep options alphabetically ordered
           indentWithTabs: useTabs,
           lineNumbers: showLineNumbers,
-          mode: node.lang,
+          mode: nodeLangRef.current,
           readOnly: editLockRef.current.isLockedByRemote,
           tabSize,
           theme: 'default',
-          value: node.code,
+          // The decorator may receive a remote rewrite while the lazy
+          // CodeMirror loader is still pending. Read the latest mirrored
+          // value instead of the effect's initial node closure.
+          value: nodeCodeRef.current,
         });
 
         console.info(instance);
@@ -240,7 +276,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         });
 
         // 初始化 isEmptyRef 的值
-        isEmptyRef.current = !node.code.trim();
+        isEmptyRef.current = !nodeCodeRef.current.trim();
 
         instance.on('keydown', (instance, e) => {
           e.stopPropagation();
@@ -301,7 +337,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           const currentValue = instance.getValue();
           // 立即检查代码是否为空（trim 后为空），用于 keydown 事件判断
           isEmptyRef.current = !currentValue.trim();
-          setCode(currentValue);
+          dispatchCode(currentValue);
         });
 
         instance.on(

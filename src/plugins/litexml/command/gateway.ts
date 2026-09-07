@@ -1,5 +1,14 @@
 import type { CommandPayloadType, LexicalCommand, LexicalEditor } from 'lexical';
 
+import {
+  APPLY_BLOCK_REWRITE_COMMAND,
+  type ApplyBlockRewritePayload,
+} from '@/plugins/block/command';
+import {
+  BLOCK_REWRITE_MAX_LANGUAGE_LENGTH,
+  BLOCK_REWRITE_MAX_SOURCE_LENGTH,
+  type BlockRewriteOutput,
+} from '@/plugins/block/service/rewrite-adapter';
 import { MARK_AI_GENERATED_COMMAND } from '@/plugins/properties/command';
 import type { MarkAIGeneratedPayload } from '@/plugins/properties/types';
 
@@ -23,6 +32,7 @@ export const COLLABORATIVE_AGENT_COMMAND_ALLOWLIST = Object.freeze([
   LITEXML_MODIFY_COMMAND,
   LITEXML_REMOVE_COMMAND,
   LITEXML_REWRITE_RANGE_COMMAND,
+  APPLY_BLOCK_REWRITE_COMMAND,
   MARK_AI_GENERATED_COMMAND,
 ] as const);
 
@@ -87,6 +97,8 @@ const rewriteMetadataFrom = (payload: unknown, commandId: string): LiteXMLRewrit
   const generationIdValue = metadataField(payload, 'generationId');
   const modelValue = metadataField(payload, 'model');
   const providerValue = metadataField(payload, 'provider');
+  const sessionValue = metadataField(payload, 'provenanceSessionId');
+  const turnIndexValue = metadataField(payload, 'turnIndex');
   const createdAtValue = metadataField(payload, 'createdAt');
   const attemptValue = metadataField(payload, 'attempt');
   const generationId =
@@ -105,9 +117,19 @@ const rewriteMetadataFrom = (payload: unknown, commandId: string): LiteXMLRewrit
     ...(typeof providerValue === 'string' && providerValue.length > 0
       ? { provider: providerValue }
       : {}),
+    ...(typeof sessionValue === 'string' && sessionValue.length > 0
+      ? { sessionId: sessionValue }
+      : {}),
   };
   if (typeof attemptValue === 'number' && Number.isSafeInteger(attemptValue) && attemptValue > 0) {
     metadata.attempt = attemptValue;
+  }
+  if (
+    typeof turnIndexValue === 'number' &&
+    Number.isSafeInteger(turnIndexValue) &&
+    turnIndexValue >= 0
+  ) {
+    metadata.turnIndex = turnIndexValue;
   }
   return metadata;
 };
@@ -192,6 +214,38 @@ const isRewritePayload = (payload: unknown): payload is RewriteRangeCommandPaylo
     !Array.isArray(payload.selection)
   );
 };
+
+const isBoundedString = (value: unknown, maxLength: number): value is string =>
+  typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
+
+const isBlockRewriteOutput = (value: unknown): value is BlockRewriteOutput => {
+  if (!isRecord(value) || (value.kind !== 'source' && value.kind !== 'patch')) return false;
+  if (value.kind === 'source') {
+    return (
+      typeof value.source === 'string' &&
+      value.source.length <= BLOCK_REWRITE_MAX_SOURCE_LENGTH &&
+      (value.language === undefined ||
+        (typeof value.language === 'string' &&
+          value.language.trim().length > 0 &&
+          value.language.length <= BLOCK_REWRITE_MAX_LANGUAGE_LENGTH)) &&
+      (value.title === undefined || isBoundedString(value.title, 255))
+    );
+  }
+  try {
+    return (
+      isRecord(value.patch) && JSON.stringify(value.patch).length <= BLOCK_REWRITE_MAX_SOURCE_LENGTH
+    );
+  } catch {
+    return false;
+  }
+};
+
+const isBlockRewritePayload = (payload: unknown): payload is ApplyBlockRewritePayload =>
+  isRecord(payload) &&
+  isStableNodeId(payload.nodeId) &&
+  isBoundedString(payload.adapterKey, 128) &&
+  (payload.expectedSourceHash === undefined || isBoundedString(payload.expectedSourceHash, 128)) &&
+  isBlockRewriteOutput(payload.output);
 
 /**
  * Construct the only mutation gateway exposed to a collaborative Agent.
@@ -285,6 +339,31 @@ export function createCollaborativeAgentCommandGateway(
 
     let dispatchPayload = payload;
     let affectedNodeIds: string[] = [];
+
+    if (command === APPLY_BLOCK_REWRITE_COMMAND) {
+      if (!isBlockRewritePayload(payload)) {
+        return result(requestId, 'failed', 'invalid-block-rewrite-payload', [], commandId);
+      }
+      const dispatchPayload = attachRewriteMetadata(
+        { ...payload, commandId },
+        rewriteMetadataFrom(payload, commandId),
+      ) as ApplyBlockRewritePayload;
+      affectedNodeIds = [payload.nodeId];
+      try {
+        const handled = editor.dispatchCommand(APPLY_BLOCK_REWRITE_COMMAND, dispatchPayload);
+        if (!handled)
+          return result(requestId, 'failed', 'command-not-handled', affectedNodeIds, commandId);
+      } catch (error) {
+        return result(
+          requestId,
+          'failed',
+          error instanceof Error ? error.message : 'command-failed',
+          affectedNodeIds,
+          commandId,
+        );
+      }
+      return result(requestId, 'diff-created', undefined, affectedNodeIds, commandId);
+    }
 
     if (command === LITEXML_MODIFY_COMMAND) {
       if (!isStableLiteXMLModifyPayload(payload)) {

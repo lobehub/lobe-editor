@@ -54,7 +54,6 @@ import { registerEvent } from './event';
 import { KernelPlugin } from './plugin';
 import {
   $closest,
-  createEmptyEditorState,
   EDITOR_THEME_KEY,
   generateEditorId,
   noop,
@@ -88,6 +87,12 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   private logger = createDebugLogger('kernel');
 
   private historyState = createEmptyHistoryState();
+
+  /**
+   * Root-scoped resources are attached to the Lexical editor's root listener
+   * so direct Lexical setRootElement(null) calls are safe as well.
+   */
+  private unregisterRootLifecycle?: () => void;
 
   private editor?: LexicalEditor;
   private headlessEditor = false;
@@ -175,31 +180,55 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   destroy() {
-    unregisterEditorKernel(this.themes[EDITOR_THEME_KEY]);
+    const editor = this.editor;
+    const editorId = this.getEditorId();
     this.logger.info(`🗑️ Destroying editor with ${this.pluginsInstances.length} plugins`);
-    try {
-      this.editor?.setEditorState(createEmptyEditorState());
-    } catch (error) {
-      this.logger.warn('Failed to reset editor state during destroy:', error);
+
+    // Detach first. This invokes every root listener cleanup (including
+    // @lexical/dragon and the kernel's root-scoped DOM handlers) and releases
+    // the EditorMap entry before any state teardown can run.
+    if (editor && !this.headlessEditor) {
+      try {
+        editor.setRootElement(null);
+      } catch (error) {
+        this.logger.warn('Failed to detach editor root during destroy:', error);
+      }
     }
-    this.dataTypeMap.clear();
+    unregisterEditorKernel(editorId);
+
+    // Tear down plugin-owned update listeners before discarding the kernel
+    // state. Destroy must not manufacture a document update that a
+    // collaboration binding could publish to its shared Y.Doc.
+    let destroyError: unknown;
     this.pluginsInstances.forEach((plugin) => {
-      if (plugin.destroy) {
-        plugin.destroy();
+      try {
+        plugin.destroy?.();
+      } catch (error) {
+        destroyError ??= error;
       }
     });
     this.pluginsInstances = [];
+
+    this.unregisterRootLifecycle?.();
+    this.unregisterRootLifecycle = undefined;
+    this.dataTypeMap.clear();
     this.beforeEditorInitHooks = [];
     this.nodeTransforms = [];
+    this.nodes = [];
     this.rootClassNames.clear();
-    // Clear services to support hot reload
     this.serviceMap.clear();
-    // Clear decorators to prevent memory leaks
     this.decorators = {};
-    // Clear themes
-    this.themes = {};
+    this.themes = { [EDITOR_THEME_KEY]: generateEditorId() };
+    this.historyState = createEmptyHistoryState();
+    this._commands.clear();
+    this._commandsClean.clear();
+    this.editor = undefined;
     this.headlessEditor = false;
     this.logger.info('✅ Editor destroyed');
+
+    if (destroyError) {
+      throw destroyError;
+    }
   }
 
   getRootElement(): HTMLElement | null {
@@ -209,16 +238,35 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     return this.editor?.getRootElement() || null;
   }
 
-  setRootElement(dom: HTMLElement, editable: boolean = true): LexicalEditor {
+  setRootElement(dom: HTMLElement, editable?: boolean): LexicalEditor;
+  setRootElement(dom: null, editable?: boolean): LexicalEditor | null;
+  setRootElement(dom: HTMLElement | null, editable: boolean = true): LexicalEditor | null {
     // Check if editor is already initialized to prevent re-initialization
     if (this.editor) {
       if (this.headlessEditor) {
+        if (dom === null) {
+          return this.editor;
+        }
         throw new Error('Headless editor cannot be attached to a root element.');
       }
       this.logger.warn('[Editor] Editor is already initialized, updating root element only');
+      if (dom) {
+        // Lexical may invoke root listeners while reconciling the new root;
+        // make the kernel discoverable before that reconciliation starts.
+        registerEditorKernel(this.getEditorId(), this);
+      }
       this.editor.setRootElement(dom);
-      this.applyRootClassNames(dom);
+      if (dom) {
+        this.editor.setEditable(editable);
+        this.applyRootClassNames(dom);
+      }
       return this.editor;
+    }
+
+    if (dom === null) {
+      // A React owner can clean up before a descendant ever mounted a root.
+      unregisterEditorKernel(this.getEditorId());
+      return null;
     }
 
     // Initialize plugins if not already done
@@ -233,7 +281,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.runBeforeEditorInitLifecycle();
     const resolvedNodes = this.resolveNodesForInitialization();
     this.logger.info(`📝 Creating editor with ${resolvedNodes.length} nodes`);
-    registerEditorKernel(this.themes[EDITOR_THEME_KEY], this);
+    registerEditorKernel(this.getEditorId(), this);
     const editor = (this.editor = createEditor({
       // @ts-expect-error Inject into lexical editor instance
       __kernel: this,
@@ -247,9 +295,9 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       theme: this.themes,
     }));
     this.headlessEditor = false;
+    this.registerRootLifecycle(editor);
     this.editor.setRootElement(dom);
     this.applyRootClassNames(dom);
-    registerEvent(editor, dom);
 
     this.pluginsInstances.forEach((plugin) => {
       plugin.onInit?.(editor);
@@ -297,6 +345,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       theme: this.themes,
     }));
     this.headlessEditor = false;
+    this.registerRootLifecycle(editor);
 
     this.pluginsInstances.forEach((plugin) => {
       plugin.onInit?.(editor);
@@ -748,6 +797,44 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       if (currentRootElement) {
         currentRootElement.classList.remove(...classNames);
       }
+    };
+  }
+
+  registerRootListener(listener: (rootElement: HTMLElement | null) => void): () => void {
+    if (!this.editor || this.headlessEditor) {
+      return noop;
+    }
+
+    return this.editor.registerRootListener(listener);
+  }
+
+  private getEditorId(): string {
+    return this.themes[EDITOR_THEME_KEY] as string;
+  }
+
+  private registerRootLifecycle(editor: LexicalEditor): void {
+    this.unregisterRootLifecycle?.();
+    let rootEventCleanup: (() => void) | undefined;
+    const clearRootEvent = () => {
+      rootEventCleanup?.();
+      rootEventCleanup = undefined;
+    };
+    const unregisterRootListener = editor.registerRootListener((rootElement) => {
+      clearRootEvent();
+      if (!rootElement) {
+        unregisterEditorKernel(this.getEditorId());
+        return;
+      }
+
+      // Root listeners can be triggered by callers using the Lexical editor
+      // directly, so registration must happen here as well as in the kernel
+      // setRootElement wrapper.
+      registerEditorKernel(this.getEditorId(), this);
+      rootEventCleanup = registerEvent(editor, rootElement);
+    });
+    this.unregisterRootLifecycle = () => {
+      clearRootEvent();
+      unregisterRootListener();
     };
   }
 

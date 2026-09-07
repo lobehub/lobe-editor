@@ -20,11 +20,11 @@ import {
   COMMAND_PRIORITY_LOW,
   COMMAND_PRIORITY_NORMAL,
   FORMAT_TEXT_COMMAND,
-  HISTORIC_TAG,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
+  RootNode,
   REDO_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
@@ -541,53 +541,14 @@ const NEEDS_FOLLOWING_PARAGRAPH_TYPES = new Set<string | undefined>([
 ]);
 
 export function registerLastElement(editor: LexicalEditor) {
-  let isProcessing = false;
-
-  return editor.registerUpdateListener(({ dirtyElements }) => {
-    if (!editor.isEditable()) {
-      return;
-    }
-    // Only process when root node or its direct children have changes
-    if (
-      !dirtyElements.has('root') &&
-      !Array.from(dirtyElements.keys()).some((key) => {
-        const node = editor.getEditorState()._nodeMap.get(key);
-        return node?.getParent()?.getKey() === 'root';
-      })
-    ) {
-      return;
-    }
-
-    if (isProcessing) return;
-
-    const needsParagraph = editor.getEditorState().read(() => {
-      const root = $getRoot();
-      const lastChild = root.getLastChild();
-
-      // Check if the last element needs a trailing paragraph
-      return NEEDS_FOLLOWING_PARAGRAPH_TYPES.has(lastChild?.getType());
-    });
-
-    if (needsParagraph) {
-      isProcessing = true;
-
-      queueMicrotask(() => {
-        editor.update(
-          () => {
-            const root = $getRoot();
-            const currentLast = root.getLastChild();
-
-            // Double check to ensure the state still needs processing
-            if (NEEDS_FOLLOWING_PARAGRAPH_TYPES.has(currentLast?.getType())) {
-              const paragraph = $createParagraphNode();
-              root.append(paragraph);
-            }
-
-            isProcessing = false;
-          },
-          { tag: HISTORIC_TAG },
-        );
-      });
+  // Root transforms run inside the originating local editor transaction, so
+  // the trailing paragraph is included in the same Yjs update. Remote Yjs
+  // projection uses skipTransforms and therefore does not synthesize a second
+  // paragraph on every peer.
+  return editor.registerNodeTransform(RootNode, (root) => {
+    if (!editor.isEditable()) return;
+    if (NEEDS_FOLLOWING_PARAGRAPH_TYPES.has(root.getLastChild()?.getType())) {
+      root.append($createParagraphNode());
     }
   });
 }

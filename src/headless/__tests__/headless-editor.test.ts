@@ -332,8 +332,9 @@ describe('HeadlessEditor', () => {
 
     expect(pluginSource).toContain('@/plugins/codemirror-block/plugin');
     expect(pluginSource).toContain('CodemirrorPlugin');
-    expect(source).not.toContain('CodeblockPlugin');
-    expect(source).not.toContain('HeadlessCodeblockPlugin');
+    expect(pluginSource).toContain('HeadlessCodeblockPlugin');
+    expect(source).not.toContain("from '@/plugins/codeblock/plugin'");
+    expect(pluginSource).toContain("from '@/plugins/codeblock/plugin/headless'");
     expect(commandSource).toContain('@/plugins/codeblock/command/symbols');
     expect(commandSource).not.toContain("@/plugins/codeblock'");
   });

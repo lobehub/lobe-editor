@@ -12,7 +12,7 @@ import {
 } from '@lexical/yjs';
 import { BLUR_COMMAND, COMMAND_PRIORITY_EDITOR, FOCUS_COMMAND, type LexicalEditor } from 'lexical';
 import type { FC, RefObject } from 'react';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Doc } from 'yjs';
 
@@ -25,6 +25,7 @@ import {
   type YjsProviderFactory,
 } from '@/plugins/yjs/plugin';
 import { IYjsService, type YjsPluginState } from '@/plugins/yjs/service';
+import { normalizeRelativeSelectionForAtomicHoles } from '@/plugins/yjs/relative-position';
 import type { ILocaleKeys } from '@/types';
 
 import { createCodemirrorEditLockProvider } from './codemirrorEditLockProvider';
@@ -151,7 +152,20 @@ export const getRenderableAwarenessStates = (
 
     const { role, status } = getAwarenessRoleAndStatus(state);
     if (role === 'agent' && (status === 'done' || status === 'error')) return;
-    renderable.set(clientId, state);
+    if (state.anchorPos && state.focusPos) {
+      const normalized = normalizeRelativeSelectionForAtomicHoles(
+        binding,
+        state.anchorPos,
+        state.focusPos,
+      );
+      renderable.set(clientId, {
+        ...state,
+        anchorPos: normalized.anchorPos,
+        focusPos: normalized.focusPos,
+      });
+    } else {
+      renderable.set(clientId, state);
+    }
   });
 
   return renderable;
@@ -517,9 +531,13 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
       createStatusAwareSyncCursorPositions(syncCursorPositionsFn, resolvedAwarenessLabelFormatter),
     [resolvedAwarenessLabelFormatter, syncCursorPositionsFn],
   );
-  const safeCursorSync = useMemo(
-    () => createSafeCursorSync(statusAwareSyncCursorPositions),
-    [statusAwareSyncCursorPositions],
+  const safeCursorSyncRef = useRef<SafeCursorSyncController | null>(null);
+  // The portal callback is stable, while the effect owns each disposable
+  // controller. Reusing a memoized controller after effect cleanup leaves
+  // cursor rendering permanently disabled on config changes/Activity restore.
+  const syncCursorPositionsSafely = useCallback<SyncCursorPositionsFn>(
+    (binding, provider, options) => safeCursorSyncRef.current?.sync(binding, provider, options),
+    [],
   );
 
   useLayoutEffect(() => {
@@ -555,6 +573,8 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
       return;
     }
 
+    const safeCursorSync = createSafeCursorSync(statusAwareSyncCursorPositions);
+    safeCursorSyncRef.current = safeCursorSync;
     const awareness = state.provider.awareness;
     const setLocalState = awareness.setLocalState.bind(awareness);
 
@@ -611,9 +631,11 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
     // Keep remote cursor overlays aligned across scroll/layout/font changes.
     const cursorFrameLoop = createCursorFrameLoop(updateAwareness);
     cursorFrameLoop.start();
+    updateAwareness();
 
     return () => {
       safeCursorSync.dispose();
+      if (safeCursorSyncRef.current === safeCursorSync) safeCursorSyncRef.current = null;
       awareness.setLocalState = setLocalState;
       awareness.off('update', updateAwareness);
       unregisterUpdate();
@@ -624,7 +646,7 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
     cursorColor,
     lexicalEditor,
     persistCursorOnBlur,
-    safeCursorSync,
+    statusAwareSyncCursorPositions,
     state,
     username,
   ]);
@@ -698,7 +720,7 @@ export const ReactYjsPlugin: FC<ReactYjsPluginProps> = ({
       cursorsContainerRef={cursorsContainerRef}
       lexicalEditor={lexicalEditor}
       state={state}
-      syncCursorPositionsFn={safeCursorSync.sync}
+      syncCursorPositionsFn={syncCursorPositionsSafely}
     />
   );
 };

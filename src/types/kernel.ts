@@ -275,6 +275,7 @@ export interface IEditor {
    * @param dom
    */
   setRootElement(dom: HTMLElement, editable?: boolean): LexicalEditor;
+  setRootElement(dom: null, editable?: boolean): LexicalEditor | null;
 
   /**
    * set editor selection
@@ -362,6 +363,13 @@ export interface IEditorKernel extends IEditor {
    * @returns unregister function
    */
   registerRootClassName(className: string): () => void;
+  /**
+   * Register a callback for root attach/detach events.
+   *
+   * Call this after the kernel's Lexical editor has been initialized. Headless
+   * kernels return a no-op cleanup because they do not have a DOM root.
+   */
+  registerRootListener(listener: (rootElement: HTMLElement | null) => void): () => void;
   /**
    * Register service
    * @param serviceId

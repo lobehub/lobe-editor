@@ -10,6 +10,7 @@ describe('ArtifactPreview', () => {
     );
 
     expect(markup).toContain('<iframe');
+    expect(markup).toContain('tabindex="0"');
     expect(markup).toContain('sandbox=""');
     expect(markup).toContain('referrerPolicy="no-referrer"');
     expect(markup).not.toContain('allow-same-origin');

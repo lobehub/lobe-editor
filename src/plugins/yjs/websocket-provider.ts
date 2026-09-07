@@ -13,8 +13,11 @@ export type {
   WebSocketMessageEvent,
   WebSocketYjsProviderOptions,
 } from './websocket-provider-core';
-export { WebSocketAwareness, WebSocketYjsProviderCore } from './websocket-provider-core';
-
+export {
+  WebSocketAwareness,
+  WebSocketYjsProviderCore,
+  WebSocketYjsProviderError,
+} from './websocket-provider-core';
 /**
  * Browser provider kept as a compatibility facade for the existing Page demo.
  * New callers can opt into `lobe-yjs-v1` with `legacyProtocol: false`; the

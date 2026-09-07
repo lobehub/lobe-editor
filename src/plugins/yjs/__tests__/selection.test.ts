@@ -2,7 +2,9 @@
 
 import { type Provider, type ProviderAwareness, type UserState, createBinding } from '@lexical/yjs';
 import {
+  $createLineBreakNode,
   $createRangeSelection,
+  $createTextNode,
   $getRoot,
   $isElementNode,
   $isTextNode,
@@ -12,6 +14,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { Doc } from 'yjs';
 
 import { HeadlessEditor } from '@/headless';
+import { $createLinkNode } from '@/plugins/link/node/LinkNode';
 import { $ensureNodeIdsInTree, $getNodeId } from '@/plugins/properties';
 import { IYjsService, YjsService } from '@/plugins/yjs/service';
 import { syncCurrentEditorStateToYjs } from '@/plugins/yjs/plugin/utils/sync';
@@ -75,24 +78,26 @@ const getParagraphTexts = (headless: HeadlessEditor) => {
   );
 };
 
-const selectTextRange = (
+const selectTextRange = async (
   headless: HeadlessEditor,
   anchorKey: string,
   anchorOffset: number,
   focusKey: string,
   focusOffset: number,
-): void => {
+): Promise<void> => {
   const lexicalEditor = headless.kernel.getLexicalEditor();
   if (!lexicalEditor) throw new Error('Missing lexical editor.');
 
-  lexicalEditor.update(
-    () => {
-      const range = $createRangeSelection();
-      range.anchor.set(anchorKey, anchorOffset, 'text');
-      range.focus.set(focusKey, focusOffset, 'text');
-      $setSelection(range);
-    },
-    { discrete: true },
+  await new Promise<void>((resolve) =>
+    lexicalEditor.update(
+      () => {
+        const range = $createRangeSelection();
+        range.anchor.set(anchorKey, anchorOffset, 'text');
+        range.focus.set(focusKey, focusOffset, 'text');
+        $setSelection(range);
+      },
+      { discrete: true, onUpdate: resolve },
+    ),
   );
 };
 
@@ -103,7 +108,7 @@ describe('captureCollaborativeRewriteSelection', () => {
     while (editors.length > 0) editors.pop()?.destroy();
   });
 
-  it('captures forward and reverse cross-block ranges with durable ids and v1 relative positions', () => {
+  it('captures forward and reverse cross-block ranges with durable ids and v1 relative positions', async () => {
     const headless = new HeadlessEditor();
     editors.push(headless);
     headless.hydrateMarkdown('First paragraph\n\nSecond paragraph');
@@ -140,7 +145,7 @@ describe('captureCollaborativeRewriteSelection', () => {
       ]);
     if (!nodeIds[0] || !nodeIds[1]) throw new Error('Missing durable paragraph ids.');
 
-    selectTextRange(headless, firstText.getKey(), 2, secondText.getKey(), 6);
+    await selectTextRange(headless, firstText.getKey(), 2, secondText.getKey(), 6);
     const forward = captureCollaborativeRewriteSelection(headless.kernel, {
       capturedAt: '2026-08-29T00:00:00.000Z',
     });
@@ -163,7 +168,7 @@ describe('captureCollaborativeRewriteSelection', () => {
     expect(forward).not.toHaveProperty('focusKey');
     expect(forward).not.toHaveProperty('doc');
 
-    selectTextRange(headless, secondText.getKey(), 6, firstText.getKey(), 2);
+    await selectTextRange(headless, secondText.getKey(), 6, firstText.getKey(), 2);
     const reverse = captureCollaborativeRewriteSelection(headless.kernel);
     expect(reverse).toMatchObject({
       endNodeId: nodeIds[1],
@@ -177,7 +182,85 @@ describe('captureCollaborativeRewriteSelection', () => {
     expect(reverse.focusPos).not.toEqual(forward.focusPos);
   });
 
-  it('returns a durable block fallback when no Yjs binding is attached', () => {
+  it('captures nested inline and line-break ranges as relative positions with a live Yjs binding', async () => {
+    const headless = new HeadlessEditor();
+    editors.push(headless);
+    headless.hydrateMarkdown('Original paragraph');
+
+    const lexicalEditor = headless.kernel.getLexicalEditor();
+    if (!lexicalEditor) throw new Error('Missing lexical editor.');
+    lexicalEditor.update(
+      () => {
+        $ensureNodeIdsInTree();
+      },
+      { discrete: true },
+    );
+
+    const provider = createProvider();
+    const doc = new Doc();
+    const docMap = new Map([['page-inline', doc]]);
+    const binding = createBinding(lexicalEditor, provider, 'page-inline', doc, docMap);
+    syncCurrentEditorStateToYjs(binding, provider);
+    const yjsService = new YjsService();
+    yjsService.setState({ binding, doc, docMap, id: 'page-inline', provider });
+    (
+      headless.kernel as unknown as {
+        registerServiceHotReload: (serviceId: typeof IYjsService, service: YjsService) => void;
+      }
+    ).registerServiceHotReload(IYjsService, yjsService);
+
+    let inlineTextKey = '';
+    let trailingTextKey = '';
+    await new Promise<void>((resolve) =>
+      lexicalEditor.update(
+        () => {
+          const block = $getRoot().getFirstChild();
+          if (!$isElementNode(block)) throw new Error('Missing paragraph block.');
+
+          const inlineLink = $createLinkNode('https://example.com');
+          const inlineText = $createTextNode('inline text');
+          const trailingText = $createTextNode('tail text');
+          inlineLink.append(inlineText);
+          block.clear();
+          block.append(
+            $createTextNode('prefix '),
+            inlineLink,
+            $createLineBreakNode(),
+            trailingText,
+          );
+
+          inlineTextKey = inlineText.getKey();
+          trailingTextKey = trailingText.getKey();
+        },
+        { onUpdate: resolve },
+      ),
+    );
+
+    // The binding is live while the nested nodes are introduced, so this
+    // exercises the same collab-node map used by browser capture.
+    syncCurrentEditorStateToYjs(binding, provider);
+    await selectTextRange(headless, inlineTextKey, 2, trailingTextKey, 4);
+
+    const captured = captureCollaborativeRewriteSelection(headless.kernel, {
+      capturedAt: '2026-09-02T00:00:00.000Z',
+    });
+
+    expect(captured).toMatchObject({
+      anchorPos: expect.any(Object),
+      focusPos: expect.any(Object),
+      kind: 'relative',
+      roomId: 'page-inline',
+    });
+    if (!captured || captured.kind !== 'relative') throw new Error('Missing relative selection.');
+    expect(captured.quotedText).toBe('line text tail');
+    expect(captured.startOffset).toBe(9);
+    expect(captured.endOffset).toBe(23);
+
+    binding.root.destroy(binding);
+    doc.destroy();
+  });
+
+  it('returns a durable block fallback when no Yjs binding is attached', async () => {
     const headless = new HeadlessEditor();
     editors.push(headless);
     headless.hydrateMarkdown('A paragraph without collaboration');
@@ -193,7 +276,7 @@ describe('captureCollaborativeRewriteSelection', () => {
 
     const [text] = getParagraphTexts(headless);
     if (!text) throw new Error('Missing paragraph text node.');
-    selectTextRange(headless, text.getKey(), 2, text.getKey(), 11);
+    await selectTextRange(headless, text.getKey(), 2, text.getKey(), 11);
 
     const captured = captureCollaborativeRewriteSelection(headless.kernel);
     expect(captured).toMatchObject({
@@ -206,6 +289,14 @@ describe('captureCollaborativeRewriteSelection', () => {
     expect(captured).not.toHaveProperty('anchorPos');
     expect(captured).not.toHaveProperty('roomId');
     expect(captured?.quotedTextHash).toMatch(/^fnv1a-/);
+
+    const capturedWithRoom = captureCollaborativeRewriteSelection(headless.kernel, {
+      roomId: 'page-without-yjs',
+    });
+    expect(capturedWithRoom).toMatchObject({
+      kind: 'block',
+      roomId: 'page-without-yjs',
+    });
   });
 
   it('uses root preorder when the selection candidate list is reversed', () => {

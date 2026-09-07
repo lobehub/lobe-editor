@@ -3,10 +3,10 @@ import type { LexicalEditor } from 'lexical';
 import type { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { INodeService } from '@/plugins/inode';
-import { ILitexmlService } from '@/plugins/litexml';
+import { INodeService } from '@/plugins/inode/service';
+import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
+import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload/service/i-upload-service';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { INSERT_IMAGE_COMMAND, registerImageCommand } from '../command';

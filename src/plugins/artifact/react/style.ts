@@ -35,7 +35,8 @@ export const artifactStyles = createStaticStyles(
 
     .artifact-header {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+      align-items: center;
       border-block-end: 1px solid ${cssVar.colorBorderSecondary};
       background: ${cssVar.colorFillQuaternary};
     }
@@ -53,8 +54,47 @@ export const artifactStyles = createStaticStyles(
       color: ${cssVar.colorTextSecondary};
     }
 
-    .artifact-heading + .artifact-heading {
-      border-inline-start: 1px solid ${cssVar.colorBorderSecondary};
+    .artifact-view-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+
+      min-width: 0;
+      padding: 6px 12px;
+    }
+
+    .artifact-view-mode {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .artifact-view-mode .ant-segmented,
+    .artifact-view-mode .ant-segmented-group {
+      width: 100%;
+    }
+
+    .artifact-view-mode .ant-segmented-item {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .artifact-view-mode .ant-segmented-item-label {
+      overflow: hidden;
+
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .artifact-view-option {
+      display: inline-flex;
+      overflow: hidden;
+      gap: 4px;
+      align-items: center;
+
+      max-width: 100%;
+
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     .artifact-title {
@@ -76,6 +116,27 @@ export const artifactStyles = createStaticStyles(
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       min-height: var(--lobe-artifact-preview-height, 420px);
+    }
+
+    .artifact-body.artifact-preview-only {
+      display: block;
+    }
+
+    .artifact-body.artifact-preview-only .artifact-preview {
+      width: 100%;
+    }
+
+    .artifact-body.artifact-code-only {
+      display: block;
+    }
+
+    .artifact-body.artifact-code-only .artifact-code {
+      width: 100%;
+      border-inline-end: 0;
+    }
+
+    .artifact-body.artifact-code-only .artifact-preview-hidden {
+      display: none;
     }
 
     .artifact-code,
@@ -140,12 +201,10 @@ export const artifactStyles = createStaticStyles(
     }
 
     @media (width <= 720px) {
-      .artifact-header,
       .artifact-body {
         grid-template-columns: minmax(0, 1fr);
       }
 
-      .artifact-heading + .artifact-heading,
       .artifact-code {
         border-block-start: 1px solid ${cssVar.colorBorderSecondary};
         border-inline-start: 0;

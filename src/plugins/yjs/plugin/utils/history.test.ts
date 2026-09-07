@@ -84,7 +84,7 @@ describe('registerYjsHistory', () => {
     doc.destroy();
   });
 
-  it('falls through to Lexical history when the Yjs stack is empty', async () => {
+  it('consumes an empty stack instead of falling through to Lexical history', async () => {
     const kernel = createEditor();
     const editor = kernel.getLexicalEditor()!;
     const provider = createProvider();
@@ -104,10 +104,9 @@ describe('registerYjsHistory', () => {
     await flush();
     expect(editor.getEditorState().read(() => $getRoot().getTextContent())).toBe('local edited');
     expect(kernel.getHistoryState().undoStack.length).toBeGreaterThan(0);
-
     editor.dispatchCommand(UNDO_COMMAND, undefined);
     await flush();
-    expect(editor.getEditorState().read(() => $getRoot().getTextContent())).toBe('local');
+    expect(editor.getEditorState().read(() => $getRoot().getTextContent())).toBe('local edited');
 
     unregisterHistory();
     kernel.destroy();

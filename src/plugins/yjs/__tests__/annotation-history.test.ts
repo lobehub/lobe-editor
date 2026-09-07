@@ -6,7 +6,7 @@ import {
   REDO_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
-import { applyUpdate, Doc } from 'yjs';
+import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 import { describe, expect, it } from 'vitest';
 
 import { Kernel } from '@/editor-kernel/kernel';
@@ -69,6 +69,17 @@ const connectDocs = (
   });
 };
 
+const docAgentToBrowser = (agentDoc: Doc, agentProvider: TestProvider, browserDoc: Doc): void => {
+  agentDoc.on('update', (update, origin) => {
+    if (origin === agentProvider) return;
+    applyUpdate(browserDoc, update, agentProvider);
+  });
+  browserDoc.on('update', (update, origin) => {
+    if (origin === agentProvider) return;
+    applyUpdate(agentDoc, update, agentProvider);
+  });
+};
+
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const createYjsEditor = (doc: Doc, provider: TestProvider) => {
@@ -106,6 +117,88 @@ const textContent = (kernel: Kernel): string =>
     .read(() => $getRoot().getTextContent());
 
 describe('Yjs + annotation history', () => {
+  it('keeps undo and redo scoped to the local browser origin', async () => {
+    const docA = new Doc();
+    const docB = new Doc();
+    const providerA = createProvider();
+    const providerB = createProvider();
+    connectDocs(docA, providerA, docB, providerB);
+    const kernelA = createYjsEditor(docA, providerA);
+    kernelA.setDocument('markdown', 'start');
+    providerA.emitSync();
+    await flush();
+
+    // Initial bootstrap is a system transaction, not an undoable human edit.
+    const editorA = kernelA.getLexicalEditor()!;
+    editorA.dispatchCommand(UNDO_COMMAND, undefined);
+    await flush();
+    expect(textContent(kernelA)).toBe('start');
+
+    const kernelB = createYjsEditor(docB, providerB);
+    providerB.emitSync();
+    await flush();
+
+    const editorB = kernelB.getLexicalEditor()!;
+    editorA.update(() => {
+      $getRoot().getAllTextNodes()[0].setTextContent('start from A');
+    });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await flush();
+    await flush();
+
+    // B must not be able to consume A's human history.
+    editorB.dispatchCommand(UNDO_COMMAND, undefined);
+    await flush();
+    expect(textContent(kernelB)).toBe('start from A');
+
+    editorB.update(() => {
+      $getRoot().getAllTextNodes()[0].setTextContent('start from A and B');
+    });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    editorA.dispatchCommand(UNDO_COMMAND, undefined);
+    await flush();
+    await flush();
+    expect(textContent(kernelA)).toBe('start and B');
+    expect(textContent(kernelB)).toBe('start and B');
+
+    editorA.dispatchCommand(REDO_COMMAND, undefined);
+    await flush();
+    await flush();
+    expect(textContent(kernelA)).toBe('start from A and B');
+    expect(textContent(kernelB)).toBe('start from A and B');
+
+    // A's stack contains neither B's remote edit nor a remote Agent update.
+    // Use a third YjsPlugin client so the update has the same shape as a real
+    // Agent write, while the browser receives it with the provider origin.
+    const agentDoc = new Doc();
+    const providerAgent = createProvider();
+    applyUpdate(agentDoc, encodeStateAsUpdate(docA), providerA);
+    docAgentToBrowser(agentDoc, providerAgent, docA);
+    const kernelAgent = createYjsEditor(agentDoc, providerAgent);
+    providerAgent.emitSync();
+    await flush();
+    const editorAgent = kernelAgent.getLexicalEditor()!;
+    editorAgent.update(() => {
+      $getRoot().getAllTextNodes()[0].setTextContent('agent projection');
+    });
+    await flush();
+    expect(textContent(kernelA)).toBe('agent projection');
+
+    editorA.dispatchCommand(UNDO_COMMAND, undefined);
+    await flush();
+    await flush();
+    expect(textContent(kernelA)).toBe('agent projection');
+    expect(textContent(kernelB)).toBe('agent projection');
+
+    kernelA.destroy();
+    kernelB.destroy();
+    kernelAgent.destroy();
+    agentDoc.destroy();
+    docA.destroy();
+    docB.destroy();
+  });
+
   it('propagates annotation state to a peer and clears/restores it with undo/redo', async () => {
     const docA = new Doc();
     const docB = new Doc();

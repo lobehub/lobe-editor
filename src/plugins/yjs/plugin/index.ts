@@ -26,12 +26,21 @@ import type { YjsPluginOptions } from './types';
 import { getAwarenessUsers } from './utils/awareness';
 import { createRemoteCaretViewportStabilizer } from './utils/caret-viewport-anchor';
 import { clearEditorSkipCollab, initializeEditor } from './utils/editor-state';
-import { registerYjsHistory } from './utils/history';
+import {
+  createYjsHumanOrigin,
+  registerYjsHistory,
+  type YjsHistoryOrigin,
+} from './utils/history';
 import {
   $syncAnnotationNodePropertiesFromYjs,
   ensureYjsNodePropertiesFromEditorState,
 } from './utils/node-properties';
-import { hydrateLexicalFromYjsState, syncCurrentEditorStateToYjs } from './utils/sync';
+import {
+  hydrateLexicalFromYjsState,
+  syncCurrentEditorStateToYjs,
+  transactWithYjsOrigin,
+  YJS_SYSTEM_ORIGIN,
+} from './utils/sync';
 
 export type { YjsInitialEditorState, YjsPluginOptions, YjsProviderFactory } from './types';
 
@@ -48,6 +57,7 @@ interface ConnectionState {
 
 interface SyncState {
   documentHasChanged: boolean;
+  initialSyncApplied: boolean;
   providerHasSynced: boolean;
 }
 
@@ -56,6 +66,62 @@ type YjsStateEventTarget = {
   keysChanged?: Set<string>;
   parent?: unknown;
 };
+
+type YjsCollabType = {
+  _collabNode?: unknown;
+  forEach?: (callback: (value: unknown) => void) => void;
+  toDelta?: () => ReadonlyArray<{ insert?: unknown }>;
+};
+
+/**
+ * @lexical/yjs caches the CollabNode on every Y.XmlText/XmlElement/Map. The
+ * public Binding API only exposes collabNodeMap, so clearing that map alone
+ * leaves the old CollabElementNode._children attached to shared types. A
+ * subsequent full delta replay then appends the same text/decorators again.
+ */
+function clearYjsCollabTypeCaches(
+  value: unknown,
+  visited: Set<unknown>,
+  rootSharedType: unknown,
+): void {
+  if (!value || typeof value !== 'object' || visited.has(value)) return;
+  visited.add(value);
+
+  const sharedType = value as YjsCollabType;
+  if (value !== rootSharedType) delete sharedType._collabNode;
+
+  sharedType.toDelta?.().forEach((delta) => {
+    if (delta.insert && typeof delta.insert === 'object') {
+      clearYjsCollabTypeCaches(delta.insert, visited, rootSharedType);
+    }
+  });
+  sharedType.forEach?.((child) => clearYjsCollabTypeCaches(child, visited, rootSharedType));
+}
+
+function disposeCollabNodeCache(binding: Binding): void {
+  const collabRoot = binding.root as Binding['root'] & { _children: unknown[] };
+  const rootSharedType = collabRoot._xmlText as unknown;
+
+  // Destroy the old CollabNode tree before clearing the map, then remove the
+  // private shared-type caches that destroy() intentionally leaves intact.
+  collabRoot.destroy(binding);
+  binding.collabNodeMap.clear();
+  clearYjsCollabTypeCaches(rootSharedType, new Set(), rootSharedType);
+  collabRoot._children.length = 0;
+  (rootSharedType as YjsCollabType)._collabNode = collabRoot;
+}
+
+/**
+ * Make the shared room authoritative when the host hydrated JSON before the
+ * provider's first snapshot. Replaying that snapshot into a populated local
+ * root can append a second copy of decorator/block nodes because the Yjs
+ * mapping does not belong to the host's pre-hydrated Lexical nodes.
+ */
+function replaceLexicalStateFromYjs(editor: LexicalEditor, binding: Binding): void {
+  disposeCollabNodeCache(binding);
+  clearEditorSkipCollab(editor);
+  hydrateLexicalFromYjsState(binding, { discrete: true });
+}
 
 function getAnnotationStateTarget(event: YEvent<YText>): unknown {
   const target = event.target as unknown as YjsStateEventTarget;
@@ -168,6 +234,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     provider: Provider,
     shouldBootstrap: boolean,
     syncState: SyncState,
+    humanOrigin: YjsHistoryOrigin,
   ): void {
     this.register(
       editor.registerUpdateListener(
@@ -177,7 +244,11 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
           }
 
           // Ignore local editor updates until the provider has reported its initial sync state.
-          if (!syncState.providerHasSynced) {
+          // Before the first room snapshot, local JSON hydration must not be
+          // published. After a completed sync, however, edits made during a
+          // reconnect gap are genuine pending local edits and must be queued
+          // into the existing Y.Doc for the next authenticated connection.
+          if (!syncState.providerHasSynced && !syncState.initialSyncApplied) {
             return;
           }
 
@@ -197,16 +268,18 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
             }
           }
 
-          syncLexicalUpdateToYjs(
-            binding,
-            provider,
-            prevEditorState,
-            editorState,
-            dirtyElements,
-            dirtyLeaves,
-            normalizedNodes,
-            tags,
-          );
+          transactWithYjsOrigin(binding, humanOrigin, () => {
+            syncLexicalUpdateToYjs(
+              binding,
+              provider,
+              prevEditorState,
+              editorState,
+              dirtyElements,
+              dirtyLeaves,
+              normalizedNodes,
+              tags,
+            );
+          });
         },
       ),
     );
@@ -223,6 +296,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
       clearEditorSkipCollab(editor);
       this.docMap.set(id, doc);
       this.isReloadingDoc = true;
+      syncState.initialSyncApplied = false;
       this.service.setState({
         binding,
         doc,
@@ -238,6 +312,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
 
     const onSync = (isSynced: boolean) => {
       if (!isSynced) {
+        syncState.providerHasSynced = false;
         return;
       }
 
@@ -248,8 +323,16 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
         return;
       }
 
+      if (!syncState.initialSyncApplied) {
+        syncState.initialSyncApplied = true;
+        if (binding.root._xmlText._length > 0) {
+          replaceLexicalStateFromYjs(editor, binding);
+          return;
+        }
+      }
+
       if (binding.root.isEmpty() && binding.root._xmlText._length > 0) {
-        hydrateLexicalFromYjsState(binding);
+        replaceLexicalStateFromYjs(editor, binding);
         return;
       }
 
@@ -313,14 +396,21 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     binding: Binding,
     provider: Provider,
     syncState: SyncState,
+    localOrigins: ReadonlySet<unknown>,
   ): void {
     const caretViewportStabilizer = createRemoteCaretViewportStabilizer(editor);
     this.register(caretViewportStabilizer.dispose);
 
     const onYjsTreeChanges: OnYjsTreeChanges = (events, transaction) => {
-      if (transaction.origin === binding) {
+      if (transaction.origin === binding || localOrigins.has(transaction.origin)) {
         return;
       }
+
+      // Do not project the provider's first snapshot into host-hydrated JSON
+      // before the sync barrier. Once an initial snapshot has been applied,
+      // updates received during a reconnect gap must use the existing mapping
+      // incrementally; the sync barrier itself must not replay a full delta.
+      if (!syncState.providerHasSynced && !syncState.initialSyncApplied) return;
 
       const isFromUndoManager = transaction.origin instanceof UndoManager;
       const annotationStateNodeKeys = collectAnnotationStateNodeKeys(binding, events);
@@ -340,14 +430,15 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
           isFromUndoManager,
           (_binding, _provider) => {
             caretViewportStabilizer.scheduleAfterRemoteUpdate();
-            if (annotationStateNodeKeys.size === 0) return;
-            // Yjs 0.42 can leave a deleted `__state` map reflected in Lexical's
-            // previous NodeState. Reconcile only the annotation state after the
-            // upstream tree sync; this preserves text, structure, and selection.
-            editor.update(
-              () => $syncAnnotationNodePropertiesFromYjs(binding, annotationStateNodeKeys),
-              { tag: isFromUndoManager ? HISTORIC_TAG : COLLABORATION_TAG },
-            );
+            if (annotationStateNodeKeys.size > 0) {
+              // Yjs 0.42 can leave a deleted `__state` map reflected in Lexical's
+              // previous NodeState. Reconcile only the annotation state after the
+              // upstream tree sync; this preserves text, structure, and selection.
+              editor.update(
+                () => $syncAnnotationNodePropertiesFromYjs(binding, annotationStateNodeKeys),
+                { tag: isFromUndoManager ? HISTORIC_TAG : COLLABORATION_TAG },
+              );
+            }
           },
         );
       } catch (error) {
@@ -443,6 +534,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     };
     const syncState: SyncState = {
       documentHasChanged: false,
+      initialSyncApplied: false,
       providerHasSynced: false,
     };
     const binding = createBinding(
@@ -459,9 +551,16 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     // listener. It closes Yjs capture on HISTORY_PUSH_TAG before the tagged
     // transaction is written, keeping standalone commands (for example
     // comment creation) separate from nearby typing.
-    this.register(registerYjsHistory(editor, binding));
-    this.registerYjsTreeSync(editor, binding, provider, syncState);
-    this.registerEditorSync(editor, binding, provider, shouldBootstrap, syncState);
+    const humanOrigin = createYjsHumanOrigin();
+    this.register(registerYjsHistory(editor, binding, { humanOrigin }));
+    this.registerYjsTreeSync(
+      editor,
+      binding,
+      provider,
+      syncState,
+      new Set([binding, humanOrigin, YJS_SYSTEM_ORIGIN]),
+    );
+    this.registerEditorSync(editor, binding, provider, shouldBootstrap, syncState, humanOrigin);
     this.setBootstrapCurrentEditorState(
       editor,
       binding,

@@ -11,16 +11,16 @@ const PATCH_CONFIGS = [
     displayName: 'Lexical',
     fileHashes: {
       'Lexical.dev.js': {
-        patched: '7c81a9785b397dc09ce0ecc9f3126d3e4903cdfd12d5c51318965ed74b0e3ccb',
+        patched: '040185c436ac5e005d602aef4c7caec3bad226d1001e49f7ab41092341062d03',
       },
       'Lexical.dev.mjs': {
-        patched: '880f22f2ec2d873e1699766de39edce5123b4730009bb88bb33d7e4da98a4ad9',
+        patched: '927edd6e8985942dda6c48b6529c1e65310ac610a40db1633f943230b4d5e85e',
       },
       'Lexical.prod.js': {
-        patched: '9f97867340b84853cf82bbd2d60ef9f944ee61ef058daa37007b820c2780a103',
+        patched: '01ab2486b22bb0f09c94b5e83ce6d4cbff78c869913d5e9da02a162249bbe92b',
       },
       'Lexical.prod.mjs': {
-        patched: 'f7b2993582b2cc0573ca468373831b17971e0bb7383f5ca8785d4b93ab967c0b',
+        patched: '53c1342a05753a78c6ac9272ae59e6129e1425a29a514775244e6f312cc80377',
       },
     },
     packageName: 'lexical',
@@ -117,6 +117,7 @@ function parsePatch(patchText) {
 
       currentHunk = {
         lines: [],
+        oldCount: match[2] ? Number(match[2]) : 1,
         oldStart: Number(match[1]),
       };
       currentFile.hunks.push(currentHunk);
@@ -144,7 +145,10 @@ function applyPatchToContent(content, filePatch) {
   let cursor = 0;
 
   for (const hunk of filePatch.hunks) {
-    const targetIndex = hunk.oldStart - 1;
+    // Unified diffs use the line after the previous line for a zero-length
+    // insertion (for example an append hunk at EOF). Non-empty hunks keep the
+    // normal one-based start conversion.
+    const targetIndex = hunk.oldCount === 0 ? hunk.oldStart : hunk.oldStart - 1;
 
     output.push(...source.slice(cursor, targetIndex));
 

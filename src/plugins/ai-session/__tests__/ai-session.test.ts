@@ -9,6 +9,8 @@ import { describe, expect, it } from 'vitest';
 import Editor from '@/editor-kernel';
 import { createHeadlessEditor } from '@/headless';
 import { CommonPlugin } from '@/plugins/common';
+import { $createCursorNode } from '@/plugins/common/node/cursor';
+import { $markNodesAsAIGenerated } from '@/plugins/properties';
 
 import { AISessionPlugin } from '../plugin';
 import { IAISessionService } from '../service';
@@ -344,5 +346,27 @@ describe('AISessionPlugin', () => {
     expect(() => service.refresh()).not.toThrow();
     expect(() => service.clearSessionFocus()).not.toThrow();
     expect(() => (service as unknown as { destroy: () => void }).destroy()).not.toThrow();
+  });
+
+  it('does not expose invisible cursor sentinels as generated rewrite ranges', async () => {
+    const headless = createHeadlessEditor();
+    headless.hydrateMarkdown('Generated text');
+    const lexical = headless.kernel.getLexicalEditor()!;
+    lexical.update(() => {
+      const paragraph = $getRoot().getFirstChild();
+      const append = (paragraph as { append?: unknown } | null)?.append;
+      if (typeof append !== 'function') throw new Error('Expected paragraph fixture.');
+      (append as (node: ReturnType<typeof $createCursorNode>) => void).call(
+        paragraph,
+        $createCursorNode(),
+      );
+      $markNodesAsAIGenerated($getRoot().getAllTextNodes(), { sessionId: 'cursor-session' });
+    });
+    await flush();
+
+    expect(headless.kernel.requireService(IAISessionService)?.getRanges('cursor-session')).toEqual([
+      expect.objectContaining({ text: 'Generated text' }),
+    ]);
+    headless.destroy();
   });
 });

@@ -1,6 +1,8 @@
 import { $isTableSelection } from '@lexical/table';
 import type {
+  EditorState,
   LexicalEditor,
+  LexicalNode,
   SerializedEditorState,
   SerializedElementNode,
   SerializedLexicalNode,
@@ -31,6 +33,19 @@ import { exportNodeToJSON } from '../utils';
 
 type SerializedRecord = SerializedLexicalNode & {
   children?: SerializedLexicalNode[];
+};
+
+const hasNumericSerializedNodeId = (node: unknown): boolean => {
+  if (!node || typeof node !== 'object') return false;
+  const record = node as { children?: unknown; id?: unknown };
+  if (
+    (typeof record.id === 'number' || typeof record.id === 'string') &&
+    Number.isInteger(Number(record.id)) &&
+    Number(record.id) >= 0
+  ) {
+    return true;
+  }
+  return Array.isArray(record.children) && record.children.some(hasNumericSerializedNodeId);
 };
 
 /**
@@ -143,28 +158,39 @@ export default class JSONDataSource extends DataSource {
     notifyJSONDataSourceRead(editor, dataObj.root as unknown as Record<string, unknown>);
     // @ts-expect-error add id option
     if (dataObj.keepId || options.keepId) {
-      const state = editor.parseEditorState(
-        {
-          root: INodeHelper.createRootNode(),
-        },
-        (state) => {
-          try {
-            const root = $parseSerializedNodeImpl(dataObj.root, editor, true, state);
-            let maxId = -1;
-            Array.from(state._nodeMap.keys()).forEach((key) => {
-              if (key === 'root') return;
-              const numericKey = Number(key);
-              if (Number.isInteger(numericKey) && numericKey >= 0) {
-                maxId = Math.max(maxId, numericKey);
-              }
-            });
-            // make sure to reset random key to avoid id conflicts
-            resetRandomKey(maxId + 1);
-            state._nodeMap.set(root.getKey(), root);
-          } catch (error) {
-            console.error(error);
-          }
-        },
+      const hasExplicitIds = hasNumericSerializedNodeId(dataObj.root);
+      const state = resetRandomKey(() =>
+        editor.parseEditorState(
+          {
+            root: INodeHelper.createRootNode(),
+          },
+          (state) => {
+            let root: LexicalNode | undefined;
+            try {
+              root = $parseSerializedNodeImpl(dataObj.root, editor, true, state);
+            } catch (error) {
+              console.error(error);
+            }
+
+            if (root) state._nodeMap.set(root.getKey(), root);
+
+            if (hasExplicitIds) {
+              // Include every node allocated before a malformed child aborted
+              // the import. This keeps the scoped allocator above all ids even
+              // when the parser reset to a lower explicit id immediately
+              // beforehand.
+              let maxId = -1;
+              Array.from(state._nodeMap.keys()).forEach((key) => {
+                if (key === 'root') return;
+                const numericKey = Number(key);
+                if (Number.isInteger(numericKey) && numericKey >= 0) {
+                  maxId = Math.max(maxId, numericKey);
+                }
+              });
+              resetRandomKey(maxId + 1);
+            }
+          },
+        ),
       );
       editor.setEditorState(state);
     } else {
@@ -300,7 +326,16 @@ export default class JSONDataSource extends DataSource {
         );
       });
     }
-    return editor.read(() => {
+    // `LexicalEditor.read()` flushes a pending update before entering the
+    // read-only scope. JSON export is called from update listeners and may be
+    // re-entrant with a pending projection update; flushing there can mutate
+    // the update tags/listener queue while Lexical is dispatching it. Read the
+    // pending state directly when one exists so callers still observe the
+    // latest state without forcing a commit.
+    const pendingEditorState = (editor as LexicalEditor & {
+      _pendingEditorState?: EditorState | null;
+    })._pendingEditorState;
+    return (pendingEditorState ?? editor.getEditorState()).read(() => {
       const runtimeRoot = exportNodeToJSON($getRoot()) as unknown as SerializedRecord;
       const [root] = projectRuntimeHolesForJSON(runtimeRoot);
       notifyJSONDataSourceWrite(editor, root as unknown as Record<string, unknown>);

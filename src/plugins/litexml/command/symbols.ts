@@ -52,6 +52,8 @@ export interface LiteXMLRewriteMetadata {
   model?: string;
   provider?: string;
   requestId?: string;
+  sessionId?: string;
+  turnIndex?: number;
 }
 
 /** Streaming rewrite lifecycle operations for a trusted collaborative Agent. */

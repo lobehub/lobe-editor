@@ -1,7 +1,16 @@
 import { type UserState } from '@lexical/yjs';
+import { $createRangeSelection, $getRoot, $isTextNode, $setSelection } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import { applyUpdate, Doc, encodeStateAsUpdate, encodeStateVector } from 'yjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  __createCollaborativeAgentEditorForTesting,
+  __exportCollaborativeAgentEditorProjectionForPersistence,
+  CollaborativeAgentEditor,
+  hashRewriteText,
+} from '@/headless/collaborative-agent-editor';
+import { captureCollaborativeRewriteSelection } from '@/plugins/yjs';
 import {
   decodeYjsBase64,
   encodeYjsBase64,
@@ -23,11 +32,13 @@ class InMemoryRoomServer {
   readonly sockets: FakeWebSocket[] = [];
   readonly awareness = new Map<number, unknown>();
   readonly authTickets: Array<string | null | undefined> = [];
+  private readonly pendingAcks: Array<{ messageId: string; socket: FakeWebSocket }> = [];
   private nextServerClientId = 100;
 
   constructor(
     private readonly assignConnectionClientIds = false,
     private readonly echoAwarenessToSender = false,
+    private readonly delayUpdateAcks = false,
   ) {}
 
   connect(socket: FakeWebSocket): void {
@@ -108,13 +119,26 @@ class InMemoryRoomServer {
           });
         }
       }
-      socket.serverMessage({
-        messageId: message.messageId,
-        protocol: LOBE_YJS_PROTOCOL,
-        type: 'update-ack',
-        version: LOBE_YJS_PROTOCOL_VERSION,
-      });
+      if (this.delayUpdateAcks) {
+        this.pendingAcks.push({ messageId: message.messageId, socket });
+      } else {
+        this.acknowledge(socket, message.messageId);
+      }
     }
+  }
+
+  flushUpdateAcks(): void {
+    const pending = this.pendingAcks.splice(0);
+    for (const { messageId, socket } of pending) this.acknowledge(socket, messageId);
+  }
+
+  private acknowledge(socket: FakeWebSocket, messageId: string): void {
+    socket.serverMessage({
+      messageId,
+      protocol: LOBE_YJS_PROTOCOL,
+      type: 'update-ack',
+      version: LOBE_YJS_PROTOCOL_VERSION,
+    });
   }
 
   sendRemoteUpdate(socket: FakeWebSocket, messageId: string, key: string, value: string): void {
@@ -129,6 +153,25 @@ class InMemoryRoomServer {
       version: LOBE_YJS_PROTOCOL_VERSION,
     });
     updateDoc.destroy();
+  }
+}
+
+class SingleUseTicketRoomServer extends InMemoryRoomServer {
+  override receive(socket: FakeWebSocket, raw: string): void {
+    const message = JSON.parse(raw) as LobeYjsClientMessage;
+    if (message.type === 'auth' && this.authTickets.includes(message.ticket)) {
+      this.authTickets.push(message.ticket);
+      socket.serverMessage({
+        code: 'ticket_replayed',
+        fatal: true,
+        message: 'ticket already used',
+        protocol: LOBE_YJS_PROTOCOL,
+        type: 'error',
+        version: LOBE_YJS_PROTOCOL_VERSION,
+      });
+      return;
+    }
+    super.receive(socket, raw);
   }
 }
 
@@ -182,6 +225,10 @@ class FakeWebSocket implements WebSocketLike {
     }
 
     this.emit('message', { data: JSON.stringify(message) });
+  }
+
+  serverError(): void {
+    this.emit('error', {});
   }
 
   flushQueuedMessages(): void {
@@ -362,6 +409,61 @@ describe('NodeWebSocketYjsProvider', () => {
     browserADoc.destroy();
     browserBDoc.destroy();
     agentDoc.destroy();
+    server.doc.destroy();
+  });
+
+  it('waits for the room ack while peers already receive the broadcast', async () => {
+    const server = new InMemoryRoomServer(false, false, true);
+    const agentDoc = new Doc();
+    const browserDoc = new Doc();
+    const createSocketConstructor = () =>
+      class extends FakeWebSocket {
+        constructor(url: string) {
+          super(url, server);
+        }
+      };
+    const agent = new NodeWebSocketYjsProvider('room-a', agentDoc, {
+      documentId: 'room-a',
+      requestId: 'agent-request',
+      ticket: 'agent-ticket',
+      webSocketConstructor: createSocketConstructor(),
+      wsBaseUrl: 'ws://example.test',
+    });
+    const browser = new WebSocketYjsProvider('room-a', browserDoc, {
+      documentId: 'room-a',
+      legacyProtocol: false,
+      requestId: 'browser-request',
+      ticket: 'browser-ticket',
+      webSocketConstructor: createSocketConstructor(),
+      wsBaseUrl: 'ws://example.test',
+    });
+
+    const syncs = [agent.waitForSync(), browser.waitForSync()];
+    agent.connect();
+    browser.connect();
+    FakeWebSocket.instances.forEach((socket) => {
+      socket.open();
+      socket.flushQueuedMessages();
+    });
+    await Promise.all(syncs);
+
+    agentDoc.getMap<string>('state').set('artifact-source', 'updated');
+    let acknowledged = false;
+    const pendingAck = agent.waitForPendingUpdates(1_000).then(() => {
+      acknowledged = true;
+    });
+    await Promise.resolve();
+    expect(acknowledged).toBe(false);
+    expect(browserDoc.getMap<string>('state').get('artifact-source')).toBe('updated');
+
+    server.flushUpdateAcks();
+    await pendingAck;
+    expect(acknowledged).toBe(true);
+
+    agent.close();
+    browser.close();
+    agentDoc.destroy();
+    browserDoc.destroy();
     server.doc.destroy();
   });
 
@@ -619,6 +721,332 @@ describe('NodeWebSocketYjsProvider', () => {
       await reconnectSync;
 
       expect(server.authTickets).toEqual(['initial-ticket', 'fresh-ticket']);
+      provider.close();
+      doc.destroy();
+      server.doc.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('refreshes after a 60-second ticket expiry and applies after a fresh sync', async () => {
+    vi.useFakeTimers();
+    try {
+      const server = new InMemoryRoomServer();
+      const doc = new Doc();
+      const refreshTicket = vi.fn(async () => 'fresh-ticket');
+      const provider = new NodeWebSocketYjsProvider('room-a', doc, {
+        documentId: 'room-a',
+        refreshTicket,
+        requestId: 'agent-request',
+        ticket: 'initial-ticket',
+        webSocketConstructor: class extends FakeWebSocket {
+          constructor(url: string) {
+            super(url, server);
+          }
+        },
+        wsBaseUrl: 'ws://example.test',
+      });
+
+      const initialSync = provider.waitForSync();
+      provider.connect();
+      const firstSocket = FakeWebSocket.instances[0];
+      firstSocket.open();
+      firstSocket.flushQueuedMessages();
+      await initialSync;
+      expect(server.authTickets).toEqual(['initial-ticket']);
+
+      doc.getMap<string>('state').set('generation', 'in-progress');
+      const expiryTimer = setTimeout(() => {
+        firstSocket.serverMessage({
+          code: 'ticket_expired',
+          fatal: true,
+          message: 'Collaboration ticket has expired.',
+          protocol: LOBE_YJS_PROTOCOL,
+          type: 'error',
+          version: LOBE_YJS_PROTOCOL_VERSION,
+        });
+      }, 60_000);
+      await vi.advanceTimersByTimeAsync(60_000);
+      clearTimeout(expiryTimer);
+      const refreshedSync = provider.waitForSync();
+      await vi.advanceTimersByTimeAsync(2_000);
+
+      expect(refreshTicket).toHaveBeenCalledOnce();
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      const reconnectSocket = FakeWebSocket.instances[1];
+      reconnectSocket.open();
+      reconnectSocket.flushQueuedMessages();
+      await refreshedSync;
+      expect(server.authTickets).toEqual(['initial-ticket', 'fresh-ticket']);
+
+      doc.getMap<string>('state').set('generation', 'applied');
+      expect(server.doc.getMap<string>('state').get('generation')).toBe('applied');
+
+      provider.close();
+      doc.destroy();
+      server.doc.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('invalidates sync before a socket error publishes disconnected', async () => {
+    vi.useFakeTimers();
+    try {
+      const server = new InMemoryRoomServer();
+      const doc = new Doc();
+      const provider = new NodeWebSocketYjsProvider('room-a', doc, {
+        documentId: 'room-a',
+        requestId: 'agent-request-error-order',
+        ticket: 'initial-ticket',
+        webSocketConstructor: class extends FakeWebSocket {
+          constructor(url: string) {
+            super(url, server);
+          }
+        },
+        wsBaseUrl: 'ws://example.test',
+      });
+      const initialSync = provider.waitForSync();
+      provider.connect();
+      const socket = FakeWebSocket.instances[0]!;
+      socket.open();
+      socket.flushQueuedMessages();
+      await initialSync;
+
+      const lifecycle: string[] = [];
+      provider.on('sync', (isSynced) => lifecycle.push(`sync:${isSynced}`));
+      provider.on('status', ({ status }) => lifecycle.push(`status:${status}`));
+      socket.serverError();
+      expect(lifecycle.slice(0, 2)).toEqual(['sync:false', 'status:disconnected']);
+
+      socket.close();
+      provider.close();
+      doc.destroy();
+      server.doc.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('lets the Agent facade recover after the real ticket-expired error frame', async () => {
+    const server = new InMemoryRoomServer();
+    const doc = new Doc();
+    const refreshTicket = vi.fn(async () => 'fresh-ticket');
+    const provider = new NodeWebSocketYjsProvider('room-a', doc, {
+      documentId: 'room-a',
+      refreshTicket,
+      requestId: 'agent-request-facade',
+      ticket: 'initial-ticket',
+      webSocketConstructor: class extends FakeWebSocket {
+        constructor(url: string) {
+          super(url, server);
+        }
+      },
+      wsBaseUrl: 'ws://example.test',
+    });
+    const agent = __createCollaborativeAgentEditorForTesting({
+      documentId: 'room-a',
+      provider,
+      requestId: 'agent-request-facade',
+      roomId: 'room-a',
+      ticket: 'initial-ticket',
+      yjsDoc: doc,
+    });
+
+    try {
+      const internal = agent as unknown as {
+        kernel: {
+          getLexicalEditor: () => LexicalEditor;
+          setDocument: (type: string, content: string) => void;
+        };
+      };
+      // setDocument starts the provider connection synchronously. Seed the
+      // room before opening the fake socket so the first sync is authoritative
+      // for both the facade and the relay-side Y.Doc.
+      internal.kernel.setDocument('markdown', 'Hello collaborative world\n\nHuman paragraph');
+      const firstSocket = FakeWebSocket.instances[0]!;
+      applyUpdate(server.doc, encodeStateAsUpdate(doc));
+      firstSocket.open();
+      firstSocket.flushQueuedMessages();
+      await agent.connect();
+
+      const lexicalEditor = internal.kernel.getLexicalEditor();
+      let selection: ReturnType<typeof captureCollaborativeRewriteSelection>;
+      lexicalEditor.update(
+        () => {
+          const text = $getRoot().getFirstDescendant();
+          if (!$isTextNode(text)) throw new Error('facade seed text missing');
+          const range = $createRangeSelection();
+          range.anchor.set(text.getKey(), 0, 'text');
+          range.focus.set(text.getKey(), 5, 'text');
+          $setSelection(range);
+        },
+        { discrete: true },
+      );
+      selection = captureCollaborativeRewriteSelection(internal.kernel as never, {
+        roomId: 'room-a',
+      });
+      if (!selection) throw new Error('facade selection capture failed');
+
+      await expect(
+        agent.startRewriteSession({
+          expectedTextHash: hashRewriteText('Hello'),
+          generationId: 'facade-reconnect-generation',
+          requestId: 'agent-request-facade',
+          sessionId: 'facade-reconnect-session',
+          selection,
+        }),
+      ).resolves.toMatchObject({ status: 'streaming' });
+      await expect(
+        agent.appendRewriteChunk({
+          chunk: 'Hi',
+          chunkId: 'facade-reconnect-chunk-1',
+          sessionId: 'facade-reconnect-session',
+          sequence: 1,
+        }),
+      ).resolves.toMatchObject({ status: 'streaming' });
+
+      const lifecycle: string[] = [];
+      provider.on('sync', (isSynced) => lifecycle.push(`sync:${isSynced}`));
+      provider.on('status', ({ status }) => lifecycle.push(`status:${status}`));
+
+      vi.useFakeTimers();
+      const pending = agent.appendRewriteChunk({
+        chunk: ' there',
+        chunkId: 'facade-reconnect-chunk-2',
+        sessionId: 'facade-reconnect-session',
+        sequence: 2,
+      });
+      // A transport error may arrive before the browser/Node WebSocket emits
+      // its close event. It must invalidate the old completed sync barrier
+      // before the subsequent ticket-expired close path runs.
+      firstSocket.serverError();
+      firstSocket.serverMessage({
+        code: 'ticket_expired',
+        fatal: true,
+        message: 'Collaboration ticket has expired.',
+        protocol: LOBE_YJS_PROTOCOL,
+        type: 'error',
+        version: LOBE_YJS_PROTOCOL_VERSION,
+      });
+
+      expect(lifecycle.slice(0, 2)).toEqual(['sync:false', 'status:disconnected']);
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(refreshTicket).toHaveBeenCalledOnce();
+      const reconnectSocket = FakeWebSocket.instances[1]!;
+      reconnectSocket.open();
+      reconnectSocket.flushQueuedMessages();
+
+      await expect(pending).resolves.toMatchObject({ sequence: 2, status: 'streaming' });
+      await expect(
+        agent.finalizeRewriteSession({ sessionId: 'facade-reconnect-session' }),
+      ).resolves.toMatchObject({ status: 'applied' });
+      const projection = await __exportCollaborativeAgentEditorProjectionForPersistence(agent);
+      expect(projection.markdown).toContain('Hi there collaborative world');
+      expect(projection.markdown).not.toContain('there there');
+    } finally {
+      await agent.disconnect();
+      vi.useRealTimers();
+      doc.destroy();
+      server.doc.destroy();
+    }
+  });
+
+  it('rejects a stale old ticket after expiry instead of resuming the Agent', async () => {
+    vi.useFakeTimers();
+    try {
+      const server = new SingleUseTicketRoomServer();
+      const doc = new Doc();
+      const refreshTicket = vi.fn(async () => 'initial-ticket');
+      const provider = new NodeWebSocketYjsProvider('room-a', doc, {
+        documentId: 'room-a',
+        refreshTicket,
+        requestId: 'agent-request',
+        ticket: 'initial-ticket',
+        webSocketConstructor: class extends FakeWebSocket {
+          constructor(url: string) {
+            super(url, server);
+          }
+        },
+        wsBaseUrl: 'ws://example.test',
+      });
+
+      const initialSync = provider.waitForSync();
+      provider.connect();
+      const firstSocket = FakeWebSocket.instances[0];
+      firstSocket.open();
+      firstSocket.flushQueuedMessages();
+      await initialSync;
+
+      firstSocket.serverMessage({
+        code: 'ticket_expired',
+        fatal: true,
+        message: 'Collaboration ticket has expired.',
+        protocol: LOBE_YJS_PROTOCOL,
+        type: 'error',
+        version: LOBE_YJS_PROTOCOL_VERSION,
+      });
+      const refreshedSync = expect(provider.waitForSync()).rejects.toThrow('ticket already used');
+      await vi.advanceTimersByTimeAsync(2_000);
+      const reconnectSocket = FakeWebSocket.instances[1];
+      reconnectSocket.open();
+      reconnectSocket.flushQueuedMessages();
+      await refreshedSync;
+
+      expect(refreshTicket).toHaveBeenCalledOnce();
+      expect(server.authTickets).toEqual(['initial-ticket', 'initial-ticket']);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      await vi.advanceTimersByTimeAsync(20_000);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+
+      provider.close();
+      doc.destroy();
+      server.doc.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps ticket expiry terminal when no refresh callback is available', async () => {
+    vi.useFakeTimers();
+    try {
+      const server = new InMemoryRoomServer();
+      const doc = new Doc();
+      const provider = new NodeWebSocketYjsProvider('room-a', doc, {
+        documentId: 'room-a',
+        requestId: 'agent-request',
+        ticket: 'initial-ticket',
+        webSocketConstructor: class extends FakeWebSocket {
+          constructor(url: string) {
+            super(url, server);
+          }
+        },
+        wsBaseUrl: 'ws://example.test',
+      });
+
+      const initialSync = provider.waitForSync();
+      provider.connect();
+      const socket = FakeWebSocket.instances[0];
+      socket.open();
+      socket.flushQueuedMessages();
+      await initialSync;
+
+      socket.serverMessage({
+        code: 'ticket_expired',
+        fatal: true,
+        message: 'Collaboration ticket has expired.',
+        protocol: LOBE_YJS_PROTOCOL,
+        type: 'error',
+        version: LOBE_YJS_PROTOCOL_VERSION,
+      });
+      await expect(provider.waitForSync()).rejects.toThrow(
+        'Yjs provider cannot reconnect with this ticket.',
+      );
+      expect(socket.closeCodes).toContain(4401);
+      await vi.advanceTimersByTimeAsync(20_000);
+      expect(FakeWebSocket.instances).toHaveLength(1);
+
       provider.close();
       doc.destroy();
       server.doc.destroy();

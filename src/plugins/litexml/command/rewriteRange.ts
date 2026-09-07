@@ -27,7 +27,9 @@ import { encodeStateVector } from 'yjs';
 import { genServiceId } from '@/editor-kernel';
 import { getBlockOffset, getBlockPoint, getLinearTextLength } from '@/editor-kernel/linear-text';
 import { getKernelFromEditor } from '@/editor-kernel/utils';
-import { $setNodeProperties, createNodeId } from '@/plugins/properties/state';
+import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
+import { $generateNodesFromSerializedNodes, $insertGeneratedNodes } from '@/plugins/markdown/utils';
+import { $getNodeProperties, $setNodeProperties, createNodeId } from '@/plugins/properties/state';
 import type { JSONValue, NodeProvenance } from '@/plugins/properties/types';
 import {
   $ensureNodeId,
@@ -110,6 +112,8 @@ export interface RewriteRangeCommandPayload {
   replacementText?: string;
   /** Explicit execution mode. Omitted mode keeps the legacy delayed review path. */
   mode?: RewriteRangeMode;
+  /** Stream finalization belongs to the existing write gesture, not a new undo item. */
+  history?: 'merge';
   /** Historical review flag. Review requires `delay: true`; direct may omit it. */
   delay?: boolean;
   requestId: string;
@@ -118,6 +122,9 @@ export interface RewriteRangeCommandPayload {
   attempt?: number;
   model?: string;
   provider?: string;
+  /** Page-owned stream provenance carried onto newly parsed replacement nodes. */
+  provenanceSessionId?: string;
+  turnIndex?: number;
   /** Optional caller command identity; generated when absent. */
   commandId?: string;
 }
@@ -664,6 +671,58 @@ function resolveSelection(input: RewriteSelectionInput): ResolvedSelection | nul
   return null;
 }
 
+/**
+ * AI-session ranges are the canonical rewrite proof. Their serialized text
+ * leaves out invisible cursor sentinels and structural list separators, while
+ * Lexical's generic RangeSelection text includes both. Keep the historical
+ * selection text for human ranges; only an entirely one-session AI range uses
+ * the generated-text projection used by Page and the durable continuation
+ * validator.
+ */
+function getRewriteSelectionText(selection: RangeSelection): string {
+  const selectedTextNodes = selection.getNodes().filter($isTextNode);
+  const firstPoint = selection.isBackward() ? selection.focus : selection.anchor;
+  const lastPoint = selection.isBackward() ? selection.anchor : selection.focus;
+  const firstNode = firstPoint.getNode();
+  const lastNode = lastPoint.getNode();
+  const sessionIds = new Set(
+    selectedTextNodes
+      .map((node) => $getNodeProperties(node).provenance)
+      .filter(
+        (provenance): provenance is NonNullable<typeof provenance> =>
+          provenance?.source === 'ai' && typeof provenance.sessionId === 'string',
+      )
+      .map((provenance) => provenance.sessionId),
+  );
+  if (
+    selectedTextNodes.length === 0 ||
+    sessionIds.size !== 1 ||
+    selectedTextNodes.some(
+      (node) => node.getType() !== 'cursor' && $getNodeProperties(node).provenance?.source !== 'ai',
+    )
+  ) {
+    return selection.getTextContent();
+  }
+
+  let previousBlock: LexicalNode | null = null;
+  let result = '';
+  for (const node of selectedTextNodes) {
+    if (node.getType() === 'cursor') continue;
+    const block = findRewriteBlock(node);
+    if (result && block && block !== previousBlock) result += ' ';
+    let text = node.getTextContent();
+    if (node === firstNode && node === lastNode) {
+      text = text.slice(firstPoint.offset, lastPoint.offset);
+    } else {
+      if (node === firstNode) text = text.slice(firstPoint.offset);
+      if (node === lastNode) text = text.slice(0, lastPoint.offset);
+    }
+    result += text;
+    previousBlock = block;
+  }
+  return result;
+}
+
 function validateSelection(
   input: RewriteSelectionInput,
   expectedTextHash: string,
@@ -720,7 +779,10 @@ function validateSelection(
     return failedResult({}, 'selection-offset-invalid', 'stale');
   }
 
-  const selectedText = selection.getTextContent();
+  const rawSelectedText = selection.getTextContent();
+  const canonicalSelectedText = getRewriteSelectionText(selection);
+  const selectedText =
+    hashRewriteText(rawSelectedText) === expectedTextHash ? rawSelectedText : canonicalSelectedText;
   if (!selectedText || hashRewriteText(selectedText) !== expectedTextHash) {
     return failedResult({}, 'expected-text-hash-mismatch', 'stale');
   }
@@ -781,7 +843,9 @@ function validateSelection(
   if (!commonParent || endBlock.getParent() !== commonParent) {
     return failedResult({}, 'cross-container-selection-not-supported');
   }
-  if (blocks.length > 1 && commonParent.getType() !== 'root') {
+  const isListItemRange =
+    commonParent.getType() === 'list' && blocks.every((block) => $isListItemNode(block));
+  if (blocks.length > 1 && commonParent.getType() !== 'root' && !isListItemRange) {
     return failedResult({}, 'cross-nested-container-selection-not-supported');
   }
 
@@ -903,6 +967,78 @@ function createTextReplacement(text: string, formatting: SerializedNode): Serial
     if (!part) return [];
     return [{ ...base, text: part } as unknown as SerializedNode];
   });
+}
+
+interface ParsedMarkdownReplacement {
+  blocks?: SerializedNode[];
+  inline: SerializedNode[];
+}
+
+/** Parse Agent text through the editor's configured Markdown readers. */
+function parseMarkdownReplacement(
+  editor: LexicalEditor,
+  text: string,
+  formatting: SerializedNode,
+  replaceWholeBlock = false,
+): ParsedMarkdownReplacement | null {
+  if (!text) return { inline: [] };
+  const markdownService = getKernelFromEditor(editor)?.requireService(IMarkdownShortCutService);
+  if (!markdownService) return null;
+
+  const root = markdownService.parseMarkdownToLexical(text) as unknown as {
+    children?: SerializedNode[];
+  };
+  const children = Array.isArray(root.children) ? root.children.map(cloneSerialized) : [];
+  // A complete block rewrite takes its structure and presentation from the
+  // parsed output. Only a partial text edit inherits its surrounding block.
+  if (replaceWholeBlock) return { blocks: children, inline: [] };
+  if (children.length === 1 && children[0]?.type === 'paragraph') {
+    const inline = children[0].children?.map(cloneSerialized) ?? [];
+    const hasExplicitFormatting = inline.some((node) => {
+      if (node.type === 'codeInline') return true;
+      if (typeof node.text === 'string' && typeof node.format === 'number') {
+        return node.format !== 0;
+      }
+      return (
+        Array.isArray(node.children) &&
+        node.children.some((child) => {
+          const childFormat = (child as { format?: unknown }).format;
+          return typeof childFormat === 'number' && childFormat !== 0;
+        })
+      );
+    });
+    const formattingDetail = typeof formatting.detail === 'number' ? formatting.detail : 0;
+    const formattingFormat = typeof formatting.format === 'number' ? formatting.format : 0;
+    const formattingMode = typeof formatting.mode === 'string' ? formatting.mode : 'normal';
+    const formattingStyle = typeof formatting.style === 'string' ? formatting.style : '';
+    if (
+      !hasExplicitFormatting &&
+      (formattingDetail !== 0 ||
+        formattingFormat !== 0 ||
+        formattingMode !== 'normal' ||
+        formattingStyle)
+    ) {
+      return {
+        inline: inline.map((node) =>
+          typeof node.text === 'string'
+            ? {
+                ...node,
+                detail: formattingDetail,
+                format: (typeof node.format === 'number' ? node.format : 0) | formattingFormat,
+                mode: formattingMode,
+                style: formattingStyle,
+              }
+            : node,
+        ),
+      };
+    }
+    return { inline };
+  }
+
+  // A list (or multiple block paragraphs) must replace whole selected blocks;
+  // nesting it under the existing paragraph would silently turn list syntax
+  // back into plain text or produce an invalid Lexical tree.
+  return { blocks: children, inline: [] };
 }
 
 function stripInsertedIdentity(node: SerializedNode): SerializedNode {
@@ -1221,6 +1357,48 @@ function applyDirectRewrite(
   }
 }
 
+function applyDirectBlockRewrite(
+  firstBlock: LexicalNode,
+  blocks: LexicalNode[],
+  replacements: LexicalNode[],
+): void {
+  const firstReplacement = replacements[0];
+  if (!firstReplacement) {
+    blocks.forEach((block) => block.remove());
+    return;
+  }
+
+  blocks.slice(1).forEach((block) => block.remove());
+  $preserveNodeIdentity(firstBlock, firstReplacement);
+  firstBlock.replace(firstReplacement, false);
+  let previous = firstReplacement;
+  for (const replacement of replacements.slice(1)) {
+    previous.insertAfter(replacement);
+    previous = replacement;
+  }
+}
+
+function applyDirectMarkdownSelection(
+  editor: LexicalEditor,
+  validation: RewriteValidation,
+  replacement: SerializedNode[],
+): void {
+  const selection = $createRangeSelection();
+  selection.anchor.set(
+    validation.startPoint.key,
+    validation.startPoint.offset,
+    validation.startPoint.type,
+  );
+  selection.focus.set(
+    validation.endPoint.key,
+    validation.endPoint.offset,
+    validation.endPoint.type,
+  );
+  const nodes = $generateNodesFromSerializedNodes(replacement);
+  $setSelection(selection);
+  $insertGeneratedNodes(editor, nodes, selection);
+}
+
 function buildDiff(
   editor: LexicalEditor,
   beforeNodes: SerializedNode[],
@@ -1334,7 +1512,10 @@ export function registerLiteXMLRewriteCommand(
           try {
             const updateOptions =
               payload?.mode === 'direct'
-                ? ({ discrete: true, tag: HISTORY_PUSH_TAG } as const)
+                ? ({
+                    discrete: true,
+                    ...(payload.history === 'merge' ? {} : { tag: HISTORY_PUSH_TAG }),
+                  } as const)
                 : undefined;
             editor.update(() => {
               result = executeRewriteRange(editor, dataSource, payload);
@@ -1372,6 +1553,9 @@ export function executeRewriteRange(
   if (payload.mode !== undefined && payload.mode !== 'direct' && payload.mode !== 'review') {
     return failedResult(payload, 'rewrite-range-mode-invalid');
   }
+  if (payload.history !== undefined && payload.history !== 'merge') {
+    return failedResult(payload, 'rewrite-range-history-invalid');
+  }
   const mode = payload.mode ?? 'review';
   if (mode === 'review' && payload.delay !== true) {
     return failedResult(payload, 'rewrite-range-requires-delay-true');
@@ -1392,7 +1576,17 @@ export function executeRewriteRange(
   const validation = validateSelection(payload.selection, payload.expectedTextHash);
   if ('status' in validation) return { ...validation, commandId, requestId: payload.requestId };
   const { blocks, endOffset, firstBlock, startOffset } = validation;
-
+  const formatting = getReplacementFormatting(firstBlock, startOffset);
+  const fullBlockSelection = startOffset === 0 && endOffset === getLinearTextLength(blocks.at(-1)!);
+  const parsedMarkdown =
+    hasText && mode === 'direct'
+      ? parseMarkdownReplacement(
+          editor,
+          payload.replacementText!,
+          formatting,
+          fullBlockSelection && !$isListItemNode(firstBlock),
+        )
+      : null;
   // Production targets always carry a durable block identity. Migration is
   // deliberately done before serialization so the identity is present on
   // both diff sides; no Lexical key enters the request/result contract.
@@ -1408,10 +1602,20 @@ export function executeRewriteRange(
     return failedResult(payload, 'affected-block-nodeId-duplicate', 'stale');
   }
 
-  const formatting = getReplacementFormatting(firstBlock, startOffset);
   let replacement: SerializedNode[];
+  let markdownBlockReplacement: SerializedNode[] | undefined = parsedMarkdown?.blocks;
   if (hasText) {
-    replacement = createTextReplacement(payload.replacementText!, formatting);
+    if (mode === 'direct') {
+      if (parsedMarkdown?.blocks) {
+        markdownBlockReplacement = parsedMarkdown.blocks;
+        replacement = [];
+      } else {
+        replacement =
+          parsedMarkdown?.inline ?? createTextReplacement(payload.replacementText!, formatting);
+      }
+    } else {
+      replacement = createTextReplacement(payload.replacementText!, formatting);
+    }
   } else {
     const parsed = parseReplacementLiteXML(dataSource, payload.replacementLiteXML!);
     if (parsed.error) return failedResult(payload, parsed.error);
@@ -1423,16 +1627,92 @@ export function executeRewriteRange(
   // the inserted text survives JSON and Yjs round trips as AI-authored data.
   if (mode === 'direct') {
     replacement = replacement.map(cloneSerialized);
+    markdownBlockReplacement = markdownBlockReplacement?.map(cloneSerialized);
     markSerializedNodesAsAIGenerated(
-      { children: replacement },
+      { children: markdownBlockReplacement ?? replacement },
       {
         createdAt: new Date().toISOString(),
         generationId: payload.generationId,
         model: payload.model,
         provider: payload.provider,
         requestId: payload.requestId,
+        sessionId: payload.provenanceSessionId,
+        turnIndex: payload.turnIndex,
       },
     );
+  }
+
+  const currentRoot = serializeNode($getRoot());
+
+  if (
+    mode === 'direct' &&
+    markdownBlockReplacement &&
+    markdownBlockReplacement.length > 0 &&
+    (!fullBlockSelection || $isListItemNode(firstBlock))
+  ) {
+    try {
+      applyDirectMarkdownSelection(editor, validation, markdownBlockReplacement);
+      return {
+        affectedNodeIds: blockIds,
+        commandId,
+        requestId: payload.requestId,
+        status: 'applied',
+      };
+    } catch (error) {
+      return failedResult(
+        payload,
+        error instanceof Error ? error.message : 'direct-markdown-selection-failed',
+      );
+    }
+  }
+
+  if (
+    mode === 'direct' &&
+    markdownBlockReplacement &&
+    markdownBlockReplacement.length > 0 &&
+    fullBlockSelection &&
+    !$isListItemNode(firstBlock)
+  ) {
+    let directBlockReplacements: LexicalNode[];
+    try {
+      directBlockReplacements = markdownBlockReplacement.map((serialized) =>
+        $parseSerializedNodeImpl(serialized, editor),
+      );
+    } catch (error) {
+      return failedResult(
+        payload,
+        error instanceof Error ? error.message : 'direct-rewrite-parse-failed',
+      );
+    }
+
+    const projected = projectDirectRewrite(
+      currentRoot,
+      blockIds[0],
+      blockIds,
+      markdownBlockReplacement,
+      false,
+    );
+    if (!projected) return failedResult(payload, 'rewrite-preflight-target-not-found', 'stale');
+    const newIllegalDiffs = findNewIllegalDiffPaths(
+      { root: currentRoot } as SerializedDiffDocument,
+      projected,
+    );
+    if (newIllegalDiffs.length > 0) {
+      logger.warn(
+        'Rejected direct rewrite due to newly-created illegal nested diff',
+        newIllegalDiffs,
+      );
+      return failedResult(payload, 'rewrite-preflight-illegal-nested-diff');
+    }
+
+    $setSelection(null);
+    applyDirectBlockRewrite(firstBlock, blocks, directBlockReplacements);
+    return {
+      affectedNodeIds: blockIds,
+      commandId,
+      requestId: payload.requestId,
+      status: 'applied',
+    };
   }
 
   const beforeNodes = blocks.map(serializeNode);
@@ -1468,8 +1748,6 @@ export function executeRewriteRange(
         beforeIndex: blocks.findIndex((block) => block.is(entry.node)),
         nodeId: $getNodeId(entry.node)!,
       }));
-
-  const currentRoot = serializeNode($getRoot());
 
   if (mode === 'direct') {
     let directEntries: DirectRewriteEntry[];

@@ -19,11 +19,13 @@ import {
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IBlockMenuService } from '@/plugins/block/service';
+import { registerBlockRewriteAdapter } from '@/plugins/block/service/rewrite-adapter';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { CustomShikiTokenizer, registerCodeCommand } from '../command';
+import { codeBlockRewriteAdapter } from '../rewrite-adapter';
 import { getCodeLanguageByInput } from '../utils/language';
 import { registerCodeHighlighting, toCodeTheme } from './CodeHighlighterShiki';
 
@@ -100,6 +102,7 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
     if (this.config?.shikiTheme) {
       CustomShikiTokenizer.defaultTheme = this.config?.shikiTheme;
     }
+    this.register(registerBlockRewriteAdapter(kernel, codeBlockRewriteAdapter));
   }
 
   onInit(editor: LexicalEditor): void {
