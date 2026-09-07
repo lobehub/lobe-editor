@@ -16,6 +16,7 @@ import {
   $setSelection,
   COLLABORATION_TAG,
   COMMAND_PRIORITY_HIGH,
+  COMPOSITION_START_COMMAND,
   HISTORIC_TAG,
   HISTORY_MERGE_TAG,
   HISTORY_PUSH_TAG,
@@ -227,6 +228,17 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
       scheduleSelectionGuard();
     }),
     editor.registerCommand(
+      COMPOSITION_START_COMMAND,
+      (event) => {
+        if (isAtomicHoleInternalEditorTarget(event?.target ?? null, editor.getRootElement())) {
+          return false;
+        }
+        moveHoleBoundaryToParagraph(editor);
+        return false;
+      },
+      COMMAND_PRIORITY_HIGH,
+    ),
+    editor.registerCommand(
       KEY_ARROW_LEFT_COMMAND,
       (event) => handleHoleArrow(editor, event, 'left'),
       COMMAND_PRIORITY_HIGH,
@@ -329,6 +341,31 @@ export function $normalizeHoleNode(node: HoleNode): void {
   node.normalizeBoundaryCursors();
 }
 
+function moveHoleBoundaryToParagraph(editor: LexicalEditor): boolean {
+  if (!editor.isEditable()) return false;
+  const selection = $getSelection();
+  const context = $isRangeSelection(selection) ? getBoundaryContext(selection) : null;
+  if (!context) return false;
+
+  const { cursor, hole, side } = context;
+  const pendingText = normalizeHoleCursorInput(cursor.getTextContent());
+  const paragraph = $createParagraphNode();
+  if (pendingText) {
+    paragraph.append($createTextNode(pendingText));
+    cursor.setTextContent('\uFEFF');
+  }
+  if (side === 'before') {
+    hole.insertBefore(paragraph);
+  } else {
+    hole.insertAfter(paragraph);
+  }
+  if (pendingText || side === 'before') paragraph.selectEnd();
+  else paragraph.selectStart();
+  return true;
+}
+
+const normalizeHoleCursorInput = (text: string): string => text.replaceAll('\uFEFF', '');
+
 function handleHoleCursorInput(editor: LexicalEditor): void {
   editor.getEditorState().read(() => {
     if (editor.isComposing() || !editor.isEditable()) return;
@@ -341,7 +378,7 @@ function handleHoleCursorInput(editor: LexicalEditor): void {
     const hole = cursor.getParent();
     if (!$isHoleNode(hole) || hole.getBoundaryCursorSide(cursor) === null) return;
 
-    const text = cursor.getTextContent().replaceAll('\uFEFF', '');
+    const text = normalizeHoleCursorInput(cursor.getTextContent());
     if (!text) return;
 
     const cursorKey = cursor.getKey();

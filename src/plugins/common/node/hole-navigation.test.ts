@@ -2,13 +2,14 @@ import {
   $createNodeSelection,
   $getRoot,
   $getSelection,
-  COMMAND_PRIORITY_EDITOR,
   $isNodeSelection,
   $isRangeSelection,
   $nodesOfType,
   $setSelection,
+  COMMAND_PRIORITY_EDITOR,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
+  KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
@@ -20,8 +21,8 @@ import { ArtifactPlugin } from '@/plugins/artifact/plugin';
 import { CommonPlugin } from '@/plugins/common/plugin';
 import type { IEditor } from '@/types';
 
-import { HoleNode } from './hole';
 import { ENTER_HOLE_CONTENT_COMMAND } from '../command';
+import { HoleNode } from './hole';
 
 const artifact = {
   html: '<main>navigation</main>',
@@ -72,10 +73,10 @@ describe('Hole boundary cursor navigation', () => {
     await moment();
   });
 
-  const selectBoundary = (side: 'after' | 'before') => {
+  const selectBoundaryAt = (index: number, side: 'after' | 'before') => {
     editor.getLexicalEditor()!.update(
       () => {
-        const hole = $nodesOfType(HoleNode)[0];
+        const hole = $nodesOfType(HoleNode)[index];
         const cursor = side === 'before' ? hole.getBeforeCursor() : hole.getAfterCursor();
         if (!cursor) throw new Error('Hole cursor missing');
         if (side === 'before') cursor.selectEnd();
@@ -85,6 +86,8 @@ describe('Hole boundary cursor navigation', () => {
     );
   };
 
+  const selectBoundary = (side: 'after' | 'before') => selectBoundaryAt(0, side);
+
   const dispatchArrow = (direction: 'left' | 'right', shiftKey = false) => {
     const event = new KeyboardEvent('keydown', {
       cancelable: true,
@@ -93,6 +96,12 @@ describe('Hole boundary cursor navigation', () => {
     });
     const command = direction === 'left' ? KEY_ARROW_LEFT_COMMAND : KEY_ARROW_RIGHT_COMMAND;
     expect(editor.getLexicalEditor()!.dispatchCommand(command, event)).toBe(true);
+    expect(event.defaultPrevented).toBe(true);
+  };
+
+  const dispatchBackspace = () => {
+    const event = new KeyboardEvent('keydown', { cancelable: true, key: 'Backspace' });
+    expect(editor.getLexicalEditor()!.dispatchCommand(KEY_BACKSPACE_COMMAND, event)).toBe(true);
     expect(event.defaultPrevented).toBe(true);
   };
 
@@ -153,6 +162,96 @@ describe('Hole boundary cursor navigation', () => {
         if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
         expect(selection.anchor.getNode().getTextContent()).toBe('after');
         expect(selection.anchor.offset).toBe(0);
+      });
+  });
+
+  it('removes the whole Artifact Hole with Backspace at its after boundary', async () => {
+    selectBoundary('after');
+    dispatchBackspace();
+    await moment();
+    await moment();
+    await moment();
+
+    editor
+      .getLexicalEditor()!
+      .getEditorState()
+      .read(() => {
+        expect(
+          $getRoot()
+            .getChildren()
+            .map((node) => node.getType()),
+        ).toEqual(['paragraph', 'paragraph']);
+        expect($nodesOfType(ArtifactNode)).toHaveLength(0);
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+        expect(selection.anchor.getNode().getTextContent()).toBe('after');
+        expect(selection.anchor.offset).toBe(0);
+      });
+  });
+
+  it('keeps a before-boundary Backspace command from deleting the Hole or its payload', async () => {
+    selectBoundary('before');
+    dispatchBackspace();
+    await moment();
+    await moment();
+    await moment();
+
+    editor
+      .getLexicalEditor()!
+      .getEditorState()
+      .read(() => {
+        expect(
+          $getRoot()
+            .getChildren()
+            .map((node) => node.getType()),
+        ).toEqual(['paragraph', 'hole', 'paragraph']);
+        expect($getRoot().getFirstChild()?.getTextContent()).toBe('before');
+        expect($nodesOfType(ArtifactNode)).toHaveLength(1);
+        const hole = $nodesOfType(HoleNode)[0];
+        expect(hole.getContentChildren().some((node) => node instanceof ArtifactNode)).toBe(true);
+      });
+  });
+
+  it('crosses consecutive Holes through their matching boundary cursors', async () => {
+    editor.setDocument(
+      'json',
+      documentWith(paragraph('left'), artifact, artifact, paragraph('right')),
+    );
+    await moment();
+
+    selectBoundaryAt(0, 'after');
+    dispatchArrow('right');
+    await moment();
+    editor
+      .getLexicalEditor()!
+      .getEditorState()
+      .read(() => {
+        const holes = $nodesOfType(HoleNode);
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+        expect(selection.anchor.key).toBe(holes[1]?.getBeforeCursor()?.getKey());
+        expect(selection.anchor.offset).toBe(0);
+      });
+
+    selectBoundaryAt(1, 'before');
+    dispatchArrow('left');
+    await moment();
+    editor
+      .getLexicalEditor()!
+      .getEditorState()
+      .read(() => {
+        const holes = $nodesOfType(HoleNode);
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+        expect(selection.anchor.key).toBe(holes[0]?.getAfterCursor()?.getKey());
+        expect(selection.anchor.offset).toBe(1);
+        expect(selection.getTextContent()).toBe('');
+      });
+    editor
+      .getLexicalEditor()!
+      .getEditorState()
+      .read(() => {
+        expect($nodesOfType(ArtifactNode)).toHaveLength(2);
       });
   });
 
@@ -478,28 +577,38 @@ describe('Hole boundary cursor navigation', () => {
 
   it.each([
     { side: 'before' as const, expectedText: 'after', expectedTypes: ['paragraph', 'paragraph'] },
-    { side: 'after' as const, expectedText: 'after', expectedTypes: ['paragraph', 'hole', 'paragraph'] },
-  ])('owns Delete at the $side boundary without leaking runtime nodes', async ({ side, expectedText, expectedTypes }) => {
-    selectBoundary(side);
-    const event = new KeyboardEvent('keydown', {
-      cancelable: true,
-      key: 'Delete',
-    });
-    expect(editor.getLexicalEditor()!.dispatchCommand(KEY_DELETE_COMMAND, event)).toBe(true);
-    expect(event.defaultPrevented).toBe(true);
-    await moment();
-    await moment();
+    {
+      side: 'after' as const,
+      expectedText: 'after',
+      expectedTypes: ['paragraph', 'hole', 'paragraph'],
+    },
+  ])(
+    'owns Delete at the $side boundary without leaking runtime nodes',
+    async ({ side, expectedText, expectedTypes }) => {
+      selectBoundary(side);
+      const event = new KeyboardEvent('keydown', {
+        cancelable: true,
+        key: 'Delete',
+      });
+      expect(editor.getLexicalEditor()!.dispatchCommand(KEY_DELETE_COMMAND, event)).toBe(true);
+      expect(event.defaultPrevented).toBe(true);
+      await moment();
+      await moment();
 
-    editor.getLexicalEditor()!.getEditorState().read(() => {
-      expect(
-        $getRoot()
-          .getChildren()
-          .map((node) => node.getType()),
-      ).toEqual(expectedTypes);
-      const paragraphs = $getRoot()
-        .getChildren()
-        .filter((node) => node.getType() === 'paragraph');
-      expect(paragraphs.at(-1)?.getTextContent()).toBe(expectedText);
-    });
-  });
+      editor
+        .getLexicalEditor()!
+        .getEditorState()
+        .read(() => {
+          expect(
+            $getRoot()
+              .getChildren()
+              .map((node) => node.getType()),
+          ).toEqual(expectedTypes);
+          const paragraphs = $getRoot()
+            .getChildren()
+            .filter((node) => node.getType() === 'paragraph');
+          expect(paragraphs.at(-1)?.getTextContent()).toBe(expectedText);
+        });
+    },
+  );
 });

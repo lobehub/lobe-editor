@@ -106,9 +106,11 @@ export {
   COLLABORATIVE_AGENT_COMMAND_ALLOWLIST,
   createAgentCommandGateway,
   createCollaborativeAgentCommandGateway,
+  getRewriteService,
   InMemoryRewriteCommandResultChannel,
   IRewriteCommandResultService,
   IRewriteReviewService,
+  IRewriteService,
   LITEXML_INSERT_COMMAND,
   LITEXML_MODIFY_COMMAND,
   LITEXML_REMOVE_COMMAND,
@@ -116,6 +118,7 @@ export {
   LITEXML_REWRITE_RANGE_COMMAND,
   normalizeRewriteText,
   RewriteReviewService,
+  RewriteService,
   validateLiteXMLInput,
 } from '@/plugins/litexml/command';
 export { MARK_AI_GENERATED_COMMAND } from '@/plugins/properties/command';

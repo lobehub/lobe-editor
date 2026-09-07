@@ -134,9 +134,32 @@ export interface RewriteCommandResult {
   commandId: string;
   error?: string;
   requestId: string;
-  /** State vector observed after the Lexical/Yjs transaction commits. */
+  /** State vector observed after the local Lexical/Yjs transaction commits; it is not a remote ACK. */
   stateVector?: string;
   status: RewriteCommandStatus;
+}
+
+/**
+ * Editor-owned Promise boundary for targeted rewrites.
+ *
+ * Lexical command listeners can only return a boolean.  Agent and headless
+ * callers need the result from the transaction which actually committed, so
+ * they use this service instead of waiting on a result-channel event.
+ */
+export interface IRewriteService {
+  /**
+   * Cancel requests which are still queued. Once execution has started, the
+   * Lexical commit/error boundary settles the actual result so a committed
+   * rewrite is never reported as aborted.
+   */
+  cancel(requestId?: string, reason?: string): void;
+  /**
+   * Stop accepting work and release queued waiters. An executing operation is
+   * allowed to cross its commit/error boundary; an unavailable boundary is
+   * ended by the service's bounded failure fallback.
+   */
+  destroy(): void;
+  rewriteRange(payload: RewriteRangeCommandPayload): Promise<RewriteCommandResult>;
 }
 
 /**
@@ -380,7 +403,13 @@ export class InMemoryRewriteCommandResultChannel implements RewriteCommandResult
 
   publish(result: RewriteCommandResult): void {
     this.results.set(result.requestId, result);
-    for (const listener of this.listeners) listener(result);
+    for (const listener of this.listeners) {
+      try {
+        listener(result);
+      } catch (error) {
+        logger.warn('Rewrite result listener failed:', error);
+      }
+    }
   }
 
   get(requestId: string): RewriteCommandResult | undefined {
@@ -388,7 +417,13 @@ export class InMemoryRewriteCommandResultChannel implements RewriteCommandResult
   }
 
   publishReview(event: RewriteReviewEvent): void {
-    for (const listener of this.reviewListeners) listener(event);
+    for (const listener of this.reviewListeners) {
+      try {
+        listener(event);
+      } catch (error) {
+        logger.warn('Rewrite review listener failed:', error);
+      }
+    }
   }
 
   clear(requestId?: string): void {
@@ -429,6 +464,267 @@ export class InMemoryRewriteCommandResultChannel implements RewriteCommandResult
 export const IRewriteCommandResultService: IServiceID<RewriteCommandResultChannel> = genServiceId(
   'RewriteCommandResultChannel',
 );
+
+/** Service ID for the editor-owned Promise rewrite boundary. */
+export const IRewriteService: IServiceID<IRewriteService> = genServiceId('RewriteService');
+
+interface PendingRewriteOperation {
+  beforeState?: ReturnType<LexicalEditor['getEditorState']>;
+  error?: string;
+  executionResult?: RewriteCommandResult;
+  fallbackTimer?: ReturnType<typeof setTimeout>;
+  phase: 'queued' | 'executing' | 'committing' | 'settled';
+  promise: Promise<RewriteCommandResult>;
+  resolve: (result: RewriteCommandResult) => void;
+  settled: boolean;
+  payload: RewriteRangeCommandPayload;
+}
+
+const isRewriteCommitResult = (result: RewriteCommandResult): boolean =>
+  result.status === 'applied' || result.status === 'diff-created';
+
+const errorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
+
+/**
+ * Own the asynchronous boundary for one targeted rewrite.
+ *
+ * A command listener runs inside Lexical's implicit update and can only return
+ * a boolean. Calling `editor.update` here is therefore allowed to enqueue a
+ * nested update. The per-update `onUpdate` callback is the commit boundary:
+ * Lexical invokes it after all update listeners (including the Yjs bridge) and
+ * after a failed update has restored the previous editor state. Kernel error
+ * events are tracked while the operation's update is being processed so a
+ * swallowed Lexical error cannot be mistaken for a successful commit.
+ */
+export class RewriteService implements IRewriteService {
+  private readonly pending = new Map<string, PendingRewriteOperation>();
+  private readonly activeOperations = new Set<PendingRewriteOperation>();
+  private readonly kernel: ReturnType<typeof getKernelFromEditor> | undefined;
+  private destroyed = false;
+  private readonly onKernelError = (error: Error): void => {
+    const message = errorMessage(error, 'rewrite-range-failed');
+    for (const operation of this.activeOperations) {
+      if (!operation.settled) operation.error = message;
+    }
+  };
+
+  constructor(
+    private readonly editor: LexicalEditor,
+    private readonly dataSource: LitexmlDataSource,
+    private readonly resultChannel: RewriteCommandResultChannel,
+  ) {
+    const kernel = getKernelFromEditor(editor);
+    this.kernel = kernel;
+    kernel?.on('error', this.onKernelError);
+    rewriteServicesByEditor.set(editor, this);
+  }
+
+  rewriteRange(payload: RewriteRangeCommandPayload): Promise<RewriteCommandResult> {
+    const requestId = typeof payload?.requestId === 'string' ? payload.requestId : '';
+    if (this.destroyed) {
+      const result = failedResult(payload ?? {}, 'rewrite-range-destroyed', 'aborted');
+      this.publishImmediate(result);
+      return Promise.resolve(result);
+    }
+    if (!requestId) {
+      const result = failedResult(payload ?? {}, 'requestId-required');
+      this.publishImmediate(result);
+      return Promise.resolve(result);
+    }
+
+    const existing = this.pending.get(requestId);
+    if (existing) return existing.promise;
+
+    const previous = this.resultChannel.get(requestId);
+    if (previous && (isRewriteCommitResult(previous) || previous.status === 'aborted')) {
+      return Promise.resolve(previous);
+    }
+    if (previous) this.resultChannel.clear(requestId);
+
+    let resolve!: (result: RewriteCommandResult) => void;
+    const promise = new Promise<RewriteCommandResult>((resolvePromise) => {
+      resolve = resolvePromise;
+    });
+    const operation = {
+      payload,
+      phase: 'queued' as const,
+      promise,
+      resolve,
+      settled: false,
+    } satisfies PendingRewriteOperation;
+    this.pending.set(requestId, operation);
+    this.start(operation);
+    return promise;
+  }
+
+  cancel(requestId?: string, reason = 'rewrite-range-cancelled'): void {
+    const operations = requestId
+      ? [this.pending.get(requestId)].filter((operation): operation is PendingRewriteOperation =>
+          Boolean(operation),
+        )
+      : [...this.pending.values()];
+    for (const operation of operations) {
+      if (operation.phase === 'queued') {
+        this.finish(operation, failedResult(operation.payload, reason, 'aborted'));
+      } else if (operation.phase === 'executing') {
+        // The Lexical transaction is already executing. Its commit boundary
+        // owns the outcome; claiming cancellation here could report `aborted`
+        // after this transaction is committed.
+      }
+    }
+  }
+
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    for (const operation of this.pending.values()) {
+      // A committing operation has already crossed Lexical's local commit
+      // boundary; let its synchronous settlement finish. Queued/executing
+      // operations are released when their owner is torn down. An executing
+      // operation is allowed to cross its real commit callback first; the
+      // bounded fallback armed by start() handles an onError that aborts
+      // before Lexical can invoke that callback.
+      if (operation.phase === 'queued') {
+        this.finish(
+          operation,
+          failedResult(operation.payload, 'rewrite-range-destroyed', 'aborted'),
+        );
+      }
+    }
+    if (this.activeOperations.size === 0) this.kernel?.off('error', this.onKernelError);
+    if (rewriteServicesByEditor.get(this.editor) === this) {
+      rewriteServicesByEditor.delete(this.editor);
+    }
+  }
+
+  private start(operation: PendingRewriteOperation): void {
+    if (operation.settled) return;
+    // This timer is a bounded failure fallback for bare editors whose onError
+    // throws before Lexical can invoke onUpdate. It never proves success; only
+    // the corresponding onUpdate callback can do that.
+    operation.fallbackTimer = setTimeout(() => this.fallback(operation), 0);
+    try {
+      this.editor.update(
+        () => {
+          if (operation.settled) return;
+          operation.phase = 'executing';
+          operation.beforeState = this.editor.getEditorState();
+          this.activeOperations.add(operation);
+          try {
+            operation.executionResult = executeRewriteRange(
+              this.editor,
+              this.dataSource,
+              operation.payload,
+            );
+          } catch (error) {
+            operation.error = errorMessage(error, 'rewrite-range-failed');
+            operation.executionResult = failedResult(operation.payload, operation.error);
+            // Let Lexical restore the pre-update state. Swallowing here would
+            // allow a parser/transform exception after a partial mutation to
+            // publish a failed result while still committing that mutation.
+            throw error;
+          }
+        },
+        {
+          discrete: true,
+          ...(operation.payload.history === 'merge' ? {} : { tag: HISTORY_PUSH_TAG }),
+          onUpdate: () => this.commit(operation),
+        },
+      );
+    } catch (error) {
+      this.activeOperations.delete(operation);
+      this.finish(
+        operation,
+        failedResult(operation.payload, errorMessage(error, 'rewrite-range-failed')),
+      );
+    }
+  }
+
+  private commit(operation: PendingRewriteOperation): void {
+    if (operation.settled) return;
+    operation.phase = 'committing';
+    this.activeOperations.delete(operation);
+
+    if (operation.error) {
+      this.finish(operation, failedResult(operation.payload, operation.error));
+      return;
+    }
+    // Lexical's default onError reports and restores the current state without
+    // throwing. Identity is stable for that rollback, while every update that
+    // reaches this deferred callback receives a committed editor state.
+    if (operation.beforeState && this.editor.getEditorState() === operation.beforeState) {
+      this.finish(operation, failedResult(operation.payload, 'rewrite-range-not-committed'));
+      return;
+    }
+    const result =
+      operation.executionResult ?? failedResult(operation.payload, 'rewrite-range-did-not-run');
+    if (!isRewriteCommitResult(result)) {
+      this.finish(operation, result);
+      return;
+    }
+    const stateVector = getRewriteStateVector(this.editor);
+    this.finish(operation, {
+      ...result,
+      ...(stateVector ? { stateVector } : {}),
+    });
+  }
+
+  /**
+   * A custom bare Lexical editor may throw from `onError` before Lexical can
+   * invoke the per-update callback. Bound the wait; only the corresponding
+   * per-update callback is allowed to prove a successful commit.
+   */
+  private fallback(operation: PendingRewriteOperation): void {
+    if (operation.settled) return;
+    operation.fallbackTimer = undefined;
+    if (this.destroyed) {
+      this.finish(operation, failedResult(operation.payload, 'rewrite-range-destroyed', 'aborted'));
+      return;
+    }
+    if (operation.error) {
+      this.finish(operation, failedResult(operation.payload, operation.error));
+      return;
+    }
+    this.finish(operation, failedResult(operation.payload, 'rewrite-range-commit-not-observed'));
+  }
+
+  private finish(operation: PendingRewriteOperation, result: RewriteCommandResult): void {
+    if (operation.settled) return;
+    operation.settled = true;
+    operation.phase = 'settled';
+    if (operation.fallbackTimer !== undefined) {
+      clearTimeout(operation.fallbackTimer);
+      operation.fallbackTimer = undefined;
+    }
+    this.pending.delete(operation.payload.requestId);
+    this.activeOperations.delete(operation);
+    if (this.destroyed && this.activeOperations.size === 0) {
+      this.kernel?.off('error', this.onKernelError);
+    }
+    try {
+      this.resultChannel.publish(result);
+    } catch (error) {
+      logger.warn('Rewrite result channel publish failed:', error);
+    } finally {
+      operation.resolve(result);
+    }
+  }
+
+  private publishImmediate(result: RewriteCommandResult): void {
+    try {
+      this.resultChannel.publish(result);
+    } catch (error) {
+      logger.warn('Rewrite result channel publish failed:', error);
+    }
+  }
+}
+
+const rewriteServicesByEditor = new WeakMap<LexicalEditor, RewriteService>();
+
+/** Resolve the service installed by a Litexml plugin or bare command setup. */
+export const getRewriteService = (editor: LexicalEditor): IRewriteService | undefined =>
+  rewriteServicesByEditor.get(editor);
 
 export { hashRewriteText, normalizeRewriteText };
 
@@ -1484,61 +1780,35 @@ export function registerLiteXMLRewriteCommand(
   editor: LexicalEditor,
   dataSource: LitexmlDataSource,
   resultChannel: RewriteCommandResultChannel,
+  rewriteService?: IRewriteService,
 ): () => void {
-  // A command result is published asynchronously (after two microtasks so it
-  // cannot be overwritten by Lexical's implicit command update). Keep an
-  // in-flight reservation as well as the result-channel cache: two retries
-  // arriving in that window must still produce one rewrite transaction.
-  const inFlightRequests = new Set<string>();
+  const registeredService = rewriteServicesByEditor.get(editor);
+  const ownsService = !rewriteService && !registeredService;
+  const service =
+    rewriteService ?? registeredService ?? new RewriteService(editor, dataSource, resultChannel);
+  rewriteServicesByEditor.set(editor, service as RewriteService);
 
-  return editor.registerCommand(
+  const unregisterCommand = editor.registerCommand(
     LITEXML_REWRITE_RANGE_COMMAND,
     (payload) => {
       const requestId = typeof payload?.requestId === 'string' ? payload.requestId : '';
       const previous = requestId ? resultChannel.get(requestId) : undefined;
-      if (previous?.status === 'diff-created' || previous?.status === 'applied') return true;
-      if (requestId && inFlightRequests.has(requestId)) return true;
-      if (requestId) inFlightRequests.add(requestId);
-      // Lexical invokes command listeners inside an implicit update. Queue the
-      // actual rewrite into its own explicit transaction so a detached
-      // before/after projection cannot be overwritten by the command's outer
-      // update finalization.
-      queueMicrotask(() => {
-        // The first microtask is queued before Lexical's implicit command
-        // update schedules its own commit. A second turn guarantees that the
-        // command's no-op outer state cannot overwrite this transaction.
-        queueMicrotask(() => {
-          let result = failedResult(payload, 'rewrite-range-did-not-run');
-          try {
-            // Publish only committed results. A pending review Diff can be
-            // visible to JSON export before getEditorState(), causing an
-            // immediate accept/reject command to miss the new Diff entirely.
-            const updateOptions = {
-              discrete: true,
-              ...(payload?.history === 'merge' ? {} : { tag: HISTORY_PUSH_TAG }),
-            } as const;
-            editor.update(() => {
-              result = executeRewriteRange(editor, dataSource, payload);
-            }, updateOptions);
-          } catch (error) {
-            result = failedResult(
-              payload,
-              error instanceof Error ? error.message : 'rewrite-range-failed',
-            );
-          } finally {
-            if (requestId) inFlightRequests.delete(requestId);
-            const stateVector = getRewriteStateVector(editor);
-            resultChannel.publish({
-              ...result,
-              ...(stateVector ? { stateVector } : {}),
-            });
-          }
-        });
-      });
+      if (
+        previous?.status === 'diff-created' ||
+        previous?.status === 'applied' ||
+        previous?.status === 'aborted'
+      )
+        return true;
+      void service.rewriteRange(payload);
       return true;
     },
     COMMAND_PRIORITY_EDITOR,
   );
+
+  return () => {
+    unregisterCommand();
+    if (ownsService) service.destroy();
+  };
 }
 
 export function executeRewriteRange(

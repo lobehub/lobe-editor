@@ -1,4 +1,5 @@
 import {
+  $createParagraphNode,
   $createLineBreakNode,
   $createRangeSelection,
   $createTextNode,
@@ -8,17 +9,22 @@ import {
   $isRangeSelection,
   $isTextNode,
   $setSelection,
+  COMMAND_PRIORITY_EDITOR,
+  createEditor,
+  ParagraphNode,
   UNDO_COMMAND,
   createCommand,
   type RangeSelection,
 } from 'lexical';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor, { moment } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
 import {
   DiffAction,
   IRewriteCommandResultService,
+  IRewriteReviewService,
+  IRewriteService,
   LITEXML_INSERT_COMMAND,
   LITEXML_MODIFY_COMMAND,
   LITEXML_DIFFNODE_ALL_COMMAND,
@@ -26,8 +32,14 @@ import {
   LITEXML_REWRITE_RANGE_COMMAND,
   LitexmlPlugin,
 } from '@/plugins/litexml';
-import { hashRewriteText, validateLiteXMLInput } from '@/plugins/litexml/command';
+import {
+  hashRewriteText,
+  InMemoryRewriteCommandResultChannel,
+  RewriteService,
+  validateLiteXMLInput,
+} from '@/plugins/litexml/command';
 import { createCollaborativeAgentCommandGateway } from '@/plugins/litexml/command/gateway';
+import LitexmlDataSource from '@/plugins/litexml/data-source/litexml-data-source';
 import {
   collectIllegalNestedDiffPaths,
   findNewIllegalDiffPaths,
@@ -256,6 +268,315 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: payload.requestId,
       status: 'diff-created',
     });
+  });
+
+  it('resolves duplicate service calls from one committed Promise', async () => {
+    editor.setDocument('markdown', 'Hello world');
+    const service = editor.requireService(IRewriteService)!;
+    const selection = await selectRange(editor, 0, 0, 0, 5);
+    const payload = {
+      delay: false,
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'generation-service-duplicate',
+      mode: 'direct' as const,
+      replacementText: 'Hi',
+      requestId: 'request-service-duplicate',
+      selection,
+    };
+
+    const lexical = editor.getLexicalEditor()!;
+    const command = createCommand<void>();
+    let first: ReturnType<typeof service.rewriteRange> | undefined;
+    let second: ReturnType<typeof service.rewriteRange> | undefined;
+    lexical.registerCommand(
+      command,
+      () => {
+        first = service!.rewriteRange(payload);
+        second = service!.rewriteRange(payload);
+        return true;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    );
+    lexical.dispatchCommand(command, undefined);
+    expect(second).toBe(first);
+    await expect(first!).resolves.toMatchObject({
+      requestId: payload.requestId,
+      status: 'applied',
+    });
+    expect(editor.getDocument('markdown')).toBe('Hi world\n');
+  });
+
+  it('keeps an outer command update and rewrite in the committed transaction', async () => {
+    editor.setDocument('markdown', 'Hello world');
+    const lexical = editor.getLexicalEditor()!;
+    const service = editor.requireService(IRewriteService)!;
+    const selection = await selectRange(editor, 0, 0, 0, 5);
+    const command = createCommand<void>();
+    let rewritePromise: Promise<Awaited<ReturnType<typeof service.rewriteRange>>> | undefined;
+
+    lexical.registerCommand(
+      command,
+      () => {
+        lexical.update(() => {
+          const paragraph = $getRoot().getFirstChildOrThrow();
+          if (!$isElementNode(paragraph)) throw new Error('paragraph missing');
+          const last = paragraph.getLastChild();
+          if (!$isTextNode(last)) throw new Error('text missing');
+          last.setTextContent(`${last.getTextContent()}!`);
+        });
+        rewritePromise = service.rewriteRange({
+          delay: false,
+          expectedTextHash: hashRewriteText('Hello'),
+          generationId: 'generation-service-nested',
+          mode: 'direct',
+          replacementText: 'Hi',
+          requestId: 'request-service-nested',
+          selection,
+        });
+        return true;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    );
+
+    lexical.dispatchCommand(command, undefined);
+    const result = await rewritePromise!;
+    expect(result.status).toBe('applied');
+    expect(editor.getDocument('markdown')).toBe('Hi world!\n');
+  });
+
+  it('resolves the service even when a custom result channel throws', async () => {
+    editor.setDocument('markdown', 'Hello world');
+    const service = editor.requireService(IRewriteService)!;
+    const channel = editor.requireService(IRewriteCommandResultService)!;
+    const selection = await selectRange(editor, 0, 0, 0, 5);
+    const publish = vi.spyOn(channel, 'publish').mockImplementation(() => {
+      throw new Error('result-channel-failed');
+    });
+
+    try {
+      const result = await service.rewriteRange({
+        delay: false,
+        expectedTextHash: hashRewriteText('Hello'),
+        generationId: 'generation-service-channel-error',
+        mode: 'direct',
+        replacementText: 'Hi',
+        requestId: 'request-service-channel-error',
+        selection,
+      });
+      expect(result.status).toBe('applied');
+    } finally {
+      publish.mockRestore();
+    }
+  });
+
+  it('keeps a committed rewrite when destroy runs from an update listener', async () => {
+    editor.setDocument('markdown', 'Hello world');
+    const lexical = editor.getLexicalEditor()!;
+    const service = editor.requireService(IRewriteService)!;
+    const selection = await selectRange(editor, 0, 0, 0, 5);
+    let destroyOnNextUpdate = true;
+    const unregister = lexical.registerUpdateListener(() => {
+      if (!destroyOnNextUpdate) return;
+      destroyOnNextUpdate = false;
+      service.destroy();
+    });
+
+    const result = await service.rewriteRange({
+      delay: false,
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'generation-service-destroy-after-commit',
+      mode: 'direct',
+      replacementText: 'Hi',
+      requestId: 'request-service-destroy-after-commit',
+      selection,
+    });
+    unregister();
+
+    expect(result.status).toBe('applied');
+    expect(editor.getDocument('markdown')).toBe('Hi world\n');
+  });
+
+  it('makes a nested review diff available immediately after its commit', async () => {
+    editor.setDocument('markdown', 'Hello world');
+    const lexical = editor.getLexicalEditor()!;
+    const service = editor.requireService(IRewriteService)!;
+    const reviewService = editor.requireService(IRewriteReviewService)!;
+    const selection = await selectRange(editor, 0, 0, 0, 5);
+    const command = createCommand<void>();
+    let rewritePromise: ReturnType<typeof service.rewriteRange> | undefined;
+    lexical.registerCommand(
+      command,
+      () => {
+        lexical.update(() => {
+          const paragraph = $getRoot().getFirstChildOrThrow();
+          if (!$isElementNode(paragraph)) throw new Error('paragraph missing');
+          const last = paragraph.getLastChild();
+          if (!$isTextNode(last)) throw new Error('text missing');
+          last.setTextContent(`${last.getTextContent()}!`);
+        });
+        rewritePromise = service.rewriteRange({
+          attempt: 1,
+          delay: true,
+          expectedTextHash: hashRewriteText('Hello'),
+          generationId: 'generation-service-review-nested',
+          replacementText: 'Hi',
+          requestId: 'request-service-review-nested',
+          selection,
+        });
+        return true;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    );
+
+    lexical.dispatchCommand(command, undefined);
+    const result = await rewritePromise!;
+    expect(result.status).toBe('diff-created');
+    expect(reviewService.listPendingReviews()).toEqual([
+      expect.objectContaining({
+        attempt: 1,
+        commandId: result.commandId,
+        requestId: 'request-service-review-nested',
+      }),
+    ]);
+    const pending = JSON.stringify(editor.getDocument('json'));
+    expect(pending).toContain('Hi');
+    expect(pending).toContain('world!');
+  });
+
+  it('does not report success when Lexical rolls back a transform exception', async () => {
+    editor.setDocument('markdown', 'Hello world');
+    const lexical = editor.getLexicalEditor()!;
+    const service = editor.requireService(IRewriteService)!;
+    const selection = await selectRange(editor, 0, 0, 0, 5);
+    const unregisterTransform = lexical.registerNodeTransform(ParagraphNode, () => {
+      throw new Error('rewrite-transform-failed');
+    });
+
+    const result = await service.rewriteRange({
+      delay: false,
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'generation-service-error',
+      mode: 'direct',
+      replacementText: 'Hi',
+      requestId: 'request-service-error',
+      selection,
+    });
+    unregisterTransform();
+
+    expect(result).toMatchObject({ status: 'failed' });
+    expect(result.error).toContain('rewrite-transform-failed');
+    expect(editor.getDocument('markdown')).toBe('Hello world\n');
+  });
+
+  it('bounds a bare editor Promise when its onError throws before onUpdate', async () => {
+    const bare = createEditor({
+      namespace: 'bare-rewrite-test',
+      nodes: [ParagraphNode],
+      onError: (error) => {
+        throw error;
+      },
+    });
+    const channel = new InMemoryRewriteCommandResultChannel();
+    const service = new RewriteService(bare, new LitexmlDataSource(), channel);
+    let shouldThrow = false;
+    const unregisterTransform = bare.registerNodeTransform(ParagraphNode, () => {
+      if (shouldThrow) throw new Error('bare-rewrite-transform-failed');
+    });
+    let selection: RangeSelection | undefined;
+    bare.update(
+      () => {
+        const paragraph = $createParagraphNode();
+        const text = $createTextNode('Hello world');
+        paragraph.append(text);
+        $getRoot().append(paragraph);
+        selection = $createRangeSelection();
+        selection.anchor.set(text.getKey(), 0, 'text');
+        selection.focus.set(text.getKey(), 5, 'text');
+        $setSelection(selection);
+      },
+      { discrete: true },
+    );
+    shouldThrow = true;
+    const command = createCommand<void>();
+    let pending: ReturnType<typeof service.rewriteRange> | undefined;
+    bare.registerCommand(
+      command,
+      () => {
+        pending = service.rewriteRange({
+          delay: false,
+          expectedTextHash: hashRewriteText('Hello'),
+          generationId: 'generation-bare-error',
+          mode: 'direct',
+          replacementText: 'Hi',
+          requestId: 'request-bare-error',
+          selection: selection!,
+        });
+        return true;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    );
+
+    expect(() => bare.dispatchCommand(command, undefined)).toThrow('bare-rewrite-transform-failed');
+    await expect(pending!).resolves.toMatchObject({
+      status: 'failed',
+    });
+    unregisterTransform();
+    service.destroy();
+  });
+
+  it('ends queued rewrite waits on cancel and destroy', async () => {
+    editor.setDocument('markdown', 'Hello world');
+    const lexical = editor.getLexicalEditor()!;
+    const service = editor.requireService(IRewriteService)!;
+    const selection = await selectRange(editor, 0, 0, 0, 5);
+    const payload = {
+      delay: false,
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'generation-service-cancel',
+      mode: 'direct' as const,
+      replacementText: 'Hi',
+      requestId: 'request-service-cancel',
+      selection,
+    };
+    const command = createCommand<void>();
+    let pending: Promise<Awaited<ReturnType<typeof service.rewriteRange>>> | undefined;
+    lexical.registerCommand(
+      command,
+      () => {
+        pending = service.rewriteRange(payload);
+        service.cancel(payload.requestId);
+        return true;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    );
+    lexical.dispatchCommand(command, undefined);
+    service.cancel(payload.requestId);
+    await expect(pending!).resolves.toMatchObject({
+      error: 'rewrite-range-cancelled',
+      status: 'aborted',
+    });
+    expect(editor.getDocument('markdown')).toBe('Hello world\n');
+
+    const destroyPayload = { ...payload, requestId: 'request-service-destroy' };
+    let destroyPending: Promise<Awaited<ReturnType<typeof service.rewriteRange>>> | undefined;
+    // Queue the operation through the command listener, then tear down before
+    // Lexical drains the nested update callback.
+    const destroyCommand = createCommand<void>();
+    lexical.registerCommand(
+      destroyCommand,
+      () => {
+        destroyPending = service.rewriteRange(destroyPayload);
+        service.destroy();
+        return true;
+      },
+      COMMAND_PRIORITY_EDITOR,
+    );
+    lexical.dispatchCommand(destroyCommand, undefined);
+    await expect(destroyPending!).resolves.toMatchObject({
+      error: 'rewrite-range-destroyed',
+      status: 'aborted',
+    });
+    expect(editor.getDocument('markdown')).toBe('Hello world\n');
   });
 
   it('rewrites a range spanning multiple formatted TextNodes while preserving both sides', async () => {
@@ -612,6 +933,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
     await moment();
     const lexical = editor.getLexicalEditor()!;
     const channel = editor.requireService(IRewriteCommandResultService)!;
+    const waitForResult = vi.spyOn(channel, 'waitForResult');
     const gateway = createCollaborativeAgentCommandGateway(lexical, channel);
     const selection = await selectRange(editor, 0, 0, 0, 5);
     const rewrite = await gateway.dispatch(LITEXML_REWRITE_RANGE_COMMAND, {
@@ -623,6 +945,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       selection,
     });
     expect(rewrite.status).toBe('diff-created');
+    expect(waitForResult).not.toHaveBeenCalled();
     expect(
       (
         await gateway.dispatch(LITEXML_REWRITE_RANGE_COMMAND, {

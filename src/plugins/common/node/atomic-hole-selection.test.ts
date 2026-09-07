@@ -1,7 +1,9 @@
+import { createBinding, type Provider } from '@lexical/yjs';
 import {
   $createNodeSelection,
   $createRangeSelection,
   $createTextNode,
+  $getRoot,
   $getSelection,
   $isNodeSelection,
   $isRangeSelection,
@@ -10,20 +12,19 @@ import {
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
 } from 'lexical';
-import { createBinding, type Provider } from '@lexical/yjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Doc } from 'yjs';
 
 import Editor, { moment } from '@/editor-kernel';
 import { ArtifactPlugin } from '@/plugins/artifact/plugin';
 import { CommonPlugin } from '@/plugins/common/plugin';
-import type { IEditor } from '@/types';
+import { syncCurrentEditorStateToYjs } from '@/plugins/yjs/plugin/utils/sync';
+import { getRenderableAwarenessStates } from '@/plugins/yjs/react';
 import {
   createRelativePositionForLexicalPoint,
   resolveRelativeSelectionPoints,
 } from '@/plugins/yjs/relative-position';
-import { getRenderableAwarenessStates } from '@/plugins/yjs/react';
-import { syncCurrentEditorStateToYjs } from '@/plugins/yjs/plugin/utils/sync';
+import type { IEditor } from '@/types';
 
 import { HoleNode } from './hole';
 
@@ -181,6 +182,29 @@ describe('atomic Hole selection guard', () => {
     const inputPointer = new MouseEvent('pointerdown', { bubbles: true, cancelable: true });
     input.dispatchEvent(inputPointer);
     expect(inputPointer.defaultPrevented).toBe(false);
+
+    lexical.update(
+      () => {
+        const hole = $nodesOfType(HoleNode)[0];
+        hole.getBeforeCursor()?.selectEnd();
+      },
+      { discrete: true },
+    );
+    const inputCompositionStart = new CompositionEvent('compositionstart', {
+      bubbles: true,
+      data: '',
+    });
+    input.dispatchEvent(inputCompositionStart);
+    await moment();
+    expect(
+      lexical.getEditorState().read(() =>
+        $getRoot()
+          .getChildren()
+          .map((node) => node.getType()),
+      ),
+    ).toEqual(['hole']);
+    input.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '' }));
+    await moment();
 
     const iframe = document.createElement('iframe');
     iframe.dataset.holeInteractive = 'true';

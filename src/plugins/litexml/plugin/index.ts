@@ -13,10 +13,12 @@ import {
   InMemoryRewriteCommandResultChannel,
   IRewriteCommandResultService,
   IRewriteReviewService,
+  IRewriteService,
   registerLiteXMLCommand,
   registerLiteXMLRewriteCommand,
   type RewriteCommandResultChannel,
   RewriteReviewService,
+  RewriteService,
 } from '../command';
 import { registerLiteXMLDiffCommand } from '../command/diffCommand';
 import LitexmlDataSource from '../data-source/litexml-data-source';
@@ -102,7 +104,12 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
   onInit(editor: LexicalEditor): void {
     // Plugin initialization logic can be added here if needed
     this.register(registerLiteXMLCommand(editor, this.datasource));
-    this.register(registerLiteXMLRewriteCommand(editor, this.datasource, this.resultChannel));
+    const rewriteService = new RewriteService(editor, this.datasource, this.resultChannel);
+    this.kernel.registerService(IRewriteService, rewriteService);
+    this.register(rewriteService.destroy.bind(rewriteService));
+    this.register(
+      registerLiteXMLRewriteCommand(editor, this.datasource, this.resultChannel, rewriteService),
+    );
     this.register(registerLiteXMLDiffCommand(editor, this.resultChannel));
     this.kernel.registerService(
       IRewriteReviewService,

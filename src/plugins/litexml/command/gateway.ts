@@ -13,6 +13,8 @@ import { MARK_AI_GENERATED_COMMAND } from '@/plugins/properties/command';
 import type { MarkAIGeneratedPayload } from '@/plugins/properties/types';
 
 import {
+  getRewriteService,
+  type IRewriteService,
   type RewriteCommandResult,
   type RewriteCommandResultChannel,
   type RewriteRangeCommandPayload,
@@ -257,6 +259,7 @@ const isBlockRewritePayload = (payload: unknown): payload is ApplyBlockRewritePa
 export function createCollaborativeAgentCommandGateway(
   editor: LexicalEditor,
   resultChannel: RewriteCommandResultChannel,
+  rewriteService?: IRewriteService,
 ): CollaborativeAgentCommandGateway {
   // The caller owns the channel explicitly. A private Lexical editor config is
   // intentionally never inspected; a bare editor gets an isolated channel.
@@ -278,9 +281,27 @@ export function createCollaborativeAgentCommandGateway(
     if (command === LITEXML_REWRITE_RANGE_COMMAND) {
       if (!isRewritePayload(payload)) return result(requestId, 'failed', 'invalid-rewrite-payload');
       const previous = channel.get(payload.requestId);
-      if (previous?.status === 'diff-created' || previous?.status === 'applied') return previous;
-      channel.clear(payload.requestId);
       const rewritePayload = payload.commandId ? payload : { ...payload, commandId };
+
+      if (
+        previous?.status === 'diff-created' ||
+        previous?.status === 'applied' ||
+        previous?.status === 'aborted'
+      ) {
+        return previous;
+      }
+
+      // The service resolves from Lexical's own per-update onUpdate callback,
+      // after the local transaction and the Yjs update listener have run. The
+      // channel remains a durable query/subscription/review surface, while it
+      // is no longer the internal completion bus for this path.
+      const service = rewriteService ?? getRewriteService(editor);
+      if (service) return service.rewriteRange(rewritePayload);
+
+      // Keep the historical two-argument gateway usable for a bare editor
+      // whose command was registered by older integrations. New LitexmlPlugin
+      // instances always install IRewriteService and take the path above.
+      channel.clear(payload.requestId);
       try {
         const handled = editor.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, rewritePayload);
         if (!handled) return result(requestId, 'failed', 'command-not-handled', [], commandId);

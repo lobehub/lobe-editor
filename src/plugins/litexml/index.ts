@@ -34,12 +34,15 @@ export {
 } from './command';
 export {
   executeRewriteRange,
+  getRewriteService,
   InMemoryRewriteCommandResultChannel,
   IRewriteCommandResultService,
   IRewriteReviewService,
+  IRewriteService,
   normalizeRewriteText,
   registerLiteXMLRewriteCommand,
   RewriteReviewService,
+  RewriteService,
   validateLiteXMLInput,
 } from './command';
 export {

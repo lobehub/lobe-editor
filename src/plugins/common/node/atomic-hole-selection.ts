@@ -139,7 +139,10 @@ export const $normalizeAtomicHoleRangeSelection = (selection: unknown): boolean 
 };
 
 /** Whether a DOM/selection target is an explicit internal card editor. */
-export const isAtomicHoleInternalEditorTarget = (target: EventTarget | null): boolean => {
+export const isAtomicHoleInternalEditorTarget = (
+  target: EventTarget | null,
+  outerRoot?: HTMLElement | null,
+): boolean => {
   const element =
     typeof Element !== 'undefined' && target instanceof Element
       ? target
@@ -147,6 +150,14 @@ export const isAtomicHoleInternalEditorTarget = (target: EventTarget | null): bo
         ? target.parentElement
         : null;
   if (!element) return false;
+  const editableAncestor = element.closest<HTMLElement>('[contenteditable="true"]');
+  if (editableAncestor && editableAncestor === outerRoot) {
+    return Boolean(
+      element.closest(
+        'textarea, input, iframe[data-hole-interactive="true"], [data-hole-editable="true"], .cm-editor, .cm-content',
+      ),
+    );
+  }
   return Boolean(
     element.closest(
       'textarea, input, iframe[data-hole-interactive="true"], [contenteditable="true"], [data-hole-editable="true"], .cm-editor, .cm-content',
