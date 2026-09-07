@@ -24,7 +24,7 @@ ChatInput is a versatile container component designed for chat input interfaces.
 
 <Demo editable={false} of={MentionChatDemo} layout="bare" />
 
-This team chat scenario connects the mention editor to a small local business layer. Choose a recipient with `@`, send a message, then switch the simulated recipient in the notification panel to inspect their unread notification. The message sender remains “我”; switching recipients only changes the notification inbox being viewed. The developer inspector shows the editor's `mentionInserted` event, the current result from `GET_MENTIONS_COMMAND`, and the resulting `message.sent` event.
+This team chat scenario connects the mention editor to a small local business layer. Choose one or more recipients with `@`, send a message, then inspect the simulated notification counts. The sender remains “我”; the inspector also exposes the service's explicit `getMentions()` query and the latest committed insertion snapshot. Recipient IDs are deduplicated and filtered by the demo's business handler when the message is sent.
 
 ## APIs
 

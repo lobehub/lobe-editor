@@ -30,8 +30,7 @@ The plugin introduces a custom `MentionNode` that extends Lexical's `DecoratorNo
 
 - **MentionPlugin**: Core plugin class that registers nodes, themes, and decorators
 - **Command Handler**: `INSERT_MENTION_COMMAND` for programmatic mention insertion
-- **Mention Events**: `mentionInserted` reports successful insertions with their label and metadata
-- **Mention Query**: `GET_MENTIONS_COMMAND` returns all current mentions in document order
+- **Mention Service**: `IMentionService` provides a synchronous document query and editor-scoped insertion subscriptions
 - **Selection Observer**: Tracks mention node selection for enhanced UX
 
 ### Markdown Support
@@ -69,32 +68,23 @@ editor.dispatchCommand(INSERT_MENTION_COMMAND, {
 - `label`: Display text for the mention
 - `metadata`: Additional metadata object
 
-### GET_MENTIONS_COMMAND
+## Mention Service
 
-Query the current editor state for every mention, including duplicate occurrences. The result keeps document order and returns the stable metadata supplied at insertion time:
-
-```typescript
-editor.dispatchCommand(GET_MENTIONS_COMMAND, {
-  onResult: (mentions) => {
-    // mentions: Array<{ label: string; metadata: Record<string, unknown> }>
-    console.log(mentions);
-  },
-});
-```
-
-The command is a read-only query. Importing a document, undoing, deleting, or selecting a mention does not emit an insertion event.
-
-### mentionInserted event
-
-Listen on the editor kernel when an `INSERT_MENTION_COMMAND` successfully inserts a mention:
+Use the editor-scoped service for both the current mention snapshot and insertion notifications. `getMentions()` is synchronous, preserves document order and duplicate occurrences, and returns detached metadata snapshots:
 
 ```typescript
-editor.on('mentionInserted', ({ label, metadata }) => {
-  console.log('mention inserted', label, metadata.id);
+import { IMentionService } from '@lobehub/editor';
+
+const service = editor.requireService(IMentionService);
+const unsubscribe = service?.subscribe((mention) => {
+  console.log('mention inserted after commit', mention);
 });
+
+const mentions = service?.getMentions() ?? [];
+unsubscribe?.();
 ```
 
-This editor event describes editing state only. Applications can use it for UI or analytics, while message delivery should happen from an explicit message submission event. See the complete [ChatInput mention notification scenario](/components/react/chat-input#mention-notifications) for the business layer and local in-memory delivery flow.
+The subscription fires after a successful `INSERT_MENTION_COMMAND` commit. Importing a document, deleting a mention, undoing, or selecting a mention does not emit an insertion notification. Applications can use the callback for UI or analytics, while message delivery should happen from an explicit message submission event. See the complete [ChatInput mention notification scenario](/components/react/chat-input#mention-notifications) for the business layer and local in-memory delivery flow.
 
 ## Plugin Configuration
 
