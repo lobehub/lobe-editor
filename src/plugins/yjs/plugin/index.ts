@@ -19,18 +19,19 @@ import type { Doc, Text as YText, YEvent } from 'yjs';
 import { UndoManager } from 'yjs';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import {
+  getOrCreatePropertiesService,
+  type IPropertiesService,
+} from '@/plugins/properties/service/properties';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { IYjsService, YjsService } from '../service';
+import { YjsPropertiesProvider } from './properties-provider';
 import type { YjsPluginOptions } from './types';
 import { getAwarenessUsers } from './utils/awareness';
 import { createRemoteCaretViewportStabilizer } from './utils/caret-viewport-anchor';
 import { clearEditorSkipCollab, initializeEditor } from './utils/editor-state';
-import {
-  createYjsHumanOrigin,
-  registerYjsHistory,
-  type YjsHistoryOrigin,
-} from './utils/history';
+import { createYjsHumanOrigin, registerYjsHistory, type YjsHistoryOrigin } from './utils/history';
 import {
   $syncAnnotationNodePropertiesFromYjs,
   ensureYjsNodePropertiesFromEditorState,
@@ -156,6 +157,8 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
   private hasInitialized = false;
   private isReloadingDoc = false;
   private markDocumentChanged: (() => void) | null = null;
+  private propertiesProviderDisposer: (() => void) | null = null;
+  private readonly propertiesService: IPropertiesService;
   private service = new YjsService();
 
   constructor(
@@ -163,7 +166,9 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     public config?: YjsPluginOptions,
   ) {
     super();
+    this.propertiesService = getOrCreatePropertiesService(kernel);
     kernel.registerServiceHotReload(IYjsService, this.service);
+    this.registerPropertiesProvider();
   }
 
   destroy(): void {
@@ -178,6 +183,20 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     this.isReloadingDoc = false;
     this.markDocumentChanged = null;
     this.service.setState(null);
+  }
+
+  private registerPropertiesProvider(): void {
+    if (this.propertiesProviderDisposer) return;
+
+    const provider = new YjsPropertiesProvider(this.service);
+    const disposer = this.propertiesService.registerCollaborationProvider(provider);
+    this.propertiesProviderDisposer = disposer;
+    this.register(() => {
+      disposer();
+      if (this.propertiesProviderDisposer === disposer) {
+        this.propertiesProviderDisposer = null;
+      }
+    });
   }
 
   /**
@@ -297,6 +316,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
       this.docMap.set(id, doc);
       this.isReloadingDoc = true;
       syncState.initialSyncApplied = false;
+      this.service.setReady(false);
       this.service.setState({
         binding,
         doc,
@@ -320,6 +340,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
 
       if (this.isReloadingDoc) {
         this.isReloadingDoc = false;
+        this.service.setReady(true);
         return;
       }
 
@@ -327,16 +348,19 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
         syncState.initialSyncApplied = true;
         if (binding.root._xmlText._length > 0) {
           replaceLexicalStateFromYjs(editor, binding);
+          this.service.setReady(true);
           return;
         }
       }
 
       if (binding.root.isEmpty() && binding.root._xmlText._length > 0) {
         replaceLexicalStateFromYjs(editor, binding);
+        this.service.setReady(true);
         return;
       }
 
       this.bootstrapCurrentEditorState?.();
+      this.service.setReady(true);
     };
 
     provider.on('reload', onProviderDocReload);
@@ -520,6 +544,10 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     if (this.hasInitialized) {
       return;
     }
+
+    // A reconfigured plugin has already disposed its previous provider
+    // registration in destroy(); restore the neutral bridge before binding.
+    this.registerPropertiesProvider();
 
     this.hasInitialized = true;
 

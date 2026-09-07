@@ -23,6 +23,7 @@ export interface YjsPluginState {
 
 type YjsPluginStateListener = (state: YjsPluginState | null) => void;
 type YjsAwarenessUsersListener = (users: YjsAwarenessUser[]) => void;
+type YjsReadinessListener = (ready: boolean) => void;
 
 /**
  * `getDocument('json')` includes each Lexical runtime node key as `id`. Those
@@ -100,6 +101,8 @@ export class YjsService {
   private awarenessUsers: YjsAwarenessUser[] = [];
   private awarenessUsersListeners = new Set<YjsAwarenessUsersListener>();
   private listeners = new Set<YjsPluginStateListener>();
+  private readinessListeners = new Set<YjsReadinessListener>();
+  private ready = false;
   private state: YjsPluginState | null = null;
 
   getAwarenessUsers(): YjsAwarenessUser[] {
@@ -108,6 +111,16 @@ export class YjsService {
 
   getState(): YjsPluginState | null {
     return this.state;
+  }
+
+  /**
+   * Whether the current binding has completed its initial room snapshot.
+   * This is a binding lifecycle signal, not transport authentication or edit
+   * permission; it remains true through transient reconnects and resets when
+   * the provider replaces the document/binding.
+   */
+  isReady(): boolean {
+    return this.state !== null && this.ready;
   }
 
   /**
@@ -188,8 +201,19 @@ export class YjsService {
   }
 
   setState(state: YjsPluginState | null): void {
+    const readinessChanged = this.ready;
     this.state = state;
+    this.ready = false;
     this.listeners.forEach((listener) => listener(state));
+    if (readinessChanged) this.readinessListeners.forEach((listener) => listener(false));
+  }
+
+  /** Publish completion of the current binding's initial room snapshot. */
+  setReady(ready: boolean): void {
+    const nextReady = ready && this.state !== null;
+    if (this.ready === nextReady) return;
+    this.ready = nextReady;
+    this.readinessListeners.forEach((listener) => listener(nextReady));
   }
 
   subscribeAwarenessUsers(listener: YjsAwarenessUsersListener): () => void {
@@ -207,6 +231,15 @@ export class YjsService {
 
     return () => {
       this.listeners.delete(listener);
+    };
+  }
+
+  subscribeReadiness(listener: YjsReadinessListener): () => void {
+    this.readinessListeners.add(listener);
+    listener(this.ready);
+
+    return () => {
+      this.readinessListeners.delete(listener);
     };
   }
 }

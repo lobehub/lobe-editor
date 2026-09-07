@@ -15,7 +15,6 @@ import {
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ArtifactNode } from '@/plugins/artifact/node/ArtifactNode';
 import { CollapsibleNode } from '@/plugins/collapsible/node/CollapsibleNode';
-import { IYjsService, type YjsPluginState } from '@/plugins/yjs/service';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerPropertiesCommands } from '../command';
@@ -29,6 +28,7 @@ import {
   readAnnotationSnapshot,
   registerJSONDataSourceMetadataExtension,
 } from '../service/json-metadata';
+import { getOrCreatePropertiesService, type IPropertiesService } from '../service/properties';
 import { $getNodeProperties, propertiesState } from '../state';
 import { registerStreamingGenerationRegionGuard } from '../streaming-guard';
 import {
@@ -64,9 +64,11 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
   static pluginName = 'PropertiesPlugin';
 
   readonly service = new AnnotationServiceImpl();
+  readonly propertiesService: IPropertiesService;
   private reconcileScheduled = false;
   private nodeIdMigrationScheduled = false;
   private destroyed = false;
+  private collaborationCleanup: (() => void) | null = null;
   private readonly seenAnchoredIds = new Set<string>();
 
   constructor(
@@ -74,6 +76,7 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
     public config: PropertiesPluginOptions = {},
   ) {
     super();
+    this.propertiesService = getOrCreatePropertiesService(kernel);
     this.service.setStorageMode(config.annotationStorageMode ?? config.storageMode ?? 'embedded');
     kernel.registerServiceHotReload(IAnnotationService, this.service);
     // Keep the state config referenced by the plugin so consumers can import it from a single
@@ -115,24 +118,33 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
       }),
     );
 
-    const yjsService = this.kernel.requireService(IYjsService);
-    if (yjsService) {
-      this.register(
-        yjsService.subscribe((state) => {
-          if (state?.doc) {
-            this.service.attachYMap(
-              state.doc.getMap('lobe:annotations') as unknown as AnnotationMap,
-            );
-          }
-          // Yjs may attach after the editor has already hydrated a legacy
-          // document. Re-run the migration once its shared node map exists;
-          // the migration then prefers the shared item identity as its seed.
-          if (state) {
-            queueMicrotask(() => this.migrateNodeIds(editor));
-          }
-        }),
-      );
-    }
+    // Collaboration is an optional provider. The provider owns transport
+    // details (including Y.Map hookup and shared-item identity), while this
+    // plugin only reacts to its neutral readiness/identity contract.
+    this.register(
+      this.propertiesService.subscribeCollaborationProvider((provider) => {
+        this.collaborationCleanup?.();
+        this.collaborationCleanup = null;
+
+        if (provider) {
+          const detachAnnotationStorage = provider.attachAnnotationStorage({
+            attachMap: (map: AnnotationMap, owner?: object) => this.service.attachYMap(map, owner),
+            detachMap: (map?: AnnotationMap, owner?: object) => this.service.detachYMap(map, owner),
+          });
+          const unsubscribeProvider = provider.subscribe(() => {
+            this.scheduleNodeIdMigration(editor);
+          });
+          this.collaborationCleanup = () => {
+            unsubscribeProvider();
+            detachAnnotationStorage();
+          };
+        }
+        // Removing an initializing provider restores standalone behavior. A
+        // pending migration must be retried even when no replacement provider
+        // is installed.
+        this.scheduleNodeIdMigration(editor);
+      }),
+    );
 
     this.register(
       registerPropertiesCommands(editor, this.kernel, {
@@ -252,6 +264,8 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
 
   override destroy(): void {
     this.destroyed = true;
+    this.collaborationCleanup?.();
+    this.collaborationCleanup = null;
     super.destroy();
   }
 
@@ -277,7 +291,7 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
           // A collaborative binding owns the stable identity seed. Avoid
           // assigning a local value before the binding is ready, otherwise
           // simultaneous clients could preserve different legacy IDs.
-          if (this.kernel.requireService(IYjsService)?.getState()) return;
+          if (this.propertiesService.getCollaborationProvider()) return;
           $ensureNodeId(node);
         }),
       );
@@ -287,16 +301,16 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
   /** Run an idempotent legacy migration in its own syncable history group. */
   private migrateNodeIds(editor: LexicalEditor): void {
     if (this.destroyed) return;
-    const yjsState = this.kernel.requireService(IYjsService)?.getState();
+    const provider = this.propertiesService.getCollaborationProvider();
     // Wait for the collaboration plugin to publish its binding. The first
     // migration must not race that setup and choose a client-local identity.
-    if (this.kernel.requireService(IYjsService) && !yjsState) return;
+    if (provider && provider.getReadiness() !== 'ready') return;
     if (!this.hasNodeIdentityConflicts(editor)) return;
 
     editor.update(
       () => {
         $ensureNodeIdsInTree($getRoot(), {
-          stableIdentity: yjsState ? (node) => getYjsNodeIdentity(yjsState, node) : undefined,
+          stableIdentity: provider ? (node) => provider.getNodeIdentity(node) : undefined,
         });
       },
       // This keeps migration out of adjacent typing history while allowing
@@ -391,24 +405,6 @@ function getDeletedNodeKeys(
     });
   });
   return deletedNodeKeys;
-}
-
-function getYjsNodeIdentity(
-  state: YjsPluginState,
-  node: import('lexical').LexicalNode,
-): string | undefined {
-  const collabNode = state.binding.collabNodeMap.get(node.getKey());
-  if (!collabNode) return undefined;
-
-  const item = (
-    collabNode.getSharedType() as unknown as {
-      _item?: { id?: { client?: number; clock?: number } } | null;
-    }
-  )._item;
-  if (!item?.id || !Number.isSafeInteger(item.id.client) || !Number.isSafeInteger(item.id.clock)) {
-    return undefined;
-  }
-  return `${item.id.client}:${item.id.clock}`;
 }
 
 function getDeletedAnnotationIds(

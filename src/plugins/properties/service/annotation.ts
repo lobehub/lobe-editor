@@ -116,7 +116,9 @@ export class AnnotationServiceImpl implements AnnotationService {
   private listeners = new Set<AnnotationServiceListener>();
   private mutationListeners = new Set<AnnotationMutationListener>();
   private attachedYMap: AnnotationMap | null = null;
+  private attachedYMapOwner: object | null = null;
   private migrationIds = new WeakMap<object, Set<string>>();
+  private seedNextYMap = true;
   private storageMode: AnnotationStorageMode = 'embedded';
   private yMapObserver: (() => void) | null = null;
 
@@ -159,27 +161,56 @@ export class AnnotationServiceImpl implements AnnotationService {
     this.emit();
   }
 
-  attachYMap(map: AnnotationMap): void {
+  attachYMap(map: AnnotationMap, owner?: object): void {
     // Match the legacy service's one-time bootstrap: JSON/imported records are
     // copied into the first Y.Map, but a later provider reload must not seed a
     // fresh shared document with stale records from the previous map.
-    const localRecords = this.attachedYMap ? [] : this.getAll();
+    const localRecords = this.attachedYMap || !this.seedNextYMap ? [] : this.getAll();
     this.detachYMapObserver();
     this.attachedYMap = map;
+    this.attachedYMapOwner = owner ?? null;
 
     if (this.storageMode === 'external') {
       // Legacy Yjs records are read only once as a migration source. New
       // creates, updates, removes, and imports continue to target `cache`.
       this.map = this.cache;
       this.migrateLegacyRecords(map);
+      this.seedNextYMap = false;
       return;
     }
 
     this.map = map;
-    if (map.size === 0) {
+    if (map.size === 0 && this.seedNextYMap) {
       for (const record of localRecords) map.set(record.id, record);
     }
+    // A room is authoritative after the first attachment. In particular, a
+    // provider teardown must not make records from the old room eligible for
+    // bootstrap into a newly attached room.
+    this.seedNextYMap = false;
     this.observeYMap(map);
+    this.emit();
+  }
+
+  /**
+   * Detach collaboration storage without seeding its records into a future
+   * room. When supplied, `owner` scopes cleanup to one provider registration;
+   * existing one-argument `attachYMap(map)` callers remain supported.
+   */
+  detachYMap(map?: AnnotationMap, owner?: object): void {
+    if (!this.attachedYMap) return;
+    if (map && this.attachedYMap !== map) return;
+    if (owner && this.attachedYMapOwner !== owner) return;
+
+    const records = this.storageMode === 'embedded' ? this.getAll() : this.cacheRecords();
+    this.detachYMapObserver();
+    this.attachedYMap = null;
+    this.attachedYMapOwner = null;
+    this.cache.clear();
+    for (const record of records) this.cache.set(record.id, record);
+    this.map = this.cache;
+    // These records belong to the detached room. Keep them available to the
+    // standalone service, but never use them to initialize a different room.
+    this.seedNextYMap = false;
     this.emit();
   }
 

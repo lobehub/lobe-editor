@@ -1,6 +1,13 @@
-import { type Binding, createBinding, type Provider, type ProviderAwareness } from '@lexical/yjs';
+import { createBinding, type Provider, type ProviderAwareness } from '@lexical/yjs';
 import { $createArtifactNode } from '@/plugins/artifact/node/ArtifactNode';
-import { $getRoot, $isElementNode, REDO_COMMAND, UNDO_COMMAND, type LexicalNode } from 'lexical';
+import {
+  $getRoot,
+  $isElementNode,
+  ElementNode,
+  REDO_COMMAND,
+  UNDO_COMMAND,
+  type LexicalNode,
+} from 'lexical';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyUpdate, Doc, encodeStateAsUpdate, encodeStateVector } from 'yjs';
 
@@ -34,6 +41,7 @@ type SocketListener = (event: WebSocketMessageEvent) => void;
 class RestartableRoom {
   doc = new Doc();
   readonly sockets: RestartableSocket[] = [];
+  updateCount = 0;
 
   connect(socket: RestartableSocket): void {
     this.sockets.push(socket);
@@ -83,6 +91,7 @@ class RestartableRoom {
 
     if (message.type !== 'update') return;
 
+    this.updateCount += 1;
     applyUpdate(this.doc, decodeYjsBase64(message.update));
     for (const peer of this.sockets) {
       if (peer !== socket && peer.readyState === RestartableSocket.OPEN) {
@@ -247,6 +256,11 @@ const editorProjection = (kernel: IEditor): { artifactCount: number; text: strin
   });
 };
 
+const semanticEditorText = (kernel: IEditor): string => {
+  const lexical = kernel.getLexicalEditor()!;
+  return lexical.getEditorState().read(() => ElementNode.prototype.getTextContent.call($getRoot()));
+};
+
 /** Rebuild a server Y.Doc by importing only the persisted JSON projection. */
 const createFreshServerDoc = async (json: string): Promise<Doc> => {
   const snapshotKernel = Editor.createEditor();
@@ -384,8 +398,12 @@ describe('browser reconnect against a JSON-rebuilt Yjs snapshot', () => {
     await settle();
 
     const before = editorProjection(first.kernel);
+    const updatesBeforeReconnect = room.updateCount;
     expect(before.artifactCount).toBe(1);
     expect(editorProjection(second.kernel)).toEqual(before);
+    expect(semanticEditorText(first.kernel)).toBe(before.text);
+    expect(semanticEditorText(second.kernel)).toBe(before.text);
+    expect(semanticEditorText(first.kernel)).toBe(semanticEditorText(second.kernel));
 
     // This is the supported restart contract: persistence restores the exact
     // Yjs update bytes, preserving every struct/client ID.
@@ -403,6 +421,9 @@ describe('browser reconnect against a JSON-rebuilt Yjs snapshot', () => {
       firstSocket = RestartableSocket.instances.at(-1);
 
       expect(editorProjection(first.kernel)).toEqual(before);
+      expect(semanticEditorText(first.kernel)).toBe(before.text);
+      expect(semanticEditorText(second.kernel)).toBe(before.text);
+      expect(room.updateCount).toBe(updatesBeforeReconnect);
 
       // Force a second sync against the same server identity without another
       // local edit. Reconnect should keep the existing collab mapping rather
@@ -413,6 +434,8 @@ describe('browser reconnect against a JSON-rebuilt Yjs snapshot', () => {
       await settle();
       firstSocket = RestartableSocket.instances.at(-1);
       expect(editorProjection(first.kernel)).toEqual(before);
+      expect(semanticEditorText(first.kernel)).toBe(before.text);
+      expect(room.updateCount).toBe(updatesBeforeReconnect);
     }
   });
 
