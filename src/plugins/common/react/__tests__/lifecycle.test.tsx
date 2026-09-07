@@ -1,16 +1,20 @@
-import { Activity, act } from 'react';
+import { KEY_DOWN_COMMAND } from 'lexical';
+import { act, Activity, StrictMode, useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { COMMAND_PRIORITY_CRITICAL, KEY_DOWN_COMMAND } from 'lexical';
 
 import EditorKernel from '@/editor-kernel';
+import { CommonPlugin } from '@/plugins/common';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import Editor from '@/react/Editor';
+import { useEditor } from '@/react/hooks/useEditor';
 import type { IEditor } from '@/types';
 
-describe('React editor lifecycle', () => {
-  let host: HTMLDivElement;
-  let root: Root;
+const hasExplicitGC = typeof (globalThis as typeof globalThis & { gc?: unknown }).gc === 'function';
+
+describe('React editor root lifecycle', () => {
+  let host: HTMLDivElement | null;
+  let root: Root | null;
 
   beforeEach(() => {
     (
@@ -22,62 +26,325 @@ describe('React editor lifecycle', () => {
   });
 
   afterEach(() => {
-    act(() => root.unmount());
-    host.remove();
+    if (root) {
+      act(() => root?.unmount());
+    }
+    host?.remove();
+    root = null;
+    host = null;
   });
 
-  it('detaches an old root and rebuilds plugins after external destroy and Activity reattach', () => {
-    const editor = EditorKernel.createEditor();
+  it('detaches and reattaches one editor through Activity without resetting input state', () => {
+    let editor: IEditor | undefined;
     let mode: 'hidden' | 'visible' = 'visible';
-    const onPressEnter = vi.fn(() => true);
 
     const renderEditor = () =>
-      root.render(
+      root!.render(
         <Activity mode={mode}>
-          <Editor content="initial" editor={editor} onPressEnter={onPressEnter} type="text" />
+          <Editor
+            content="initial"
+            onInit={(nextEditor) => {
+              editor = nextEditor;
+            }}
+            type="text"
+          />
         </Activity>,
       );
 
     act(renderEditor);
-    const firstLexicalEditor = editor.getLexicalEditor();
-    const firstRoot = editor.getRootElement();
+
+    expect(editor).toBeDefined();
+    const initialEditor = editor!;
+    const initialLexicalEditor = initialEditor.getLexicalEditor();
+    const initialRoot = initialEditor.getRootElement();
+    expect(initialLexicalEditor).toBeDefined();
+    expect(initialRoot).toBeInstanceOf(HTMLElement);
+
+    act(() => {
+      initialEditor.setDocument('text', 'before hide');
+    });
+    const beforeHideState = initialLexicalEditor!.getEditorState();
+
+    mode = 'hidden';
+    act(renderEditor);
+
+    expect(initialEditor.getLexicalEditor()).toBe(initialLexicalEditor);
+    expect(initialEditor.getRootElement()).toBeNull();
+    expect(initialLexicalEditor!.getEditorState()).toBe(beforeHideState);
+
+    mode = 'visible';
+    act(renderEditor);
+
+    expect(editor).toBe(initialEditor);
+    expect(initialEditor.getLexicalEditor()).toBe(initialLexicalEditor);
+    expect(initialEditor.getRootElement()).toBe(initialRoot);
+
+    act(() => {
+      initialEditor.setDocument('text', 'after show');
+    });
+    expect(initialEditor.getDocument('text')).toBe('after show');
+  });
+
+  it('registers change listeners after attach and after Activity reattach', async () => {
+    const onChange = vi.fn();
+    const onTextChange = vi.fn();
+    let editor: IEditor | undefined;
+    let mode: 'hidden' | 'visible' = 'visible';
+
+    const renderEditor = () =>
+      root!.render(
+        <Activity mode={mode}>
+          <Editor
+            content="initial"
+            debounceWait={0}
+            onChange={onChange}
+            onInit={(nextEditor) => {
+              editor = nextEditor;
+            }}
+            onTextChange={onTextChange}
+            type="text"
+          />
+        </Activity>,
+      );
+    const flushDebouncedCallbacks = () =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
+    const setDocumentAndFlush = async (content: string) => {
+      await act(async () => {
+        editor!.setDocument('text', content);
+        await flushDebouncedCallbacks();
+      });
+    };
+
+    act(renderEditor);
+    expect(editor?.getLexicalEditor()).toBeDefined();
+
+    // The initial document is loaded before the update listener is attached.
+    // Clear any delayed initial work so the assertions cover later updates.
+    await act(async () => {
+      await flushDebouncedCallbacks();
+    });
+    onChange.mockClear();
+    onTextChange.mockClear();
+
+    await setDocumentAndFlush('first update');
+    await setDocumentAndFlush('second update');
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onTextChange).toHaveBeenCalledTimes(1);
+
+    mode = 'hidden';
+    act(renderEditor);
+    expect(editor?.getRootElement()).toBeNull();
+
+    mode = 'visible';
+    act(renderEditor);
+    expect(editor?.getLexicalEditor()).toBeDefined();
+    onChange.mockClear();
+    onTextChange.mockClear();
+
+    await setDocumentAndFlush('after reattach');
+    await setDocumentAndFlush('after second reattach');
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onTextChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('rebuilds the React editor runtime after an external destroy before reattach', () => {
+    const externalEditor = EditorKernel.createEditor();
+    let mode: 'hidden' | 'visible' = 'visible';
+    const onPressEnter = vi.fn(() => true);
+
+    const renderEditor = () =>
+      root!.render(
+        <Activity mode={mode}>
+          <Editor
+            content="initial"
+            editor={externalEditor}
+            onPressEnter={onPressEnter}
+            type="text"
+          />
+        </Activity>,
+      );
+
+    act(renderEditor);
+
+    const firstLexicalEditor = externalEditor.getLexicalEditor();
     expect(firstLexicalEditor).toBeDefined();
-    expect(firstRoot).toBeInstanceOf(HTMLElement);
-    expect(editor.getDocument('text')).toBe('initial');
-    expect(editor.requireService(IMarkdownShortCutService)).not.toBeNull();
+    expect(externalEditor.getDocument('text')).toBe('initial');
+    expect(externalEditor.requireService(IMarkdownShortCutService)).not.toBeNull();
 
-    const oldRootCommand = vi.fn(() => false);
-    firstLexicalEditor!.registerCommand(
-      KEY_DOWN_COMMAND,
-      oldRootCommand,
-      COMMAND_PRIORITY_CRITICAL,
-    );
-    firstRoot!.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'F2' }));
-    expect(oldRootCommand).toHaveBeenCalledTimes(1);
-
-    editor.destroy();
-    firstRoot!.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'F2' }));
-    expect(oldRootCommand).toHaveBeenCalledTimes(1);
-    expect(editor.getLexicalEditor()).toBeNull();
+    externalEditor.destroy();
+    expect(externalEditor.getLexicalEditor()).toBeNull();
 
     mode = 'hidden';
     act(renderEditor);
     mode = 'visible';
     act(renderEditor);
 
-    const reinitializedLexicalEditor = editor.getLexicalEditor();
+    const reinitializedLexicalEditor = externalEditor.getLexicalEditor();
     expect(reinitializedLexicalEditor).toBeDefined();
     expect(reinitializedLexicalEditor).not.toBe(firstLexicalEditor);
-    expect(editor.getRootElement()).toBeInstanceOf(HTMLElement);
-    expect(editor.getDocument('text')).toBe('initial');
-    expect(editor.requireService(IMarkdownShortCutService)).not.toBeNull();
-    expect(editor.isEditable()).toBe(true);
+    expect(externalEditor.getRootElement()).toBeInstanceOf(HTMLElement);
+    expect(externalEditor.getDocument('text')).toBe('initial');
+    expect(externalEditor.requireService(IMarkdownShortCutService)).not.toBeNull();
+    expect(externalEditor.isEditable()).toBe(true);
 
     expect(
-      editor.dispatchCommand(KEY_DOWN_COMMAND, new KeyboardEvent('keydown', { key: 'Enter' })),
+      externalEditor.dispatchCommand(
+        KEY_DOWN_COMMAND,
+        new KeyboardEvent('keydown', { key: 'Enter' }),
+      ),
     ).toBe(true);
     expect(onPressEnter).toHaveBeenCalledTimes(1);
 
-    editor.destroy();
+    externalEditor.setDocument('text', 'restored');
+    expect(externalEditor.getDocument('text')).toBe('restored');
+    externalEditor.destroy();
   });
+
+  it('keeps StrictMode Activity hide/show and duplicate cleanup listener-safe', () => {
+    const addEventListener = vi.spyOn(window, 'addEventListener');
+    const removeEventListener = vi.spyOn(window, 'removeEventListener');
+    let editor: IEditor | undefined;
+    let mode: 'hidden' | 'visible' = 'visible';
+    let editable = true;
+
+    const StrictModeEditor = () => {
+      const nextEditor = useEditor();
+      editor = nextEditor;
+      return <Editor editor={nextEditor} content="initial" editable={editable} type="text" />;
+    };
+
+    const renderEditor = () =>
+      root!.render(
+        <StrictMode>
+          <Activity mode={mode}>
+            <StrictModeEditor />
+          </Activity>
+        </StrictMode>,
+      );
+    const messageAdds = () =>
+      addEventListener.mock.calls.filter(([type]) => type === 'message').length;
+    const messageRemoves = () =>
+      removeEventListener.mock.calls.filter(([type]) => type === 'message').length;
+    const activeDragonListeners = () => messageAdds() - messageRemoves();
+
+    try {
+      act(renderEditor);
+      const initialLexicalEditor = editor?.getLexicalEditor();
+      expect(initialLexicalEditor).toBeDefined();
+      expect(activeDragonListeners()).toBe(1);
+
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        mode = 'hidden';
+        act(renderEditor);
+        expect(editor?.getRootElement()).toBeNull();
+        expect(activeDragonListeners()).toBe(0);
+
+        editable = attempt % 2 === 0;
+        mode = 'visible';
+        act(renderEditor);
+        expect(editor?.getLexicalEditor()).toBe(initialLexicalEditor);
+        expect(editor?.isEditable()).toBe(editable);
+        expect(activeDragonListeners()).toBe(1);
+      }
+
+      mode = 'hidden';
+      act(renderEditor);
+      expect(() => act(() => root?.unmount())).not.toThrow();
+      root = null;
+      expect(activeDragonListeners()).toBe(0);
+      expect(messageAdds()).toBe(messageRemoves());
+    } finally {
+      if (root) {
+        act(() => root?.unmount());
+        root = null;
+      }
+      addEventListener.mockRestore();
+      removeEventListener.mockRestore();
+    }
+  });
+
+  it('destroys a hook-owned editor when a permanent owner opts into autoDestroy', () => {
+    let editor: IEditor | undefined;
+
+    const PermanentEditor = () => {
+      const nextEditor = useEditor({ autoDestroy: true });
+      const containerRef = useRef<HTMLDivElement>(null);
+      editor = nextEditor;
+
+      useEffect(() => {
+        nextEditor.registerPlugin(CommonPlugin);
+        const container = containerRef.current;
+        if (container) {
+          nextEditor.setRootElement(container);
+        }
+      }, [nextEditor]);
+
+      return <div ref={containerRef} />;
+    };
+
+    act(() => root!.render(<PermanentEditor />));
+    expect(editor?.getLexicalEditor()).toBeDefined();
+
+    act(() => root?.unmount());
+    root = null;
+
+    expect(editor?.getLexicalEditor()).toBeNull();
+  });
+
+  it.skipIf(!hasExplicitGC)(
+    'allows a hook-owned editor to become collectible after unmount',
+    async () => {
+      let editorRef: WeakRef<IEditor> | undefined;
+      let mode: 'hidden' | 'visible' = 'visible';
+
+      const HookOwnedEditor = () => {
+        const editor = useEditor();
+        const containerRef = useRef<HTMLDivElement>(null);
+
+        useEffect(() => {
+          editorRef = new WeakRef(editor);
+          editor.registerPlugin(CommonPlugin);
+          const container = containerRef.current;
+          if (container) {
+            editor.setRootElement(container);
+          }
+        }, [editor]);
+
+        return <div ref={containerRef} />;
+      };
+
+      const renderHookOwnedEditor = () =>
+        root!.render(
+          <Activity mode={mode}>
+            <HookOwnedEditor />
+          </Activity>,
+        );
+
+      act(renderHookOwnedEditor);
+      expect(editorRef?.deref()).toBeDefined();
+
+      mode = 'hidden';
+      act(renderHookOwnedEditor);
+      expect(editorRef?.deref()?.getRootElement()).toBeNull();
+
+      act(() => root?.unmount());
+      root = null;
+      host?.remove();
+      host = null;
+
+      const gc = (globalThis as typeof globalThis & { gc?: () => void }).gc;
+      expect(gc).toBeTypeOf('function');
+
+      // Do not dereference the WeakRef in the loop condition: the temporary
+      // strong reference would keep the editor alive through the next GC run.
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        gc!();
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+
+      expect(editorRef?.deref()).toBeUndefined();
+    },
+  );
 });

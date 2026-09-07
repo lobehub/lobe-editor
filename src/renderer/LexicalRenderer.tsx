@@ -1,6 +1,8 @@
 import { createHeadlessEditor } from '@lexical/headless';
+import { MotionComponent, MotionProvider } from '@lobehub/ui';
 import { $getRoot } from 'lexical';
-import { createElement, type ReactElement, type ReactNode, useMemo } from 'react';
+import { motion } from 'motion/react';
+import { createElement, type ReactElement, type ReactNode, use, useMemo } from 'react';
 
 import { renderNode } from './engine/render-tree';
 import { rendererNodes } from './nodes';
@@ -18,6 +20,11 @@ export function LexicalRenderer({
   style,
   variant,
 }: LexicalRendererProps): ReactElement {
+  // @lobehub/ui >= 5.38 requires a motion component from context (ConfigProvider
+  // or MotionProvider). The renderer must stay self-contained for standalone
+  // SSR/static usage, so provide a default only when the host has not already
+  // supplied one — a host-provided (possibly lazy) motion component wins.
+  const inheritedMotion = use(MotionComponent);
   const content = useMemo(() => {
     const nodes = extraNodes ? [...rendererNodes, ...extraNodes] : rendererNodes;
     const registry = createDefaultRenderers();
@@ -50,7 +57,7 @@ export function LexicalRenderer({
 
   // Mirrors Editor's structure: outer div (flex column + CSS vars + theme rules)
   // → inner div (block, allows normal margin collapse like contentEditable)
-  return createElement(
+  const tree = createElement(
     Tag,
     {
       className: getRendererClassName(className),
@@ -58,4 +65,6 @@ export function LexicalRenderer({
     },
     createElement('div', null, content),
   );
+
+  return inheritedMotion ? tree : createElement(MotionProvider, { children: tree, motion });
 }

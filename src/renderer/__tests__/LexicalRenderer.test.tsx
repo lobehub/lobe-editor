@@ -1,4 +1,6 @@
+import { MotionProvider } from '@lobehub/ui';
 import { DecoratorNode, type LexicalUpdateJSON, type SerializedEditorState } from 'lexical';
+import { motion } from 'motion/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
@@ -194,6 +196,26 @@ describe('LexicalRenderer', () => {
     const html = toHTML(value);
     expect(html).toContain('<pre');
     expect(html).toContain('JavaScript');
+    expect(html).toContain('const x = 1;');
+  });
+
+  it('respects a host-provided motion context', () => {
+    const value = makeEditorState([
+      {
+        code: 'const x = 1;',
+        codeTheme: '',
+        language: 'javascript',
+        options: { indentWithTabs: false, lineNumbers: false, tabSize: 2 },
+        type: 'code',
+        version: 1,
+      },
+    ]);
+
+    const html = renderToStaticMarkup(
+      <MotionProvider motion={motion}>
+        <LexicalRenderer value={value} />
+      </MotionProvider>,
+    );
     expect(html).toContain('const x = 1;');
   });
 
