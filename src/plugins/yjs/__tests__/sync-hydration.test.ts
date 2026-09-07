@@ -1,6 +1,13 @@
-import { createBinding, type Provider, type ProviderAwareness } from '@lexical/yjs';
-import { $createParagraphNode, $createTextNode, $getRoot, ElementNode } from 'lexical';
 import { $createQuoteNode } from '@lexical/rich-text';
+import { createBinding, type Provider, type ProviderAwareness } from '@lexical/yjs';
+import {
+  $createParagraphNode,
+  $createTextNode,
+  $getNodeByKey,
+  $getRoot,
+  $isElementNode,
+  ElementNode,
+} from 'lexical';
 import { afterEach, describe, expect, it } from 'vitest';
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 
@@ -75,6 +82,88 @@ describe('Yjs hydration root text cache', () => {
   afterEach(() => {
     docs.forEach((doc) => doc.destroy());
     docs = [];
+  });
+
+  it('guards the installed Lexical DOM subtree-text cache contract', async () => {
+    const target = createKernel(true);
+    let holeKey = '';
+    let quoteKey = '';
+    try {
+      target.editor.update(() => {
+        const hole = $createHoleNode($createTextNode('cache contract text'));
+        const quote = $createQuoteNode().append(hole);
+        holeKey = hole.getKey();
+        quoteKey = quote.getKey();
+        $getRoot().append(quote);
+      });
+      await settle();
+
+      const holeElement = target.editor.getElementByKey(holeKey);
+      if (!holeElement) {
+        throw new Error(
+          'Lexical DOM cache contract changed: Hole DOM element is unavailable. Review docs/lexical-yjs-compatibility.md.',
+        );
+      }
+      const contentElement = holeElement.querySelector<HTMLElement>('[data-hole-content="true"]');
+      if (!contentElement) {
+        throw new Error(
+          'Lexical DOM cache contract changed: Hole content slot is unavailable. Review docs/lexical-yjs-compatibility.md.',
+        );
+      }
+      const contentCache = (contentElement as HTMLElement & { __lexicalTextContent?: unknown })
+        .__lexicalTextContent;
+      if (typeof contentCache !== 'string') {
+        throw new Error(
+          'Lexical DOM cache contract changed: __lexicalTextContent is missing on a real reconciled Hole content slot. Review docs/lexical-yjs-compatibility.md.',
+        );
+      }
+
+      const reconcileQuote = async (): Promise<void> => {
+        target.editor.update(
+          () => {
+            const quote = $getNodeByKey(quoteKey);
+            if (!$isElementNode(quote)) throw new Error('Quote ancestor disappeared.');
+            quote.markDirty();
+          },
+          { discrete: true },
+        );
+        await settle();
+      };
+
+      await reconcileQuote();
+      const firstOuterCache = (holeElement as HTMLElement & { __lexicalTextContent?: unknown })
+        .__lexicalTextContent;
+      if (typeof firstOuterCache !== 'string') {
+        throw new Error(
+          'Lexical DOM cache contract changed: clean Hole reuse did not produce __lexicalTextContent. Review docs/lexical-yjs-compatibility.md.',
+        );
+      }
+      expect(firstOuterCache).toContain('cache contract text');
+
+      const deleted = Reflect.deleteProperty(holeElement, '__lexicalTextContent');
+      expect(
+        deleted,
+        'Lexical DOM cache contract changed: outer Hole cache is not configurable. Review docs/lexical-yjs-compatibility.md.',
+      ).toBe(true);
+      expect(
+        (holeElement as HTMLElement & { __lexicalTextContent?: unknown }).__lexicalTextContent,
+      ).toBeUndefined();
+      await reconcileQuote();
+      const rebuiltOuterCache = (
+        holeElement as HTMLElement & {
+          __lexicalTextContent?: unknown;
+        }
+      ).__lexicalTextContent;
+      if (typeof rebuiltOuterCache !== 'string') {
+        throw new Error(
+          'Lexical DOM cache contract changed: deleted Hole cache was not rebuilt by reconciliation. Review docs/lexical-yjs-compatibility.md.',
+        );
+      }
+      expect(rebuiltOuterCache).toBe(firstOuterCache);
+    } finally {
+      target.kernel.destroy();
+      target.root?.remove();
+    }
   });
 
   it.each([false, true])(

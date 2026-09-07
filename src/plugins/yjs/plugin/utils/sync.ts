@@ -71,6 +71,7 @@ export function hydrateLexicalFromYjsState(
       // boundary cursors, so invalidate only that derived DOM cache before
       // letting the dirty regular ancestor reconcile the clean Hole. We do
       // not write RootNode.__cachedText or any editor/Yjs state here.
+      // See docs/lexical-yjs-compatibility.md before upgrading Lexical.
       if (!hasDOMRoot()) return;
       try {
         const element = binding.editor.getElementByKey(node.getKey()) as
