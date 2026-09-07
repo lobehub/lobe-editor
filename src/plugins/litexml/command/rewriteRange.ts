@@ -1510,13 +1510,13 @@ export function registerLiteXMLRewriteCommand(
         queueMicrotask(() => {
           let result = failedResult(payload, 'rewrite-range-did-not-run');
           try {
-            const updateOptions =
-              payload?.mode === 'direct'
-                ? ({
-                    discrete: true,
-                    ...(payload.history === 'merge' ? {} : { tag: HISTORY_PUSH_TAG }),
-                  } as const)
-                : undefined;
+            // Publish only committed results. A pending review Diff can be
+            // visible to JSON export before getEditorState(), causing an
+            // immediate accept/reject command to miss the new Diff entirely.
+            const updateOptions = {
+              discrete: true,
+              ...(payload?.history === 'merge' ? {} : { tag: HISTORY_PUSH_TAG }),
+            } as const;
             editor.update(() => {
               result = executeRewriteRange(editor, dataSource, payload);
             }, updateOptions);

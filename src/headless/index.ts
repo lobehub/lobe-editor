@@ -144,6 +144,7 @@ export { canonicalizeMarkdownRewriteText, getSerializedTextContent } from '@/uti
 // resolve and migrate targets without importing the DOM entrypoint.
 export type { FileListItem, ImageListItem, MediaLists } from './extract-media-from-editor-state';
 export { extractMediaFromEditorState } from './extract-media-from-editor-state';
+export * from './headless-editor';
 export type {
   NodeIdentityMigrationOptions,
   NodeIdentityMigrationResult,
@@ -169,5 +170,3 @@ export {
   $resolveNodeIds,
   $setNodeId,
 } from '@/plugins/properties/utils';
-
-export * from './headless-editor';

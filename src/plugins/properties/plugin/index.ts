@@ -81,6 +81,15 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
     void propertiesState;
   }
 
+  onConfigChange(config: PropertiesPluginOptions): void {
+    // Page can become editable after collaboration authorization completes.
+    // Command guards must use the current permissions, not hydration-time
+    // readOnly; the reverse transition must also revoke writes immediately.
+    this.config = config;
+    const storageMode = config.annotationStorageMode ?? config.storageMode;
+    if (storageMode) this.service.setStorageMode(storageMode);
+  }
+
   onInit(editor: LexicalEditor): void {
     this.registerNodeIdentityTransforms(editor);
 

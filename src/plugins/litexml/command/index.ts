@@ -1169,11 +1169,11 @@ export type {
 } from './rewriteRange';
 export {
   executeRewriteRange,
+  getRewriteStateVector,
   hashRewriteText,
   InMemoryRewriteCommandResultChannel,
   IRewriteCommandResultService,
   normalizeRewriteText,
-  getRewriteStateVector,
   registerLiteXMLRewriteCommand,
   validateLiteXMLInput,
 } from './rewriteRange';

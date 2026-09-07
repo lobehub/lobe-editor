@@ -466,13 +466,21 @@ describe('collapsible plugin', () => {
     lexicalEditor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '2', rows: '2' });
     lexicalEditor.update(() => {}, { discrete: true });
     expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', 'paragraph']);
-    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible', 'table']);
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible', 'table', 'paragraph']);
+    lexicalEditor.getEditorState().read(() => {
+      expect($getRoot().getLastChildOrThrow().getTextContent()).toBe('');
+    });
 
     selectSingleCollapsibleChild(lexicalEditor, 'body');
     lexicalEditor.dispatchCommand(INSERT_COLLAPSIBLE_COMMAND, undefined);
     lexicalEditor.update(() => {}, { discrete: true });
     expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', 'paragraph']);
-    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible', 'collapsible', 'table']);
+    expect(getRootChildTypes(lexicalEditor)).toEqual([
+      'collapsible',
+      'collapsible',
+      'table',
+      'paragraph',
+    ]);
   });
 
   it('marks collapsible children as editable blocks', () => {

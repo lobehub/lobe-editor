@@ -1,7 +1,6 @@
 import { createCommand } from 'lexical';
 
-import type { RewriteRangeCommandPayload } from './rewriteRange';
-import type { RewriteSelectionInput } from './rewriteRange';
+import type { RewriteRangeCommandPayload, RewriteSelectionInput } from './rewriteRange';
 
 /**
  * LiteXML command identities.

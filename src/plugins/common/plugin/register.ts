@@ -24,8 +24,8 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
-  RootNode,
   REDO_COMMAND,
+  RootNode,
   UNDO_COMMAND,
 } from 'lexical';
 

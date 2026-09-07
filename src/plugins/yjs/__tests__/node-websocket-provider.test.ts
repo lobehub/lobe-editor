@@ -10,6 +10,7 @@ import {
   CollaborativeAgentEditor,
   hashRewriteText,
 } from '@/headless/collaborative-agent-editor';
+import { createImmutableYjsSnapshotFromEditorData } from '@/headless/yjs-snapshot';
 import { captureCollaborativeRewriteSelection } from '@/plugins/yjs';
 import {
   decodeYjsBase64,
@@ -831,6 +832,12 @@ describe('NodeWebSocketYjsProvider', () => {
 
   it('lets the Agent facade recover after the real ticket-expired error frame', async () => {
     const server = new InMemoryRoomServer();
+    const snapshot = await createImmutableYjsSnapshotFromEditorData({
+      content: 'Hello collaborative world\n\nHuman paragraph',
+      revision: 1,
+      roomId: 'room-a',
+    });
+    applyUpdate(server.doc, snapshot.update);
     const doc = new Doc();
     const refreshTicket = vi.fn(async () => 'fresh-ticket');
     const provider = new NodeWebSocketYjsProvider('room-a', doc, {
@@ -861,15 +868,14 @@ describe('NodeWebSocketYjsProvider', () => {
           setDocument: (type: string, content: string) => void;
         };
       };
-      // setDocument starts the provider connection synchronously. Seed the
-      // room before opening the fake socket so the first sync is authoritative
-      // for both the facade and the relay-side Y.Doc.
-      internal.kernel.setDocument('markdown', 'Hello collaborative world\n\nHuman paragraph');
+      // Seed the authoritative room, not pre-sync host JSON: a normal Agent
+      // must never publish its local hydration before authenticating/syncing.
+      const connection = agent.connect();
       const firstSocket = FakeWebSocket.instances[0]!;
-      applyUpdate(server.doc, encodeStateAsUpdate(doc));
       firstSocket.open();
       firstSocket.flushQueuedMessages();
-      await agent.connect();
+      await connection;
+      expect(encodeStateVector(doc).byteLength).toBeGreaterThan(1);
 
       const lexicalEditor = internal.kernel.getLexicalEditor();
       let selection: ReturnType<typeof captureCollaborativeRewriteSelection>;
@@ -939,9 +945,10 @@ describe('NodeWebSocketYjsProvider', () => {
       reconnectSocket.flushQueuedMessages();
 
       await expect(pending).resolves.toMatchObject({ sequence: 2, status: 'streaming' });
-      await expect(
-        agent.finalizeRewriteSession({ sessionId: 'facade-reconnect-session' }),
-      ).resolves.toMatchObject({ status: 'applied' });
+      const finalResult = await agent.finalizeRewriteSession({
+        sessionId: 'facade-reconnect-session',
+      });
+      expect(finalResult, JSON.stringify(finalResult)).toMatchObject({ status: 'applied' });
       const projection = await __exportCollaborativeAgentEditorProjectionForPersistence(agent);
       expect(projection.markdown).toContain('Hi there collaborative world');
       expect(projection.markdown).not.toContain('there there');

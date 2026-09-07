@@ -17,6 +17,7 @@ import {
 import { Doc } from 'yjs';
 
 import { createHeadlessEditor } from '@/headless';
+import { PropertiesPlugin } from '../plugin';
 import {
   $getNodeProperties,
   $getNodeId,
@@ -34,6 +35,64 @@ import { AnnotationServiceImpl } from '../service/annotation';
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('PropertiesPlugin', () => {
+  it.each([false, true])(
+    'updates comment permissions after read-only hydration and relocks (AI=%s)',
+    async (aiGenerated) => {
+      const headless = createHeadlessEditor({
+        additionalPlugins: [
+          [PropertiesPlugin, { readOnly: true, annotationStorageMode: 'external' }],
+        ],
+      });
+      headless.hydrateMarkdown('A manually written paragraph');
+      await flush();
+      const kernel = headless.kernel,
+        lexical = kernel.getLexicalEditor()!;
+      lexical.setEditable(true);
+      let selection: ReturnType<typeof $createRangeSelection>;
+      lexical.update(
+        () => {
+          const text = $getRoot().getFirstDescendant()!;
+          if (aiGenerated)
+            $setNodeProperties(text, {
+              provenance: { source: 'ai', generationId: 'fixture-generation' },
+            });
+          selection = $createRangeSelection();
+          selection.anchor.set(text.getKey(), 0, 'text');
+          selection.focus.set(text.getKey(), 8, 'text');
+          $setSelection(selection);
+        },
+        { discrete: true },
+      );
+      const service = kernel.requireService(IAnnotationService)!;
+      const create = (id: string) =>
+        kernel.dispatchCommand(CREATE_ANNOTATION_COMMAND, {
+          id,
+          selection: selection.clone(),
+          kind: 'comment',
+          payload: { text: 'comment' },
+        });
+      create('blocked-before');
+      await flush();
+      expect(service.getAll()).toHaveLength(0);
+      kernel.registerPlugin(PropertiesPlugin, {
+        readOnly: false,
+        annotationStorageMode: 'external',
+      });
+      create('allowed-after');
+      await flush();
+      expect(service.get('allowed-after')).not.toBeNull();
+      expect(service.getStorageMode()).toBe('external');
+      kernel.registerPlugin(PropertiesPlugin, {
+        readOnly: true,
+        annotationStorageMode: 'external',
+      });
+      create('blocked-again');
+      await flush();
+      expect(service.get('blocked-again')).toBeNull();
+      expect(service.getAll()).toHaveLength(1);
+      headless.destroy();
+    },
+  );
   it('migrates durable node IDs across supported blocks and JSON rehydration', async () => {
     const source = createHeadlessEditor();
     source.hydrateMarkdown('# Heading\n\nParagraph\n\n> Quote\n\n- Item');

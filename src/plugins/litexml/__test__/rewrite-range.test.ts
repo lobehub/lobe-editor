@@ -547,7 +547,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
     });
   });
 
-  it('supports undo after accepting the collaborative diff', async () => {
+  it('undoes acceptance before undoing creation of a review diff', async () => {
     editor.setDocument('markdown', 'Undo me');
     const selection = await selectRange(editor, 0, 0, 0, 4);
     editor.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, {
@@ -562,6 +562,12 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
     editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Accept });
     await moment();
     expect(editor.getDocument('markdown')).toContain('Redo me');
+    expect((editor.getDocument('json') as any).root.children[0].type).toBe('paragraph');
+    editor.dispatchCommand(UNDO_COMMAND, undefined);
+    await moment();
+    // Acceptance is its own operation: restore the pending proposal first,
+    // rather than implicitly deleting the earlier generated review as well.
+    expect((editor.getDocument('json') as any).root.children[0].type).toBe('diff');
     editor.dispatchCommand(UNDO_COMMAND, undefined);
     await moment();
     expect(editor.getDocument('markdown')).toContain('Undo me');

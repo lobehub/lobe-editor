@@ -3,8 +3,8 @@ import type { LexicalNode } from 'lexical';
 import { $createLineBreakNode } from 'lexical';
 
 import {
-  BLOCK_REWRITE_MAX_SOURCE_LENGTH,
   BLOCK_REWRITE_MAX_LANGUAGE_LENGTH,
+  BLOCK_REWRITE_MAX_SOURCE_LENGTH,
   type BlockRewriteAdapter,
   type BlockRewriteContext,
   type BlockRewriteValidationResult,

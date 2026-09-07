@@ -24,8 +24,8 @@ import {
   YjsPlugin,
   type YjsProviderFactory,
 } from '@/plugins/yjs/plugin';
-import { IYjsService, type YjsPluginState } from '@/plugins/yjs/service';
 import { normalizeRelativeSelectionForAtomicHoles } from '@/plugins/yjs/relative-position';
+import { IYjsService, type YjsPluginState } from '@/plugins/yjs/service';
 import type { ILocaleKeys } from '@/types';
 
 import { createCodemirrorEditLockProvider } from './codemirrorEditLockProvider';
