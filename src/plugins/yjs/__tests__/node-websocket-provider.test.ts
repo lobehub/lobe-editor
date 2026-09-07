@@ -176,6 +176,35 @@ class SingleUseTicketRoomServer extends InMemoryRoomServer {
   }
 }
 
+class CloseAfterSyncRoomServer extends InMemoryRoomServer {
+  private syncRequestCount = 0;
+
+  constructor(private readonly closeOnSyncRequest: number = 1) {
+    super();
+  }
+
+  override receive(socket: FakeWebSocket, raw: string): void {
+    const message = JSON.parse(raw) as LobeYjsClientMessage;
+    super.receive(socket, raw);
+    if (message.type === 'sync-request' && ++this.syncRequestCount === this.closeOnSyncRequest) {
+      socket.close();
+    }
+  }
+}
+
+class CloseBeforeSyncRoomServer extends InMemoryRoomServer {
+  private closed = false;
+
+  override receive(socket: FakeWebSocket, raw: string): void {
+    const message = JSON.parse(raw) as LobeYjsClientMessage;
+    if (!this.closed && message.type === 'sync-request') {
+      this.closed = true;
+      socket.close();
+    }
+    super.receive(socket, raw);
+  }
+}
+
 class FakeWebSocket implements WebSocketLike {
   static readonly OPEN = 1;
   static readonly instances: FakeWebSocket[] = [];
@@ -321,6 +350,189 @@ describe('NodeWebSocketYjsProvider', () => {
     firstDoc.destroy();
     secondDoc.destroy();
     server.doc.destroy();
+  });
+
+  it('keeps an initial transient close recoverable for the Agent facade', async () => {
+    vi.useFakeTimers();
+    const server = new CloseBeforeSyncRoomServer();
+    const refreshTicket = vi.fn(() => 'fresh-ticket');
+    const session = CollaborativeAgentEditor.create({
+      documentId: 'document-transient-close',
+      requestId: 'request-transient-close',
+      roomId: 'room-a',
+      ticket: 'initial-ticket',
+      providerOptions: {
+        refreshTicket,
+        websocketConstructor: class extends FakeWebSocket {
+          constructor(url: string) {
+            super(url, server);
+          }
+        },
+        wsBaseUrl: 'ws://example.test',
+      },
+    });
+
+    try {
+      const connection = session.connect();
+      const firstSocket = FakeWebSocket.instances[0];
+      firstSocket.open();
+      firstSocket.flushQueuedMessages();
+
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(refreshTicket).toHaveBeenCalledOnce();
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      const reconnectSocket = FakeWebSocket.instances[1];
+      reconnectSocket.open();
+      reconnectSocket.flushQueuedMessages();
+      await expect(connection).resolves.toBe(session);
+    } finally {
+      await session.disconnect();
+      server.doc.destroy();
+      vi.useRealTimers();
+    }
+  });
+
+  it('tears down rejected concurrent Agent connects and cancels reconnect', async () => {
+    vi.useFakeTimers();
+    const server = new CloseAfterSyncRoomServer();
+    const refreshTicket = vi.fn(() => 'fresh-ticket');
+    const session = CollaborativeAgentEditor.create({
+      documentId: 'document-race-close',
+      requestId: 'request-race-close',
+      roomId: 'room-a',
+      ticket: 'initial-ticket',
+      providerOptions: {
+        refreshTicket,
+        websocketConstructor: class extends FakeWebSocket {
+          constructor(url: string) {
+            super(url, server);
+          }
+        },
+        wsBaseUrl: 'ws://example.test',
+      },
+    });
+
+    try {
+      const firstConnection = session.connect();
+      const secondConnection = session.connect();
+      expect(secondConnection).toBe(firstConnection);
+      const firstSocket = FakeWebSocket.instances[0];
+      firstSocket.open();
+      firstSocket.flushQueuedMessages();
+
+      const results = await Promise.allSettled([firstConnection, secondConnection]);
+      expect(results[0]).toMatchObject({
+        reason: expect.objectContaining({
+          message: 'CollaborativeAgentEditor provider disconnected during sync.',
+        }),
+        status: 'rejected',
+      });
+      expect(results[1]).toMatchObject({
+        reason: expect.objectContaining({
+          message: 'CollaborativeAgentEditor provider disconnected during sync.',
+        }),
+        status: 'rejected',
+      });
+
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(FakeWebSocket.instances).toHaveLength(1);
+      expect(refreshTicket).not.toHaveBeenCalled();
+      await expect(session.connect()).rejects.toThrow('CollaborativeAgentEditor is disconnected.');
+    } finally {
+      await session.disconnect();
+      server.doc.destroy();
+      vi.useRealTimers();
+    }
+  });
+
+  it('tears down a connected Agent when reconnect sync races with a close', async () => {
+    vi.useFakeTimers();
+    const server = new CloseAfterSyncRoomServer(2);
+    const refreshTicket = vi.fn(() => 'fresh-ticket');
+    const session = CollaborativeAgentEditor.create({
+      documentId: 'document-resync-race',
+      requestId: 'request-resync-race',
+      roomId: 'room-a',
+      ticket: 'initial-ticket',
+      providerOptions: {
+        refreshTicket,
+        websocketConstructor: class extends FakeWebSocket {
+          constructor(url: string) {
+            super(url, server);
+          }
+        },
+        wsBaseUrl: 'ws://example.test',
+      },
+    });
+
+    try {
+      const initialConnection = session.connect();
+      const firstSocket = FakeWebSocket.instances[0];
+      firstSocket.open();
+      firstSocket.flushQueuedMessages();
+      await expect(initialConnection).resolves.toBe(session);
+
+      firstSocket.close();
+      const reconnecting = session.connect();
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(refreshTicket).toHaveBeenCalledOnce();
+      expect(FakeWebSocket.instances).toHaveLength(2);
+
+      const reconnectSocket = FakeWebSocket.instances[1];
+      reconnectSocket.open();
+      reconnectSocket.flushQueuedMessages();
+      await expect(reconnecting).rejects.toThrow(
+        'CollaborativeAgentEditor provider disconnected during sync.',
+      );
+
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      expect(refreshTicket).toHaveBeenCalledOnce();
+      await expect(session.connect()).rejects.toThrow('CollaborativeAgentEditor is disconnected.');
+    } finally {
+      await session.disconnect();
+      server.doc.destroy();
+      vi.useRealTimers();
+    }
+  });
+
+  it('cancels an initial Agent connect when the caller disconnects', async () => {
+    vi.useFakeTimers();
+    const server = new CloseBeforeSyncRoomServer();
+    const refreshTicket = vi.fn(() => 'fresh-ticket');
+    const session = CollaborativeAgentEditor.create({
+      documentId: 'document-cancel-connect',
+      requestId: 'request-cancel-connect',
+      roomId: 'room-a',
+      ticket: 'initial-ticket',
+      providerOptions: {
+        refreshTicket,
+        websocketConstructor: class extends FakeWebSocket {
+          constructor(url: string) {
+            super(url, server);
+          }
+        },
+        wsBaseUrl: 'ws://example.test',
+      },
+    });
+
+    try {
+      const connection = session.connect();
+      const connectionFailure = expect(connection).rejects.toThrow('disconnected');
+      const firstSocket = FakeWebSocket.instances[0];
+      firstSocket.open();
+      firstSocket.flushQueuedMessages();
+      await session.disconnect();
+      await connectionFailure;
+
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(FakeWebSocket.instances).toHaveLength(1);
+      expect(refreshTicket).not.toHaveBeenCalled();
+    } finally {
+      await session.disconnect();
+      server.doc.destroy();
+      vi.useRealTimers();
+    }
   });
 
   it('keeps two browser clients and one Node agent on the same v1 room', async () => {

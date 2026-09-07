@@ -109,6 +109,73 @@ interface CSSHighlightSupport {
   registry: CSSHighlightRegistryLike;
 }
 
+interface CSSHighlightOwnerRanges {
+  active: ReadonlyArray<Range>;
+  hover: ReadonlyArray<Range>;
+}
+
+interface CSSHighlightRegistryState {
+  constructor: CSSHighlightConstructor;
+  owners: Map<object, CSSHighlightOwnerRanges>;
+}
+
+/**
+ * CSS Custom Highlight names are global to a document's registry. Keep the
+ * public fixed names while aggregating ranges from each service that uses the
+ * registry, so refreshing or destroying one editor cannot remove another
+ * editor's highlight.
+ */
+const cssHighlightRegistryStates = new WeakMap<
+  CSSHighlightRegistryLike,
+  CSSHighlightRegistryState
+>();
+
+const getCSSHighlightRegistryState = (
+  registry: CSSHighlightRegistryLike,
+  HighlightConstructor: CSSHighlightConstructor,
+): CSSHighlightRegistryState => {
+  const existing = cssHighlightRegistryStates.get(registry);
+  if (existing) {
+    existing.constructor = HighlightConstructor;
+    return existing;
+  }
+
+  const state: CSSHighlightRegistryState = {
+    constructor: HighlightConstructor,
+    owners: new Map(),
+  };
+  cssHighlightRegistryStates.set(registry, state);
+  return state;
+};
+
+const publishCSSHighlightRegistry = (
+  registry: CSSHighlightRegistryLike,
+  state: CSSHighlightRegistryState,
+): void => {
+  const activeRanges = Array.from(state.owners.values()).flatMap(({ active }) => active);
+  const hoverRanges = Array.from(state.owners.values()).flatMap(({ hover }) => hover);
+
+  if (activeRanges.length > 0) {
+    registry.set(AI_SESSION_ACTIVE_HIGHLIGHT_NAME, new state.constructor(...activeRanges));
+  } else {
+    registry.delete(AI_SESSION_ACTIVE_HIGHLIGHT_NAME);
+  }
+
+  if (hoverRanges.length > 0) {
+    registry.set(AI_SESSION_HOVER_HIGHLIGHT_NAME, new state.constructor(...hoverRanges));
+  } else {
+    registry.delete(AI_SESSION_HOVER_HIGHLIGHT_NAME);
+  }
+
+  if (state.owners.size === 0) cssHighlightRegistryStates.delete(registry);
+};
+
+const releaseCSSHighlightOwner = (registry: CSSHighlightRegistryLike, owner: object): void => {
+  const state = cssHighlightRegistryStates.get(registry);
+  if (!state || !state.owners.delete(owner)) return;
+  publishCSSHighlightRegistry(registry, state);
+};
+
 interface OverlayRect {
   bottom: number;
   left: number;
@@ -192,6 +259,7 @@ export class AISessionService
   private highlightOverlayContainer: HTMLElement | null = null;
   private highlightOverlayElements: HTMLElement[] = [];
   private layoutCleanup: (() => void) | null = null;
+  private boundRootElement: HTMLElement | null = null;
   private hoveredSessionId: string | null = null;
 
   bindEditor(editor: LexicalEditor): void {
@@ -313,10 +381,7 @@ export class AISessionService
     const registries = new Set<CSSHighlightRegistryLike>();
     if (this.highlightRegistry) registries.add(this.highlightRegistry);
     if (currentRegistry) registries.add(currentRegistry);
-    registries.forEach((registry) => {
-      registry.delete(AI_SESSION_ACTIVE_HIGHLIGHT_NAME);
-      registry.delete(AI_SESSION_HOVER_HIGHLIGHT_NAME);
-    });
+    registries.forEach((registry) => releaseCSSHighlightOwner(registry, this));
     this.highlightRegistry = null;
   }
 
@@ -354,7 +419,13 @@ export class AISessionService
   }
 
   private bindHighlightLayoutListeners(): void {
+    this.layoutCleanup?.();
+    this.layoutCleanup = null;
     const root = safeGetRootElement(this.editor);
+    if (this.boundRootElement && this.boundRootElement !== root) {
+      this.clearHighlightDiagnostics(this.boundRootElement);
+    }
+    this.boundRootElement = root;
     const browserWindow = root?.ownerDocument.defaultView;
     if (!root || !browserWindow) return;
 
@@ -393,7 +464,8 @@ export class AISessionService
 
   private ensureHighlightOverlayContainer(root: HTMLElement): HTMLElement {
     const host = this.getHighlightOverlayHost(root);
-    if (this.highlightOverlayContainer?.parentElement === host) return this.highlightOverlayContainer;
+    if (this.highlightOverlayContainer?.parentElement === host)
+      return this.highlightOverlayContainer;
 
     this.clearHighlightOverlays();
     const container = root.ownerDocument.createElement('div');
@@ -489,17 +561,20 @@ export class AISessionService
     }
   }
 
-  private applyCSSHighlight(
-    registry: CSSHighlightRegistryLike,
-    HighlightConstructor: CSSHighlightConstructor,
-    name: string,
-    sessionId: string | null,
-  ): boolean {
-    if (!sessionId) return false;
-    const range = this.getSessionDOMRange(sessionId);
-    if (!range) return false;
-    registry.set(name, new HighlightConstructor(range));
-    this.highlightRegistry = registry;
+  private applyCSSHighlights(support: CSSHighlightSupport): boolean {
+    const activeRange = this.activeSessionId ? this.getSessionDOMRange(this.activeSessionId) : null;
+    const hoverRange = this.hoveredSessionId
+      ? this.getSessionDOMRange(this.hoveredSessionId)
+      : null;
+    if (!activeRange && !hoverRange) return false;
+
+    const state = getCSSHighlightRegistryState(support.registry, support.constructor);
+    state.owners.set(this, {
+      active: activeRange ? [activeRange] : [],
+      hover: hoverRange ? [hoverRange] : [],
+    });
+    this.highlightRegistry = support.registry;
+    publishCSSHighlightRegistry(support.registry, state);
     return true;
   }
 
@@ -527,6 +602,7 @@ export class AISessionService
 
   refreshHighlights(): void {
     const root = safeGetRootElement(this.editor);
+    if (root !== this.boundRootElement) this.bindHighlightLayoutListeners();
     this.clearCSSHighlights();
     this.clearFallbackHighlights();
     this.clearHighlightOverlays();
@@ -534,21 +610,9 @@ export class AISessionService
 
     const support = getCSSHighlightSupport(root);
     if (support) {
-      const activeHighlight = this.applyCSSHighlight(
-        support.registry,
-        support.constructor,
-        AI_SESSION_ACTIVE_HIGHLIGHT_NAME,
-        this.activeSessionId,
-      );
-      const hoverHighlight = this.applyCSSHighlight(
-        support.registry,
-        support.constructor,
-        AI_SESSION_HOVER_HIGHLIGHT_NAME,
-        this.hoveredSessionId,
-      );
       this.updateHighlightDiagnostics(
         root,
-        activeHighlight || hoverHighlight ? 'css-highlight' : 'none',
+        this.applyCSSHighlights(support) ? 'css-highlight' : 'none',
       );
       return;
     }
@@ -573,6 +637,7 @@ export class AISessionService
   destroy(): void {
     this.layoutCleanup?.();
     this.layoutCleanup = null;
+    this.boundRootElement = null;
     this.clearCSSHighlights();
     this.clearFallbackHighlights();
     this.clearHighlightOverlays();
@@ -586,10 +651,7 @@ export class AISessionService
 }
 
 /** Low-level utility for code already running inside `editor.update`. */
-export const $applyAISessionMark = (
-  range: BaseSelection,
-  mark: AISessionMark,
-): number => {
+export const $applyAISessionMark = (range: BaseSelection, mark: AISessionMark): number => {
   const normalized = normalizeMark(mark);
   const nodes = getTextNodes($getSelectionNodes(range));
   for (const node of nodes) setSessionMark(node, normalized);

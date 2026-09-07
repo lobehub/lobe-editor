@@ -670,6 +670,7 @@ export class CollaborativeAgentEditor {
   private connected = false;
   private disconnected = false;
   private synced = false;
+  private connectPromise: Promise<this> | null = null;
   private providerSyncPromise: Promise<void> | null = null;
   private streamingRecoveryPromise: Promise<boolean> | null = null;
   private streamingRecoveryCancel: (() => void) | null = null;
@@ -728,35 +729,66 @@ export class CollaborativeAgentEditor {
     this.commandGateway = createCollaborativeAgentCommandGateway(lexicalEditor, this.resultChannel);
   }
 
-  async connect(): Promise<this> {
-    if (this.disconnected) throw new Error('CollaborativeAgentEditor is disconnected.');
-    if (this.connected) {
-      if (!this.synced) await this.waitForSync();
-      return this;
+  /**
+   * Establish the initial authenticated/synced session, or wait for a current
+   * session to finish reconnecting. A rejected connect tears down this
+   * instance, so callers must create a new facade with a fresh ticket.
+   */
+  connect(): Promise<this> {
+    if (this.disconnected) {
+      return Promise.reject(new Error('CollaborativeAgentEditor is disconnected.'));
     }
+    if (this.connectPromise) return this.connectPromise;
 
-    this.connected = true;
-    this.transportUnavailable = false;
+    const connectionAttempt = this.connectInternal();
+    const settledConnection = connectionAttempt.finally(() => {
+      if (this.connectPromise === settledConnection) this.connectPromise = null;
+    });
+    this.connectPromise = settledConnection;
+    return settledConnection;
+  }
+
+  private async connectInternal(): Promise<this> {
+    if (this.disconnected) throw new Error('CollaborativeAgentEditor is disconnected.');
     try {
+      if (this.connected) {
+        if (!this.synced) {
+          await this.waitForSync();
+          await moment();
+          this.assertConnectionAfterSync();
+        }
+        return this;
+      }
+
+      this.connected = true;
+      this.transportUnavailable = false;
       const syncPromise = this.waitForSync();
       await this.provider.connect();
       await syncPromise;
       await moment();
-      if (this.transportUnavailable) {
-        throw new Error('CollaborativeAgentEditor provider disconnected during sync.');
-      }
-      this.synced = true;
+      this.assertConnectionAfterSync();
     } catch (error) {
+      const connectionError =
+        error instanceof Error ? error : new Error('Yjs provider connection failed.');
       this.connected = false;
       this.transportUnavailable = true;
-      this.syncWaiters.forEach(({ reject }) =>
-        reject(error instanceof Error ? error : new Error('Yjs provider connection failed.')),
-      );
+      // Preserve the connection error for any direct waitForSync callers while
+      // disconnect() tears down the provider and cancels reconnect timers.
+      this.syncWaiters.forEach(({ reject }) => reject(connectionError));
       this.syncWaiters.clear();
       this.providerSyncPromise = null;
-      throw error;
+      await this.disconnect();
+      throw connectionError;
     }
     return this;
+  }
+
+  private assertConnectionAfterSync(): void {
+    if (this.disconnected) throw new Error('CollaborativeAgentEditor is disconnected.');
+    if (!this.connected || this.transportUnavailable) {
+      throw new Error('CollaborativeAgentEditor provider disconnected during sync.');
+    }
+    this.synced = true;
   }
 
   async waitForSync(): Promise<void> {
@@ -2360,6 +2392,7 @@ export class CollaborativeAgentEditor {
     this.disconnected = true;
     this.connected = false;
     this.synced = false;
+    this.transportUnavailable = true;
     this.streamingRecoveryCancel?.();
     this.streamingRecoveryCancel = null;
     this.syncWaiters.forEach(({ reject }) =>

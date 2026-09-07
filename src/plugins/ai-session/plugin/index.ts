@@ -30,6 +30,14 @@ export const AISessionPlugin: IEditorPluginConstructor<AISessionPluginOptions> =
     if (this.config.enabled === false) return;
     this.service.bindEditor(editor);
     this.register(
+      this.kernel.registerRootListener(() => {
+        // Root attach/detach can happen without a Lexical update. Refreshing
+        // here releases CSS highlights from a detached root and rebinds the
+        // layout observers when the same editor is attached again.
+        this.service.refresh();
+      }),
+    );
+    this.register(
       editor.registerUpdateListener(() => {
         this.service.refresh();
       }),

@@ -1,9 +1,4 @@
-import {
-  $createRangeSelection,
-  $getRoot,
-  $isTextNode,
-  type RangeSelection,
-} from 'lexical';
+import { $createRangeSelection, $getRoot, $isTextNode, type RangeSelection } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import Editor from '@/editor-kernel';
@@ -14,10 +9,7 @@ import { $markNodesAsAIGenerated } from '@/plugins/properties';
 
 import { AISessionPlugin } from '../plugin';
 import { IAISessionService } from '../service';
-import {
-  AI_SESSION_ACTIVE_HIGHLIGHT_NAME,
-  AI_SESSION_HOVER_HIGHLIGHT_NAME,
-} from '../types';
+import { AI_SESSION_ACTIVE_HIGHLIGHT_NAME, AI_SESSION_HOVER_HIGHLIGHT_NAME } from '../types';
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -58,10 +50,11 @@ const selectTextNodeRange = (
   return selection!;
 };
 
-const installCSSHighlights = () => {
+const installCSSHighlights = (browserWindow: Window = window) => {
   const highlights = new Map<string, { ranges: Range[] }>();
-  const originalCSS = window.CSS;
-  const originalHighlight = (window as Window & { Highlight?: unknown }).Highlight;
+  const browser = browserWindow as Window & { CSS?: unknown; Highlight?: unknown };
+  const originalCSS = browser.CSS;
+  const originalHighlight = browser.Highlight;
   class TestHighlight {
     ranges: Range[];
 
@@ -70,7 +63,7 @@ const installCSSHighlights = () => {
     }
   }
 
-  Object.defineProperty(window, 'CSS', {
+  Object.defineProperty(browserWindow, 'CSS', {
     configurable: true,
     value: {
       highlights: {
@@ -82,7 +75,7 @@ const installCSSHighlights = () => {
       },
     },
   });
-  Object.defineProperty(window, 'Highlight', {
+  Object.defineProperty(browserWindow, 'Highlight', {
     configurable: true,
     value: TestHighlight,
   });
@@ -90,8 +83,8 @@ const installCSSHighlights = () => {
   return {
     highlights,
     restore: () => {
-      Object.defineProperty(window, 'CSS', { configurable: true, value: originalCSS });
-      Object.defineProperty(window, 'Highlight', {
+      Object.defineProperty(browserWindow, 'CSS', { configurable: true, value: originalCSS });
+      Object.defineProperty(browserWindow, 'Highlight', {
         configurable: true,
         value: originalHighlight,
       });
@@ -266,6 +259,136 @@ describe('AISessionPlugin', () => {
     }
   });
 
+  it('aggregates fixed CSS highlight names across editors and root lifecycles', async () => {
+    const customHighlights = installCSSHighlights();
+    const iframe = document.createElement('iframe');
+    document.body.append(iframe);
+    const frameWindow = iframe.contentWindow!;
+    const frameHighlights = installCSSHighlights(frameWindow);
+    const first = createEditor();
+    const second = createEditor();
+    let idle: ReturnType<typeof createEditor> | undefined;
+    try {
+      first.kernel.setDocument('text', 'first editor text');
+      second.kernel.setDocument('text', 'second editor text');
+      await flush();
+
+      const firstService = first.kernel.requireService(IAISessionService)!;
+      const secondService = second.kernel.requireService(IAISessionService)!;
+      firstService.applyAISessionMark(selectTextNodeRange(first.kernel, 0, 0, 5), {
+        sessionId: 'first-editor-session',
+      });
+      secondService.applyAISessionMark(selectTextNodeRange(second.kernel, 0, 0, 6), {
+        sessionId: 'second-editor-session',
+      });
+      await flush();
+
+      firstService.focusSession('first-editor-session');
+      secondService.focusSession('second-editor-session');
+      firstService.setHoveredSessionId('first-editor-session');
+      secondService.setHoveredSessionId('second-editor-session');
+      const active = customHighlights.highlights.get(AI_SESSION_ACTIVE_HIGHLIGHT_NAME);
+      const hover = customHighlights.highlights.get(AI_SESSION_HOVER_HIGHLIGHT_NAME);
+      expect(active?.ranges.map((range) => range.toString())).toEqual(['first', 'second']);
+      expect(hover?.ranges.map((range) => range.toString())).toEqual(['first', 'second']);
+
+      // Mount a truly idle editor after both live editors have published their
+      // active and hover ranges. Its mount/update refresh must preserve both
+      // fixed-name contributions before an explicit refresh and destroy.
+      idle = createEditor();
+      idle.kernel.setDocument('text', 'idle editor text');
+      await flush();
+      const idleService = idle.kernel.requireService(IAISessionService)!;
+      expect(
+        customHighlights.highlights.get(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)?.ranges,
+      ).toHaveLength(2);
+      expect(customHighlights.highlights.get(AI_SESSION_HOVER_HIGHLIGHT_NAME)?.ranges).toHaveLength(
+        2,
+      );
+      idleService.refreshHighlights();
+      expect(
+        customHighlights.highlights.get(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)?.ranges,
+      ).toHaveLength(2);
+      expect(customHighlights.highlights.get(AI_SESSION_HOVER_HIGHLIGHT_NAME)?.ranges).toHaveLength(
+        2,
+      );
+      idle.kernel.destroy();
+      expect(
+        customHighlights.highlights.get(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)?.ranges,
+      ).toHaveLength(2);
+      expect(customHighlights.highlights.get(AI_SESSION_HOVER_HIGHLIGHT_NAME)?.ranges).toHaveLength(
+        2,
+      );
+
+      const firstRoot = first.root;
+      expect(firstRoot.dataset.aiActiveSessionId).toBe('first-editor-session');
+      first.kernel.setRootElement(null);
+      expect(firstRoot.dataset.aiActiveSessionId).toBeUndefined();
+      expect(firstRoot.dataset.aiHoverSessionId).toBeUndefined();
+      expect(firstRoot.dataset.aiHighlightRenderer).toBeUndefined();
+      expect(
+        customHighlights.highlights.get(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)?.ranges,
+      ).toHaveLength(1);
+      expect(customHighlights.highlights.get(AI_SESSION_HOVER_HIGHLIGHT_NAME)?.ranges).toHaveLength(
+        1,
+      );
+
+      const frameRoot = frameWindow.document.createElement('div');
+      frameWindow.document.body.append(frameRoot);
+      first.kernel.setRootElement(frameRoot);
+      await flush();
+      expect(
+        customHighlights.highlights.get(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)?.ranges,
+      ).toHaveLength(1);
+      expect(frameHighlights.highlights.get(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)?.ranges).toHaveLength(
+        1,
+      );
+      expect(frameHighlights.highlights.get(AI_SESSION_HOVER_HIGHLIGHT_NAME)?.ranges).toHaveLength(
+        1,
+      );
+
+      first.kernel.setRootElement(null);
+      expect(frameHighlights.highlights.has(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)).toBe(false);
+      expect(frameHighlights.highlights.has(AI_SESSION_HOVER_HIGHLIGHT_NAME)).toBe(false);
+      expect(
+        customHighlights.highlights.get(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)?.ranges,
+      ).toHaveLength(1);
+      expect(customHighlights.highlights.get(AI_SESSION_HOVER_HIGHLIGHT_NAME)?.ranges).toHaveLength(
+        1,
+      );
+
+      const reattachedRoot = document.createElement('div');
+      first.kernel.setRootElement(reattachedRoot);
+      await flush();
+      expect(
+        customHighlights.highlights.get(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)?.ranges,
+      ).toHaveLength(2);
+      expect(customHighlights.highlights.get(AI_SESSION_HOVER_HIGHLIGHT_NAME)?.ranges).toHaveLength(
+        2,
+      );
+
+      first.kernel.destroy();
+      expect(
+        customHighlights.highlights.get(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)?.ranges,
+      ).toHaveLength(1);
+      expect(customHighlights.highlights.get(AI_SESSION_HOVER_HIGHLIGHT_NAME)?.ranges).toHaveLength(
+        1,
+      );
+      second.kernel.destroy();
+      expect(customHighlights.highlights.has(AI_SESSION_ACTIVE_HIGHLIGHT_NAME)).toBe(false);
+      expect(customHighlights.highlights.has(AI_SESSION_HOVER_HIGHLIGHT_NAME)).toBe(false);
+    } finally {
+      // The assertions above intentionally exercise explicit destruction. Keep
+      // cleanup idempotent when an earlier assertion fails.
+      if (first.kernel.getLexicalEditor()) first.kernel.destroy();
+      if (second.kernel.getLexicalEditor()) second.kernel.destroy();
+      if (idle?.kernel.getLexicalEditor()) idle.kernel.destroy();
+      frameHighlights.restore();
+      customHighlights.restore();
+      iframe.remove();
+    }
+  });
+
   it('clears CSS highlights on focus reset and service destroy', async () => {
     const { kernel, root } = createEditor();
     const service = kernel.requireService(IAISessionService)!;
@@ -309,15 +432,11 @@ describe('AISessionPlugin', () => {
       expect(overlays[0]?.style.position).toBe('absolute');
       expect(overlays[0]?.style.top).toBe('20px');
       expect(overlays[0]?.style.width).toBe('40px');
-      const marked = root.querySelector<HTMLElement>(
-        '[data-ai-session-id="session-overlay"]',
-      );
+      const marked = root.querySelector<HTMLElement>('[data-ai-session-id="session-overlay"]');
       expect(marked?.classList.contains('ai-session-active')).toBe(false);
 
       kernel.destroy();
-      expect(
-        document.querySelector('[data-ai-session-highlight-overlay="true"]'),
-      ).toBeNull();
+      expect(document.querySelector('[data-ai-session-highlight-overlay="true"]')).toBeNull();
     } finally {
       restoreClientRects();
     }
