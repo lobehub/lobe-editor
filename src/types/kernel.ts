@@ -11,6 +11,7 @@ import type {
 } from 'lexical';
 
 import type DataSource from '@/editor-kernel/data-source';
+import type { MentionDescriptor } from '@/plugins/mention/type';
 import type { HotkeyId } from '@/types/hotkey';
 import type { HotkeyOptions, HotkeysEvent } from '@/utils/hotkey/registerHotkey';
 
@@ -85,6 +86,9 @@ export interface IKernelEventMap {
     matchedPatterns: string[];
     score: number;
   }) => void;
+
+  /** A mention was inserted through the mention command. */
+  mentionInserted: (mention: MentionDescriptor) => void;
 
   /**
    * handle paste event

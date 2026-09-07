@@ -5,6 +5,7 @@ category: Data Entry
 ---
 
 import DemoIndex from './demos/index.tsx?demo';
+import MentionChatDemo from './demos/MentionChat.tsx?demo';
 import DemoSectionedMenu from './demos/SectionedMenu.tsx?demo';
 
 ## Introduction
@@ -18,6 +19,12 @@ ChatInput is a versatile container component designed for chat input interfaces.
 ## Sectioned Menus
 
 <Demo of={DemoSectionedMenu} isolated layout="bare" />
+
+## Mention Notifications
+
+<Demo editable={false} of={MentionChatDemo} layout="bare" />
+
+This team chat scenario connects the mention editor to a small local business layer. Choose a recipient with `@`, send a message, then switch the simulated recipient in the notification panel to inspect their unread notification. The message sender remains “我”; switching recipients only changes the notification inbox being viewed. The developer inspector shows the editor's `mentionInserted` event, the current result from `GET_MENTIONS_COMMAND`, and the resulting `message.sent` event.
 
 ## APIs
 

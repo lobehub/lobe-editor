@@ -51,7 +51,7 @@ export const MentionPlugin: IEditorPluginConstructor<MentionPluginOptions> = cla
   }
 
   onInit(editor: LexicalEditor): void {
-    this.register(registerMentionCommand(editor));
+    this.register(registerMentionCommand(editor, this.kernel));
     if (this.config?.decorator) {
       this.register(registerMentionNodeSelectionObserver(editor));
     }

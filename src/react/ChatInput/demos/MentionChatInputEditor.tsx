@@ -1,0 +1,196 @@
+import {
+  type IEditor,
+  INSERT_COLLAPSIBLE_COMMAND,
+  INSERT_HEADING_COMMAND,
+  INSERT_HORIZONTAL_RULE_COMMAND,
+  INSERT_MENTION_COMMAND,
+  INSERT_TABLE_COMMAND,
+  ReactCodemirrorPlugin,
+  ReactCodePlugin,
+  ReactCollapsiblePlugin,
+  ReactHRPlugin,
+  ReactImagePlugin,
+  ReactLinkHighlightPlugin,
+  ReactListPlugin,
+  ReactMathPlugin,
+  ReactTablePlugin,
+  type SlashOptions,
+} from '@lobehub/editor';
+import { Editor } from '@lobehub/editor/react';
+import { Avatar, Text } from '@lobehub/ui';
+import {
+  Heading1Icon,
+  Heading2Icon,
+  Heading3Icon,
+  ListCollapseIcon,
+  MinusIcon,
+  Table2Icon,
+} from 'lucide-react';
+import { type FC, type Ref, useMemo } from 'react';
+
+import { content } from './data';
+
+interface MentionChatInputEditorProps {
+  editor: IEditor;
+  onSend?: () => void;
+  slashMenuRef?: Ref<HTMLDivElement>;
+}
+
+const MentionChatInputEditor: FC<MentionChatInputEditorProps> = ({
+  editor,
+  onSend,
+  slashMenuRef,
+}) => {
+  const mentionItems: SlashOptions['items'] = useMemo(
+    () => [
+      {
+        icon: <Avatar avatar={'🧭'} size={24} />,
+        key: 'alice',
+        label: 'Alice · 产品设计',
+        metadata: { id: 'alice' },
+      },
+      {
+        icon: <Avatar avatar={'🧪'} size={24} />,
+        key: 'bob',
+        label: 'Bob · 测试工程师',
+        metadata: { id: 'bob' },
+      },
+      {
+        icon: <Avatar avatar={'🛠️'} size={24} />,
+        key: 'carol',
+        label: 'Carol · 前端开发',
+        metadata: { id: 'carol' },
+      },
+    ],
+    [],
+  );
+
+  const slashItems: SlashOptions['items'] = useMemo(() => {
+    const data: SlashOptions['items'] = [
+      {
+        icon: Heading1Icon,
+        key: 'h1',
+        label: 'Heading 1',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
+        },
+      },
+      {
+        icon: Heading2Icon,
+        key: 'h2',
+        label: 'Heading 2',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
+        },
+      },
+      {
+        icon: Heading3Icon,
+        key: 'h3',
+        label: 'Heading 3',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h3' });
+        },
+      },
+
+      {
+        type: 'divider',
+      },
+      {
+        icon: ListCollapseIcon,
+        key: 'collapsible',
+        label: '折叠块',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_COLLAPSIBLE_COMMAND, {});
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
+      {
+        icon: MinusIcon,
+        key: 'hr',
+        label: 'Hr',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, {});
+        },
+      },
+      {
+        icon: Table2Icon,
+        key: 'table',
+        label: 'Table',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' });
+        },
+      },
+    ];
+    return data.map((item) => {
+      if (item.type === 'divider') return item;
+      return {
+        ...item,
+        extra: (
+          <Text code fontSize={12} type={'secondary'}>
+            {item.key}
+          </Text>
+        ),
+      };
+    });
+  }, []);
+
+  return (
+    <Editor
+      autoFocus
+      content={content}
+      editor={editor}
+      getPopupContainer={() => (slashMenuRef as any)?.current ?? null}
+      mentionOption={{
+        items: mentionItems,
+        markdownWriter: (mention) => {
+          return `\n<mention>${mention.label}[${mention.metadata?.id || mention.label}]</mention>\n`;
+        },
+        onSelect: (editor, option) => {
+          editor.dispatchCommand(INSERT_MENTION_COMMAND, {
+            label: String(option.label),
+            metadata: { id: option.key },
+          });
+        },
+        searchKeys: ['label'],
+      }}
+      onBlur={({ editor, event }) => console.log('Blur', editor, event)}
+      onCompositionEnd={({ editor, event }) => console.log('Composition End', editor, event)}
+      onCompositionStart={({ editor, event }) => console.log('Composition Start', editor, event)}
+      onFocus={({ editor, event }) => console.log('Focus', editor, event)}
+      onPressEnter={({ event }) => {
+        console.log('Enter pressed', { ctrlKey: event.ctrlKey, metaKey: event.metaKey });
+
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          console.log('[Enter pressed] allowing new line');
+          return;
+        }
+
+        console.log('[Enter pressed] sending message');
+        onSend?.();
+        return true;
+      }}
+      placeholder={'Type @ to mention or / for slash commands'}
+      plugins={[
+        ReactListPlugin,
+        ReactLinkHighlightPlugin,
+        ReactImagePlugin,
+        ReactCodemirrorPlugin,
+        ReactCollapsiblePlugin,
+        ReactHRPlugin,
+        ReactCodePlugin,
+        ReactTablePlugin,
+        ReactMathPlugin,
+      ]}
+      slashOption={{
+        items: slashItems,
+        maxLength: 6,
+        searchKeys: ['key', 'label'],
+      }}
+      variant={'chat'}
+    />
+  );
+};
+
+export default MentionChatInputEditor;

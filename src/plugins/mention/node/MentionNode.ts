@@ -14,6 +14,8 @@ import { $applyNodeReplacement, DecoratorNode } from 'lexical';
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 
+import type { MentionDescriptor } from '../type';
+
 export type SerializedMentionNode = Spread<
   {
     label?: string;
@@ -64,6 +66,13 @@ export class MentionNode extends DecoratorNode<any> {
 
   get metadata() {
     return this.__metadata;
+  }
+
+  toDescriptor(): MentionDescriptor {
+    return {
+      label: this.label,
+      metadata: { ...this.metadata },
+    };
   }
 
   exportDOM(): DOMExportOutput {
