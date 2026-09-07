@@ -1,4 +1,8 @@
 // @vitest-environment node
+import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { EditorState, LexicalNode } from 'lexical';
 import {
   $createParagraphNode,
@@ -14,6 +18,38 @@ import { CommonPlugin } from '@/plugins/common';
 import Editor from '../';
 
 describe('lexical patch regressions', () => {
+  it.each(['js', 'mjs'])(
+    'keeps the production %s patch effective after package-manager patching',
+    (extension) => {
+      const require = createRequire(import.meta.url);
+      const filename = join(dirname(require.resolve('lexical')), `Lexical.prod.${extension}`);
+      const load =
+        extension === 'js'
+          ? `createRequire(import.meta.url)(${JSON.stringify(filename)})`
+          : `await import(${JSON.stringify(pathToFileURL(filename).href)})`;
+      // Exercise the real installed production modules in clean processes, not
+      // the development export loaded by the rest of the suite.
+      execFileSync(
+        process.execPath,
+        [
+          '--input-type=module',
+          '-e',
+          `
+      import assert from 'node:assert/strict';
+      import {createRequire} from 'node:module';
+      const lexical = ${load};
+      let calls = 0;
+      assert.equal(lexical.resetRandomKey(() => {calls++; return 17}), 17);
+      assert.equal(calls, 1);
+      let callbackState;
+      const state = lexical.createEditor().parseEditorState({root:{type:'root',version:1,format:'',indent:0,direction:null,children:[]}}, value => {callbackState=value});
+      assert.equal(callbackState, state);
+    `,
+        ],
+        { stdio: 'pipe' },
+      );
+    },
+  );
   beforeEach(() => {
     resetRandomKey();
   });
