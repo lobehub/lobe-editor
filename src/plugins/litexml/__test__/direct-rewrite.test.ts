@@ -27,6 +27,14 @@ const textLeaves = (node: any): any[] => {
   return node.getChildren().flatMap(textLeaves);
 };
 
+const waitForRewriteResult = async (editor: IEditor, requestId: string) => {
+  const result = await editor
+    .requireService(IRewriteCommandResultService)
+    ?.waitForResult(requestId);
+  if (!result) throw new Error(`rewrite result timed out: ${requestId}`);
+  return result;
+};
+
 async function selectRange(
   editor: IEditor,
   startBlockIndex: number,
@@ -82,7 +90,7 @@ describe('direct collaborative range rewrite', () => {
       requestId: 'direct-request-single',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'direct-request-single');
 
     expect(
       editor.requireService(IRewriteCommandResultService)?.get('direct-request-single'),
@@ -131,7 +139,7 @@ describe('direct collaborative range rewrite', () => {
       requestId: 'direct-request-cross',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'direct-request-cross');
 
     expect(editor.getDocument('markdown')).toContain('first rewritten');
     expect(editor.getDocument('markdown')).toContain('paragraph');
@@ -178,7 +186,7 @@ describe('direct collaborative range rewrite', () => {
       requestId: 'direct-request-drift',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'direct-request-drift');
 
     expect(
       editor.requireService(IRewriteCommandResultService)?.get('direct-request-drift'),
@@ -208,7 +216,10 @@ describe('direct collaborative range rewrite', () => {
     };
     lexical.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, first);
     lexical.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, second);
-    await moment();
+    await Promise.all([
+      waitForRewriteResult(editor, first.requestId),
+      waitForRewriteResult(editor, second.requestId),
+    ]);
 
     expect(editor.getDocument('markdown')).toContain('**Hi** world');
     expect(editor.requireService(IRewriteCommandResultService)?.get(first.requestId)?.status).toBe(
@@ -236,7 +247,7 @@ describe('direct collaborative range rewrite', () => {
       requestId: 'direct-request-xml',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'direct-request-xml');
 
     expect(editor.requireService(IRewriteCommandResultService)?.get('direct-request-xml')).toEqual(
       expect.objectContaining({ status: 'applied' }),

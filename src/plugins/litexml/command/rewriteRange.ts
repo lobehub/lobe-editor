@@ -20,6 +20,7 @@ import {
   $isTextNode,
   $setSelection,
   COMMAND_PRIORITY_EDITOR,
+  HISTORY_MERGE_TAG,
   HISTORY_PUSH_TAG,
 } from 'lexical';
 import { encodeStateVector } from 'yjs';
@@ -159,7 +160,16 @@ export interface IRewriteService {
    * ended by the service's bounded failure fallback.
    */
   destroy(): void;
-  rewriteRange(payload: RewriteRangeCommandPayload): Promise<RewriteCommandResult>;
+  rewriteRange(
+    payload: RewriteRangeCommandPayload,
+    options?: RewriteServiceExecutionOptions,
+  ): Promise<RewriteCommandResult>;
+}
+
+/** Internal scheduling choice for callers which must cross an outer update boundary. */
+export interface RewriteServiceExecutionOptions {
+  /** Run the rewrite in a fresh Lexical transaction after the current update settles. */
+  schedule?: 'separate';
 }
 
 /**
@@ -472,6 +482,7 @@ interface PendingRewriteOperation {
   beforeState?: ReturnType<LexicalEditor['getEditorState']>;
   error?: string;
   executionResult?: RewriteCommandResult;
+  executionTimer?: ReturnType<typeof setTimeout>;
   fallbackTimer?: ReturnType<typeof setTimeout>;
   phase: 'queued' | 'executing' | 'committing' | 'settled';
   promise: Promise<RewriteCommandResult>;
@@ -520,7 +531,10 @@ export class RewriteService implements IRewriteService {
     rewriteServicesByEditor.set(editor, this);
   }
 
-  rewriteRange(payload: RewriteRangeCommandPayload): Promise<RewriteCommandResult> {
+  rewriteRange(
+    payload: RewriteRangeCommandPayload,
+    options: RewriteServiceExecutionOptions = {},
+  ): Promise<RewriteCommandResult> {
     const requestId = typeof payload?.requestId === 'string' ? payload.requestId : '';
     if (this.destroyed) {
       const result = failedResult(payload ?? {}, 'rewrite-range-destroyed', 'aborted');
@@ -546,15 +560,27 @@ export class RewriteService implements IRewriteService {
     const promise = new Promise<RewriteCommandResult>((resolvePromise) => {
       resolve = resolvePromise;
     });
-    const operation = {
+    const operation: PendingRewriteOperation = {
       payload,
       phase: 'queued' as const,
       promise,
       resolve,
       settled: false,
-    } satisfies PendingRewriteOperation;
+    };
     this.pending.set(requestId, operation);
-    this.start(operation);
+    if (options.schedule === 'separate') {
+      // The command listener itself runs inside Lexical's implicit update. A
+      // next-task timer starts the rewrite after that update has committed,
+      // preserving the legacy independent undo step. The operation is already
+      // reserved above so duplicate requests and cancel/destroy remain
+      // service-owned while it is waiting.
+      operation.executionTimer = setTimeout(() => {
+        operation.executionTimer = undefined;
+        this.start(operation);
+      }, 0);
+    } else {
+      this.start(operation);
+    }
     return promise;
   }
 
@@ -628,7 +654,7 @@ export class RewriteService implements IRewriteService {
         },
         {
           discrete: true,
-          ...(operation.payload.history === 'merge' ? {} : { tag: HISTORY_PUSH_TAG }),
+          tag: operation.payload.history === 'merge' ? HISTORY_MERGE_TAG : HISTORY_PUSH_TAG,
           onUpdate: () => this.commit(operation),
         },
       );
@@ -693,6 +719,10 @@ export class RewriteService implements IRewriteService {
     if (operation.settled) return;
     operation.settled = true;
     operation.phase = 'settled';
+    if (operation.executionTimer !== undefined) {
+      clearTimeout(operation.executionTimer);
+      operation.executionTimer = undefined;
+    }
     if (operation.fallbackTimer !== undefined) {
       clearTimeout(operation.fallbackTimer);
       operation.fallbackTimer = undefined;
@@ -1799,7 +1829,7 @@ export function registerLiteXMLRewriteCommand(
         previous?.status === 'aborted'
       )
         return true;
-      void service.rewriteRange(payload);
+      void service.rewriteRange(payload, { schedule: 'separate' });
       return true;
     },
     COMMAND_PRIORITY_EDITOR,

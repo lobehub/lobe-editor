@@ -57,6 +57,14 @@ const textLeaves = (node: any): any[] => {
   return node.getChildren().flatMap(textLeaves);
 };
 
+const waitForRewriteResult = async (editor: IEditor, requestId: string) => {
+  const result = await editor
+    .requireService(IRewriteCommandResultService)
+    ?.waitForResult(requestId);
+  if (!result) throw new Error(`rewrite result timed out: ${requestId}`);
+  return result;
+};
+
 const findProvenance = (node: any, generationId: string): any => {
   const provenance = node?.$?.properties?.provenance;
   if (provenance?.generationId === generationId) return provenance;
@@ -146,7 +154,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       selection: selection!,
     } as const;
     editor.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, payload);
-    await moment();
+    await waitForRewriteResult(editor, 'request-1');
 
     const result = channel?.get('request-1');
     expect(result?.status).toBe('diff-created');
@@ -170,7 +178,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
 
     const firstCommandId = result?.commandId;
     editor.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, payload);
-    await moment();
+    await waitForRewriteResult(editor, 'request-1');
     expect(channel?.get('request-1')?.commandId).toBe(firstCommandId);
     expect((editor.getDocument('json') as any).root.children).toHaveLength(1);
     expect(JSON.stringify(pending)).toContain('Hi');
@@ -229,7 +237,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-reverse',
       selection: selection!,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-reverse');
     const pending = editor.getDocument('json') as any;
     expect(JSON.stringify(pending)).toContain('Hi');
     expect(JSON.stringify(pending)).toContain('"format":1');
@@ -253,11 +261,11 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       selection,
     } as const;
 
-    // Both dispatches happen before the two-microtask rewrite transaction can
+    // Both dispatches happen before the scheduled rewrite transaction can
     // publish its result. The second call must not create another Diff.
     editor.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, payload);
     editor.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, payload);
-    await moment();
+    await waitForRewriteResult(editor, payload.requestId);
 
     const json = editor.getDocument('json') as any;
     const diffCount = JSON.stringify(json).match(/"type":"diff"/g)?.length ?? 0;
@@ -306,6 +314,42 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
     expect(editor.getDocument('markdown')).toBe('Hi world\n');
   });
 
+  it('owns duplicate, cancel, and destroy decisions before a scheduled rewrite starts', async () => {
+    editor.setDocument('markdown', 'Hello world');
+    const service = editor.requireService(IRewriteService)!;
+    const selection = await selectRange(editor, 0, 0, 0, 5);
+    const payload = {
+      delay: false,
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'generation-service-scheduled',
+      mode: 'direct' as const,
+      replacementText: 'Hi',
+      requestId: 'request-service-scheduled',
+      selection,
+    };
+
+    const first = service.rewriteRange(payload, { schedule: 'separate' });
+    const duplicate = service.rewriteRange(payload, { schedule: 'separate' });
+    expect(duplicate).toBe(first);
+    service.cancel(payload.requestId);
+    await expect(first).resolves.toMatchObject({
+      error: 'rewrite-range-cancelled',
+      requestId: payload.requestId,
+      status: 'aborted',
+    });
+    expect(editor.getDocument('markdown')).toBe('Hello world\n');
+
+    const destroyPayload = { ...payload, requestId: 'request-service-scheduled-destroy' };
+    const destroyed = service.rewriteRange(destroyPayload, { schedule: 'separate' });
+    service.destroy();
+    await expect(destroyed).resolves.toMatchObject({
+      error: 'rewrite-range-destroyed',
+      requestId: destroyPayload.requestId,
+      status: 'aborted',
+    });
+    expect(editor.getDocument('markdown')).toBe('Hello world\n');
+  });
+
   it('keeps an outer command update and rewrite in the committed transaction', async () => {
     editor.setDocument('markdown', 'Hello world');
     const lexical = editor.getLexicalEditor()!;
@@ -343,6 +387,50 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
     expect(result.status).toBe('applied');
     expect(editor.getDocument('markdown')).toBe('Hi world!\n');
   });
+
+  it.each([
+    { history: undefined, label: 'default push', firstUndo: 'Hello world!\n' },
+    { history: 'merge' as const, label: 'history merge', firstUndo: 'Hello world\n' },
+  ])(
+    'keeps legacy command history boundaries when dispatch is nested in an outer update ($label)',
+    async ({ history, firstUndo }) => {
+      editor.setDocument('markdown', 'Hello world');
+      const lexical = editor.getLexicalEditor()!;
+      const selection = await selectRange(editor, 0, 0, 0, 5);
+      const channel = editor.requireService(IRewriteCommandResultService)!;
+      const requestId = `request-command-history-${history ?? 'push'}`;
+      const resultPromise = channel.waitForResult(requestId);
+
+      lexical.update(() => {
+        const paragraph = $getRoot().getFirstChildOrThrow();
+        if (!$isElementNode(paragraph)) throw new Error('paragraph missing');
+        const last = paragraph.getLastChild();
+        if (!$isTextNode(last)) throw new Error('text missing');
+        last.setTextContent(`${last.getTextContent()}!`);
+        lexical.dispatchCommand(LITEXML_REWRITE_RANGE_COMMAND, {
+          delay: false,
+          expectedTextHash: hashRewriteText('Hello'),
+          generationId: `generation-command-history-${history ?? 'push'}`,
+          mode: 'direct',
+          replacementText: 'Hi',
+          requestId,
+          selection,
+          ...(history === undefined ? {} : { history }),
+        });
+      });
+
+      await expect(resultPromise).resolves.toMatchObject({ status: 'applied', requestId });
+      expect(editor.getDocument('markdown')).toBe('Hi world!\n');
+
+      lexical.dispatchCommand(UNDO_COMMAND, undefined);
+      await moment();
+      expect(editor.getDocument('markdown')).toBe(firstUndo);
+
+      lexical.dispatchCommand(UNDO_COMMAND, undefined);
+      await moment();
+      expect(editor.getDocument('markdown')).toBe('Hello world\n');
+    },
+  );
 
   it('resolves the service even when a custom result channel throws', async () => {
     editor.setDocument('markdown', 'Hello world');
@@ -604,7 +692,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-textnodes',
       selection: selection!,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-textnodes');
     editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Accept });
     await moment();
     const markdown = editor.getDocument('markdown') as unknown as string;
@@ -636,7 +724,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-cross',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-cross');
     const pending = editor.getDocument('json') as any;
     expect(JSON.stringify(pending)).toContain('rewritten');
     expect(JSON.stringify(pending)).toContain('paragraph');
@@ -693,8 +781,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
         type: 'range',
       },
     });
-    await moment();
-    await moment();
+    await waitForRewriteResult(editor, 'request-linebreak-command');
     expect(
       editor.requireService(IRewriteCommandResultService)?.get('request-linebreak-command'),
     ).toMatchObject({ status: 'diff-created' });
@@ -724,7 +811,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-stale',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-stale');
     expect(editor.requireService(IRewriteCommandResultService)?.get('request-stale')?.status).toBe(
       'stale',
     );
@@ -738,7 +825,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-xml',
       selection: xmlSelection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-xml');
     expect(editor.requireService(IRewriteCommandResultService)?.get('request-xml')?.status).toBe(
       'diff-created',
     );
@@ -771,7 +858,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-list',
       selection: selection!,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-list');
     const pending = editor.getDocument('json') as any;
     expect(JSON.stringify(pending)).toContain('listItemModify');
     expect(JSON.stringify(pending)).toContain('Hi');
@@ -791,7 +878,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-full',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-full');
     expect(JSON.stringify(editor.getDocument('json'))).toContain('diff');
     editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Accept });
     await moment();
@@ -812,7 +899,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-invalid-delay',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-invalid-delay');
     expect(
       editor.requireService(IRewriteCommandResultService)?.get('request-invalid-delay'),
     ).toMatchObject({ status: 'failed' });
@@ -825,7 +912,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-invalid-replacement',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-invalid-replacement');
     expect(
       editor.requireService(IRewriteCommandResultService)?.get('request-invalid-replacement'),
     ).toMatchObject({ status: 'failed' });
@@ -860,7 +947,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-deleted',
       selection: selection!,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-deleted');
     expect(
       editor.requireService(IRewriteCommandResultService)?.get('request-deleted'),
     ).toMatchObject({
@@ -879,7 +966,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-undo',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-undo');
     editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Accept });
     await moment();
     expect(editor.getDocument('markdown')).toContain('Redo me');
@@ -922,7 +1009,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-table',
       selection: tableSelection!,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-table');
     expect(editor.requireService(IRewriteCommandResultService)?.get('request-table')?.status).toBe(
       'failed',
     );
@@ -1165,7 +1252,7 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-unsafe-xml',
       selection,
     });
-    await moment();
+    await waitForRewriteResult(editor, 'request-unsafe-xml');
     expect(
       editor.requireService(IRewriteCommandResultService)?.get('request-unsafe-xml'),
     ).toMatchObject({
