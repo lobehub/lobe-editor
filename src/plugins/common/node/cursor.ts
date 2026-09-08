@@ -1,5 +1,7 @@
 import { mergeRegister } from '@lexical/utils';
 import type {
+  DOMConversionMap,
+  DOMExportOutput,
   LexicalEditor,
   LexicalNode,
   SerializedLexicalNode,
@@ -44,7 +46,6 @@ export class CardLikeElementNode extends ElementNode {
   getBoundaryCursorSide(_cursor: LexicalNode): BoundaryCursorSide | null {
     return null;
   }
-
 }
 
 export const cursorNodeSerialized = {
@@ -64,6 +65,18 @@ export class CursorNode extends TextNode {
 
   override isUnmergeable(): boolean {
     return true;
+  }
+
+  static importDOM(): DOMConversionMap | null {
+    return null;
+  }
+
+  /** Hole boundary markers are runtime-only in HTML clipboard output. */
+  override exportDOM(editor: LexicalEditor): DOMExportOutput {
+    const parent = this.getParent();
+    return $isCardLikeElementNode(parent) && parent.getBoundaryCursorSide(this) !== null
+      ? { element: null }
+      : super.exportDOM(editor);
   }
 }
 
@@ -173,10 +186,7 @@ export function registerCursorNode(editor: LexicalEditor) {
         const node = selection.anchor.getNode();
         if (node instanceof CursorNode) {
           const parent = node.getParent();
-          if (
-            $isCardLikeElementNode(parent) &&
-            parent.getBoundaryCursorSide(node) !== null
-          ) {
+          if ($isCardLikeElementNode(parent) && parent.getBoundaryCursorSide(node) !== null) {
             return false;
           }
           if (node.__text !== '\uFEFF') {

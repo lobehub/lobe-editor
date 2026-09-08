@@ -96,7 +96,18 @@ describe('Hole boundary native input', () => {
   const selectBoundary = async (lexical: LexicalEditor, side: 'before' | 'after') => {
     const hit = root.querySelector<HTMLElement>(`[data-hole-cursor-hit="${side}"]`);
     if (!hit) throw new Error(`${side} boundary hit area missing`);
-    hit.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
+    hit.dispatchEvent(
+      new MouseEvent('pointerdown', {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        cancelable: true,
+      }),
+    );
+    hit.dispatchEvent(
+      new MouseEvent('pointerup', { bubbles: true, button: 0, buttons: 0, cancelable: true }),
+    );
+    hit.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0, cancelable: true }));
     await moment();
     await moment();
     const cursorKey = lexical.getEditorState().read(() => {

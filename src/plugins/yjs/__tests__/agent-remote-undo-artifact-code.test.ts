@@ -27,8 +27,9 @@ import {
   hashRewriteText,
 } from '@/headless/collaborative-agent-editor';
 import { DEFAULT_HEADLESS_EDITOR_PLUGINS } from '@/headless/default-plugins';
-import { $createArtifactNode, ArtifactNode } from '@/plugins/artifact/node/ArtifactNode';
+import { migrateLegacyBlockImagesInYjsDoc } from '@/headless/yjs-snapshot';
 import { INSERT_ARTIFACT_COMMAND } from '@/plugins/artifact/command';
+import { $createArtifactNode, ArtifactNode } from '@/plugins/artifact/node/ArtifactNode';
 import { APPLY_BLOCK_REWRITE_COMMAND } from '@/plugins/block/command';
 import { INSERT_CODEMIRROR_COMMAND } from '@/plugins/codemirror-block/command';
 import {
@@ -201,8 +202,8 @@ const seedDocument = async (): Promise<{
   return { artifactSource, codeSource, update: syncDoc() };
 };
 
-/** Seed the room from the persisted JSON shape: Artifact is intentionally
- * unwrapped here so the browser's legacy reconciliation path runs remotely. */
+/** Seed the room from persisted JSON, then apply the owner-side structural
+ * migration before any browser peer receives the shared snapshot. */
 const seedLegacyArtifactOnlyDocument = async (
   includeTrailingParagraph = true,
 ): Promise<{
@@ -288,10 +289,20 @@ const seedLegacyArtifactOnlyDocument = async (
     new Map(),
   );
   syncCurrentEditorStateToYjs(binding, provider);
-  const update = encodeStateAsUpdate(doc);
+  const legacyUpdate = encodeStateAsUpdate(doc);
   binding.root.destroy(binding);
   doc.destroy();
   source.destroy();
+
+  const roomDoc = new Doc();
+  applyUpdate(roomDoc, legacyUpdate);
+  const migration = await migrateLegacyBlockImagesInYjsDoc({
+    doc: roomDoc,
+    roomId: 'agent-legacy-artifact-room',
+  });
+  if (migration.changed) applyUpdate(roomDoc, migration.update, 'room-owner');
+  const update = encodeStateAsUpdate(roomDoc);
+  roomDoc.destroy();
   return { artifactSource, update };
 };
 
@@ -995,9 +1006,8 @@ describe('remote Agent structure replacement and browser undo history', () => {
     );
     expect(JSON.stringify(browserARaw)).toContain('"type":"code"');
     expect(JSON.stringify(projection(browserB.kernel))).toContain('fn rewritten() {}');
-    const persistedAfterUndo = await __exportCollaborativeAgentEditorProjectionForPersistence(
-      agent,
-    );
+    const persistedAfterUndo =
+      await __exportCollaborativeAgentEditorProjectionForPersistence(agent);
     expect(JSON.stringify(persistedAfterUndo.editorData)).toContain('fn rewritten() {}');
 
     browserAEditor.dispatchCommand(REDO_COMMAND, undefined);

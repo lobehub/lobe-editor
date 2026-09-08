@@ -58,15 +58,17 @@ export class BlockImageNode extends BaseImageNode {
     return this.__height;
   }
 
-  constructor(opt: {
-    altText: string;
-    height?: 'inherit' | number;
-    key?: NodeKey;
-    maxWidth: number;
-    src: string;
-    status?: 'uploaded' | 'loading' | 'error';
-    width?: 'inherit' | number;
-  }) {
+  constructor(
+    opt: {
+      altText: string;
+      height?: 'inherit' | number;
+      key?: NodeKey;
+      maxWidth: number;
+      src: string;
+      status?: 'uploaded' | 'loading' | 'error';
+      width?: 'inherit' | number;
+    } = { altText: '', maxWidth: 4200, src: '' },
+  ) {
     super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key);
     this.__status = opt.status ?? 'uploaded';
   }
@@ -80,7 +82,22 @@ export class BlockImageNode extends BaseImageNode {
     writable.__maxWidth = maxWidth;
   }
 
-  public setWidth(width: number): void {
+  public setSrc(src: string): void {
+    const writable = this.getWritable();
+    writable.__src = src;
+  }
+
+  public setAltText(altText: string): void {
+    const writable = this.getWritable();
+    writable.__altText = altText;
+  }
+
+  public setHeight(height: 'inherit' | number): void {
+    const writable = this.getWritable();
+    writable.__height = height;
+  }
+
+  public setWidth(width: 'inherit' | number): void {
     const writable = this.getWritable();
     writable.__width = width;
   }
@@ -151,6 +168,9 @@ export class BlockImageNode extends BaseImageNode {
 
   override createDOM(config: EditorConfig): HTMLElement {
     const span = document.createElement('div');
+    // Hole uses this generic presentation hint to anchor its boundary cursors
+    // to an intrinsic block-image box while keeping the Hole host full-width.
+    span.dataset.holeContentLayout = 'intrinsic';
     const theme = config.theme;
     const className = theme.blockImage;
     if (className !== undefined) {

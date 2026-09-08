@@ -32,6 +32,8 @@ class MockClipboardEvent extends Event {
   }
 }
 
+class MockDragEvent extends Event {}
+
 const createClipboard = (initial?: ReadonlyMap<string, string>) => {
   const values = new Map(initial);
   const clipboardData = {
@@ -57,7 +59,10 @@ describe('Artifact Hole clipboard', () => {
   let editor: IEditor;
 
   beforeEach(async () => {
+    Object.defineProperty(MockClipboardEvent, 'name', { value: 'ClipboardEvent' });
+    Object.defineProperty(MockDragEvent, 'name', { value: 'DragEvent' });
     vi.stubGlobal('ClipboardEvent', MockClipboardEvent);
+    vi.stubGlobal('DragEvent', MockDragEvent);
     editor = Editor.createEditor().registerPlugins([CommonPlugin, MarkdownPlugin, ArtifactPlugin]);
     editor.initNodeEditor();
     editor.setDocument('json', {
@@ -136,12 +141,14 @@ describe('Artifact Hole clipboard', () => {
 
     const lexicalPayload = JSON.parse(copied.values.get('application/x-lexical-editor') || '{}');
     expect(lexicalPayload.nodes).toHaveLength(1);
-    expect(lexicalPayload.nodes[0].type).toBe('hole');
-    expect(lexicalPayload.nodes[0].children.map((child: any) => child.type)).toEqual([
-      'cursor',
-      'artifact',
-      'cursor',
-    ]);
+    expect(lexicalPayload.nodes[0]).toMatchObject({
+      html: '<main>clipboard</main>',
+      title: 'Clipboard',
+      type: 'artifact',
+    });
+    expect(JSON.stringify(lexicalPayload)).not.toContain('"hole"');
+    expect(JSON.stringify(lexicalPayload)).not.toContain('\uFEFF');
+    expect(copied.values.get('text/plain')).toBe('Clipboard');
     expectSingleValidHole();
 
     let updateCount = 0;

@@ -307,9 +307,11 @@ describe('Hole boundary cursor navigation', () => {
       .getEditorState()
       .read(() => {
         const selection = $getSelection();
-        if (!$isNodeSelection(selection)) throw new Error('Node selection missing');
-        expect(selection.getNodes()).toHaveLength(1);
-        expect(selection.getNodes()[0]).toBeInstanceOf(ArtifactNode);
+        const hole = $nodesOfType(HoleNode)[0];
+        if (!hole || !$isRangeSelection(selection)) throw new Error('Range selection missing');
+        expect(selection.isCollapsed()).toBe(false);
+        expect(selection.anchor.key).toBe(hole.getBeforeCursor()?.getKey());
+        expect(selection.focus.key).toBe(hole.getAfterCursor()?.getKey());
       });
 
     selectBoundary('after');
@@ -320,10 +322,75 @@ describe('Hole boundary cursor navigation', () => {
       .getEditorState()
       .read(() => {
         const selection = $getSelection();
-        if (!$isNodeSelection(selection)) throw new Error('Node selection missing');
-        expect(selection.getNodes()).toHaveLength(1);
-        expect(selection.getNodes()[0]).toBeInstanceOf(ArtifactNode);
+        const hole = $nodesOfType(HoleNode)[0];
+        if (!hole || !$isRangeSelection(selection)) throw new Error('Range selection missing');
+        expect(selection.isCollapsed()).toBe(false);
+        expect(selection.anchor.key).toBe(hole.getAfterCursor()?.getKey());
+        expect(selection.focus.key).toBe(hole.getBeforeCursor()?.getKey());
       });
+  });
+
+  it('keeps the Shift anchor while repeatedly crossing a Hole in both directions', async () => {
+    const lexicalEditor = editor.getLexicalEditor()!;
+    selectBoundary('before');
+
+    dispatchArrow('right', true);
+    await moment();
+    const { beforeKey, afterKey } = lexicalEditor.getEditorState().read(() => {
+      const hole = $nodesOfType(HoleNode)[0];
+      if (!hole) throw new Error('Hole missing');
+      return {
+        afterKey: hole.getAfterCursor()?.getKey(),
+        beforeKey: hole.getBeforeCursor()?.getKey(),
+      };
+    });
+    lexicalEditor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+      expect(selection.isCollapsed()).toBe(false);
+      expect(selection.anchor.key).toBe(beforeKey);
+      expect(selection.focus.key).toBe(afterKey);
+    });
+
+    dispatchArrow('right', true);
+    await moment();
+    lexicalEditor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+      expect(selection.anchor.key).toBe(beforeKey);
+      expect(selection.focus.getNode().getTextContent()).toBe('after');
+      expect(selection.focus.offset).toBe(0);
+    });
+
+    dispatchArrow('left', true);
+    await moment();
+    lexicalEditor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+      expect(selection.anchor.key).toBe(beforeKey);
+      expect(selection.focus.key).toBe(afterKey);
+      expect(selection.focus.offset).toBe(0);
+    });
+
+    dispatchArrow('left', true);
+    await moment();
+    lexicalEditor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+      expect(selection.anchor.key).toBe(beforeKey);
+      expect(selection.focus.key).toBe(beforeKey);
+      expect(selection.focus.offset).toBe(1);
+    });
+
+    dispatchArrow('left', true);
+    await moment();
+    lexicalEditor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+      expect(selection.anchor.key).toBe(beforeKey);
+      expect(selection.focus.getNode().getTextContent()).toBe('before');
+      expect(selection.focus.offset).toBe('before'.length);
+    });
   });
 
   it('does not require an extra press to cross the zero-width boundaries', async () => {
@@ -381,8 +448,12 @@ describe('Hole boundary cursor navigation', () => {
     expect(payloads).toEqual([]);
     lexicalEditor.getEditorState().read(() => {
       const selection = $getSelection();
-      expect($isNodeSelection(selection)).toBe(true);
-      expect(selection?.getNodes()[0]).toBeInstanceOf(ArtifactNode);
+      const hole = $nodesOfType(HoleNode)[0];
+      expect($isRangeSelection(selection)).toBe(true);
+      if (!$isRangeSelection(selection) || !hole) return;
+      expect(selection.isCollapsed()).toBe(false);
+      expect(selection.anchor.key).toBe(hole.getBeforeCursor()?.getKey());
+      expect(selection.focus.key).toBe(hole.getAfterCursor()?.getKey());
     });
 
     selectBoundary('after');
@@ -391,8 +462,12 @@ describe('Hole boundary cursor navigation', () => {
     expect(payloads).toEqual([]);
     lexicalEditor.getEditorState().read(() => {
       const selection = $getSelection();
-      expect($isNodeSelection(selection)).toBe(true);
-      expect(selection?.getNodes()[0]).toBeInstanceOf(ArtifactNode);
+      const hole = $nodesOfType(HoleNode)[0];
+      expect($isRangeSelection(selection)).toBe(true);
+      if (!$isRangeSelection(selection) || !hole) return;
+      expect(selection.isCollapsed()).toBe(false);
+      expect(selection.anchor.key).toBe(hole.getAfterCursor()?.getKey());
+      expect(selection.focus.key).toBe(hole.getBeforeCursor()?.getKey());
     });
 
     selectBoundary('before');
@@ -544,9 +619,11 @@ describe('Hole boundary cursor navigation', () => {
       const selection = $getSelection();
       const hole = $nodesOfType(HoleNode)[0];
       if (!hole || !$isRangeSelection(selection)) throw new Error('Range selection missing');
-      expect(selection.isCollapsed()).toBe(true);
-      expect(selection.anchor.key).toBe(hole.getBeforeCursor()?.getKey());
-      expect(selection.anchor.offset).toBe(1);
+      expect(selection.isCollapsed()).toBe(false);
+      expect(selection.anchor.key).toBe(hole.getAfterCursor()?.getKey());
+      expect(selection.anchor.offset).toBe(0);
+      expect(selection.focus.key).toBe(hole.getBeforeCursor()?.getKey());
+      expect(selection.focus.offset).toBe(1);
     });
   });
 

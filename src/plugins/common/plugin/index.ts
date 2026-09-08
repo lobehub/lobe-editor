@@ -41,7 +41,13 @@ import TextDataSource from '../data-source/text-data-source';
 import { $isCursorNode, CursorNode, registerCursorNode } from '../node/cursor';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { $isHoleNode, HoleNode } from '../node/hole';
+import { registerHoleClipboard } from '../node/hole-clipboard';
 import { reconcileHoleNodes, registerHoleNode } from '../node/hole-controller';
+import {
+  EditorDiagnosticsService,
+  IEditorDiagnosticsService,
+} from '../service/i-editor-diagnostics-service';
+import { HoleService, IHoleService } from '../service/i-hole-service';
 import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
 import { registerMDReader } from './mdReader';
 import {
@@ -101,6 +107,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   extends KernelPlugin
   implements IEditorPlugin<CommonPluginOptions>
 {
+  private readonly holeService: HoleService;
+
+  private readonly diagnosticsService: EditorDiagnosticsService;
+
   static pluginName = 'CommonPlugin';
 
   private formats = {
@@ -118,6 +128,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     public config: CommonPluginOptions = {},
   ) {
     super();
+    this.holeService = new HoleService();
+    this.diagnosticsService = new EditorDiagnosticsService();
+    kernel.registerServiceHotReload(IHoleService, this.holeService);
+    kernel.registerServiceHotReload(IEditorDiagnosticsService, this.diagnosticsService);
 
     // Parse markdown options and update formats
     const markdownOption = config.markdownOption ?? true;
@@ -429,9 +443,14 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
   onDocumentChange(): void {
     reconcileHoleNodes(this.kernel.getLexicalEditor());
+    this.holeService.reconcile();
   }
 
   onInit(editor: LexicalEditor): void {
+    this.register(this.holeService.bindEditor(editor));
+    // Install passive CRITICAL command observers before clipboard handlers so
+    // a handler that consumes COPY/CUT/PASTE cannot hide the command trace.
+    this.register(this.diagnosticsService.bindEditor(editor));
     this.register(
       this.kernel.registerHighCommand(
         PASTE_COMMAND,
@@ -468,6 +487,12 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
+    );
+    this.register(
+      registerHoleClipboard(editor, {
+        serializeTextContent: (nodes, context) =>
+          this.holeService.serializeTextContent(nodes, context),
+      }),
     );
     // Dragon installs a window-level message listener whose closure captures
     // the editor. Tie it to the root lifecycle so Activity can detach the

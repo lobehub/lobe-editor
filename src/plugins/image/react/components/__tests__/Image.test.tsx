@@ -1,6 +1,6 @@
-import { act } from 'react';
 import type { ReactNode } from 'react';
-import { type Root, createRoot } from 'react-dom/client';
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Image from '../Image';
@@ -11,6 +11,7 @@ import type { ResizeHandleProps } from '../ResizeHandle';
 
 const mocks = vi.hoisted(() => {
   const editor = {
+    focus: vi.fn(),
     registerCommand: vi.fn(() => vi.fn()),
     update: vi.fn((callback: () => void) => callback()),
   };
@@ -196,5 +197,34 @@ describe('Image resize', () => {
 
     expect(host.querySelector('[data-preview-open="true"]')).not.toBeNull();
     expect(mocks.setSelected).not.toHaveBeenCalled();
+  });
+
+  it('focuses the Lexical editor when the image is selected for keyboard commands', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    const imageContainer = host.querySelector<HTMLDivElement>('[class]');
+    if (!imageContainer) throw new Error('Image container missing');
+
+    await act(async () => {
+      imageContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(mocks.setSelected).toHaveBeenCalledWith(true);
+    expect(mocks.editor.focus).toHaveBeenCalledOnce();
+    expect(mocks.setSelected.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.editor.focus.mock.invocationCallOrder[0]!,
+    );
   });
 });

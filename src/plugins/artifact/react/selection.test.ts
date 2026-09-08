@@ -6,7 +6,6 @@ import {
   $getNodeByKey,
   $getRoot,
   $getSelection,
-  $isNodeSelection,
   $isRangeSelection,
   $nodesOfType,
   $setSelection,
@@ -22,7 +21,11 @@ import { CommonPlugin } from '@/plugins/common';
 import { HoleNode } from '@/plugins/common/node/hole';
 import type { IEditor } from '@/types';
 
-import { INSERT_ARTIFACT_COMMAND } from '../command';
+import {
+  INSERT_ARTIFACT_COMMAND,
+  SELECT_AFTER_ARTIFACT_COMMAND,
+  SELECT_BEFORE_ARTIFACT_COMMAND,
+} from '../command';
 import { ArtifactNode } from '../node/ArtifactNode';
 import { ArtifactPlugin } from '../plugin';
 import { $getArtifactSelectionState, useArtifactSelectionState } from './selection';
@@ -43,8 +46,16 @@ const SelectionHarness: FC<{
 
 describe('Artifact selection coverage', () => {
   let editor: IEditor;
+  const rangePrototype = Range.prototype as Range & { getBoundingClientRect?: () => DOMRect };
+  const originalRangeGetBoundingClientRect = rangePrototype.getBoundingClientRect;
 
   beforeEach(async () => {
+    if (!rangePrototype.getBoundingClientRect) {
+      Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => new DOMRect(),
+      });
+    }
     editor = Editor.createEditor().registerPlugins([CommonPlugin, ArtifactPlugin]);
     editor.initNodeEditor();
     editor.setDocument('json', {
@@ -75,7 +86,17 @@ describe('Artifact selection coverage', () => {
     await moment();
   });
 
-  afterEach(() => editor.destroy());
+  afterEach(() => {
+    editor.destroy();
+    if (originalRangeGetBoundingClientRect) {
+      Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
+        configurable: true,
+        value: originalRangeGetBoundingClientRect,
+      });
+    } else {
+      Reflect.deleteProperty(Range.prototype, 'getBoundingClientRect');
+    }
+  });
 
   it('tracks direct node, parent Hole, select-all, cross-block range, and selection exit', () => {
     const lexicalEditor = editor.getLexicalEditor()!;
@@ -138,6 +159,38 @@ describe('Artifact selection coverage', () => {
     });
   });
 
+  it('routes Artifact boundary commands through the shared Hole service', async () => {
+    const lexicalEditor = editor.getLexicalEditor()!;
+    const artifactKey = lexicalEditor
+      .getEditorState()
+      .read(() => $nodesOfType(ArtifactNode)[0].getKey());
+    if (!artifactKey) throw new Error('Artifact missing');
+
+    expect(
+      lexicalEditor.dispatchCommand(SELECT_BEFORE_ARTIFACT_COMMAND, { key: artifactKey }),
+    ).toBe(true);
+    await moment();
+    lexicalEditor.getEditorState().read(() => {
+      const selection = $getSelection();
+      const hole = $nodesOfType(HoleNode)[0];
+      expect($isRangeSelection(selection)).toBe(true);
+      if (!$isRangeSelection(selection) || !hole) throw new Error('Before boundary missing');
+      expect(selection.anchor.key).toBe(hole.getBeforeCursor()?.getKey());
+    });
+
+    expect(lexicalEditor.dispatchCommand(SELECT_AFTER_ARTIFACT_COMMAND, { key: artifactKey })).toBe(
+      true,
+    );
+    await moment();
+    lexicalEditor.getEditorState().read(() => {
+      const selection = $getSelection();
+      const hole = $nodesOfType(HoleNode)[0];
+      expect($isRangeSelection(selection)).toBe(true);
+      if (!$isRangeSelection(selection) || !hole) throw new Error('After boundary missing');
+      expect(selection.anchor.key).toBe(hole.getAfterCursor()?.getKey());
+    });
+  });
+
   it('removes the React selected class after either gutter click and keeps range coverage strict', async () => {
     const lexicalEditor = editor.getLexicalEditor()!;
     const editorRoot = document.createElement('div');
@@ -185,8 +238,22 @@ describe('Artifact selection coverage', () => {
       if (!hit) throw new Error('Hole hit area missing');
       await act(async () => {
         hit.dispatchEvent(
-          new MouseEvent('pointerdown', { bubbles: true, button: 0, cancelable: true }),
+          new MouseEvent('pointerdown', {
+            bubbles: true,
+            button: 0,
+            buttons: 1,
+            cancelable: true,
+          }),
         );
+        hit.dispatchEvent(
+          new MouseEvent('pointerup', {
+            bubbles: true,
+            button: 0,
+            buttons: 0,
+            cancelable: true,
+          }),
+        );
+        hit.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0, cancelable: true }));
         await moment();
       });
       expect(host.firstElementChild?.classList).not.toContain('artifact-selected');
@@ -319,8 +386,12 @@ describe('Artifact selection coverage', () => {
     expect(host.firstElementChild?.classList).toContain('artifact-selected');
     lexicalEditor.getEditorState().read(() => {
       const selection = $getSelection();
-      expect($isNodeSelection(selection)).toBe(true);
-      expect(selection?.getNodes()[0]).toBeInstanceOf(ArtifactNode);
+      const hole = $nodesOfType(HoleNode)[0];
+      expect($isRangeSelection(selection)).toBe(true);
+      if (!$isRangeSelection(selection) || !hole) return;
+      expect(selection.isCollapsed()).toBe(false);
+      expect(selection.anchor.key).toBe(hole.getBeforeCursor()?.getKey());
+      expect(selection.focus.key).toBe(hole.getAfterCursor()?.getKey());
     });
 
     await act(async () => {
@@ -344,8 +415,12 @@ describe('Artifact selection coverage', () => {
     expect(host.firstElementChild?.classList).toContain('artifact-selected');
     lexicalEditor.getEditorState().read(() => {
       const selection = $getSelection();
-      expect($isNodeSelection(selection)).toBe(true);
-      expect(selection?.getNodes()[0]).toBeInstanceOf(ArtifactNode);
+      const hole = $nodesOfType(HoleNode)[0];
+      expect($isRangeSelection(selection)).toBe(true);
+      if (!$isRangeSelection(selection) || !hole) return;
+      expect(selection.isCollapsed()).toBe(false);
+      expect(selection.anchor.key).toBe(hole.getAfterCursor()?.getKey());
+      expect(selection.focus.key).toBe(hole.getBeforeCursor()?.getKey());
     });
 
     await act(async () => {

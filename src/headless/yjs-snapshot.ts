@@ -2,8 +2,13 @@ import { createBinding, type Provider, type ProviderAwareness, type UserState } 
 import { applyUpdate, Doc, encodeStateAsUpdate, encodeStateVector } from 'yjs';
 
 import Editor, { moment } from '@/editor-kernel';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import { YjsPlugin } from '@/plugins/yjs/plugin';
-import { hydrateLexicalFromYjsState } from '@/plugins/yjs/plugin/utils/sync';
+import {
+  hydrateLexicalFromYjsState,
+  syncCurrentEditorStateToYjs,
+  YJS_SYSTEM_ORIGIN,
+} from '@/plugins/yjs/plugin/utils/sync';
 import { IYjsService } from '@/plugins/yjs/service';
 
 import { DEFAULT_HEADLESS_EDITOR_PLUGINS } from './default-plugins';
@@ -39,6 +44,22 @@ export interface CreateImmutableYjsSnapshotFromEditorDataInput {
   editorData?: unknown;
   revision: number;
   roomId: string;
+}
+
+export interface MigrateLegacyBlockImagesInYjsDocInput {
+  /** The live room document owned by the collaboration authority. */
+  doc: Doc;
+  /** Room id used by the v1 binding namespace. */
+  roomId: string;
+}
+
+export interface LegacyBlockImageMigrationResult {
+  /** Whether the authority wrote a structural migration update. */
+  changed: boolean;
+  /** Exact delta from the input state vector, suitable for room broadcast. */
+  update: Uint8Array;
+  /** State vector after the migration attempt. */
+  stateVector: Uint8Array;
 }
 
 type EditorDataRecord = Record<string, unknown>;
@@ -155,8 +176,9 @@ const createReadOnlyProvider = (): Provider =>
     on: () => undefined,
   }) as Provider;
 
-/** A local-only provider used while constructing a durable bootstrap. */
-const createBootstrapProvider = (): Provider => {
+type BootstrapProvider = Provider & { emitSync: () => void };
+
+const createBootstrapProvider = (): BootstrapProvider => {
   const listeners = new Map<string, Set<(...args: never[]) => void>>();
   const emit = (event: string, ...args: unknown[]): void => {
     listeners.get(event)?.forEach((listener) => listener(...(args as never[])));
@@ -178,7 +200,88 @@ const createBootstrapProvider = (): Provider => {
       eventListeners.add(listener);
       listeners.set(event, eventListeners);
     },
-  } as Provider;
+    emitSync: () => {
+      emit('status', { status: 'connected' });
+      emit('sync', true);
+    },
+  } as BootstrapProvider;
+};
+
+/**
+ * Build a fenced legacy-image migration delta from an already shared room.
+ * Browser peers must not independently reparent the same Yjs node: concurrent
+ * Lexical reparent operations create two Hole elements when their updates
+ * merge. The candidate starts from an exact Yjs snapshot and the existing
+ * binding hydrates it directly; the live room is never replaced or mutated by
+ * this helper. The caller applies the returned delta only after its room-owner
+ * and persistence checks succeed.
+ */
+export const migrateLegacyBlockImagesInYjsDoc = async ({
+  doc,
+  roomId,
+}: MigrateLegacyBlockImagesInYjsDocInput): Promise<LegacyBlockImageMigrationResult> => {
+  if (!(doc instanceof Doc)) {
+    throw new Error('migrateLegacyBlockImagesInYjsDoc requires a Yjs Doc.');
+  }
+  if (typeof roomId !== 'string' || roomId.trim().length === 0) {
+    throw new Error('migrateLegacyBlockImagesInYjsDoc requires a non-empty roomId.');
+  }
+
+  const stateVectorBefore = encodeStateVector(doc);
+  const sourceUpdate = new Uint8Array(encodeStateAsUpdate(doc));
+  const updates: Uint8Array[] = [];
+  const onUpdate = (update: Uint8Array): void => {
+    updates.push(new Uint8Array(update));
+  };
+  const kernel = Editor.createEditor();
+  kernel.registerPlugins([...DEFAULT_HEADLESS_EDITOR_PLUGINS]);
+  const lexicalEditor = kernel.initHeadlessEditor();
+  if (!lexicalEditor) throw new Error('Room migration failed to initialize the editor.');
+  const kernelErrors: unknown[] = [];
+  const onKernelError = (error: unknown): void => {
+    kernelErrors.push(error);
+  };
+  kernel.on('error', onKernelError);
+  const holeService = kernel.requireService(IHoleService);
+  if (!holeService) throw new Error('Room migration Hole service is unavailable.');
+  const holdNormalization = holeService.setNormalizationGuard(() => false);
+  const candidate = new Doc();
+  applyUpdate(candidate, sourceUpdate);
+  const provider = createReadOnlyProvider();
+  const binding = createBinding(
+    lexicalEditor,
+    provider,
+    roomId,
+    candidate,
+    new Map([[roomId, candidate]]),
+  );
+
+  candidate.on('update', onUpdate);
+  try {
+    hydrateLexicalFromYjsState(binding, { discrete: true });
+    await moment();
+    const previousEditorState = lexicalEditor.getEditorState();
+    holdNormalization();
+    holeService.setNormalizationGuard();
+    holeService.reconcile();
+    await moment();
+    syncCurrentEditorStateToYjs(binding, provider, previousEditorState, YJS_SYSTEM_ORIGIN);
+    if (kernelErrors.length > 0) {
+      const error = kernelErrors[0];
+      throw error instanceof Error ? error : new Error('Room migration editor failed.');
+    }
+    return {
+      changed: updates.length > 0,
+      stateVector: new Uint8Array(encodeStateVector(candidate)),
+      update: new Uint8Array(encodeStateAsUpdate(candidate, stateVectorBefore)),
+    };
+  } finally {
+    candidate.off('update', onUpdate);
+    binding.root.destroy(binding);
+    kernel.off('error', onKernelError);
+    kernel.destroy();
+    candidate.destroy();
+  }
 };
 
 const validateInput = ({ roomId, update }: ExportYjsSnapshotProjectionInput): void => {

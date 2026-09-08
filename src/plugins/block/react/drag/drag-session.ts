@@ -156,8 +156,7 @@ export const startBlockDragSession = ({
     blockElement: menuContext.blockElement,
     blockId: menuContext.blockId,
     structuralBlockId:
-      menuContext.blockElement.getAttribute(BLOCK_STRUCTURAL_ID_ATTRIBUTE) ||
-      menuContext.blockId,
+      menuContext.blockElement.getAttribute(BLOCK_STRUCTURAL_ID_ATTRIBUTE) || menuContext.blockId,
   };
   contextRef.current.dragPointerY = clientY;
   contextRef.current.dragBlocks = collectDragBlocks(editor.getRootElement());
@@ -257,6 +256,11 @@ export const startBlockDragSession = ({
   };
 
   const onViewportChange = () => {
+    if (!contextRef.current.dragStarted) {
+      clearDragPreview();
+      return;
+    }
+
     refreshDragBlocksSnapshot();
 
     if (contextRef.current.dragPointerY !== null) {
@@ -266,22 +270,7 @@ export const startBlockDragSession = ({
 
   const onPointerUp = () => {
     if (!contextRef.current.dragStarted && !contextRef.current.dragMoved) {
-      contextRef.current.draggingSource = null;
-      contextRef.current.dragPointerY = null;
-      contextRef.current.dragBlocks = [];
-      contextRef.current.dragStartPoint = null;
-      removeDragGhost(dragGhost);
-      dragGhost = null;
-      restoreSourceOpacity?.();
-      restoreSourceOpacity = null;
-      onDraggingChange?.(false);
-
-      window.removeEventListener('pointermove', onPointerMove, true);
-      window.removeEventListener('pointerup', onPointerUp, true);
-      window.removeEventListener('resize', onViewportChange);
-      document.removeEventListener('scroll', onViewportChange, true);
-
-      contextRef.current.dragCleanup = null;
+      cleanupDragSession();
       return;
     }
 
@@ -300,6 +289,10 @@ export const startBlockDragSession = ({
 
     onDragTargetResolve?.(contextRef.current.dragTarget);
 
+    cleanupDragSession();
+  };
+
+  const cleanupDragSession = () => {
     if (contextRef.current.dragRaf !== null) {
       window.cancelAnimationFrame(contextRef.current.dragRaf);
       contextRef.current.dragRaf = null;
@@ -314,6 +307,8 @@ export const startBlockDragSession = ({
     contextRef.current.dragPointerY = null;
     contextRef.current.dragBlocks = [];
     contextRef.current.dragStartPoint = null;
+    contextRef.current.dragStarted = false;
+    contextRef.current.dragMoved = false;
     removeDragGhost(dragGhost);
     dragGhost = null;
     restoreSourceOpacity?.();
@@ -323,16 +318,40 @@ export const startBlockDragSession = ({
 
     window.removeEventListener('pointermove', onPointerMove, true);
     window.removeEventListener('pointerup', onPointerUp, true);
+    window.removeEventListener('pointercancel', onPointerCancel, true);
     window.removeEventListener('resize', onViewportChange);
+    window.removeEventListener('blur', onWindowBlur);
     document.removeEventListener('scroll', onViewportChange, true);
+    document.removeEventListener('dragstart', onNativeDragStart, true);
+    document.removeEventListener('dragend', onNativeDragEnd, true);
 
     contextRef.current.dragCleanup = null;
   };
 
+  const onPointerCancel = () => {
+    cleanupDragSession();
+  };
+
+  const onNativeDragStart = () => {
+    cleanupDragSession();
+  };
+
+  const onNativeDragEnd = () => {
+    cleanupDragSession();
+  };
+
+  const onWindowBlur = () => {
+    cleanupDragSession();
+  };
+
   window.addEventListener('pointermove', onPointerMove, true);
   window.addEventListener('pointerup', onPointerUp, true);
+  window.addEventListener('pointercancel', onPointerCancel, true);
   window.addEventListener('resize', onViewportChange);
+  window.addEventListener('blur', onWindowBlur);
   document.addEventListener('scroll', onViewportChange, true);
+  document.addEventListener('dragstart', onNativeDragStart, true);
+  document.addEventListener('dragend', onNativeDragEnd, true);
 
   const runAutoScroll = () => {
     contextRef.current.dragAutoScrollRaf = window.requestAnimationFrame(runAutoScroll);
@@ -400,31 +419,5 @@ export const startBlockDragSession = ({
 
   contextRef.current.dragAutoScrollRaf = window.requestAnimationFrame(runAutoScroll);
 
-  contextRef.current.dragCleanup = () => {
-    if (contextRef.current.dragRaf !== null) {
-      window.cancelAnimationFrame(contextRef.current.dragRaf);
-      contextRef.current.dragRaf = null;
-    }
-
-    if (contextRef.current.dragAutoScrollRaf !== null) {
-      window.cancelAnimationFrame(contextRef.current.dragAutoScrollRaf);
-      contextRef.current.dragAutoScrollRaf = null;
-    }
-
-    contextRef.current.draggingSource = null;
-    contextRef.current.dragPointerY = null;
-    contextRef.current.dragBlocks = [];
-    contextRef.current.dragStartPoint = null;
-    removeDragGhost(dragGhost);
-    dragGhost = null;
-    restoreSourceOpacity?.();
-    restoreSourceOpacity = null;
-    onDraggingChange?.(false);
-    clearDragPreview();
-
-    window.removeEventListener('pointermove', onPointerMove, true);
-    window.removeEventListener('pointerup', onPointerUp, true);
-    window.removeEventListener('resize', onViewportChange);
-    document.removeEventListener('scroll', onViewportChange, true);
-  };
+  contextRef.current.dragCleanup = cleanupDragSession;
 };

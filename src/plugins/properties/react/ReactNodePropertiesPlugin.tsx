@@ -205,7 +205,13 @@ const ReactNodePropertiesPlugin: FC<ReactNodePropertiesPluginProps> = ({
           .filter((record): record is AnnotationRecord => Boolean(record));
         records.sort((left, right) => left.createdAt.localeCompare(right.createdAt));
         if (ids.length === 0) return;
-        const logicalBlockKey = annotationElement.getAttribute('data-block-id');
+        const logicalBlockKey =
+          annotationElement.getAttribute('data-block-id') ??
+          (annotationElement.matches('[data-hole-content="true"]')
+            ? annotationElement
+                .closest<HTMLElement>('[data-block-id]')
+                ?.getAttribute('data-block-id')
+            : null);
         let nodeKey: string | null =
           logicalBlockKey ?? annotationElement.getAttribute('data-lexical-node-key');
         lexicalEditor.read(() => {

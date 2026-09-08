@@ -1,6 +1,7 @@
 import type {
   BaseSelection,
   DOMConversionMap,
+  DOMExportOutput,
   EditorConfig,
   ElementDOMSlot,
   LexicalEditor,
@@ -9,11 +10,7 @@ import type {
   NodeKey,
   SerializedElementNode,
 } from 'lexical';
-import {
-  $applyNodeReplacement,
-  $getNodeByKey,
-  SKIP_SCROLL_INTO_VIEW_TAG,
-} from 'lexical';
+import { $applyNodeReplacement, $getSelection, $isNodeSelection, $isRangeSelection } from 'lexical';
 
 import {
   $createCursorNode,
@@ -76,36 +73,6 @@ export class HoleNode extends CardLikeElementNode {
     };
 
     element.append(content, createBoundaryHitArea('before'), createBoundaryHitArea('after'));
-    const nodeKey = this.getKey();
-    element.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0 || !_editor.isEditable()) return;
-
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      const hitArea = target.closest<HTMLElement>('[data-hole-cursor-hit]');
-      if (!hitArea || !element.contains(hitArea)) return;
-
-      const side = hitArea.dataset.holeCursorHit;
-      if (side !== 'before' && side !== 'after') return;
-
-      event.preventDefault();
-      event.stopPropagation();
-      _editor.getRootElement()?.focus({ preventScroll: true });
-      _editor.update(
-        () => {
-          const hole = $getNodeByKey(nodeKey);
-          if (!$isHoleNode(hole)) return;
-          hole.normalizeBoundaryCursors();
-          const cursor = side === 'before' ? hole.getBeforeCursor() : hole.getAfterCursor();
-          if (side === 'before') {
-            cursor?.selectEnd();
-          } else {
-            cursor?.selectStart();
-          }
-        },
-        { tag: SKIP_SCROLL_INTO_VIEW_TAG },
-      );
-    });
     return element;
   }
 
@@ -117,6 +84,13 @@ export class HoleNode extends CardLikeElementNode {
    */
   updateDOM(): false {
     return false;
+  }
+
+  /** Export the payload through Lexical's normal HTML walker without a wrapper. */
+  override exportDOM(editor: LexicalEditor): DOMExportOutput {
+    const ownerDocument =
+      editor._window?.document ?? (typeof document === 'undefined' ? null : document);
+    return { element: ownerDocument?.createDocumentFragment() ?? null };
   }
 
   getDOMSlot(element: HTMLElement): ElementDOMSlot<HTMLElement> {
@@ -235,6 +209,49 @@ export class HoleNode extends CardLikeElementNode {
 
 export type SerializedHoleNode = SerializedElementNode;
 export type HoleCursorSide = BoundaryCursorSide;
+
+export interface HoleSelectionCoverage {
+  covered: boolean;
+}
+
+/**
+ * Read whether a selection covers a complete Hole or all of its direct
+ * payloads. Descendant-only selections stay partial so nested editors can
+ * handle their own copy/cut behavior.
+ */
+export function $readHoleSelectionCoverage(
+  hole: HoleNode,
+  selection = $getSelection(),
+): HoleSelectionCoverage {
+  if (!selection) return { covered: false };
+
+  if ($isNodeSelection(selection)) {
+    const content = hole.getContentChildren();
+    return {
+      covered:
+        selection.has(hole.getKey()) ||
+        (content.length > 0 && content.every((child) => selection.has(child.getKey()))),
+    };
+  }
+
+  if ($isRangeSelection(selection)) {
+    const before = hole.getBeforeCursor();
+    const after = hole.getAfterCursor();
+    const content = hole.getContentChildren();
+    if (selection.isCollapsed() || content.length === 0) return { covered: false };
+    const selectedNodes = selection.getNodes();
+    const directPayloadCovered = content.every((child) =>
+      selectedNodes.some((selected) => selected.is(child)),
+    );
+    return {
+      covered:
+        Boolean(before?.isSelected(selection) && after?.isSelected(selection)) ||
+        directPayloadCovered,
+    };
+  }
+
+  return { covered: false };
+}
 
 /**
  * Create a Hole with its two persistent cursor markers.

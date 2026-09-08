@@ -31,7 +31,10 @@ import {
 import Editor, { moment } from '@/editor-kernel';
 import { getBlockOffset, getBlockPoint } from '@/editor-kernel/linear-text';
 import { IAISessionService } from '@/plugins/ai-session/service';
-import type { BlockRewriteOutputSchema } from '@/plugins/block/service/rewrite-adapter';
+import type {
+  BlockRewriteImageContext,
+  BlockRewriteOutputSchema,
+} from '@/plugins/block/service/rewrite-adapter';
 import { IBlockRewriteAdapterService } from '@/plugins/block/service/rewrite-adapter';
 import { $getAtomicHoleForNode } from '@/plugins/common/node/atomic-hole-selection';
 import {
@@ -306,6 +309,7 @@ export interface ResolvedBlockRewriteTarget {
   sourceHash?: string;
   summary?: string;
   title?: string;
+  image?: BlockRewriteImageContext;
 }
 
 export interface CollaborativeAgentEditorConnectOptions {
@@ -717,7 +721,7 @@ export class CollaborativeAgentEditor {
       },
     ];
     this.kernel = Editor.createEditor();
-    this.kernel.registerPlugins([...DEFAULT_HEADLESS_EDITOR_PLUGINS, yjsPlugin]);
+    this.kernel.registerPlugins([...DEFAULT_HEADLESS_EDITOR_PLUGINS, yjsPlugin] as never);
     const lexicalEditor = this.kernel.initHeadlessEditor();
     if (!lexicalEditor) throw new Error('CollaborativeAgentEditor failed to initialize editor.');
     internalStates.set(this, { kernel: this.kernel });
@@ -1095,6 +1099,7 @@ export class CollaborativeAgentEditor {
         sourceHash: context.sourceHash,
         summary: context.summary,
         title: context.title,
+        ...(context.image ? { image: context.image } : {}),
       };
     });
     return target;

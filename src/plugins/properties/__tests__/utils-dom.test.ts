@@ -5,6 +5,8 @@ import Editor, { moment } from '@/editor-kernel';
 import { ArtifactNode, ArtifactPlugin } from '@/plugins/artifact';
 import { BlockPlugin } from '@/plugins/block';
 import { CommonPlugin } from '@/plugins/common';
+import { BlockImageNode } from '@/plugins/image/node/block-image-node';
+import { ImagePlugin } from '@/plugins/image/plugin';
 
 import {
   findNearestScrollContainer,
@@ -49,6 +51,37 @@ describe('annotation DOM utilities', () => {
       ),
     ).toEqual([range, block]);
     expect(lexicalEditor.getElementByKey).toHaveBeenCalledWith('range-key');
+  });
+
+  it('uses an intrinsic Hole content slot for block annotation bounds', () => {
+    const root = document.createElement('div');
+    const hole = document.createElement('div');
+    const content = document.createElement('div');
+    const image = document.createElement('div');
+    const fullWidthHole = document.createElement('div');
+    const fullWidthContent = document.createElement('div');
+
+    hole.dataset.blockId = 'image-key';
+    hole.dataset.hole = 'true';
+    content.dataset.holeContent = 'true';
+    image.dataset.holeContentLayout = 'intrinsic';
+    fullWidthHole.dataset.blockId = 'artifact-key';
+    fullWidthHole.dataset.hole = 'true';
+    fullWidthContent.dataset.holeContent = 'true';
+    hole.append(content);
+    content.append(image);
+    fullWidthHole.append(fullWidthContent);
+    root.append(hole, fullWidthHole);
+
+    expect(
+      getAnnotationElementsFromDOM(root, { id: 'image-comment', nodeKeys: ['image-key'] }),
+    ).toEqual([content]);
+    expect(
+      getAnnotationElementsFromDOM(root, { id: 'artifact-comment', nodeKeys: ['artifact-key'] }),
+    ).toEqual([fullWidthHole]);
+
+    hole.dataset.annotationIds = 'image-comment';
+    expect(getAnnotationElementsFromDOM(root, { id: 'image-comment' })).toEqual([content]);
   });
 
   it('measures an anchor in root document coordinates while the root scrolls', () => {
@@ -177,9 +210,7 @@ describe('annotation DOM utilities', () => {
     });
     await moment();
 
-    const artifactKey = lexical
-      .getEditorState()
-      .read(() => $nodesOfType(ArtifactNode)[0].getKey());
+    const artifactKey = lexical.getEditorState().read(() => $nodesOfType(ArtifactNode)[0].getKey());
     const nested = lexical.getElementByKey(artifactKey)!;
     nested.dataset.annotationIds = 'legacy-comment';
     nested.dataset.annotation = 'true';
@@ -207,6 +238,57 @@ describe('annotation DOM utilities', () => {
     const currentWrapper = root.querySelector<HTMLElement>(`[data-block-id="${artifactKey}"]`)!;
     expect(currentWrapper.dataset.annotationIds).toBeUndefined();
     expect(currentWrapper.dataset.annotationScope).toBeUndefined();
+
+    editor.destroy();
+  });
+
+  it('projects an intrinsic block-image annotation onto the Hole content slot', async () => {
+    const editor = Editor.createEditor().registerPlugins([
+      CommonPlugin,
+      PropertiesPlugin,
+      BlockPlugin,
+      ImagePlugin,
+    ]);
+    const root = document.createElement('div');
+    root.setAttribute('contenteditable', 'true');
+    document.body.append(root);
+    const lexical = editor.setRootElement(root);
+    editor.setDocument('json', {
+      root: {
+        children: [
+          {
+            altText: 'Intrinsic image',
+            height: 166.65,
+            maxWidth: 4200,
+            src: 'https://cdn.example.com/intrinsic.png',
+            type: 'block-image',
+            version: 1,
+            width: 118,
+          },
+        ],
+        direction: null,
+        format: '',
+        indent: 0,
+        type: 'root',
+        version: 1,
+      },
+    });
+    await moment();
+
+    lexical.update(() => {
+      const image = $nodesOfType(BlockImageNode)[0];
+      if (!image) throw new Error('Block image missing');
+      $setNodeProperties(image, { annotationIds: ['intrinsic-image-comment'] });
+    });
+    await moment();
+    syncNodePropertiesToDOM(lexical);
+
+    const hole = root.querySelector<HTMLElement>('[data-hole="true"]');
+    const content = hole?.querySelector<HTMLElement>('[data-hole-content="true"]');
+    expect(hole).not.toBeNull();
+    expect(content?.dataset.annotationIds).toBe('intrinsic-image-comment');
+    expect(hole?.dataset.annotationIds).toBeUndefined();
+    expect(content?.dataset.annotationScope).toBe('block');
 
     editor.destroy();
   });

@@ -1,17 +1,18 @@
 import type { LexicalEditor } from 'lexical';
 
-import type { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { INodeService } from '@/plugins/inode/service';
+import { registerBlockRewriteAdapter } from '@/plugins/block/service/rewrite-adapter';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload/service/i-upload-service';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
-import { INSERT_IMAGE_COMMAND, registerImageCommand } from '../command';
+import { INSERT_IMAGE_COMMAND, registerBlockImageCommand, registerImageCommand } from '../command';
 import { $isBlockImageNode, BlockImageNode } from '../node/block-image-node';
 import { $isImageNode, ImageNode } from '../node/image-node';
+import { blockImageRewriteAdapter } from '../rewrite-adapter';
 
 export interface ImagePluginOptions {
   defaultBlockImage?: boolean;
@@ -46,6 +47,8 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    const holeService = this.kernel.requireService(IHoleService);
+    if (holeService) this.register(holeService.registerTarget(BlockImageNode));
     if (this.config?.handleUpload) {
       this.register(
         registerImageCommand(
@@ -55,10 +58,11 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
         ),
       );
     }
+    this.register(registerBlockImageCommand(editor));
 
     this.registerMarkdown();
     this.registerLiteXml();
-    this.registerINode();
+    this.register(registerBlockRewriteAdapter(this.kernel, blockImageRewriteAdapter));
     this.registerUpload(editor);
     if (this.config?.needRehost && this.config?.handleRehost) {
       const needRehost = this.config.needRehost;
@@ -228,35 +232,6 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
           version: 1,
         },
       );
-    });
-  }
-
-  private registerINode() {
-    const service = this.kernel.requireService(INodeService);
-    if (!service) {
-      return;
-    }
-
-    service.registerProcessNodeTree(({ root }) => {
-      // Process the root node
-      const loopNodes = (node: INode) => {
-        if ('children' in node && Array.isArray(node.children)) {
-          if (
-            node.type === 'paragraph' &&
-            node.children.length === 1 &&
-            node.children[0].type === BlockImageNode.getType()
-          ) {
-            return node.children[0];
-          }
-          node.children = node.children.map((child) => {
-            return loopNodes(child);
-          });
-        }
-        return node;
-      };
-      root.children = root.children.map((child) => {
-        return loopNodes(child);
-      });
     });
   }
 };

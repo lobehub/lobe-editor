@@ -45,12 +45,40 @@ export const $getAtomicHoleForNode = (node: LexicalNode): HoleNode | null => {
   return null;
 };
 
+/** Whether a point belongs to a composite Element payload owned by itself. */
+export const $isAtomicHoleElementPayloadNode = (node: LexicalNode): boolean => {
+  const hole = $getAtomicHoleForNode(node);
+  if (!hole) return false;
+  return $isElementNode(getDirectHoleContentChild(hole, node));
+};
+
 const sideForHoleElementPoint = (hole: HoleNode, offset: number): AtomicHoleBoundarySide | null => {
   const children = hole.getChildren();
   const lastBoundaryOffset = Math.max(0, children.length - 1);
-  if (offset <= 1) return null;
-  if (offset >= lastBoundaryOffset) return null;
+  if (offset <= 1) return 'before';
+  if (offset >= lastBoundaryOffset) return 'after';
   return offset <= children.length / 2 ? 'before' : 'after';
+};
+
+/**
+ * Resolve a block/container point which sits immediately beside a Hole.
+ * Lexical can produce these points when the browser caret lands in the root
+ * element's whitespace between two decorator blocks. They are not legal Hole
+ * editing points, so normalize them to the real boundary cursor on that side.
+ */
+const sideForAdjacentHoleElementPoint = (
+  element: LexicalNode,
+  offset: number,
+): { hole: HoleNode; side: AtomicHoleBoundarySide } | null => {
+  if (!$isElementNode(element)) return null;
+
+  const previous = element.getChildAtIndex(offset - 1);
+  if ($isHoleNode(previous)) return { hole: previous, side: 'after' };
+
+  const next = element.getChildAtIndex(offset);
+  if ($isHoleNode(next)) return { hole: next, side: 'before' };
+
+  return null;
 };
 
 const sideForContentPoint = (
@@ -87,15 +115,25 @@ export const $getAtomicHolePointContext = (
     return side ? { hole: node, side } : null;
   }
 
+  if (point.type === 'element') {
+    const adjacentHole = sideForAdjacentHoleElementPoint(node, point.offset);
+    if (adjacentHole) return adjacentHole;
+  }
+
   const hole = $getAtomicHoleForNode(node);
   if (!hole) return null;
+  const content = getDirectHoleContentChild(hole, node);
+  // A composite Element payload owns its descendants' selection and input.
+  // Only direct non-Element payloads (for example Artifact/Image decorators)
+  // remain atomic at the Hole boundary.
+  if ($isElementNode(content)) return null;
   return {
     hole,
     side: sideForContentPoint(hole, node, point.offset, point.type),
   };
 };
 
-const setBoundaryPoint = (
+export const $setAtomicHoleBoundaryPoint = (
   selection: RangeSelection,
   side: AtomicHoleBoundarySide,
   hole: HoleNode,
@@ -108,6 +146,7 @@ const setBoundaryPoint = (
     cursor.getKey(),
     side === 'before' ? cursor.getTextContentSize() : 0,
     'text',
+    true,
   );
 };
 
@@ -123,18 +162,13 @@ export const $normalizeAtomicHoleRangeSelection = (selection: unknown): boolean 
   const focusContext = $getAtomicHolePointContext(selection.focus);
   if (!anchorContext && !focusContext) return false;
 
-  // A range whose two endpoints are both inside one atomic payload would
-  // otherwise become an inverted range between the two boundary cursors. A
-  // collapsed boundary is the only unambiguous, non-content selection.
-  if (anchorContext && focusContext && anchorContext.hole.is(focusContext.hole)) {
-    const side = anchorContext.side === focusContext.side ? anchorContext.side : 'before';
-    setBoundaryPoint(selection, side, anchorContext.hole, 'anchor');
-    setBoundaryPoint(selection, side, anchorContext.hole, 'focus');
-    return true;
-  }
-
-  if (anchorContext) setBoundaryPoint(selection, anchorContext.side, anchorContext.hole, 'anchor');
-  if (focusContext) setBoundaryPoint(selection, focusContext.side, focusContext.hole, 'focus');
+  // Normalize each endpoint independently. In particular, a native drag or
+  // Shift+Arrow range may start on one side of a Hole and finish on the
+  // other; collapsing both endpoints would discard the user's anchor.
+  if (anchorContext)
+    $setAtomicHoleBoundaryPoint(selection, anchorContext.side, anchorContext.hole, 'anchor');
+  if (focusContext)
+    $setAtomicHoleBoundaryPoint(selection, focusContext.side, focusContext.hole, 'focus');
   return true;
 };
 

@@ -22,6 +22,8 @@ import {
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
+import { getKernelFromEditor } from '@/editor-kernel/utils';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import { $parseSerializedNodeImpl } from '@/plugins/litexml/utils';
 import {
   notifyJSONDataSourceRead,
@@ -29,11 +31,8 @@ import {
 } from '@/plugins/properties/service/json-metadata';
 
 import { cursorNodeSerialized } from '../node/cursor';
+import { projectRuntimeHolesForJSON, type SerializedRecord } from '../node/hole-serialization';
 import { exportNodeToJSON } from '../utils';
-
-type SerializedRecord = SerializedLexicalNode & {
-  children?: SerializedLexicalNode[];
-};
 
 const hasNumericSerializedNodeId = (node: unknown): boolean => {
   if (!node || typeof node !== 'object') return false;
@@ -48,74 +47,8 @@ const hasNumericSerializedNodeId = (node: unknown): boolean => {
   return Array.isArray(record.children) && record.children.some(hasNumericSerializedNodeId);
 };
 
-/**
- * Project runtime-only Hole boundaries out of persisted editor JSON.
- * Cursor nodes outside Hole (for example CodeNode's cursor) are preserved.
- */
-export const projectRuntimeHolesForJSON = (node: SerializedRecord): SerializedRecord[] => {
-  const children = Array.isArray(node.children) ? node.children : undefined;
-
-  if (node.type === 'hole') {
-    const projectedChildren = (children || [])
-      .filter((child) => child.type !== 'cursor')
-      .flatMap((child) => projectRuntimeHolesForJSON(child as SerializedRecord));
-
-    // Hole is runtime-only, but annotations/provenance may have been attached
-    // to its block host. Transfer that state to every projected payload node
-    // before dropping the wrapper, otherwise a JSON round-trip silently
-    // orphans block comments on Artifact/Hole content.
-    const wrapperState = getRecordProperty(node, '$');
-    if (!wrapperState) return projectedChildren;
-
-    const wrapperProperties = getRecordProperty(wrapperState, 'properties');
-    if (!wrapperProperties && Object.keys(wrapperState).length === 0) {
-      return projectedChildren;
-    }
-
-    return projectedChildren.map((child) => {
-      const childState = getRecordProperty(child, '$') || {};
-      const childProperties = getRecordProperty(childState, 'properties');
-      const mergedState = { ...wrapperState, ...childState };
-
-      if (wrapperProperties || childProperties) {
-        const mergedProperties: Record<string, any> = {};
-        if (wrapperProperties) Object.assign(mergedProperties, wrapperProperties);
-        if (childProperties) Object.assign(mergedProperties, childProperties);
-        const wrapperAnnotationIds = Array.isArray(wrapperProperties?.annotationIds)
-          ? wrapperProperties.annotationIds.filter((id): id is string => typeof id === 'string')
-          : [];
-        const childAnnotationIds = Array.isArray(childProperties?.annotationIds)
-          ? childProperties.annotationIds.filter((id): id is string => typeof id === 'string')
-          : [];
-        const annotationIds = Array.from(new Set([...wrapperAnnotationIds, ...childAnnotationIds]));
-        if (annotationIds.length > 0) mergedProperties.annotationIds = annotationIds;
-        else delete mergedProperties.annotationIds;
-        mergedState.properties = mergedProperties;
-      }
-
-      return { ...child, $: mergedState };
-    });
-  }
-
-  if (!children) return [node];
-
-  return [
-    {
-      ...node,
-      children: children.flatMap((child) => projectRuntimeHolesForJSON(child as SerializedRecord)),
-    },
-  ];
-};
-
-const getRecordProperty = (
-  record: SerializedRecord | Record<string, unknown>,
-  key: string,
-): Record<string, any> | undefined => {
-  const value = (record as Record<string, unknown>)[key];
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, any>)
-    : undefined;
-};
+/** Kept for callers that historically imported the projection from JSONDataSource. */
+export { projectRuntimeHolesForJSON } from '../node/hole-serialization';
 
 export default class JSONDataSource extends DataSource {
   read(editor: LexicalEditor, data: any, options: Record<string, unknown> = {}) {
@@ -156,6 +89,9 @@ export default class JSONDataSource extends DataSource {
     };
     process(dataObj.root);
     notifyJSONDataSourceRead(editor, dataObj.root as unknown as Record<string, unknown>);
+    const normalizeIncoming = () => {
+      getKernelFromEditor(editor)?.requireService(IHoleService)?.normalizeIncoming();
+    };
     // @ts-expect-error add id option
     if (dataObj.keepId || options.keepId) {
       const hasExplicitIds = hasNumericSerializedNodeId(dataObj.root);
@@ -173,6 +109,8 @@ export default class JSONDataSource extends DataSource {
             }
 
             if (root) state._nodeMap.set(root.getKey(), root);
+
+            normalizeIncoming();
 
             if (hasExplicitIds) {
               // Include every node allocated before a malformed child aborted
@@ -194,7 +132,11 @@ export default class JSONDataSource extends DataSource {
       );
       editor.setEditorState(state);
     } else {
-      editor.setEditorState(editor.parseEditorState({ root: dataObj.root }));
+      editor.setEditorState(
+        editor.parseEditorState({ root: dataObj.root }, () => {
+          normalizeIncoming();
+        }),
+      );
     }
   }
 
@@ -321,9 +263,11 @@ export default class JSONDataSource extends DataSource {
         } else if ($isTableSelection(selection)) {
           // todo
         }
-        return selection.getNodes().flatMap((node) =>
-          projectRuntimeHolesForJSON(exportNodeToJSON(node) as unknown as SerializedRecord),
-        );
+        return selection
+          .getNodes()
+          .flatMap((node) =>
+            projectRuntimeHolesForJSON(exportNodeToJSON(node) as unknown as SerializedRecord),
+          );
       });
     }
     // `LexicalEditor.read()` flushes a pending update before entering the
@@ -332,9 +276,11 @@ export default class JSONDataSource extends DataSource {
     // the update tags/listener queue while Lexical is dispatching it. Read the
     // pending state directly when one exists so callers still observe the
     // latest state without forcing a commit.
-    const pendingEditorState = (editor as LexicalEditor & {
-      _pendingEditorState?: EditorState | null;
-    })._pendingEditorState;
+    const pendingEditorState = (
+      editor as LexicalEditor & {
+        _pendingEditorState?: EditorState | null;
+      }
+    )._pendingEditorState;
     return (pendingEditorState ?? editor.getEditorState()).read(() => {
       const runtimeRoot = exportNodeToJSON($getRoot()) as unknown as SerializedRecord;
       const [root] = projectRuntimeHolesForJSON(runtimeRoot);

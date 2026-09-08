@@ -28,11 +28,14 @@ export type {
   CreateImmutableYjsSnapshotFromEditorDataInput,
   ExportYjsSnapshotProjectionInput,
   ImmutableYjsSnapshot,
+  LegacyBlockImageMigrationResult,
+  MigrateLegacyBlockImagesInYjsDocInput,
   YjsSnapshotProjection,
 } from './yjs-snapshot';
 export {
   createImmutableYjsSnapshotFromEditorData,
   exportYjsSnapshotProjection,
+  migrateLegacyBlockImagesInYjsDoc,
 } from './yjs-snapshot';
 export { extractArtifactTitle, normalizeArtifactTitle } from '@/plugins/artifact/rewrite-utils';
 export {
@@ -44,6 +47,7 @@ export type {
   BlockRewriteApplyMetadata,
   BlockRewriteCapabilities,
   BlockRewriteContext,
+  BlockRewriteImageContext,
   BlockRewriteOutput,
   BlockRewriteOutputSchema,
   BlockRewritePatchOutput,
@@ -52,6 +56,27 @@ export type {
   ResolvedRewriteAdapterTarget,
 } from '@/plugins/block/service/rewrite-adapter';
 export { resolveRewriteAdapterTarget } from '@/plugins/block/service/rewrite-adapter';
+export type {
+  EditorDiagnosticsCommand,
+  EditorDiagnosticsCommandEntry,
+  EditorDiagnosticsEntry,
+  EditorDiagnosticsNativeEntry,
+  EditorDiagnosticsNativeEvent,
+  EditorDiagnosticsPoint,
+  EditorDiagnosticsSelection,
+  EditorDiagnosticsSelectionType,
+  EditorDiagnosticsShortcut,
+  EditorDiagnosticsTarget,
+  EditorDiagnosticsUpdateEntry,
+} from '@/plugins/common/service/i-editor-diagnostics-service';
+export { IEditorDiagnosticsService } from '@/plugins/common/service/i-editor-diagnostics-service';
+export type {
+  HoleBoundaryChange,
+  HoleBoundaryPosition,
+  HoleBoundarySide,
+  HoleBoundaryState,
+} from '@/plugins/common/service/i-hole-service';
+export { IHoleService } from '@/plugins/common/service/i-hole-service';
 export type {
   AgentAwarenessData,
   AgentAwarenessInput,

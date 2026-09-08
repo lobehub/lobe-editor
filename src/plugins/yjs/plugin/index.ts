@@ -19,6 +19,7 @@ import type { Doc, Text as YText, YEvent } from 'yjs';
 import { UndoManager } from 'yjs';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import {
   getOrCreatePropertiesService,
   type IPropertiesService,
@@ -513,6 +514,11 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
         });
       }
 
+      // Initial state callbacks can construct registered nodes through paths
+      // that bypass a node transform. Commit the generic Hole normalization
+      // before the first shared update, while the binding is still empty.
+      const holeService = this.kernel.requireService(IHoleService);
+      holeService?.reconcile();
       syncCurrentEditorStateToYjs(binding, provider);
     };
   }
@@ -574,6 +580,16 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
       excludedProperties,
     );
     this.setServiceState(binding, id, provider, this.docMap.get(id));
+    const holeService = this.kernel.requireService(IHoleService);
+    if (holeService) {
+      this.register(
+        holeService.setNormalizationGuard((node) => {
+          const state = this.service.getState();
+          const collabNode = state?.binding.collabNodeMap.get(node.getKey());
+          return !collabNode || collabNode.getNode() !== node;
+        }),
+      );
+    }
     this.registerAwareness(provider);
     // The history bridge must be registered before the editor -> Yjs sync
     // listener. It closes Yjs capture on HISTORY_PUSH_TAG before the tagged

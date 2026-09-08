@@ -55,11 +55,31 @@ function getClosestSemanticBlock(element: HTMLElement, root: HTMLElement): HTMLE
   return null;
 }
 
+/**
+ * Resolve a structural block host to the visual slot used by an intrinsic Hole.
+ *
+ * Hole hosts intentionally remain full-width so their boundary interaction and
+ * block identity stay stable. An intrinsic payload, however, is centered inside
+ * the `data-hole-content` slot; annotations should follow that slot so their
+ * visual bounds match the payload instead of the structural host.
+ */
+function getAnnotationVisualElement(element: HTMLElement): HTMLElement {
+  if (!element.matches('[data-hole="true"]')) return element;
+
+  const content = Array.from(element.children).find(
+    (child): child is HTMLElement =>
+      child instanceof HTMLElement && child.dataset.holeContent === 'true',
+  );
+  if (!content) return element;
+
+  const hasIntrinsicPayload = Array.from(content.children).some(
+    (child) => child instanceof HTMLElement && child.dataset.holeContentLayout === 'intrinsic',
+  );
+  return hasIntrinsicPayload ? content : element;
+}
+
 /** Resolve a business node key to its visual block wrapper when one exists. */
-export function getBlockElementByNodeKey(
-  root: HTMLElement,
-  nodeKey: string,
-): HTMLElement | null {
+export function getBlockElementByNodeKey(root: HTMLElement, nodeKey: string): HTMLElement | null {
   const attributeNames = [BLOCK_ID_ATTRIBUTE] as const;
   if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
     for (const attributeName of attributeNames) {
@@ -124,7 +144,11 @@ export function syncNodePropertiesToDOM(editor: LexicalEditor): void {
     editor.getEditorState()._nodeMap.forEach((node) => {
       const directElement = editor.getElementByKey(node.getKey());
       const blockElement = getBlockElementByNodeKey(root!, node.getKey());
-      const element = blockElement ?? directElement;
+      const element = blockElement
+        ? getAnnotationVisualElement(blockElement)
+        : directElement
+          ? getAnnotationVisualElement(directElement)
+          : directElement;
       if (!element || !root!.contains(element)) return;
 
       const properties = $getNodeProperties(node);
@@ -160,9 +184,7 @@ export function syncNodePropertiesToDOM(editor: LexicalEditor): void {
   const managedSelector =
     '[data-annotation-ids], [data-annotation="true"], [data-annotation-scope], [data-provenance], [data-ai-generated], [data-ai-session-id], [data-ai-request-id], [data-ai-turn-index], [data-ai-session-active], [data-ai-session-hover]';
   if (root.matches(managedSelector)) clearNodePropertiesFromDOM(root);
-  root
-    .querySelectorAll<HTMLElement>(managedSelector)
-    .forEach(clearNodePropertiesFromDOM);
+  root.querySelectorAll<HTMLElement>(managedSelector).forEach(clearNodePropertiesFromDOM);
 
   desired.forEach(
     (
@@ -176,25 +198,25 @@ export function syncNodePropertiesToDOM(editor: LexicalEditor): void {
       },
       element,
     ) => {
-    if (annotationIds.size > 0) {
-      element.dataset.annotationIds = [...annotationIds].join(',');
-      element.dataset.annotation = 'true';
-      element.dataset.annotationScope = block ? 'block' : 'range';
-    }
-    if (provenanceAI) {
-      element.dataset.provenance = 'ai';
-      element.dataset.aiGenerated = 'true';
-    }
-    if (provenanceSessionIds.size === 1) {
-      element.dataset.aiSessionId = [...provenanceSessionIds][0];
-    }
-    if (provenanceRequestIds.size === 1) {
-      element.dataset.aiRequestId = [...provenanceRequestIds][0];
-    }
-    if (provenanceTurnIndexes.size === 1) {
-      element.dataset.aiTurnIndex = String([...provenanceTurnIndexes][0]);
-    }
-  },
+      if (annotationIds.size > 0) {
+        element.dataset.annotationIds = [...annotationIds].join(',');
+        element.dataset.annotation = 'true';
+        element.dataset.annotationScope = block ? 'block' : 'range';
+      }
+      if (provenanceAI) {
+        element.dataset.provenance = 'ai';
+        element.dataset.aiGenerated = 'true';
+      }
+      if (provenanceSessionIds.size === 1) {
+        element.dataset.aiSessionId = [...provenanceSessionIds][0];
+      }
+      if (provenanceRequestIds.size === 1) {
+        element.dataset.aiRequestId = [...provenanceRequestIds][0];
+      }
+      if (provenanceTurnIndexes.size === 1) {
+        element.dataset.aiTurnIndex = String([...provenanceTurnIndexes][0]);
+      }
+    },
   );
 }
 
@@ -250,11 +272,9 @@ export function getAnnotationElementsFromDOM(
   };
 
   for (const nodeKey of target.nodeKeys ?? []) {
-    add(
-      getBlockElementByNodeKey(root, nodeKey) ??
-        lexicalEditor?.getElementByKey(nodeKey) ??
-        null,
-    );
+    const blockElement = getBlockElementByNodeKey(root, nodeKey);
+    const nodeElement = blockElement ?? lexicalEditor?.getElementByKey(nodeKey) ?? null;
+    add(nodeElement ? getAnnotationVisualElement(nodeElement) : null);
   }
 
   // Always include the attribute match as well. Overlapping range/block annotations can have
@@ -262,7 +282,9 @@ export function getAnnotationElementsFromDOM(
   // This also handles records arriving from Yjs before the corresponding Lexical node key is
   // available to a host.
   for (const element of root.querySelectorAll<HTMLElement>('[data-annotation-ids]')) {
-    if (getAnnotationIdsFromDOM(element).includes(target.id)) add(element);
+    if (getAnnotationIdsFromDOM(element).includes(target.id)) {
+      add(getAnnotationVisualElement(element));
+    }
   }
 
   return elements;

@@ -1,16 +1,12 @@
-import type { EditorState, LexicalEditor, NodeKey } from 'lexical';
-import {
-  $getNodeByKey,
-  $getSelection,
-  $isElementNode,
-  $isNodeSelection,
-  $isRangeSelection,
-} from 'lexical';
+import type { LexicalEditor, NodeKey } from 'lexical';
 import { useEffect, useState } from 'react';
 
-import { $isHoleNode } from '@/plugins/common/node/hole';
-
-import { $isArtifactNode } from '../node/ArtifactNode';
+import { getKernelFromEditor } from '@/editor-kernel/utils';
+import {
+  $readHoleBoundaryState,
+  type HoleBoundaryChange,
+  IHoleService,
+} from '@/plugins/common/service/i-hole-service';
 
 export interface ArtifactSelectionState {
   covered: boolean;
@@ -24,41 +20,10 @@ export const EMPTY_ARTIFACT_SELECTION_STATE: ArtifactSelectionState = {
 
 /** Must be called inside an editor read/update scope. */
 export const $getArtifactSelectionState = (nodeKey: NodeKey): ArtifactSelectionState => {
-  const artifact = $getNodeByKey(nodeKey);
-  const selection = $getSelection();
-  if (!$isArtifactNode(artifact) || !selection) return EMPTY_ARTIFACT_SELECTION_STATE;
-
-  const selectedNodes = selection.getNodes();
-  const hole = artifact.getParent();
-  if ($isRangeSelection(selection) && selection.isCollapsed()) {
-    return EMPTY_ARTIFACT_SELECTION_STATE;
-  }
-
-  if ($isNodeSelection(selection)) {
-    return {
-      covered: selectedNodes.some(
-        (selectedNode) =>
-          selectedNode.is(artifact) ||
-          ($isHoleNode(selectedNode) && selectedNode.isParentOf(artifact)),
-      ),
-      directNodeSelection: selection.has(nodeKey),
-    };
-  }
-
-  if (!$isRangeSelection(selection)) return EMPTY_ARTIFACT_SELECTION_STATE;
-  const coveredBySelectedNode = selectedNodes.some(
-    (selectedNode) =>
-      selectedNode.is(artifact) ||
-      ($isElementNode(selectedNode) && selectedNode.isParentOf(artifact)),
-  );
-  const coveredByHoleBoundary =
-    $isHoleNode(hole) &&
-    Boolean(hole.getBeforeCursor()?.isSelected(selection)) &&
-    Boolean(hole.getAfterCursor()?.isSelected(selection));
-
+  const state = $readHoleBoundaryState(nodeKey);
   return {
-    covered: coveredBySelectedNode || coveredByHoleBoundary,
-    directNodeSelection: false,
+    covered: state.covered,
+    directNodeSelection: state.directNodeSelection,
   };
 };
 
@@ -69,8 +34,17 @@ export const useArtifactSelectionState = (
   const [selectionState, setSelectionState] = useState(EMPTY_ARTIFACT_SELECTION_STATE);
 
   useEffect(() => {
-    const readSelection = (editorState: EditorState = editor.getEditorState()) => {
-      const next = editorState.read(() => $getArtifactSelectionState(nodeKey));
+    const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
+    if (!holeService) {
+      setSelectionState(EMPTY_ARTIFACT_SELECTION_STATE);
+      return;
+    }
+
+    const readSelection = (boundaryState = holeService.getBoundaryState(nodeKey)) => {
+      const next = {
+        covered: boundaryState.covered,
+        directNodeSelection: boundaryState.directNodeSelection,
+      };
       setSelectionState((current) =>
         current.covered === next.covered && current.directNodeSelection === next.directNodeSelection
           ? current
@@ -79,7 +53,13 @@ export const useArtifactSelectionState = (
     };
 
     readSelection();
-    return editor.registerUpdateListener(({ editorState }) => readSelection(editorState));
+    const unsubscribeHole = holeService.subscribe((change: HoleBoundaryChange) => {
+      if (change.next.targetKey === nodeKey) readSelection(change.next);
+      else if (change.previous.targetKey === nodeKey) readSelection();
+    });
+    return () => {
+      unsubscribeHole();
+    };
   }, [editor, nodeKey]);
 
   return selectionState;

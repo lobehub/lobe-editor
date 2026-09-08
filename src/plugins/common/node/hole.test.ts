@@ -78,6 +78,8 @@ describe('HoleNode DOM layout', () => {
     );
     if (!beforeHit || !afterHit) throw new Error('Hole cursor hit area missing');
     expect(getComputedStyle(beforeHit).position).toBe('absolute');
+    expect(getComputedStyle(beforeHit).pointerEvents).toBe('none');
+    expect(getComputedStyle(beforeHit).userSelect).toBe('text');
     expect(getComputedStyle(beforeHit).insetBlock).toBe('0px');
     expect(getComputedStyle(holeElement).getPropertyValue('--lobe-hole-cursor-gutter')).toBe(
       '24px',
@@ -87,13 +89,24 @@ describe('HoleNode DOM layout', () => {
     const beforePointerDown = new MouseEvent('pointerdown', {
       bubbles: true,
       button: 0,
+      buttons: 1,
       cancelable: true,
     });
     beforeHit.dispatchEvent(beforePointerDown);
+    beforeHit.dispatchEvent(
+      new MouseEvent('pointerup', { bubbles: true, button: 0, buttons: 0, cancelable: true }),
+    );
+    const beforeClick = new MouseEvent('click', {
+      bubbles: true,
+      button: 0,
+      cancelable: true,
+    });
+    beforeHit.dispatchEvent(beforeClick);
     await moment();
     await moment();
 
-    expect(beforePointerDown.defaultPrevented).toBe(true);
+    expect(beforePointerDown.defaultPrevented).toBe(false);
+    expect(beforeClick.defaultPrevented).toBe(true);
     expect(document.activeElement).toBe(rootElement);
 
     lexicalEditor.getEditorState().read(() => {
@@ -109,9 +122,14 @@ describe('HoleNode DOM layout', () => {
     const afterPointerDown = new MouseEvent('pointerdown', {
       bubbles: true,
       button: 0,
+      buttons: 1,
       cancelable: true,
     });
     afterHit.dispatchEvent(afterPointerDown);
+    afterHit.dispatchEvent(
+      new MouseEvent('pointerup', { bubbles: true, button: 0, buttons: 0, cancelable: true }),
+    );
+    afterHit.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0, cancelable: true }));
     await moment();
     await moment();
 
@@ -124,6 +142,47 @@ describe('HoleNode DOM layout', () => {
       expect(selection.anchor.key).toBe(hole.getAfterCursor()?.getKey());
       expect(selection.anchor.offset).toBe(0);
     });
+  });
+
+  it('uses intrinsic center and side tracks only for payloads that opt into the layout hint', () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = styles.root;
+    const rootElement = document.createElement('div');
+    wrapper.append(rootElement);
+    document.body.append(wrapper);
+
+    const intrinsicHole = document.createElement('div');
+    intrinsicHole.dataset.hole = 'true';
+    const intrinsicContent = document.createElement('div');
+    intrinsicContent.dataset.holeContent = 'true';
+    const intrinsicPayload = document.createElement('div');
+    intrinsicPayload.dataset.holeContentLayout = 'intrinsic';
+    intrinsicContent.append(intrinsicPayload);
+    const intrinsicBefore = document.createElement('span');
+    intrinsicBefore.dataset.holeCursorHit = 'before';
+    const intrinsicAfter = document.createElement('span');
+    intrinsicAfter.dataset.holeCursorHit = 'after';
+    intrinsicHole.append(intrinsicContent, intrinsicBefore, intrinsicAfter);
+
+    const fullWidthHole = document.createElement('div');
+    fullWidthHole.dataset.hole = 'true';
+    const fullWidthContent = document.createElement('div');
+    fullWidthContent.dataset.holeContent = 'true';
+    fullWidthHole.append(fullWidthContent);
+    rootElement.append(intrinsicHole, fullWidthHole);
+
+    expect(getComputedStyle(intrinsicHole).width).toBe('100%');
+    expect(getComputedStyle(intrinsicHole).display).toBe('grid');
+    expect(getComputedStyle(intrinsicHole).gridTemplateColumns).toContain('fit-content(100%)');
+    expect(getComputedStyle(intrinsicContent).width).toBe('fit-content');
+    expect(getComputedStyle(intrinsicBefore).position).toBe('static');
+    expect(getComputedStyle(intrinsicAfter).position).toBe('static');
+    expect(getComputedStyle(intrinsicBefore).justifySelf).toBe('end');
+    expect(getComputedStyle(intrinsicAfter).justifySelf).toBe('start');
+
+    expect(getComputedStyle(fullWidthHole).display).toBe('block');
+    expect(getComputedStyle(fullWidthHole).width).toBe('100%');
+    expect(getComputedStyle(fullWidthContent).width).toBe('100%');
   });
 
   it('collapses cursor gutters and disables their hit area while readonly', async () => {

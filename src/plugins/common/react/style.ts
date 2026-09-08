@@ -106,8 +106,12 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     [data-hole='true'] {
       --lobe-hole-cursor-gutter: 24px;
 
+      cursor: text;
+
       position: relative;
+
       overflow: visible;
+
       width: 100%;
       min-width: 0;
     }
@@ -116,6 +120,53 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       position: relative;
       width: 100%;
       min-width: 0;
+    }
+
+    /*
+     * A block image is centered inside the editor column, but its boundary
+     * cursors belong beside the image's actual box. The host remains full
+     * width for block selection/dragging; only the managed content slot uses
+     * the target's generic intrinsic-layout hint. Artifact and other full
+     * width payloads keep the default 100% slot.
+     */
+    [data-hole='true'] > [data-hole-content='true']:has(> [data-hole-content-layout='intrinsic']) {
+      width: fit-content;
+      max-width: 100%;
+      margin-inline: auto;
+    }
+
+    [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic']) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) fit-content(100%) minmax(0, 1fr);
+    }
+
+    [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic'])
+      > [data-hole-content='true'] {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic'])
+      > [data-hole-cursor-hit] {
+      position: static;
+      inset: auto;
+
+      grid-row: 1;
+      align-self: stretch;
+
+      height: 100%;
+    }
+
+    [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic'])
+      > [data-hole-cursor-hit='before'] {
+      grid-column: 1;
+      justify-self: end;
+    }
+
+    [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic'])
+      > [data-hole-cursor-hit='after'] {
+      grid-column: 3;
+      justify-self: start;
     }
 
     [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:first-child,
@@ -156,8 +207,9 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     }
 
     [data-hole='true'] > [data-hole-cursor-hit] {
+      pointer-events: none;
       cursor: text;
-      user-select: none;
+      user-select: text;
 
       position: absolute;
       z-index: 2;

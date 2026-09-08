@@ -1,8 +1,11 @@
 import { $wrapNodeInElement } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import {
+  $createNodeSelection,
   $createParagraphNode,
   $createRangeSelection,
+  $getRoot,
+  $getSelection,
   $insertNodes,
   $isRootOrShadowRoot,
   $setSelection,
@@ -10,6 +13,9 @@ import {
   createCommand,
 } from 'lexical';
 
+import { getKernelFromEditor } from '@/editor-kernel/utils';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
+import { $ensureNodeId } from '@/plugins/properties/utils';
 import { createDebugLogger } from '@/utils/debug';
 
 import { $createBlockImageNode } from '../node/block-image-node';
@@ -23,6 +29,15 @@ export const INSERT_IMAGE_COMMAND = createCommand<{
   maxWidth?: number;
   range?: Range | null;
 }>('INSERT_IMAGE_COMMAND');
+
+export const INSERT_BLOCK_IMAGE_COMMAND = createCommand<{
+  altText?: string;
+  height?: number;
+  maxWidth?: number;
+  onInserted?: (nodeId: string) => void;
+  src?: string;
+  width?: number;
+}>('INSERT_BLOCK_IMAGE_COMMAND');
 
 function isImageFile(file: File): boolean {
   return file.type.startsWith('image/');
@@ -50,6 +65,9 @@ export function registerImageCommand(
           }
           $setSelection(rangeSelection);
         }
+        const currentSelection = $getSelection();
+        const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
+        if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
         const imageNode = isBlock
           ? $createBlockImageNode({
               altText: file.name,
@@ -83,5 +101,43 @@ export function registerImageCommand(
       return true;
     },
     COMMAND_PRIORITY_EDITOR, // Priority
+  );
+}
+
+export function registerBlockImageCommand(editor: LexicalEditor) {
+  return editor.registerCommand(
+    INSERT_BLOCK_IMAGE_COMMAND,
+    (payload) => {
+      const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
+      const currentSelection = $getSelection();
+      if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
+      const src = payload?.src?.trim() ?? '';
+      const image = $createBlockImageNode({
+        altText: payload?.altText ?? '',
+        height: payload?.height,
+        maxWidth: payload?.maxWidth ?? 800,
+        src,
+        status: src ? 'uploaded' : 'loading',
+        width: payload?.width,
+      });
+      if (!$getSelection()) {
+        const paragraph = $createParagraphNode();
+        $getRoot().append(paragraph);
+        paragraph.selectEnd();
+      }
+      $insertNodes([image]);
+      const nodeId = $ensureNodeId(image);
+      const selection = $createNodeSelection();
+      selection.add(image.getKey());
+      $setSelection(selection);
+      if (nodeId && payload?.onInserted) {
+        editor.update(() => undefined, {
+          discrete: true,
+          onUpdate: () => payload.onInserted?.(nodeId),
+        });
+      }
+      return true;
+    },
+    COMMAND_PRIORITY_EDITOR,
   );
 }

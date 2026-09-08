@@ -1,17 +1,17 @@
 import type { Provider } from '@lexical/yjs';
 import { $createRangeSelection, $getRoot, $nodesOfType, $setSelection } from 'lexical';
-import { applyUpdate, Doc } from 'yjs';
 import { describe, expect, it } from 'vitest';
+import { applyUpdate, Doc, encodeStateAsUpdate, XmlText } from 'yjs';
 
 import { Kernel } from '@/editor-kernel/kernel';
 import { CommonPlugin } from '@/plugins/common';
+import { HoleNode } from '@/plugins/common/node/hole';
 import { MarkdownPlugin } from '@/plugins/markdown';
+import { YjsPlugin } from '@/plugins/yjs/plugin';
 
 import { INSERT_ARTIFACT_COMMAND } from '../command';
 import { ArtifactNode } from '../node/ArtifactNode';
 import { ArtifactPlugin } from '../plugin';
-import { HoleNode } from '@/plugins/common/node/hole';
-import { YjsPlugin } from '@/plugins/yjs/plugin';
 
 type TestProvider = Provider & { emitSync: () => void };
 
@@ -90,7 +90,110 @@ const getRootTypes = (kernel: Kernel): string[] =>
         .map((node) => node.getType()),
     );
 
+type SharedNodeLike = {
+  getAttribute?: (name: string) => unknown;
+  toArray?: () => unknown[];
+  toDelta?: () => Array<{ insert?: unknown }>;
+};
+
+const readYjsRootTypes = (doc: Doc): string[] =>
+  doc
+    .get('root', XmlText)
+    .toDelta()
+    .flatMap(({ insert }: { insert?: unknown }) => {
+      if (!insert || typeof insert === 'string') return [];
+      const type = (insert as SharedNodeLike).getAttribute?.('__type');
+      return typeof type === 'string' ? [type] : [];
+    });
+
+const hasSharedType = (doc: Doc, type: string): boolean => {
+  const visited = new Set<object>();
+  let found = false;
+  const visit = (value: unknown): void => {
+    if (found || !value || typeof value !== 'object' || visited.has(value)) return;
+    visited.add(value);
+    const node = value as SharedNodeLike;
+    if (node.getAttribute?.('__type') === type) {
+      found = true;
+      return;
+    }
+    node.toDelta?.().forEach(({ insert }: { insert?: unknown }) => visit(insert));
+    node.toArray?.().forEach(visit);
+  };
+
+  doc
+    .get('root', XmlText)
+    .toDelta()
+    .forEach(({ insert }: { insert?: unknown }) => visit(insert));
+  return found;
+};
+
+const observeFirstSharedArtifact = (doc: Doc, action: () => void): string[][] => {
+  const mirror = new Doc();
+  applyUpdate(mirror, encodeStateAsUpdate(doc));
+  const rootTypesWhenArtifactExists: string[][] = [];
+  const onUpdate = (update: Uint8Array) => {
+    applyUpdate(mirror, update);
+    if (hasSharedType(mirror, ArtifactNode.getType())) {
+      rootTypesWhenArtifactExists.push(readYjsRootTypes(mirror));
+    }
+  };
+
+  doc.on('update', onUpdate);
+  try {
+    action();
+  } finally {
+    doc.off('update', onUpdate);
+    mirror.destroy();
+  }
+  return rootTypesWhenArtifactExists;
+};
+
 describe('Artifact Hole + Yjs', () => {
+  it('normalizes a JSON replacement before publishing into a populated shared room', async () => {
+    const doc = new Doc();
+    const provider = createProvider();
+    const kernel = createYjsEditor(doc, provider);
+    provider.emitSync();
+    await flush();
+
+    kernel.setDocument('markdown', 'Shared text');
+    await flush();
+
+    const firstReplacementRootTypes = observeFirstSharedArtifact(doc, () => {
+      kernel.setDocument(
+        'json',
+        {
+          root: {
+            children: [
+              {
+                html: '<main>replacement</main>',
+                title: 'Replacement',
+                type: ArtifactNode.getType(),
+                version: 1,
+              },
+            ],
+            type: 'root',
+            version: 1,
+          },
+        },
+        { keepId: true },
+      );
+    });
+    await flush();
+    await flush();
+
+    expect(getRootTypes(kernel)).toEqual(['hole']);
+    expect(firstReplacementRootTypes.length).toBeGreaterThan(0);
+    firstReplacementRootTypes.forEach((types) => {
+      expect(types).toContain('hole');
+      expect(types).not.toContain(ArtifactNode.getType());
+    });
+
+    kernel.destroy();
+    doc.destroy();
+  });
+
   it('syncs the Hole shape and boundary paragraph between peers', async () => {
     const docA = new Doc();
     const docB = new Doc();

@@ -35,6 +35,17 @@ export interface BlockRewriteContext {
   source?: string;
   summary?: string;
   title?: string;
+  image?: BlockRewriteImageContext;
+}
+
+export interface BlockRewriteImageContext {
+  altText: string;
+  height: number | null;
+  maxWidth: number;
+  placeholder: boolean;
+  src: string;
+  status: 'uploaded' | 'loading' | 'error';
+  width: number | null;
 }
 
 export interface BlockRewriteCapabilities {

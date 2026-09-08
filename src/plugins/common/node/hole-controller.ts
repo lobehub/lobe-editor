@@ -1,18 +1,18 @@
 import { mergeRegister } from '@lexical/utils';
-import type { LexicalEditor, LexicalNode, NodeSelection, RangeSelection } from 'lexical';
+import type { LexicalEditor, LexicalNode, NodeSelection, PointType, RangeSelection } from 'lexical';
 import {
   $addUpdateTag,
-  $createNodeSelection,
   $createParagraphNode,
+  $createRangeSelection,
   $createTextNode,
   $getNodeByKey,
   $getRoot,
   $getSelection,
-  $isDecoratorNode,
   $isElementNode,
   $isNodeSelection,
   $isRangeSelection,
   $isRootNode,
+  $isTextNode,
   $setSelection,
   COLLABORATION_TAG,
   COMMAND_PRIORITY_HIGH,
@@ -34,7 +34,9 @@ import { $getNearestNodeFromDOMNode } from '@/editor-kernel/utils';
 import { ENTER_HOLE_CONTENT_COMMAND } from '../command';
 import {
   $getAtomicHolePointContext,
+  $isAtomicHoleElementPayloadNode,
   $normalizeAtomicHoleRangeSelection,
+  $setAtomicHoleBoundaryPoint,
   type AtomicHoleBoundarySide,
   isAtomicHoleInternalEditorTarget,
 } from './atomic-hole-selection';
@@ -105,26 +107,6 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
     );
   };
 
-  const pointInHoleContent = (
-    target: EventTarget | null,
-    root: HTMLElement,
-  ): {
-    element: HTMLElement;
-    hole: HTMLElement;
-  } | null => {
-    const targetElement =
-      typeof Element !== 'undefined' && target instanceof Element
-        ? target
-        : typeof Node !== 'undefined' && target instanceof Node
-          ? target.parentElement
-          : null;
-    if (!targetElement) return null;
-    const element = targetElement.closest<HTMLElement>('[data-hole-content="true"]');
-    if (!element || !root.contains(element)) return null;
-    const hole = element.closest<HTMLElement>('[data-hole="true"]');
-    return hole && root.contains(hole) ? { element, hole } : null;
-  };
-
   const sideFromPointer = (hole: HTMLElement, event: Event): AtomicHoleBoundarySide => {
     const before = hole.querySelector<HTMLElement>('[data-hole-cursor-hit="before"]');
     const after = hole.querySelector<HTMLElement>('[data-hole-cursor-hit="after"]');
@@ -145,65 +127,255 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
 
   const installDOMSelectionGuard = (root: HTMLElement): (() => void) => {
     const document = root.ownerDocument;
-    let nativeSelectionGuarded = false;
+    let dragNormalizationScheduled = false;
+    let pointerState: {
+      dragging: boolean;
+      moved: boolean;
+      startHit: { holeKey: string; side: AtomicHoleBoundarySide } | null;
+      startX: number;
+      startY: number;
+      pointerId: number;
+    } | null = null;
     const getHoleKey = (hole: HTMLElement): string | undefined => {
-      const blockId = hole.getAttribute('data-block-id');
-      if (blockId) return blockId;
       const lexicalEditor = editor;
       let holeKey: string | undefined;
       lexicalEditor.getEditorState().read(() => {
+        const structuralId = hole.getAttribute('data-block-structural-id');
+        if (structuralId && $isHoleNode($getNodeByKey(structuralId))) {
+          holeKey = structuralId;
+          return;
+        }
+
         const node = $getNearestNodeFromDOMNode(hole, lexicalEditor);
-        if ($isHoleNode(node)) holeKey = node.getKey();
-        else if (node?.getParent() && $isHoleNode(node.getParent())) {
+        if ($isHoleNode(node)) {
+          holeKey = node.getKey();
+          return;
+        }
+        if (node?.getParent() && $isHoleNode(node.getParent())) {
           holeKey = node.getParent()!.getKey();
+          return;
+        }
+
+        const logicalId = hole.getAttribute('data-block-id');
+        if (logicalId && $isHoleNode($getNodeByKey(logicalId))) {
+          holeKey = logicalId;
         }
       });
       return holeKey;
     };
-    const guardEvent = (event: Event): void => {
-      const hit = pointInHoleContent(event.target, root);
-      if (!hit || isAtomicHoleInternalEditorTarget(event.target)) return;
-      const holeKey = getHoleKey(hit.hole);
-      if (!holeKey) {
-        scheduleSelectionGuard();
-        event.preventDefault();
+
+    const getTargetElement = (target: EventTarget | null): Element | null => {
+      if (typeof Element !== 'undefined' && target instanceof Element) return target;
+      if (typeof Node !== 'undefined' && target instanceof Node) return target.parentElement;
+      return null;
+    };
+
+    const getHoleElement = (target: EventTarget | null): HTMLElement | null => {
+      const targetElement = getTargetElement(target);
+      const hole = targetElement?.closest<HTMLElement>('[data-hole="true"]');
+      return hole && root.contains(hole) ? hole : null;
+    };
+
+    const getHoleHitSide = (target: EventTarget | null): AtomicHoleBoundarySide | null => {
+      const targetElement = getTargetElement(target);
+      const hitArea = targetElement?.closest<HTMLElement>('[data-hole-cursor-hit]');
+      if (!hitArea || !root.contains(hitArea)) return null;
+      const side = hitArea.dataset.holeCursorHit;
+      return side === 'before' || side === 'after' ? side : null;
+    };
+
+    const isCompositePayloadTarget = (target: EventTarget | null): boolean => {
+      const targetElement = getTargetElement(target);
+      if (!targetElement) return false;
+      let composite = false;
+      editor.getEditorState().read(() => {
+        const node = $getNearestNodeFromDOMNode(targetElement, editor);
+        composite = Boolean(node && $isAtomicHoleElementPayloadNode(node));
+      });
+      return composite;
+    };
+
+    const isDecoratorTarget = (target: EventTarget | null): boolean => {
+      const targetElement = getTargetElement(target);
+      return Boolean(targetElement?.closest('[data-lexical-decorator="true"]'));
+    };
+
+    const isPayloadInteractionTarget = (target: EventTarget | null): boolean =>
+      isAtomicHoleInternalEditorTarget(target, root) ||
+      isCompositePayloadTarget(target) ||
+      isDecoratorTarget(target);
+
+    const findRowHole = (event: Event): HTMLElement | null => {
+      const point = event as MouseEvent;
+      const y = Number.isFinite(point.clientY) ? point.clientY : undefined;
+      if (y === undefined) return null;
+
+      let closest: { hole: HTMLElement; distance: number } | null = null;
+      for (const hole of root.querySelectorAll<HTMLElement>('[data-hole="true"]')) {
+        const rect = hole.getBoundingClientRect();
+        if (rect.height <= 0) continue;
+        const distance = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+        if (distance > 0) continue;
+        if (!closest || distance < closest.distance) closest = { distance, hole };
+      }
+      return closest?.hole ?? null;
+    };
+
+    const resolvePointerHit = (
+      event: Event,
+    ): { hole: HTMLElement; side: AtomicHoleBoundarySide } | null => {
+      const directHole = getHoleElement(event.target);
+      const targetElement = getTargetElement(event.target);
+      const hole = directHole ?? (targetElement === root ? findRowHole(event) : null);
+      if (!hole) return null;
+
+      const explicitSide = getHoleHitSide(event.target);
+      if (explicitSide) return { hole, side: explicitSide };
+
+      return { hole, side: sideFromPointer(hole, event) };
+    };
+
+    const normalizeDragAnchor = (): void => {
+      if (
+        dragNormalizationScheduled ||
+        !pointerState?.dragging ||
+        !pointerState.moved ||
+        !pointerState.startHit
+      ) {
         return;
       }
-      const side =
-        event.type === 'keydown'
-          ? /^(ArrowRight|End|PageDown)$/u.test((event as KeyboardEvent).key)
-            ? 'after'
-            : 'before'
-          : sideFromPointer(hit.hole, event);
-      event.preventDefault();
-      if (event.type === 'focusin' || event.type === 'selectstart') event.stopPropagation();
-      selectHoleBoundary(holeKey, side);
-    };
-    const guardNativeSelection = (): void => {
-      if (nativeSelectionGuarded) return;
-      const selection = document.getSelection();
-      if (!selection || selection.rangeCount === 0) return;
-      const anchorHit = pointInHoleContent(selection.anchorNode, root);
-      const focusHit = pointInHoleContent(selection.focusNode, root);
-      const hit = anchorHit || focusHit;
-      if (!hit || isAtomicHoleInternalEditorTarget(selection.anchorNode)) return;
-      const holeKey = getHoleKey(hit.hole);
-      if (!holeKey) return;
-      nativeSelectionGuarded = true;
-      selection.removeAllRanges();
-      selectHoleBoundary(holeKey, 'before');
+      dragNormalizationScheduled = true;
+      const startHit = pointerState.startHit;
       queueMicrotask(() => {
-        nativeSelectionGuarded = false;
+        dragNormalizationScheduled = false;
+        if (!pointerState?.dragging || !pointerState.moved || pointerState.startHit !== startHit) {
+          return;
+        }
+        editor.update(
+          () => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection) || selection.isCollapsed()) return;
+            const hole = $getNodeByKey(startHit.holeKey);
+            if (!$isHoleNode(hole)) return;
+            $setAtomicHoleBoundaryPoint(selection, startHit.side, hole, 'anchor');
+          },
+          { tag: SKIP_SCROLL_INTO_VIEW_TAG },
+        );
       });
     };
 
-    const eventTypes = ['beforeinput', 'click', 'focusin', 'keydown', 'pointerdown', 'selectstart'];
+    const finishPointer = (): void => {
+      if (!pointerState) return;
+      // Keep the gesture through the synthetic/native click that follows
+      // pointerup. The click path consumes it; the next pointerdown replaces
+      // it. No pointer capture is used, so document-level pointerup/cancel
+      // still closes the active gesture when release occurs outside root.
+      pointerState.dragging = false;
+    };
+
+    const guardEvent = (event: Event): void => {
+      if (event.type === 'pointerdown') {
+        const pointer = event as PointerEvent;
+        pointerState = null;
+        dragNormalizationScheduled = false;
+        if (pointer.button !== 0 || !editor.isEditable()) return;
+        // A new gesture always supersedes an unfinished one. Payload editors
+        // (including CodeMirror/iframe editors) keep their own drag model and
+        // must never have their anchor rewritten to a Hole boundary.
+        if (isPayloadInteractionTarget(event.target)) return;
+        const hit = resolvePointerHit(event);
+        const targetElement = getTargetElement(event.target);
+        if (!targetElement || !root.contains(targetElement)) return;
+        const holeKey = hit ? getHoleKey(hit.hole) : undefined;
+        pointerState = {
+          dragging: true,
+          moved: false,
+          pointerId: pointer.pointerId,
+          startHit: holeKey && hit ? { holeKey, side: hit.side } : null,
+          startX: pointer.clientX,
+          startY: pointer.clientY,
+        };
+        return;
+      }
+
+      if (event.type === 'pointermove') {
+        const pointer = event as PointerEvent;
+        if (
+          !pointerState ||
+          !pointerState.dragging ||
+          pointer.pointerId !== pointerState.pointerId
+        ) {
+          return;
+        }
+        if (
+          Math.abs(pointer.clientX - pointerState.startX) > 2 ||
+          Math.abs(pointer.clientY - pointerState.startY) > 2
+        ) {
+          pointerState.moved = true;
+        }
+        return;
+      }
+
+      if (event.type === 'pointercancel') {
+        const pointer = event as PointerEvent;
+        if (pointerState && pointer.pointerId === pointerState.pointerId) {
+          pointerState = null;
+          dragNormalizationScheduled = false;
+        }
+        return;
+      }
+
+      if (event.type === 'pointerup') {
+        const pointer = event as PointerEvent;
+        if (pointerState && pointer.pointerId === pointerState.pointerId) finishPointer();
+        return;
+      }
+
+      const hit = resolvePointerHit(event);
+      if (event.type === 'click') {
+        const moved = pointerState?.moved ?? false;
+        pointerState = null;
+        dragNormalizationScheduled = false;
+        if (moved || !hit || isPayloadInteractionTarget(event.target)) return;
+        const holeKey = getHoleKey(hit.hole);
+        if (!holeKey) return;
+        event.preventDefault();
+        event.stopPropagation();
+        root.focus({ preventScroll: true });
+        selectHoleBoundary(holeKey, hit.side);
+      }
+    };
+    const guardNativeSelection = (): void => {
+      const selection = document.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+      if (!selection.isCollapsed) {
+        normalizeDragAnchor();
+      }
+    };
+
+    const eventTypes = ['click', 'pointercancel', 'pointerdown', 'pointermove', 'pointerup'];
     eventTypes.forEach((type) => root.addEventListener(type, guardEvent, true));
     document.addEventListener('selectionchange', guardNativeSelection, true);
+    const clearDocumentPointer = (event: Event): void => {
+      const pointer = event as PointerEvent;
+      if (!pointerState || pointer.pointerId !== pointerState.pointerId) return;
+      if (event.type === 'pointercancel') {
+        pointerState = null;
+        dragNormalizationScheduled = false;
+      } else {
+        finishPointer();
+      }
+    };
+    document.addEventListener('pointerup', clearDocumentPointer, true);
+    document.addEventListener('pointercancel', clearDocumentPointer, true);
 
     return () => {
       eventTypes.forEach((type) => root.removeEventListener(type, guardEvent, true));
       document.removeEventListener('selectionchange', guardNativeSelection, true);
+      document.removeEventListener('pointerup', clearDocumentPointer, true);
+      document.removeEventListener('pointercancel', clearDocumentPointer, true);
+      pointerState = null;
+      dragNormalizationScheduled = false;
     };
   };
 
@@ -417,6 +589,154 @@ function getBoundaryContext(selection: RangeSelection): {
   return side ? { cursor, hole, side } : null;
 }
 
+function getBoundaryPointContext(point: PointType): {
+  cursor: CursorNode;
+  hole: HoleNode;
+  side: 'after' | 'before';
+} | null {
+  const cursor = point.getNode();
+  if (!$isCursorNode(cursor)) return null;
+  const hole = cursor.getParent();
+  if (!$isHoleNode(hole)) return null;
+  const side = hole.getBoundaryCursorSide(cursor);
+  return side ? { cursor, hole, side } : null;
+}
+
+function getAdjacentHoleAtTextEdge(
+  point: PointType,
+  direction: BoundaryCursorDirection,
+): HoleNode | null {
+  if (point.type !== 'text') return null;
+  const node = point.getNode();
+  const atEdge =
+    direction === 'left' ? point.offset === 0 : point.offset === node.getTextContentSize();
+  if (!atEdge) return null;
+
+  let current: LexicalNode = node;
+  while (true) {
+    const parent = current.getParent();
+    if (!parent || $isHoleNode(parent)) return null;
+    if ($isRootNode(parent)) {
+      const adjacent =
+        direction === 'left' ? current.getPreviousSibling() : current.getNextSibling();
+      return $isHoleNode(adjacent) ? adjacent : null;
+    }
+
+    const edge = direction === 'left' ? parent.getFirstChild() : parent.getLastChild();
+    if (!edge || !edge.is(current)) return null;
+    current = parent;
+  }
+}
+
+function getNodeEdgePoint(
+  node: LexicalNode,
+  direction: BoundaryCursorDirection,
+): { key: string; offset: number; type: 'element' | 'text' } {
+  let current = node;
+  while ($isElementNode(current)) {
+    const child = direction === 'left' ? current.getLastChild() : current.getFirstChild();
+    if (!child) {
+      return {
+        key: current.getKey(),
+        offset: direction === 'left' ? current.getChildrenSize() : 0,
+        type: 'element',
+      };
+    }
+    current = child;
+  }
+
+  if ($isTextNode(current)) {
+    return {
+      key: current.getKey(),
+      offset: direction === 'left' ? current.getTextContentSize() : 0,
+      type: 'text',
+    };
+  }
+
+  const parent = current.getParentOrThrow();
+  return {
+    key: parent.getKey(),
+    offset:
+      parent.getChildren().findIndex((child) => child.is(current)) + (direction === 'left' ? 1 : 0),
+    type: 'element',
+  };
+}
+
+function setRangeFocusToAdjacent(
+  selection: RangeSelection,
+  hole: HoleNode,
+  direction: BoundaryCursorDirection,
+): boolean {
+  const adjacent = direction === 'left' ? hole.getPreviousSibling() : hole.getNextSibling();
+  if (!adjacent) return false;
+
+  if ($isHoleNode(adjacent)) {
+    $setAtomicHoleBoundaryPoint(
+      selection,
+      direction === 'left' ? 'after' : 'before',
+      adjacent,
+      'focus',
+    );
+    return true;
+  }
+
+  const point = getNodeEdgePoint(adjacent, direction);
+  selection.focus.set(point.key, point.offset, point.type);
+  return true;
+}
+
+function extendRangeFromBoundary(
+  selection: RangeSelection,
+  direction: BoundaryCursorDirection,
+  boundaryContext: { hole: HoleNode; side: AtomicHoleBoundarySide },
+): boolean {
+  const entersContent =
+    (boundaryContext.side === 'before' && direction === 'right') ||
+    (boundaryContext.side === 'after' && direction === 'left');
+  if (entersContent) {
+    $setAtomicHoleBoundaryPoint(
+      selection,
+      boundaryContext.side === 'before' ? 'after' : 'before',
+      boundaryContext.hole,
+      'focus',
+    );
+    return true;
+  }
+  return setRangeFocusToAdjacent(selection, boundaryContext.hole, direction);
+}
+
+/** Extend only the focus endpoint across a Hole, retaining the anchor. */
+function extendRangeAcrossHole(
+  selection: RangeSelection,
+  direction: BoundaryCursorDirection,
+): boolean {
+  const focusContext = $getAtomicHolePointContext(selection.focus);
+  if (focusContext) {
+    // An illegal collapsed payload point still represents the logical start
+    // of this Shift range. Preserve that side before moving the focus.
+    if (selection.isCollapsed()) {
+      $setAtomicHoleBoundaryPoint(selection, focusContext.side, focusContext.hole, 'anchor');
+    }
+    $setAtomicHoleBoundaryPoint(selection, focusContext.side, focusContext.hole, 'focus');
+    return extendRangeFromBoundary(selection, direction, focusContext);
+  }
+
+  const boundaryContext = getBoundaryPointContext(selection.focus);
+  if (boundaryContext) {
+    return extendRangeFromBoundary(selection, direction, boundaryContext);
+  }
+
+  const adjacentHole = getAdjacentHoleAtTextEdge(selection.focus, direction);
+  if (!adjacentHole) return false;
+  $setAtomicHoleBoundaryPoint(
+    selection,
+    direction === 'left' ? 'after' : 'before',
+    adjacentHole,
+    'focus',
+  );
+  return true;
+}
+
 function getSelectedHole(selection: NodeSelection): HoleNode | null {
   const nodes = selection.getNodes();
   if (nodes.length !== 1) return null;
@@ -449,6 +769,21 @@ function handleHoleArrow(
 ): boolean {
   const selection = $getSelection();
   if ($isNodeSelection(selection)) {
+    if (event.shiftKey) {
+      const hole = getSelectedHole(selection);
+      if (!hole) return false;
+      const range = $createRangeSelection();
+      if (direction === 'right') {
+        $setAtomicHoleBoundaryPoint(range, 'before', hole, 'anchor');
+        $setAtomicHoleBoundaryPoint(range, 'after', hole, 'focus');
+      } else {
+        $setAtomicHoleBoundaryPoint(range, 'after', hole, 'anchor');
+        $setAtomicHoleBoundaryPoint(range, 'before', hole, 'focus');
+      }
+      $setSelection(range);
+      event.preventDefault();
+      return true;
+    }
     if (handleSelectedHoleArrow(selection, direction)) {
       event.preventDefault();
       return true;
@@ -457,8 +792,38 @@ function handleHoleArrow(
   }
 
   if (!$isRangeSelection(selection)) return false;
-  const contentContext =
-    $getAtomicHolePointContext(selection.anchor) || $getAtomicHolePointContext(selection.focus);
+  if (event.shiftKey && extendRangeAcrossHole(selection, direction)) {
+    event.preventDefault();
+    return true;
+  }
+  if (event.shiftKey && getBoundaryPointContext(selection.focus)) {
+    // There is no sibling in this direction. Keep the legal boundary point
+    // and avoid falling through to the plain-arrow paragraph insertion path.
+    event.preventDefault();
+    return true;
+  }
+
+  if (!event.shiftKey && !selection.isCollapsed()) {
+    const edge =
+      direction === 'left'
+        ? selection.isBackward()
+          ? selection.focus
+          : selection.anchor
+        : selection.isBackward()
+          ? selection.anchor
+          : selection.focus;
+    const edgeContext = $getAtomicHolePointContext(edge) || getBoundaryPointContext(edge);
+    if (edgeContext) {
+      $setAtomicHoleBoundaryPoint(selection, edgeContext.side, edgeContext.hole, 'anchor');
+      $setAtomicHoleBoundaryPoint(selection, edgeContext.side, edgeContext.hole, 'focus');
+      event.preventDefault();
+      return true;
+    }
+  }
+
+  const contentContext = selection.isCollapsed()
+    ? $getAtomicHolePointContext(selection.anchor) || $getAtomicHolePointContext(selection.focus)
+    : null;
   if (contentContext) {
     event.preventDefault();
     contentContext.hole.normalizeBoundaryCursors();
@@ -478,37 +843,6 @@ function handleHoleArrow(
   const { hole, side } = context;
   const entersContent =
     (side === 'before' && direction === 'right') || (side === 'after' && direction === 'left');
-
-  if (event.shiftKey && entersContent) {
-    const content =
-      side === 'before' ? hole.getContentChildren()[0] : hole.getContentChildren().at(-1);
-    if ($isDecoratorNode(content)) {
-      const nodeSelection = $createNodeSelection();
-      nodeSelection.add(content.getKey());
-      $setSelection(nodeSelection);
-      event.preventDefault();
-      return true;
-    }
-  }
-
-  if (event.shiftKey) {
-    const index = hole.getIndexWithinParent();
-    const parent = hole.getParent();
-    if (!parent) return false;
-    const boundaryOffset = side === 'before' ? index : index + 1;
-    const targetOffset =
-      direction === 'left'
-        ? side === 'after'
-          ? index
-          : Math.max(0, index - 1)
-        : side === 'before'
-          ? index + 1
-          : Math.min(parent.getChildrenSize(), index + 2);
-    selection.anchor.set(parent.getKey(), boundaryOffset, 'element');
-    selection.focus.set(parent.getKey(), targetOffset, 'element');
-    event.preventDefault();
-    return true;
-  }
 
   if (entersContent) {
     const content =
@@ -619,6 +953,30 @@ function handleHoleEnter(event?: KeyboardEvent | null): boolean {
   const selection = $getSelection();
   if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
 
+  const context = getBoundaryContext(selection) || getElementBoundaryContext(selection);
+  if (context) {
+    const { hole, side } = context;
+    if (!hole.getParent()) {
+      event?.preventDefault();
+      return true;
+    }
+
+    // Enter is a user-visible structural boundary. Stop Yjs capture before this
+    // paragraph is written so a preceding local Code insertion cannot share
+    // its Undo item and be removed by the next Meta+Z.
+    $addUpdateTag(HISTORY_PUSH_TAG);
+    const paragraph = $createParagraphNode();
+    if (side === 'before') {
+      hole.insertBefore(paragraph);
+      paragraph.selectEnd();
+    } else {
+      hole.insertAfter(paragraph);
+      paragraph.selectStart();
+    }
+    event?.preventDefault();
+    return true;
+  }
+
   const atomicContext =
     $getAtomicHolePointContext(selection.anchor) || $getAtomicHolePointContext(selection.focus);
   if (atomicContext) {
@@ -630,30 +988,7 @@ function handleHoleEnter(event?: KeyboardEvent | null): boolean {
     event?.preventDefault();
     return true;
   }
-
-  const context = getBoundaryContext(selection) || getElementBoundaryContext(selection);
-  if (!context) return false;
-
-  const { hole, side } = context;
-  if (!hole.getParent()) {
-    event?.preventDefault();
-    return true;
-  }
-
-  // Enter is a user-visible structural boundary. Stop Yjs capture before this
-  // paragraph is written so a preceding local Code insertion cannot share its
-  // Undo item and be removed by the next Meta+Z.
-  $addUpdateTag(HISTORY_PUSH_TAG);
-  const paragraph = $createParagraphNode();
-  if (side === 'before') {
-    hole.insertBefore(paragraph);
-    paragraph.selectEnd();
-  } else {
-    hole.insertAfter(paragraph);
-    paragraph.selectStart();
-  }
-  event?.preventDefault();
-  return true;
+  return false;
 }
 
 function getElementBoundaryContext(selection: RangeSelection): {
@@ -664,6 +999,11 @@ function getElementBoundaryContext(selection: RangeSelection): {
   if (point.type !== 'element') return null;
   const parent = $getNodeByKey(point.key);
   if (!$isElementNode(parent)) return null;
+
+  if ($isHoleNode(parent)) {
+    const context = $getAtomicHolePointContext(point);
+    return context ? { hole: parent, side: context.side } : null;
+  }
 
   const previous = parent.getChildAtIndex(point.offset - 1);
   if ($isHoleNode(previous)) return { hole: previous, side: 'after' };

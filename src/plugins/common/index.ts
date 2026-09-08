@@ -21,5 +21,36 @@ export {
   HoleNode,
 } from './node/hole';
 export { $normalizeHoleNode, reconcileHoleNodes, registerHoleNode } from './node/hole-controller';
+export {
+  $reconcileHoleTargets,
+  $wrapNodeInHole,
+  createHoleNormalizationRegistry,
+  type HoleNormalizationGuard,
+  type HoleNormalizationNodeConstructor,
+  type HoleNormalizationRegistry,
+  type HoleNormalizationTarget,
+} from './node/hole-normalization';
 export * from './plugin';
 export * from './react';
+export {
+  type EditorDiagnosticsCommand,
+  type EditorDiagnosticsCommandEntry,
+  type EditorDiagnosticsEntry,
+  type EditorDiagnosticsNativeEntry,
+  type EditorDiagnosticsNativeEvent,
+  type EditorDiagnosticsPoint,
+  type EditorDiagnosticsSelection,
+  type EditorDiagnosticsSelectionType,
+  type EditorDiagnosticsShortcut,
+  type EditorDiagnosticsTarget,
+  type EditorDiagnosticsUpdateEntry,
+  IEditorDiagnosticsService,
+} from './service/i-editor-diagnostics-service';
+export {
+  $readHoleBoundaryState,
+  type HoleBoundaryChange,
+  type HoleBoundaryPosition,
+  type HoleBoundarySide,
+  type HoleBoundaryState,
+  IHoleService,
+} from './service/i-hole-service';
