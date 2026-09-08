@@ -2,6 +2,26 @@
 
 # Changelog
 
+### [Version&nbsp;4.26.2](https://github.com/lobehub/lobe-editor/compare/v4.26.1...v4.26.2)
+<sup>Released on **2026-09-08**</sup>
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.26.1](https://github.com/lobehub/lobe-editor/compare/v4.26.0...v4.26.1)
 <sup>Released on **2026-09-07**</sup>
 
