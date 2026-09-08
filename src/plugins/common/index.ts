@@ -32,6 +32,7 @@ export {
 } from './node/hole-normalization';
 export * from './plugin';
 export * from './react';
+export { $readHoleBoundaryState } from './service/hole';
 export {
   type EditorDiagnosticsCommand,
   type EditorDiagnosticsCommandEntry,
@@ -39,6 +40,7 @@ export {
   type EditorDiagnosticsNativeEntry,
   type EditorDiagnosticsNativeEvent,
   type EditorDiagnosticsPoint,
+  type EditorDiagnosticsRuntimeKey,
   type EditorDiagnosticsSelection,
   type EditorDiagnosticsSelectionType,
   type EditorDiagnosticsShortcut,
@@ -47,7 +49,6 @@ export {
   IEditorDiagnosticsService,
 } from './service/i-editor-diagnostics-service';
 export {
-  $readHoleBoundaryState,
   type HoleBoundaryChange,
   type HoleBoundaryPosition,
   type HoleBoundarySide,

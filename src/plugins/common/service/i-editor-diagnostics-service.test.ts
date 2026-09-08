@@ -1,6 +1,7 @@
 import {
   $createParagraphNode,
   $getRoot,
+  COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_LOW,
   CONTROLLED_TEXT_INSERTION_COMMAND,
   COPY_COMMAND,
@@ -37,6 +38,8 @@ describe('EditorDiagnosticsService', () => {
   it('does not capture anything while disabled', async () => {
     const { lexicalEditor, service } = createHeadlessEditor();
 
+    expect((service as unknown as { capture: unknown }).capture).toBeNull();
+
     lexicalEditor.dispatchCommand(COPY_COMMAND, null);
     lexicalEditor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, 'private text');
     await moment();
@@ -44,9 +47,57 @@ describe('EditorDiagnosticsService', () => {
     expect(service.getEntries()).toEqual([]);
   });
 
-  it('observes commands without claiming them or retaining payloads', () => {
+  it('keeps the early command bridge ahead of downstream critical handlers', async () => {
     const { lexicalEditor, service } = createHeadlessEditor();
-    service.setEnabled(true);
+    let downstreamCalls = 0;
+    const unregister = lexicalEditor.registerCommand(
+      COPY_COMMAND,
+      () => {
+        downstreamCalls += 1;
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL,
+    );
+    await service.setEnabled(true);
+
+    lexicalEditor.dispatchCommand(COPY_COMMAND, null);
+
+    expect(service.getEntries().filter((entry) => entry.kind === 'command')).toHaveLength(1);
+    expect(downstreamCalls).toBe(1);
+    unregister();
+  });
+
+  it('does not attach a collector after disable or destroy races with loading', async () => {
+    const first = createHeadlessEditor();
+    const firstReady = first.service.setEnabled(true);
+    await first.service.setEnabled(false);
+    await firstReady;
+    first.lexicalEditor.dispatchCommand(COPY_COMMAND, null);
+    expect(first.service.getEntries()).toEqual([]);
+
+    const second = createHeadlessEditor();
+    const secondReady = second.service.setEnabled(true);
+    second.editor.destroy();
+    await secondReady;
+    second.lexicalEditor.dispatchCommand(COPY_COMMAND, null);
+    expect(second.service.getEntries()).toEqual([]);
+  });
+
+  it('does not duplicate capture across repeated enables', async () => {
+    const { lexicalEditor, service } = createHeadlessEditor();
+    await service.setEnabled(true);
+    const firstCapture = (service as unknown as { capture: unknown }).capture;
+    await service.setEnabled(false);
+    await service.setEnabled(true);
+    expect((service as unknown as { capture: unknown }).capture).toBe(firstCapture);
+    lexicalEditor.dispatchCommand(COPY_COMMAND, null);
+
+    expect(service.getEntries().filter((entry) => entry.kind === 'command')).toHaveLength(1);
+  });
+
+  it('observes commands without claiming them or retaining payloads', async () => {
+    const { lexicalEditor, service } = createHeadlessEditor();
+    await service.setEnabled(true);
 
     let downstreamCalls = 0;
     const unregister = lexicalEditor.registerCommand(
@@ -68,9 +119,9 @@ describe('EditorDiagnosticsService', () => {
     unregister();
   });
 
-  it('keeps a bounded ring and supports clearing a snapshot', () => {
+  it('keeps a bounded ring and supports clearing a snapshot', async () => {
     const { lexicalEditor, service } = createHeadlessEditor();
-    service.setEnabled(true);
+    await service.setEnabled(true);
 
     for (let index = 0; index < 300; index += 1) {
       lexicalEditor.dispatchCommand(UNDO_COMMAND, undefined);
@@ -83,7 +134,7 @@ describe('EditorDiagnosticsService', () => {
     expect(service.getEntries()).toEqual([]);
   });
 
-  it('rebinds native listeners with the root and releases them on detach', () => {
+  it('rebinds native listeners with the root and releases them on detach', async () => {
     const editor = Editor.createEditor().registerPlugins([CommonPlugin]);
     editors.push(editor);
     const firstRoot = document.createElement('div');
@@ -95,10 +146,10 @@ describe('EditorDiagnosticsService', () => {
     document.body.append(firstRoot, secondRoot);
 
     editor.setRootElement(firstRoot);
-    firstRoot.append(firstInput);
     const service = editor.requireService(IEditorDiagnosticsService);
     if (!service) throw new Error('Diagnostics service is missing');
-    service.setEnabled(true);
+    await service.setEnabled(true);
+    firstRoot.append(firstInput);
 
     firstInput.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 's' }));
     expect(service.getEntries()).toHaveLength(1);
@@ -121,6 +172,30 @@ describe('EditorDiagnosticsService', () => {
     document.body.removeChild(secondRoot);
   });
 
+  it('disables native capture synchronously when the returned promise is ignored', async () => {
+    const editor = Editor.createEditor().registerPlugins([CommonPlugin]);
+    editors.push(editor);
+    const root = document.createElement('div');
+    const input = document.createElement('input');
+    root.contentEditable = 'true';
+    document.body.append(root);
+    editor.setRootElement(root);
+    const service = editor.requireService(IEditorDiagnosticsService);
+    if (!service) throw new Error('Diagnostics service is missing');
+    await service.setEnabled(true);
+    root.append(input);
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'before-disable' }));
+    expect(service.getEntries().filter((entry) => entry.kind === 'native')).toHaveLength(1);
+
+    const disabling = service.setEnabled(false);
+    input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'after-disable' }));
+    expect(service.getEntries().filter((entry) => entry.kind === 'native')).toHaveLength(1);
+    await disabling;
+
+    document.body.removeChild(root);
+  });
+
   it('keeps native paste, its command, and the async commit under one operation', async () => {
     const editor = Editor.createEditor().registerPlugins([CommonPlugin]);
     editors.push(editor);
@@ -130,7 +205,7 @@ describe('EditorDiagnosticsService', () => {
     const lexicalEditor = editor.setRootElement(root);
     const service = editor.requireService(IEditorDiagnosticsService);
     if (!service) throw new Error('Diagnostics service is missing');
-    service.setEnabled(true);
+    await service.setEnabled(true);
 
     root.addEventListener('paste', () => {
       lexicalEditor.update(() => {
@@ -153,9 +228,9 @@ describe('EditorDiagnosticsService', () => {
     document.body.removeChild(root);
   });
 
-  it('exposes command entries with stable metadata and selection shape', () => {
+  it('exposes command entries with stable metadata and selection shape', async () => {
     const { lexicalEditor, service } = createHeadlessEditor();
-    service.setEnabled(true);
+    await service.setEnabled(true);
     lexicalEditor.dispatchCommand(COPY_COMMAND, null);
 
     const entry = service.getEntries().find((item) => item.kind === 'command') as

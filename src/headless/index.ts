@@ -63,6 +63,7 @@ export type {
   EditorDiagnosticsNativeEntry,
   EditorDiagnosticsNativeEvent,
   EditorDiagnosticsPoint,
+  EditorDiagnosticsRuntimeKey,
   EditorDiagnosticsSelection,
   EditorDiagnosticsSelectionType,
   EditorDiagnosticsShortcut,

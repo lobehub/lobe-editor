@@ -2,11 +2,8 @@ import type { LexicalEditor, NodeKey } from 'lexical';
 import { useEffect, useState } from 'react';
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
-import {
-  $readHoleBoundaryState,
-  type HoleBoundaryChange,
-  IHoleService,
-} from '@/plugins/common/service/i-hole-service';
+import { $readHoleBoundaryState } from '@/plugins/common/service/hole';
+import { type HoleBoundaryChange, IHoleService } from '@/plugins/common/service/i-hole-service';
 
 export interface ArtifactSelectionState {
   covered: boolean;

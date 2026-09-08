@@ -43,11 +43,10 @@ import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { $isHoleNode, HoleNode } from '../node/hole';
 import { registerHoleClipboard } from '../node/hole-clipboard';
 import { reconcileHoleNodes, registerHoleNode } from '../node/hole-controller';
-import {
-  EditorDiagnosticsService,
-  IEditorDiagnosticsService,
-} from '../service/i-editor-diagnostics-service';
-import { HoleService, IHoleService } from '../service/i-hole-service';
+import { EditorDiagnosticsService } from '../service/editor-diagnostics-service';
+import { HoleService } from '../service/hole';
+import { IEditorDiagnosticsService } from '../service/i-editor-diagnostics-service';
+import { IHoleService } from '../service/i-hole-service';
 import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
 import { registerMDReader } from './mdReader';
 import {

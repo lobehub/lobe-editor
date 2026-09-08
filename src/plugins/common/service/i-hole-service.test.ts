@@ -15,12 +15,8 @@ import { ArtifactPlugin } from '@/plugins/artifact/plugin';
 import { CommonPlugin } from '@/plugins/common';
 
 import { HoleNode } from '../node/hole';
-import {
-  type HoleBoundaryChange,
-  type HoleBoundaryState,
-  HoleService,
-  IHoleService,
-} from './i-hole-service';
+import { HoleService } from './hole';
+import { type HoleBoundaryChange, type HoleBoundaryState, IHoleService } from './i-hole-service';
 
 const editors: Array<ReturnType<typeof Editor.createEditor>> = [];
 
