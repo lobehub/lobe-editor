@@ -2,6 +2,39 @@
 
 # Changelog
 
+### [Version&nbsp;4.27.2](https://github.com/lobehub/lobe-editor/compare/v4.27.1...v4.27.2)
+<sup>Released on **2026-09-09**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **vitest**: Stop collecting the node:test postinstall spec.
+- **misc**: Make Lexical postinstall patching safe for concurrent installs.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **vitest**: Stop collecting the node:test postinstall spec, closes [#214](https://github.com/lobehub/lobe-editor/issues/214) ([dfb99cc](https://github.com/lobehub/lobe-editor/commit/dfb99cc))
+* **misc**: Make Lexical postinstall patching safe for concurrent installs, closes [#213](https://github.com/lobehub/lobe-editor/issues/213) ([a3caa58](https://github.com/lobehub/lobe-editor/commit/a3caa58))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.27.1](https://github.com/lobehub/lobe-editor/compare/v4.27.0...v4.27.1)
 <sup>Released on **2026-09-09**</sup>
 
