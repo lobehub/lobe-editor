@@ -1,9 +1,16 @@
 // @vitest-environment node
-import { $createParagraphNode, $getRoot, $getSelection, $isRangeSelection } from 'lexical';
+import {
+  $createParagraphNode,
+  $getRoot,
+  $getSelection,
+  $isRangeSelection,
+  $nodesOfType,
+} from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import Editor from '@/editor-kernel';
 import { $isCursorNode, CommonPlugin } from '@/plugins/common';
+import { MentionNode } from '@/plugins/mention/node/MentionNode';
 import { MentionPlugin } from '@/plugins/mention/plugin';
 
 import { INSERT_MENTION_COMMAND } from '..';
@@ -43,6 +50,41 @@ describe('mention commands', () => {
 
       expect($isRangeSelection(selection)).toBe(true);
       expect($isRangeSelection(selection) && $isCursorNode(selection.anchor.getNode())).toBe(true);
+    });
+  });
+
+  it('inserts a mention without requiring CommonPlugin', async () => {
+    const editor = Editor.createEditor().registerPlugins([MentionPlugin]);
+    const errors: Error[] = [];
+    editor.on('error', (error) => errors.push(error));
+    editor.initNodeEditor();
+
+    const lexicalEditor = editor.getLexicalEditor();
+    if (!lexicalEditor) {
+      throw new Error('Lexical editor not initialized');
+    }
+
+    lexicalEditor.update(
+      () => {
+        const paragraph = $createParagraphNode();
+        $getRoot().clear().append(paragraph);
+        paragraph.selectEnd();
+      },
+      { discrete: true },
+    );
+
+    expect(() =>
+      editor.dispatchCommand(INSERT_MENTION_COMMAND, {
+        label: 'Ada',
+        metadata: { id: '42' },
+      }),
+    ).not.toThrow();
+    await flushEditorUpdates();
+
+    expect(errors).toEqual([]);
+    lexicalEditor.getEditorState().read(() => {
+      expect($nodesOfType(MentionNode)).toHaveLength(1);
+      expect($getRoot().getTextContent()).toBe('Ada');
     });
   });
 });
