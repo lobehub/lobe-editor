@@ -18,6 +18,8 @@ import {
   $isTextNode,
 } from 'lexical';
 
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
+
 import {
   $getNodeProperties,
   $setNodeProperties,
@@ -189,25 +191,8 @@ export function $setNodeId(node: LexicalNode, nodeId: string): LexicalNode {
   return $setNodeProperties(node, (previous) => ({ ...previous, nodeId: normalizedNodeId }));
 }
 
-const getNodePath = (node: LexicalNode): string => {
-  const path: string[] = [];
-  let current: LexicalNode | null = node;
-
-  while (current && !$isRootNode(current)) {
-    const parent: LexicalNode | null = current.getParent();
-    if (!parent || !$isElementNode(parent)) break;
-    const index = parent.getChildren().indexOf(current);
-    path.unshift(`${Math.max(index, 0)}:${current.getType()}`);
-    current = parent;
-  }
-
-  return path.join('/');
-};
-
-const getDeterministicNodeId = (node: LexicalNode, path?: ReadonlyArray<number>): string =>
-  createDeterministicNodeId(
-    `legacy-node-id:v1:${path ? path.join('.') : getNodePath(node)}:${node.getType()}`,
-  );
+const getDeterministicNodeId = (node: LexicalNode, path: ReadonlyArray<number>): string =>
+  createDeterministicNodeId(`legacy-node-id:v1:${path.join('.')}:${node.getType()}`);
 
 /**
  * Ensure one node has a durable identity. Call this from an editor update or
@@ -295,9 +280,7 @@ export function $ensureNodeIdsInTree(
       }
     }
 
-    if ($isElementNode(node)) {
-      node.getChildren().forEach((child, index) => visit(child, [...path, index]));
-    }
+    $getLogicalChildren(node).forEach((child, index) => visit(child, [...path, index]));
   };
 
   visit(root, []);

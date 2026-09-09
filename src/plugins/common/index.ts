@@ -32,6 +32,7 @@ export {
   type HoleNormalizationRegistry,
   type HoleNormalizationTarget,
 } from './node/hole-normalization';
+export { $getLogicalChildren } from './node/logical-children';
 export * from './plugin';
 export * from './react';
 export { $readHoleBoundaryState } from './service/hole';

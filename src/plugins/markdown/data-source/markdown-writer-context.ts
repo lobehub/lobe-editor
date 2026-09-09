@@ -2,6 +2,7 @@ import type { LexicalNode } from 'lexical';
 import { $isElementNode } from 'lexical';
 
 import { $isHoleNode } from '@/plugins/common/node/hole';
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
 import { $getNodeId, $isNodeIdentityBlockTarget } from '@/plugins/properties/utils';
 
 import type { IMarkdownWriterContext, MarkdownShortCutService } from '../service/shortcut';
@@ -106,23 +107,12 @@ export class MarkdownWriterContext implements IMarkdownWriterContext {
 
 const collectNodeIdEntries = (root: LexicalNode): MarkdownNodeIdEntry[] => {
   const entries: MarkdownNodeIdEntry[] = [];
-  const flattenHole = (node: LexicalNode): LexicalNode[] =>
-    $isHoleNode(node) ? node.getContentChildren().flatMap(flattenHole) : [node];
-  const getLogicalChildren = (node: LexicalNode): LexicalNode[] => {
-    const children = $isHoleNode(node)
-      ? node.getContentChildren()
-      : $isElementNode(node)
-        ? node.getChildren()
-        : [];
-    return children.flatMap(flattenHole);
-  };
-
   const visit = (node: LexicalNode, path: number[]): void => {
     if ($isNodeIdentityBlockTarget(node)) {
       const nodeId = $getNodeId(node);
       if (nodeId) entries.push({ nodeId, path });
     }
-    getLogicalChildren(node).forEach((child, index) => visit(child, [...path, index]));
+    $getLogicalChildren(node).forEach((child, index) => visit(child, [...path, index]));
   };
   visit(root, []);
   return entries;
