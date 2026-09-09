@@ -42,6 +42,10 @@
       "types": "./es/react.d.ts",
       "import": "./es/react.js"
     },
+    "./react/EditorProvider": {
+      "types": "./es/react/EditorProvider/index.d.ts",
+      "import": "./es/react/EditorProvider/index.js"
+    },
     "./renderer": {
       "types": "./es/renderer.d.ts",
       "import": "./es/renderer.js"
