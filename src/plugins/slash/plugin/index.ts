@@ -241,10 +241,8 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
             return;
           }
           const slashOptions = this.service?.getSlashOptions(triggerText);
-          const maxLength = slashOptions?.maxLength || 75;
 
-          // Exceeds maximum length
-          if (text.length - lastIndex > maxLength || !slashOptions) {
+          if (!slashOptions) {
             this.triggerClose();
             return;
           }
