@@ -140,7 +140,7 @@ describe('Hole Enter boundaries', () => {
     dispatchEnter(lexical);
     await moment();
 
-    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'paragraph', 'code', 'paragraph']);
+    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'paragraph', 'hole', 'paragraph']);
     expect(countType(lexical, 'artifact')).toBe(1);
     expect(countType(lexical, 'code')).toBe(1);
     const selectedNodeType = lexical.getEditorState().read(() => {
@@ -151,12 +151,12 @@ describe('Hole Enter boundaries', () => {
 
     lexical.dispatchCommand(UNDO_COMMAND, undefined);
     await moment();
-    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'code', 'paragraph']);
+    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'hole', 'paragraph']);
     expect(countType(lexical, 'artifact')).toBe(1);
     expect(countType(lexical, 'code')).toBe(1);
     lexical.dispatchCommand(REDO_COMMAND, undefined);
     await moment();
-    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'paragraph', 'code', 'paragraph']);
+    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'paragraph', 'hole', 'paragraph']);
     editor.destroy();
   });
 
@@ -166,14 +166,16 @@ describe('Hole Enter boundaries', () => {
     dispatchEnter(lexical);
     await moment();
 
-    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'paragraph', 'code', 'paragraph']);
+    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'paragraph', 'hole', 'paragraph']);
     expect(countType(lexical, 'artifact')).toBe(1);
     expect(countType(lexical, 'code')).toBe(1);
     const insertedAndCode = lexical.getEditorState().read(() => {
       const children = $getRoot().getChildren();
+      const codePayload =
+        children[3] instanceof HoleNode ? children[3].getContentChildren()[0] : undefined;
       return {
         insertedType: children[2]?.getType(),
-        code: children[3] instanceof CodeMirrorNode ? children[3].code : undefined,
+        code: codePayload instanceof CodeMirrorNode ? codePayload.code : undefined,
       };
     });
     expect(insertedAndCode).toEqual({ code: codeSource, insertedType: 'paragraph' });
@@ -186,7 +188,7 @@ describe('Hole Enter boundaries', () => {
     dispatchEnter(lexical);
     await moment();
 
-    expect(rootTypes(lexical)).toEqual(['paragraph', 'paragraph', 'hole', 'code', 'paragraph']);
+    expect(rootTypes(lexical)).toEqual(['paragraph', 'paragraph', 'hole', 'hole', 'paragraph']);
     expect(countType(lexical, 'artifact')).toBe(1);
     expect(countType(lexical, 'code')).toBe(1);
     editor.destroy();
@@ -214,7 +216,7 @@ describe('Hole Enter boundaries', () => {
 
     expect(countType(lexical, 'artifact')).toBe(1);
     expect(countType(lexical, 'code')).toBe(1);
-    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'code', 'paragraph']);
+    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'hole', 'paragraph']);
     editor.destroy();
   });
 
@@ -239,7 +241,7 @@ describe('Hole Enter boundaries', () => {
     });
     expect(lexical.dispatchCommand(KEY_ENTER_COMMAND, event)).toBe(true);
     await moment();
-    expect(rootTypes(lexical)).toEqual(['paragraph', 'paragraph', 'hole', 'code', 'paragraph']);
+    expect(rootTypes(lexical)).toEqual(['paragraph', 'paragraph', 'hole', 'hole', 'paragraph']);
     expect(countType(lexical, 'artifact')).toBe(1);
     expect(countType(lexical, 'code')).toBe(1);
     editor.destroy();
@@ -260,7 +262,7 @@ describe('Hole Enter boundaries', () => {
     const event = new KeyboardEvent('keydown', { cancelable: true, key: 'Enter' });
     expect(lexical.dispatchCommand(KEY_ENTER_COMMAND, event)).toBe(false);
     expect(lexical.dispatchCommand(INSERT_LINE_BREAK_COMMAND, false)).toBe(false);
-    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'code', 'paragraph']);
+    expect(rootTypes(lexical)).toEqual(['paragraph', 'hole', 'hole', 'paragraph']);
     expect(countType(lexical, 'artifact')).toBe(1);
     expect(countType(lexical, 'code')).toBe(1);
     editor.destroy();

@@ -1,7 +1,12 @@
+import { CodeNode } from '@lexical/code-core';
+import type { LexicalEditor } from 'lexical';
+
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { registerBlockRewriteAdapter } from '@/plugins/block/service/rewrite-adapter';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
+import { registerCodeblockHoleEntry } from '../command/hole-entry';
 import { codeBlockRewriteAdapter } from '../rewrite-adapter';
 
 export interface HeadlessCodeblockPluginOptions {
@@ -38,8 +43,11 @@ export const HeadlessCodeblockPlugin: IEditorPluginConstructor<HeadlessCodeblock
     this.register(registerBlockRewriteAdapter(kernel, codeBlockRewriteAdapter));
   }
 
-  onInit(): void {
-    // Registration is complete in the constructor. No DOM/Markdown lifecycle
-    // is needed for a headless rewrite target.
+  onInit(editor: LexicalEditor): void {
+    const holeService = this.kernel.requireService(IHoleService);
+    if (holeService) this.register(holeService.registerTarget(CodeNode));
+    this.register(registerCodeblockHoleEntry(editor));
+
+    // No DOM/Markdown lifecycle is needed for a headless rewrite target.
   }
 };

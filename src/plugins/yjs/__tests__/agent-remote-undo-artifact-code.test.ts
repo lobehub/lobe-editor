@@ -404,6 +404,36 @@ const rootTypes = (kernel: ReturnType<typeof Editor.createEditor>): string[] => 
   );
 };
 
+const isCodeHoleAt = (kernel: ReturnType<typeof Editor.createEditor>, index: number): boolean => {
+  const editor = kernel.getLexicalEditor()!;
+  return editor.getEditorState().read(() => {
+    const node = $getRoot().getChildAtIndex(index);
+    return (
+      node instanceof HoleNode &&
+      node.getContentChildren().some((child) => child instanceof CodeMirrorNode)
+    );
+  });
+};
+
+const expectCodeHoleAt = (kernel: ReturnType<typeof Editor.createEditor>, index: number): void => {
+  expect(isCodeHoleAt(kernel, index)).toBe(true);
+};
+
+const expectTerminalCodeHoleAt = (
+  kernel: ReturnType<typeof Editor.createEditor>,
+  index: number,
+): void => {
+  const editor = kernel.getLexicalEditor()!;
+  editor.getEditorState().read(() => {
+    const node = $getRoot().getChildAtIndex(index);
+    expect(node).toBeInstanceOf(HoleNode);
+    if (!(node instanceof HoleNode)) return;
+    expect(node.getContentChildren().some((child) => child instanceof CodeMirrorNode)).toBe(true);
+    expect(node.hasValidBoundaryCursors()).toBe(true);
+    expect(node.getAfterCursor()).not.toBeNull();
+  });
+};
+
 const rawYjsReachableTypes = (value: unknown): unknown => {
   if (typeof value === 'string') return value;
   if (!value || typeof value !== 'object') return typeof value;
@@ -777,9 +807,10 @@ describe('remote Agent structure replacement and browser undo history', () => {
       'paragraph',
       'hole',
       'paragraph',
-      'code',
+      'hole',
       'paragraph',
     ]);
+    expectCodeHoleAt(browserA.kernel, 3);
     expect(countType(browserA.kernel, 'artifact')).toBe(1);
     expect(countType(browserA.kernel, 'code')).toBe(1);
     expect(countArtifactsUnderParagraph(browserA.kernel)).toBe(0);
@@ -843,9 +874,10 @@ describe('remote Agent structure replacement and browser undo history', () => {
       'paragraph',
       'hole',
       'paragraph',
-      'code',
+      'hole',
       'paragraph',
     ]);
+    expectCodeHoleAt(browserA.kernel, 3);
     expect(browserA.kernel.getDocument('markdown')).not.toContain('manual boundary note');
     expect(browserA.kernel.getDocument('markdown')).toContain('peer B sentinel');
     expect(JSON.stringify(projection(browserA.kernel))).toContain(artifactReplacement);
@@ -967,9 +999,10 @@ describe('remote Agent structure replacement and browser undo history', () => {
       'paragraph',
       'hole',
       'paragraph',
-      'code',
+      'hole',
       'paragraph',
     ]);
+    expectCodeHoleAt(browserA.kernel, 3);
     expect(countType(browserA.kernel, 'code')).toBe(1);
     expect(countType(browserB.kernel, 'code')).toBe(1);
     expect(JSON.stringify(projection(browserB.kernel))).toContain('fn rewritten() {}');
@@ -992,7 +1025,8 @@ describe('remote Agent structure replacement and browser undo history', () => {
     await moment();
     // The immediate Enter + typing may share one local Undo item; the
     // invariant is that the Agent-rewritten Code node survives that item.
-    expect(rootTypes(browserA.kernel)).toEqual(['paragraph', 'hole', 'code', 'paragraph']);
+    expect(rootTypes(browserA.kernel)).toEqual(['paragraph', 'hole', 'hole', 'paragraph']);
+    expectCodeHoleAt(browserA.kernel, 2);
     expect(countType(browserA.kernel, 'artifact')).toBe(1);
     expect(countType(browserA.kernel, 'code')).toBe(1);
     expect(JSON.stringify(projection(browserA.kernel))).toContain('fn rewritten() {}');
@@ -1017,9 +1051,10 @@ describe('remote Agent structure replacement and browser undo history', () => {
       'paragraph',
       'hole',
       'paragraph',
-      'code',
+      'hole',
       'paragraph',
     ]);
+    expectCodeHoleAt(browserA.kernel, 3);
     expect(countType(browserA.kernel, 'artifact')).toBe(1);
     expect(countType(browserA.kernel, 'code')).toBe(1);
     expect(browserA.kernel.getDocument('markdown')).toContain('BOUNDARY\\_OWN');
@@ -1129,6 +1164,7 @@ describe('remote Agent structure replacement and browser undo history', () => {
     const undoObservations: Array<{
       code: string[];
       codeCount: number;
+      codeHole: boolean;
       handled: boolean;
       hasAgentRewrite: boolean;
       root: string[];
@@ -1143,6 +1179,7 @@ describe('remote Agent structure replacement and browser undo history', () => {
       undoObservations.push({
         code,
         codeCount: countType(browserA.kernel, 'code'),
+        codeHole: isCodeHoleAt(browserA.kernel, 2),
         handled,
         hasAgentRewrite: JSON.stringify(projection(browserA.kernel)).includes(
           'fn rewritten second() {}',
@@ -1158,9 +1195,10 @@ describe('remote Agent structure replacement and browser undo history', () => {
     expect(undoObservations[0]).toMatchObject({
       code: ['fn rewritten second() {}'],
       codeCount: 1,
+      codeHole: true,
       handled: true,
       hasAgentRewrite: true,
-      root: ['paragraph', 'hole', 'code', 'paragraph'],
+      root: ['paragraph', 'hole', 'hole', 'paragraph'],
     });
     expect(undoObservations[1]).toMatchObject(undoObservations[0]);
     browserAEditor.dispatchCommand(REDO_COMMAND, undefined);
@@ -1340,7 +1378,7 @@ describe('remote Agent structure replacement and browser undo history', () => {
     expect(browserA.kernel.getDocument('markdown')).not.toContain('const untouched = true;');
   });
 
-  it('compares Lexical and raw Yjs trailing paragraph reachability after real Code insertion', async () => {
+  it('compares terminal Code Hole reachability between Lexical and raw Yjs after insertion', async () => {
     const seed = await seedLegacyArtifactOnlyDocument(false);
     const room = new MockRoom(seed.update);
     rooms.push(room);
@@ -1376,9 +1414,12 @@ describe('remote Agent structure replacement and browser undo history', () => {
     const lexical = rootTypes(browserA.kernel);
     const raw = rawYjsReachableTypes(state.binding.root.getSharedType());
     const rawChildren = (raw as { children?: unknown[] }).children;
-    expect(lexical).toContain('code');
+    expect(lexical).toContain('hole');
+    expect(countType(browserA.kernel, 'code')).toBe(1);
+    expectTerminalCodeHoleAt(browserA.kernel, 2);
     expect(rawChildren).toHaveLength(lexical.length);
-    expect(rawChildren?.at(-1)).toMatchObject({ type: 'paragraph' });
+    expect(rawChildren?.at(-1)).toMatchObject({ type: 'hole' });
+    expect(JSON.stringify(rawChildren?.at(-1))).toContain('"type":"code"');
   });
 
   it('protects a local paragraph changed by a peer and leaves explicit Delete undoable', async () => {

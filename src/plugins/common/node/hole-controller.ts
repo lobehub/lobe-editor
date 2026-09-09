@@ -8,6 +8,7 @@ import {
   $getNodeByKey,
   $getRoot,
   $getSelection,
+  $isDecoratorNode,
   $isElementNode,
   $isNodeSelection,
   $isRangeSelection,
@@ -15,23 +16,27 @@ import {
   $isTextNode,
   $setSelection,
   COLLABORATION_TAG,
+  COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
   COMPOSITION_START_COMMAND,
   HISTORIC_TAG,
   HISTORY_MERGE_TAG,
   HISTORY_PUSH_TAG,
   INSERT_PARAGRAPH_COMMAND,
+  KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
+  KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
   KEY_ENTER_COMMAND,
   SKIP_SCROLL_INTO_VIEW_TAG,
 } from 'lexical';
 
-import { $getNearestNodeFromDOMNode } from '@/editor-kernel/utils';
+import { $getNearestNodeFromDOMNode, getKernelFromEditor } from '@/editor-kernel/utils';
 
 import { ENTER_HOLE_CONTENT_COMMAND } from '../command';
+import { $getDownUpNode } from '../plugin/register';
 import {
   $getAtomicHolePointContext,
   $isAtomicHoleElementPayloadNode,
@@ -393,6 +398,33 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
     // the root listener to install the native selection guard.
   }
 
+  const kernel = getKernelFromEditor(editor);
+  const unregisterHoleVerticalNavigation = kernel?.registerHighCommand
+    ? mergeRegister(
+        kernel.registerHighCommand(
+          KEY_ARROW_UP_COMMAND,
+          (event) => handleHoleVerticalArrow(editor, event, 'up'),
+          COMMAND_PRIORITY_CRITICAL,
+        ),
+        kernel.registerHighCommand(
+          KEY_ARROW_DOWN_COMMAND,
+          (event) => handleHoleVerticalArrow(editor, event, 'down'),
+          COMMAND_PRIORITY_CRITICAL,
+        ),
+      )
+    : mergeRegister(
+        editor.registerCommand(
+          KEY_ARROW_UP_COMMAND,
+          (event) => handleHoleVerticalArrow(editor, event, 'up'),
+          COMMAND_PRIORITY_CRITICAL,
+        ),
+        editor.registerCommand(
+          KEY_ARROW_DOWN_COMMAND,
+          (event) => handleHoleVerticalArrow(editor, event, 'down'),
+          COMMAND_PRIORITY_CRITICAL,
+        ),
+      );
+
   return mergeRegister(
     editor.registerNodeTransform(HoleNode, $normalizeHoleNode),
     editor.registerUpdateListener(() => {
@@ -420,6 +452,7 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
       (event) => handleHoleArrow(editor, event, 'right'),
       COMMAND_PRIORITY_HIGH,
     ),
+    unregisterHoleVerticalNavigation,
     editor.registerCommand(
       KEY_BACKSPACE_COMMAND,
       (event) => handleHoleBackspace(editor, event),
@@ -737,6 +770,128 @@ function extendRangeAcrossHole(
   return true;
 }
 
+type HoleVerticalDirection = 'down' | 'up';
+
+/** Modifiers retain the editor's normal selection-expansion/navigation contract. */
+function hasHoleVerticalNavigationModifier(event: KeyboardEvent): boolean {
+  return event.shiftKey || event.altKey || event.ctrlKey || event.metaKey;
+}
+
+function isInsideShadowRoot(node: LexicalNode): boolean {
+  let current = node.getParent();
+  while (current) {
+    if ($isElementNode(current) && current.isShadowRoot()) return true;
+    if ($isRootNode(current)) return false;
+    current = current.getParent();
+  }
+  return false;
+}
+
+function isOpaqueHoleVerticalEdge(node: LexicalNode): boolean {
+  let current: LexicalNode | null = node;
+  while (current) {
+    if ($isHoleNode(current) || $isDecoratorNode(current)) return true;
+    if ($isElementNode(current) && current.isShadowRoot()) return true;
+    current = current.getParent();
+  }
+  return false;
+}
+
+function getHoleVerticalSelectionTarget(
+  node: LexicalNode,
+  direction: HoleVerticalDirection,
+): LexicalNode | null {
+  if (!$isElementNode(node) || node.isInline() || $isHoleNode(node) || node.isShadowRoot()) {
+    return null;
+  }
+
+  const children = node.getChildren();
+  if (children.length === 0) return node;
+
+  const orderedChildren = direction === 'up' ? [...children].reverse() : children;
+  for (const child of orderedChildren) {
+    if (isOpaqueHoleVerticalEdge(child)) continue;
+
+    if ($isElementNode(child)) {
+      if (child.isInline()) {
+        const edge = direction === 'up' ? child.getLastDescendant() : child.getFirstDescendant();
+        if (edge && !isOpaqueHoleVerticalEdge(edge)) return edge;
+        continue;
+      }
+      const nestedTarget = getHoleVerticalSelectionTarget(child, direction);
+      if (nestedTarget) return nestedTarget;
+      continue;
+    }
+
+    // Text and line-break children identify a normal editable block. Return
+    // the discovered edge itself so a skipped trailing/leading Hole cannot be
+    // re-entered when the parent block's selectStart/selectEnd recurses.
+    return child;
+  }
+
+  return null;
+}
+
+/** Continue the same structural sibling walk as `$getDownUpNode` after a skipped block. */
+function getNextHoleVerticalCandidate(
+  node: LexicalNode,
+  direction: HoleVerticalDirection,
+): LexicalNode | null {
+  let current: LexicalNode | null = node;
+  while (current) {
+    const sibling = direction === 'up' ? current.getPreviousSibling() : current.getNextSibling();
+    if (sibling) return sibling;
+
+    const parent: LexicalNode | null = current.getParent();
+    if (!parent || $isRootNode(parent) || ($isElementNode(parent) && parent.isShadowRoot())) {
+      return null;
+    }
+    current = parent;
+  }
+  return null;
+}
+
+function getHoleVerticalNeighbor(
+  point: PointType,
+  direction: HoleVerticalDirection,
+): LexicalNode | null {
+  let candidate = $getDownUpNode(point, direction === 'up');
+  while (candidate) {
+    const target = getHoleVerticalSelectionTarget(candidate, direction);
+    if (target) return target;
+    candidate = getNextHoleVerticalCandidate(candidate, direction);
+  }
+  return null;
+}
+
+function handleHoleVerticalArrow(
+  editor: LexicalEditor,
+  event: KeyboardEvent,
+  direction: HoleVerticalDirection,
+): boolean {
+  if (hasHoleVerticalNavigationModifier(event) || editor.isComposing() || !editor.isEditable()) {
+    return false;
+  }
+
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
+
+  const context = getBoundaryContext(selection);
+  if (!context || isInsideShadowRoot(context.hole)) return false;
+
+  const neighbor = getHoleVerticalNeighbor(selection.focus, direction);
+  if (neighbor) {
+    if (direction === 'up') neighbor.selectEnd();
+    else neighbor.selectStart();
+  }
+
+  // A valid Hole boundary owns plain vertical arrows even at an edge. This
+  // prevents CommonPlugin/native fallback from entering Hole payloads or
+  // creating a paragraph when no editable block exists in that direction.
+  event.preventDefault();
+  return true;
+}
+
 function getSelectedHole(selection: NodeSelection): HoleNode | null {
   const nodes = selection.getNodes();
   if (nodes.length !== 1) return null;
@@ -851,11 +1006,15 @@ function handleHoleArrow(
 
     if (
       editor.dispatchCommand(ENTER_HOLE_CONTENT_COMMAND, {
-        edge: side === 'before' ? 'start' : 'end',
+        from: side,
         key: content.getKey(),
       })
     ) {
-      $setSelection(null);
+      // The target owns the accepted entry: Lexical targets select their
+      // internal caret, while foreign editors move focus themselves. Keeping
+      // this command free of a blanket `$setSelection(null)` is important for
+      // both cases and lets a target reject the request without losing the
+      // Hole boundary selection.
       event.preventDefault();
       return true;
     }

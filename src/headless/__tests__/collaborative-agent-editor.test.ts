@@ -45,6 +45,7 @@ import { BlockRewritePlugin } from '@/plugins/block/plugin/rewrite';
 import { CodeMirrorNode } from '@/plugins/codemirror-block/node/CodeMirrorNode';
 import { CodemirrorPlugin } from '@/plugins/codemirror-block/plugin';
 import { CommonPlugin } from '@/plugins/common/plugin';
+import { $resolveLogicalBlockNode } from '@/plugins/common/node/hole';
 import { $ensureNodeIdsInTree, $getNodeId } from '@/plugins/properties';
 import { PropertiesPlugin } from '@/plugins/properties';
 import { MARK_AI_GENERATED_COMMAND } from '@/plugins/properties/command';
@@ -600,7 +601,8 @@ describe('CollaborativeAgentEditor', () => {
     );
     await moment();
     const codeMirrorInfo = seedLexical.getEditorState().read(() => {
-      const node = $getRoot().getFirstChild();
+      const firstChild = $getRoot().getFirstChild();
+      const node = firstChild ? $resolveLogicalBlockNode(firstChild) : null;
       if (!(node instanceof CodeMirrorNode)) throw new Error('Missing CodeMirror seed node.');
       return { nodeId: $getNodeId(node), source: node.code };
     });

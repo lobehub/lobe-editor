@@ -9,11 +9,46 @@ export const INSERT_QUOTE_COMMAND = createCommand<unknown>('INSERT_QUOTE_COMMAND
 export const INSERT_HEADING_COMMAND = createCommand<{ tag: HeadingTagType }>(
   'INSERT_HEADING_COMMAND',
 );
-/** Requests that a Hole's payload editor take focus at one of its edges. */
-export const ENTER_HOLE_CONTENT_COMMAND = createCommand<{
-  edge: 'end' | 'start';
-  key: string;
-}>('ENTER_HOLE_CONTENT_COMMAND');
+/**
+ * Requests that a Hole payload accept an arrow-key entry from one of its
+ * boundaries.
+ *
+ * `from` is the canonical direction. `edge` is retained as a deprecated
+ * compatibility field for consumers that dispatched the original command.
+ * The type keeps the canonical and legacy shapes mutually exclusive; the
+ * resolver still gives `from` precedence defensively at runtime. Hole itself
+ * always dispatches the canonical `from` field. A target handler returns
+ * `true` only after it owns the caret/focus transfer; `false` preserves Hole's
+ * normal boundary traversal.
+ */
+export type EnterHoleContentPayload =
+  | {
+      /** Canonical direction: the boundary from which the target is entered. */
+      from: 'after' | 'before';
+      key: string;
+      /** @deprecated Use `from`; this field is intentionally not accepted with it. */
+      edge?: never;
+    }
+  | {
+      /** @deprecated Legacy callers may provide `edge` until they migrate. */
+      edge: 'end' | 'start';
+      key: string;
+      from?: never;
+    };
+
+export const ENTER_HOLE_CONTENT_COMMAND = createCommand<EnterHoleContentPayload>(
+  'ENTER_HOLE_CONTENT_COMMAND',
+);
+
+/** Resolve the canonical boundary side for a command payload. */
+export const getHoleContentEntrySide = (
+  payload: EnterHoleContentPayload,
+): 'after' | 'before' | null => {
+  if (payload.from) return payload.from;
+  if (payload.edge === 'start') return 'before';
+  if (payload.edge === 'end') return 'after';
+  return null;
+};
 
 export function registerCommands(editor: LexicalEditor) {
   return mergeRegister(

@@ -83,6 +83,38 @@ const rootTypes = (editor: ReturnType<typeof Editor.createEditor>): string[] =>
         .map((node) => node.getType()),
     );
 
+const isCodeHoleAt = (editor: ReturnType<typeof Editor.createEditor>, index: number): boolean =>
+  editor
+    .getLexicalEditor()!
+    .getEditorState()
+    .read(() => {
+      const node = $getRoot().getChildAtIndex(index);
+      return (
+        node instanceof HoleNode &&
+        node.getContentChildren().some((child) => child instanceof CodeMirrorNode)
+      );
+    });
+
+const expectCodeHoleAt = (editor: ReturnType<typeof Editor.createEditor>, index: number): void => {
+  expect(isCodeHoleAt(editor, index)).toBe(true);
+};
+
+const expectHolePayloadTypes = (
+  editor: ReturnType<typeof Editor.createEditor>,
+  index: number,
+  types: string[],
+): void => {
+  editor
+    .getLexicalEditor()!
+    .getEditorState()
+    .read(() => {
+      const node = $getRoot().getChildAtIndex(index);
+      expect(node).toBeInstanceOf(HoleNode);
+      if (!(node instanceof HoleNode)) return;
+      expect(node.getContentChildren().map((child) => child.getType())).toEqual(types);
+    });
+};
+
 const DEFAULT_DOM_UNDO_PLUGINS = DEFAULT_HEADLESS_EDITOR_PLUGINS.filter((plugin) => {
   const constructor = Array.isArray(plugin) ? plugin[0] : plugin;
   return constructor !== ImagePlugin;
@@ -193,7 +225,8 @@ describe('DOM-backed Yjs Undo projection', () => {
     provider.connect();
     await moment();
     await moment();
-    expect(rootTypes(kernel)).toEqual(['paragraph', 'code', 'paragraph']);
+    expect(rootTypes(kernel)).toEqual(['paragraph', 'hole', 'paragraph']);
+    expectCodeHoleAt(kernel, 1);
 
     lexical.update(
       () => {
@@ -205,12 +238,14 @@ describe('DOM-backed Yjs Undo projection', () => {
       { discrete: true },
     );
     await moment();
-    expect(rootTypes(kernel)).toEqual(['paragraph', 'paragraph', 'code', 'paragraph']);
+    expect(rootTypes(kernel)).toEqual(['paragraph', 'hole', 'paragraph']);
+    expectHolePayloadTypes(kernel, 1, ['paragraph', 'code']);
 
     lexical.dispatchCommand(UNDO_COMMAND, undefined);
     await moment();
     await moment();
-    expect(rootTypes(kernel)).toEqual(['paragraph', 'code', 'paragraph']);
+    expect(rootTypes(kernel)).toEqual(['paragraph', 'hole', 'paragraph']);
+    expectCodeHoleAt(kernel, 1);
 
     const state = kernel.requireService(IYjsService)?.getState();
     if (!state) throw new Error('Yjs state missing.');
@@ -223,17 +258,18 @@ describe('DOM-backed Yjs Undo projection', () => {
             '__type',
           ),
     );
-    expect(rawTypes).toContain('code');
+    expect(rawTypes).toContain('hole');
     expect(
       (state.binding.root._children as Array<{ getType: () => string }>).map((child) =>
         child.getType(),
       ),
-    ).toEqual(['paragraph', 'code', 'paragraph']);
+    ).toEqual(['paragraph', 'hole', 'paragraph']);
 
     lexical.dispatchCommand(REDO_COMMAND, undefined);
     await moment();
     await moment();
-    expect(rootTypes(kernel)).toEqual(['paragraph', 'paragraph', 'code', 'paragraph']);
+    expect(rootTypes(kernel)).toEqual(['paragraph', 'hole', 'paragraph']);
+    expectCodeHoleAt(kernel, 1);
     unregisterExportListener();
   });
 
@@ -323,7 +359,8 @@ describe('DOM-backed Yjs Undo projection', () => {
     provider.connect();
     await moment();
     await moment();
-    expect(rootTypes(kernel)).toEqual(['paragraph', 'hole', 'code', 'paragraph']);
+    expect(rootTypes(kernel)).toEqual(['paragraph', 'hole', 'hole', 'paragraph']);
+    expectCodeHoleAt(kernel, 2);
 
     lexical.update(
       () => {
@@ -352,13 +389,15 @@ describe('DOM-backed Yjs Undo projection', () => {
     expect(lexical.dispatchCommand(KEY_ENTER_COMMAND, enterEvent)).toBe(true);
     expect(enterEvent.defaultPrevented).toBe(true);
     await moment();
-    expect(rootTypes(kernel)).toEqual(['paragraph', 'hole', 'paragraph', 'code', 'paragraph']);
+    expect(rootTypes(kernel)).toEqual(['paragraph', 'hole', 'paragraph', 'hole', 'paragraph']);
+    expectCodeHoleAt(kernel, 3);
 
     await new Promise((resolve) => setTimeout(resolve, 650));
     lexical.dispatchCommand(UNDO_COMMAND, undefined);
     await moment();
     await moment();
-    expect(rootTypes(kernel)).toEqual(['paragraph', 'hole', 'code', 'paragraph']);
+    expect(rootTypes(kernel)).toEqual(['paragraph', 'hole', 'hole', 'paragraph']);
+    expectCodeHoleAt(kernel, 2);
     expect(updateTags).toContainEqual([HISTORIC_TAG]);
     expect(rootTypes(kernel)).not.toContain('artifact');
     const state = kernel.requireService(IYjsService)?.getState();
@@ -372,12 +411,12 @@ describe('DOM-backed Yjs Undo projection', () => {
             '__type',
           ),
     );
-    expect(rawTypes).toContain('code');
+    expect(rawTypes).toContain('hole');
     expect(
       (state.binding.root._children as Array<{ getType: () => string }>).map((child) =>
         child.getType(),
       ),
-    ).toEqual(['paragraph', 'hole', 'code', 'paragraph']);
+    ).toEqual(['paragraph', 'hole', 'hole', 'paragraph']);
     expect(
       (
         kernel.getDocument('json') as unknown as {

@@ -5,7 +5,15 @@ import { ActionIcon, Block } from '@lobehub/ui';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
 import type { LexicalEditor } from 'lexical';
-import { $getSelection, $setSelection, COMMAND_PRIORITY_CRITICAL, KEY_DOWN_COMMAND } from 'lexical';
+import {
+  $createParagraphNode,
+  $getSelection,
+  $isElementNode,
+  $setSelection,
+  COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_HIGH,
+  KEY_DOWN_COMMAND,
+} from 'lexical';
 import { CodeXml, Eye } from 'lucide-react';
 import {
   type FC,
@@ -21,6 +29,8 @@ import {
 import { lobeTheme, styles, Toolbar } from '@/codemirror';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
+import { ENTER_HOLE_CONTENT_COMMAND, getHoleContentEntrySide } from '@/plugins/common/command';
+import { $resolveStructuralBlockNode } from '@/plugins/common/node/hole';
 
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
@@ -39,6 +49,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   const ref = useRef<HTMLTextAreaElement>(null);
   const keydownRef = useRef('');
   const instanceRef = useRef<any>(null);
+  const enteringFromHoleRef = useRef(false);
   const isEmptyRef = useRef<boolean>(false);
   const hasLocalEditLockRef = useRef(false);
   const releaseLockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -301,14 +312,26 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
 
             e.preventDefault();
             editor.update(() => {
-              const prevNode = node.getPreviousSibling();
-              node.remove();
+              const structuralNode = $resolveStructuralBlockNode(node);
+              const structuralParent = structuralNode.getParent();
+              const prevNode = structuralNode.getPreviousSibling();
+              const nextNode = structuralNode.getNextSibling();
+              structuralNode.remove();
               // 如果有前一个节点，选择它的末尾
               if (prevNode) {
                 const prevSelection = prevNode.selectEnd();
                 if (prevSelection) {
                   $setSelection(prevSelection);
                 }
+              } else if (nextNode) {
+                const nextSelection = nextNode.selectStart();
+                if (nextSelection) {
+                  $setSelection(nextSelection);
+                }
+              } else if (structuralParent && $isElementNode(structuralParent)) {
+                const paragraph = $createParagraphNode();
+                structuralParent.append(paragraph);
+                paragraph.selectStart();
               }
             });
             // 将焦点返回到编辑器
@@ -351,6 +374,8 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           }),
         );
         instance.on('focus', () => {
+          if (enteringFromHoleRef.current) return;
+
           if (!acquireEditLock()) {
             instanceRef.current?.blur();
             clearSelection();
@@ -387,6 +412,42 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       }
     };
   }, [ref]);
+
+  useEffect(
+    () =>
+      editor.registerCommand(
+        ENTER_HOLE_CONTENT_COMMAND,
+        (payload) => {
+          const side = getHoleContentEntrySide(payload);
+          if (!editor.isEditable() || !side || payload.key !== node.getKey() || isLockedByRemote) {
+            return false;
+          }
+
+          const instance = instanceRef.current;
+          if (!instance || !acquireEditLock()) return false;
+
+          enteringFromHoleRef.current = true;
+          queueMicrotask(() => {
+            enteringFromHoleRef.current = false;
+          });
+          try {
+            instance.focus();
+            if (side === 'before') instance.setSelectionToStart();
+            else instance.setSelectionToEnd();
+            // CodeMirror owns the accepted caret; clear the stale outer
+            // Lexical boundary only after the transfer succeeds. Normal
+            // command dispatch already provides the update scope.
+            $setSelection(null);
+            return true;
+          } catch {
+            releaseEditLock();
+            return false;
+          }
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
+    [acquireEditLock, editor, isLockedByRemote, node, releaseEditLock],
+  );
 
   useEffect(() => {
     return mergeRegister(

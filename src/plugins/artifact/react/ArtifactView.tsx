@@ -4,7 +4,7 @@ import { Segmented } from 'antd';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
 import type { LexicalEditor } from 'lexical';
-import { $getNodeByKey, COMMAND_PRIORITY_HIGH } from 'lexical';
+import { $getNodeByKey, $setSelection, COMMAND_PRIORITY_HIGH } from 'lexical';
 import { CodeXml, Columns2, Eye } from 'lucide-react';
 import type { ChangeEvent, CSSProperties, FC, MouseEvent, PointerEvent } from 'react';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -13,7 +13,7 @@ import type { ICodeMirrorInstance } from '@/codemirror';
 import { loadCodeMirror, lobeTheme } from '@/codemirror';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { BLOCK_MENU_ANCHOR_ATTRIBUTE } from '@/plugins/block/react/core/types';
-import { ENTER_HOLE_CONTENT_COMMAND } from '@/plugins/common/command';
+import { ENTER_HOLE_CONTENT_COMMAND, getHoleContentEntrySide } from '@/plugins/common/command';
 import { $getNodeId } from '@/plugins/properties/utils';
 
 import { SELECT_AFTER_ARTIFACT_COMMAND, SELECT_BEFORE_ARTIFACT_COMMAND } from '../command';
@@ -157,15 +157,25 @@ const ArtifactView: FC<ArtifactViewProps> = ({
     () =>
       editor.registerCommand(
         ENTER_HOLE_CONTENT_COMMAND,
-        ({ edge, key }) => {
-          if (!editable || key !== nodeKeyRef.current) return false;
+        (payload) => {
+          const side = getHoleContentEntrySide(payload);
+          if (!editable || !side || payload.key !== nodeKeyRef.current) return false;
+
+          const clearOuterSelection = () => {
+            // The foreign editor owns the accepted caret; do not leave the
+            // outer Lexical selection at the Hole boundary while it is
+            // focused. Command handlers run inside Lexical's update scope, so
+            // this keeps the transfer in one transaction.
+            $setSelection(null);
+          };
 
           try {
             const instance = instanceRef.current;
             if (instance) {
               instance.focus();
-              if (edge === 'start') instance.setSelectionToStart();
+              if (side === 'before') instance.setSelectionToStart();
               else instance.setSelectionToEnd();
+              clearOuterSelection();
               return true;
             }
 
@@ -173,8 +183,9 @@ const ArtifactView: FC<ArtifactViewProps> = ({
             if (!codeMirrorLoadFailed || !textarea) return false;
 
             textarea.focus();
-            const offset = edge === 'start' ? 0 : textarea.value.length;
+            const offset = side === 'before' ? 0 : textarea.value.length;
             textarea.setSelectionRange(offset, offset);
+            clearOuterSelection();
             return true;
           } catch {
             return false;

@@ -18,6 +18,12 @@ const artifactSelectionMock = vi.hoisted(() => ({ covered: false, directNodeSele
 const codeMirrorMock = vi.hoisted(() => ({
   loadCodeMirror: vi.fn(() => new Promise(() => {})),
 }));
+const lexicalSelectionMock = vi.hoisted(() => ({ setSelection: vi.fn() }));
+
+vi.mock('lexical', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('lexical')>()),
+  $setSelection: lexicalSelectionMock.setSelection,
+}));
 
 vi.mock('@/editor-kernel/react/useLexicalNodeSelection', () => ({
   useLexicalNodeSelection: () => [
@@ -48,6 +54,7 @@ describe('ArtifactView', () => {
     artifactSelectionMock.directNodeSelection = false;
     codeMirrorMock.loadCodeMirror.mockReset();
     codeMirrorMock.loadCodeMirror.mockImplementation(() => new Promise(() => {}));
+    lexicalSelectionMock.setSelection.mockReset();
     localStorage.clear();
   });
 
@@ -634,14 +641,14 @@ describe('ArtifactView', () => {
       await Promise.resolve();
     });
 
-    expect(handlers.get(ENTER_HOLE_CONTENT_COMMAND)?.({ edge: 'start', key: 'artifact-key' })).toBe(
-      true,
-    );
+    expect(
+      handlers.get(ENTER_HOLE_CONTENT_COMMAND)?.({ from: 'before', key: 'artifact-key' }),
+    ).toBe(true);
     expect(focus).toHaveBeenCalledOnce();
     expect(setSelectionToStart).toHaveBeenCalledOnce();
     expect(setSelectionToEnd).not.toHaveBeenCalled();
 
-    expect(handlers.get(ENTER_HOLE_CONTENT_COMMAND)?.({ edge: 'end', key: 'artifact-key' })).toBe(
+    expect(handlers.get(ENTER_HOLE_CONTENT_COMMAND)?.({ from: 'after', key: 'artifact-key' })).toBe(
       true,
     );
     expect(focus).toHaveBeenCalledTimes(2);

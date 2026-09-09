@@ -1,6 +1,10 @@
 import { createBinding, type Provider, type ProviderAwareness, type UserState } from '@lexical/yjs';
 import { $createArtifactNode } from '@/plugins/artifact/node/ArtifactNode';
-import { $createCodeMirrorNode } from '@/plugins/codemirror-block/node/CodeMirrorNode';
+import {
+  $createCodeMirrorNode,
+  CodeMirrorNode,
+} from '@/plugins/codemirror-block/node/CodeMirrorNode';
+import { HoleNode } from '@/plugins/common/node/hole';
 import { $getRoot, $isElementNode, type LexicalNode } from 'lexical';
 import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 import { describe, expect, it } from 'vitest';
@@ -40,7 +44,9 @@ class SnapshotProvider implements Provider {
     this.doc.on('update', this.updateHandler);
     applyUpdate(this.doc, this.snapshot, this);
     queueMicrotask(() => {
-      this.listeners.get('status')?.forEach((listener) => listener({ status: 'connected' } as never));
+      this.listeners
+        .get('status')
+        ?.forEach((listener) => listener({ status: 'connected' } as never));
       this.listeners.get('sync')?.forEach((listener) => listener(true as never));
     });
   }
@@ -62,7 +68,23 @@ class SnapshotProvider implements Provider {
 
 const rootTypes = (kernel: ReturnType<typeof Editor.createEditor>): string[] => {
   const editor = kernel.getLexicalEditor()!;
-  return editor.getEditorState().read(() => $getRoot().getChildren().map((node) => node.getType()));
+  return editor.getEditorState().read(() =>
+    $getRoot()
+      .getChildren()
+      .map((node) => node.getType()),
+  );
+};
+
+const expectCodeHoleAt = (kernel: ReturnType<typeof Editor.createEditor>, index: number): void => {
+  const editor = kernel.getLexicalEditor()!;
+  const isCodeHole = editor.getEditorState().read(() => {
+    const node = $getRoot().getChildAtIndex(index);
+    return (
+      node instanceof HoleNode &&
+      node.getContentChildren().some((child) => child instanceof CodeMirrorNode)
+    );
+  });
+  expect(isCodeHole).toBe(true);
 };
 
 const countType = (kernel: ReturnType<typeof Editor.createEditor>, type: string): number => {
@@ -101,26 +123,32 @@ describe('Yjs initial room snapshot', () => {
     const source = Editor.createEditor();
     source.registerPlugins([...DEFAULT_HEADLESS_EDITOR_PLUGINS]);
     source.initHeadlessEditor();
-    source.setDocument(
-      'markdown',
-      'p1\n\np2\n\np3\n\np4\n\np5\n\np6',
-    );
+    source.setDocument('markdown', 'p1\n\np2\n\np3\n\np4\n\np5\n\np6');
     const sourceEditor = source.getLexicalEditor()!;
-    sourceEditor.update(() => {
-      const paragraphs = $getRoot().getChildren().filter((node) => node.getType() === 'paragraph');
-      const artifact = $createArtifactNode('<main>old artifact</main>', 'Old artifact');
-      const code = $createCodeMirrorNode('rust', 'fn quick_sort() {}');
-      paragraphs[2].insertAfter(artifact);
-      paragraphs[4].insertAfter(code);
-      $setNodeProperties(artifact, {
-        nodeId: 'snapshot-artifact',
-        provenance: { generationId: 'old-generation', requestId: 'old-request', source: 'ai' },
-      });
-      $setNodeProperties(code, {
-        nodeId: 'snapshot-code',
-        provenance: { generationId: 'old-code-generation', requestId: 'old-code-request', source: 'ai' },
-      });
-    }, { discrete: true });
+    sourceEditor.update(
+      () => {
+        const paragraphs = $getRoot()
+          .getChildren()
+          .filter((node) => node.getType() === 'paragraph');
+        const artifact = $createArtifactNode('<main>old artifact</main>', 'Old artifact');
+        const code = $createCodeMirrorNode('rust', 'fn quick_sort() {}');
+        paragraphs[2].insertAfter(artifact);
+        paragraphs[4].insertAfter(code);
+        $setNodeProperties(artifact, {
+          nodeId: 'snapshot-artifact',
+          provenance: { generationId: 'old-generation', requestId: 'old-request', source: 'ai' },
+        });
+        $setNodeProperties(code, {
+          nodeId: 'snapshot-code',
+          provenance: {
+            generationId: 'old-code-generation',
+            requestId: 'old-code-request',
+            source: 'ai',
+          },
+        });
+      },
+      { discrete: true },
+    );
     await moment();
 
     const serverDoc = new Doc();
@@ -152,9 +180,10 @@ describe('Yjs initial room snapshot', () => {
       'hole',
       'paragraph',
       'paragraph',
-      'code',
+      'hole',
       'paragraph',
     ]);
+    expectCodeHoleAt(browser, 6);
     expect(countType(browser, 'artifact')).toBe(1);
     expect(countType(browser, 'code')).toBe(1);
     expect(browserProvider.localUpdateCount).toBe(0);

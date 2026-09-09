@@ -24,7 +24,7 @@ const getDirectHoleContentChild = (hole: HoleNode, node: LexicalNode): LexicalNo
     const parent: LexicalNode | null = current.getParent();
     if (!parent) return null;
     if ($isHoleNode(parent)) {
-      return $isCursorNode(current) ? null : current;
+      return parent === hole && !$isCursorNode(current) ? current : null;
     }
     current = parent;
   }

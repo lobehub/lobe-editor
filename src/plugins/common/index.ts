@@ -1,5 +1,7 @@
 export {
   ENTER_HOLE_CONTENT_COMMAND,
+  type EnterHoleContentPayload,
+  getHoleContentEntrySide,
   INSERT_HEADING_COMMAND,
   INSERT_QUOTE_COMMAND,
 } from './command';

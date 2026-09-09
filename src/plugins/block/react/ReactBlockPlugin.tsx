@@ -28,6 +28,7 @@ import { createDebugLogger } from '@/utils/debug';
 import { BlockPlugin, type BlockPluginOptions } from '../plugin';
 import type { BlockMenuService, IBlockMenuRenderContext } from '../service';
 import { IBlockMenuService } from '../service';
+import { $isBlockKeyOwnedByTable } from './core/block-identity';
 import { HOVER_HIDE_DELAY } from './core/constants';
 import { resolveBlockMenuTop } from './core/menu-position';
 import {
@@ -772,10 +773,24 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
       const gap = 8;
       const listItemOffset = menuContext.blockElement.tagName === 'LI' ? 16 : 0;
       const isTableBlock = isTableBlockElement(menuContext.blockElement);
-      const isFocusedTableBlock = focusedTableBlockId === menuContext.blockId && isTableBlock;
-      const tableMenuOffset = isFocusedTableBlock ? TABLE_FOCUSED_MENU_OFFSET : 0;
-      const tableAnchorRect = isTableBlock
-        ? getTableMenuAnchorRect(menuContext.blockElement)
+      let isFocusedTableContext = false;
+      const lexicalEditor = editor.getLexicalEditor();
+      const focusedTableElement = focusedTableBlockId
+        ? lexicalEditor?.getElementByKey(focusedTableBlockId)
+        : null;
+      if (focusedTableBlockId && lexicalEditor) {
+        lexicalEditor.getEditorState().read(() => {
+          isFocusedTableContext = $isBlockKeyOwnedByTable(focusedTableBlockId, menuContext.blockId);
+        });
+      }
+      const isTableContext = isTableBlock || isFocusedTableContext;
+      const tableMenuOffset = isFocusedTableContext ? TABLE_FOCUSED_MENU_OFFSET : 0;
+      const tableAnchorRect = isTableContext
+        ? getTableMenuAnchorRect(
+            isTableBlock
+              ? menuContext.blockElement
+              : focusedTableElement || menuContext.blockElement,
+          )
         : null;
       const root = editor.getRootElement();
       const rootRect = root?.getBoundingClientRect();
@@ -784,7 +799,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
         : 0;
       const minTableLeft = rootRect ? rootRect.left + rootPaddingLeft : gap;
       const anchorLeft =
-        isTableBlock && tableAnchorRect
+        isTableContext && tableAnchorRect
           ? Math.max(tableAnchorRect.left, minTableLeft)
           : (menuAnchor?.rect.left ?? blockRect.left);
       const rawAnchorTop = tableAnchorRect?.top ?? menuAnchor?.rect.top ?? blockRect.top;

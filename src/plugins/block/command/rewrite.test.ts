@@ -10,6 +10,7 @@ import { CodeblockPlugin } from '@/plugins/codeblock/plugin';
 import { CodemirrorPlugin } from '@/plugins/codemirror-block/plugin';
 import { CodeMirrorNode } from '@/plugins/codemirror-block/node/CodeMirrorNode';
 import { CommonPlugin } from '@/plugins/common/plugin';
+import { $resolveLogicalBlockNode } from '@/plugins/common/node/hole';
 import { $getNodeId } from '@/plugins/properties/utils';
 import { PropertiesPlugin } from '@/plugins/properties/plugin';
 
@@ -54,7 +55,8 @@ describe('APPLY_BLOCK_REWRITE_COMMAND', () => {
       .getLexicalEditor()!
       .getEditorState()
       .read(() => {
-        const node = $getRoot().getFirstChild();
+        const firstChild = $getRoot().getFirstChild();
+        const node = firstChild ? $resolveLogicalBlockNode(firstChild) : null;
         if (!(node instanceof CodeMirrorNode)) throw new Error('Expected a CodeMirror node.');
         nodeId = $getNodeId(node) || '';
       });
@@ -76,7 +78,8 @@ describe('APPLY_BLOCK_REWRITE_COMMAND', () => {
       .getLexicalEditor()!
       .getEditorState()
       .read(() => {
-        const node = $getRoot().getFirstChild();
+        const firstChild = $getRoot().getFirstChild();
+        const node = firstChild ? $resolveLogicalBlockNode(firstChild) : null;
         expect(node).toBeInstanceOf(CodeMirrorNode);
         expect((node as CodeMirrorNode).code).toBe(replacement);
       });
@@ -129,7 +132,8 @@ describe('APPLY_BLOCK_REWRITE_COMMAND', () => {
       .getLexicalEditor()!
       .getEditorState()
       .read(() => {
-        const node = $getRoot().getFirstChild();
+        const firstChild = $getRoot().getFirstChild();
+        const node = firstChild ? $resolveLogicalBlockNode(firstChild) : null;
         if (!(node instanceof CodeNode)) throw new Error('Expected a regular code node.');
         nodeId = $getNodeId(node) || '';
       });
@@ -151,7 +155,8 @@ describe('APPLY_BLOCK_REWRITE_COMMAND', () => {
       .getLexicalEditor()!
       .getEditorState()
       .read(() => {
-        const node = $getRoot().getFirstChild();
+        const firstChild = $getRoot().getFirstChild();
+        const node = firstChild ? $resolveLogicalBlockNode(firstChild) : null;
         expect(node).toBeInstanceOf(CodeNode);
         expect((node as CodeNode).getTextContent()).toBe(replacement);
         expect((node as CodeNode).getLanguage()).toBe('python');

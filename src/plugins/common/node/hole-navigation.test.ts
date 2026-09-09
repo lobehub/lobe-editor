@@ -2,13 +2,16 @@ import {
   $createNodeSelection,
   $getRoot,
   $getSelection,
+  $isElementNode,
   $isNodeSelection,
   $isRangeSelection,
   $nodesOfType,
   $setSelection,
   COMMAND_PRIORITY_EDITOR,
+  KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
+  KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
   UNDO_COMMAND,
@@ -97,6 +100,20 @@ describe('Hole boundary cursor navigation', () => {
     const command = direction === 'left' ? KEY_ARROW_LEFT_COMMAND : KEY_ARROW_RIGHT_COMMAND;
     expect(editor.getLexicalEditor()!.dispatchCommand(command, event)).toBe(true);
     expect(event.defaultPrevented).toBe(true);
+  };
+
+  const dispatchVerticalArrow = (
+    direction: 'up' | 'down',
+    options: KeyboardEventInit = {},
+  ): KeyboardEvent => {
+    const event = new KeyboardEvent('keydown', {
+      cancelable: true,
+      key: direction === 'up' ? 'ArrowUp' : 'ArrowDown',
+      ...options,
+    });
+    const command = direction === 'up' ? KEY_ARROW_UP_COMMAND : KEY_ARROW_DOWN_COMMAND;
+    editor.getLexicalEditor()!.dispatchCommand(command, event);
+    return event;
   };
 
   const dispatchBackspace = () => {
@@ -427,16 +444,153 @@ describe('Hole boundary cursor navigation', () => {
       });
   });
 
-  it('requests the content consumer with the payload key and clears Lexical selection', async () => {
+  it.each([
+    { side: 'before' as const, direction: 'up' as const, expectedText: 'before', offset: 6 },
+    { side: 'after' as const, direction: 'up' as const, expectedText: 'before', offset: 6 },
+    { side: 'before' as const, direction: 'down' as const, expectedText: 'after', offset: 0 },
+    { side: 'after' as const, direction: 'down' as const, expectedText: 'after', offset: 0 },
+  ])(
+    'moves from the $side boundary to the $direction editable paragraph',
+    async ({ side, direction, expectedText, offset }) => {
+      selectBoundary(side);
+      const event = dispatchVerticalArrow(direction);
+      expect(event.defaultPrevented).toBe(true);
+      await moment();
+
+      editor
+        .getLexicalEditor()!
+        .getEditorState()
+        .read(() => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+          expect(selection.isCollapsed()).toBe(true);
+          expect(selection.anchor.getNode().getTextContent()).toBe(expectedText);
+          expect(selection.anchor.offset).toBe(offset);
+        });
+    },
+  );
+
+  it.each([
+    { side: 'before' as const, direction: 'up' as const },
+    { side: 'before' as const, direction: 'down' as const },
+    { side: 'after' as const, direction: 'up' as const },
+    { side: 'after' as const, direction: 'down' as const },
+  ])(
+    'keeps a Hole boundary and document unchanged without a $direction neighbor',
+    async ({ side, direction }) => {
+      editor.setDocument('json', documentWith(artifact));
+      await moment();
+      selectBoundary(side);
+
+      const boundary = editor
+        .getLexicalEditor()!
+        .getEditorState()
+        .read(() => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+          return { key: selection.anchor.key, offset: selection.anchor.offset };
+        });
+      const event = dispatchVerticalArrow(direction);
+      expect(event.defaultPrevented).toBe(true);
+      await moment();
+
+      editor
+        .getLexicalEditor()!
+        .getEditorState()
+        .read(() => {
+          const selection = $getSelection();
+          expect(
+            $getRoot()
+              .getChildren()
+              .map((node) => node.getType()),
+          ).toEqual(['hole']);
+          if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+          expect(selection.anchor.key).toBe(boundary.key);
+          expect(selection.anchor.offset).toBe(boundary.offset);
+        });
+    },
+  );
+
+  it('does not append a paragraph when a Hole is the final child of a quote', async () => {
+    editor.setDocument(
+      'json',
+      documentWith({
+        children: [paragraph('quoted'), artifact],
+        direction: null,
+        format: '',
+        indent: 0,
+        type: 'quote',
+        version: 1,
+      }),
+    );
+    await moment();
+    const lexical = editor.getLexicalEditor()!;
+    selectBoundary('after');
+    await moment();
+
+    const boundary = lexical.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+      return { key: selection.anchor.key, offset: selection.anchor.offset };
+    });
+    const event = dispatchVerticalArrow('down');
+    expect(event.defaultPrevented).toBe(true);
+    await moment();
+
+    lexical.getEditorState().read(() => {
+      const selection = $getSelection();
+      expect(
+        $getRoot()
+          .getChildren()
+          .map((node) => node.getType()),
+      ).toEqual(['quote']);
+      const quote = $getRoot().getFirstChild();
+      if (!$isElementNode(quote)) throw new Error('Quote missing');
+      expect(quote.getChildren().map((node) => node.getType())).toEqual(['paragraph', 'hole']);
+      if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+      expect(selection.anchor.key).toBe(boundary.key);
+      expect(selection.anchor.offset).toBe(boundary.offset);
+    });
+  });
+
+  it('leaves modified vertical arrows to the normal selection handlers', async () => {
+    selectBoundary('before');
+    const boundary = editor
+      .getLexicalEditor()!
+      .getEditorState()
+      .read(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+        return { key: selection.anchor.key, offset: selection.anchor.offset };
+      });
+
+    const event = dispatchVerticalArrow('down', { shiftKey: true });
+    expect(event.defaultPrevented).toBe(true);
+    await moment();
+
+    editor
+      .getLexicalEditor()!
+      .getEditorState()
+      .read(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+        expect(selection.anchor.key).toBe(boundary.key);
+        expect(selection.anchor.offset).toBe(boundary.offset);
+      });
+  });
+
+  it('lets the content consumer own selection after accepting entry', async () => {
     const lexicalEditor = editor.getLexicalEditor()!;
     const artifactKey = lexicalEditor
       .getEditorState()
       .read(() => $nodesOfType(ArtifactNode)[0].getKey());
-    const payloads: Array<{ edge: 'end' | 'start'; key: string }> = [];
+    const payloads: Array<{ from: 'after' | 'before'; key: string }> = [];
     const unregister = lexicalEditor.registerCommand(
       ENTER_HOLE_CONTENT_COMMAND,
       (payload) => {
-        payloads.push(payload);
+        if (!payload.from) return false;
+        payloads.push({ from: payload.from, key: payload.key });
+        $setSelection(null);
         return true;
       },
       COMMAND_PRIORITY_EDITOR,
@@ -473,7 +627,7 @@ describe('Hole boundary cursor navigation', () => {
     selectBoundary('before');
     dispatchArrow('right');
     await moment();
-    expect(payloads).toEqual([{ edge: 'start', key: artifactKey }]);
+    expect(payloads).toEqual([{ from: 'before', key: artifactKey }]);
     lexicalEditor.getEditorState().read(() => {
       expect($getSelection()).toBeNull();
     });
@@ -482,8 +636,8 @@ describe('Hole boundary cursor navigation', () => {
     dispatchArrow('left');
     await moment();
     expect(payloads).toEqual([
-      { edge: 'start', key: artifactKey },
-      { edge: 'end', key: artifactKey },
+      { from: 'before', key: artifactKey },
+      { from: 'after', key: artifactKey },
     ]);
     lexicalEditor.getEditorState().read(() => {
       expect($getSelection()).toBeNull();

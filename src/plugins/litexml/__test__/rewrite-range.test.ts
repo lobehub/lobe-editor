@@ -20,6 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor, { moment } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
+import { $resolveLogicalBlockNode } from '@/plugins/common/node/hole';
 import {
   DiffAction,
   IRewriteCommandResultService,
@@ -987,7 +988,8 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
     const lexical = editor.getLexicalEditor()!;
     let tableSelection: RangeSelection | undefined;
     lexical.update(() => {
-      const table = $getRoot().getFirstChildOrThrow();
+      const firstChild = $getRoot().getFirstChildOrThrow();
+      const table = $resolveLogicalBlockNode(firstChild);
       if (!$isElementNode(table)) throw new Error('table missing');
       const cell = table.getFirstDescendant();
       if (!$isTextNode(cell)) throw new Error('cell text missing');

@@ -73,7 +73,10 @@ function getAnnotationVisualElement(element: HTMLElement): HTMLElement {
   if (!content) return element;
 
   const hasIntrinsicPayload = Array.from(content.children).some(
-    (child) => child instanceof HTMLElement && child.dataset.holeContentLayout === 'intrinsic',
+    (child) =>
+      child instanceof HTMLElement &&
+      (child.dataset.holeContentLayout === 'intrinsic' ||
+        child.dataset.holeContentLayout === 'intrinsic-start'),
   );
   return hasIntrinsicPayload ? content : element;
 }

@@ -28,7 +28,7 @@ import { APPLY_BLOCK_REWRITE_COMMAND } from '@/plugins/block/command';
 import { BlockRewritePlugin } from '@/plugins/block/plugin/rewrite';
 import { IBlockRewriteAdapterService } from '@/plugins/block/service/rewrite-adapter';
 import { CommonPlugin } from '@/plugins/common';
-import { HoleNode } from '@/plugins/common/node/hole';
+import { $isHoleNode, HoleNode } from '@/plugins/common/node/hole';
 import { ListPlugin } from '@/plugins/list';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import { PropertiesPlugin } from '@/plugins/properties/plugin';
@@ -94,7 +94,9 @@ const settle = async (): Promise<void> => {
 };
 
 const imageFromHole = () => {
-  const hole = $nodesOfType(HoleNode)[0];
+  const hole = $nodesOfType(HoleNode).find((candidate) =>
+    candidate.getContentChildren().some((child) => child instanceof BlockImageNode),
+  );
   if (!hole) throw new Error('Block image Hole missing');
   const image = hole.getContentChildren()[0];
   if (!(image instanceof BlockImageNode)) throw new Error('Block image payload missing');
@@ -562,7 +564,7 @@ describe('BlockImage Hole migration inside structural containers', () => {
         .getLexicalEditor()!
         .getEditorState()
         .read(() => {
-          expect($nodesOfType(HoleNode)).toHaveLength(1);
+          expect($nodesOfType(HoleNode)).toHaveLength(containerKind === 'table-cell' ? 2 : 1);
           expect($nodesOfType(BlockImageNode)).toHaveLength(1);
           const { hole, image } = imageFromHole();
           expect(hole.getParent()?.getType()).toBe(
@@ -581,13 +583,13 @@ describe('BlockImage Hole migration inside structural containers', () => {
                 ? '列表前列表后'
                 : '引用前引用后',
           );
-          expect($getRoot().getChildren()[0]?.getType()).toBe(
-            containerKind === 'table-cell'
-              ? 'table'
-              : containerKind === 'list-item'
-                ? 'list'
-                : 'quote',
-          );
+          const rootChild = $getRoot().getChildren()[0];
+          if (containerKind === 'table-cell') {
+            if (!$isHoleNode(rootChild)) throw new Error('Table Hole missing');
+            expect(rootChild.getContentChildren()[0]?.getType()).toBe('table');
+          } else {
+            expect(rootChild?.getType()).toBe(containerKind === 'list-item' ? 'list' : 'quote');
+          }
         });
       editor.destroy();
     },

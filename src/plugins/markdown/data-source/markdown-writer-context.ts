@@ -1,6 +1,7 @@
 import type { LexicalNode } from 'lexical';
 import { $isElementNode } from 'lexical';
 
+import { $isHoleNode } from '@/plugins/common/node/hole';
 import { $getNodeId, $isNodeIdentityBlockTarget } from '@/plugins/properties/utils';
 
 import type { IMarkdownWriterContext, MarkdownShortCutService } from '../service/shortcut';
@@ -82,8 +83,11 @@ export class MarkdownWriterContext implements IMarkdownWriterContext {
         }
       }
     }
+    // A Hole is a runtime boundary around a logical Markdown node. Keep the
+    // payload on the parent's context so the transparent Hole writer projects
+    // its identity at the same depth as the serialized Markdown tree.
     let currentCtx = parentCtx as MarkdownWriterContext;
-    if ($isElementNode(child)) {
+    if ($isElementNode(child) && !$isHoleNode(child)) {
       currentCtx = currentCtx.newChild();
     }
     let skipChildren: boolean | undefined = false;
@@ -94,21 +98,31 @@ export class MarkdownWriterContext implements IMarkdownWriterContext {
       return;
     }
     if ($isElementNode(child)) {
-      child.getChildren().forEach((child) => this.processChild(currentCtx, child));
+      const children = $isHoleNode(child) ? child.getContentChildren() : child.getChildren();
+      children.forEach((child) => this.processChild(currentCtx, child));
     }
   }
 }
 
 const collectNodeIdEntries = (root: LexicalNode): MarkdownNodeIdEntry[] => {
   const entries: MarkdownNodeIdEntry[] = [];
+  const flattenHole = (node: LexicalNode): LexicalNode[] =>
+    $isHoleNode(node) ? node.getContentChildren().flatMap(flattenHole) : [node];
+  const getLogicalChildren = (node: LexicalNode): LexicalNode[] => {
+    const children = $isHoleNode(node)
+      ? node.getContentChildren()
+      : $isElementNode(node)
+        ? node.getChildren()
+        : [];
+    return children.flatMap(flattenHole);
+  };
+
   const visit = (node: LexicalNode, path: number[]): void => {
     if ($isNodeIdentityBlockTarget(node)) {
       const nodeId = $getNodeId(node);
       if (nodeId) entries.push({ nodeId, path });
     }
-    if ($isElementNode(node)) {
-      node.getChildren().forEach((child, index) => visit(child, [...path, index]));
-    }
+    getLogicalChildren(node).forEach((child, index) => visit(child, [...path, index]));
   };
   visit(root, []);
   return entries;

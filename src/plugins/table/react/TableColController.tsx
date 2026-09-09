@@ -322,6 +322,9 @@ const TableColController = memo<TableColControllerProps>((props) => {
       <div
         className="table-controller-col"
         contentEditable={false}
+        onPointerDownCapture={(event) => {
+          event.stopPropagation();
+        }}
         style={{ inlineSize: controllerWidth }}
       >
         <div
@@ -365,9 +368,9 @@ const TableColController = memo<TableColControllerProps>((props) => {
                 draggable
                 key={index}
                 onClickCapture={(event) => {
+                  event.stopPropagation();
                   if (isSelectedController) {
                     event.preventDefault();
-                    event.stopPropagation();
                     clearInsertButtonHideTimer();
                     setInsertTarget(null);
                     setInsertButtonHovered(false);

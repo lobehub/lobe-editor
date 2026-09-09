@@ -135,18 +135,44 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       margin-inline: auto;
     }
 
+    /*
+     * Tables keep their scroll wrapper's inline bleed, so their visual box
+     * starts at the editor's content edge instead of being centered like an
+     * image. The zero-width side tracks keep both boundary hit areas adjacent
+     * to that visual box while the Hole host remains a full-width block.
+     */
+    [data-hole='true']
+      > [data-hole-content='true']:has(> [data-hole-content-layout='intrinsic-start']) {
+      width: fit-content;
+      max-width: 100%;
+      margin-inline: 0;
+    }
+
     [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic']) {
       display: grid;
       grid-template-columns: minmax(0, 1fr) fit-content(100%) minmax(0, 1fr);
     }
 
-    [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic'])
+    [data-hole='true']:has(
+      > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+    ) {
+      display: grid;
+      grid-template-columns: 0 fit-content(100%) minmax(0, 1fr);
+    }
+
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic'],
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
       > [data-hole-content='true'] {
       grid-column: 2;
       grid-row: 1;
     }
 
-    [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic'])
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic'],
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
       > [data-hole-cursor-hit] {
       position: static;
       inset: auto;
@@ -157,16 +183,30 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       height: 100%;
     }
 
-    [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic'])
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic'],
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
       > [data-hole-cursor-hit='before'] {
       grid-column: 1;
       justify-self: end;
     }
 
-    [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic'])
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic'],
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
       > [data-hole-cursor-hit='after'] {
       grid-column: 3;
       justify-self: start;
+    }
+
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
+      > [data-hole-cursor-hit] {
+      height: auto;
+      margin-block: var(--lobe-hole-layout-block-start, 0) var(--lobe-hole-layout-block-end, 0);
     }
 
     [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:first-child,
@@ -200,6 +240,19 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
 
     [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:last-child {
       inset-inline-start: 100%;
+    }
+
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
+      > [data-hole-content='true']
+      > [data-lexical-text='true']:first-child,
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
+      > [data-hole-content='true']
+      > [data-lexical-text='true']:last-child {
+      inset-block-end: calc(var(--lobe-hole-layout-block-end, 0px) + 8px);
     }
 
     [data-hole='true'] > [data-hole-content='true'] > :not([data-lexical-text='true']) {
