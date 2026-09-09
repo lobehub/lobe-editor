@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.27.0](https://github.com/lobehub/lobe-editor/compare/v4.26.2...v4.27.0)
+<sup>Released on **2026-09-09**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Export the React provider on its own subpath.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Export the React provider on its own subpath, closes [#211](https://github.com/lobehub/lobe-editor/issues/211) ([27067ff](https://github.com/lobehub/lobe-editor/commit/27067ff))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.26.2](https://github.com/lobehub/lobe-editor/compare/v4.26.1...v4.26.2)
 <sup>Released on **2026-09-08**</sup>
 
