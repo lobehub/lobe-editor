@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.27.1](https://github.com/lobehub/lobe-editor/compare/v4.27.0...v4.27.1)
+<sup>Released on **2026-09-09**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Preserve slash shortcuts and mention caret.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Preserve slash shortcuts and mention caret, closes [#212](https://github.com/lobehub/lobe-editor/issues/212) ([d4ebcc6](https://github.com/lobehub/lobe-editor/commit/d4ebcc6))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.27.0](https://github.com/lobehub/lobe-editor/compare/v4.26.2...v4.27.0)
 <sup>Released on **2026-09-09**</sup>
 
