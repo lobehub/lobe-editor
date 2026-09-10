@@ -2,7 +2,7 @@ import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, $getSelection, $isNodeSelection, $isRangeSelection } from 'lexical';
 
-import type { type HoleBoundaryChange,IHoleService  } from '@/plugins/common/service/i-hole-service';
+import type { HoleBoundaryChange, IHoleService } from '@/plugins/common/service/i-hole-service';
 
 import { $isBlockFileNode, type BlockFileNode } from '../node/BlockFileNode';
 import { $isFileNode, type FileNode } from '../node/FileNode';
