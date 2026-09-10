@@ -424,17 +424,27 @@ printed in the terminal.
 
 ### Available Scripts
 
-| Script               | Description                                  |
-| -------------------- | -------------------------------------------- |
-| `pnpm dev`           | Start lobedocs with the component playground |
-| `pnpm build`         | Build library and generate type definitions  |
-| `pnpm test`          | Run tests with Vitest                        |
-| `pnpm test:coverage` | Run tests with coverage report               |
-| `pnpm lint`          | Lint and fix code with ESLint                |
-| `pnpm type-check`    | Type check with TypeScript                   |
-| `pnpm ci`            | Run all CI checks (lint, type-check, test)   |
-| `pnpm docs:build`    | Build documentation for production           |
-| `pnpm release`       | Publish new version with semantic-release    |
+| Script                   | Description                                    |
+| ------------------------ | ---------------------------------------------- |
+| `pnpm dev`               | Start lobedocs with the component playground   |
+| `pnpm build`             | Build library and generate type definitions    |
+| `pnpm test`              | Run tests with Vitest                          |
+| `pnpm test:coverage`     | Run tests with coverage report                 |
+| `pnpm lint`              | Lint and fix code with ESLint                  |
+| `pnpm type-check`        | Type check with TypeScript                     |
+| `pnpm ci`                | Run lint, circular-dependency, and type checks |
+| `pnpm verify:final-head` | Validate the current HEAD before publication   |
+| `pnpm docs:build`        | Build documentation for production             |
+| `pnpm release`           | Publish new version with semantic-release      |
+
+`pnpm verify:final-head` runs type-check, the full Vitest suite, and the package
+build in sequence. It refuses a dirty worktree or a changed `HEAD`, and prints
+the exact validated SHA. Untracked dated acceptance reports matching
+`docs/*-acceptance-YYYY-MM-DD.md` are excluded from the source-clean check;
+other worktree changes fail the gate. The `pre-push` hook applies the same gate
+to every non-delete ref sent by Git and resolves its local object to a commit
+before checking that it is the current `HEAD`, so annotated tags are supported.
+No reusable validation stamp is used.
 
 ### Debug Environment Variables
 
