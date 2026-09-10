@@ -31,6 +31,7 @@ import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSel
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { ENTER_HOLE_CONTENT_COMMAND, getHoleContentEntrySide } from '@/plugins/common/command';
 import { $resolveStructuralBlockNode } from '@/plugins/common/node/hole';
+import { createDebugLogger } from '@/utils/debug';
 
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
@@ -45,18 +46,27 @@ interface ReactCodemirrorNodeProps {
   node: CodeMirrorNode;
 }
 
+type CancellableCallback = (() => void) & { cancel: () => void };
+
+const logger = createDebugLogger('plugin', 'codemirror-block');
+
 const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, editor }) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   const keydownRef = useRef('');
   const instanceRef = useRef<any>(null);
+  const nodeKey = node.getKey();
+  const nodeRef = useRef(node);
+  nodeRef.current = node;
   const enteringFromHoleRef = useRef(false);
   const isEmptyRef = useRef<boolean>(false);
   const hasLocalEditLockRef = useRef(false);
   const releaseLockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const codeMirrorGenerationRef = useRef(0);
+  const isMountedRef = useRef(false);
+  const pendingCodeUpdateRef = useRef<CancellableCallback | null>(null);
   const t = useTranslation();
-  const [isSelected, setSelected, clearSelection, isNodeSelected] = useLexicalNodeSelection(
-    node.getKey(),
-  );
+  const [isSelected, setSelected, clearSelection, isNodeSelected] =
+    useLexicalNodeSelection(nodeKey);
   const initialLanguage = normalizeCodeMirrorLanguage(node.lang) || 'plain';
   const [selectedLang, setSelectedLang] = useState(initialLanguage);
   // use any to avoid strict typing on optional persistence fields
@@ -68,13 +78,31 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   const [expand, setExpand] = useState<boolean>(true);
   const [preview, setPreview] = useState<boolean>(false);
   const [code, dispatchCode] = useReducer((_state: string, value: string) => value, node.code);
+  const [, setEditableRevision] = useState(0);
+  const editable = editor.isEditable();
   const nodeCodeRef = useRef(node.code);
   const nodeLangRef = useRef(initialLanguage);
   const { acquireLock, isLockedByRemote, lockOwnerName, releaseLock } = useCodemirrorEditLock(
-    node.getKey(),
+    nodeKey,
     'CodeMirror block',
   );
   const editLockRef = useRef({ acquireLock, isLockedByRemote, releaseLock });
+  const effectiveReadOnly = !editable || isLockedByRemote;
+  const remoteLockRef = useRef(isLockedByRemote);
+  remoteLockRef.current = isLockedByRemote;
+
+  // Read editor.isEditable() at the point of a mutation as well as from the
+  // subscribed React state. Lexical can notify listeners before React has
+  // committed the corresponding render.
+  const canWriteNow = useCallback(() => editor.isEditable() && !remoteLockRef.current, [editor]);
+
+  useEffect(() => {
+    // The current owner is read directly during render. The listener only
+    // invalidates that snapshot when the same owner changes its mode.
+    return editor.registerEditableListener(() => {
+      setEditableRevision((revision) => revision + 1);
+    });
+  }, [editor]);
 
   useEffect(() => {
     editLockRef.current = { acquireLock, isLockedByRemote, releaseLock };
@@ -134,6 +162,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   // 更改语言
   const handleLanguageChange = useCallback(
     (value: string) => {
+      if (!canWriteNow()) return;
       setSelectedLang(value);
       if (value !== 'mermaid') {
         setPreview(false);
@@ -145,12 +174,13 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         node.setLang(value);
       });
     },
-    [editor, node],
+    [canWriteNow, editor, node],
   );
 
   // 更改 tab 大小
   const handleTabSizeChange = useCallback(
     (value: number | null = 2) => {
+      if (!canWriteNow()) return;
       const v = value === null ? 2 : value;
       setTabSize(v);
       if (instanceRef.current) {
@@ -160,12 +190,13 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         node.setTabSize(v);
       });
     },
-    [editor, node],
+    [canWriteNow, editor, node],
   );
 
   // 更改是否使用制表符
   const handleUseTabsChange = useCallback(
     (checked: boolean) => {
+      if (!canWriteNow()) return;
       setUseTabs(checked);
       if (instanceRef.current) {
         instanceRef.current.setOption('indentWithTabs', checked);
@@ -174,11 +205,12 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         node.setIndentWithTabs(checked);
       });
     },
-    [editor, node],
+    [canWriteNow, editor, node],
   );
 
   const handleShowLineNumbersChange = useCallback(
     (checked: boolean) => {
+      if (!canWriteNow()) return;
       setShowLineNumbers(checked);
       if (instanceRef.current) {
         instanceRef.current.setOption('lineNumbers', checked);
@@ -187,7 +219,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         node.setLineNumbers(checked);
       });
     },
-    [editor, node],
+    [canWriteNow, editor, node],
   );
 
   useEffect(() => {
@@ -231,6 +263,10 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       }
       return;
     }
+    // An outer read-only editor may still select text in CodeMirror, but it
+    // must not acquire a collaborative edit lease just because the decorator
+    // is selected.
+    if (!editable) return;
     // 选中状态下，聚焦 CodeMirror
     if (isSelected && instanceRef.current && isNodeSelected) {
       if (!acquireEditLock()) {
@@ -246,7 +282,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         instanceRef.current.setSelectionToEnd();
       }
     }
-  }, [acquireEditLock, clearSelection, editor, isNodeSelected, isSelected]);
+  }, [acquireEditLock, clearSelection, editable, editor, isNodeSelected, isSelected]);
 
   useEffect(() => {
     // 防止重复初始化：如果已经有实例，直接返回
@@ -254,164 +290,249 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       return;
     }
 
-    if (ref.current) {
-      const dom = ref.current;
-      loadCodeMirror().then((CodeMirror) => {
-        // 双重检查：在异步操作后再次确认没有重复初始化
-        if (instanceRef.current) {
-          return;
-        }
+    const dom = ref.current;
+    if (!dom) return;
 
-        const instance = CodeMirror.fromTextArea(dom, {
-          // keep options alphabetically ordered
-          indentWithTabs: useTabs,
-          lineNumbers: showLineNumbers,
-          mode: nodeLangRef.current,
-          readOnly: editLockRef.current.isLockedByRemote,
-          tabSize,
-          theme: 'default',
-          // The decorator may receive a remote rewrite while the lazy
-          // CodeMirror loader is still pending. Read the latest mirrored
-          // value instead of the effect's initial node closure.
-          value: nodeCodeRef.current,
-        });
+    const generation = ++codeMirrorGenerationRef.current;
+    let disposed = false;
+    let pendingCodeUpdate: CancellableCallback | null = null;
+    isMountedRef.current = true;
 
-        console.info(instance);
+    const isCurrent = () =>
+      !disposed &&
+      isMountedRef.current &&
+      codeMirrorGenerationRef.current === generation &&
+      ref.current === dom;
+    const destroyInstance = (instance: any) => {
+      try {
+        instance?.destroy();
+      } catch {
+        // CodeMirror may already have detached its view during unmount.
+      }
+    };
 
-        instance.view.dispatch({
-          effects: instance.optionHelper.theme.reconfigure(
-            instance.view.constructor.theme(lobeTheme, {
-              dark: false,
-            }),
-          ),
-        });
+    void loadCodeMirror()
+      .then((CodeMirror) => {
+        // StrictMode can resolve the first mount's loader after its cleanup.
+        // Only the current generation is allowed to create an instance.
+        if (!isCurrent() || instanceRef.current) return;
 
-        // 初始化 isEmptyRef 的值
-        isEmptyRef.current = !nodeCodeRef.current.trim();
+        let instance: any = null;
+        try {
+          instance = CodeMirror.fromTextArea(dom, {
+            // keep options alphabetically ordered
+            indentWithTabs: useTabs,
+            lineNumbers: showLineNumbers,
+            mode: nodeLangRef.current,
+            readOnly: !canWriteNow(),
+            tabSize,
+            theme: 'default',
+            // The decorator may receive a remote rewrite while the lazy
+            // CodeMirror loader is still pending. Read the latest mirrored
+            // value instead of the effect's initial node closure.
+            value: nodeCodeRef.current,
+          });
 
-        instance.on('keydown', (instance, e) => {
-          e.stopPropagation();
-
-          // Cmd+Enter / Ctrl+Enter: exit codeblock (move caret after the block)
-          if ((e.key === 'Enter' || e.keyCode === 13) && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            instanceRef.current?.blur();
-            editor.dispatchCommand(SELECT_AFTER_CODEMIRROR_COMMAND, { key: node.getKey() });
-            queueMicrotask(() => {
-              editor.focus();
-            });
+          if (!isCurrent()) {
+            destroyInstance(instance);
             return;
           }
 
-          // 当代码块为空且按退格键时，删除代码块节点
-          if (e.key === 'Backspace' || e.keyCode === 8) {
-            // 检查代码内容是否为空（使用 ref 中存储的状态）
-            if (!isEmptyRef.current) {
+          instance.view.dispatch({
+            effects: instance.optionHelper.theme.reconfigure(
+              instance.view.constructor.theme(lobeTheme, {
+                dark: false,
+              }),
+            ),
+          });
+
+          // 初始化 isEmptyRef 的值
+          isEmptyRef.current = !nodeCodeRef.current.trim();
+
+          instance.on('keydown', (instance: any, e: KeyboardEvent) => {
+            if (!isCurrent()) return;
+            e.stopPropagation();
+
+            const isExitCommand =
+              (e.key === 'Enter' || e.keyCode === 13) && (e.metaKey || e.ctrlKey);
+            if (isExitCommand) {
+              e.preventDefault();
+              if (!canWriteNow()) return;
+              instanceRef.current?.blur();
+              editor.dispatchCommand(SELECT_AFTER_CODEMIRROR_COMMAND, { key: nodeKey });
+              queueMicrotask(() => {
+                if (isCurrent()) editor.focus();
+              });
               return;
             }
 
-            e.preventDefault();
-            editor.update(() => {
-              const structuralNode = $resolveStructuralBlockNode(node);
-              const structuralParent = structuralNode.getParent();
-              const prevNode = structuralNode.getPreviousSibling();
-              const nextNode = structuralNode.getNextSibling();
-              structuralNode.remove();
-              // 如果有前一个节点，选择它的末尾
-              if (prevNode) {
-                const prevSelection = prevNode.selectEnd();
-                if (prevSelection) {
-                  $setSelection(prevSelection);
-                }
-              } else if (nextNode) {
-                const nextSelection = nextNode.selectStart();
-                if (nextSelection) {
-                  $setSelection(nextSelection);
-                }
-              } else if (structuralParent && $isElementNode(structuralParent)) {
-                const paragraph = $createParagraphNode();
-                structuralParent.append(paragraph);
-                paragraph.selectStart();
+            // CodeMirror blocks normal input while read-only. Explicitly
+            // consume destructive keys as well so the empty-block shortcut
+            // cannot remove a Lexical node behind CodeMirror's read-only view.
+            if (!canWriteNow()) {
+              if (e.key === 'Backspace' || e.keyCode === 8 || e.key === 'Delete') {
+                e.preventDefault();
               }
-            });
-            // 将焦点返回到编辑器
+              return;
+            }
+
+            // 当代码块为空且按退格键时，删除代码块节点
+            if (e.key === 'Backspace' || e.keyCode === 8) {
+              // 检查代码内容是否为空（使用 ref 中存储的状态）
+              if (!isEmptyRef.current) {
+                return;
+              }
+
+              e.preventDefault();
+              editor.update(() => {
+                const structuralNode = $resolveStructuralBlockNode(nodeRef.current);
+                const structuralParent = structuralNode.getParent();
+                const prevNode = structuralNode.getPreviousSibling();
+                const nextNode = structuralNode.getNextSibling();
+                structuralNode.remove();
+                // 如果有前一个节点，选择它的末尾
+                if (prevNode) {
+                  const prevSelection = prevNode.selectEnd();
+                  if (prevSelection) {
+                    $setSelection(prevSelection);
+                  }
+                } else if (nextNode) {
+                  const nextSelection = nextNode.selectStart();
+                  if (nextSelection) {
+                    $setSelection(nextSelection);
+                  }
+                } else if (structuralParent && $isElementNode(structuralParent)) {
+                  const paragraph = $createParagraphNode();
+                  structuralParent.append(paragraph);
+                  paragraph.selectStart();
+                }
+              });
+              // 将焦点返回到编辑器
+              queueMicrotask(() => {
+                if (isCurrent()) editor.focus();
+              });
+            }
+          });
+
+          instance.on('leftOut', () => {
+            if (!isCurrent()) return;
+            instanceRef.current?.blur();
+            editor.dispatchCommand(SELECT_BEFORE_CODEMIRROR_COMMAND, { key: nodeKey });
             queueMicrotask(() => {
-              editor.focus();
+              if (isCurrent()) editor.focus();
             });
-          }
-        });
-
-        instance.on('leftOut', () => {
-          instanceRef.current?.blur();
-          editor.dispatchCommand(SELECT_BEFORE_CODEMIRROR_COMMAND, { key: node.getKey() });
-          queueMicrotask(() => {
-            editor.focus();
           });
-        });
-        instance.on('rightOut', () => {
-          instanceRef.current?.blur();
-          editor.dispatchCommand(SELECT_AFTER_CODEMIRROR_COMMAND, { key: node.getKey() });
-          queueMicrotask(() => {
-            editor.focus();
+          instance.on('rightOut', () => {
+            if (!isCurrent()) return;
+            instanceRef.current?.blur();
+            editor.dispatchCommand(SELECT_AFTER_CODEMIRROR_COMMAND, { key: nodeKey });
+            queueMicrotask(() => {
+              if (isCurrent()) editor.focus();
+            });
           });
-        });
 
-        instance.on('change', () => {
-          const currentValue = instance.getValue();
-          // 立即检查代码是否为空（trim 后为空），用于 keydown 事件判断
-          isEmptyRef.current = !currentValue.trim();
-          dispatchCode(currentValue);
-        });
+          instance.on('change', () => {
+            if (!isCurrent() || !canWriteNow()) return;
+            const currentValue = instance.getValue();
+            // 立即检查代码是否为空（trim 后为空），用于 keydown 事件判断
+            isEmptyRef.current = !currentValue.trim();
+            dispatchCode(currentValue);
+          });
 
-        instance.on(
-          'change',
-          debounce(() => {
+          pendingCodeUpdate = debounce(() => {
+            if (!isCurrent() || !canWriteNow()) return;
             const currentValue = instance.getValue();
             // 更新代码内容
             editor.update(() => {
-              node.setCode(currentValue);
+              if (canWriteNow()) nodeRef.current.setCode(currentValue);
             });
-          }),
-        );
-        instance.on('focus', () => {
-          if (enteringFromHoleRef.current) return;
+          });
+          pendingCodeUpdateRef.current = pendingCodeUpdate;
+          instance.on('change', pendingCodeUpdate);
+          instance.on('focus', () => {
+            if (!isCurrent() || enteringFromHoleRef.current) return;
 
-          if (!acquireEditLock()) {
-            instanceRef.current?.blur();
-            clearSelection();
+            // A remote lease owns the block, so focusing it must still be
+            // rejected. Outer editor read-only only disables writes and keeps
+            // normal CodeMirror text selection available.
+            if (remoteLockRef.current) {
+              instanceRef.current?.blur();
+              clearSelection();
+              return;
+            }
+            if (canWriteNow() && !acquireEditLock()) {
+              instanceRef.current?.blur();
+              clearSelection();
+              return;
+            }
+
+            if (
+              editor.getEditorState().read(() => {
+                const sel = $getSelection();
+                if (!sel) return false;
+                if (sel?.getNodes().length > 1 || !sel?.getNodes().includes(nodeRef.current)) {
+                  return true;
+                }
+                return false;
+              })
+            ) {
+              setSelected(true);
+            }
+          });
+          instance.on('blur', scheduleReleaseEditLock);
+
+          if (!isCurrent()) {
+            pendingCodeUpdate.cancel();
+            if (pendingCodeUpdateRef.current === pendingCodeUpdate) {
+              pendingCodeUpdateRef.current = null;
+            }
+            destroyInstance(instance);
             return;
           }
 
-          if (
-            editor.getEditorState().read(() => {
-              const sel = $getSelection();
-              if (!sel) return false;
-              if (sel?.getNodes().length > 1 || !sel?.getNodes().includes(node)) {
-                return true;
-              }
-              return false;
-            })
-          ) {
-            setSelected(true);
+          instanceRef.current = instance;
+          if (isSelected && canWriteNow() && acquireEditLock()) {
+            instanceRef.current.focus();
           }
-        });
-        instance.on('blur', scheduleReleaseEditLock);
-
-        instanceRef.current = instance;
-        if (isSelected && acquireEditLock()) {
-          instanceRef.current.focus();
+        } catch (error) {
+          pendingCodeUpdate?.cancel();
+          if (pendingCodeUpdateRef.current === pendingCodeUpdate) {
+            pendingCodeUpdateRef.current = null;
+          }
+          if (instanceRef.current === instance) {
+            instanceRef.current = null;
+          }
+          destroyInstance(instance);
+          if (isCurrent()) {
+            logger.error('Failed to initialize CodeMirror block', error);
+          }
+        }
+      })
+      .catch((error) => {
+        if (isCurrent()) {
+          logger.error('Failed to load CodeMirror block', error);
         }
       });
-    }
 
     return () => {
-      releaseEditLock();
-      if (instanceRef.current) {
-        instanceRef.current.destroy();
-        instanceRef.current = null;
+      disposed = true;
+      isMountedRef.current = false;
+      if (codeMirrorGenerationRef.current === generation) {
+        codeMirrorGenerationRef.current += 1;
       }
+      pendingCodeUpdateRef.current?.cancel();
+      pendingCodeUpdateRef.current = null;
+      pendingCodeUpdate?.cancel();
+      clearReleaseLockTimer();
+      releaseEditLock();
+      const instance = instanceRef.current;
+      instanceRef.current = null;
+      destroyInstance(instance);
     };
-  }, [ref]);
+    // This effect owns one CodeMirror instance per editor/node owner. Its event
+    // handlers intentionally retain that owner while refs carry live values.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canWriteNow, editor, nodeKey, ref]);
 
   useEffect(
     () =>
@@ -419,7 +540,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         ENTER_HOLE_CONTENT_COMMAND,
         (payload) => {
           const side = getHoleContentEntrySide(payload);
-          if (!editor.isEditable() || !side || payload.key !== node.getKey() || isLockedByRemote) {
+          if (!canWriteNow() || !side || payload.key !== nodeKey) {
             return false;
           }
 
@@ -427,8 +548,11 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           if (!instance || !acquireEditLock()) return false;
 
           enteringFromHoleRef.current = true;
+          const generation = codeMirrorGenerationRef.current;
           queueMicrotask(() => {
-            enteringFromHoleRef.current = false;
+            if (isMountedRef.current && codeMirrorGenerationRef.current === generation) {
+              enteringFromHoleRef.current = false;
+            }
           });
           try {
             instance.focus();
@@ -446,7 +570,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
         },
         COMMAND_PRIORITY_HIGH,
       ),
-    [acquireEditLock, editor, isLockedByRemote, node, releaseEditLock],
+    [acquireEditLock, canWriteNow, editor, nodeKey, releaseEditLock],
   );
 
   useEffect(() => {
@@ -479,13 +603,40 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   }, [releaseEditLock]);
 
   useEffect(() => {
-    instanceRef.current?.setOption('readOnly', isLockedByRemote);
+    instanceRef.current?.setOption('readOnly', effectiveReadOnly);
+    if (effectiveReadOnly) {
+      // A change queued while writable must not land after either the outer
+      // editor or the collaborative block becomes read-only.
+      pendingCodeUpdateRef.current?.cancel();
+    }
     if (isLockedByRemote) {
       releaseEditLock();
       instanceRef.current?.blur();
       clearSelection();
+    } else if (!editable) {
+      // Outer read-only does not own the remote lease, but it must give up a
+      // local lease before the editor stops accepting writes.
+      releaseEditLock();
+    } else if (
+      canWriteNow() &&
+      instanceRef.current?.view.hasFocus &&
+      !hasLocalEditLockRef.current &&
+      !acquireEditLock()
+    ) {
+      // Read-only can be toggled while CodeMirror remains focused for text
+      // selection. Reacquire the local lease before allowing writes again.
+      instanceRef.current.blur();
+      clearSelection();
     }
-  }, [clearSelection, isLockedByRemote, releaseEditLock]);
+  }, [
+    acquireEditLock,
+    canWriteNow,
+    clearSelection,
+    editable,
+    effectiveReadOnly,
+    isLockedByRemote,
+    releaseEditLock,
+  ]);
 
   const handleBlockMouseDown = useCallback(
     (event: MouseEvent) => {
@@ -519,6 +670,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
 
       {/* 工具条 */}
       <Toolbar
+        disabled={effectiveReadOnly}
         expand={expand}
         extra={
           selectedLang === 'mermaid' ? (

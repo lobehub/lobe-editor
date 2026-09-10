@@ -24,7 +24,11 @@ import { createDebugLogger } from '@/utils/debug';
 import { registerFileCommand } from '../command';
 import { $createBlockFileNode, $isBlockFileNode, BlockFileNode } from '../node/BlockFileNode';
 import { $createFileNode, $isFileNode, FileNode } from '../node/FileNode';
-import { registerFileNodeSelectionObserver, settleFileUpload } from '../utils';
+import {
+  createFileUploadScope,
+  registerFileNodeSelectionObserver,
+  settleFileUpload,
+} from '../utils';
 
 export interface FilePluginOptions {
   defaultBlockFile?: boolean;
@@ -72,43 +76,54 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
     }
 
     if (handleUpload) {
-      this.kernel
-        .requireService(IUploadService)
-        ?.registerUpload(async (file: File, from: string, range: Range | null | undefined) => {
-          editor.update(() => {
-            if (range) {
-              const rangeSelection = $createRangeSelection();
-              if (range !== null && range !== undefined) {
-                rangeSelection.applyDOMRange(range);
+      const scope = createFileUploadScope(editor);
+      const uploadService = this.kernel.requireService(IUploadService);
+      if (uploadService) {
+        const unregisterUpload = uploadService.registerUpload(
+          async (file: File, from: string, range: Range | null | undefined) => {
+            if (!scope.isActive()) return null;
+            editor.update(() => {
+              if (!scope.isActive()) return;
+              if (range) {
+                const rangeSelection = $createRangeSelection();
+                if (range !== null && range !== undefined) {
+                  rangeSelection.applyDOMRange(range);
+                }
+                $setSelection(rangeSelection);
               }
-              $setSelection(rangeSelection);
-            }
-            const currentSelection = $getSelection();
-            if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
-            const fileNode = this.config?.defaultBlockFile
-              ? $createBlockFileNode(file.name)
-              : $createFileNode(file.name);
-            const fileKey = fileNode.getKey();
-            $insertNodes([fileNode]); // Insert a zero-width space to ensure the image is not the last child
-            if (fileNode.isInline() && $isRootOrShadowRoot(fileNode.getParentOrThrow())) {
-              $wrapNodeInElement(fileNode, $createParagraphNode).selectEnd();
-            }
-            handleUpload(file)
-              .then((url) => {
-                settleFileUpload(editor, fileKey, (node) => node.setUploaded(url.url));
-              })
-              .catch((error) => {
-                this.logger.error('File upload failed:', error);
-                settleFileUpload(editor, fileKey, (node) =>
-                  node.setError('File upload failed : ' + error.message),
-                );
-              });
-          });
-          return null;
+              const currentSelection = $getSelection();
+              if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
+              const fileNode = this.config?.defaultBlockFile
+                ? $createBlockFileNode(file.name)
+                : $createFileNode(file.name);
+              const fileKey = fileNode.getKey();
+              $insertNodes([fileNode]); // Insert a zero-width space to ensure the image is not the last child
+              if (fileNode.isInline() && $isRootOrShadowRoot(fileNode.getParentOrThrow())) {
+                $wrapNodeInElement(fileNode, $createParagraphNode).selectEnd();
+              }
+              handleUpload(file)
+                .then((url) => {
+                  settleFileUpload(scope, fileKey, (node) => node.setUploaded(url.url));
+                })
+                .catch((error) => {
+                  this.logger.error('File upload failed:', error);
+                  settleFileUpload(scope, fileKey, (node) =>
+                    node.setError('File upload failed : ' + error.message),
+                  );
+                });
+            });
+            return true;
+          },
+        );
+
+        this.register(() => {
+          scope.dispose();
+          unregisterUpload?.();
         });
+      }
 
       this.register(
-        registerFileCommand(editor, handleUpload, this.config?.defaultBlockFile === true),
+        registerFileCommand(editor, handleUpload, this.config?.defaultBlockFile === true, scope),
       );
     }
 

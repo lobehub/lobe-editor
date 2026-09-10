@@ -15,7 +15,7 @@ import path from 'node:path';
 
 import { it } from 'vitest';
 
-import { verifyFinalHead } from './verify-final-head.mjs';
+import { parseIndexEntries, verifyFinalHead } from './verify-final-head.mjs';
 
 const SCRIPT_PATH = path.resolve(process.cwd(), 'scripts/verify-final-head.mjs');
 const ZERO_OBJECT_ID = '0'.repeat(40);
@@ -80,6 +80,9 @@ function createRepository({ withHook = false } = {}) {
 if [ "\${FINAL_HEAD_TEST_FAIL:-0}" != "0" ]; then exit "\${FINAL_HEAD_TEST_FAIL}"; fi
 if [ "\${FINAL_HEAD_TEST_DRIFT:-0}" = "1" ] && [ "\${1}" = "run" ] && [ "\${2}" = "type-check" ]; then
   git commit --allow-empty -qm final-head-drift
+fi
+if [ "\${FINAL_HEAD_TEST_SET_FLAG:-0}" = "1" ] && [ "\${1}" = "run" ] && [ "\${2}" = "type-check" ]; then
+  git update-index --assume-unchanged -- tracked.txt
 fi
 exit 0
 `,
@@ -233,6 +236,51 @@ it('final-head gate rejects a dirty worktree before running checks', () => {
   }
 });
 
+it('rejects hidden tracked changes for every supported index flag without clearing flags', () => {
+  const fixture = createRepository();
+  try {
+    const hiddenFiles = [
+      { name: 'assumed name.txt', flags: ['--assume-unchanged'], expectedFlag: 'h' },
+      { name: 'skipped\nname.txt', flags: ['--skip-worktree'], expectedFlag: 'S' },
+      {
+        name: 'combined name\n.txt',
+        flags: ['--assume-unchanged', '--skip-worktree'],
+        expectedFlag: 's',
+      },
+    ];
+
+    for (const { name } of hiddenFiles) {
+      writeFileSync(path.join(fixture.cwd, name), 'initial\n');
+    }
+    gitExec(fixture.cwd, ['add', '.']);
+    gitExec(fixture.cwd, ['commit', '-qm', 'add hidden-flag fixtures']);
+
+    for (const { name, flags } of hiddenFiles) {
+      writeFileSync(path.join(fixture.cwd, name), 'hidden tracked change\n');
+      gitExec(fixture.cwd, ['update-index', flags[0], '--', name]);
+      if (flags[1]) gitExec(fixture.cwd, ['update-index', flags[1], '--', name]);
+    }
+
+    const before = parseIndexEntries(gitExec(fixture.cwd, ['ls-files', '-v', '-z']));
+    const { result } = runHookFixture(fixture);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /tracked files have Git index flags that can hide changes/);
+    for (const { name, expectedFlag } of hiddenFiles) {
+      assert.ok(result.stderr.includes(JSON.stringify(name)), `missing ${JSON.stringify(name)}`);
+      assert.ok(
+        result.stderr.includes(`flag ${expectedFlag}`),
+        `missing flag ${expectedFlag} for ${JSON.stringify(name)}`,
+      );
+    }
+
+    const after = parseIndexEntries(gitExec(fixture.cwd, ['ls-files', '-v', '-z']));
+    assert.deepEqual(after, before);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
 it('final-head gate rejects a pushed object that is not current HEAD', () => {
   const fixture = createRepository();
   try {
@@ -306,6 +354,50 @@ it('pre-push gates a real local bare remote and supports annotated tags', () => 
   }
 });
 
+it('pre-push rejects hidden tracked changes before updating a real bare remote', () => {
+  const fixture = createRepository({ withHook: true });
+  try {
+    const remote = configureBareRemote(fixture);
+    writeFileSync(path.join(fixture.cwd, 'tracked.txt'), 'hidden tracked change\n');
+    gitExec(fixture.cwd, ['update-index', '--skip-worktree', '--', 'tracked.txt']);
+
+    const push = pushFixture(fixture, 'HEAD:refs/heads/main');
+    assert.notEqual(push.status, 0);
+    assert.match(`${push.stdout}\n${push.stderr}`, /tracked files have Git index flags/);
+    const remoteRef = spawnSync(
+      'git',
+      ['--git-dir', remote, 'show-ref', '--verify', '--quiet', 'refs/heads/main'],
+      { env: withoutForeignGitEnvironment(), stdio: 'ignore' },
+    );
+    assert.notEqual(remoteRef.status, 0);
+    assert.equal(git(fixture.cwd, 'ls-files', '-v', '--', 'tracked.txt'), 'S tracked.txt');
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+it('pre-push rejects an index flag added during validation and leaves it untouched', () => {
+  const fixture = createRepository({ withHook: true });
+  try {
+    const remote = configureBareRemote(fixture);
+    const push = pushFixture(fixture, 'HEAD:refs/heads/main', {
+      FINAL_HEAD_TEST_SET_FLAG: '1',
+    });
+
+    assert.notEqual(push.status, 0);
+    assert.match(`${push.stdout}\n${push.stderr}`, /tracked files have Git index flags/);
+    const remoteRef = spawnSync(
+      'git',
+      ['--git-dir', remote, 'show-ref', '--verify', '--quiet', 'refs/heads/main'],
+      { env: withoutForeignGitEnvironment(), stdio: 'ignore' },
+    );
+    assert.notEqual(remoteRef.status, 0);
+    assert.equal(git(fixture.cwd, 'ls-files', '-v', '--', 'tracked.txt'), 'h tracked.txt');
+  } finally {
+    fixture.cleanup();
+  }
+});
+
 it('pre-push rejects a real ref that points at an older commit than HEAD', () => {
   const fixture = createRepository({ withHook: true });
   try {
@@ -336,6 +428,7 @@ it('final-head core runs checks serially and rechecks the invariant after each s
   const git = (args) => {
     if (args[0] === 'rev-parse' && args[1] === '--verify' && args[2] === 'HEAD') return head;
     if (args[0] === 'status') return '';
+    if (args[0] === 'ls-files') return '';
     throw new Error(`unexpected git call: ${args.join(' ')}`);
   };
 

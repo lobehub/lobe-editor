@@ -15,7 +15,7 @@ import { createDebugLogger } from '@/utils/debug';
 
 import { $createBlockFileNode } from '../node/BlockFileNode';
 import { $createFileNode } from '../node/FileNode';
-import { settleFileUpload } from '../utils';
+import { createFileUploadScope, type FileUploadScope, settleFileUpload } from '../utils';
 
 const logger = createDebugLogger('plugin', 'file');
 
@@ -27,12 +27,15 @@ export function registerFileCommand(
   editor: LexicalEditor,
   handleUpload: (file: File) => Promise<{ url: string }>,
   defaultBlockFile = false,
+  scope: FileUploadScope = createFileUploadScope(editor),
 ) {
-  return editor.registerCommand(
+  const unregister = editor.registerCommand(
     INSERT_FILE_COMMAND,
     (payload) => {
+      if (!scope.isActive()) return false;
       const { block = defaultBlockFile, file } = payload;
       editor.update(() => {
+        if (!scope.isActive()) return;
         const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
         const currentSelection = $getSelection();
         if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
@@ -44,11 +47,11 @@ export function registerFileCommand(
         }
         handleUpload(file)
           .then((url) => {
-            settleFileUpload(editor, fileKey, (node) => node.setUploaded(url.url));
+            settleFileUpload(scope, fileKey, (node) => node.setUploaded(url.url));
           })
           .catch((error) => {
             logger.error('❌ File upload failed:', error);
-            settleFileUpload(editor, fileKey, (node) =>
+            settleFileUpload(scope, fileKey, (node) =>
               node.setError('File upload failed : ' + error.message),
             );
           });
@@ -57,4 +60,12 @@ export function registerFileCommand(
     },
     COMMAND_PRIORITY_HIGH, // Priority
   );
+
+  let disposed = false;
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    scope.dispose();
+    unregister();
+  };
 }

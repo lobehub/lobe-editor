@@ -9,6 +9,32 @@ import { $isFileNode, type FileNode } from '../node/FileNode';
 
 type FileUploadNode = FileNode | BlockFileNode;
 
+export interface FileUploadScope {
+  readonly editor: LexicalEditor;
+  isActive(): boolean;
+  dispose(): void;
+}
+
+/**
+ * Own async file settlements by one FilePlugin/editor initialization.
+ *
+ * A kernel can destroy an editor and initialize a new Lexical editor while an
+ * upload promise from the old editor is still pending. The scope is closed by
+ * the plugin's registration disposers so that the old promise cannot enqueue
+ * an update into that detached editor.
+ */
+export const createFileUploadScope = (editor: LexicalEditor): FileUploadScope => {
+  let active = true;
+
+  return {
+    dispose: () => {
+      active = false;
+    },
+    editor,
+    isActive: () => active,
+  };
+};
+
 const getAttachedFileNode = (key: string): FileUploadNode | null => {
   const node = $getNodeByKey(key);
   if (!node || (!$isFileNode(node) && !$isBlockFileNode(node)) || !node.isAttached()) {
@@ -18,11 +44,13 @@ const getAttachedFileNode = (key: string): FileUploadNode | null => {
 };
 
 export const settleFileUpload = (
-  editor: LexicalEditor,
+  scope: FileUploadScope,
   key: string,
   settle: (node: FileUploadNode) => void,
 ): void => {
-  editor.update(() => {
+  if (!scope.isActive()) return;
+  scope.editor.update(() => {
+    if (!scope.isActive()) return;
     const node = getAttachedFileNode(key);
     if (node) settle(node);
   });

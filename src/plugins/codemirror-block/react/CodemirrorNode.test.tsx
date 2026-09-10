@@ -1,7 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
-import { act, createElement, type ReactNode } from 'react';
+import { act, createElement, StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { $getRoot, $nodesOfType } from 'lexical';
@@ -15,6 +15,12 @@ import { CodemirrorPlugin } from '../plugin';
 const mocks = vi.hoisted(() => ({
   loadCodeMirror: vi.fn(),
   useLexicalNodeSelection: vi.fn(),
+}));
+const editLockMock = vi.hoisted(() => ({
+  acquireLock: vi.fn(() => true),
+  isLockedByRemote: false,
+  lockOwnerName: null as string | null,
+  releaseLock: vi.fn(),
 }));
 const lexicalSelectionMock = vi.hoisted(() => ({
   getSelection: vi.fn(() => null),
@@ -51,12 +57,63 @@ vi.mock('lexical', async (importOriginal) => {
 vi.mock('@/codemirror', () => ({
   lobeTheme: {},
   styles: 'codemirror-block',
-  Toolbar: ({ children, selectedLang }: { children?: ReactNode; selectedLang?: string }) =>
-    createElement(
-      'div',
-      { 'data-testid': 'codemirror-toolbar', 'data-language': selectedLang },
-      children,
-    ),
+  Toolbar: ({
+    children,
+    disabled,
+    onLanguageChange,
+    onShowLineNumbersChange,
+    onTabSizeChange,
+    onUseTabsChange,
+    selectedLang,
+  }: {
+    children?: ReactNode;
+    disabled?: boolean;
+    onLanguageChange?: (value: string) => void;
+    onShowLineNumbersChange?: (checked: boolean) => void;
+    onTabSizeChange?: (value: number | null) => void;
+    onUseTabsChange?: (checked: boolean) => void;
+    selectedLang?: string;
+  }) =>
+    createElement('div', {
+      'data-disabled': disabled ? 'true' : 'false',
+      'data-language': selectedLang,
+      'data-testid': 'codemirror-toolbar',
+      'children': [
+        createElement(
+          'button',
+          {
+            'data-testid': 'change-language',
+            'key': 'language',
+            'onClick': () => onLanguageChange?.('python'),
+          },
+          'language',
+        ),
+        createElement(
+          'button',
+          {
+            'data-testid': 'change-tab-size',
+            'key': 'tab-size',
+            'onClick': () => onTabSizeChange?.(4),
+          },
+          'tab size',
+        ),
+        createElement(
+          'button',
+          { 'data-testid': 'toggle-tabs', 'key': 'tabs', 'onClick': () => onUseTabsChange?.(true) },
+          'tabs',
+        ),
+        createElement(
+          'button',
+          {
+            'data-testid': 'toggle-line-numbers',
+            'key': 'line-numbers',
+            'onClick': () => onShowLineNumbersChange?.(true),
+          },
+          'line numbers',
+        ),
+        children,
+      ],
+    }),
 }));
 
 vi.mock('@/editor-kernel/react/useLexicalNodeSelection', () => ({
@@ -70,12 +127,7 @@ vi.mock('@/editor-kernel/react/useTranslation', () => ({
 vi.mock('../lib', () => ({ loadCodeMirror: mocks.loadCodeMirror }));
 
 vi.mock('./useCodemirrorEditLock', () => ({
-  useCodemirrorEditLock: () => ({
-    acquireLock: () => true,
-    isLockedByRemote: false,
-    lockOwnerName: null,
-    releaseLock: vi.fn(),
-  }),
+  useCodemirrorEditLock: () => editLockMock,
 }));
 
 import { $createCodeMirrorNode, type CodeMirrorNode } from '../node/CodeMirrorNode';
@@ -98,25 +150,79 @@ const createNode = (code: string, lang = 'javascript'): CodeMirrorNode =>
     setTabSize: vi.fn(),
   }) as unknown as CodeMirrorNode;
 
-const createEditor = (handlers?: Map<unknown, (payload: any) => boolean>) =>
-  ({
+const createEditor = (
+  handlers?: Map<unknown, (payload: any) => boolean>,
+  initialEditable = true,
+) => {
+  let editable = initialEditable;
+  const editableListeners = new Set<(value: boolean) => void>();
+  const editor: any = {
     dispatchCommand: vi.fn(),
     focus: vi.fn(),
     getEditorState: () => ({ read: (callback: () => unknown) => callback() }),
-    isEditable: () => true,
+    isEditable: () => editable,
     registerCommand: vi.fn((command: unknown, handler: unknown) => {
       if (handlers && typeof handler === 'function') {
         handlers.set(command, handler as (payload: any) => boolean);
       }
       return vi.fn();
     }),
+    registerEditableListener: vi.fn((listener: (value: boolean) => void) => {
+      editableListeners.add(listener);
+      return () => editableListeners.delete(listener);
+    }),
     update: vi.fn(),
-  }) as never;
+  };
+  editor.setEditable = (value: boolean) => {
+    editable = value;
+    editableListeners.forEach((listener) => listener(value));
+  };
+  editor.setEditableSilently = (value: boolean) => {
+    editable = value;
+  };
+  return editor as any;
+};
+
+const createCodeMirrorInstance = (
+  value = 'const answer = 42;',
+  handlers = new Map<string, Array<(...args: any[]) => void>>(),
+) => ({
+  blur: vi.fn(),
+  destroy: vi.fn(),
+  focus: vi.fn(),
+  getValue: vi.fn(() => value),
+  on: vi.fn((event: string, handler: (...args: any[]) => void) => {
+    const eventHandlers = handlers.get(event) ?? [];
+    eventHandlers.push(handler);
+    handlers.set(event, eventHandlers);
+  }),
+  optionHelper: { theme: { reconfigure: vi.fn() } },
+  setOption: vi.fn(),
+  setSelectionToEnd: vi.fn(),
+  setSelectionToStart: vi.fn(),
+  setValue: vi.fn(),
+  view: {
+    constructor: { theme: vi.fn(() => ({})) },
+    dispatch: vi.fn(),
+    hasFocus: false,
+  },
+});
+
+const flushReact = async () => {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+};
 
 describe('ReactCodemirrorNode', () => {
   beforeEach(() => {
     mocks.useLexicalNodeSelection.mockReset().mockReturnValue([false, vi.fn(), vi.fn(), false]);
     mocks.loadCodeMirror.mockReset();
+    editLockMock.acquireLock.mockReset().mockReturnValue(true);
+    editLockMock.isLockedByRemote = false;
+    editLockMock.lockOwnerName = null;
+    editLockMock.releaseLock.mockReset();
     lexicalSelectionMock.getSelection.mockReset().mockReturnValue(null);
     lexicalSelectionMock.setSelection.mockReset();
   });
@@ -290,7 +396,9 @@ describe('ReactCodemirrorNode', () => {
       dispatchCommand: lexical.dispatchCommand.bind(lexical),
       focus: vi.fn(),
       getEditorState: lexical.getEditorState.bind(lexical),
+      isEditable: () => true,
       registerCommand: lexical.registerCommand.bind(lexical),
+      registerEditableListener: () => vi.fn(),
       update: lexical.update.bind(lexical),
     } as unknown as typeof lexical;
     lexical.update(() => {
@@ -371,5 +479,241 @@ describe('ReactCodemirrorNode', () => {
     await act(async () => view.unmount());
     host.remove();
     kernel.destroy();
+  });
+
+  it('combines outer editor read-only and remote lock state for writes and toolbar controls', async () => {
+    const handlers = new Map<string, Array<(...args: any[]) => void>>();
+    const instance = createCodeMirrorInstance('', handlers);
+    const fromTextArea = vi.fn(() => instance);
+    mocks.loadCodeMirror.mockResolvedValue({ fromTextArea });
+    const editor = createEditor(undefined, false);
+    const node = createNode('const answer = 42;');
+    const host = document.createElement('div');
+    document.body.append(host);
+    const view = createRoot(host);
+
+    await act(async () => {
+      view.render(createElement(ReactCodemirrorNode, { editor, node }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fromTextArea).toHaveBeenCalledWith(
+      expect.any(HTMLTextAreaElement),
+      expect.objectContaining({ readOnly: true }),
+    );
+    expect(
+      host.querySelector('[data-testid="codemirror-toolbar"]')?.getAttribute('data-disabled'),
+    ).toBe('true');
+    await act(async () => {
+      host.querySelector<HTMLButtonElement>('[data-testid="change-language"]')?.click();
+    });
+    expect(editor.update).not.toHaveBeenCalled();
+
+    await act(async () => editor.setEditable(true));
+    await flushReact();
+    expect(instance.setOption).toHaveBeenCalledWith('readOnly', false);
+    expect(
+      host.querySelector('[data-testid="codemirror-toolbar"]')?.getAttribute('data-disabled'),
+    ).toBe('false');
+    await act(async () => {
+      host.querySelector<HTMLButtonElement>('[data-testid="change-language"]')?.click();
+    });
+    expect(editor.update).toHaveBeenCalledOnce();
+
+    await act(async () => view.unmount());
+    host.remove();
+  });
+
+  it('blocks a same-turn read-only key and delayed write before React rerenders', async () => {
+    vi.useFakeTimers();
+    const handlers = new Map<string, Array<(...args: any[]) => void>>();
+    const instance = createCodeMirrorInstance('', handlers);
+    mocks.loadCodeMirror.mockResolvedValue({ fromTextArea: vi.fn(() => instance) });
+    const editor = createEditor();
+    const node = createNode('');
+    const host = document.createElement('div');
+    document.body.append(host);
+    const view = createRoot(host);
+
+    await act(async () => {
+      view.render(createElement(ReactCodemirrorNode, { editor, node }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const changeHandlers = handlers.get('change');
+    const keydownHandler = handlers.get('keydown')?.[0];
+    if (!changeHandlers || changeHandlers.length < 2 || !keydownHandler) {
+      throw new Error('CodeMirror handlers missing');
+    }
+
+    // Queue the write while editable, then switch the outer editor before the
+    // debounce callback or a second input callback gets a render.
+    changeHandlers[1](instance);
+    editor.setEditableSilently(false);
+    const event = {
+      key: 'Backspace',
+      keyCode: 8,
+      metaKey: false,
+      ctrlKey: false,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    } as unknown as KeyboardEvent;
+    keydownHandler(instance, event);
+    changeHandlers[1](instance);
+    await act(async () => {
+      vi.runAllTimers();
+      await Promise.resolve();
+    });
+
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    expect(node.setCode).not.toHaveBeenCalled();
+    expect(editor.update).not.toHaveBeenCalled();
+
+    await act(async () => view.unmount());
+    host.remove();
+  });
+
+  it('does not release or write through a remote lock', async () => {
+    editLockMock.isLockedByRemote = true;
+    editLockMock.acquireLock.mockReturnValue(false);
+    const handlers = new Map<string, Array<(...args: any[]) => void>>();
+    const instance = createCodeMirrorInstance('', handlers);
+    mocks.loadCodeMirror.mockResolvedValue({ fromTextArea: vi.fn(() => instance) });
+    const editor = createEditor();
+    const host = document.createElement('div');
+    document.body.append(host);
+    const view = createRoot(host);
+
+    await act(async () => {
+      view.render(createElement(ReactCodemirrorNode, { editor, node: createNode('') }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(mocks.loadCodeMirror).toHaveBeenCalled();
+    expect(editLockMock.releaseLock).not.toHaveBeenCalled();
+    host.querySelector<HTMLButtonElement>('[data-testid="change-language"]')?.click();
+    expect(editor.update).not.toHaveBeenCalled();
+
+    await act(async () => view.unmount());
+    host.remove();
+  });
+
+  it('does not create a detached instance when the deferred loader resolves after unmount', async () => {
+    let resolveLoader!: (value: {
+      fromTextArea: (element: HTMLTextAreaElement) => unknown;
+    }) => void;
+    const loader = new Promise<{ fromTextArea: (element: HTMLTextAreaElement) => unknown }>(
+      (resolve) => {
+        resolveLoader = resolve;
+      },
+    );
+    const instance = createCodeMirrorInstance();
+    const fromTextArea = vi.fn(() => instance);
+    mocks.loadCodeMirror.mockReturnValue(loader);
+    const host = document.createElement('div');
+    document.body.append(host);
+    const view = createRoot(host);
+
+    await act(async () => {
+      view.render(
+        createElement(ReactCodemirrorNode, { editor: createEditor(), node: createNode('') }),
+      );
+      await Promise.resolve();
+    });
+    await act(async () => view.unmount());
+    resolveLoader({ fromTextArea });
+    await flushReact();
+
+    expect(fromTextArea).not.toHaveBeenCalled();
+    expect(instance.destroy).not.toHaveBeenCalled();
+    host.remove();
+  });
+
+  it('keeps one live instance when StrictMode replays the deferred loader effect', async () => {
+    let resolveLoader!: (value: {
+      fromTextArea: (element: HTMLTextAreaElement) => unknown;
+    }) => void;
+    const loader = new Promise<{ fromTextArea: (element: HTMLTextAreaElement) => unknown }>(
+      (resolve) => {
+        resolveLoader = resolve;
+      },
+    );
+    const instance = createCodeMirrorInstance();
+    const fromTextArea = vi.fn(() => instance);
+    mocks.loadCodeMirror.mockReturnValue(loader);
+    const host = document.createElement('div');
+    document.body.append(host);
+    const view = createRoot(host);
+
+    await act(async () => {
+      view.render(
+        createElement(
+          StrictMode,
+          null,
+          createElement(ReactCodemirrorNode, { editor: createEditor(), node: createNode('') }),
+        ),
+      );
+      await Promise.resolve();
+    });
+    resolveLoader({ fromTextArea });
+    await flushReact();
+
+    expect(fromTextArea).toHaveBeenCalledOnce();
+    expect(instance.destroy).not.toHaveBeenCalled();
+    await act(async () => view.unmount());
+    expect(instance.destroy).toHaveBeenCalledOnce();
+    host.remove();
+  });
+
+  it('drops a stale loader callback when the editor owner changes', async () => {
+    let resolveLoader!: (value: {
+      fromTextArea: (element: HTMLTextAreaElement) => unknown;
+    }) => void;
+    const loader = new Promise<{ fromTextArea: (element: HTMLTextAreaElement) => unknown }>(
+      (resolve) => {
+        resolveLoader = resolve;
+      },
+    );
+    const instance = createCodeMirrorInstance();
+    const fromTextArea = vi.fn(() => instance);
+    mocks.loadCodeMirror.mockReturnValue(loader);
+    const firstEditor = createEditor();
+    const secondEditor = createEditor(undefined, false);
+    const host = document.createElement('div');
+    document.body.append(host);
+    const view = createRoot(host);
+
+    await act(async () => {
+      view.render(
+        createElement(ReactCodemirrorNode, {
+          editor: firstEditor,
+          node: createNode('first owner'),
+        }),
+      );
+      await Promise.resolve();
+    });
+    await act(async () => {
+      view.render(
+        createElement(ReactCodemirrorNode, {
+          editor: secondEditor,
+          node: createNode('second owner'),
+        }),
+      );
+      await Promise.resolve();
+    });
+    resolveLoader({ fromTextArea });
+    await flushReact();
+
+    expect(fromTextArea).toHaveBeenCalledOnce();
+    expect(fromTextArea).toHaveBeenCalledWith(
+      expect.any(HTMLTextAreaElement),
+      expect.objectContaining({ readOnly: true }),
+    );
+    await act(async () => view.unmount());
+    expect(instance.destroy).toHaveBeenCalledOnce();
+    host.remove();
   });
 });

@@ -439,7 +439,11 @@ printed in the terminal.
 
 `pnpm verify:final-head` runs type-check, the full Vitest suite, and the package
 build in sequence. It refuses a dirty worktree or a changed `HEAD`, and prints
-the exact validated SHA. Untracked dated acceptance reports matching
+the exact validated SHA. Before and after every phase it also checks
+`git ls-files -v -z`; tracked entries with `assume-unchanged` (`h`),
+`skip-worktree` (`S`), or both flags (`s`) are rejected with their paths shown
+in an escaped, readable form. The gate never clears or changes those index
+flags. Untracked dated acceptance reports matching
 `docs/*-acceptance-YYYY-MM-DD.md` are excluded from the source-clean check;
 other worktree changes fail the gate. The `pre-push` hook applies the same gate
 to every non-delete ref sent by Git and resolves its local object to a commit

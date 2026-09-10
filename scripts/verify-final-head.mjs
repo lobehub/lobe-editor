@@ -10,6 +10,11 @@ const SCRIPT_DIRECTORY = path.dirname(SCRIPT_PATH);
 const DEFAULT_REPOSITORY_ROOT = path.resolve(SCRIPT_DIRECTORY, '..');
 const OBJECT_ID_PATTERN = /^[0-9a-f]{40,64}$/i;
 const ALLOWED_REPORT_ARTIFACT_PATTERN = /^docs\/[^/]+-acceptance-\d{4}-\d{2}-\d{2}\.md$/;
+const HIDDEN_INDEX_FLAGS = new Map([
+  ['h', 'assume-unchanged'],
+  ['S', 'skip-worktree'],
+  ['s', 'assume-unchanged + skip-worktree'],
+]);
 
 export const ZERO_OBJECT_ID = /^0+$/;
 
@@ -131,6 +136,28 @@ function getWorktreeStatus(git, cwd) {
   return git(['status', '--porcelain=v1', '--untracked-files=all'], cwd);
 }
 
+export function parseIndexEntries(output) {
+  return output
+    .split('\0')
+    .filter(Boolean)
+    .map((entry) => {
+      const flag = entry[0];
+      if (entry[1] !== ' ' || !flag) {
+        throw new FinalHeadVerificationError(
+          `git ls-files -v -z returned a malformed index entry: ${JSON.stringify(entry)}`,
+        );
+      }
+
+      return { flag, path: entry.slice(2) };
+    });
+}
+
+function getHiddenIndexEntries(git, cwd) {
+  return parseIndexEntries(git(['ls-files', '-v', '-z'], cwd)).filter(({ flag }) =>
+    HIDDEN_INDEX_FLAGS.has(flag),
+  );
+}
+
 function isAllowedReportArtifact(statusLine) {
   if (!statusLine.startsWith('?? ')) return false;
   return ALLOWED_REPORT_ARTIFACT_PATTERN.test(statusLine.slice(3));
@@ -153,9 +180,25 @@ function assertCleanWorktree(git, cwd) {
   }
 }
 
+function assertNoHiddenIndexFlags(git, cwd) {
+  const hiddenEntries = getHiddenIndexEntries(git, cwd);
+  if (hiddenEntries.length === 0) return;
+
+  const details = hiddenEntries
+    .map(
+      ({ flag, path: entryPath }) =>
+        `- ${JSON.stringify(entryPath)} (${HIDDEN_INDEX_FLAGS.get(flag)}, flag ${flag})`,
+    )
+    .join('\n');
+  throw new FinalHeadVerificationError(
+    `tracked files have Git index flags that can hide changes; clear them before final validation (the gate does not modify index flags):\n${details}`,
+  );
+}
+
 function assertStable(git, cwd, expectedHead) {
   assertHead(git, cwd, expectedHead);
   assertCleanWorktree(git, cwd);
+  assertNoHiddenIndexFlags(git, cwd);
 }
 
 export function verifyFinalHead({

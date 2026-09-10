@@ -9,6 +9,7 @@ import type { LanguageSelectProps } from '../types';
 import { styles } from './style';
 
 export const LanguageSelect: FC<LanguageSelectProps> = ({
+  disabled,
   selectedLang,
   onLanguageChange,
   options,
@@ -50,6 +51,7 @@ export const LanguageSelect: FC<LanguageSelectProps> = ({
     >
       <Select
         className={cx(styles.container)}
+        disabled={disabled}
         filterOption={(input, option) => {
           const lang: string = input.toLowerCase();
           if ((option?.value as string)?.toLowerCase().startsWith(lang)) return true;
