@@ -2,6 +2,7 @@ import type { DecoratorNode, LexicalEditor } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -44,6 +45,8 @@ export const HRPlugin: IEditorPluginConstructor<HRPluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    const holeService = this.kernel.requireService(IHoleService);
+    if (holeService) this.register(holeService.registerTarget(HorizontalRuleNode));
     this.register(registerHorizontalRuleCommand(editor));
 
     this.registerMarkdown();

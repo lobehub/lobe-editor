@@ -33,10 +33,9 @@ import {
   SKIP_SCROLL_INTO_VIEW_TAG,
 } from 'lexical';
 
-import { $getNearestNodeFromDOMNode, getKernelFromEditor } from '@/editor-kernel/utils';
+import { $getNearestNodeFromDOMNode } from '@/editor-kernel/utils';
 
 import { ENTER_HOLE_CONTENT_COMMAND } from '../command';
-import { $getDownUpNode } from '../plugin/register';
 import {
   $getAtomicHolePointContext,
   $isAtomicHoleElementPayloadNode,
@@ -47,6 +46,14 @@ import {
 } from './atomic-hole-selection';
 import { $isCursorNode, type BoundaryCursorDirection, type CursorNode } from './cursor';
 import { $isHoleNode, HoleNode } from './hole';
+import {
+  $getDownUpNode,
+  $getDownUpNodeFromNode,
+  $getNodeEdgePoint,
+  $selectBlockEdge,
+  registerSharedCommand,
+} from './navigation';
+import { shouldHandleNavigationEvent } from './navigation-guards';
 
 /**
  * Owns all editor behavior specific to Hole boundary markers.
@@ -398,32 +405,20 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
     // the root listener to install the native selection guard.
   }
 
-  const kernel = getKernelFromEditor(editor);
-  const unregisterHoleVerticalNavigation = kernel?.registerHighCommand
-    ? mergeRegister(
-        kernel.registerHighCommand(
-          KEY_ARROW_UP_COMMAND,
-          (event) => handleHoleVerticalArrow(editor, event, 'up'),
-          COMMAND_PRIORITY_CRITICAL,
-        ),
-        kernel.registerHighCommand(
-          KEY_ARROW_DOWN_COMMAND,
-          (event) => handleHoleVerticalArrow(editor, event, 'down'),
-          COMMAND_PRIORITY_CRITICAL,
-        ),
-      )
-    : mergeRegister(
-        editor.registerCommand(
-          KEY_ARROW_UP_COMMAND,
-          (event) => handleHoleVerticalArrow(editor, event, 'up'),
-          COMMAND_PRIORITY_CRITICAL,
-        ),
-        editor.registerCommand(
-          KEY_ARROW_DOWN_COMMAND,
-          (event) => handleHoleVerticalArrow(editor, event, 'down'),
-          COMMAND_PRIORITY_CRITICAL,
-        ),
-      );
+  const unregisterHoleVerticalNavigation = mergeRegister(
+    registerSharedCommand(
+      editor,
+      KEY_ARROW_UP_COMMAND,
+      (event) => handleHoleVerticalArrow(editor, event, 'up'),
+      COMMAND_PRIORITY_CRITICAL,
+    ),
+    registerSharedCommand(
+      editor,
+      KEY_ARROW_DOWN_COMMAND,
+      (event) => handleHoleVerticalArrow(editor, event, 'down'),
+      COMMAND_PRIORITY_CRITICAL,
+    ),
+  );
 
   return mergeRegister(
     editor.registerNodeTransform(HoleNode, $normalizeHoleNode),
@@ -442,12 +437,14 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
       },
       COMMAND_PRIORITY_HIGH,
     ),
-    editor.registerCommand(
+    registerSharedCommand(
+      editor,
       KEY_ARROW_LEFT_COMMAND,
       (event) => handleHoleArrow(editor, event, 'left'),
       COMMAND_PRIORITY_HIGH,
     ),
-    editor.registerCommand(
+    registerSharedCommand(
+      editor,
       KEY_ARROW_RIGHT_COMMAND,
       (event) => handleHoleArrow(editor, event, 'right'),
       COMMAND_PRIORITY_HIGH,
@@ -661,40 +658,6 @@ function getAdjacentHoleAtTextEdge(
   }
 }
 
-function getNodeEdgePoint(
-  node: LexicalNode,
-  direction: BoundaryCursorDirection,
-): { key: string; offset: number; type: 'element' | 'text' } {
-  let current = node;
-  while ($isElementNode(current)) {
-    const child = direction === 'left' ? current.getLastChild() : current.getFirstChild();
-    if (!child) {
-      return {
-        key: current.getKey(),
-        offset: direction === 'left' ? current.getChildrenSize() : 0,
-        type: 'element',
-      };
-    }
-    current = child;
-  }
-
-  if ($isTextNode(current)) {
-    return {
-      key: current.getKey(),
-      offset: direction === 'left' ? current.getTextContentSize() : 0,
-      type: 'text',
-    };
-  }
-
-  const parent = current.getParentOrThrow();
-  return {
-    key: parent.getKey(),
-    offset:
-      parent.getChildren().findIndex((child) => child.is(current)) + (direction === 'left' ? 1 : 0),
-    type: 'element',
-  };
-}
-
 function setRangeFocusToAdjacent(
   selection: RangeSelection,
   hole: HoleNode,
@@ -713,7 +676,7 @@ function setRangeFocusToAdjacent(
     return true;
   }
 
-  const point = getNodeEdgePoint(adjacent, direction);
+  const point = $getNodeEdgePoint(adjacent, direction);
   selection.focus.set(point.key, point.offset, point.type);
   return true;
 }
@@ -772,11 +735,6 @@ function extendRangeAcrossHole(
 
 type HoleVerticalDirection = 'down' | 'up';
 
-/** Modifiers retain the editor's normal selection-expansion/navigation contract. */
-function hasHoleVerticalNavigationModifier(event: KeyboardEvent): boolean {
-  return event.shiftKey || event.altKey || event.ctrlKey || event.metaKey;
-}
-
 function isInsideShadowRoot(node: LexicalNode): boolean {
   let current = node.getParent();
   while (current) {
@@ -791,7 +749,10 @@ function isOpaqueHoleVerticalEdge(node: LexicalNode): boolean {
   let current: LexicalNode | null = node;
   while (current) {
     if ($isHoleNode(current) || $isDecoratorNode(current)) return true;
-    if ($isElementNode(current) && current.isShadowRoot()) return true;
+    // A shadow root is the local navigation scope. An enclosing outer Hole
+    // (for example the TableNode Hole around this cell) must not make the
+    // cell's own paragraph edge opaque.
+    if ($isElementNode(current) && current.isShadowRoot()) return false;
     current = current.getParent();
   }
   return false;
@@ -801,7 +762,12 @@ function getHoleVerticalSelectionTarget(
   node: LexicalNode,
   direction: HoleVerticalDirection,
 ): LexicalNode | null {
-  if (!$isElementNode(node) || node.isInline() || $isHoleNode(node) || node.isShadowRoot()) {
+  // A Hole is itself a legal vertical stop. Do not flatten a run of adjacent
+  // cards into the next editable paragraph; the user must be able to walk
+  // through each card boundary one at a time.
+  if ($isHoleNode(node)) return node;
+  if (!$isElementNode(node)) return $isTextNode(node) ? node : null;
+  if (node.isInline() || node.isShadowRoot()) {
     return null;
   }
 
@@ -810,6 +776,7 @@ function getHoleVerticalSelectionTarget(
 
   const orderedChildren = direction === 'up' ? [...children].reverse() : children;
   for (const child of orderedChildren) {
+    if ($isHoleNode(child)) return child;
     if (isOpaqueHoleVerticalEdge(child)) continue;
 
     if ($isElementNode(child)) {
@@ -855,7 +822,21 @@ function getHoleVerticalNeighbor(
   point: PointType,
   direction: HoleVerticalDirection,
 ): LexicalNode | null {
-  let candidate = $getDownUpNode(point, direction === 'up');
+  return walkHoleVerticalCandidates($getDownUpNode(point, direction === 'up'), direction);
+}
+
+function getHoleVerticalNeighborFromNode(
+  node: LexicalNode,
+  direction: HoleVerticalDirection,
+): LexicalNode | null {
+  return walkHoleVerticalCandidates($getDownUpNodeFromNode(node, direction === 'up'), direction);
+}
+
+function walkHoleVerticalCandidates(
+  initial: LexicalNode | null,
+  direction: HoleVerticalDirection,
+): LexicalNode | null {
+  let candidate = initial;
   while (candidate) {
     const target = getHoleVerticalSelectionTarget(candidate, direction);
     if (target) return target;
@@ -869,21 +850,43 @@ function handleHoleVerticalArrow(
   event: KeyboardEvent,
   direction: HoleVerticalDirection,
 ): boolean {
-  if (hasHoleVerticalNavigationModifier(event) || editor.isComposing() || !editor.isEditable()) {
-    return false;
-  }
+  if (!shouldHandleNavigationEvent(editor, event)) return false;
 
   const selection = $getSelection();
+  if ($isNodeSelection(selection)) {
+    const hole = getSelectedHole(selection);
+    if (!hole) return false;
+
+    const insideShadowRoot = isInsideShadowRoot(hole);
+    const neighbor = getHoleVerticalNeighborFromNode(hole, direction);
+    if (!neighbor) {
+      // Table/Collapsible owners retain control when their local shadow-root
+      // scope has no adjacent block. At a document endpoint Hole owns the
+      // arrow and keeps the NodeSelection stable.
+      if (insideShadowRoot) return false;
+      event.preventDefault();
+      return true;
+    }
+
+    $selectBlockEdge(neighbor, direction === 'up' ? 'end' : 'start');
+    event.preventDefault();
+    return true;
+  }
+
   if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
 
   const context = getBoundaryContext(selection);
-  if (!context || isInsideShadowRoot(context.hole)) return false;
+  if (!context) return false;
 
   const neighbor = getHoleVerticalNeighbor(selection.focus, direction);
-  if (neighbor) {
-    if (direction === 'up') neighbor.selectEnd();
-    else neighbor.selectStart();
+  if (!neighbor) {
+    // Let a table/collapsible owner handle its own shadow-root endpoint.
+    if (isInsideShadowRoot(context.hole)) return false;
+    event.preventDefault();
+    return true;
   }
+
+  $selectBlockEdge(neighbor, direction === 'up' ? 'end' : 'start');
 
   // A valid Hole boundary owns plain vertical arrows even at an edge. This
   // prevents CommonPlugin/native fallback from entering Hole payloads or
@@ -922,6 +925,8 @@ function handleHoleArrow(
   event: KeyboardEvent,
   direction: BoundaryCursorDirection,
 ): boolean {
+  if (!shouldHandleNavigationEvent(editor, event, true)) return false;
+
   const selection = $getSelection();
   if ($isNodeSelection(selection)) {
     if (event.shiftKey) {

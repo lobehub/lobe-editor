@@ -22,6 +22,7 @@ describe('DefaultLinkIframe', () => {
     const markup = renderIframe(true);
 
     expect(markup).toContain('loading="lazy"');
+    expect(markup).toContain('data-hole-interactive="true"');
     expect(markup).toContain('display:block');
     expect(markup).toContain('visibility:hidden');
     expect(markup).not.toContain('display:none');

@@ -25,6 +25,8 @@ import {
 
 import { createDebugLogger } from '@/utils/debug';
 
+import { shouldHandleNavigationEvent } from './navigation-guards';
+
 const logger = createDebugLogger('common', 'cursor');
 
 export type BoundaryCursorSide = 'before' | 'after';
@@ -261,6 +263,7 @@ export function registerCursorNode(editor: LexicalEditor) {
     editor.registerCommand(
       KEY_ARROW_LEFT_COMMAND,
       (event) => {
+        if (!shouldHandleNavigationEvent(editor, event, true)) return false;
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) {
           return false;
@@ -317,6 +320,7 @@ export function registerCursorNode(editor: LexicalEditor) {
     editor.registerCommand(
       KEY_ARROW_RIGHT_COMMAND,
       (event) => {
+        if (!shouldHandleNavigationEvent(editor, event, true)) return false;
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) {
           return false;

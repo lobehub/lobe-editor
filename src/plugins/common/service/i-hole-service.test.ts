@@ -348,4 +348,56 @@ describe('IHoleService', () => {
     unsubscribe();
     secondDispose();
   });
+
+  it('keeps a listener registered before the first editor bind', async () => {
+    const editor = await createArtifactEditor();
+    const lexicalEditor = editor.getLexicalEditor()!;
+    const artifactKey = artifactKeys(editor)[0];
+    if (!artifactKey) throw new Error('Artifact is missing');
+
+    const service = new HoleService();
+    service.registerTarget(ArtifactNode);
+    const events: HoleBoundaryState[] = [];
+    service.subscribe((change) => events.push(change.next));
+    const dispose = service.bindEditor(lexicalEditor);
+
+    selectArtifact(editor, artifactKey);
+    await moment();
+    expect(events.at(-1)).toEqual({
+      covered: true,
+      directNodeSelection: true,
+      position: 'selected',
+      targetKey: artifactKey,
+    });
+
+    dispose();
+  });
+
+  it('clears active-editor listeners when replacing the bound editor', async () => {
+    const first = await createArtifactEditor();
+    const second = await createArtifactEditor();
+    const firstKey = artifactKeys(first)[0];
+    const secondKey = artifactKeys(second)[0];
+    if (!firstKey || !secondKey) throw new Error('Artifacts are missing');
+
+    const service = new HoleService();
+    service.registerTarget(ArtifactNode);
+    const oldEvents: HoleBoundaryState[] = [];
+    service.subscribe((change) => oldEvents.push(change.next));
+    service.bindEditor(first.getLexicalEditor()!);
+    service.bindEditor(second.getLexicalEditor()!);
+    const events: HoleBoundaryState[] = [];
+    service.subscribe((change) => events.push(change.next));
+
+    selectArtifact(first, firstKey);
+    await moment();
+    expect(oldEvents).toEqual([]);
+    expect(events).toEqual([]);
+
+    selectArtifact(second, secondKey);
+    await moment();
+    expect(events).toEqual([
+      { covered: true, directNodeSelection: true, position: 'selected', targetKey: secondKey },
+    ]);
+  });
 });

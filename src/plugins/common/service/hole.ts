@@ -79,7 +79,10 @@ export class HoleService implements IHoleService {
   private states: HoleStateMap = new Map();
 
   bindEditor(editor: LexicalEditor): () => void {
-    this.disposeEditor();
+    // Preserve listeners registered by plugins before CommonPlugin binds its
+    // first editor. Rebinding an active editor must clear them because those
+    // callbacks may close over the old editor instance.
+    this.disposeEditor(this.editor !== null);
     const bindingToken = {};
     this.editor = editor;
     this.bindingToken = bindingToken;
@@ -289,7 +292,7 @@ export class HoleService implements IHoleService {
     };
   }
 
-  private disposeEditor(): void {
+  private disposeEditor(clearListeners = true): void {
     this.unregisterEditor?.();
     this.unregisterEditor = null;
     this.bindingToken = null;
@@ -301,7 +304,7 @@ export class HoleService implements IHoleService {
     });
     this.editor = null;
     this.states = new Map();
-    this.listeners.clear();
+    if (clearListeners) this.listeners.clear();
   }
 
   private installTransform(registration: TargetRegistration): void {

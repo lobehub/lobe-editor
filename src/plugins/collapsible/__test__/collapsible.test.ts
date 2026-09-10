@@ -455,6 +455,31 @@ describe('collapsible plugin', () => {
         lexicalEditor.dispatchCommand(INSERT_CODEMIRROR_COMMAND, undefined);
       }
       lexicalEditor.update(() => {}, { discrete: true });
+
+      if (expectedType === 'horizontalrule') {
+        expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible']);
+        expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', 'hole']);
+        lexicalEditor.getEditorState().read(() => {
+          const rootChildren = $getRoot().getChildren();
+          expect(rootChildren).toHaveLength(1);
+          const collapsible = rootChildren[0];
+          expect($isCollapsibleNode(collapsible)).toBe(true);
+          if (!$isCollapsibleNode(collapsible)) return;
+
+          const title = collapsible.getFirstChild();
+          expect(title).toBeDefined();
+          expect(title).not.toBeInstanceOf(HoleNode);
+
+          const hole = collapsible.getLastChild();
+          expect(hole).toBeInstanceOf(HoleNode);
+          if (!(hole instanceof HoleNode)) return;
+          expect(hole.getContentChildren().map((node) => node.getType())).toEqual([
+            'horizontalrule',
+          ]);
+        });
+        return;
+      }
+
       expect(getCollapsibleChildTypes(lexicalEditor)).toEqual([
         'paragraph',
         expectedType === 'code' ? 'hole' : expectedType,
