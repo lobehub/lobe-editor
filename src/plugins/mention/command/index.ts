@@ -11,13 +11,14 @@ import {
 import { $createCursorNode, CursorNode } from '@/plugins/common/node/cursor';
 
 import { $createMentionNode } from '../node/MentionNode';
+import type { MentionService } from '../service';
 
 export const INSERT_MENTION_COMMAND = createCommand<{
   label: string;
   metadata?: Record<string, unknown>;
 }>('INSERT_MENTION_COMMAND');
 
-export function registerMentionCommand(editor: LexicalEditor) {
+export function registerMentionCommand(editor: LexicalEditor, service: MentionService) {
   return editor.registerCommand(
     INSERT_MENTION_COMMAND,
     (payload) => {
@@ -38,6 +39,7 @@ export function registerMentionCommand(editor: LexicalEditor) {
           mentionNode.insertAfter(cursorNode);
           cursorNode.selectEnd();
         }
+        service.onMentionInserted(mentionNode);
       });
       return true;
     },

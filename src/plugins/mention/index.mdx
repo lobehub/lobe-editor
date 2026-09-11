@@ -14,6 +14,8 @@ Mention plugin provides comprehensive @-style mention functionality for the edit
 
 <Demo editable={false} of={DemoIndex} />
 
+The event-driven chat scenario is demonstrated in [ChatInput mention notifications](/components/react/chat-input#mention-notifications).
+
 ## Core Architecture
 
 ### MentionNode
@@ -28,6 +30,7 @@ The plugin introduces a custom `MentionNode` that extends Lexical's `DecoratorNo
 
 - **MentionPlugin**: Core plugin class that registers nodes, themes, and decorators
 - **Command Handler**: `INSERT_MENTION_COMMAND` for programmatic mention insertion
+- **Mention Service**: `IMentionService` provides a synchronous document query and editor-scoped insertion subscriptions
 - **Selection Observer**: Tracks mention node selection for enhanced UX
 
 ### Markdown Support
@@ -41,11 +44,11 @@ The plugin introduces a custom `MentionNode` that extends Lexical's `DecoratorNo
 
 React component wrapper for the mention plugin functionality.
 
-| Property  | Description               | Type                               | Default |
-| --------- | ------------------------- | ---------------------------------- | ------- |
-| items     | Available mention items   | `MentionItem[]`                    | `[]`    |
-| onSelect  | Mention selection handler | `(item: MentionItem) => void`      | -       |
-| decorator | Custom mention renderer   | `(node: MentionNode) => ReactNode` | -       |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| className | Additional class for mention rendering | `string` | - |
+| theme | Mention theme classes | `{ mention?: string }` | - |
+| markdownWriter | Custom markdown serialization | `(node: MentionNode) => string` | - |
 
 ## Commands
 
@@ -55,7 +58,7 @@ Programmatically insert mentions into the editor:
 
 ```typescript
 editor.dispatchCommand(INSERT_MENTION_COMMAND, {
-  label: '@username',
+  label: 'username',
   metadata: { id: 'user123', avatar: '...' },
 });
 ```
@@ -64,6 +67,24 @@ editor.dispatchCommand(INSERT_MENTION_COMMAND, {
 
 - `label`: Display text for the mention
 - `metadata`: Additional metadata object
+
+## Mention Service
+
+Use the editor-scoped service for both the current mention snapshot and insertion notifications. `getMentions()` is synchronous, preserves document order and duplicate occurrences, and returns detached metadata snapshots:
+
+```typescript
+import { IMentionService } from '@lobehub/editor';
+
+const service = editor.requireService(IMentionService);
+const unsubscribe = service?.subscribe((mention) => {
+  console.log('mention inserted after commit', mention);
+});
+
+const mentions = service?.getMentions() ?? [];
+unsubscribe?.();
+```
+
+The subscription fires after a successful `INSERT_MENTION_COMMAND` commit. Importing a document, deleting a mention, undoing, or selecting a mention does not emit an insertion notification. Applications can use the callback for UI or analytics, while message delivery should happen from an explicit message submission event. See the complete [ChatInput mention notification scenario](/components/react/chat-input#mention-notifications) for the business layer and local in-memory delivery flow.
 
 ## Plugin Configuration
 
@@ -83,7 +104,7 @@ editor.dispatchCommand(INSERT_MENTION_COMMAND, {
 // Register the mention plugin
 const mentionPlugin = new MentionPlugin(kernel, {
   decorator: (node, editor) => <MentionRenderer node={node} />,
-  markdownWriter: (node) => `[@${node.label}](${node.getId()})`,
+  markdownWriter: (node) => `[@${node.label}](${node.metadata.id})`,
   theme: { mention: 'custom-mention-class' }
 });
 ```
@@ -94,7 +115,7 @@ const mentionPlugin = new MentionPlugin(kernel, {
 const MentionRenderer = ({ node }) => (
   <span className="mention-item">
     <Avatar src={node.metadata?.avatar} />
-    {node.getLabel()}
+    {node.label}
   </span>
 );
 ```
