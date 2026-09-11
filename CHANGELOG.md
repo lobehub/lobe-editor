@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.27.3](https://github.com/lobehub/lobe-editor/compare/v4.27.2...v4.27.3)
+<sup>Released on **2026-09-11**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **react**: Stop useEditorState from reading a torn-down editor.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **react**: Stop useEditorState from reading a torn-down editor, closes [#215](https://github.com/lobehub/lobe-editor/issues/215) ([4db3e8b](https://github.com/lobehub/lobe-editor/commit/4db3e8b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.27.2](https://github.com/lobehub/lobe-editor/compare/v4.27.1...v4.27.2)
 <sup>Released on **2026-09-09**</sup>
 
