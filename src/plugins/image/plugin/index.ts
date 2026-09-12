@@ -3,6 +3,10 @@ import type { LexicalEditor } from 'lexical';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { registerBlockRewriteAdapter } from '@/plugins/block/service/rewrite-adapter';
+import {
+  createEditorAsyncScope,
+  type IEditorAsyncScope,
+} from '@/plugins/common/service/editor-async-scope';
 import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
@@ -13,6 +17,7 @@ import { INSERT_IMAGE_COMMAND, registerBlockImageCommand, registerImageCommand }
 import { $isBlockImageNode, BlockImageNode } from '../node/block-image-node';
 import { $isImageNode, ImageNode } from '../node/image-node';
 import { blockImageRewriteAdapter } from '../rewrite-adapter';
+import { settleImageNode } from '../utils';
 
 export interface ImagePluginOptions {
   defaultBlockImage?: boolean;
@@ -47,6 +52,8 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    const asyncScope = createEditorAsyncScope(editor);
+    this.register(() => asyncScope.dispose());
     const holeService = this.kernel.requireService(IHoleService);
     if (holeService) this.register(holeService.registerTarget(BlockImageNode));
     if (this.config?.handleUpload) {
@@ -55,6 +62,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
           editor,
           this.config.handleUpload,
           this.config?.defaultBlockImage !== false,
+          asyncScope,
         ),
       );
     }
@@ -63,24 +71,27 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     this.registerMarkdown();
     this.registerLiteXml();
     this.register(registerBlockRewriteAdapter(this.kernel, blockImageRewriteAdapter));
-    this.registerUpload(editor);
+    this.registerUpload(editor, asyncScope);
     if (this.config?.needRehost && this.config?.handleRehost) {
       const needRehost = this.config.needRehost;
       const handleRehost = this.config.handleRehost;
       this.register(
         editor.registerNodeTransform(ImageNode, (node) => {
           if (node.status === 'uploaded' && needRehost(node.src)) {
+            const nodeKey = node.getKey();
+            const nodeType = node.getType();
+            const source = node.src;
             node.setStatus('loading');
-            handleRehost(node.src)
+            handleRehost(source)
               .then(({ url }) => {
-                editor.update(() => {
-                  node.setUploaded(url);
-                });
+                settleImageNode(asyncScope, nodeKey, nodeType, (currentNode) =>
+                  currentNode.setUploaded(url),
+                );
               })
               .catch(() => {
-                editor.update(() => {
-                  node.setError('Rehost failed');
-                });
+                settleImageNode(asyncScope, nodeKey, nodeType, (currentNode) =>
+                  currentNode.setError('Rehost failed'),
+                );
               });
           }
         }),
@@ -88,17 +99,20 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
       this.register(
         editor.registerNodeTransform(BlockImageNode, (node) => {
           if (node.status === 'uploaded' && needRehost(node.src)) {
+            const nodeKey = node.getKey();
+            const nodeType = node.getType();
+            const source = node.src;
             node.setStatus('loading');
-            handleRehost(node.src)
+            handleRehost(source)
               .then(({ url }) => {
-                editor.update(() => {
-                  node.setUploaded(url);
-                });
+                settleImageNode(asyncScope, nodeKey, nodeType, (currentNode) =>
+                  currentNode.setUploaded(url),
+                );
               })
               .catch(() => {
-                editor.update(() => {
-                  node.setError('Rehost failed');
-                });
+                settleImageNode(asyncScope, nodeKey, nodeType, (currentNode) =>
+                  currentNode.setError('Rehost failed'),
+                );
               });
           }
         }),
@@ -106,7 +120,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     }
   }
 
-  private registerUpload(editor: LexicalEditor) {
+  private registerUpload(editor: LexicalEditor, scope: IEditorAsyncScope) {
     const uploadService = this.kernel.requireService(IUploadService);
     if (!uploadService) {
       return;
@@ -115,16 +129,22 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
       return;
     }
 
-    uploadService.registerUpload(async (file: File, from: string, range?: Range | null) => {
-      const imageWidth = await this.config?.getImageWidth?.(file);
+    const unregisterUpload = uploadService.registerUpload(
+      async (file: File, from: string, range?: Range | null) => {
+        if (!scope.isActive()) return null;
+        const imageWidth = await this.config?.getImageWidth?.(file);
+        if (!scope.isActive()) return null;
 
-      return editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-        block: this.config?.defaultBlockImage !== false,
-        file,
-        maxWidth: imageWidth,
-        range,
-      });
-    }, UPLOAD_PRIORITY_HIGH);
+        return editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+          block: this.config?.defaultBlockImage !== false,
+          file,
+          maxWidth: imageWidth,
+          range,
+        });
+      },
+      UPLOAD_PRIORITY_HIGH,
+    );
+    this.register(unregisterUpload);
   }
 
   private registerLiteXml() {

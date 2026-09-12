@@ -35,6 +35,8 @@ export {
 export { $getLogicalChildren } from './node/logical-children';
 export * from './plugin';
 export * from './react';
+export type { IEditorAsyncScope } from './service/editor-async-scope';
+export { createEditorAsyncScope } from './service/editor-async-scope';
 export { $readHoleBoundaryState } from './service/hole';
 export {
   type EditorDiagnosticsCommand,

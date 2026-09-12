@@ -11,6 +11,7 @@ import {
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { createEditorAsyncScope } from '@/plugins/common/service/editor-async-scope';
 import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import { ILitexmlService, type IWriterContext } from '@/plugins/litexml/service/litexml-service';
 import {
@@ -24,11 +25,7 @@ import { createDebugLogger } from '@/utils/debug';
 import { registerFileCommand } from '../command';
 import { $createBlockFileNode, $isBlockFileNode, BlockFileNode } from '../node/BlockFileNode';
 import { $createFileNode, $isFileNode, FileNode } from '../node/FileNode';
-import {
-  createFileUploadScope,
-  registerFileNodeSelectionObserver,
-  settleFileUpload,
-} from '../utils';
+import { registerFileNodeSelectionObserver, settleFileUpload } from '../utils';
 
 export interface FilePluginOptions {
   defaultBlockFile?: boolean;
@@ -76,7 +73,8 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
     }
 
     if (handleUpload) {
-      const scope = createFileUploadScope(editor);
+      const scope = createEditorAsyncScope(editor);
+      this.register(() => scope.dispose());
       const uploadService = this.kernel.requireService(IUploadService);
       if (uploadService) {
         const unregisterUpload = uploadService.registerUpload(
@@ -117,7 +115,6 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
         );
 
         this.register(() => {
-          scope.dispose();
           unregisterUpload?.();
         });
       }

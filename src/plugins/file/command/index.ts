@@ -27,15 +27,17 @@ export function registerFileCommand(
   editor: LexicalEditor,
   handleUpload: (file: File) => Promise<{ url: string }>,
   defaultBlockFile = false,
-  scope: FileUploadScope = createFileUploadScope(editor),
+  scope?: FileUploadScope,
 ) {
+  const uploadScope = scope ?? createFileUploadScope(editor);
+  const ownsScope = !scope;
   const unregister = editor.registerCommand(
     INSERT_FILE_COMMAND,
     (payload) => {
-      if (!scope.isActive()) return false;
+      if (!uploadScope.isActive()) return false;
       const { block = defaultBlockFile, file } = payload;
       editor.update(() => {
-        if (!scope.isActive()) return;
+        if (!uploadScope.isActive()) return;
         const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
         const currentSelection = $getSelection();
         if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
@@ -47,11 +49,11 @@ export function registerFileCommand(
         }
         handleUpload(file)
           .then((url) => {
-            settleFileUpload(scope, fileKey, (node) => node.setUploaded(url.url));
+            settleFileUpload(uploadScope, fileKey, (node) => node.setUploaded(url.url));
           })
           .catch((error) => {
             logger.error('❌ File upload failed:', error);
-            settleFileUpload(scope, fileKey, (node) =>
+            settleFileUpload(uploadScope, fileKey, (node) =>
               node.setError('File upload failed : ' + error.message),
             );
           });
@@ -65,7 +67,7 @@ export function registerFileCommand(
   return () => {
     if (disposed) return;
     disposed = true;
-    scope.dispose();
+    if (ownsScope) uploadScope.dispose();
     unregister();
   };
 }

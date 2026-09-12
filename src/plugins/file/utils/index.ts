@@ -2,6 +2,10 @@ import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, $getSelection, $isNodeSelection, $isRangeSelection } from 'lexical';
 
+import {
+  createEditorAsyncScope,
+  type IEditorAsyncScope,
+} from '@/plugins/common/service/editor-async-scope';
 import type { HoleBoundaryChange, IHoleService } from '@/plugins/common/service/i-hole-service';
 
 import { $isBlockFileNode, type BlockFileNode } from '../node/BlockFileNode';
@@ -9,31 +13,9 @@ import { $isFileNode, type FileNode } from '../node/FileNode';
 
 type FileUploadNode = FileNode | BlockFileNode;
 
-export interface FileUploadScope {
-  readonly editor: LexicalEditor;
-  isActive(): boolean;
-  dispose(): void;
-}
+export type FileUploadScope = IEditorAsyncScope;
 
-/**
- * Own async file settlements by one FilePlugin/editor initialization.
- *
- * A kernel can destroy an editor and initialize a new Lexical editor while an
- * upload promise from the old editor is still pending. The scope is closed by
- * the plugin's registration disposers so that the old promise cannot enqueue
- * an update into that detached editor.
- */
-export const createFileUploadScope = (editor: LexicalEditor): FileUploadScope => {
-  let active = true;
-
-  return {
-    dispose: () => {
-      active = false;
-    },
-    editor,
-    isActive: () => active,
-  };
-};
+export const createFileUploadScope = createEditorAsyncScope;
 
 const getAttachedFileNode = (key: string): FileUploadNode | null => {
   const node = $getNodeByKey(key);
@@ -48,9 +30,7 @@ export const settleFileUpload = (
   key: string,
   settle: (node: FileUploadNode) => void,
 ): void => {
-  if (!scope.isActive()) return;
-  scope.editor.update(() => {
-    if (!scope.isActive()) return;
+  scope.update(() => {
     const node = getAttachedFileNode(key);
     if (node) settle(node);
   });

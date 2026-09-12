@@ -14,12 +14,17 @@ import {
 } from 'lexical';
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
+import {
+  createEditorAsyncScope,
+  type IEditorAsyncScope,
+} from '@/plugins/common/service/editor-async-scope';
 import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import { $ensureNodeId } from '@/plugins/properties/utils';
 import { createDebugLogger } from '@/utils/debug';
 
 import { $createBlockImageNode } from '../node/block-image-node';
 import { $createImageNode } from '../node/image-node';
+import { settleImageNode } from '../utils';
 
 const logger = createDebugLogger('plugin', 'image');
 
@@ -47,10 +52,14 @@ export function registerImageCommand(
   editor: LexicalEditor,
   handleUpload: (file: File) => Promise<{ url: string }>,
   defaultBlockImage: boolean = false,
+  scope?: IEditorAsyncScope,
 ) {
-  return editor.registerCommand(
+  const uploadScope = scope ?? createEditorAsyncScope(editor);
+  const ownsScope = !scope;
+  const unregister = editor.registerCommand(
     INSERT_IMAGE_COMMAND,
     (payload) => {
+      if (!uploadScope.isActive()) return false;
       const { file, range, block, maxWidth } = payload;
       const isBlock = block ?? defaultBlockImage;
       if (!isImageFile(file)) {
@@ -58,6 +67,7 @@ export function registerImageCommand(
       }
       const placeholderURL = URL.createObjectURL(file); // Create a local URL for the image
       editor.update(() => {
+        if (!uploadScope.isActive()) return;
         if (range) {
           const rangeSelection = $createRangeSelection();
           if (range !== null && range !== undefined) {
@@ -85,23 +95,31 @@ export function registerImageCommand(
         if (!isBlock && $isRootOrShadowRoot(imageNode.getParentOrThrow())) {
           $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
         }
+        const imageKey = imageNode.getKey();
+        const imageType = imageNode.getType();
         handleUpload(file)
           .then((res) => {
-            editor.update(() => {
-              imageNode.setUploaded(res.url);
-            });
+            settleImageNode(uploadScope, imageKey, imageType, (node) => node.setUploaded(res.url));
           })
           .catch((error) => {
             logger.error('❌ Image upload failed:', error);
-            editor.update(() => {
-              imageNode.setError('Image upload failed : ' + error.message);
-            });
+            settleImageNode(uploadScope, imageKey, imageType, (node) =>
+              node.setError('Image upload failed : ' + error.message),
+            );
           });
       });
       return true;
     },
     COMMAND_PRIORITY_EDITOR, // Priority
   );
+
+  let disposed = false;
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    if (ownsScope) uploadScope.dispose();
+    unregister();
+  };
 }
 
 export function registerBlockImageCommand(editor: LexicalEditor) {
