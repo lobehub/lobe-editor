@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { coverageConfigDefaults, defineConfig } from 'vitest/config';
+
+import { configDefaults, coverageConfigDefaults, defineConfig } from 'vitest/config';
 
 import { name } from './package.json';
 
@@ -37,6 +38,7 @@ export default defineConfig({
       statements: 80,
     },
     environment: 'jsdom',
+    exclude: [...configDefaults.exclude, 'scripts/postinstall-lexical-patch.test.cjs'],
     globals: true,
     server: {
       deps: {

@@ -9,7 +9,12 @@ import { $createQuoteNode, $isHeadingNode, $isQuoteNode } from '@lexical/rich-te
 import { $setBlocksType } from '@lexical/selection';
 import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
 import { debounce } from 'es-toolkit';
-import type { LexicalEditor, LexicalNode, TextFormatType } from 'lexical';
+import type {
+  EditorState as LexicalEditorState,
+  LexicalEditor,
+  LexicalNode,
+  TextFormatType,
+} from 'lexical';
 import {
   $createNodeSelection,
   $getSelection,
@@ -160,7 +165,7 @@ export function useEditorState(editor?: IEditor): EditorState {
       setIsStrikethrough(selection.hasFormat('strikethrough'));
       setIsSubscript(selection.hasFormat('subscript'));
       setIsSuperscript(selection.hasFormat('superscript'));
-      setIsCode($isSelectionInCodeInline(lexicalEditor!));
+      setIsCode(!!lexicalEditor && $isSelectionInCodeInline(lexicalEditor));
 
       const anchorNode = selection.anchor.getNode();
       const focusNode = selection.focus.getNode();
@@ -503,15 +508,20 @@ export function useEditorState(editor?: IEditor): EditorState {
         $updateToolbar();
       });
     }, 500);
+    // Both debounces outlive the listeners mergeRegister tears down, so a trailing
+    // call can land after the editor is gone and read a detached kernel.
+    const debounceUpdateListener = debounce(({ editorState }: { editorState: LexicalEditorState }) => {
+      editorState.read(() => {
+        $updateToolbar();
+      });
+    }, 500);
+    const cancelPending = () => {
+      debounceUpdate.cancel();
+      debounceUpdateListener.cancel();
+    };
     const handleLexicalEditor = (lexicalEditor: LexicalEditor) => {
       cleanup = mergeRegister(
-        lexicalEditor.registerUpdateListener(
-          debounce(({ editorState }) => {
-            editorState.read(() => {
-              $updateToolbar();
-            });
-          }, 500),
-        ),
+        lexicalEditor.registerUpdateListener(debounceUpdateListener),
         lexicalEditor.registerCommand(
           SELECTION_CHANGE_COMMAND,
           () => {
@@ -545,11 +555,16 @@ export function useEditorState(editor?: IEditor): EditorState {
     if (!lexicalEditor) {
       editor.on('initialized', handleLexicalEditor);
       return () => {
+        cancelPending();
         cleanup();
         editor.off('initialized', handleLexicalEditor);
       };
     }
-    return handleLexicalEditor(lexicalEditor);
+    handleLexicalEditor(lexicalEditor);
+    return () => {
+      cancelPending();
+      cleanup();
+    };
   }, [editor, $updateToolbar]);
 
   return useMemo(
