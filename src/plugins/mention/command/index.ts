@@ -8,6 +8,8 @@ import {
   createCommand,
 } from 'lexical';
 
+import { $createCursorNode, CursorNode } from '@/plugins/common/node/cursor';
+
 import { $createMentionNode } from '../node/MentionNode';
 
 export const INSERT_MENTION_COMMAND = createCommand<{
@@ -20,12 +22,21 @@ export function registerMentionCommand(editor: LexicalEditor) {
     INSERT_MENTION_COMMAND,
     (payload) => {
       const { metadata, label } = payload;
+      const hasCursorNode = editor.hasNodes([CursorNode]);
       editor.update(() => {
         const mentionNode = $createMentionNode(label, metadata);
         $insertNodes([mentionNode]);
         // Ensure mention is inside a paragraph when inserted at root
         if ($isRootOrShadowRoot(mentionNode.getParentOrThrow())) {
-          $wrapNodeInElement(mentionNode, $createParagraphNode).selectEnd();
+          const paragraph = $wrapNodeInElement(mentionNode, $createParagraphNode);
+          if (!hasCursorNode) {
+            paragraph.selectEnd();
+          }
+        }
+        if (hasCursorNode) {
+          const cursorNode = $createCursorNode();
+          mentionNode.insertAfter(cursorNode);
+          cursorNode.selectEnd();
         }
       });
       return true;

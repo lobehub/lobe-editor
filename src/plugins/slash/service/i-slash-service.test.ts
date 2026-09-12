@@ -29,6 +29,35 @@ describe('SlashService', () => {
     expect(service.resolveTrigger('run /review')).toEqual({ leadOffset: 4, trigger: '/' });
   });
 
+  it('keeps hyphens inside a slash trigger query', () => {
+    const service = createService();
+    registerDefaultTriggers(service);
+
+    const resolution = service.resolveTrigger('/code-review');
+    const match = service.getSlashTriggerFn('/')?.('/code-review');
+
+    expect(resolution).toEqual({ leadOffset: 0, trigger: '/' });
+    expect(match?.matchingString).toBe('code-review');
+  });
+
+  it('finds a keyboard shortcut whose slash query contains a hyphen', () => {
+    const service = createService();
+    service.registerSlash({
+      items: [{ key: 'insert-codeInline', label: 'Insert code inline' }],
+      trigger: '/',
+    });
+
+    const match = service.getSlashTriggerFn('/')?.('/insert-codeInline');
+    const matches = match
+      ? service
+          .getSlashFuse('/')!
+          .search(match.matchingString)
+          .map(({ item }) => item.key)
+      : [];
+
+    expect(matches).toEqual(['insert-codeInline']);
+  });
+
   it('recovers an existing trigger after backspace removes an invalid boundary', () => {
     const service = createService();
     registerDefaultTriggers(service);

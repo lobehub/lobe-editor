@@ -2,6 +2,183 @@
 
 # Changelog
 
+### [Version&nbsp;4.27.3](https://github.com/lobehub/lobe-editor/compare/v4.27.2...v4.27.3)
+<sup>Released on **2026-09-11**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **react**: Stop useEditorState from reading a torn-down editor.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **react**: Stop useEditorState from reading a torn-down editor, closes [#215](https://github.com/lobehub/lobe-editor/issues/215) ([4db3e8b](https://github.com/lobehub/lobe-editor/commit/4db3e8b))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;4.27.2](https://github.com/lobehub/lobe-editor/compare/v4.27.1...v4.27.2)
+<sup>Released on **2026-09-09**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **vitest**: Stop collecting the node:test postinstall spec.
+- **misc**: Make Lexical postinstall patching safe for concurrent installs.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **vitest**: Stop collecting the node:test postinstall spec, closes [#214](https://github.com/lobehub/lobe-editor/issues/214) ([dfb99cc](https://github.com/lobehub/lobe-editor/commit/dfb99cc))
+* **misc**: Make Lexical postinstall patching safe for concurrent installs, closes [#213](https://github.com/lobehub/lobe-editor/issues/213) ([a3caa58](https://github.com/lobehub/lobe-editor/commit/a3caa58))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;4.27.1](https://github.com/lobehub/lobe-editor/compare/v4.27.0...v4.27.1)
+<sup>Released on **2026-09-09**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Preserve slash shortcuts and mention caret.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Preserve slash shortcuts and mention caret, closes [#212](https://github.com/lobehub/lobe-editor/issues/212) ([d4ebcc6](https://github.com/lobehub/lobe-editor/commit/d4ebcc6))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;4.27.0](https://github.com/lobehub/lobe-editor/compare/v4.26.2...v4.27.0)
+<sup>Released on **2026-09-09**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Export the React provider on its own subpath.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Export the React provider on its own subpath, closes [#211](https://github.com/lobehub/lobe-editor/issues/211) ([27067ff](https://github.com/lobehub/lobe-editor/commit/27067ff))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;4.26.2](https://github.com/lobehub/lobe-editor/compare/v4.26.1...v4.26.2)
+<sup>Released on **2026-09-08**</sup>
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;4.26.1](https://github.com/lobehub/lobe-editor/compare/v4.26.0...v4.26.1)
+<sup>Released on **2026-09-07**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **slash**: Keep hyphens in trigger queries.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **slash**: Keep hyphens in trigger queries ([d8317a0](https://github.com/lobehub/lobe-editor/commit/d8317a0))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.26.0](https://github.com/lobehub/lobe-editor/compare/v4.25.1...v4.26.0)
 <sup>Released on **2026-09-02**</sup>
 

@@ -249,10 +249,19 @@ function patchPackage({ displayName, fileHashes, packageName, patchFile, ...conf
       );
     }
 
-    fs.writeFileSync(
-      targetPath,
-      restoreLineEndings(patchedContent, detectLineEnding(currentContent)),
-    );
+    // Peer-dependent editor instances can patch the same dependency concurrently.
+    // Publish a complete file so other patchers never read a partial write.
+    const temporaryPath = `${targetPath}.${crypto.randomUUID()}.tmp`;
+    try {
+      fs.writeFileSync(
+        temporaryPath,
+        restoreLineEndings(patchedContent, detectLineEnding(currentContent)),
+        { flag: 'wx', mode: fs.statSync(targetPath).mode },
+      );
+      fs.renameSync(temporaryPath, targetPath);
+    } finally {
+      fs.rmSync(temporaryPath, { force: true });
+    }
     patchedFiles.push(filename);
   }
 
