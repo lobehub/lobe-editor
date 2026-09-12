@@ -9,6 +9,7 @@ class FakeWebSocket {
   static OPEN = 1;
 
   binaryType = '';
+  closeCodes: number[] = [];
   readyState = 0;
   sent: string[] = [];
   url: string;
@@ -26,7 +27,11 @@ class FakeWebSocket {
     this.listeners.set(type, listeners);
   }
 
-  close(): void {
+  close(code?: number): void {
+    if (code !== undefined && code !== 1000 && (code < 3000 || code > 4999)) {
+      throw new Error(`Invalid client close code: ${code}`);
+    }
+    this.closeCodes.push(code ?? 1000);
     this.serverClose();
   }
 
@@ -95,6 +100,38 @@ describe('WebSocketYjsProvider', () => {
     expect(docMap.get('room-b')).not.toBe(roomADoc);
 
     docMap.forEach((doc) => doc.destroy());
+  });
+
+  it('does not republish stale historical Yjs structs after a rebuilt room snapshot', () => {
+    const clientDoc = new Doc();
+    const historicalDoc = new Doc();
+    historicalDoc.getMap<string>('state').set('artifact', 'stable');
+    applyUpdate(clientDoc, encodeStateAsUpdate(historicalDoc));
+
+    // The relay reconstructed the same logical JSON into a fresh Y.Doc, so
+    // its client IDs differ even though the visible state is identical.
+    const rebuiltServerDoc = new Doc();
+    rebuiltServerDoc.getMap<string>('state').set('artifact', 'stable');
+
+    const provider = new WebSocketYjsProvider('rebuilt-room', clientDoc, 'ws://example.test');
+    provider.connect();
+    const socket = FakeWebSocket.instances[0];
+    socket.open();
+    const syncRequest = getSentMessages(socket).find((message) => message.type === 'sync-request');
+    socket.serverMessage({
+      awareness: [],
+      type: 'sync',
+      update: encodeBase64(
+        encodeStateAsUpdate(rebuiltServerDoc, decodeBase64(syncRequest?.stateVector || '')),
+      ),
+    });
+
+    expect(getSentMessages(socket).some((message) => message.type === 'update')).toBe(false);
+
+    provider.disconnect();
+    clientDoc.destroy();
+    historicalDoc.destroy();
+    rebuiltServerDoc.destroy();
   });
 
   it('re-syncs peer and local updates made during a connection gap', () => {

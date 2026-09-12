@@ -10,6 +10,11 @@ import {
 import type { LexicalEditor } from 'lexical';
 import { COLLABORATION_TAG } from 'lexical';
 import type { Doc, Transaction, XmlElement, XmlText, YEvent } from 'yjs';
+import { UndoManager } from 'yjs';
+
+import { getKernelFromEditor } from '@/editor-kernel/utils';
+import { type AnnotationMap, IAnnotationService } from '@/plugins/properties/service/annotation';
+import { createRemoteCaretViewportStabilizer } from '@/plugins/yjs/plugin/utils/caret-viewport-anchor';
 
 export interface CollaborationUser {
   awarenessData?: Record<string, unknown>;
@@ -66,6 +71,10 @@ export const registerCollaborationBinding = ({
   const binding = createBindingV2__EXPERIMENTAL(lexicalEditor, id, doc, yjsDocMap, {
     excludedProperties,
   });
+  const kernel = getKernelFromEditor(lexicalEditor);
+  kernel
+    ?.requireService(IAnnotationService)
+    ?.attachYMap(doc.getMap('lobe:annotations') as unknown as AnnotationMap);
   binding.cursorsContainer = cursorContainer ?? null;
 
   const rootHasContent = binding.root.length > 0;
@@ -85,9 +94,39 @@ export const registerCollaborationBinding = ({
     );
   }
 
+  const caretViewportStabilizer = createRemoteCaretViewportStabilizer(lexicalEditor);
+  let providerHasSynced = rootHasContent;
+  const onProviderSync = (isSynced: boolean) => {
+    if (isSynced) providerHasSynced = true;
+  };
+  provider.on('sync', onProviderSync);
+
   const yjsObserver = (events: Array<YEvent<XmlElement | XmlText>>, transaction: Transaction) => {
     if (transaction.origin === binding) return;
-    syncYjsChangesToLexicalV2__EXPERIMENTAL(binding, provider, events, transaction, false);
+
+    const isFromUndoManager = transaction.origin instanceof UndoManager;
+    if (providerHasSynced) {
+      if (isFromUndoManager) {
+        caretViewportStabilizer.cancelPending();
+      } else {
+        caretViewportStabilizer.captureBeforeRemoteUpdate();
+      }
+    }
+
+    try {
+      syncYjsChangesToLexicalV2__EXPERIMENTAL(
+        binding,
+        provider,
+        events,
+        transaction,
+        isFromUndoManager,
+      );
+    } catch (error) {
+      caretViewportStabilizer.cancelPending();
+      throw error;
+    }
+
+    if (!isFromUndoManager) caretViewportStabilizer.scheduleAfterRemoteUpdate();
   };
 
   const reloadObserver = (nextDoc: Doc) => {
@@ -165,8 +204,10 @@ export const registerCollaborationBinding = ({
     binding,
     cleanup: () => {
       isCleanedUp = true;
+      caretViewportStabilizer.dispose();
       unregisterUpdateListener();
       binding.root.unobserveDeep(yjsObserver);
+      provider.off('sync', onProviderSync);
       provider.off('reload', reloadObserver);
       provider.awareness.off('update', awarenessObserver);
       lexicalEditor.update(() => {}, { tag: COLLABORATION_TAG });

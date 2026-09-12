@@ -30,7 +30,7 @@ import {
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { ILitexmlService } from '@/plugins/litexml';
+import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { isPunctuationChar } from '@/plugins/markdown/utils';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -38,8 +38,15 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
-import { CursorNode, registerCursorNode } from '../node/cursor';
+import { $isCursorNode, CursorNode, registerCursorNode } from '../node/cursor';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
+import { $isHoleNode, HoleNode } from '../node/hole';
+import { registerHoleClipboard } from '../node/hole-clipboard';
+import { reconcileHoleNodes, registerHoleNode } from '../node/hole-controller';
+import { EditorDiagnosticsService } from '../service/editor-diagnostics-service';
+import { HoleService } from '../service/hole';
+import { IEditorDiagnosticsService } from '../service/i-editor-diagnostics-service';
+import { IHoleService } from '../service/i-hole-service';
 import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
 import { registerMDReader } from './mdReader';
 import {
@@ -99,6 +106,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   extends KernelPlugin
   implements IEditorPlugin<CommonPluginOptions>
 {
+  private readonly holeService: HoleService;
+
+  private readonly diagnosticsService: EditorDiagnosticsService;
+
   static pluginName = 'CommonPlugin';
 
   private formats = {
@@ -116,6 +127,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     public config: CommonPluginOptions = {},
   ) {
     super();
+    this.holeService = new HoleService();
+    this.diagnosticsService = new EditorDiagnosticsService();
+    kernel.registerServiceHotReload(IHoleService, this.holeService);
+    kernel.registerServiceHotReload(IEditorDiagnosticsService, this.diagnosticsService);
 
     // Parse markdown options and update formats
     const markdownOption = config.markdownOption ?? true;
@@ -143,7 +158,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     // Register the text data source
     kernel.registerDataSource(new TextDataSource('text'));
     // Register common nodes and themes
-    kernel.registerNodes([HeadingNode, QuoteNode, CursorNode]);
+    kernel.registerNodes([HeadingNode, QuoteNode, CursorNode, HoleNode]);
     if (config?.theme) {
       kernel.registerThemes({
         quote: config.theme.quote,
@@ -285,6 +300,18 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       ctx.wrap('', breakMark);
     });
 
+    // Hole is a runtime boundary, not a Markdown construct. Project its
+    // payload children directly and never leak the persistent cursor markers.
+    markdownService.registerMarkdownWriter(HoleNode.getType(), (ctx, node) => {
+      if (!$isHoleNode(node)) return false;
+      node.getChildren().forEach((child) => {
+        if (!$isCursorNode(child)) {
+          ctx.processChild(ctx, child);
+        }
+      });
+      return true;
+    });
+
     // Register quote writer only if quote format is enabled
     if (formats.quote) {
       markdownService.registerMarkdownWriter('quote', (ctx, node) => {
@@ -372,6 +399,9 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const append = textContent.trimEnd();
       const lastChar = append.at(-1);
       ctx.appendLine(append);
+      const nextSibling = node.getNextSibling();
+      const nextTextStartsWithSpace =
+        $isTextNode(nextSibling) && /^\s/.test(nextSibling.getTextContent());
 
       if (isSubscript) {
         ctx.appendLine('~');
@@ -394,7 +424,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
       if (tailSpace) {
         ctx.appendLine(tailSpace);
-      } else if (lastChar && isPunctuationChar(lastChar)) {
+      } else if (lastChar && isPunctuationChar(lastChar) && !nextTextStartsWithSpace) {
         ctx.appendLine(' ');
       }
     });
@@ -410,7 +440,16 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     registerMDReader(markdownService);
   }
 
+  onDocumentChange(): void {
+    reconcileHoleNodes(this.kernel.getLexicalEditor());
+    this.holeService.reconcile();
+  }
+
   onInit(editor: LexicalEditor): void {
+    this.register(this.holeService.bindEditor(editor));
+    // Install passive CRITICAL command observers before clipboard handlers so
+    // a handler that consumes COPY/CUT/PASTE cannot hide the command trace.
+    this.register(this.diagnosticsService.bindEditor(editor));
     this.register(
       this.kernel.registerHighCommand(
         PASTE_COMMAND,
@@ -448,6 +487,12 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         COMMAND_PRIORITY_CRITICAL,
       ),
     );
+    this.register(
+      registerHoleClipboard(editor, {
+        serializeTextContent: (nodes, context) =>
+          this.holeService.serializeTextContent(nodes, context),
+      }),
+    );
     // Dragon installs a window-level message listener whose closure captures
     // the editor. Tie it to the root lifecycle so Activity can detach the
     // listener while keeping the same editor/plugins alive for reattachment.
@@ -482,6 +527,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       }),
       registerCommands(editor),
       registerBreakLineClick(editor),
+      registerHoleNode(editor),
       registerCursorNode(editor),
       registerLastElement(editor),
       // Convert soft line breaks (Shift+Enter) to hard line breaks (paragraph breaks)
@@ -538,6 +584,20 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     }
 
     const formats = this.formats;
+
+    // The Hole wrapper is intentionally transparent in LiteXML. Returning
+    // lines bypasses the generic wrapper while preserving the payload's own
+    // registered XML writers (Artifact, table, and future complex blocks).
+    litexmlService.registerXMLWriter(HoleNode.getType(), (node, _ctx, indent, nodeToXML) => {
+      if (!$isHoleNode(node)) return false;
+      const lines: string[] = [];
+      node.getChildren().forEach((child) => {
+        if (!$isCursorNode(child)) {
+          nodeToXML(child, lines, indent);
+        }
+      });
+      return { lines };
+    });
 
     litexmlService.registerXMLWriter(TextNode.getType(), (node, ctx) => {
       const attr = {} as Record<string, string>;

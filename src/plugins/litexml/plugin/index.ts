@@ -1,12 +1,25 @@
 import { $isTableNode } from '@lexical/table';
 import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
 import { $nodesOfType, HISTORIC_TAG } from 'lexical';
+import { encodeStateVector } from 'yjs';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
+import { encodeYjsBase64 } from '@/plugins/yjs/protocol';
+import { IYjsService } from '@/plugins/yjs/service';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 
-import { registerLiteXMLCommand } from '../command';
+import {
+  InMemoryRewriteCommandResultChannel,
+  IRewriteCommandResultService,
+  IRewriteReviewService,
+  IRewriteService,
+  registerLiteXMLCommand,
+  registerLiteXMLRewriteCommand,
+  type RewriteCommandResultChannel,
+  RewriteReviewService,
+  RewriteService,
+} from '../command';
 import { registerLiteXMLDiffCommand } from '../command/diffCommand';
 import LitexmlDataSource from '../data-source/litexml-data-source';
 import { $isDiffContentNode, DiffContentNode } from '../node/DiffContentNode';
@@ -30,6 +43,8 @@ export interface LitexmlPluginOptions {
   tableRowDiffTheme?: string;
   tableCellDiffTheme?: string;
   theme?: string;
+  /** Optional host-owned channel for async targeted rewrite results. */
+  resultChannel?: RewriteCommandResultChannel;
 }
 
 /**
@@ -43,6 +58,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
   static pluginName = 'LitexmlPlugin';
   datasource: LitexmlDataSource;
   service: ILitexmlService;
+  resultChannel: RewriteCommandResultChannel;
 
   constructor(
     protected kernel: IEditorKernel,
@@ -59,7 +75,9 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     // Create and register the Litexml service
     const litexmlService = new LitexmlService();
     this.service = litexmlService;
+    this.resultChannel = config?.resultChannel ?? new InMemoryRewriteCommandResultChannel();
     kernel.registerService(ILitexmlService, litexmlService);
+    kernel.registerService(IRewriteCommandResultService, this.resultChannel);
     this.datasource = new LitexmlDataSource(
       'litexml',
       <T>(serviceId: IServiceID<T>) => {
@@ -86,7 +104,20 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
   onInit(editor: LexicalEditor): void {
     // Plugin initialization logic can be added here if needed
     this.register(registerLiteXMLCommand(editor, this.datasource));
-    this.register(registerLiteXMLDiffCommand(editor));
+    const rewriteService = new RewriteService(editor, this.datasource, this.resultChannel);
+    this.kernel.registerService(IRewriteService, rewriteService);
+    this.register(rewriteService.destroy.bind(rewriteService));
+    this.register(
+      registerLiteXMLRewriteCommand(editor, this.datasource, this.resultChannel, rewriteService),
+    );
+    this.register(registerLiteXMLDiffCommand(editor, this.resultChannel));
+    this.kernel.registerService(
+      IRewriteReviewService,
+      new RewriteReviewService(editor, this.resultChannel, () => {
+        const doc = this.kernel.requireService(IYjsService)?.getState()?.doc;
+        return doc ? encodeYjsBase64(encodeStateVector(doc)) : undefined;
+      }),
+    );
     this.register(registerLegacyTableCellDiffNormalization(editor));
     this.register(registerTableRowDiffNormalization(editor));
 

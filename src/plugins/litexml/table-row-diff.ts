@@ -7,11 +7,18 @@ import {
 import type { ElementNode, LexicalEditor } from 'lexical';
 import { $nodesOfType } from 'lexical';
 
+import { $prepareCopiedNode, $preserveNodeIdentity } from '@/plugins/properties/utils';
+
 import {
   $createTableRowDiffNode,
   TableRowDiffNode,
   type TableRowDiffType,
 } from './node/TableRowDiffNode';
+import {
+  captureTableDiffLogicalIdentity,
+  copyTableDiffReviewMetadata,
+  restoreTableDiffLogicalIdentity,
+} from './table-diff-identity';
 import { $cloneNode } from './utils';
 
 export interface TableRowDiffPair {
@@ -51,7 +58,14 @@ export function $createTableRowDiffFromRow(
   changeId?: string,
 ): TableRowDiffNode {
   const source = $cloneNode(row, editor) as TableRowNode;
+  // The add side is a review-only copy. Its cells must not temporarily share
+  // the before row's durable identities; those identities are restored from
+  // the paired remove row only when the proposed row is accepted.
+  if (diffType === 'add') {
+    source.getChildren().forEach($prepareCopiedNode);
+  }
   const diffRow = $createTableRowDiffNode(diffType, changeId, row.getHeight());
+  captureTableDiffLogicalIdentity(row, diffRow);
   diffRow.append(...source.getChildren());
   return diffRow;
 }
@@ -61,7 +75,20 @@ export function $createPlainTableRowFromDiff(
   row: TableRowDiffNode,
 ): TableRowNode {
   const plainRow = $createTableRowNode(row.getHeight());
-  plainRow.append(...row.getChildren().map((child) => $cloneNode(child, editor)));
+  restoreTableDiffLogicalIdentity(row, plainRow);
+  if (row.getDiffType() === 'add') copyTableDiffReviewMetadata(row, plainRow);
+  const pair = $getTableRowDiffPair(row);
+  const sourceCells = pair?.add === row ? pair.remove.getChildren() : [];
+  plainRow.append(
+    ...row.getChildren().map((child, index) => {
+      const clone = $cloneNode(child, editor);
+      const sourceCell = sourceCells[index];
+      if ($isTableCellNode(sourceCell) && $isTableCellNode(clone)) {
+        $preserveNodeIdentity(sourceCell, clone);
+      }
+      return clone;
+    }),
+  );
   return plainRow;
 }
 

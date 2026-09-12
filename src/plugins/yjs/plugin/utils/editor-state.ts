@@ -1,5 +1,5 @@
-import { $createParagraphNode, $getRoot, HISTORY_MERGE_TAG, SKIP_COLLAB_TAG } from 'lexical';
 import type { EditorState, LexicalEditor } from 'lexical';
+import { $createParagraphNode, $getRoot, HISTORY_MERGE_TAG, SKIP_COLLAB_TAG } from 'lexical';
 
 import type { YjsInitialEditorState } from '../types';
 

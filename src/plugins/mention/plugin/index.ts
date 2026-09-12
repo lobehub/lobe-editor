@@ -4,7 +4,7 @@ import type { Html } from 'mdast';
 import type { INode } from '@/editor-kernel/inode';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { ILitexmlService } from '@/plugins/litexml';
+import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import {
   IMarkdownShortCutService,
   MARKDOWN_READER_LEVEL_HIGH,

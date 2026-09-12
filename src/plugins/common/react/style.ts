@@ -102,6 +102,206 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
         animation: ${cursorBlink} 1.1s steps(2, start) infinite;
       }
     }
+
+    [data-hole='true'] {
+      --lobe-hole-cursor-gutter: 24px;
+
+      cursor: text;
+
+      position: relative;
+
+      overflow: visible;
+
+      width: 100%;
+      min-width: 0;
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] {
+      position: relative;
+      width: 100%;
+      min-width: 0;
+    }
+
+    /*
+     * A block image is centered inside the editor column, but its boundary
+     * cursors belong beside the image's actual box. The host remains full
+     * width for block selection/dragging; only the managed content slot uses
+     * the target's generic intrinsic-layout hint. Artifact and other full
+     * width payloads keep the default 100% slot.
+     */
+    [data-hole='true'] > [data-hole-content='true']:has(> [data-hole-content-layout='intrinsic']) {
+      width: fit-content;
+      max-width: 100%;
+      margin-inline: auto;
+    }
+
+    /*
+     * Tables keep their scroll wrapper's inline bleed, so their visual box
+     * starts at the editor's content edge instead of being centered like an
+     * image. The zero-width side tracks keep both boundary hit areas adjacent
+     * to that visual box while the Hole host remains a full-width block.
+     */
+    [data-hole='true']
+      > [data-hole-content='true']:has(> [data-hole-content-layout='intrinsic-start']) {
+      width: fit-content;
+      max-width: 100%;
+      margin-inline: 0;
+    }
+
+    [data-hole='true']:has(> [data-hole-content='true'] > [data-hole-content-layout='intrinsic']) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) fit-content(100%) minmax(0, 1fr);
+    }
+
+    [data-hole='true']:has(
+      > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+    ) {
+      display: grid;
+      grid-template-columns: 0 fit-content(100%) minmax(0, 1fr);
+    }
+
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic'],
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
+      > [data-hole-content='true'] {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic'],
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
+      > [data-hole-cursor-hit] {
+      position: static;
+      inset: auto;
+
+      grid-row: 1;
+      align-self: stretch;
+
+      height: 100%;
+    }
+
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic'],
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
+      > [data-hole-cursor-hit='before'] {
+      grid-column: 1;
+      justify-self: end;
+    }
+
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic'],
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
+      > [data-hole-cursor-hit='after'] {
+      grid-column: 3;
+      justify-self: start;
+    }
+
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
+      > [data-hole-cursor-hit] {
+      height: auto;
+      margin-block: var(--lobe-hole-layout-block-start, 0) var(--lobe-hole-layout-block-end, 0);
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:first-child,
+    [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:last-child {
+      cursor: text;
+      user-select: text;
+
+      position: absolute;
+      z-index: 1;
+      inset-block-end: 8px;
+
+      overflow: visible;
+      display: block;
+
+      box-sizing: border-box;
+      width: var(--lobe-hole-cursor-gutter);
+      min-width: 0;
+      height: 1em;
+
+      line-height: 1;
+      color: transparent;
+      text-align: center;
+
+      outline: none;
+      caret-color: ${cssVar.colorText};
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:first-child {
+      inset-inline-end: 100%;
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] > [data-lexical-text='true']:last-child {
+      inset-inline-start: 100%;
+    }
+
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
+      > [data-hole-content='true']
+      > [data-lexical-text='true']:first-child,
+    [data-hole='true']:has(
+        > [data-hole-content='true'] > [data-hole-content-layout='intrinsic-start']
+      )
+      > [data-hole-content='true']
+      > [data-lexical-text='true']:last-child {
+      inset-block-end: calc(var(--lobe-hole-layout-block-end, 0px) + 8px);
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] > :not([data-lexical-text='true']) {
+      min-width: 0;
+    }
+
+    [data-hole='true'] > [data-hole-cursor-hit] {
+      pointer-events: none;
+      cursor: text;
+      user-select: text;
+
+      position: absolute;
+      z-index: 2;
+      inset-block: 0;
+
+      width: var(--lobe-hole-cursor-gutter);
+    }
+
+    [data-hole='true'] > [data-hole-cursor-hit='before'] {
+      inset-inline-end: 100%;
+    }
+
+    [data-hole='true'] > [data-hole-cursor-hit='after'] {
+      inset-inline-start: 100%;
+    }
+
+    [contenteditable='false']
+      [data-hole='true']
+      > [data-hole-content='true']
+      > [data-lexical-text='true']:first-child,
+    [contenteditable='false']
+      [data-hole='true']
+      > [data-hole-content='true']
+      > [data-lexical-text='true']:last-child {
+      pointer-events: none;
+
+      overflow: hidden;
+
+      width: 0;
+      min-width: 0;
+      padding: 0;
+
+      visibility: hidden;
+    }
+
+    [contenteditable='false'] [data-hole='true'] > [data-hole-cursor-hit] {
+      pointer-events: none;
+      visibility: hidden;
+    }
   `;
 
   const header = css`

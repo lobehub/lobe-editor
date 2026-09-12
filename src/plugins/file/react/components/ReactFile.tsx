@@ -6,12 +6,13 @@ import { type FC, useCallback, useEffect, useRef } from 'react';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
+import type { BlockFileNode } from '../../node/BlockFileNode';
 import type { FileNode } from '../../node/FileNode';
 
 interface ReactFileProps {
   className?: string;
   editor: LexicalEditor;
-  node: FileNode;
+  node: FileNode | BlockFileNode;
 }
 
 const ReactFile: FC<ReactFileProps> = ({ className, editor, node }) => {

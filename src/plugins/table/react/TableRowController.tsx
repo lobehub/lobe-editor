@@ -304,6 +304,9 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
     <div
       className="table-controller-row"
       contentEditable={false}
+      onPointerDownCapture={(event) => {
+        event.stopPropagation();
+      }}
       onMouseEnter={() => {
         setControllerHovered(true);
       }}
@@ -369,9 +372,9 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
               draggable
               key={index}
               onClickCapture={(event) => {
+                event.stopPropagation();
                 if (isSelectedController) {
                   event.preventDefault();
-                  event.stopPropagation();
                   clearInsertButtonHideTimer();
                   setInsertTarget(null);
                   setMenuAnchorElement(event.currentTarget);
@@ -490,6 +493,9 @@ const TableRowController = memo<TableRowControllerProps>((props) => {
           editor.dispatchCommand(SELECT_TABLE_COMMAND, {
             table: node.getKey(),
           });
+        }}
+        onClickCapture={(event) => {
+          event.stopPropagation();
         }}
       />
     </div>

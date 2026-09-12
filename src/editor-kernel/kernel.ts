@@ -49,11 +49,11 @@ import type { HotkeyOptions, HotkeysEvent } from '@/utils/hotkey/registerHotkey'
 import { getHotkeyById, registerHotkey } from '@/utils/hotkey/registerHotkey';
 
 import type DataSource from './data-source';
+import type { IWriteOptions } from './data-source';
 import { registerEvent } from './event';
 import { KernelPlugin } from './plugin';
 import {
   $closest,
-  createEmptyEditorState,
   EDITOR_THEME_KEY,
   generateEditorId,
   noop,
@@ -185,8 +185,9 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.logger.info(`🗑️ Destroying editor with ${this.pluginsInstances.length} plugins`);
 
     // Detach first. This invokes every root listener cleanup (including
-    // @lexical/dragon) and releases the EditorMap entry before plugin teardown.
-    if (editor) {
+    // @lexical/dragon and the kernel's root-scoped DOM handlers) and releases
+    // the EditorMap entry before any state teardown can run.
+    if (editor && !this.headlessEditor) {
       try {
         editor.setRootElement(null);
       } catch (error) {
@@ -195,18 +196,9 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     }
     unregisterEditorKernel(editorId);
 
-    try {
-      editor?.setEditorState(createEmptyEditorState());
-    } catch (error) {
-      this.logger.warn('Failed to reset editor state during destroy:', error);
-    }
-
-    this.unregisterRootLifecycle?.();
-    this.unregisterRootLifecycle = undefined;
-
-    // Run all plugin cleanups even when one plugin reports an error. The
-    // kernel remains reusable after destroy; callers still receive the first
-    // cleanup error after state has been reset below.
+    // Tear down plugin-owned update listeners before discarding the kernel
+    // state. Destroy must not manufacture a document update that a
+    // collaboration binding could publish to its shared Y.Doc.
     let destroyError: unknown;
     this.pluginsInstances.forEach((plugin) => {
       try {
@@ -217,17 +209,15 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     });
     this.pluginsInstances = [];
 
-    // Plugin constructors are retained as declarative configuration, while
-    // all constructor-owned runtime registrations are rebuilt on the next
-    // initialization. Resetting these collections also prevents duplicate
-    // Lexical node registrations after destroy() followed by re-attach.
+    this.unregisterRootLifecycle?.();
+    this.unregisterRootLifecycle = undefined;
     this.dataTypeMap.clear();
-    this.decorators = {};
+    this.beforeEditorInitHooks = [];
     this.nodeTransforms = [];
     this.nodes = [];
-    this.beforeEditorInitHooks = [];
     this.rootClassNames.clear();
     this.serviceMap.clear();
+    this.decorators = {};
     this.themes = { [EDITOR_THEME_KEY]: generateEditorId() };
     this.historyState = createEmptyHistoryState();
     this._commands.clear();
@@ -274,8 +264,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     }
 
     if (dom === null) {
-      // useEditor() can be cleaned up even when no descendant ever mounted a
-      // root. There is nothing to detach in that case.
+      // A React owner can clean up before a descendant ever mounted a root.
       unregisterEditorKernel(this.getEditorId());
       return null;
     }
@@ -573,7 +562,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.editor?.blur();
   }
 
-  getDocument(type: string): DataSource | undefined {
+  getDocument(type: string, options?: IWriteOptions): DataSource | undefined {
     const datasource = this.dataTypeMap.get(type);
     if (!datasource) {
       this.logger.error(`❌ DataSource for type "${type}" not found`);
@@ -583,7 +572,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       this.logger.error('❌ Editor not initialized');
       throw new Error(`Editor is not initialized.`);
     }
-    const result = datasource.write(this.editor);
+    const result = datasource.write(this.editor, options);
     return result;
   }
 
@@ -709,12 +698,26 @@ export class Kernel extends EventEmitter implements IEditorKernel {
         // Same plugin, just update config if provided
         if (config !== undefined) {
           this.pluginsConfig.set(plugin, config);
+          const instance = this.pluginsInstances.find(
+            (candidate) =>
+              (candidate.constructor as { pluginName?: string }).pluginName === plugin.pluginName,
+          );
+          instance?.onConfigChange?.(config);
         }
         return this; // If plugin already exists, don't register again
       }
     }
     this.pluginsConfig.set(plugin, config || {});
     this.plugins.push(plugin);
+    // React plugins can become available after the Lexical root has already
+    // mounted (for example, when a browser collaboration ticket arrives after
+    // the document fetch). Instantiate late registrations immediately so
+    // their onInit lifecycle is not lost to the one-time kernel initialization.
+    if (this.editor) {
+      const instance = new plugin(this, this.pluginsConfig.get(plugin));
+      this.pluginsInstances.push(instance);
+      instance.onInit?.(this.editor);
+    }
     this.logger.debug(`🔌 Plugin: ${plugin.pluginName}`);
     return this;
   }

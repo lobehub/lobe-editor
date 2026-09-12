@@ -2,9 +2,28 @@ import { LANGUAGES } from '@/codemirror/constants';
 
 export const DISABLE_FORMAT_MODE = ['yaml'];
 
+export const normalizeCodeMirrorLanguage = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const language = value.trim().toLocaleLowerCase();
+  if (!language) return null;
+  const findMode = LANGUAGES.find(
+    (mode) =>
+      mode.value.toLocaleLowerCase() === language ||
+      mode.ext?.some((extension) => extension.toLocaleLowerCase() === language),
+  );
+  return findMode?.value || null;
+};
+
+export const getCodeMirrorLanguageAliases = (value: string): string[] => {
+  const canonical = normalizeCodeMirrorLanguage(value);
+  if (!canonical) return [];
+  const findMode = LANGUAGES.find((mode) => mode.value === canonical);
+  return [...new Set([canonical, ...(findMode?.ext ?? [])])];
+};
+
 export function modeMatch(mode = '') {
-  mode = mode.toLocaleLowerCase() || 'plain';
-  const findMode = LANGUAGES.find((m) => m.value === mode || m.ext?.includes(mode));
+  const normalizedMode = normalizeCodeMirrorLanguage(mode) || 'plain';
+  const findMode = LANGUAGES.find((m) => m.value === normalizedMode);
 
   return findMode?.value || 'plain';
 }

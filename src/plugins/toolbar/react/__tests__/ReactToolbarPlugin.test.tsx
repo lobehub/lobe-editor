@@ -2,8 +2,17 @@ import { act } from 'react';
 import type { DependencyList, ReactNode } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { $getSelection, getDOMSelection } from 'lexical';
 
 import { ReactToolbarPlugin } from '../';
+
+const toolbarSelectionMock = vi.hoisted(() => ({ suppress: false }));
+const positionMock = vi.hoisted(() =>
+  vi.fn((_rect: unknown, element: HTMLElement) => {
+    element.style.opacity = '1';
+    element.style.transform = 'translate(0px, 0px)';
+  }),
+);
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -23,7 +32,10 @@ const mocks = vi.hoisted(() => {
       listener();
       return unregister;
     }),
-    registerUpdateListener: vi.fn(() => unregister),
+    registerUpdateListener: vi.fn(
+      (_listener: (payload: { editorState: { read: (callback: () => void) => void } }) => void) =>
+        unregister,
+    ),
     update: vi.fn((callback: () => void) => callback()),
   };
   const kernelEditor = {
@@ -86,6 +98,18 @@ vi.mock('@/plugins/link', () => ({
   ILinkService: Symbol('ILinkService'),
 }));
 
+vi.mock('../selection', () => ({
+  $shouldSuppressTextToolbar: () => toolbarSelectionMock.suppress,
+}));
+
+vi.mock('../../utils/getDOMRangeRect', () => ({
+  getDOMRangeRect: () => new DOMRect(10, 10, 80, 20),
+}));
+
+vi.mock('../../utils/setFloatingElemPosition', () => ({
+  setFloatingElemPosition: positionMock,
+}));
+
 vi.mock('../style', () => ({
   styles: {
     anchor: 'toolbar-anchor',
@@ -107,6 +131,8 @@ describe('ReactToolbarPlugin portal rendering', () => {
     document.body.append(themeApp, host);
     root = createRoot(host);
     mocks.lexicalEditor._window = window;
+    toolbarSelectionMock.suppress = false;
+    positionMock.mockClear();
     vi.clearAllMocks();
   });
 
@@ -191,5 +217,47 @@ describe('ReactToolbarPlugin portal rendering', () => {
 
     requestAnimationFrameSpy.mockRestore();
     cancelAnimationFrameSpy.mockRestore();
+  });
+
+  it('hides atomic selections before DOM range positioning and restores ordinary text ranges', async () => {
+    const editorRoot = document.createElement('div');
+    const text = document.createTextNode('ordinary text');
+    editorRoot.append(text);
+    document.body.append(editorRoot);
+    mocks.lexicalEditor.getRootElement.mockReturnValue(editorRoot);
+    vi.mocked($getSelection).mockReturnValue({} as never);
+    vi.mocked(getDOMSelection).mockReturnValue({
+      anchorNode: text,
+      isCollapsed: false,
+    } as unknown as Selection);
+
+    await act(async () => {
+      root.render(
+        <ReactToolbarPlugin>
+          <button data-testid="toolbar-action" type="button" />
+        </ReactToolbarPlugin>,
+      );
+    });
+
+    const updateListener = mocks.lexicalEditor.registerUpdateListener.mock.calls.at(-1)?.[0];
+    const toolbar = themeApp.querySelector<HTMLElement>('.toolbar-light');
+    if (!updateListener || !toolbar) throw new Error('Toolbar listener missing');
+
+    toolbarSelectionMock.suppress = true;
+    await act(async () => {
+      updateListener({ editorState: { read: (callback: () => void) => callback() } });
+    });
+    expect(toolbar.style.opacity).toBe('0');
+    expect(toolbar.style.transform).toBe('translate(-10000px, -10000px)');
+    expect(positionMock).not.toHaveBeenCalled();
+
+    toolbarSelectionMock.suppress = false;
+    await act(async () => {
+      updateListener({ editorState: { read: (callback: () => void) => callback() } });
+    });
+    expect(positionMock).toHaveBeenCalledOnce();
+    expect(toolbar.style.opacity).toBe('1');
+
+    editorRoot.remove();
   });
 });

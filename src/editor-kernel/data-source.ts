@@ -4,6 +4,8 @@ import type { LexicalEditor } from 'lexical';
 export interface IWriteOptions {
   // get selection data
   selection?: boolean;
+  /** Include private Markdown transport metadata when explicitly requested. */
+  includeNodeIds?: boolean;
 }
 
 export default class DataSource {

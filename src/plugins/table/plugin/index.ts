@@ -12,13 +12,15 @@ import {
   TableRowNode,
 } from '@lexical/table';
 import type { LexicalEditor, LexicalNode } from 'lexical';
-import { $setSelection } from 'lexical';
+import { $getNodeByKey, $isTextNode, $setSelection, COMMAND_PRIORITY_HIGH } from 'lexical';
 import type { ReactNode } from 'react';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IBlockMenuService } from '@/plugins/block/service';
-import { ILitexmlService } from '@/plugins/litexml';
+import { ENTER_HOLE_CONTENT_COMMAND, getHoleContentEntrySide } from '@/plugins/common/command';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
+import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IDecorator, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { cx } from '@/utils/cx';
@@ -55,6 +57,40 @@ const isRemovedTableRowDiff = (node: LexicalNode): boolean =>
 function isHeadlessEditor(editor: LexicalEditor): boolean {
   return editor._headless === true;
 }
+
+/**
+ * Accept arrow entry for a table Hole at the logical first or last cell.
+ *
+ * Hole owns the boundary direction and dispatches the generic command. The
+ * table target owns the cell lookup and caret placement, which keeps table
+ * structure out of CommonPlugin and lets a false result preserve the normal
+ * Hole boundary traversal.
+ */
+const registerTableHoleEntry = (editor: LexicalEditor): (() => void) =>
+  editor.registerCommand(
+    ENTER_HOLE_CONTENT_COMMAND,
+    (payload) => {
+      const side = getHoleContentEntrySide(payload);
+      if (!side) return false;
+
+      const target = $getNodeByKey(payload.key);
+      if (!$isTableNode(target)) return false;
+
+      const [tableMap] = $computeTableMapSkipCellCheck(target, null, null);
+      const firstRow = tableMap.find((row) => row.length > 0);
+      const lastRow = [...tableMap].reverse().find((row) => row.length > 0);
+      const cell = side === 'before' ? firstRow?.[0]?.cell : lastRow?.at(-1)?.cell;
+      if (!cell) return false;
+
+      const descendant = side === 'before' ? cell.getFirstDescendant() : cell.getLastDescendant();
+      if ($isTextNode(descendant)) {
+        return Boolean(side === 'before' ? descendant.selectStart() : descendant.selectEnd());
+      }
+
+      return Boolean(side === 'before' ? cell.selectStart() : cell.selectEnd());
+    },
+    COMMAND_PRIORITY_HIGH,
+  );
 
 const getSelectedRange = (selectedIndexes: number[]) => {
   const sortedIndexes = [...selectedIndexes].sort((a, b) => a - b);
@@ -118,6 +154,10 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    const holeService = this.kernel.requireService(IHoleService);
+    if (holeService) this.register(holeService.registerTarget(TableNode));
+    this.register(registerTableHoleEntry(editor));
+
     this.register(registerTableCellUnmergeTransform(editor));
     this.register(registerSingleCellTablePaste(editor));
 

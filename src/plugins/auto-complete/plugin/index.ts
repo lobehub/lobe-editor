@@ -15,6 +15,7 @@ import {
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { markSerializedNodesAsAIGenerated } from '@/plugins/properties/utils';
 import type { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
@@ -23,6 +24,12 @@ import { PlaceholderBlockNode, PlaceholderNode } from '../node/placeholderNode';
 const AUTO_COMPLETE_GUARD_LIMIT = 50_000;
 
 export interface AutoCompletePluginOptions {
+  aiProvenance?: {
+    model?: string;
+    provider?: string;
+  };
+  model?: string;
+  provider?: string;
   /** Delay in milliseconds before triggering auto-complete (default: 1000ms) */
   delay?: number;
   onAutoComplete?: (opt: {
@@ -607,7 +614,6 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     const markdown = this.currentSuggestion;
     const suggestionId = this.currentSuggestionId;
     const suggestionShownAt = this.suggestionShownAt;
-
     editor.update(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection) || !selection.isCollapsed() || !this.markdownService) {
@@ -630,6 +636,11 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
       }
 
       const nodes = this.markdownService.parseMarkdownToLexical(markdown);
+      markSerializedNodesAsAIGenerated(nodes, {
+        generationId: suggestionId ?? `autocomplete-${Date.now()}`,
+        model: this.config?.aiProvenance?.model ?? this.config?.model,
+        provider: this.config?.aiProvenance?.provider ?? this.config?.provider,
+      });
       this.markdownService.insertIRootNode(editor, nodes, selection);
 
       this.clearPlaceholderNodes(editor, { restoreSelection: false });

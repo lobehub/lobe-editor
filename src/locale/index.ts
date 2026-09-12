@@ -1,10 +1,19 @@
 export default {
   block: {
+    comment: 'Comment',
     copy: 'Copy',
     delete: 'Delete block',
     select: 'Select',
   },
   cancel: 'Cancel',
+  collaboration: {
+    aiAgent: 'AI Agent',
+    aiAgentAwaitingReview: 'AI Agent (awaiting review…)',
+    aiAgentConnecting: 'AI Agent (connecting…)',
+    aiAgentSyncing: 'AI Agent (syncing…)',
+    aiAgentThinking: 'AI Agent (thinking…)',
+    aiAgentWriting: 'AI Agent (typing…)',
+  },
   codemirror: {
     copySuccess: 'Code copied to clipboard',
     preview: 'Preview',
