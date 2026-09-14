@@ -581,12 +581,14 @@ describe('atomic Hole selection guard', () => {
     const { afterKey, beforeKey } = getHoleKeys();
     lexical.update(
       () => {
-        const hole = $nodesOfType(HoleNode)[0];
-        hole.getAfterCursor()?.selectStart();
+        $setSelection(null);
       },
       { discrete: true },
     );
     await moment();
+    lexical.getEditorState().read(() => {
+      expect($getSelection()).toBeNull();
+    });
 
     afterHit.dispatchEvent(
       new PointerEvent('pointerdown', {
@@ -634,6 +636,116 @@ describe('atomic Hole selection guard', () => {
       expect(selection.focus.key).toBe(beforeKey);
       expect(selection.focus.offset).toBe(1);
       expect(selection.isCollapsed()).toBe(false);
+    });
+  });
+
+  it('does not commit an explicit gutter drag after pointercancel', async () => {
+    const lexical = editor.getLexicalEditor()!;
+    const beforeHit = root.querySelector<HTMLElement>('[data-hole-cursor-hit="before"]');
+    const afterHit = root.querySelector<HTMLElement>('[data-hole-cursor-hit="after"]');
+    if (!beforeHit || !afterHit) throw new Error('Hole boundary hit areas missing');
+
+    lexical.update(() => $setSelection(null), { discrete: true });
+    await moment();
+
+    afterHit.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        cancelable: true,
+        clientX: 566,
+        pointerId: 2,
+      }),
+    );
+    beforeHit.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        cancelable: true,
+        clientX: 66,
+        pointerId: 2,
+      }),
+    );
+    document.dispatchEvent(
+      new PointerEvent('pointercancel', {
+        bubbles: true,
+        cancelable: true,
+        pointerId: 2,
+      }),
+    );
+
+    // A late root event must not finish the cancelled gesture.
+    beforeHit.dispatchEvent(
+      new PointerEvent('pointerup', {
+        bubbles: true,
+        button: 0,
+        buttons: 0,
+        cancelable: true,
+        pointerId: 2,
+      }),
+    );
+    await moment();
+
+    lexical.getEditorState().read(() => {
+      expect($getSelection()).toBeNull();
+    });
+  });
+
+  it('closes an explicit gutter drag when pointerup is outside the root', async () => {
+    const lexical = editor.getLexicalEditor()!;
+    const beforeHit = root.querySelector<HTMLElement>('[data-hole-cursor-hit="before"]');
+    const afterHit = root.querySelector<HTMLElement>('[data-hole-cursor-hit="after"]');
+    if (!beforeHit || !afterHit) throw new Error('Hole boundary hit areas missing');
+
+    lexical.update(() => $setSelection(null), { discrete: true });
+    await moment();
+
+    afterHit.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        cancelable: true,
+        clientX: 566,
+        pointerId: 3,
+      }),
+    );
+    beforeHit.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        cancelable: true,
+        clientX: 66,
+        pointerId: 3,
+      }),
+    );
+    document.dispatchEvent(
+      new PointerEvent('pointerup', {
+        bubbles: true,
+        button: 0,
+        buttons: 0,
+        cancelable: true,
+        pointerId: 3,
+      }),
+    );
+
+    // This late in-root release is a second finish attempt and must be inert.
+    beforeHit.dispatchEvent(
+      new PointerEvent('pointerup', {
+        bubbles: true,
+        button: 0,
+        buttons: 0,
+        cancelable: true,
+        pointerId: 3,
+      }),
+    );
+    await moment();
+
+    lexical.getEditorState().read(() => {
+      expect($getSelection()).toBeNull();
     });
   });
 

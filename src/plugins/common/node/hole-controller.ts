@@ -140,15 +140,19 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
   const installDOMSelectionGuard = (root: HTMLElement): (() => void) => {
     const document = root.ownerDocument;
     let dragNormalizationScheduled = false;
-    let pointerState: {
+    type PointerState = {
       dragging: boolean;
       moved: boolean;
-      startHit: { holeKey: string; side: AtomicHoleBoundarySide } | null;
-      startHitIsExplicit: boolean;
+      startHit: {
+        explicit: boolean;
+        holeKey: string;
+        side: AtomicHoleBoundarySide;
+      } | null;
       startX: number;
       startY: number;
       pointerId: number;
-    } | null = null;
+    };
+    let pointerState: PointerState | null = null;
     const getHoleKey = (hole: HTMLElement): string | undefined => {
       const lexicalEditor = editor;
       let holeKey: string | undefined;
@@ -256,29 +260,34 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
       return side && hole ? { hole, side } : null;
     };
 
-    const normalizeGutterDrag = (endHit: {
-      hole: HTMLElement;
-      side: AtomicHoleBoundarySide;
-    }): void => {
-      if (!pointerState?.moved || !pointerState.startHit || !pointerState.startHitIsExplicit)
-        return;
+    const normalizeGutterDrag = (
+      state: PointerState,
+      endHit: { hole: HTMLElement; side: AtomicHoleBoundarySide },
+    ): void => {
+      if (!state.moved || !state.startHit?.explicit) return;
 
-      const startHit = pointerState.startHit;
+      const startHit = state.startHit;
       const endHoleKey = getHoleKey(endHit.hole);
       if (!endHoleKey) return;
 
       editor.update(
         () => {
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection)) return;
-
           const startHole = $getNodeByKey(startHit.holeKey);
           const endHole = $getNodeByKey(endHoleKey);
           if (!$isHoleNode(startHole) || !$isHoleNode(endHole)) return;
 
+          const currentSelection = $getSelection();
+          let selection: RangeSelection;
+          if ($isRangeSelection(currentSelection)) {
+            selection = currentSelection;
+          } else {
+            selection = $createRangeSelection();
+            $setSelection(selection);
+          }
+
           // Both hit areas are contenteditable=false, so the browser can keep
-          // a gutter-to-gutter native drag collapsed. Reuse the existing
-          // Lexical range and replace only its two legal Hole endpoints.
+          // a gutter-to-gutter native drag collapsed. Use or create a range and
+          // set both legal Hole endpoints; no preexisting caret is required.
           $setAtomicHoleBoundaryPoint(selection, startHit.side, startHole, 'anchor');
           $setAtomicHoleBoundaryPoint(selection, endHit.side, endHole, 'focus');
         },
@@ -315,17 +324,20 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
       });
     };
 
-    const finishPointer = (event?: Event): void => {
-      if (!pointerState || !pointerState.dragging) return;
-      if (event) {
-        const endHit = resolveExplicitPointerHit(event.target);
-        if (endHit) normalizeGutterDrag(endHit);
-      }
+    const finishPointer = (event: Event): void => {
+      const state = pointerState;
+      if (!state?.dragging) return;
+
+      // Close the gesture before applying its selection. This makes a second
+      // pointerup (for example, after document capture and root capture) a
+      // bookkeeping no-op while the selection commit remains one-shot.
+      state.dragging = false;
+      const endHit = resolveExplicitPointerHit(event.target);
+      if (endHit) normalizeGutterDrag(state, endHit);
       // Keep the gesture through the synthetic/native click that follows
       // pointerup. The click path consumes it; the next pointerdown replaces
       // it. No pointer capture is used, so document-level pointerup/cancel
       // still closes the active gesture when release occurs outside root.
-      pointerState.dragging = false;
     };
 
     const guardEvent = (event: Event): void => {
@@ -338,8 +350,8 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
         // (including CodeMirror/iframe editors) keep their own drag model and
         // must never have their anchor rewritten to a Hole boundary.
         if (isPayloadInteractionTarget(event.target)) return;
-        const hit = resolvePointerHit(event);
         const explicitHit = resolveExplicitPointerHit(event.target);
+        const hit = explicitHit ?? resolvePointerHit(event);
         const targetElement = getTargetElement(event.target);
         if (!targetElement || !root.contains(targetElement)) return;
         const holeKey = hit ? getHoleKey(hit.hole) : undefined;
@@ -347,8 +359,8 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
           dragging: true,
           moved: false,
           pointerId: pointer.pointerId,
-          startHit: holeKey && hit ? { holeKey, side: hit.side } : null,
-          startHitIsExplicit: Boolean(explicitHit),
+          startHit:
+            holeKey && hit ? { explicit: Boolean(explicitHit), holeKey, side: hit.side } : null,
           startX: pointer.clientX,
           startY: pointer.clientY,
         };
