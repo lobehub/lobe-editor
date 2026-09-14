@@ -299,7 +299,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     }
 
     [data-hole='true'] > [data-hole-cursor-hit] {
-      pointer-events: none;
+      pointer-events: auto;
       cursor: text;
       user-select: text;
 

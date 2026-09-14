@@ -78,7 +78,7 @@ describe('HoleNode DOM layout', () => {
     );
     if (!beforeHit || !afterHit) throw new Error('Hole cursor hit area missing');
     expect(getComputedStyle(beforeHit).position).toBe('absolute');
-    expect(getComputedStyle(beforeHit).pointerEvents).toBe('none');
+    expect(getComputedStyle(beforeHit).pointerEvents).toBe('auto');
     expect(getComputedStyle(beforeHit).userSelect).toBe('text');
     expect(getComputedStyle(beforeHit).insetBlock).toBe('0px');
     expect(getComputedStyle(holeElement).getPropertyValue('--lobe-hole-cursor-gutter')).toBe(
