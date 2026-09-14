@@ -143,15 +143,15 @@ function syncTableHoleBlockInsets(element: HTMLElement): void {
     // remove it as an unknown child. Geometry updates may only touch styles.
     if (rowToolbar.parentElement === controllerHost) {
       if (hole) {
-        // Row controls have a deliberate -14px left overhang. Keep that chrome
-        // outside the native data scrollport so clipping the table cannot hide
-        // the row/corner handles. They still track the table while it scrolls.
+        // The Hole row overlay is anchored to the visible viewport edge. It is
+        // already outside the native data scrollport, so applying scrollLeft
+        // here would detach the controls from that visible edge.
         rowToolbar.setAttribute(TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE, 'true');
+        rowToolbar.style.removeProperty('transform');
       } else {
         rowToolbar.removeAttribute(TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE);
+        rowToolbar.style.transform = `translateX(${-scrollLeft}px)`;
       }
-
-      rowToolbar.style.transform = `translateX(${-scrollLeft}px)`;
     } else {
       // A legacy host may still be inside the scroll wrapper. Leave its
       // ownership untouched until the next DOM creation rather than moving it

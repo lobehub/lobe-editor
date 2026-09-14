@@ -99,6 +99,13 @@ export const styles = createStaticStyles(
       inset-inline-start: 0;
     }
 
+    /* The Hole boundary hit area occupies the same gutter as the fixed row
+       controller. Keep the controller above that hit area; its host remains
+       click-through and only the actual controls opt into pointer events. */
+    > .toolbar-row[data-hole-table-overlay] {
+      z-index: 4;
+    }
+
     .table-controller,
     .table-controller-col,
     .table-controller-row {
@@ -157,6 +164,23 @@ export const styles = createStaticStyles(
       vertical-align: top;
 
       outline: none;
+    }
+
+    /* While row controls are mounted, their own end border is the stable seam
+       at the viewport edge. The table restores its outer border when the
+       controller unmounts (including readonly/blurred states). */
+    &:has(> .toolbar-row > .table-controller-row)
+      > .lobe-editor-table-scroll-wrapper
+      > table.editor_table
+      > tr
+      > .editor_table_cell:first-child,
+    &:has(> .toolbar-row > .table-controller-row)
+      > .lobe-editor-table-scroll-wrapper
+      > table.editor_table
+      > tbody
+      > tr
+      > .editor_table_cell:first-child {
+      border-inline-start-width: 0;
     }
 
     .editor_table_cell_selected {
