@@ -12,6 +12,7 @@ import type { ReactFilePluginProps } from './type';
 
 const ReactFilePlugin: FC<ReactFilePluginProps> = ({
   className,
+  defaultBlockFile,
   locale,
   handleUpload,
   markdownWriter,
@@ -25,6 +26,7 @@ const ReactFilePlugin: FC<ReactFilePluginProps> = ({
     }
     editor.registerPlugin(UploadPlugin);
     editor.registerPlugin(FilePlugin, {
+      defaultBlockFile,
       decorator: (node, editor) => {
         return <ReactFile className={className} editor={editor} node={node} />;
       },

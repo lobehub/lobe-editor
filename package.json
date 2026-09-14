@@ -85,8 +85,10 @@
     "start": "npm run docs:dev",
     "test": "vitest",
     "test:coverage": "vitest run --coverage  --passWithNoTests",
+    "test:verify-final-head": "vitest run ./scripts/verify-final-head.test.mjs",
     "test:watch": "vitest --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "verify:final-head": "node ./scripts/verify-final-head.mjs"
   },
   "lint-staged": {
     "*.{md,mdc}": [

@@ -3,7 +3,7 @@ import type { LexicalEditor } from 'lexical';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { $isCollapsibleNode, CollapsibleNode } from '@/plugins/collapsible/node/CollapsibleNode';
-import { ILitexmlService } from '@/plugins/litexml';
+import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 

@@ -1,5 +1,3 @@
-/* eslint-disable no-redeclare */
-/* eslint-disable @typescript-eslint/no-redeclare */
 import { $isHeadingNode } from '@lexical/rich-text';
 import EventEmitter from 'eventemitter3';
 import {

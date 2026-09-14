@@ -2,6 +2,9 @@ import { type SerializedTableRowNode, TableRowNode } from '@lexical/table';
 import type { EditorConfig, LexicalUpdateJSON, NodeKey, Spread } from 'lexical';
 import { $applyNodeReplacement } from 'lexical';
 
+import { normalizeLiteXMLChangeId } from '../change-id';
+import { normalizeTableDiffWrapperIdentity } from '../table-diff-identity';
+
 export type TableRowDiffType = 'add' | 'remove';
 
 export type SerializedTableRowDiffNode = Spread<
@@ -39,7 +42,7 @@ export class TableRowDiffNode extends TableRowNode {
   constructor(diffType: TableRowDiffType, changeId?: string, height?: number, key?: NodeKey) {
     super(height, key);
     this.__diffType = diffType;
-    this.__changeId = changeId;
+    this.__changeId = normalizeLiteXMLChangeId(changeId);
   }
 
   createDOM(config: EditorConfig): HTMLElement {
@@ -69,7 +72,7 @@ export class TableRowDiffNode extends TableRowNode {
   }
 
   setChangeId(changeId?: string): this {
-    this.getWritable().__changeId = changeId;
+    this.getWritable().__changeId = normalizeLiteXMLChangeId(changeId);
     return this;
   }
 
@@ -87,10 +90,12 @@ export class TableRowDiffNode extends TableRowNode {
   }
 
   updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedTableRowDiffNode>): this {
-    return super
+    const node = super
       .updateFromJSON(serializedNode)
       .setDiffType(serializedNode.diffType)
       .setChangeId(serializedNode.changeId);
+    normalizeTableDiffWrapperIdentity(node);
+    return node;
   }
 
   private syncDOMState(element: HTMLElement): void {

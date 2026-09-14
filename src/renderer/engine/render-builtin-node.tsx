@@ -323,6 +323,24 @@ export function renderBuiltinNode(
     case 'cursor': {
       return null;
     }
+    case 'hole': {
+      return children;
+    }
+    case 'artifact': {
+      const title = typeof node.title === 'string' ? node.title : '';
+      return (
+        <iframe
+          allow=""
+          className="editor_artifact_preview"
+          key={key}
+          referrerPolicy="no-referrer"
+          sandbox=""
+          srcDoc={typeof node.html === 'string' ? node.html : ''}
+          style={{ border: 0, display: 'block', height: '420px', width: '100%' }}
+          title={title ? `${title} preview` : 'Artifact preview'}
+        />
+      );
+    }
     default: {
       if (process.env.NODE_ENV !== 'production') {
         console.warn(`[LexicalRenderer] Unknown node type: "${node.type}"`);

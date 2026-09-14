@@ -1,391 +1,201 @@
-import type { CommandPayloadType, SerializedEditorState, SerializedLexicalNode } from 'lexical';
+export type {
+  BlockRewriteSelection,
+  CollaborativeAgentCommand,
+  CollaborativeAgentEditorConnectOptions,
+  CollaborativeRewriteSelection,
+  CollaborativeRewriteStreamAbortInput,
+  CollaborativeRewriteStreamAppendInput,
+  CollaborativeRewriteStreamFinalizeInput,
+  CollaborativeRewriteStreamRecoveryInput,
+  CollaborativeRewriteStreamResult,
+  CollaborativeRewriteStreamSession,
+  CollaborativeRewriteStreamStartInput,
+  CollaborativeRewriteStreamStatus,
+  ResolvedBlockRewriteTarget,
+  ResolvedRewriteSelection,
+  RewriteSelection,
+  RewriteTargetInspection,
+  SerializedRewriteSelection,
+} from './collaborative-agent-editor';
+export {
+  CollaborativeAgentEditor,
+  deserializeRelativePosition,
+  hashRewriteText,
+  serializeRelativePosition,
+} from './collaborative-agent-editor';
+export { DEFAULT_HEADLESS_EDITOR_PLUGINS } from './default-plugins';
+export type {
+  CreateImmutableYjsSnapshotFromEditorDataInput,
+  ExportYjsSnapshotProjectionInput,
+  ImmutableYjsSnapshot,
+  LegacyBlockImageMigrationResult,
+  MigrateLegacyBlockImagesInYjsDocInput,
+  YjsSnapshotProjection,
+} from './yjs-snapshot';
+export {
+  createImmutableYjsSnapshotFromEditorData,
+  exportYjsSnapshotProjection,
+  migrateLegacyBlockImagesInYjsDoc,
+} from './yjs-snapshot';
+export { extractArtifactTitle, normalizeArtifactTitle } from '@/plugins/artifact/rewrite-utils';
+export {
+  APPLY_BLOCK_REWRITE_COMMAND,
+  type ApplyBlockRewritePayload,
+} from '@/plugins/block/command';
+export type {
+  BlockRewriteAdapter,
+  BlockRewriteApplyMetadata,
+  BlockRewriteCapabilities,
+  BlockRewriteContext,
+  BlockRewriteImageContext,
+  BlockRewriteOutput,
+  BlockRewriteOutputSchema,
+  BlockRewritePatchOutput,
+  BlockRewriteSourceOutput,
+  BlockRewriteValidationResult,
+  ResolvedRewriteAdapterTarget,
+} from '@/plugins/block/service/rewrite-adapter';
+export { resolveRewriteAdapterTarget } from '@/plugins/block/service/rewrite-adapter';
+export type {
+  EditorDiagnosticsCommand,
+  EditorDiagnosticsCommandEntry,
+  EditorDiagnosticsEntry,
+  EditorDiagnosticsNativeEntry,
+  EditorDiagnosticsNativeEvent,
+  EditorDiagnosticsPoint,
+  EditorDiagnosticsRuntimeKey,
+  EditorDiagnosticsSelection,
+  EditorDiagnosticsSelectionType,
+  EditorDiagnosticsShortcut,
+  EditorDiagnosticsTarget,
+  EditorDiagnosticsUpdateEntry,
+} from '@/plugins/common/service/i-editor-diagnostics-service';
+export { IEditorDiagnosticsService } from '@/plugins/common/service/i-editor-diagnostics-service';
+export type {
+  HoleBoundaryChange,
+  HoleBoundaryPosition,
+  HoleBoundarySide,
+  HoleBoundaryState,
+} from '@/plugins/common/service/i-hole-service';
+export { IHoleService } from '@/plugins/common/service/i-hole-service';
+export type {
+  AgentAwarenessData,
+  AgentAwarenessInput,
+  AgentAwarenessState,
+  AgentAwarenessStatus,
+  AgentCaretAnchor,
+  AgentRewriteRange,
+  NodeWebSocketYjsProviderOptions,
+  RefreshTicket,
+  SerializedRelativePosition,
+  SerializedUserState,
+} from '@/plugins/yjs';
 
-import Editor, { moment } from '@/editor-kernel';
-import { CodePlugin } from '@/plugins/code/plugin';
-import { CodemirrorPlugin } from '@/plugins/codemirror-block/plugin';
-import { CommonPlugin } from '@/plugins/common/plugin';
-import { FilePlugin } from '@/plugins/file/plugin';
-import { HRPlugin } from '@/plugins/hr/plugin';
-import { ImagePlugin } from '@/plugins/image/plugin';
-import { INodePlugin } from '@/plugins/inode/plugin';
-import { LinkPlugin } from '@/plugins/link/plugin';
-import { ListPlugin } from '@/plugins/list/plugin';
-import {
-  LITEXML_APPLY_COMMAND,
+// Targeted rewrite is exported from the headless entry so a Node Agent can
+// share the exact command symbol/gateway with the browser bundle.
+export type {
+  AISessionHighlightKind,
+  AISessionMark,
+  AISessionRange,
+  AISessionRangeInput,
+} from '@/plugins/ai-session';
+export {
+  $applyAISessionMark,
+  $removeAISessionMark,
+  AISessionService,
+  IAISessionService,
+} from '@/plugins/ai-session/service';
+export type {
+  CollaborativeAgentCommandGateway,
+  LiteXMLInsertCommandPayload,
+  LiteXMLModifyCommandOperation,
+  LiteXMLModifyCommandPayload,
+  LiteXMLRemoveCommandPayload,
+  LiteXMLReviewCommandPayload,
+  LiteXMLRewriteMetadata,
+  LiteXMLValidationOptions,
+  PendingRewriteReview,
+  RewriteCommandResult,
+  RewriteCommandResultChannel,
+  RewriteCommandStatus,
+  RewriteRangeCommandPayload,
+  RewriteRangeMode,
+  RewriteReviewEvent,
+  RewriteReviewListener,
+  RewriteReviewSettlementInput,
+  RewriteReviewSettlementResult,
+  RewriteSelectionInput,
+  SerializedBlockRewriteSelection,
+  SerializedRewritePoint,
+} from '@/plugins/litexml/command';
+export {
+  COLLABORATIVE_AGENT_COMMAND_ALLOWLIST,
+  createAgentCommandGateway,
+  createCollaborativeAgentCommandGateway,
+  getRewriteService,
+  InMemoryRewriteCommandResultChannel,
+  IRewriteCommandResultService,
+  IRewriteReviewService,
+  IRewriteService,
   LITEXML_INSERT_COMMAND,
   LITEXML_MODIFY_COMMAND,
   LITEXML_REMOVE_COMMAND,
+  LITEXML_REVIEW_COMMAND,
+  LITEXML_REWRITE_RANGE_COMMAND,
+  normalizeRewriteText,
+  RewriteReviewService,
+  RewriteService,
+  validateLiteXMLInput,
 } from '@/plugins/litexml/command';
-import { LitexmlPlugin } from '@/plugins/litexml/plugin';
-import { MarkdownPlugin } from '@/plugins/markdown/plugin';
-import { MathPlugin } from '@/plugins/math/plugin';
-import { MentionPlugin } from '@/plugins/mention/plugin';
-import { TablePlugin } from '@/plugins/table/plugin';
-import type { IDocumentOptions, IEditor, IPlugin } from '@/types';
+export { MARK_AI_GENERATED_COMMAND } from '@/plugins/properties/command';
+export {
+  createAgentYjsProvider,
+  createNodeWebSocketYjsProvider,
+  NodeWebSocketYjsProvider,
+} from '@/plugins/yjs/node-websocket-provider';
+export {
+  decodeBase64,
+  decodeYjsBase64,
+  encodeBase64,
+  encodeYjsBase64,
+  isAgentCaretAnchor,
+  isAgentRewriteRange,
+  LOBE_YJS_PROTOCOL,
+  LOBE_YJS_PROTOCOL_VERSION,
+  parseLobeYjsMessage,
+  YJS_PROTOCOL,
+  YJS_PROTOCOL_VERSION,
+} from '@/plugins/yjs/protocol';
+export { canonicalizeMarkdownRewriteText, getSerializedTextContent } from '@/utils/rewrite-text';
 
-import { HeadlessCollapsiblePlugin } from './collapsible-plugin';
-
+// Durable node identity is part of the headless/agent surface as well as the
+// browser bundle. Re-export the primitives here so a Node collaborator can
+// resolve and migrate targets without importing the DOM entrypoint.
 export type { FileListItem, ImageListItem, MediaLists } from './extract-media-from-editor-state';
 export { extractMediaFromEditorState } from './extract-media-from-editor-state';
-
-export type HeadlessDocumentType = 'json' | 'litexml' | 'markdown' | (string & object);
-
-export interface HeadlessEditorHydrationInput {
-  content: unknown;
-  options?: IDocumentOptions;
-  type: HeadlessDocumentType;
-}
-
-export interface HeadlessEditorExportOptions {
-  litexml?: boolean;
-}
-
-export interface HeadlessEditorExport {
-  editorData: SerializedEditorState<SerializedLexicalNode>;
-  litexml?: string;
-  markdown: string;
-}
-
-export interface HeadlessEditorOptions {
-  additionalPlugins?: ReadonlyArray<IPlugin>;
-  initialValue?: HeadlessEditorHydrationInput;
-  plugins?: ReadonlyArray<IPlugin>;
-}
-
-export interface HeadlessLiteXMLReplaceOperation {
-  action: 'apply' | 'replace';
-  delay?: boolean;
-  litexml: string | string[];
-}
-
-export type HeadlessLiteXMLInsertOperation =
-  | {
-      action: 'insert';
-      afterId: string;
-      delay?: boolean;
-      litexml: string;
-    }
-  | {
-      action: 'insert';
-      beforeId: string;
-      delay?: boolean;
-      litexml: string;
-    };
-
-export interface HeadlessLiteXMLRemoveOperation {
-  action: 'remove';
-  delay?: boolean;
-  id: string;
-}
-
-export interface HeadlessLiteXMLBatchOperation {
-  action: 'batch';
-  operations: CommandPayloadType<typeof LITEXML_MODIFY_COMMAND>;
-}
-
-export type HeadlessLiteXMLOperation =
-  | HeadlessLiteXMLBatchOperation
-  | HeadlessLiteXMLInsertOperation
-  | HeadlessLiteXMLRemoveOperation
-  | HeadlessLiteXMLReplaceOperation;
-
-type SerializedRecord = Record<string, unknown>;
-
-interface NormalizeLegacyEditorDataContext {
-  nextId: number;
-}
-
-const getNumericId = (id: unknown): number | null => {
-  if (typeof id !== 'number' && typeof id !== 'string') return null;
-
-  const numericId = Number(id);
-  return Number.isInteger(numericId) && numericId >= 0 ? numericId : null;
-};
-
-const findMaxSerializedId = (node: unknown): number => {
-  if (!node || typeof node !== 'object') return -1;
-
-  const record = node as SerializedRecord;
-  const id = getNumericId(record.id);
-  const ownMax = id ?? -1;
-
-  if (!Array.isArray(record.children)) return ownMax;
-
-  return record.children.reduce(
-    (maxId: number, child: unknown) => Math.max(maxId, findMaxSerializedId(child)),
-    ownMax,
-  );
-};
-
-const createSerializedId = (context: NormalizeLegacyEditorDataContext) => String(context.nextId++);
-
-const createCodeChildrenFromLegacyCode = (
-  code: string,
-  context: NormalizeLegacyEditorDataContext,
-) =>
-  code.split('\n').flatMap((text, index, array) => {
-    const textNode = {
-      detail: 0,
-      format: 0,
-      id: createSerializedId(context),
-      mode: 'normal',
-      style: '',
-      text,
-      type: 'code-highlight',
-      version: 1,
-    };
-
-    if (index === array.length - 1) {
-      return textNode;
-    }
-
-    return [
-      textNode,
-      {
-        id: createSerializedId(context),
-        type: 'linebreak',
-        version: 1,
-      },
-    ];
-  });
-
-const normalizeLegacyEditorDataNode = (
-  node: unknown,
-  context: NormalizeLegacyEditorDataContext,
-): unknown => {
-  if (!node || typeof node !== 'object') return node;
-
-  const record = node as SerializedRecord;
-  const children = Array.isArray(record.children)
-    ? record.children.map((child: unknown) => normalizeLegacyEditorDataNode(child, context))
-    : record.children;
-
-  if (record.type === 'code' && typeof record.code === 'string' && !Array.isArray(children)) {
-    return {
-      ...record,
-      children: createCodeChildrenFromLegacyCode(record.code, context),
-      direction: record.direction ?? 'ltr',
-      format: record.format ?? '',
-      indent: record.indent ?? 0,
-      language: record.language ?? 'plaintext',
-      theme: record.theme ?? record.codeTheme,
-    };
-  }
-
-  if (Array.isArray(children)) {
-    return {
-      ...record,
-      children,
-    };
-  }
-
-  return record;
-};
-
-const normalizeLegacyEditorData = (
-  editorData: SerializedEditorState<SerializedLexicalNode> | string,
-): SerializedEditorState<SerializedLexicalNode> | string => {
-  const data =
-    typeof editorData === 'string'
-      ? (JSON.parse(editorData) as SerializedEditorState<SerializedLexicalNode>)
-      : editorData;
-
-  const context = {
-    nextId: findMaxSerializedId(data.root) + 1,
-  };
-
-  return {
-    ...data,
-    root: normalizeLegacyEditorDataNode(data.root, context),
-  } as SerializedEditorState<SerializedLexicalNode>;
-};
-
-const extractSerializedCodeText = (children: unknown[]): string =>
-  children
-    .map((child) => {
-      if (!child || typeof child !== 'object') return '';
-
-      const record = child as SerializedRecord;
-
-      if (record.type === 'linebreak') return '\n';
-      if (record.type === 'tab') return '\t';
-      if (typeof record.text === 'string') return record.text;
-      if (Array.isArray(record.children)) return extractSerializedCodeText(record.children);
-
-      return '';
-    })
-    .join('');
-
-const preserveSerializedCodeText = (node: unknown): unknown => {
-  if (!node || typeof node !== 'object') return node;
-
-  const record = node as SerializedRecord;
-  const children = Array.isArray(record.children)
-    ? record.children.map((child: unknown) => preserveSerializedCodeText(child))
-    : record.children;
-
-  if (record.type === 'code' && Array.isArray(children)) {
-    return {
-      ...record,
-      children,
-      code: extractSerializedCodeText(children),
-    };
-  }
-
-  if (Array.isArray(children)) {
-    return {
-      ...record,
-      children,
-    };
-  }
-
-  return record;
-};
-
-const preserveSerializedCodeTextInEditorData = (
-  editorData: SerializedEditorState<SerializedLexicalNode>,
-): SerializedEditorState<SerializedLexicalNode> =>
-  ({
-    ...editorData,
-    root: preserveSerializedCodeText(editorData.root),
-  }) as SerializedEditorState<SerializedLexicalNode>;
-
-export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
-  [CommonPlugin, { enableHotkey: false }],
-  INodePlugin,
-  MarkdownPlugin,
-  [LinkPlugin, { enableHotkey: false }],
-  CodePlugin,
-  CodemirrorPlugin,
-  ImagePlugin,
-  FilePlugin,
-  MathPlugin,
-  MentionPlugin,
-  HRPlugin,
-  ListPlugin,
-  TablePlugin,
-  HeadlessCollapsiblePlugin,
-  LitexmlPlugin,
-];
-
-export class HeadlessEditor {
-  readonly kernel: IEditor;
-
-  constructor(options: HeadlessEditorOptions = {}) {
-    this.kernel = Editor.createEditor();
-
-    const plugins = [
-      ...(options.plugins ?? DEFAULT_HEADLESS_EDITOR_PLUGINS),
-      ...(options.additionalPlugins ?? []),
-    ];
-
-    this.kernel.registerPlugins(plugins);
-    this.kernel.initHeadlessEditor();
-
-    if (options.initialValue) {
-      this.hydrate(options.initialValue);
-    }
-  }
-
-  hydrate(input: HeadlessEditorHydrationInput): this {
-    this.kernel.setDocument(input.type, input.content, input.options);
-    return this;
-  }
-
-  hydrateEditorData(
-    editorData: SerializedEditorState<SerializedLexicalNode> | string,
-    options?: IDocumentOptions,
-  ): this {
-    this.kernel.setDocument('json', normalizeLegacyEditorData(editorData), options);
-    return this;
-  }
-
-  hydrateLiteXML(litexml: string, options?: IDocumentOptions): this {
-    this.kernel.setDocument('litexml', litexml, options);
-    return this;
-  }
-
-  hydrateMarkdown(markdown: string, options?: IDocumentOptions): this {
-    this.kernel.setDocument('markdown', markdown, options);
-    return this;
-  }
-
-  async applyLiteXML(
-    operation: HeadlessLiteXMLOperation | ReadonlyArray<HeadlessLiteXMLOperation>,
-  ): Promise<this> {
-    const operations = Array.isArray(operation) ? operation : [operation];
-
-    for (const item of operations) {
-      this.applyLiteXMLOperation(item);
-    }
-
-    await moment();
-    return this;
-  }
-
-  async applyLiteXMLBatch(
-    operations: CommandPayloadType<typeof LITEXML_MODIFY_COMMAND>,
-  ): Promise<this> {
-    this.kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, operations);
-    await moment();
-    return this;
-  }
-
-  export(options: HeadlessEditorExportOptions = {}): HeadlessEditorExport {
-    const snapshot: HeadlessEditorExport = {
-      editorData: preserveSerializedCodeTextInEditorData(
-        this.kernel.getDocument('json') as unknown as SerializedEditorState<SerializedLexicalNode>,
-      ),
-      markdown: this.kernel.getDocument('markdown') as unknown as string,
-    };
-
-    if (options.litexml) {
-      snapshot.litexml = this.kernel.getDocument('litexml') as unknown as string;
-    }
-
-    return snapshot;
-  }
-
-  exportState(options?: HeadlessEditorExportOptions): HeadlessEditorExport {
-    return this.export(options);
-  }
-
-  destroy(): void {
-    this.kernel.destroy();
-  }
-
-  private applyLiteXMLOperation(operation: HeadlessLiteXMLOperation): void {
-    switch (operation.action) {
-      case 'apply':
-      case 'replace': {
-        this.kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-          delay: operation.delay,
-          litexml: operation.litexml,
-        });
-        return;
-      }
-
-      case 'batch': {
-        this.kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, operation.operations);
-        return;
-      }
-
-      case 'insert': {
-        this.kernel.dispatchCommand(LITEXML_INSERT_COMMAND, operation);
-        return;
-      }
-
-      case 'remove': {
-        this.kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-          delay: operation.delay,
-          id: operation.id,
-        });
-        return;
-      }
-    }
-  }
-}
-
-export function createHeadlessEditor(options?: HeadlessEditorOptions): HeadlessEditor {
-  return new HeadlessEditor(options);
-}
+export * from './headless-editor';
+export type {
+  NodeIdentityMigrationOptions,
+  NodeIdentityMigrationResult,
+  NodeProperties,
+} from '@/plugins/properties';
+export {
+  createDeterministicNodeId,
+  createNodeId,
+  isNodeId,
+  propertiesState,
+} from '@/plugins/properties/state';
+export {
+  $ensureNodeId,
+  $ensureNodeIdsInTree,
+  $findNodeById,
+  $findNodesById,
+  $getNodeById,
+  $getNodeId,
+  $isNodeIdentityBlockTarget,
+  $isNodeIdentityTarget,
+  $migrateNodeIds,
+  $preserveNodeIdentity,
+  $resolveNodeIds,
+  $setNodeId,
+} from '@/plugins/properties/utils';

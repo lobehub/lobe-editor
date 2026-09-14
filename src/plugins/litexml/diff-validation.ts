@@ -1,7 +1,15 @@
+/**
+ * Serialized LiteXML diff validation helpers.
+ *
+ * The validator deliberately works on a cloned JSON tree.  A command can
+ * therefore project its result and reject a newly-created illegal nested diff
+ * before touching the live Lexical/Yjs tree.
+ */
 export interface SerializedDiffTreeNode {
   children?: SerializedDiffTreeNode[];
   diffType?: string;
-  id?: string;
+  id?: string | number;
+  $?: { properties?: { nodeId?: unknown } };
   side?: string;
   type?: string;
   [key: string]: unknown;
@@ -19,7 +27,6 @@ export type LiteXmlProjectionOperation =
   | { action: 'insert'; afterId: string; litexml: string };
 
 type XmlReader = (xml: string) => { root?: { children?: SerializedDiffTreeNode[] } };
-
 const ACTIONABLE_DIFF_TYPES = new Set([
   'add',
   'remove',
@@ -36,6 +43,13 @@ const isElementNode = (node: SerializedDiffTreeNode): boolean => Array.isArray(n
 
 const cloneNode = <T>(node: T): T => structuredClone(node);
 
+const getSerializedNodeId = (node: SerializedDiffTreeNode): string | number | undefined => {
+  const nodeId = node.$?.properties?.nodeId;
+  if (typeof nodeId === 'string' && nodeId.length > 0) return nodeId;
+  return node.id;
+};
+
+/** Return whether a tree contains an actionable diff below the supplied node. */
 export function hasActionableDiffDescendant(node: SerializedDiffTreeNode): boolean {
   return (node.children || []).some(
     (child) => isActionableDiff(child) || hasActionableDiffDescendant(child),
@@ -43,8 +57,12 @@ export function hasActionableDiffDescendant(node: SerializedDiffTreeNode): boole
 }
 
 /**
- * Validate the serialized public tree. Paths use serialized node ids, not
- * Lexical's private node map, so this remains stable across JSON reloads.
+ * Find illegal actionable-diff nesting in a serialized tree.
+ *
+ * A `DiffContentNode` is an expected child of a diff and is not itself an
+ * actionable diff.  Table-specific diff wrappers are kept out of an
+ * actionable diff as well. Existing violations are reported too; callers
+ * should compare before/after counts with `findNewIllegalDiffPaths`.
  */
 export function collectIllegalNestedDiffPaths(root: SerializedDiffTreeNode): string[] {
   const violations: string[] = [];
@@ -53,7 +71,7 @@ export function collectIllegalNestedDiffPaths(root: SerializedDiffTreeNode): str
     node: SerializedDiffTreeNode,
     ancestors: SerializedDiffTreeNode[],
     path: string,
-  ) => {
+  ): void => {
     const actionableAncestor = [...ancestors].reverse().find(isActionableDiff);
     const rowDiffAncestor = [...ancestors]
       .reverse()
@@ -82,15 +100,17 @@ export function collectIllegalNestedDiffPaths(root: SerializedDiffTreeNode): str
     }
 
     if (!isElementNode(node)) return;
-    node.children?.forEach((child) => {
-      visit(child, [...ancestors, node], `${path}/${child.id || child.type || 'node'}`);
+    node.children?.forEach((child, index) => {
+      const childId = child.id ?? child.type ?? `node-${index}`;
+      visit(child, [...ancestors, node], `${path}/${String(childId)}`);
     });
   };
 
-  visit(root, [], root.id || root.type || 'root');
+  visit(root, [], String(root.id ?? root.type ?? 'root'));
   return violations;
 }
 
+/** Return only violations introduced by a projected tree. */
 export function findNewIllegalDiffPaths(
   previous: SerializedDiffDocument,
   projected: SerializedDiffDocument,
@@ -120,13 +140,15 @@ interface NodeLocation {
 
 function findNodeLocation(
   root: SerializedDiffTreeNode,
-  id: string,
+  id: string | number,
   ancestors: SerializedDiffTreeNode[] = [],
 ): NodeLocation | null {
-  if (root.id === id) return { ancestors, index: -1, node: root, parent: null };
+  if (String(getSerializedNodeId(root)) === String(id)) {
+    return { ancestors, index: -1, node: root, parent: null };
+  }
 
   for (const [index, child] of (root.children || []).entries()) {
-    if (child.id === id) {
+    if (String(getSerializedNodeId(child)) === String(id)) {
       return { ancestors: [...ancestors, root], index, node: child, parent: root };
     }
     const nested = findNodeLocation(child, id, [...ancestors, root]);
@@ -153,8 +175,9 @@ function createDiffContent(
 }
 
 function projectModifyTarget(root: SerializedDiffTreeNode, incoming: SerializedDiffTreeNode): void {
-  if (!incoming.id) return;
-  const location = findNodeLocation(root, incoming.id);
+  const incomingId = getSerializedNodeId(incoming);
+  if (incomingId === undefined || incomingId === null || incomingId === '') return;
+  const location = findNodeLocation(root, incomingId);
   if (!location) return;
 
   const target = location.node;
@@ -208,7 +231,7 @@ function projectModifyTarget(root: SerializedDiffTreeNode, incoming: SerializedD
   replaceNode(location, [createDiff('modify', [cloneNode(target), next])]);
 }
 
-function projectRemoveTarget(root: SerializedDiffTreeNode, id: string): void {
+function projectRemoveTarget(root: SerializedDiffTreeNode, id: string | number): void {
   const location = findNodeLocation(root, id);
   if (!location) return;
   if (location.ancestors.some(isActionableDiff)) {
@@ -305,15 +328,15 @@ function projectInsert(
 
   if (!actionableAncestor && blockAncestor && hasActionableDiffDescendant(blockAncestor)) {
     const wrapped = createDiff('modify', [cloneNode(blockAncestor), cloneNode(blockAncestor)]);
-    const blockLocation = findNodeLocation(root, blockAncestor.id || '');
+    const blockId = getSerializedNodeId(blockAncestor);
+    const blockLocation = blockId === undefined ? null : findNodeLocation(root, blockId);
     if (blockLocation) replaceNode(blockLocation, [wrapped]);
     return;
   }
 
   if (actionableAncestor && !isInlineReference) {
-    const originLocation = actionableAncestor.id
-      ? findNodeLocation(root, actionableAncestor.id)
-      : null;
+    const originId = getSerializedNodeId(actionableAncestor);
+    const originLocation = originId === undefined ? null : findNodeLocation(root, originId);
     if (originLocation?.parent && originLocation.index >= 0) {
       const originInsertAt =
         'beforeId' in operation ? originLocation.index : originLocation.index + 1;

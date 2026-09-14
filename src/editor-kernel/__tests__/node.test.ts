@@ -15,10 +15,36 @@ import { MathPlugin } from '@/plugins/math';
 import { MentionPlugin } from '@/plugins/mention';
 import { SlashPlugin } from '@/plugins/slash';
 import { TablePlugin } from '@/plugins/table';
+import { KernelPlugin } from '../plugin';
 
 import Editor from '../';
 
 describe('node kernel test', () => {
+  it('initializes late plugins and forwards post-init configuration changes', () => {
+    let initialized = 0;
+    let changed = 0;
+    class LatePlugin extends KernelPlugin {
+      static pluginName = 'LatePlugin';
+
+      onInit(): void {
+        initialized += 1;
+      }
+
+      onConfigChange(): void {
+        changed += 1;
+      }
+    }
+
+    const editor = Editor.createEditor();
+    editor.initNodeEditor();
+    editor.registerPlugin(LatePlugin, { version: 1 });
+    editor.registerPlugin(LatePlugin, { version: 2 });
+
+    expect(initialized).toBe(1);
+    expect(changed).toBe(1);
+    editor.destroy();
+  });
+
   it('should initialize node editor', () => {
     const editor = Editor.createEditor().registerPlugins([
       CodePlugin,

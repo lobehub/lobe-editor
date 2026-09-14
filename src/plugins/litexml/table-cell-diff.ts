@@ -3,11 +3,13 @@ import {
   $isTableCellNode,
   $isTableNode,
   $isTableRowNode,
-  TableNode,
   type TableCellNode,
+  TableNode,
 } from '@lexical/table';
 import type { LexicalEditor } from 'lexical';
 import { $nodesOfType } from 'lexical';
+
+import { createNodeId } from '@/plugins/properties/state';
 
 import { $createDiffNode, DiffNode } from './node/DiffNode';
 import {
@@ -15,6 +17,11 @@ import {
   TableCellDiffNode,
   type TableCellDiffType,
 } from './node/TableCellDiffNode';
+import {
+  captureTableDiffLogicalIdentity,
+  copyTableDiffReviewMetadata,
+  restoreTableDiffLogicalIdentity,
+} from './table-diff-identity';
 import { $cloneNode } from './utils';
 
 export type AnyTableCell = TableCellNode | TableCellDiffNode;
@@ -39,6 +46,7 @@ export function $createTableCellDiffFromCell(
     cell.getWidth(),
   );
   copyCellStructure(cell, diffCell);
+  captureTableDiffLogicalIdentity(cell, diffCell);
 
   const diff = $createDiffNode(diffType);
   diff.append(...cell.getChildren().map((child) => $cloneNode(child, editor)));
@@ -56,6 +64,8 @@ export function $createPlainTableCellFromDiff(
     cell.getWidth(),
   );
   copyCellStructure(cell, plainCell);
+  restoreTableDiffLogicalIdentity(cell, plainCell);
+  if (cell.getDiffType() === 'add') copyTableDiffReviewMetadata(cell, plainCell);
 
   const diff = cell.getFirstChild();
   if (diff instanceof DiffNode) {
@@ -201,7 +211,7 @@ export function $normalizeLegacyTableCellDiffs(editor: LexicalEditor): boolean {
     const cells = legacyDiff.getChildren().filter($isTableCellNode);
     if (cells.length === 0) return;
 
-    const changeId = `legacy-table-cell-${legacyDiff.getKey()}`;
+    const changeId = createNodeId();
     cells.forEach((cell) => {
       legacyDiff.insertBefore($createTableCellDiffFromCell(editor, cell, diffType, changeId));
     });

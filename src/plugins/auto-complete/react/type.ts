@@ -1,7 +1,12 @@
 import type { IEditor } from '@/types';
 
 export interface ReactAutoCompletePluginProps {
+  aiProvenance?: {
+    model?: string;
+    provider?: string;
+  };
   delay?: number;
+  model?: string;
   onAutoComplete?: (opt: {
     abortSignal: AbortSignal;
     afterText: string;
@@ -20,4 +25,5 @@ export interface ReactAutoCompletePluginProps {
     suggestionId: string;
     visibleMs: number;
   }) => void;
+  provider?: string;
 }

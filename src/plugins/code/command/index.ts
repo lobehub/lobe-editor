@@ -8,7 +8,7 @@ import {
   createCommand,
 } from 'lexical';
 
-import { $createCursorNode } from '@/plugins/common';
+import { $createCursorNode } from '@/plugins/common/node/cursor';
 
 import { $createCodeNode, $isCodeInlineNode, getCodeInlineNode } from '../node/code';
 

@@ -3,6 +3,7 @@ import type { DecoratorNode, LexicalEditor } from 'lexical';
 import {
   $createParagraphNode,
   $createRangeSelection,
+  $getSelection,
   $insertNodes,
   $isRootOrShadowRoot,
   $setSelection,
@@ -10,20 +11,27 @@ import {
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { ILitexmlService } from '@/plugins/litexml';
-import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IUploadService } from '@/plugins/upload';
+import { createEditorAsyncScope } from '@/plugins/common/service/editor-async-scope';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
+import { ILitexmlService, type IWriterContext } from '@/plugins/litexml/service/litexml-service';
+import {
+  IMarkdownShortCutService,
+  type IMarkdownWriterContext,
+} from '@/plugins/markdown/service/shortcut';
+import { IUploadService } from '@/plugins/upload/service/i-upload-service';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import { registerFileCommand } from '../command';
+import { $createBlockFileNode, $isBlockFileNode, BlockFileNode } from '../node/BlockFileNode';
 import { $createFileNode, $isFileNode, FileNode } from '../node/FileNode';
-import { registerFileNodeSelectionObserver } from '../utils';
+import { registerFileNodeSelectionObserver, settleFileUpload } from '../utils';
 
 export interface FilePluginOptions {
-  decorator?: (node: FileNode, editor: LexicalEditor) => any;
+  defaultBlockFile?: boolean;
+  decorator?: (node: FileNode | BlockFileNode, editor: LexicalEditor) => any;
   handleUpload?: (file: File) => Promise<{ url: string }>;
-  markdownWriter?: (file: FileNode) => string;
+  markdownWriter?: (file: FileNode | BlockFileNode) => string;
   theme?: {
     file?: string;
   };
@@ -42,60 +50,82 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
   ) {
     super();
     // Register the file node
-    kernel.registerNodes([FileNode]);
+    kernel.registerNodes([FileNode, BlockFileNode]);
     if (config?.theme) {
       kernel.registerThemes(config?.theme);
     }
-    this.registerDecorator(
-      kernel,
-      FileNode.getType(),
-      (node: DecoratorNode<any>, editor: LexicalEditor) => {
-        return config?.decorator ? config.decorator(node as FileNode, editor) : null;
-      },
-    );
+    const renderFile = (node: DecoratorNode<any>, editor: LexicalEditor) =>
+      config?.decorator ? config.decorator(node as FileNode | BlockFileNode, editor) : null;
+    this.registerDecorator(kernel, FileNode.getType(), renderFile);
+    this.registerDecorator(kernel, BlockFileNode.getType(), renderFile);
   }
 
   onInit(editor: LexicalEditor): void {
     const handleUpload = this.config?.handleUpload;
 
-    if (handleUpload) {
-      this.kernel
-        .requireService(IUploadService)
-        ?.registerUpload(async (file: File, from: string, range: Range | null | undefined) => {
-          editor.update(() => {
-            if (range) {
-              const rangeSelection = $createRangeSelection();
-              if (range !== null && range !== undefined) {
-                rangeSelection.applyDOMRange(range);
-              }
-              $setSelection(rangeSelection);
-            }
-            const fileNode = $createFileNode(file.name);
-            $insertNodes([fileNode]); // Insert a zero-width space to ensure the image is not the last child
-            if ($isRootOrShadowRoot(fileNode.getParentOrThrow())) {
-              $wrapNodeInElement(fileNode, $createParagraphNode).selectEnd();
-            }
-            handleUpload(file)
-              .then((url) => {
-                editor.update(() => {
-                  fileNode.setUploaded(url.url);
-                });
-              })
-              .catch((error) => {
-                this.logger.error('File upload failed:', error);
-                editor.update(() => {
-                  fileNode.setError('File upload failed : ' + error.message);
-                });
-              });
-          });
-          return null;
-        });
+    const holeService = this.kernel.requireService(IHoleService);
+    if (holeService) {
+      this.register(
+        holeService.registerTarget(BlockFileNode, {
+          serializeTextContent: (node) => ($isBlockFileNode(node) ? node.name : undefined),
+        }),
+      );
+    }
 
-      this.register(registerFileCommand(editor, handleUpload));
+    if (handleUpload) {
+      const scope = createEditorAsyncScope(editor);
+      this.register(() => scope.dispose());
+      const uploadService = this.kernel.requireService(IUploadService);
+      if (uploadService) {
+        const unregisterUpload = uploadService.registerUpload(
+          async (file: File, from: string, range: Range | null | undefined) => {
+            if (!scope.isActive()) return null;
+            editor.update(() => {
+              if (!scope.isActive()) return;
+              if (range) {
+                const rangeSelection = $createRangeSelection();
+                if (range !== null && range !== undefined) {
+                  rangeSelection.applyDOMRange(range);
+                }
+                $setSelection(rangeSelection);
+              }
+              const currentSelection = $getSelection();
+              if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
+              const fileNode = this.config?.defaultBlockFile
+                ? $createBlockFileNode(file.name)
+                : $createFileNode(file.name);
+              const fileKey = fileNode.getKey();
+              $insertNodes([fileNode]); // Insert a zero-width space to ensure the image is not the last child
+              if (fileNode.isInline() && $isRootOrShadowRoot(fileNode.getParentOrThrow())) {
+                $wrapNodeInElement(fileNode, $createParagraphNode).selectEnd();
+              }
+              handleUpload(file)
+                .then((url) => {
+                  settleFileUpload(scope, fileKey, (node) => node.setUploaded(url.url));
+                })
+                .catch((error) => {
+                  this.logger.error('File upload failed:', error);
+                  settleFileUpload(scope, fileKey, (node) =>
+                    node.setError('File upload failed : ' + error.message),
+                  );
+                });
+            });
+            return true;
+          },
+        );
+
+        this.register(() => {
+          unregisterUpload?.();
+        });
+      }
+
+      this.register(
+        registerFileCommand(editor, handleUpload, this.config?.defaultBlockFile === true, scope),
+      );
     }
 
     if (this.config?.decorator) {
-      this.register(registerFileNodeSelectionObserver(editor));
+      this.register(registerFileNodeSelectionObserver(editor, holeService));
     }
 
     this.registerLiteXml();
@@ -108,16 +138,21 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
       return;
     }
 
+    const writeFile = (node: FileNode | BlockFileNode, ctx: IWriterContext) =>
+      ctx.createXmlNode('file', {
+        ...(node instanceof BlockFileNode ? { block: 'true' } : {}),
+        fileUrl: node.fileUrl || '',
+        message: node.message || '',
+        name: node.name,
+        size: node.size?.toString() || '0',
+        status: node.status,
+      });
     litexmlService.registerXMLWriter(FileNode.getType(), (node, ctx) => {
-      if ($isFileNode(node)) {
-        return ctx.createXmlNode('file', {
-          fileUrl: node.fileUrl || '',
-          message: node.message || '',
-          name: node.name,
-          size: node.size?.toString() || '0',
-          status: node.status,
-        });
-      }
+      if ($isFileNode(node)) return writeFile(node, ctx);
+      return false;
+    });
+    litexmlService.registerXMLWriter(BlockFileNode.getType(), (node, ctx) => {
+      if ($isBlockFileNode(node)) return writeFile(node, ctx);
       return false;
     });
 
@@ -126,7 +161,9 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
       const fileUrl = xmlElement.getAttribute('fileUrl') || '';
       const status = xmlElement.getAttribute('status') as
         'pending' | 'uploaded' | 'error' | undefined;
-      return INodeHelper.createTypeNode(FileNode.getType(), {
+      const type =
+        xmlElement.getAttribute('block') === 'true' ? BlockFileNode.getType() : FileNode.getType();
+      return INodeHelper.createTypeNode(type, {
         fileUrl,
         message: xmlElement.getAttribute('message') || '',
         name,
@@ -141,20 +178,27 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
     if (!markdownService) {
       return;
     }
-    markdownService.registerMarkdownWriter(FileNode.getType(), (ctx, node) => {
-      if ($isFileNode(node)) {
-        if (this.config?.markdownWriter) {
-          ctx.appendLine(this.config.markdownWriter(node));
-          return;
-        }
-        if (node.status === 'pending') {
-          ctx.appendLine(`Uploading ${node.name}...`);
-        } else if (node.status === 'error') {
-          ctx.appendLine(`Failed to upload ${node.name}: ${node.message}`);
-        } else {
-          ctx.appendLine(`[${node.name}](${node.fileUrl})`);
-        }
+    const writeMarkdown = (
+      ctx: IMarkdownWriterContext,
+      node: FileNode | BlockFileNode,
+      block = false,
+    ) => {
+      let content: string;
+      if (node.status === 'pending') {
+        content = `Uploading ${node.name}...`;
+      } else if (node.status === 'error') {
+        content = `Failed to upload ${node.name}: ${node.message}`;
+      } else {
+        content = `[${node.name}](${node.fileUrl})`;
       }
+      if (this.config?.markdownWriter) content = this.config.markdownWriter(node);
+      ctx.appendLine(block ? `${content.replace(/\n+$/, '')}\n\n` : content);
+    };
+    markdownService.registerMarkdownWriter(FileNode.getType(), (ctx, node) => {
+      if ($isFileNode(node)) writeMarkdown(ctx, node);
+    });
+    markdownService.registerMarkdownWriter(BlockFileNode.getType(), (ctx, node) => {
+      if ($isBlockFileNode(node)) writeMarkdown(ctx, node, true);
     });
   }
 };

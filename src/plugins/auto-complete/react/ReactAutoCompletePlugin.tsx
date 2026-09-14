@@ -13,29 +13,40 @@ import type { ReactAutoCompletePluginProps } from './type';
 const logger = createDebugLogger('react-plugin', 'auto-complete');
 
 const ReactAutoCompletePlugin: FC<ReactAutoCompletePluginProps> = ({
+  aiProvenance,
   delay,
+  model,
   onAutoComplete,
   onSuggestionAccepted,
   onSuggestionRejected,
+  provider,
 }) => {
   const [editor] = useLexicalComposerContext();
   const propsRef = useRef<ReactAutoCompletePluginProps>({
+    aiProvenance,
     delay,
+    model,
     onAutoComplete,
     onSuggestionAccepted,
     onSuggestionRejected,
+    provider,
   });
 
   propsRef.current = {
+    aiProvenance,
     delay,
+    model,
     onAutoComplete,
     onSuggestionAccepted,
     onSuggestionRejected,
+    provider,
   };
 
   useLayoutEffect(() => {
     editor.registerPlugin(AutoCompletePlugin, {
+      aiProvenance,
       delay,
+      model,
       onAutoComplete: async (opt) => {
         try {
           return (await propsRef.current.onAutoComplete?.(opt)) ?? null;
@@ -58,12 +69,13 @@ const ReactAutoCompletePlugin: FC<ReactAutoCompletePluginProps> = ({
           logger.warn('Auto-complete onSuggestionRejected callback failed:', error);
         }
       },
+      provider,
       theme: {
         placeholderBlock: cx(styles.placeholderBlock),
         placeholderInline: cx(styles.placeholderInline),
       },
     });
-  }, []);
+  }, [aiProvenance, delay, editor, model, provider]);
 
   return null;
 };

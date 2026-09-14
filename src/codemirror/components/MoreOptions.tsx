@@ -8,6 +8,7 @@ import { type FC, useCallback } from 'react';
 import type { MoreOptionsProps } from '../types';
 
 export const MoreOptions: FC<MoreOptionsProps> = ({
+  disabled,
   tabSize,
   onTabSizeChange,
   useTabs,
@@ -32,6 +33,7 @@ export const MoreOptions: FC<MoreOptionsProps> = ({
           <Flexbox align={'center'} gap={8} horizontal justify={'space-between'}>
             <Text>{labels?.tabSize ?? 'Tab size'}</Text>
             <InputNumber
+              disabled={disabled}
               max={8}
               min={1}
               onChange={handleTabSizeChange as any}
@@ -41,18 +43,28 @@ export const MoreOptions: FC<MoreOptionsProps> = ({
           </Flexbox>
           <Flexbox align={'center'} gap={8} horizontal justify={'space-between'}>
             <Text>{labels?.useTabs ?? 'Use tabs'}</Text>
-            <Switch checked={useTabs} onChange={onUseTabsChange} size="small" />
+            <Switch checked={useTabs} disabled={disabled} onChange={onUseTabsChange} size="small" />
           </Flexbox>
           <Flexbox align={'center'} gap={8} horizontal justify={'space-between'}>
             <Text>{labels?.showLineNumbers ?? 'Show line numbers'}</Text>
-            <Switch checked={showLineNumbers} onChange={onShowLineNumbersChange} size="small" />
+            <Switch
+              checked={showLineNumbers}
+              disabled={disabled}
+              onChange={onShowLineNumbersChange}
+              size="small"
+            />
           </Flexbox>
         </Flexbox>
       }
       placement="bottomRight"
       trigger="click"
     >
-      <ActionIcon className={'cm-hidden-actions'} icon={MoreHorizontalIcon} size="small" />
+      <ActionIcon
+        className={'cm-hidden-actions'}
+        disabled={disabled}
+        icon={MoreHorizontalIcon}
+        size="small"
+      />
     </Popover>
   );
 };

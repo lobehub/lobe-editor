@@ -8,6 +8,7 @@ declare module 'lexical' {
     ): EditorState;
   }
 
+  export function resetRandomKey<T>(scope: () => T): T;
   export function resetRandomKey(targetId?: number): void;
 }
 

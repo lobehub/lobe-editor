@@ -162,6 +162,7 @@ export function DefaultLinkIframe(props: {
         </div>
       )}
       <iframe
+        data-hole-interactive="true"
         loading="lazy"
         onLoad={props.onLoad}
         src={props.src}

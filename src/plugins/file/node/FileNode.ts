@@ -150,7 +150,7 @@ export class FileNode extends DecoratorNode<any> {
     return '\n';
   }
 
-  updateDOM(): boolean {
+  updateDOM(_previousNode?: FileNode, _dom?: HTMLElement): boolean {
     return false;
   }
 

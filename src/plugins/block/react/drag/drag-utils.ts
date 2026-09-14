@@ -1,6 +1,13 @@
 /* eslint-disable unicorn/prefer-at */
 import { DRAG_AUTO_SCROLL_EDGE, DRAG_AUTO_SCROLL_MAX_STEP } from '../core/constants';
-import { type DragBlockEntry, type DragInsertionSlot } from '../core/types';
+import {
+  BLOCK_MENU_ANCHOR_ATTRIBUTE,
+  BLOCK_STRUCTURAL_ID_ATTRIBUTE,
+  type BlockMenuAnchor,
+  type BlockMenuAnchorAlignment,
+  type DragBlockEntry,
+  type DragInsertionSlot,
+} from '../core/types';
 
 const toRectSnapshot = (rect: DOMRect): DragBlockEntry['rect'] => ({
   bottom: rect.bottom,
@@ -62,6 +69,34 @@ export const getBlockMeasureRect = (block: HTMLElement): DragBlockEntry['rect'] 
   return rect;
 };
 
+/**
+ * Read the visual anchor exposed by a complex block for floating menu layout.
+ *
+ * Decorator nodes have a Lexical host element around their React view. The
+ * host is the correct drag/insertion box, but it can include renderer spacing
+ * (for example a collapsed outer margin) that is not part of the visible
+ * surface. Renderers may opt into this contract by marking the exact element
+ * the menu should align to. A malformed or zero-sized marker safely falls
+ * back to the host box in the caller.
+ */
+export const getBlockMenuAnchor = (block: HTMLElement): BlockMenuAnchor | null => {
+  const anchor = Array.from(
+    block.querySelectorAll<HTMLElement>(`[${BLOCK_MENU_ANCHOR_ATTRIBUTE}]`),
+  ).find((candidate) => candidate.closest('[data-block-id]') === block);
+  if (!anchor) return null;
+
+  const rect = anchor.getBoundingClientRect();
+  if (rect.height <= 0 || rect.width <= 0) return null;
+
+  const alignment = anchor.getAttribute(BLOCK_MENU_ANCHOR_ATTRIBUTE) as BlockMenuAnchorAlignment;
+  if (alignment !== 'center' && alignment !== 'top') return null;
+
+  return {
+    alignment,
+    rect: toRectSnapshot(rect),
+  };
+};
+
 export const collectDragBlocks = (root: HTMLElement | null): DragBlockEntry[] => {
   if (!root) return [];
 
@@ -69,6 +104,8 @@ export const collectDragBlocks = (root: HTMLElement | null): DragBlockEntry[] =>
     .reduce<DragBlockEntry[]>((acc, block) => {
       const blockId = block.dataset.blockId;
       if (!blockId) return acc;
+      const structuralBlockId =
+        block.getAttribute(BLOCK_STRUCTURAL_ID_ATTRIBUTE) || blockId;
 
       const rect = getBlockMeasureRect(block);
       if (!rect) return acc;
@@ -77,6 +114,7 @@ export const collectDragBlocks = (root: HTMLElement | null): DragBlockEntry[] =>
         block,
         blockId,
         rect,
+        structuralBlockId,
       });
       return acc;
     }, [])
@@ -94,10 +132,12 @@ const isBlockInsideCollapsibleElement = (element: HTMLElement): boolean => {
 };
 
 export const filterDragBlocksForSource = (
-  sourceBlockId: string,
+  sourceStructuralBlockId: string,
   blocks: DragBlockEntry[],
 ): DragBlockEntry[] => {
-  const source = blocks.find((block) => block.blockId === sourceBlockId);
+  const source = blocks.find(
+    (block) => (block.structuralBlockId || block.blockId) === sourceStructuralBlockId,
+  );
 
   if (!source || !isCollapsibleBlockElement(source.block)) {
     return blocks;
@@ -154,7 +194,7 @@ export const getAutoScrollDelta = (pointerY: number, container: HTMLElement): nu
 };
 
 export const resolveNearestInsertionSlot = (
-  sourceBlockId: string,
+  sourceStructuralBlockId: string,
   blocks: DragBlockEntry[],
   y: number,
 ): DragInsertionSlot | null => {
@@ -166,8 +206,8 @@ export const resolveNearestInsertionSlot = (
   slots.push({
     left: first.rect.left,
     placement: 'before',
-    sourceBlockId,
-    targetBlockId: first.blockId,
+    sourceBlockId: sourceStructuralBlockId,
+    targetBlockId: first.structuralBlockId || first.blockId,
     width: first.rect.width,
     y: first.rect.top,
   });
@@ -177,8 +217,8 @@ export const resolveNearestInsertionSlot = (
     slots.push({
       left: next.rect.left,
       placement: 'before',
-      sourceBlockId,
-      targetBlockId: next.blockId,
+      sourceBlockId: sourceStructuralBlockId,
+      targetBlockId: next.structuralBlockId || next.blockId,
       width: next.rect.width,
       y: next.rect.top,
     });
@@ -188,8 +228,8 @@ export const resolveNearestInsertionSlot = (
   slots.push({
     left: last.rect.left,
     placement: 'after',
-    sourceBlockId,
-    targetBlockId: last.blockId,
+    sourceBlockId: sourceStructuralBlockId,
+    targetBlockId: last.structuralBlockId || last.blockId,
     width: last.rect.width,
     y: last.rect.bottom,
   });
