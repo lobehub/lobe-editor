@@ -37,6 +37,7 @@ import { patchTableNode, TableNode } from '../node';
 import { ITableControllerMenuService, TableControllerMenuService } from '../service';
 import { createDefaultTableColWidths } from '../utils';
 import { registerSingleCellTablePaste } from './single-cell-paste';
+import { registerTableSelectionHistoryRepair } from './table-selection-history';
 
 export interface TablePluginOptions {
   decoratorCol?: (node: TableNode, editor: LexicalEditor) => ReactNode;
@@ -157,6 +158,7 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
     const holeService = this.kernel.requireService(IHoleService);
     if (holeService) this.register(holeService.registerTarget(TableNode));
     this.register(registerTableHoleEntry(editor));
+    this.register(registerTableSelectionHistoryRepair(editor));
 
     this.register(registerTableCellUnmergeTransform(editor));
     this.register(registerSingleCellTablePaste(editor));

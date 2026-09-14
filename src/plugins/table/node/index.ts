@@ -43,9 +43,48 @@ function markTableHoleContentLayout(element: HTMLElement): void {
   element.dataset.holeContentLayout = TABLE_HOLE_CONTENT_LAYOUT;
 }
 
-function updateTableScrollIndicators(scrollWrapper: HTMLElement): void {
-  const maxScrollLeft = scrollWrapper.scrollWidth - scrollWrapper.clientWidth;
+function getTableMaxScrollLeft(
+  scrollWrapper: HTMLElement,
+  table?: HTMLTableElement | null,
+): number {
+  const tableElement =
+    table ??
+    scrollWrapper.querySelector<HTMLTableElement>(':scope > table.editor_table, :scope > table');
+  if (!tableElement) {
+    return Math.max(0, scrollWrapper.scrollWidth - scrollWrapper.clientWidth);
+  }
+
+  const tableRect = tableElement.getBoundingClientRect();
+  const wrapperRect = scrollWrapper.getBoundingClientRect();
+  if (tableRect.width === 0 && tableElement.offsetWidth === 0) {
+    return Math.max(0, scrollWrapper.scrollWidth - scrollWrapper.clientWidth);
+  }
+
+  const marginRight = Number.parseFloat(getComputedStyle(tableElement).marginRight) || 0;
+  // The table rect moves with the native scroll position. Add scrollLeft back
+  // so the right edge is measured in the scrollport's content coordinates;
+  // absolutely positioned scroll indicators cannot affect this value.
+  const tableContentRight =
+    tableRect.right - wrapperRect.left + scrollWrapper.scrollLeft + marginRight;
+
+  return Math.max(0, tableContentRight - scrollWrapper.clientWidth);
+}
+
+function clampTableScrollLeft(scrollWrapper: HTMLElement, maxScrollLeft: number): number {
   const scrollLeft = scrollWrapper.scrollLeft;
+  if (scrollWrapper.clientWidth === 0 && scrollWrapper.scrollWidth === 0) return scrollLeft;
+
+  const clampedScrollLeft = Math.min(Math.max(scrollLeft, 0), maxScrollLeft);
+  if (clampedScrollLeft !== scrollLeft) {
+    scrollWrapper.scrollLeft = clampedScrollLeft;
+  }
+
+  return clampedScrollLeft;
+}
+
+function updateTableScrollIndicators(scrollWrapper: HTMLElement): void {
+  const maxScrollLeft = getTableMaxScrollLeft(scrollWrapper);
+  const scrollLeft = clampTableScrollLeft(scrollWrapper, maxScrollLeft);
   const hasOverflow = maxScrollLeft > 1;
   const showStart = hasOverflow && scrollLeft > 1;
   const showEnd = hasOverflow && scrollLeft < maxScrollLeft - 1;
@@ -89,6 +128,9 @@ function syncTableHoleBlockInsets(element: HTMLElement): void {
       ? element
       : controllerHost.querySelector<HTMLTableElement>(':scope table');
   const scrollWrapper = table?.closest<HTMLElement>('.lobe-editor-table-scroll-wrapper');
+  const scrollLeft = scrollWrapper
+    ? clampTableScrollLeft(scrollWrapper, getTableMaxScrollLeft(scrollWrapper, table))
+    : 0;
 
   const rowToolbar =
     controllerHost.querySelector<HTMLElement>(':scope > .toolbar-row') ??
@@ -109,7 +151,7 @@ function syncTableHoleBlockInsets(element: HTMLElement): void {
         rowToolbar.removeAttribute(TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE);
       }
 
-      rowToolbar.style.transform = `translateX(${-scrollWrapper.scrollLeft}px)`;
+      rowToolbar.style.transform = `translateX(${-scrollLeft}px)`;
     } else {
       // A legacy host may still be inside the scroll wrapper. Leave its
       // ownership untouched until the next DOM creation rather than moving it

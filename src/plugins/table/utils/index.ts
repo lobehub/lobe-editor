@@ -1,5 +1,13 @@
-import type { TableDOMCell, TableNode, TableSelection, TableSelectionShape } from '@lexical/table';
+import type {
+  TableCellNode,
+  TableDOMCell,
+  TableNode,
+  TableSelection,
+  TableSelectionShape,
+} from '@lexical/table';
 import {
+  $computeTableMapSkipCellCheck,
+  $findTableNode,
   $getTableCellNodeFromLexicalNode,
   $isTableCellNode,
   $isTableNode,
@@ -9,7 +17,13 @@ import {
 import type { TableDOMTable } from '@lexical/table/LexicalTableObserver';
 import { addClassNamesToElement, removeClassNamesFromElement } from '@lexical/utils';
 import type { BaseSelection, LexicalEditor, LexicalNode, NodeKey, RangeSelection } from 'lexical';
-import { $getNearestNodeFromDOMNode, $getNodeByKey } from 'lexical';
+import {
+  $getNearestNodeFromDOMNode,
+  $getNodeByKey,
+  $getSelection,
+  $isTextNode,
+  $setSelection,
+} from 'lexical';
 
 import { assert } from '@/editor-kernel/utils';
 
@@ -83,6 +97,78 @@ export function $getValidTableSelectionShape(
   }
 
   return selection.getShape();
+}
+
+const $getAttachedCellInTable = (tableNode: TableNode, key: NodeKey): TableCellNode | null => {
+  const node = $getNodeByKey(key);
+  if (!node) return null;
+
+  const cell = $isTableCellNode(node) ? node : $getTableCellNodeFromLexicalNode(node);
+  if (!cell || !cell.isAttached()) return null;
+
+  const ownerTable = $findTableNode(cell);
+  return ownerTable?.is(tableNode) ? cell : null;
+};
+
+const $getTableBoundaryCell = (tableNode: TableNode, side: 'start' | 'end') => {
+  const [tableMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
+  const row = side === 'start' ? tableMap[0] : tableMap.at(-1);
+  if (!row) return null;
+
+  const cells = side === 'start' ? row : [...row].reverse();
+  return cells.find((entry) => entry?.cell)?.cell ?? null;
+};
+
+const $selectTableCellContentEdge = (cell: TableCellNode, side: 'start' | 'end') => {
+  const descendant = side === 'start' ? cell.getFirstDescendant() : cell.getLastDescendant();
+  if ($isTextNode(descendant)) {
+    return side === 'start' ? descendant.selectStart() : descendant.selectEnd();
+  }
+
+  return side === 'start' ? cell.selectStart() : cell.selectEnd();
+};
+
+/**
+ * Repair a stale TableSelection at the history boundary.
+ *
+ * A historic EditorState can restore a TableSelection whose endpoint cell was
+ * removed by the same undo. Consumers must not each guess how to recover it:
+ * keep a surviving focus endpoint at its content end, a surviving anchor at
+ * its content start, and otherwise use the current table's first cell. If the
+ * table itself is gone, clear the selection rather than targeting another
+ * table that happens to remain in the document.
+ */
+export function $repairInvalidTableSelection(): boolean {
+  const selection = $getSelection();
+  if (!$isTableSelection(selection) || $getValidTableSelectionShape(selection)) {
+    return false;
+  }
+
+  const tableNode = $getNodeByKey<TableNode>(selection.tableKey);
+  if (!$isTableNode(tableNode) || !tableNode.isAttached()) {
+    $setSelection(null);
+    return true;
+  }
+
+  const anchorCell = $getAttachedCellInTable(tableNode, selection.anchor.key);
+  const focusCell = $getAttachedCellInTable(tableNode, selection.focus.key);
+  if (focusCell) {
+    $selectTableCellContentEdge(focusCell, 'end');
+    return true;
+  }
+  if (anchorCell) {
+    $selectTableCellContentEdge(anchorCell, 'start');
+    return true;
+  }
+
+  const boundaryCell = $getTableBoundaryCell(tableNode, 'start');
+  if (!boundaryCell) {
+    $setSelection(null);
+    return true;
+  }
+
+  $selectTableCellContentEdge(boundaryCell, 'start');
+  return true;
 }
 
 export function createDefaultTableColWidths(columnCount: number, tableWidth = DEFAULT_TABLE_WIDTH) {

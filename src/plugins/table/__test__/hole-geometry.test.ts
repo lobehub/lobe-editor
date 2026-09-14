@@ -104,7 +104,10 @@ describe('Table Hole visual geometry', () => {
     );
     if (!scrollWrapper) throw new Error('Table scroll wrapper missing');
     vi.spyOn(hole, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 100, 320, 300));
-    vi.spyOn(table, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 130, 276, 200));
+    let tableWidth = 276;
+    vi.spyOn(table, 'getBoundingClientRect').mockImplementation(
+      () => new DOMRect(-scrollWrapper.scrollLeft, 130, tableWidth, 200),
+    );
     notifyResize?.();
     // The geometry callback runs outside Lexical's commit. Flush the native
     // MutationObserver as well: moving an unmanaged controller onto the
@@ -140,6 +143,22 @@ describe('Table Hole visual geometry', () => {
     expect(scrollWrapper.querySelectorAll(':scope > .toolbar-row')).toHaveLength(0);
     expect(rowToolbar.parentElement).toBe(tableHost);
     expect(rowToolbar.style.transform).toBe('translateX(-12px)');
+
+    tableWidth = 320;
+    vi.spyOn(scrollWrapper, 'clientWidth', 'get').mockReturnValue(320);
+    // The end indicator is absolutely positioned using the stale scrollLeft,
+    // so its transformed box can keep scrollWidth at 436 even after the table
+    // itself has shrunk to the 320px viewport.
+    vi.spyOn(scrollWrapper, 'scrollWidth', 'get').mockReturnValue(436);
+    scrollWrapper.scrollLeft = 116;
+    notifyResize?.();
+    await settle();
+    expect(scrollWrapper.scrollLeft).toBe(0);
+    expect(rowToolbar.style.transform).toBe('translateX(0px)');
+    expect(
+      scrollWrapper.querySelector<HTMLElement>(':scope > .lobe-editor-table-scroll-indicator-end')
+        ?.style.transform,
+    ).toBe('translateX(296px)');
   });
 
   it('keeps a normal Hole full width when no visual layout hint is present', () => {
