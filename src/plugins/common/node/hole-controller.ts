@@ -144,6 +144,7 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
       dragging: boolean;
       moved: boolean;
       startHit: { holeKey: string; side: AtomicHoleBoundarySide } | null;
+      startHitIsExplicit: boolean;
       startX: number;
       startY: number;
       pointerId: number;
@@ -247,6 +248,44 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
       return { hole, side: sideFromPointer(hole, event) };
     };
 
+    const resolveExplicitPointerHit = (
+      target: EventTarget | null,
+    ): { hole: HTMLElement; side: AtomicHoleBoundarySide } | null => {
+      const side = getHoleHitSide(target);
+      const hole = getHoleElement(target);
+      return side && hole ? { hole, side } : null;
+    };
+
+    const normalizeGutterDrag = (endHit: {
+      hole: HTMLElement;
+      side: AtomicHoleBoundarySide;
+    }): void => {
+      if (!pointerState?.moved || !pointerState.startHit || !pointerState.startHitIsExplicit)
+        return;
+
+      const startHit = pointerState.startHit;
+      const endHoleKey = getHoleKey(endHit.hole);
+      if (!endHoleKey) return;
+
+      editor.update(
+        () => {
+          const selection = $getSelection();
+          if (!$isRangeSelection(selection)) return;
+
+          const startHole = $getNodeByKey(startHit.holeKey);
+          const endHole = $getNodeByKey(endHoleKey);
+          if (!$isHoleNode(startHole) || !$isHoleNode(endHole)) return;
+
+          // Both hit areas are contenteditable=false, so the browser can keep
+          // a gutter-to-gutter native drag collapsed. Reuse the existing
+          // Lexical range and replace only its two legal Hole endpoints.
+          $setAtomicHoleBoundaryPoint(selection, startHit.side, startHole, 'anchor');
+          $setAtomicHoleBoundaryPoint(selection, endHit.side, endHole, 'focus');
+        },
+        { tag: SKIP_SCROLL_INTO_VIEW_TAG },
+      );
+    };
+
     const normalizeDragAnchor = (): void => {
       if (
         dragNormalizationScheduled ||
@@ -276,8 +315,12 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
       });
     };
 
-    const finishPointer = (): void => {
-      if (!pointerState) return;
+    const finishPointer = (event?: Event): void => {
+      if (!pointerState || !pointerState.dragging) return;
+      if (event) {
+        const endHit = resolveExplicitPointerHit(event.target);
+        if (endHit) normalizeGutterDrag(endHit);
+      }
       // Keep the gesture through the synthetic/native click that follows
       // pointerup. The click path consumes it; the next pointerdown replaces
       // it. No pointer capture is used, so document-level pointerup/cancel
@@ -296,6 +339,7 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
         // must never have their anchor rewritten to a Hole boundary.
         if (isPayloadInteractionTarget(event.target)) return;
         const hit = resolvePointerHit(event);
+        const explicitHit = resolveExplicitPointerHit(event.target);
         const targetElement = getTargetElement(event.target);
         if (!targetElement || !root.contains(targetElement)) return;
         const holeKey = hit ? getHoleKey(hit.hole) : undefined;
@@ -304,6 +348,7 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
           moved: false,
           pointerId: pointer.pointerId,
           startHit: holeKey && hit ? { holeKey, side: hit.side } : null,
+          startHitIsExplicit: Boolean(explicitHit),
           startX: pointer.clientX,
           startY: pointer.clientY,
         };
@@ -339,7 +384,7 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
 
       if (event.type === 'pointerup') {
         const pointer = event as PointerEvent;
-        if (pointerState && pointer.pointerId === pointerState.pointerId) finishPointer();
+        if (pointerState && pointer.pointerId === pointerState.pointerId) finishPointer(event);
         return;
       }
 
@@ -375,7 +420,7 @@ export function registerHoleNode(editor: LexicalEditor): () => void {
         pointerState = null;
         dragNormalizationScheduled = false;
       } else {
-        finishPointer();
+        finishPointer(event);
       }
     };
     document.addEventListener('pointerup', clearDocumentPointer, true);

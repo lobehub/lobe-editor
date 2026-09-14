@@ -572,6 +572,141 @@ describe('atomic Hole selection guard', () => {
     }
   });
 
+  it('maps a collapsed gutter-to-gutter drag to both Hole boundaries', async () => {
+    const lexical = editor.getLexicalEditor()!;
+    const beforeHit = root.querySelector<HTMLElement>('[data-hole-cursor-hit="before"]');
+    const afterHit = root.querySelector<HTMLElement>('[data-hole-cursor-hit="after"]');
+    if (!beforeHit || !afterHit) throw new Error('Hole boundary hit areas missing');
+
+    const { afterKey, beforeKey } = getHoleKeys();
+    lexical.update(
+      () => {
+        const hole = $nodesOfType(HoleNode)[0];
+        hole.getAfterCursor()?.selectStart();
+      },
+      { discrete: true },
+    );
+    await moment();
+
+    afterHit.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        cancelable: true,
+        clientX: 566,
+        pointerId: 1,
+      }),
+    );
+    beforeHit.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        cancelable: true,
+        clientX: 66,
+        pointerId: 1,
+      }),
+    );
+
+    // Synthetic pointer events do not create a native range. This mirrors the
+    // browser case where both endpoints are contenteditable=false hit areas.
+    const nativeSelection = document.getSelection();
+    expect(nativeSelection?.isCollapsed ?? true).toBe(true);
+
+    beforeHit.dispatchEvent(
+      new PointerEvent('pointerup', {
+        bubbles: true,
+        button: 0,
+        buttons: 0,
+        cancelable: true,
+        clientX: 66,
+        pointerId: 1,
+      }),
+    );
+    await moment();
+
+    lexical.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+      expect(selection.anchor.key).toBe(afterKey);
+      expect(selection.anchor.offset).toBe(0);
+      expect(selection.focus.key).toBe(beforeKey);
+      expect(selection.focus.offset).toBe(1);
+      expect(selection.isCollapsed()).toBe(false);
+    });
+  });
+
+  it('does not normalize a drag from Hole row whitespace to a gutter', async () => {
+    const lexical = editor.getLexicalEditor()!;
+    const beforeHit = root.querySelector<HTMLElement>('[data-hole-cursor-hit="before"]');
+    const holeElement = root.querySelector<HTMLElement>('[data-hole="true"]');
+    if (!beforeHit || !holeElement) throw new Error('Hole boundary DOM missing');
+
+    let paragraphTextKey = '';
+    lexical.update(
+      () => {
+        const paragraph = $createParagraphNode();
+        const text = $createTextNode('outside payload');
+        paragraph.append(text);
+        $getRoot().append(paragraph);
+        paragraphTextKey = text.getKey();
+
+        const selection = $createRangeSelection();
+        selection.anchor.set(paragraphTextKey, 3, 'text');
+        selection.focus.set(paragraphTextKey, 3, 'text');
+        $setSelection(selection);
+      },
+      { discrete: true },
+    );
+    await moment();
+
+    vi.spyOn(holeElement, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 200, 20));
+    root.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        cancelable: true,
+        clientX: 180,
+        clientY: 10,
+        pointerId: 2,
+      }),
+    );
+    beforeHit.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        cancelable: true,
+        clientX: 66,
+        clientY: 10,
+        pointerId: 2,
+      }),
+    );
+    beforeHit.dispatchEvent(
+      new PointerEvent('pointerup', {
+        bubbles: true,
+        button: 0,
+        buttons: 0,
+        cancelable: true,
+        clientX: 66,
+        clientY: 10,
+        pointerId: 2,
+      }),
+    );
+    await moment();
+
+    lexical.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) throw new Error('Range selection missing');
+      expect(selection.anchor.key).toBe(paragraphTextKey);
+      expect(selection.anchor.offset).toBe(3);
+      expect(selection.focus.key).toBe(paragraphTextKey);
+      expect(selection.focus.offset).toBe(3);
+    });
+  });
+
   it('projects a remote awareness caret in Hole content to the boundary cursor', async () => {
     const lexical = editor.getLexicalEditor()!;
     const { payloadKey } = getHoleKeys();
