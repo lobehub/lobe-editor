@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Editor, { moment } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common/plugin';
-import { HoleNode } from '@/plugins/common/node/hole';
+import { $createHoleNode, HoleNode } from '@/plugins/common/node/hole';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 import { CodeblockPlugin } from '@/plugins/codeblock/plugin';
 import { LinkPlugin } from '@/plugins/link/plugin';
@@ -196,6 +196,72 @@ describe('BlockFileNode Hole integration', () => {
     expect(host().dataset.fileUrl).toBeUndefined();
     expect(host().dataset.fileSize).toBeUndefined();
     expect(host().dataset.fileMessage).toBe('failed');
+    root.remove();
+  });
+
+  it('projects Hole selection per block-file target and clears markers on destroy', async () => {
+    editor = Editor.createEditor().registerPlugins([
+      CommonPlugin,
+      [FilePlugin, { decorator: () => null }],
+    ]);
+    editor.initNodeEditor();
+    const root = document.createElement('div');
+    root.contentEditable = 'true';
+    document.body.append(root);
+    editor.setRootElement(root);
+
+    const lexical = editor.getLexicalEditor()!;
+    let firstKey = '';
+    let secondKey = '';
+    let holeKey = '';
+    lexical.update(
+      () => {
+        const first = $createBlockFileNode('first.txt');
+        const second = $createBlockFileNode('second.txt');
+        const hole = $createHoleNode([first, second]);
+        firstKey = first.getKey();
+        secondKey = second.getKey();
+        holeKey = hole.getKey();
+        $getRoot().append(hole);
+      },
+      { discrete: true },
+    );
+    await moment();
+
+    const firstHost = lexical.getElementByKey(firstKey);
+    const secondHost = lexical.getElementByKey(secondKey);
+    if (!firstHost || !secondHost) throw new Error('Block-file target hosts are missing');
+    expect(firstHost.dataset.holeSelectionTarget).toBe('true');
+    expect(secondHost.dataset.holeSelectionTarget).toBe('true');
+
+    lexical.update(
+      () => {
+        const selection = $createNodeSelection();
+        selection.add(firstKey);
+        $setSelection(selection);
+      },
+      { discrete: true },
+    );
+    await moment();
+    expect(firstHost.dataset.holeSelected).toBe('true');
+    expect(secondHost.dataset.holeSelected).toBeUndefined();
+
+    lexical.update(
+      () => {
+        const selection = $createNodeSelection();
+        selection.add(holeKey);
+        $setSelection(selection);
+      },
+      { discrete: true },
+    );
+    await moment();
+    expect(firstHost.dataset.holeSelected).toBe('true');
+    expect(secondHost.dataset.holeSelected).toBe('true');
+
+    editor.destroy();
+    editor = undefined;
+    expect(firstHost.dataset.holeSelected).toBeUndefined();
+    expect(secondHost.dataset.holeSelected).toBeUndefined();
     root.remove();
   });
 

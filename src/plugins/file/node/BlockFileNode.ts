@@ -69,6 +69,7 @@ export class BlockFileNode extends FileNode {
   override createDOM(config: EditorConfig): HTMLElement {
     const element = document.createElement('div');
     addClassNamesToElement(element, config.theme.file);
+    element.dataset.holeSelectionTarget = 'true';
     applyBlockFileDOMAttributes(element, this);
     return element;
   }

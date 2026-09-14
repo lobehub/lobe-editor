@@ -48,6 +48,7 @@ import { HoleService } from '../service/hole';
 import { IEditorDiagnosticsService } from '../service/i-editor-diagnostics-service';
 import { IHoleService } from '../service/i-hole-service';
 import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
+import { registerHoleSelectionDOM } from './hole-selection';
 import { registerMDReader } from './mdReader';
 import {
   handleFilePaste,
@@ -447,6 +448,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     this.register(this.holeService.bindEditor(editor));
+    this.register(registerHoleSelectionDOM(this.kernel, editor, this.holeService));
     // Install passive CRITICAL command observers before clipboard handlers so
     // a handler that consumes COPY/CUT/PASTE cannot hide the command trace.
     this.register(this.diagnosticsService.bindEditor(editor));

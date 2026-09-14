@@ -71,6 +71,7 @@ export class LinkBlockCardNode extends LinkCardNode {
   createDOM(config: EditorConfig, editor: LexicalEditor): HTMLElement {
     const element = super.createDOM(config, editor);
     element.dataset.linkCardLayout = 'block';
+    element.dataset.holeSelectionTarget = 'true';
     return element;
   }
 

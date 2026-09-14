@@ -123,6 +123,45 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     }
 
     /*
+     * Block payloads that opt into the shared Hole selection surface keep
+     * their own renderer markup untouched. The overlay lives on the stable
+     * Lexical target host, so a multi-payload Hole only tints the covered
+     * payload and the sibling boundary hit areas remain outside its stacking
+     * context.
+     */
+    [data-hole='true'] > [data-hole-content='true'] > [data-hole-selection-target='true'] {
+      position: relative;
+    }
+
+    [data-hole='true'] > [data-hole-content='true'] > [data-hole-selection-target='true']::after {
+      pointer-events: none;
+      content: '';
+
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+
+      border-radius: inherit;
+
+      opacity: 0;
+      background: color-mix(in srgb, ${cssVar.yellow} 16%, transparent);
+
+      transition: opacity 120ms ${cssVar.motionEaseOut};
+    }
+
+    [data-hole='true']
+      > [data-hole-content='true']
+      > [data-hole-selection-target='true'][data-hole-selected='true'] {
+      user-select: none;
+    }
+
+    [data-hole='true']
+      > [data-hole-content='true']
+      > [data-hole-selection-target='true'][data-hole-selected='true']::after {
+      opacity: 1;
+    }
+
+    /*
      * A block image is centered inside the editor column, but its boundary
      * cursors belong beside the image's actual box. The host remains full
      * width for block selection/dragging; only the managed content slot uses

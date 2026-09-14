@@ -75,6 +75,8 @@ Common 在 JSON writer 中递归去掉运行时 Hole 和其 cursor，并保留/�
 
 Common 负责 `HoleNode` 的 DOM host、`data-hole-content` slot、边界 hit area 和可复用的稳定 wrapper；`HoleNode.updateDOM(): false` 让外层 wrapper DOM 得以复用，Lexical 再单独 reconcile content slot。目标插件负责自己的 DOM/decorator、内部 editor、上传/锁、目标特有 Markdown/LiteXML 和 `ENTER_HOLE_CONTENT_COMMAND` handler。renderer 只把 Hole 作为透明结构输出：[render-builtin-node.tsx](../src/renderer/engine/render-builtin-node.tsx) 的 `hole` 分支返回 children，[renderer/nodes/index.ts](../src/renderer/nodes/index.ts) 注册 Hole 和目标 node；renderer 不拥有 target registration、导航或持久化策略。
 
+需要共享块选中底色的 block target 可以在自己的 Lexical host 上 opt-in `data-hole-selection-target="true"`。Common 的 DOM 投影 helper 订阅 Hole service 的语义状态，按 payload 写入 `data-hole-selected="true"`，并由公共样式在该 host 上绘制不接收指针事件的 `::after` 层；block renderer 应让内容填满 host，并移除自己的重复 selected background/after。一个 Hole 的多 payload 各自投影，边界 before/after hit area 不属于覆盖层。Table 保留自己的 cell/controller overlay，因此不 opt-in。
+
 ## 共享回归的适用边界
 
 `hole-contract.test.ts` 是唯一的通用 target matrix；插件专项测试仍负责以下不可抽象部分：
