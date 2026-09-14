@@ -29,7 +29,11 @@ import {
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 import { IHoleService } from '@/plugins/common/service/i-hole-service';
 
-import { createDefaultTableColWidths, syncTableWidthDOM } from '../utils';
+import {
+  $getValidTableSelectionShape,
+  createDefaultTableColWidths,
+  syncTableWidthDOM,
+} from '../utils';
 import { getAutoFitTableColumnWidths } from '../utils/autoFitColumnWidth';
 import { getDistributedTableColumnWidths } from '../utils/distributeColumnWidth';
 
@@ -199,14 +203,13 @@ const getRangeFromSelection = (
     };
   }
 
-  if (!$isTableSelection(selection) || selection.tableKey !== table) {
+  const shape = $getValidTableSelectionShape(selection, table);
+  if (!shape) {
     return {
       from: 0,
       to: targetIndex,
     };
   }
-
-  const shape = selection.getShape();
   const hasSelectedWholeAxis =
     direction === 'row'
       ? shape.fromX === 0 && shape.toX === crossAxisLength - 1

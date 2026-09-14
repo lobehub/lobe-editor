@@ -1,9 +1,15 @@
-import type { TableDOMCell, TableSelection } from '@lexical/table';
-import { $isTableCellNode, $isTableSelection } from '@lexical/table';
+import type { TableDOMCell, TableNode, TableSelection, TableSelectionShape } from '@lexical/table';
+import {
+  $getTableCellNodeFromLexicalNode,
+  $isTableCellNode,
+  $isTableNode,
+  $isTableRowNode,
+  $isTableSelection,
+} from '@lexical/table';
 import type { TableDOMTable } from '@lexical/table/LexicalTableObserver';
 import { addClassNamesToElement, removeClassNamesFromElement } from '@lexical/utils';
 import type { BaseSelection, LexicalEditor, LexicalNode, NodeKey, RangeSelection } from 'lexical';
-import { $getNearestNodeFromDOMNode } from 'lexical';
+import { $getNearestNodeFromDOMNode, $getNodeByKey } from 'lexical';
 
 import { assert } from '@/editor-kernel/utils';
 
@@ -24,6 +30,59 @@ export interface TableSelectionOutlineRect {
   left: number;
   top: number;
   width: number;
+}
+
+/**
+ * Resolve a TableSelection's shape against the active editor state.
+ *
+ * Lexical can retain a TableSelection while an undo or remote replacement has
+ * removed one of its endpoint cells. TableSelection.getShape() resolves those
+ * points lazily and throws when either key is gone, so every UI reader must
+ * validate both endpoints before asking for its shape.
+ */
+export function $getValidTableSelectionShape(
+  selection: BaseSelection | null,
+  tableKey?: NodeKey,
+): TableSelectionShape | null {
+  if (
+    !$isTableSelection(selection) ||
+    (tableKey !== undefined && selection.tableKey !== tableKey)
+  ) {
+    return null;
+  }
+
+  const tableNode = $getNodeByKey<TableNode>(selection.tableKey);
+  if (!$isTableNode(tableNode)) return null;
+
+  const anchorNode = $getNodeByKey(selection.anchor.key);
+  const focusNode = $getNodeByKey(selection.focus.key);
+  if (!anchorNode || !focusNode) return null;
+  const anchorCell = $isTableCellNode(anchorNode)
+    ? anchorNode
+    : $getTableCellNodeFromLexicalNode(anchorNode);
+  const focusCell = $isTableCellNode(focusNode)
+    ? focusNode
+    : $getTableCellNodeFromLexicalNode(focusNode);
+  if (!anchorCell || !focusCell || !anchorCell.isAttached() || !focusCell.isAttached()) {
+    return null;
+  }
+
+  const anchorRow = anchorCell.getParent();
+  const focusRow = focusCell.getParent();
+  if (!$isTableRowNode(anchorRow) || !$isTableRowNode(focusRow)) return null;
+
+  const anchorTable = anchorRow.getParent();
+  const focusTable = focusRow.getParent();
+  if (
+    !$isTableNode(anchorTable) ||
+    !$isTableNode(focusTable) ||
+    anchorTable.getKey() !== tableNode.getKey() ||
+    focusTable.getKey() !== tableNode.getKey()
+  ) {
+    return null;
+  }
+
+  return selection.getShape();
 }
 
 export function createDefaultTableColWidths(columnCount: number, tableWidth = DEFAULT_TABLE_WIDTH) {
@@ -62,11 +121,8 @@ export function getSelectedTableColumnIndexes(
   tableKey: string,
   rowCount: number,
 ): number[] {
-  if (!$isTableSelection(selection) || selection.tableKey !== tableKey) {
-    return [];
-  }
-
-  const shape = selection.getShape();
+  const shape = $getValidTableSelectionShape(selection, tableKey);
+  if (!shape) return [];
   return shape.fromY === 0 && shape.toY === rowCount - 1 ? range(shape.fromX, shape.toX) : [];
 }
 
@@ -75,11 +131,8 @@ export function getSelectedTableRowIndexes(
   tableKey: string,
   columnCount: number,
 ): number[] {
-  if (!$isTableSelection(selection) || selection.tableKey !== tableKey) {
-    return [];
-  }
-
-  const shape = selection.getShape();
+  const shape = $getValidTableSelectionShape(selection, tableKey);
+  if (!shape) return [];
   return shape.fromX === 0 && shape.toX === columnCount - 1 ? range(shape.fromY, shape.toY) : [];
 }
 
@@ -89,11 +142,8 @@ export function isTableFullySelected(
   columnCount: number,
   rowCount: number,
 ): boolean {
-  if (!$isTableSelection(selection) || selection.tableKey !== tableKey) {
-    return false;
-  }
-
-  const shape = selection.getShape();
+  const shape = $getValidTableSelectionShape(selection, tableKey);
+  if (!shape) return false;
   return (
     shape.fromX === 0 &&
     shape.toX === columnCount - 1 &&
@@ -108,13 +158,13 @@ export function getTableSelectionIndexes(
   columnCount: number,
   rowCount: number,
 ): TableSelectionIndexes {
-  if (!$isTableSelection(selection) || selection.tableKey !== tableKey) {
-    return EMPTY_TABLE_SELECTION_INDEXES;
-  }
-
+  const shape = $getValidTableSelectionShape(selection, tableKey);
+  if (!shape) return EMPTY_TABLE_SELECTION_INDEXES;
   return {
-    selectedColumns: getSelectedTableColumnIndexes(selection, tableKey, rowCount),
-    selectedRows: getSelectedTableRowIndexes(selection, tableKey, columnCount),
+    selectedColumns:
+      shape.fromY === 0 && shape.toY === rowCount - 1 ? range(shape.fromX, shape.toX) : [],
+    selectedRows:
+      shape.fromX === 0 && shape.toX === columnCount - 1 ? range(shape.fromY, shape.toY) : [],
   };
 }
 
@@ -171,14 +221,13 @@ function $removeHighlightFromDOM(editor: LexicalEditor, cell: TableDOMCell): voi
 function getTableSelectionOutlineRect(
   selectedCells: HTMLElement[],
   table: TableDOMTable,
-  selection: TableSelection,
+  shape: TableSelectionShape,
 ): TableSelectionOutlineRect | null {
   const outlineElements = [...selectedCells];
   if (outlineElements.length === 0) {
     return null;
   }
 
-  const shape = selection.getShape();
   const firstCell = outlineElements[0];
   const tableElement = firstCell.closest('table.editor_table, table');
   const scrollWrapper = tableElement?.closest('.lobe-editor-table-scroll-wrapper');
@@ -268,7 +317,12 @@ export function $updateDOMForSelection(
   table: TableDOMTable,
   selection: TableSelection | RangeSelection | null,
 ): TableSelectionOutlineRect | null {
-  const selectedCellNodes = new Set(selection ? selection.getNodes() : []);
+  const tableSelectionShape = $isTableSelection(selection)
+    ? $getValidTableSelectionShape(selection)
+    : null;
+  const selectedCellNodes = new Set(
+    selection && (!$isTableSelection(selection) || tableSelectionShape) ? selection.getNodes() : [],
+  );
   const selectedCells = new Set<HTMLElement>();
 
   $forEachTableCell(table, (cell, lexicalNode) => {
@@ -287,7 +341,7 @@ export function $updateDOMForSelection(
     }
   });
 
-  return $isTableSelection(selection)
-    ? getTableSelectionOutlineRect([...selectedCells], table, selection)
+  return tableSelectionShape
+    ? getTableSelectionOutlineRect([...selectedCells], table, tableSelectionShape)
     : null;
 }
