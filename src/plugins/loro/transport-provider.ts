@@ -6,7 +6,6 @@ import {
   CollaborationTransportCore,
   type CollaborationTransportCoreOptions,
   type CollaborationTransportStatus,
-  type CollaborationWebSocketConstructor,
 } from '@/common/collaboration/transport/core';
 import type {
   CollaborationDescriptor,
@@ -15,6 +14,9 @@ import type {
 } from '@/common/collaboration/transport/protocol';
 
 import type { LoroCanonicalDocument } from './model';
+import type { LoroTransportProviderOptions } from './transport-options';
+
+export type { LoroTransportProviderOptions } from './transport-options';
 
 const encode = (bytes: Uint8Array): string => {
   const runtime = globalThis as typeof globalThis & {
@@ -47,22 +49,6 @@ const decode = (value: string): Uint8Array => {
 
 const encodeVersion = (version: VersionVector): string => encode(version.encode());
 const decodeVersion = (value: string): VersionVector => VersionVector.decode(decode(value));
-
-export interface LoroTransportProviderOptions {
-  /** Binding-owned gate for both the initial snapshot and incremental updates. */
-  applyRemoteUpdate?: (update: Uint8Array) => void;
-  /** Explicit escape hatch for standalone canonical transport tests/adapters. */
-  allowStandaloneCanonicalImport?: boolean;
-  autoReconnect?: boolean;
-  clientKind?: 'agent' | 'browser';
-  documentId?: string;
-  maxSeenMessageIds?: number;
-  refreshTicket?: () => string | Promise<string>;
-  requestId?: string;
-  ticket: string;
-  webSocketConstructor?: CollaborationWebSocketConstructor;
-  wsBaseUrl: string;
-}
 
 class LoroTransportEngine implements CollaborationEngineAdapter<Uint8Array> {
   readonly peerId: string;

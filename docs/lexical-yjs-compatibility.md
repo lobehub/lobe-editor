@@ -79,3 +79,16 @@ facade. Callers must create a new facade with a fresh ticket after a rejected
 connect; they must not retry the terminal instance. This is a public migration
 note for consumers, not a claim that a release changelog entry has been
 published.
+
+Streaming rewrite replay state is bounded per facade. The default limit is 256
+admitted rewrite sessions and 256 recovered sessions; limits can be configured
+between 1 and 4096 through `rewriteSessionRetention`. Entries are never evicted:
+terminal state keeps the session identity and exact result for delayed retries,
+while chunk receipts remain for `chunkId`/payload/sequence validation and
+generated text buffers, target snapshots, and CRDT anchors are released. Once
+a limit is reached, a new unique session fails closed and the caller must rotate
+the facade after admitted active sessions settle. An active session that was
+already admitted can still append, finalize, or abort. Recovery also leaves the
+durable region intact when its replay limit is full. Disconnect clears both
+retention tables. Rotation does not provide cross-facade replay; a host-side
+durable ledger must own idempotency across facade lifetimes.

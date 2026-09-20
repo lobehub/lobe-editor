@@ -1,4 +1,5 @@
 import type { CollaborationDescriptor, CollaborationTransportPort } from '@/common/collaboration';
+import type { LoroTransportProviderOptions } from '@/plugins/loro/transport-options';
 import type { IPlugin } from '@/types';
 
 /**
@@ -11,7 +12,7 @@ export interface LoroHeadlessFactoryOptions {
   doc?: unknown;
   roomId: string;
   transport?: CollaborationTransportPort;
-  transportOptions?: unknown;
+  transportOptions?: Omit<LoroTransportProviderOptions, 'applyRemoteUpdate'>;
 }
 
 export interface LoroHeadlessFactoryResult {

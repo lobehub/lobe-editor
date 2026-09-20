@@ -148,6 +148,7 @@ class TestProvider implements Provider {
   };
   private synced = false;
   private syncError: Error | null = null;
+  private disconnectError: Error | null = null;
   private readonly syncWaiters = new Set<{
     reject: (error: Error) => void;
     resolve: () => void;
@@ -171,6 +172,13 @@ class TestProvider implements Provider {
     this.room?.disconnect(this);
     this.synced = false;
     this.listeners.sync.forEach((listener) => listener(false));
+    const error = this.disconnectError;
+    this.disconnectError = null;
+    if (error) throw error;
+  }
+
+  rejectNextDisconnect(error = new Error('provider disconnect failed')): void {
+    this.disconnectError = error;
   }
 
   emitSync(): void {
@@ -380,13 +388,21 @@ const seedLinebreakDocument = async (): Promise<Uint8Array> => {
   return update;
 };
 
-const createAgent = (room: TestRoom, requestId: string) => {
+const createAgent = (
+  room: TestRoom,
+  requestId: string,
+  rewriteSessionRetention?: {
+    maxRecoveredRewriteSessions?: number;
+    maxRewriteSessions?: number;
+  },
+) => {
   const doc = new Doc();
   const provider = new TestProvider(room, doc);
   const agent = __createCollaborativeAgentEditorForTesting({
     documentId: 'stream-room',
     provider,
     requestId,
+    ...(rewriteSessionRetention ? { rewriteSessionRetention } : {}),
     roomId: 'stream-room',
     ticket: 'test-ticket',
     yjsDoc: doc,
@@ -401,7 +417,9 @@ const captureText = (agent: CollaborativeAgentEditor, value: string) => {
   const lexicalEditor = internal.kernel.getLexicalEditor()!;
   lexicalEditor.update(
     () => {
-      const text = $getRoot().getFirstDescendant();
+      const text = $getRoot()
+        .getAllTextNodes()
+        .find((node) => node.getTextContent().includes(value));
       if (!$isTextNode(text)) throw new Error('seed text missing');
       const start = text.getTextContent().indexOf(value);
       if (start < 0) throw new Error(`selection text missing: ${value}`);
@@ -583,6 +601,162 @@ describe('CollaborativeAgentEditor streaming rewrite', () => {
     expect(JSON.stringify(afterFinal.editorData)).toContain('stream-generation');
     expect(JSON.stringify(afterFinal.editorData)).toContain('provenance-session');
     expect(JSON.stringify(afterFinal.editorData)).toContain('"turnIndex":7');
+  });
+
+  it('fails closed at the rewrite-session limit while keeping an admitted stream usable', async () => {
+    const room = new TestRoom(seedDocument());
+    rooms.push(room);
+    const first = createAgent(room, 'stream-request-retention', { maxRewriteSessions: 1 });
+    agents.push(first.agent);
+    docs.push(first.doc);
+    await first.agent.connect();
+    const firstSelection = captureText(first.agent, 'Hello');
+    const secondSelection = captureText(first.agent, 'Human paragraph');
+    if (!firstSelection || !secondSelection) throw new Error('retention selections missing');
+
+    const started = await first.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'retention-generation-a',
+      requestId: 'stream-request-retention',
+      sessionId: 'retention-session-a',
+      selection: firstSelection,
+    });
+    expect(started.status).toBe('streaming');
+
+    const rejected = await first.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('Human paragraph'),
+      generationId: 'retention-generation-b',
+      requestId: 'stream-request-retention',
+      sessionId: 'retention-session-b',
+      selection: secondSelection,
+    });
+    expect(rejected).toMatchObject({
+      error: 'stream-session-retention-capacity',
+      status: 'failed',
+    });
+
+    const appended = await first.agent.appendRewriteChunk({
+      chunk: 'Still active',
+      chunkId: 'retention-chunk-a',
+      sessionId: 'retention-session-a',
+    });
+    expect(appended.status).toBe('streaming');
+    const finalized = await first.agent.finalizeRewriteSession({
+      sessionId: 'retention-session-a',
+    });
+    expect(finalized.status).toBe('applied');
+
+    const lateRetry = await first.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'retention-generation-a',
+      requestId: 'stream-request-retention',
+      sessionId: 'retention-session-a',
+      selection: firstSelection,
+    });
+    expect(lateRetry).toEqual(finalized);
+
+    const internal = first.agent as unknown as {
+      rewriteSessions: { size: number; clear: () => void };
+      recoveredRewriteSessions: { size: number };
+    };
+    expect(internal.rewriteSessions.size).toBe(1);
+    await first.agent.disconnect();
+    expect(internal.rewriteSessions.size).toBe(0);
+    expect(internal.recoveredRewriteSessions.size).toBe(0);
+  });
+
+  it('releases retention and destroys the facade when provider disconnect rejects', async () => {
+    const room = new TestRoom(seedDocument());
+    rooms.push(room);
+    const first = createAgent(room, 'stream-request-disconnect-cleanup');
+    agents.push(first.agent);
+    docs.push(first.doc);
+    await first.agent.connect();
+    const selection = captureHello(first.agent);
+    if (!selection) throw new Error('disconnect cleanup selection missing');
+    await first.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'disconnect-cleanup-generation',
+      requestId: 'stream-request-disconnect-cleanup',
+      sessionId: 'disconnect-cleanup-session',
+      selection,
+    });
+    first.provider.rejectNextDisconnect();
+
+    const internal = first.agent as unknown as {
+      rewriteSessions: { size: number };
+      recoveredRewriteSessions: { size: number };
+    };
+    await expect(first.agent.disconnect()).rejects.toThrow('provider disconnect failed');
+    expect(internal.rewriteSessions.size).toBe(0);
+    expect(internal.recoveredRewriteSessions.size).toBe(0);
+    await expect(
+      __exportCollaborativeAgentEditorProjectionForPersistence(first.agent),
+    ).rejects.toThrow('disconnected');
+  });
+
+  it('releases a reserved slot while preserving the durable marker after anchor capture fails', async () => {
+    const room = new TestRoom(seedDocument());
+    rooms.push(room);
+    const first = createAgent(room, 'stream-request-reservation-error', {
+      maxRewriteSessions: 1,
+    });
+    agents.push(first.agent);
+    docs.push(first.doc);
+    await first.agent.connect();
+    const firstSelection = captureText(first.agent, 'Hello');
+    const secondSelection = captureText(first.agent, 'Human paragraph');
+    if (!firstSelection || !secondSelection) throw new Error('reservation selections missing');
+
+    const internal = first.agent as unknown as {
+      collaborationService: {
+        capturePoint: (point: { nodeId: string; offset: number }) => unknown;
+      };
+      rewriteSessions: { size: number };
+    };
+    const originalCapturePoint = internal.collaborationService.capturePoint;
+    internal.collaborationService.capturePoint = () => {
+      throw new Error('forced anchor capture failure');
+    };
+    try {
+      await expect(
+        first.agent.startRewriteSession({
+          expectedTextHash: hashRewriteText('Hello'),
+          generationId: 'reservation-error-generation-a',
+          requestId: 'stream-request-reservation-error',
+          sessionId: 'reservation-error-session-a',
+          selection: firstSelection,
+        }),
+      ).rejects.toThrow('forced anchor capture failure');
+    } finally {
+      internal.collaborationService.capturePoint = originalCapturePoint;
+    }
+    expect(internal.rewriteSessions.size).toBe(0);
+    const beforeRecovery = await __exportCollaborativeAgentEditorProjectionForPersistence(
+      first.agent,
+    );
+    expect(JSON.stringify(beforeRecovery.editorData)).toContain('rewriteRegionStatus');
+
+    await expect(
+      first.agent.recoverRewriteSession({
+        generationId: 'reservation-error-generation-a',
+        requestId: 'stream-request-reservation-error',
+        sessionId: 'reservation-error-session-a',
+      }),
+    ).resolves.toMatchObject({
+      error: 'stream-recovered-after-restart',
+      status: 'stopped',
+    });
+
+    const admitted = await first.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('Human paragraph'),
+      generationId: 'reservation-error-generation-b',
+      requestId: 'stream-request-reservation-error',
+      sessionId: 'reservation-error-session-b',
+      selection: secondSelection,
+    });
+    expect(admitted.status).toBe('streaming');
+    await first.agent.abortRewriteSession({ sessionId: 'reservation-error-session-b' });
   });
 
   it('keeps a stream pending across ticket expiry and resumes after a fresh sync without duplication', async () => {
@@ -1665,6 +1839,100 @@ describe('CollaborativeAgentEditor streaming rewrite', () => {
     expect(await first.agent.finalizeRewriteSession({ sessionId: 'stream-session-abort' })).toEqual(
       aborted,
     );
+    const lateStart = await first.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'stream-generation-abort',
+      requestId: 'stream-request-abort',
+      sessionId: 'stream-session-abort',
+      selection,
+    });
+    expect(lateStart).toEqual(aborted);
+    const retainedState = (
+      first.agent as unknown as {
+        rewriteSessions: {
+          get: (sessionId: string) => {
+            chunks: Map<unknown, unknown>;
+            expectedBlockTexts: Map<unknown, unknown>;
+            generatedText: string;
+            regionAnchor?: unknown;
+          };
+        };
+      }
+    ).rewriteSessions.get('stream-session-abort');
+    expect(retainedState?.generatedText).toBe('');
+    expect(retainedState?.chunks.size).toBe(1);
+    expect(retainedState?.expectedBlockTexts.size).toBe(0);
+    expect(retainedState?.regionAnchor).toBeUndefined();
+    const beforeChunkReuse = await __exportCollaborativeAgentEditorProjectionForPersistence(
+      first.agent,
+    );
+    await expect(
+      first.agent.appendRewriteChunk({
+        chunk: 'Partial',
+        chunkId: 'chunk-1',
+        sessionId: 'stream-session-abort',
+      }),
+    ).resolves.toEqual(aborted);
+    const chunkReuse = await first.agent.appendRewriteChunk({
+      chunk: 'Different payload',
+      chunkId: 'chunk-1',
+      sessionId: 'stream-session-abort',
+    });
+    expect(chunkReuse).toMatchObject({ error: 'chunk-id-reused', status: 'failed' });
+    const afterChunkReuse = await __exportCollaborativeAgentEditorProjectionForPersistence(
+      first.agent,
+    );
+    expect(afterChunkReuse.markdown).toBe(beforeChunkReuse.markdown);
+    const projection = await __exportCollaborativeAgentEditorProjectionForPersistence(first.agent);
+    expect(projection.markdown).toContain('Partial collaborative world');
+    expect(JSON.stringify(projection.editorData)).not.toContain('rewriteRegionStatus');
+  });
+
+  it('does not let a deferred finalize overwrite an abort result', async () => {
+    const room = new TestRoom(seedDocument());
+    rooms.push(room);
+    const first = createAgent(room, 'stream-request-finalize-abort-race');
+    agents.push(first.agent);
+    docs.push(first.doc);
+    await first.agent.connect();
+    const selection = captureHello(first.agent);
+    if (!selection) throw new Error('finalize race selection missing');
+    await first.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'stream-generation-finalize-abort-race',
+      requestId: 'stream-request-finalize-abort-race',
+      sessionId: 'stream-session-finalize-abort-race',
+      selection,
+    });
+    await first.agent.appendRewriteChunk({
+      chunk: 'Partial',
+      chunkId: 'finalize-race-chunk',
+      sessionId: 'stream-session-finalize-abort-race',
+    });
+
+    const internal = first.agent as unknown as {
+      dispatchCommand: (command: unknown, payload: unknown) => Promise<unknown>;
+    };
+    const originalDispatchCommand = internal.dispatchCommand;
+    let resolveDispatch!: (result: unknown) => void;
+    internal.dispatchCommand = () =>
+      new Promise((resolve) => {
+        resolveDispatch = resolve;
+      });
+    const pendingFinalize = first.agent.finalizeRewriteSession({
+      sessionId: 'stream-session-finalize-abort-race',
+    });
+    expect(resolveDispatch).toBeTypeOf('function');
+    try {
+      const aborted = await first.agent.abortRewriteSession({
+        reason: 'race-aborted',
+        sessionId: 'stream-session-finalize-abort-race',
+      });
+      resolveDispatch({ status: 'applied' });
+      await expect(pendingFinalize).resolves.toEqual(aborted);
+    } finally {
+      internal.dispatchCommand = originalDispatchCommand;
+    }
     const projection = await __exportCollaborativeAgentEditorProjectionForPersistence(first.agent);
     expect(projection.markdown).toContain('Partial collaborative world');
     expect(JSON.stringify(projection.editorData)).not.toContain('rewriteRegionStatus');
@@ -1714,6 +1982,44 @@ describe('CollaborativeAgentEditor streaming rewrite', () => {
     expect(
       await second.agent.recoverRewriteSession({ sessionId: 'stream-session-recovery' }),
     ).toEqual(recovered);
+    await expect(
+      second.agent.recoverRewriteSession({
+        generationId: 'stream-generation-recovery',
+        requestId: 'different-request',
+        sessionId: 'stream-session-recovery',
+      }),
+    ).resolves.toMatchObject({
+      error: 'requestId does not match this Agent session.',
+      status: 'failed',
+    });
+    await expect(
+      second.agent.recoverRewriteSession({
+        generationId: 'different-generation',
+        requestId: 'stream-request-recovery',
+        sessionId: 'stream-session-recovery',
+      }),
+    ).resolves.toMatchObject({
+      error: 'stream-recovery-identity-conflict',
+      status: 'failed',
+    });
+    await expect(
+      second.agent.recoverRewriteSession({
+        generationId: 42 as never,
+        requestId: 'stream-request-recovery',
+        sessionId: 'stream-session-recovery',
+      }),
+    ).resolves.toMatchObject({
+      error: 'stream-recovery-identity-required',
+      status: 'failed',
+    });
+    const lateStart = await second.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'stream-generation-recovery',
+      requestId: 'stream-request-recovery',
+      sessionId: 'stream-session-recovery',
+      selection,
+    });
+    expect(lateStart).toEqual(recovered);
     const noResurrection = await first.agent.appendRewriteChunk({
       chunk: ' never resurrect',
       chunkId: 'chunk-2',
@@ -1723,6 +2029,14 @@ describe('CollaborativeAgentEditor streaming rewrite', () => {
     expect(
       (await __exportCollaborativeAgentEditorProjectionForPersistence(first.agent)).markdown,
     ).not.toContain('never resurrect');
+    const secondInternal = second.agent as unknown as {
+      rewriteSessions: { size: number };
+      recoveredRewriteSessions: { size: number };
+    };
+    expect(secondInternal.recoveredRewriteSessions.size).toBe(1);
+    await second.agent.disconnect();
+    expect(secondInternal.rewriteSessions.size).toBe(0);
+    expect(secondInternal.recoveredRewriteSessions.size).toBe(0);
   });
 
   it('resumes a stream after a recoverable transport drop and keeps the partial region intact', async () => {
@@ -1766,6 +2080,71 @@ describe('CollaborativeAgentEditor streaming rewrite', () => {
     const projection = await __exportCollaborativeAgentEditorProjectionForPersistence(first.agent);
     expect(projection.markdown).toContain('Partial never resume still resumed collaborative world');
     expect(JSON.stringify(projection.editorData)).toContain('rewriteRegionStatus');
+  });
+
+  it('leaves a durable recovery marker intact when the recovery replay table is full', async () => {
+    const room = new TestRoom(seedDocument());
+    rooms.push(room);
+    const producer = createAgent(room, 'stream-request-recovery-capacity', {
+      maxRewriteSessions: 2,
+    });
+    agents.push(producer.agent);
+    docs.push(producer.doc);
+    await producer.agent.connect();
+    const firstSelection = captureText(producer.agent, 'Hello');
+    const secondSelection = captureText(producer.agent, 'Human paragraph');
+    if (!firstSelection || !secondSelection) throw new Error('recovery selections missing');
+    await producer.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('Hello'),
+      generationId: 'recovery-capacity-generation-a',
+      requestId: 'stream-request-recovery-capacity',
+      sessionId: 'recovery-capacity-session-a',
+      selection: firstSelection,
+    });
+    await producer.agent.startRewriteSession({
+      expectedTextHash: hashRewriteText('Human paragraph'),
+      generationId: 'recovery-capacity-generation-b',
+      requestId: 'stream-request-recovery-capacity',
+      sessionId: 'recovery-capacity-session-b',
+      selection: secondSelection,
+    });
+
+    const recovery = createAgent(room, 'stream-request-recovery-capacity', {
+      maxRecoveredRewriteSessions: 1,
+    });
+    agents.push(recovery.agent);
+    docs.push(recovery.doc);
+    await recovery.agent.connect();
+    const recovered = await recovery.agent.recoverRewriteSession({
+      generationId: 'recovery-capacity-generation-a',
+      requestId: 'stream-request-recovery-capacity',
+      sessionId: 'recovery-capacity-session-a',
+    });
+    expect(recovered.status).toBe('stopped');
+
+    const rejected = await recovery.agent.recoverRewriteSession({
+      generationId: 'recovery-capacity-generation-b',
+      requestId: 'stream-request-recovery-capacity',
+      sessionId: 'recovery-capacity-session-b',
+    });
+    expect(rejected).toMatchObject({
+      error: 'stream-recovery-retention-capacity',
+      status: 'stopped',
+    });
+    const secondProjection = await __exportCollaborativeAgentEditorProjectionForPersistence(
+      recovery.agent,
+    );
+    expect(JSON.stringify(secondProjection.editorData)).toContain('recovery-capacity-generation-b');
+    expect(
+      await recovery.agent.recoverRewriteSession({
+        generationId: 'recovery-capacity-generation-b',
+        requestId: 'stream-request-recovery-capacity',
+        sessionId: 'recovery-capacity-session-b',
+      }),
+    ).toMatchObject({
+      error: 'stream-recovery-retention-capacity',
+      status: 'stopped',
+    });
   });
 
   it('keeps one collaborative undo boundary for the streamed replacement', async () => {

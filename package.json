@@ -155,7 +155,6 @@
     "fuse.js": "^7.5.0",
     "katex": "^0.18.1",
     "lexical": "0.42.0",
-    "loro-crdt": "1.16.1",
     "lucide-react": "^1.26.0",
     "mermaid": "^11.16.0",
     "polished": "^4.3.1",
@@ -196,6 +195,7 @@
     "jsdom": "^29.1.1",
     "leva": "^0.10.1",
     "lint-staged": "^17.2.0",
+    "loro-crdt": "1.16.1",
     "motion": "^12.42.2",
     "prettier": "^3.9.6",
     "react": "^19.2.8",
@@ -215,9 +215,15 @@
   "peerDependencies": {
     "@lobehub/ui": "^5.0.0",
     "antd": "^6.1.1",
+    "loro-crdt": "1.16.1",
     "motion": "^12.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "loro-crdt": {
+      "optional": true
+    }
   },
   "packageManager": "pnpm@10.20.0",
   "publishConfig": {

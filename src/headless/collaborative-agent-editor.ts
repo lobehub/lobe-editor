@@ -20,7 +20,6 @@ import {
   $setSelection,
   HISTORY_PUSH_TAG,
 } from 'lexical';
-import type { LoroDoc } from 'loro-crdt';
 import {
   createRelativePositionFromJSON,
   Doc,
@@ -58,7 +57,6 @@ import {
   type CollaborativeAgentCommandGateway,
   createCollaborativeAgentCommandGateway,
 } from '@/plugins/litexml/command/gateway';
-import type { LoroTransportProviderOptions } from '@/plugins/loro/transport-provider';
 import { $getNodeProperties } from '@/plugins/properties/state';
 import {
   $clearStreamingGenerationRegion,
@@ -95,7 +93,11 @@ import type { IEditor, IPlugin } from '@/types';
 import { hashRewriteText, normalizeRewriteText } from '@/utils/rewrite-text';
 
 import { getCollaborationEngine } from './collaboration/engine-adapter';
-import type { LoroHeadlessFactory, LoroHeadlessFactoryResult } from './collaboration/loro-factory';
+import type {
+  LoroHeadlessFactory,
+  LoroHeadlessFactoryOptions,
+  LoroHeadlessFactoryResult,
+} from './collaboration/loro-factory';
 import { DEFAULT_HEADLESS_EDITOR_PLUGINS } from './default-plugins';
 import {
   clearStreamingRegionMetadata,
@@ -105,6 +107,10 @@ import {
   insertStreamingTextAtBlockOffset,
   readStreamingTargetTexts,
 } from './streaming';
+import {
+  BoundedSessionRetention,
+  DEFAULT_SESSION_RETENTION_LIMIT,
+} from './streaming/session-retention';
 
 export type { CollaborativeAgentCommand } from '@/plugins/litexml/command/gateway';
 
@@ -347,12 +353,22 @@ export interface CollaborativeAgentEditorConnectOptions {
   /** Omitted for the legacy Yjs v1 Agent API. */
   descriptor?: CollaborationDescriptor;
   documentId: string;
+  /**
+   * Bounds local rewrite replay state. Entries are never evicted: when a
+   * bound is reached, new unique sessions fail closed and the facade must be
+   * rotated. Existing session retries and admitted active sessions remain
+   * usable until teardown.
+   */
+  rewriteSessionRetention?: {
+    maxRecoveredRewriteSessions?: number;
+    maxRewriteSessions?: number;
+  };
   providerOptions?: NodeWebSocketYjsProviderOptions;
   loro?: {
-    doc?: LoroDoc;
+    doc?: LoroHeadlessFactoryOptions['doc'];
     factory?: LoroHeadlessFactory;
     transport?: CollaborationTransportPort;
-    transportOptions?: Omit<LoroTransportProviderOptions, 'applyRemoteUpdate'>;
+    transportOptions?: LoroHeadlessFactoryOptions['transportOptions'];
   };
   requestId: string;
   roomId: string;
@@ -383,6 +399,12 @@ export interface CollaborativeAgentEditorProjection {
 
 interface CollaborativeAgentEditorInternalState {
   kernel: IEditor;
+}
+
+interface RecoveredRewriteSession {
+  result: CollaborativeRewriteStreamResult;
+  requestId: string;
+  targetNodeIds: string[];
 }
 
 // Persistence is intentionally kept behind a module-local capability. The
@@ -598,6 +620,20 @@ const ACTIVE_STREAM_AWARENESS_STATUSES = new Set<AgentAwarenessStatus>([
 const isValidStreamId = (value: unknown): value is string =>
   typeof value === 'string' && value.trim().length > 0;
 
+const MAX_SESSION_RETENTION_LIMIT = 4096;
+
+const normalizeSessionRetentionLimit = (value: unknown, name: string): number => {
+  const limit = value === undefined ? DEFAULT_SESSION_RETENTION_LIMIT : value;
+  if (
+    !Number.isSafeInteger(limit) ||
+    (limit as number) < 1 ||
+    (limit as number) > MAX_SESSION_RETENTION_LIMIT
+  ) {
+    throw new Error(`${name} must be a safe integer between 1 and ${MAX_SESSION_RETENTION_LIMIT}.`);
+  }
+  return limit as number;
+};
+
 const hasOverlappingNodeIds = (
   left: ReadonlyArray<string>,
   right: ReadonlyArray<string>,
@@ -772,9 +808,13 @@ export class CollaborativeAgentEditor {
    * mirrored to Yjs before the method resolves. A reconnect can therefore
    * either continue with an existing in-memory session or safely stop it
    * without ever restoring the replaced text.
+   *
+   * Both tables are bounded and non-evicting. A terminal identity is retained
+   * until teardown so a delayed retry cannot become a new document mutation;
+   * capacity failures are therefore explicit and fail closed.
    */
-  private readonly rewriteSessions = new Map<string, CollaborativeRewriteStreamState>();
-  private readonly recoveredRewriteSessions = new Map<string, CollaborativeRewriteStreamResult>();
+  private readonly rewriteSessions: BoundedSessionRetention<CollaborativeRewriteStreamState>;
+  private readonly recoveredRewriteSessions: BoundedSessionRetention<RecoveredRewriteSession>;
   private readonly syncWaiters = new Set<{
     reject: (error: Error) => void;
     resolve: () => void;
@@ -788,6 +828,18 @@ export class CollaborativeAgentEditor {
     this.yjsDoc = options.yjsDoc;
     this.loroCanonical = options.loroCanonical;
     this.provider = options.provider;
+    this.rewriteSessions = new BoundedSessionRetention(
+      normalizeSessionRetentionLimit(
+        options.rewriteSessionRetention?.maxRewriteSessions,
+        'maxRewriteSessions',
+      ),
+    );
+    this.recoveredRewriteSessions = new BoundedSessionRetention(
+      normalizeSessionRetentionLimit(
+        options.rewriteSessionRetention?.maxRecoveredRewriteSessions,
+        'maxRecoveredRewriteSessions',
+      ),
+    );
 
     if (
       options.descriptor?.engine !== 'loro' &&
@@ -1480,6 +1532,26 @@ export class CollaborativeAgentEditor {
       return this.copyStreamingResult(previous.lastResult);
     }
 
+    const recovered = this.recoveredRewriteSessions.get(sessionId);
+    if (recovered) {
+      if (
+        recovered.requestId !== input.requestId ||
+        recovered.result.generationId !== generationId ||
+        !Array.isArray(input.selection?.targetNodeIds) ||
+        !sameStringArray(recovered.targetNodeIds, input.selection.targetNodeIds)
+      ) {
+        return this.createStandaloneStreamResult(
+          sessionId,
+          generationId,
+          'failed',
+          'stream-session-id-reused',
+        );
+      }
+      // Recovery is terminal. A delayed start retry must replay the stopped
+      // result rather than treating the cleared durable region as a new job.
+      return this.copyStreamingResult(recovered.result);
+    }
+
     if (!isValidStreamId(input.expectedTextHash)) {
       return this.createStandaloneStreamResult(
         sessionId,
@@ -1649,150 +1721,177 @@ export class CollaborativeAgentEditor {
         type: resolved.selection.focus.type,
       },
     };
-    let didStart = false;
-    let boundarySeparatorKey: string | undefined;
-    try {
-      lexicalEditor.update(
-        () => {
-          const startNode = $getNodeByKey(selectionSnapshot.anchor.key);
-          const endNode = $getNodeByKey(selectionSnapshot.focus.key);
-          if (!startNode || !endNode || !startNode.isAttached() || !endNode.isAttached()) return;
-
-          const range = $createRangeSelection();
-          range.anchor.set(
-            selectionSnapshot.anchor.key,
-            selectionSnapshot.anchor.offset,
-            selectionSnapshot.anchor.type,
-          );
-          range.focus.set(
-            selectionSnapshot.focus.key,
-            selectionSnapshot.focus.offset,
-            selectionSnapshot.focus.type,
-          );
-          $setSelection(range);
-          range.removeText();
-
-          // Establish the protected region in the same transaction as the
-          // selection removal. A zero-length durable block/offset range
-          // closes the first-token race: peers cannot type/paste/delete into
-          // the AI caret while the model is still waiting to emit its first
-          // chunk. The marker lives in NodeState, so it is transparent to
-          // text/Markdown projections and survives Yjs reload.
-          const block = $findNodeById(anchor.nodeId);
-          if (!block) return;
-          $markNodeAsStreamingGenerationRegion(block, {
-            generationId,
-            requestId: this.requestId,
-            sessionId,
-          });
-          $setStreamingGenerationRegionRange(block, { length: 0, startOffset: anchor.offset });
-          if (needsBoundarySeparator) {
-            const separator = insertPlainTextAtBlockOffset(block, anchor.offset, ' ');
-            if (!separator) return;
-            boundarySeparatorKey = separator.getKey();
-          }
-          $setSelection(null);
-          didStart = true;
-        },
-        // The remove-and-stream sequence should be one user-visible undo
-        // action while chunks continue arriving in their own Yjs updates.
-        { discrete: true, tag: HISTORY_PUSH_TAG },
-      );
-    } catch (error) {
+    // Reserve before the first Lexical mutation. Reservations make the hard
+    // bound apply to admitted active sessions as well as terminal replay
+    // records, while an active session can never be evicted to make room.
+    if (!this.rewriteSessions.reserve(sessionId)) {
       return this.createStandaloneStreamResult(
         sessionId,
         generationId,
         'failed',
-        error instanceof Error ? error.message : 'stream-start-failed',
+        'stream-session-retention-capacity',
         resolved.targetNodeIds,
       );
     }
+    let didStart = false;
+    let boundarySeparatorKey: string | undefined;
+    try {
+      try {
+        lexicalEditor.update(
+          () => {
+            const startNode = $getNodeByKey(selectionSnapshot.anchor.key);
+            const endNode = $getNodeByKey(selectionSnapshot.focus.key);
+            if (!startNode || !endNode || !startNode.isAttached() || !endNode.isAttached()) return;
 
-    if (!didStart) {
-      return this.createStandaloneStreamResult(
-        sessionId,
-        generationId,
-        'conflict',
-        'stream-generation-region-not-created',
+            const range = $createRangeSelection();
+            range.anchor.set(
+              selectionSnapshot.anchor.key,
+              selectionSnapshot.anchor.offset,
+              selectionSnapshot.anchor.type,
+            );
+            range.focus.set(
+              selectionSnapshot.focus.key,
+              selectionSnapshot.focus.offset,
+              selectionSnapshot.focus.type,
+            );
+            $setSelection(range);
+            range.removeText();
+
+            // Establish the protected region in the same transaction as the
+            // selection removal. A zero-length durable block/offset range
+            // closes the first-token race: peers cannot type/paste/delete into
+            // the AI caret while the model is still waiting to emit its first
+            // chunk. The marker lives in NodeState, so it is transparent to
+            // text/Markdown projections and survives Yjs reload.
+            const block = $findNodeById(anchor.nodeId);
+            if (!block) return;
+            $markNodeAsStreamingGenerationRegion(block, {
+              generationId,
+              requestId: this.requestId,
+              sessionId,
+            });
+            $setStreamingGenerationRegionRange(block, { length: 0, startOffset: anchor.offset });
+            if (needsBoundarySeparator) {
+              const separator = insertPlainTextAtBlockOffset(block, anchor.offset, ' ');
+              if (!separator) return;
+              boundarySeparatorKey = separator.getKey();
+            }
+            $setSelection(null);
+            didStart = true;
+          },
+          // The remove-and-stream sequence should be one user-visible undo
+          // action while chunks continue arriving in their own Yjs updates.
+          { discrete: true, tag: HISTORY_PUSH_TAG },
+        );
+      } catch (error) {
+        return this.createStandaloneStreamResult(
+          sessionId,
+          generationId,
+          'failed',
+          error instanceof Error ? error.message : 'stream-start-failed',
+          resolved.targetNodeIds,
+        );
+      }
+
+      if (!didStart) {
+        return this.createStandaloneStreamResult(
+          sessionId,
+          generationId,
+          'conflict',
+          'stream-generation-region-not-created',
+          resolved.targetNodeIds,
+        );
+      }
+
+      // Capture the anchor after the selected text has been removed. Creating it
+      // before removal can point at an item that is deleted by the rewrite; Yjs
+      // then falls back to the old numeric index and cannot follow prefix edits.
+      // The post-removal suffix item is durable and shifts naturally when the
+      // human-authored prefix grows or shrinks.
+      lexicalEditor.getEditorState().read(() => {
+        if (this.collaborationService.descriptor.engine === 'loro') return;
+        const yjsState = this.getYjsServiceState();
+        const block = $findNodeById(anchor.nodeId);
+        if (!yjsState || !block) return;
+        const point = getBlockPoint(block, anchor.offset, 'start');
+        if (!point) return;
+        regionAnchorPosition =
+          createRelativePositionForLexicalPoint(point, yjsState.binding) ?? undefined;
+      });
+      const regionAnchor: CollaborationAnchor | undefined =
+        this.collaborationService.capturePoint(anchor as CollaborationPoint) ?? undefined;
+
+      const currentTargetTexts = readStreamingTargetTexts(
+        this.getLexicalEditor(),
         resolved.targetNodeIds,
-      );
-    }
+      ).texts;
+      const knownMissingTargetNodeIds = new Set<string>();
+      for (const nodeId of resolved.targetNodeIds) {
+        if (!currentTargetTexts.has(nodeId)) knownMissingTargetNodeIds.add(nodeId);
+      }
+      // The containing start block must survive start; otherwise there is no
+      // durable place where a later chunk could be safely inserted.
+      if (!currentTargetTexts.has(anchor.nodeId)) {
+        clearStreamingRegionMetadata(this.getLexicalEditor(), sessionId);
+        return this.createStandaloneStreamResult(
+          sessionId,
+          generationId,
+          'stopped',
+          'stream-generation-region-not-created',
+          resolved.targetNodeIds,
+        );
+      }
 
-    // Capture the anchor after the selected text has been removed. Creating it
-    // before removal can point at an item that is deleted by the rewrite; Yjs
-    // then falls back to the old numeric index and cannot follow prefix edits.
-    // The post-removal suffix item is durable and shifts naturally when the
-    // human-authored prefix grows or shrinks.
-    lexicalEditor.getEditorState().read(() => {
-      if (this.collaborationService.descriptor.engine === 'loro') return;
-      const yjsState = this.getYjsServiceState();
-      const block = $findNodeById(anchor.nodeId);
-      if (!yjsState || !block) return;
-      const point = getBlockPoint(block, anchor.offset, 'start');
-      if (!point) return;
-      regionAnchorPosition =
-        createRelativePositionForLexicalPoint(point, yjsState.binding) ?? undefined;
-    });
-    const regionAnchor: CollaborationAnchor | undefined =
-      this.collaborationService.capturePoint(anchor as CollaborationPoint) ?? undefined;
-
-    const currentTargetTexts = readStreamingTargetTexts(
-      this.getLexicalEditor(),
-      resolved.targetNodeIds,
-    ).texts;
-    const knownMissingTargetNodeIds = new Set<string>();
-    for (const nodeId of resolved.targetNodeIds) {
-      if (!currentTargetTexts.has(nodeId)) knownMissingTargetNodeIds.add(nodeId);
-    }
-    // The containing start block must survive start; otherwise there is no
-    // durable place where a later chunk could be safely inserted.
-    if (!currentTargetTexts.has(anchor.nodeId)) {
-      clearStreamingRegionMetadata(this.getLexicalEditor(), sessionId);
-      return this.createStandaloneStreamResult(
-        sessionId,
+      const state: CollaborativeRewriteStreamState = {
+        affectedNodeIds: [...resolved.targetNodeIds],
+        ...(boundarySeparatorKey ? { boundarySeparatorKey } : {}),
+        caret: anchor,
+        chunks: new Map(),
+        expectedBlockTexts: currentTargetTexts,
+        generatedText: '',
         generationId,
-        'stopped',
-        'stream-generation-region-not-created',
-        resolved.targetNodeIds,
-      );
-    }
-
-    const state: CollaborativeRewriteStreamState = {
-      affectedNodeIds: [...resolved.targetNodeIds],
-      ...(boundarySeparatorKey ? { boundarySeparatorKey } : {}),
-      caret: anchor,
-      chunks: new Map(),
-      expectedBlockTexts: currentTargetTexts,
-      generatedText: '',
-      generationId,
-      knownMissingTargetNodeIds,
-      lastResult: this.createStandaloneStreamResult(
+        knownMissingTargetNodeIds,
+        lastResult: this.createStandaloneStreamResult(
+          sessionId,
+          generationId,
+          'streaming',
+          undefined,
+          resolved.targetNodeIds,
+          0,
+          anchor,
+        ),
+        lastSequence: -1,
+        ...(input.model ? { model: input.model } : {}),
+        originalTextHash: input.expectedTextHash,
+        ...(provenanceSessionId ? { provenanceSessionId } : {}),
+        ...(input.provider ? { provider: input.provider } : {}),
+        ...(regionAnchor ? { regionAnchor } : {}),
+        ...(regionAnchorPosition ? { regionAnchorPosition } : {}),
+        regionStartOffset: anchor.offset,
+        requestId: this.requestId,
+        selectionRange,
+        selectionTargetNodeIds: [...resolved.targetNodeIds],
         sessionId,
-        generationId,
-        'streaming',
-        undefined,
-        resolved.targetNodeIds,
-        0,
-        anchor,
-      ),
-      lastSequence: -1,
-      ...(input.model ? { model: input.model } : {}),
-      originalTextHash: input.expectedTextHash,
-      ...(provenanceSessionId ? { provenanceSessionId } : {}),
-      ...(input.provider ? { provider: input.provider } : {}),
-      ...(regionAnchor ? { regionAnchor } : {}),
-      ...(regionAnchorPosition ? { regionAnchorPosition } : {}),
-      regionStartOffset: anchor.offset,
-      requestId: this.requestId,
-      selectionRange,
-      selectionTargetNodeIds: [...resolved.targetNodeIds],
-      sessionId,
-      status: 'streaming',
-      ...(input.turnIndex !== undefined ? { turnIndex: input.turnIndex } : {}),
-    };
-    this.rewriteSessions.set(sessionId, state);
-    this.publishStreamingAwareness(state, 'writing');
-    return this.copyStreamingResult(state.lastResult);
+        status: 'streaming',
+        ...(input.turnIndex !== undefined ? { turnIndex: input.turnIndex } : {}),
+      };
+      if (!this.rewriteSessions.commit(sessionId, state)) {
+        clearStreamingRegionMetadata(this.getLexicalEditor(), sessionId);
+        return this.createStandaloneStreamResult(
+          sessionId,
+          generationId,
+          'failed',
+          'stream-session-retention-capacity',
+          resolved.targetNodeIds,
+        );
+      }
+      this.publishStreamingAwareness(state, 'writing');
+      return this.copyStreamingResult(state.lastResult);
+    } finally {
+      // A committed entry no longer has a reservation; all pre-commit error
+      // paths release the slot here, including failures during anchor capture.
+      this.rewriteSessions.release(sessionId);
+    }
   }
 
   /** Append one idempotent text chunk through a normal Lexical/Yjs update. */
@@ -2065,6 +2164,12 @@ export class CollaborativeAgentEditor {
         },
         turnIndex: state.turnIndex,
       });
+      const latestAfterDispatch = this.rewriteSessions.get(sessionId);
+      if (!latestAfterDispatch || latestAfterDispatch.status !== 'streaming') {
+        return latestAfterDispatch
+          ? this.copyStreamingResult(latestAfterDispatch.lastResult)
+          : this.copyStreamingResult(state.lastResult);
+      }
       if (formatted.status !== 'applied') {
         return this.stopStreamingSession(
           state,
@@ -2113,6 +2218,7 @@ export class CollaborativeAgentEditor {
       state.caret,
       this.getStateVectorSafely() ?? undefined,
     );
+    this.compactTerminalStreamState(state);
     try {
       this.clearAwareness();
     } catch {
@@ -2172,11 +2278,17 @@ export class CollaborativeAgentEditor {
   ): Promise<CollaborativeRewriteStreamResult> {
     const sessionId = isValidStreamId(input?.sessionId) ? input.sessionId.trim() : '';
     const requestedGenerationId =
-      input?.generationId === undefined ? undefined : input.generationId.trim();
+      input?.generationId === undefined
+        ? undefined
+        : typeof input.generationId === 'string'
+          ? input.generationId.trim()
+          : '';
     const requestedRequestId = input?.requestId === undefined ? this.requestId : input.requestId;
-    const cached = this.recoveredRewriteSessions.get(sessionId);
-    if (cached) return this.copyStreamingResult(cached);
-    if (!sessionId || !isValidStreamId(requestedRequestId)) {
+    if (
+      !sessionId ||
+      !isValidStreamId(requestedRequestId) ||
+      (input?.generationId !== undefined && !requestedGenerationId)
+    ) {
       return this.createStandaloneStreamResult(
         sessionId,
         requestedGenerationId ?? '',
@@ -2191,6 +2303,23 @@ export class CollaborativeAgentEditor {
         'failed',
         'requestId does not match this Agent session.',
       );
+    }
+
+    const cached = this.recoveredRewriteSessions.get(sessionId);
+    if (cached) {
+      if (
+        cached.requestId !== requestedRequestId ||
+        (requestedGenerationId !== undefined &&
+          cached.result.generationId !== requestedGenerationId)
+      ) {
+        return this.createStandaloneStreamResult(
+          sessionId,
+          requestedGenerationId ?? cached.result.generationId,
+          'failed',
+          'stream-recovery-identity-conflict',
+        );
+      }
+      return this.copyStreamingResult(cached.result);
     }
     if (!this.isReadyForStreaming()) {
       return this.createStandaloneStreamResult(
@@ -2262,63 +2391,93 @@ export class CollaborativeAgentEditor {
       );
     }
 
-    try {
-      lexicalEditor.update(
-        () => {
-          const visit = (node: LexicalNode): void => {
-            const region = $getStreamingGenerationRegion(node);
-            if (
-              region?.sessionId === sessionId &&
-              region.requestId === requestedRequestId &&
-              region.generationId === matchedGenerationId
-            ) {
-              $clearStreamingGenerationRegion(
-                node,
-                sessionId,
-                matchedGenerationId,
-                requestedRequestId,
-              );
-            }
-            if ($isElementNode(node)) node.getChildren().forEach(visit);
-          };
-          visit($getRoot());
-        },
-        { discrete: true },
-      );
-    } catch (error) {
+    // Reserve before clearing the durable marker. If the replay table is full
+    // we leave the marker intact so a rotated facade can still recover it.
+    if (!this.recoveredRewriteSessions.reserve(sessionId)) {
       return this.createStandaloneStreamResult(
         sessionId,
         matchedGenerationId,
         'stopped',
-        error instanceof Error ? error.message : 'stream-recovery-cleanup-failed',
+        'stream-recovery-retention-capacity',
       );
     }
-    const affectedNodeIds = regionBlockId ? [regionBlockId] : [];
-    const caret =
-      regionBlockId && regionStartOffset !== undefined && regionLength !== undefined
-        ? {
-            nodeId: regionBlockId,
-            offset: regionStartOffset + regionLength,
-          }
-        : undefined;
-    const result = this.createStandaloneStreamResult(
-      sessionId,
-      matchedGenerationId,
-      'stopped',
-      'stream-recovered-after-restart',
-      affectedNodeIds,
-      0,
-      caret?.nodeId ? caret : undefined,
-      this.getStateVectorSafely() ?? undefined,
-    );
-    this.recoveredRewriteSessions.set(sessionId, result);
+
     try {
-      this.clearAwareness();
-    } catch {
-      // Recovery remains successful when an old awareness socket is gone.
+      try {
+        lexicalEditor.update(
+          () => {
+            const visit = (node: LexicalNode): void => {
+              const region = $getStreamingGenerationRegion(node);
+              if (
+                region?.sessionId === sessionId &&
+                region.requestId === requestedRequestId &&
+                region.generationId === matchedGenerationId
+              ) {
+                $clearStreamingGenerationRegion(
+                  node,
+                  sessionId,
+                  matchedGenerationId,
+                  requestedRequestId,
+                );
+              }
+              if ($isElementNode(node)) node.getChildren().forEach(visit);
+            };
+            visit($getRoot());
+          },
+          { discrete: true },
+        );
+      } catch (error) {
+        return this.createStandaloneStreamResult(
+          sessionId,
+          matchedGenerationId,
+          'stopped',
+          error instanceof Error ? error.message : 'stream-recovery-cleanup-failed',
+        );
+      }
+      const affectedNodeIds = regionBlockId ? [regionBlockId] : [];
+      const caret =
+        regionBlockId && regionStartOffset !== undefined && regionLength !== undefined
+          ? {
+              nodeId: regionBlockId,
+              offset: regionStartOffset + regionLength,
+            }
+          : undefined;
+      const result = this.createStandaloneStreamResult(
+        sessionId,
+        matchedGenerationId,
+        'stopped',
+        'stream-recovered-after-restart',
+        affectedNodeIds,
+        0,
+        caret?.nodeId ? caret : undefined,
+        this.getStateVectorSafely() ?? undefined,
+      );
+      const retained = this.recoveredRewriteSessions.commit(sessionId, {
+        requestId: requestedRequestId,
+        result,
+        targetNodeIds: [...affectedNodeIds],
+      });
+      if (!retained) {
+        // This is unreachable while the reservation is held, but keep the
+        // failure closed if the retention implementation changes later.
+        return this.createStandaloneStreamResult(
+          sessionId,
+          matchedGenerationId,
+          'stopped',
+          'stream-recovery-retention-capacity',
+        );
+      }
+      try {
+        this.clearAwareness();
+      } catch {
+        // Recovery remains successful when an old awareness socket is gone.
+      }
+      await moment();
+      return this.copyStreamingResult(result);
+    } finally {
+      // commit() removes the reservation; all pre-commit errors release it.
+      this.recoveredRewriteSessions.release(sessionId);
     }
-    await moment();
-    return this.copyStreamingResult(result);
   }
 
   /** Page-facing name for crash/reload cleanup of a persisted stream region. */
@@ -2411,6 +2570,23 @@ export class CollaborativeAgentEditor {
     // chunk with the original idempotent identity after correcting it; keep
     // the last committed streaming result as the session's canonical state.
     return this.copyStreamingResult(result);
+  }
+
+  /**
+   * Keep only the identity and exact terminal result needed for replay.
+   * Chunk receipts remain so a delayed duplicate can still validate its
+   * chunkId/text/sequence. Generated model output, target text snapshots, and
+   * transport/editor anchors can be very large or retain CRDT objects, so they
+   * are released after settlement.
+   */
+  private compactTerminalStreamState(state: CollaborativeRewriteStreamState): void {
+    state.boundarySeparatorKey = undefined;
+    state.expectedBlockTexts.clear();
+    state.generatedText = '';
+    state.knownMissingTargetNodeIds.clear();
+    state.regionAnchor = undefined;
+    state.regionAnchorPosition = undefined;
+    state.regionStartOffset = 0;
   }
 
   private isReadyForStreaming(): boolean {
@@ -2564,6 +2740,7 @@ export class CollaborativeAgentEditor {
       state.caret,
       this.getStateVectorSafely() ?? undefined,
     );
+    this.compactTerminalStreamState(state);
     try {
       this.clearAwareness();
     } catch {
@@ -2603,12 +2780,22 @@ export class CollaborativeAgentEditor {
     this.providerSyncPromise = null;
     this.transportStatusDisposer?.();
     this.transportSyncDisposer?.();
-    await this.collaborationService.transport.disconnect();
-    this.kernel.destroy();
-    internalStates.delete(this);
-    if (this.ownsDoc) {
-      this.yjsDoc?.destroy();
-      this.loroCanonical?.doc.free();
+    try {
+      await this.collaborationService.transport.disconnect();
+    } finally {
+      // A disconnected facade cannot serve a replay, so release both the
+      // compact tombstones and any recovered result buffers on teardown.
+      this.rewriteSessions.clear();
+      this.recoveredRewriteSessions.clear();
+      try {
+        this.kernel.destroy();
+      } finally {
+        internalStates.delete(this);
+        if (this.ownsDoc) {
+          this.yjsDoc?.destroy();
+          this.loroCanonical?.doc.free();
+        }
+      }
     }
   }
 
