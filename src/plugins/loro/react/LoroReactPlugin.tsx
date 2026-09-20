@@ -18,7 +18,6 @@ import { LoroPlugin, type LoroPluginOptions } from '../plugin';
 import { getFlowOffset } from '../text-flow';
 
 export interface LoroReactPluginProps extends LoroPluginOptions {
-  connect?: boolean;
   presenceEnabled?: boolean;
   presenceState?: Readonly<Record<string, unknown>>;
   onReadinessChange?: (readiness: CollaborationReadiness) => void;
@@ -32,7 +31,6 @@ export interface LoroReactPluginProps extends LoroPluginOptions {
  * in the neutral collaboration service.
  */
 export const LoroReactPlugin: FC<LoroReactPluginProps> = ({
-  connect = true,
   presenceEnabled = true,
   presenceState,
   onReadinessChange,
@@ -122,8 +120,6 @@ export const LoroReactPlugin: FC<LoroReactPluginProps> = ({
       disposeLexical = () => editor.off('initialized', onInitialized);
     }
 
-    if (connect) void service.transport.connect();
-
     return () => {
       disposeLexical?.();
       publishPresenceRef.current = undefined;
@@ -131,14 +127,12 @@ export const LoroReactPlugin: FC<LoroReactPluginProps> = ({
       onStatusDispose();
       onSyncDispose();
       onReadinessDispose();
-      // Read the generation at cleanup time so a StrictMode/rebind stale cleanup cannot dispose the current service.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      if (generation === generationRef.current) {
-        service.dispose();
-        void service.transport.disconnect();
-      }
+      // The Kernel owns the registered LoroPlugin and its service. React's
+      // effect cleanup only releases this observer/presence subscription;
+      // disposing here would leave the same Kernel plugin registered with a
+      // terminated service when StrictMode or a root remount replays setup.
     };
-  }, [connect, editor, presenceEnabled]);
+  }, [editor, presenceEnabled]);
 
   return null;
 };

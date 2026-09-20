@@ -65,7 +65,6 @@ class CoreRoom {
   applications = 0;
   dropNextAck = false;
   sendSyncBeforeAuth = false;
-
   connect(socket: CoreSocket): void {
     this.sockets.add(socket);
     queueMicrotask(() => {
@@ -134,6 +133,20 @@ class CoreRoom {
       messageId: message.messageId,
       type: 'update-ack',
     });
+  }
+
+  sendError(socket: CoreSocket, code: string, fatal = true): void {
+    socket.receive({
+      ...this.base(),
+      code,
+      fatal,
+      message: code === 'ticket_expired' ? 'Collaboration ticket has expired.' : 'Auth failed.',
+      type: 'error',
+    });
+  }
+
+  expire(socket: CoreSocket): void {
+    this.sendError(socket, 'ticket_expired');
   }
 
   private base() {
@@ -247,5 +260,134 @@ describe('shared collaboration transport core', () => {
     expect(room.sockets.size).toBe(0);
     core.connect();
     expect(room.sockets.size).toBe(0);
+  });
+
+  it('refreshes a reusable ticket after a fatal expiry without terminating the transport', async () => {
+    vi.useFakeTimers();
+    const room = new CoreRoom();
+    const refreshTicket = vi.fn(() => 'fresh-ticket');
+    const engine = new TestEngine();
+    const core = new CollaborationTransportCore({
+      autoReconnect: true,
+      clientKind: 'browser',
+      descriptor,
+      engine,
+      refreshTicket,
+      roomId: 'room',
+      ticket: 'initial-ticket',
+      webSocketConstructor: class {
+        constructor(_url: string) {
+          return new CoreSocket(room) as unknown as this;
+        }
+      } as unknown as CollaborationWebSocketConstructor,
+      wsBaseUrl: 'ws://fake',
+    });
+    const errors: Error[] = [];
+    core.on('error', (error) => errors.push(error));
+    core.connect();
+    await vi.runAllTicks();
+    await core.waitForSync();
+    const socket = [...room.sockets][0];
+    room.expire(socket);
+    const reconnect = core.waitForSync();
+    await vi.advanceTimersByTimeAsync(2_000);
+    await expect(reconnect).resolves.toBeUndefined();
+    expect(refreshTicket).toHaveBeenCalledOnce();
+    expect(errors).toMatchObject([{ code: 'ticket_expired', fatal: false }]);
+    core.dispose();
+  });
+
+  it('keeps an unacknowledged update queued across ticket expiry and refresh', async () => {
+    vi.useFakeTimers();
+    const room = new CoreRoom();
+    const refreshTicket = vi.fn(() => 'fresh-ticket');
+    const engine = new TestEngine();
+    const core = new CollaborationTransportCore({
+      autoReconnect: true,
+      clientKind: 'browser',
+      descriptor,
+      engine,
+      refreshTicket,
+      roomId: 'room',
+      ticket: 'initial-ticket',
+      webSocketConstructor: class {
+        constructor(_url: string) {
+          return new CoreSocket(room) as unknown as this;
+        }
+      } as unknown as CollaborationWebSocketConstructor,
+      wsBaseUrl: 'ws://fake',
+    });
+    core.connect();
+    await vi.runAllTicks();
+    await core.waitForSync();
+    room.dropNextAck = true;
+    engine.emit('offline-edit');
+    const pending = core.waitForPendingUpdates(10_000);
+    room.expire([...room.sockets][0]);
+    await vi.advanceTimersByTimeAsync(2_000);
+    await expect(pending).resolves.toBeUndefined();
+    expect(refreshTicket).toHaveBeenCalledOnce();
+    expect(room.applications).toBe(1);
+    core.dispose();
+  });
+
+  it('reports nonfatal server errors without forcing reconnect or termination', async () => {
+    const room = new CoreRoom();
+    const { core } = createCore(room);
+    const errors: Error[] = [];
+    core.on('error', (error) => errors.push(error));
+    core.connect();
+    await core.waitForSync();
+    room.sendError([...room.sockets][0], 'rate_limited', false);
+    expect(errors).toMatchObject([{ code: 'rate_limited', fatal: false }]);
+    await expect(core.waitForSync()).resolves.toBeUndefined();
+    expect(room.sockets.size).toBe(1);
+    core.dispose();
+  });
+
+  it('does not leave a sync waiter pending when auto reconnect is disabled', async () => {
+    const room = new CoreRoom();
+    const engine = new TestEngine();
+    const core = new CollaborationTransportCore({
+      autoReconnect: false,
+      clientKind: 'browser',
+      descriptor,
+      engine,
+      roomId: 'room',
+      ticket: 'ticket',
+      webSocketConstructor: class {
+        constructor(_url: string) {
+          return new CoreSocket(room) as unknown as this;
+        }
+      } as unknown as CollaborationWebSocketConstructor,
+      wsBaseUrl: 'ws://fake',
+    });
+    let failure: Promise<void> | undefined;
+    const syncListener = (synced: boolean): void => {
+      if (!synced) failure = core.waitForSync();
+    };
+    core.on('sync', syncListener);
+    core.connect();
+    await core.waitForSync();
+    room.expire([...room.sockets][0]);
+    await expect(failure).rejects.toMatchObject({ code: 'ticket_expired' });
+    core.off('sync', syncListener);
+    core.dispose();
+  });
+
+  it('preserves the original terminal error when sync listeners wait during failure', async () => {
+    const room = new CoreRoom();
+    const { core } = createCore(room);
+    let syncFailure: Promise<void> | undefined;
+    const syncListener = (synced: boolean): void => {
+      if (!synced) syncFailure = core.waitForSync();
+    };
+    core.on('sync', syncListener);
+    core.connect();
+    await core.waitForSync();
+    room.sendError([...room.sockets][0], 'unauthorized');
+    await expect(syncFailure).rejects.toMatchObject({ code: 'unauthorized' });
+    core.off('sync', syncListener);
+    core.dispose();
   });
 });

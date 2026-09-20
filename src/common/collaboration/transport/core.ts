@@ -134,6 +134,7 @@ export class CollaborationTransportCore<Update> {
   private shouldConnect = false;
   private socket: CollaborationWebSocketLike | null = null;
   private synced = false;
+  private terminalError: Error | null = null;
   private syncInvalidatedBeforeClose = false;
   private nonce: string | null = null;
   private sender: CollaborationSenderId | null = null;
@@ -160,6 +161,7 @@ export class CollaborationTransportCore<Update> {
     this.clearReconnectTimer();
     const socket = this.socket;
     this.socket = null;
+    this.terminalError = null;
     this.authenticated = false;
     this.synced = false;
     this.handshake = 'idle';
@@ -191,7 +193,8 @@ export class CollaborationTransportCore<Update> {
     if (this.synced) return Promise.resolve();
     if (this.connectionTerminated) {
       return Promise.reject(
-        new CollaborationTransportCoreError('Transport is terminated.', 'terminated'),
+        this.terminalError ??
+          new CollaborationTransportCoreError('Transport is terminated.', 'terminated'),
       );
     }
     return new Promise<void>((resolve, reject) => {
@@ -492,13 +495,30 @@ export class CollaborationTransportCore<Update> {
         return;
       }
       case 'error': {
-        this.fail(
-          new CollaborationTransportCoreError(
-            message.message,
-            message.code,
-            message.fatal !== false,
-          ),
+        const error = new CollaborationTransportCoreError(
+          message.message,
+          message.code,
+          message.fatal !== false,
         );
+        // Browser tickets are reusable capabilities. A relay may report
+        // expiry as a fatal socket error, but a provider with a refresh hook
+        // can safely obtain a fresh ticket and reconnect. Preserve the reason
+        // as a transient error while retaining queued/unacknowledged updates.
+        if (
+          this.options.refreshTicket &&
+          this.options.autoReconnect !== false &&
+          message.code === 'ticket_expired'
+        ) {
+          this.invalidateTransport();
+          this.emit('error', new CollaborationTransportCoreError(error.message, error.code, false));
+          this.socket?.close(CLOSE_CODE_TICKET_REJECTED, error.message);
+          return;
+        }
+        if (message.fatal === false) {
+          this.emit('error', error);
+          return;
+        }
+        this.fail(error);
         return;
       }
       default: {
@@ -548,6 +568,7 @@ export class CollaborationTransportCore<Update> {
   }
 
   private fail(error: Error): void {
+    this.terminalError = error;
     this.connectionTerminated = true;
     this.shouldConnect = false;
     this.invalidateTransport();
