@@ -30,6 +30,10 @@
       "types": "./es/codemirror.d.ts",
       "import": "./es/codemirror.js"
     },
+    "./collaboration": {
+      "types": "./es/collaboration.d.ts",
+      "import": "./es/collaboration.js"
+    },
     "./headless": {
       "types": "./es/headless.d.ts",
       "import": "./es/headless.js"
@@ -37,6 +41,18 @@
     "./litexml-commands": {
       "types": "./es/plugins/litexml/command/symbols.d.ts",
       "import": "./es/plugins/litexml/command/symbols.js"
+    },
+    "./loro": {
+      "types": "./es/loro.d.ts",
+      "import": "./es/loro.js"
+    },
+    "./loro/headless": {
+      "types": "./es/loro/headless.d.ts",
+      "import": "./es/loro/headless.js"
+    },
+    "./loro/react": {
+      "types": "./es/loro/react.d.ts",
+      "import": "./es/loro/react.js"
     },
     "./react": {
       "types": "./es/react.d.ts",
@@ -139,6 +155,7 @@
     "fuse.js": "^7.5.0",
     "katex": "^0.18.1",
     "lexical": "0.42.0",
+    "loro-crdt": "1.16.1",
     "lucide-react": "^1.26.0",
     "mermaid": "^11.16.0",
     "polished": "^4.3.1",

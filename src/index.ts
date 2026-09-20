@@ -1,3 +1,4 @@
+export * from './common/collaboration';
 export * from './editor-kernel';
 export * from './editor-kernel/react';
 export * from './headless';

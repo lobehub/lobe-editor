@@ -1,6 +1,7 @@
 import type { LexicalEditor, LexicalNode, TextNode } from 'lexical';
 import { $createTextNode, $getRoot, $isElementNode, $isTextNode } from 'lexical';
 
+import type { CollaborationAnchor } from '@/common/collaboration';
 import { getLinearTextSegments } from '@/editor-kernel/linear-text';
 import {
   $clearStreamingGenerationRegion,
@@ -23,6 +24,7 @@ export interface StreamingStateView {
 export interface StreamingInsertionStateView extends StreamingStateView {
   boundarySeparatorKey?: string;
   generatedText: string;
+  regionAnchor?: CollaborationAnchor;
   regionAnchorPosition?: unknown;
   regionStartOffset: number;
 }

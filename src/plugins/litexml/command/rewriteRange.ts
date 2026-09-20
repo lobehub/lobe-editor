@@ -23,8 +23,8 @@ import {
   HISTORY_MERGE_TAG,
   HISTORY_PUSH_TAG,
 } from 'lexical';
-import { encodeStateVector } from 'yjs';
 
+import { ICollaborationService } from '@/common/collaboration';
 import { genServiceId } from '@/editor-kernel';
 import { getBlockOffset, getBlockPoint, getLinearTextLength } from '@/editor-kernel/linear-text';
 import { getKernelFromEditor } from '@/editor-kernel/utils';
@@ -40,8 +40,6 @@ import {
   $preserveNodeIdentity,
   markSerializedNodesAsAIGenerated,
 } from '@/plugins/properties/utils';
-import { encodeYjsBase64 } from '@/plugins/yjs/protocol';
-import { IYjsService } from '@/plugins/yjs/service';
 import type { IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 import { hashRewriteText, normalizeRewriteText } from '@/utils/rewrite-text';
@@ -801,6 +799,8 @@ const cloneSerialized = <T>(value: T): T => {
       // JSON is sufficient for Lexical's serialized node shape.
     }
   }
+  // Keep a JSON-safe fallback for runtimes without structuredClone.
+  // eslint-disable-next-line unicorn/prefer-structured-clone
   return JSON.parse(JSON.stringify(value)) as T;
 };
 
@@ -1795,9 +1795,8 @@ function markProvenance(
 /** Read the Yjs state vector only after the Lexical update has committed. */
 export function getRewriteStateVector(editor: LexicalEditor): string | undefined {
   try {
-    const state = getKernelFromEditor(editor)?.requireService(IYjsService)?.getState();
-    const doc = state?.doc ?? state?.binding.doc;
-    return doc ? encodeYjsBase64(encodeStateVector(doc)) : undefined;
+    return getKernelFromEditor(editor)?.requireService(ICollaborationService)?.getVersionProof()
+      .causalVersion.value;
   } catch {
     // A non-collaborative editor has no Yjs state vector; the direct command
     // remains valid and the result simply omits this optional proof.

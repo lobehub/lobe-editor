@@ -2,6 +2,8 @@ import type { Provider, ProviderAwareness, UserState } from '@lexical/yjs';
 import type { Doc } from 'yjs';
 import { applyUpdate, encodeStateVector } from 'yjs';
 
+import type { CollaborationDescriptor } from '@/common/collaboration/protocol';
+
 import {
   decodeYjsBase64,
   deserializeUserState,
@@ -29,6 +31,11 @@ const DEFAULT_MAX_SEEN_MESSAGE_IDS = 10_000;
 // 1003/1008 are server-side meanings and throw InvalidAccessError in browsers.
 const CLOSE_CODE_INVALID_MESSAGE = 4400;
 const CLOSE_CODE_TICKET_REJECTED = 4401;
+
+const sameDescriptor = (left: CollaborationDescriptor, right: CollaborationDescriptor): boolean =>
+  left.engine === right.engine &&
+  left.bindingSchema === right.bindingSchema &&
+  left.epoch === right.epoch;
 
 export type WebSocketYjsProviderStatus =
   'connected' | 'connecting' | 'disconnected' | 'reconnecting';
@@ -72,6 +79,8 @@ export interface WebSocketYjsProviderOptions {
   /** Enables the pre-v1 demo wire shape for existing Page installations. */
   legacyProtocol?: boolean;
   clientKind?: 'agent' | 'browser';
+  /** Descriptor bound to a v1 browser/Agent ticket; omitted only for legacy demo rooms. */
+  descriptor?: CollaborationDescriptor;
   documentId?: string;
   requestId?: string;
   refreshTicket?: RefreshTicket;
@@ -695,6 +704,14 @@ export class WebSocketYjsProviderCore implements Provider {
           this.rejectSocket(socket, 'Authenticated room does not match provider room.');
           return;
         }
+        if (
+          this.options.descriptor &&
+          message.descriptor &&
+          !sameDescriptor(this.options.descriptor, message.descriptor)
+        ) {
+          this.rejectSocket(socket, 'Authenticated room descriptor does not match provider.');
+          return;
+        }
 
         this.serverClientId = message.clientId;
         this.awareness.setClientId(message.clientId);
@@ -777,6 +794,7 @@ export class WebSocketYjsProviderCore implements Provider {
     this.sendV1({
       clientId: this.doc.clientID,
       clientKind: this.options.clientKind ?? 'browser',
+      descriptor: this.options.descriptor,
       documentId: this.options.documentId,
       nonce: message.nonce,
       protocol: LOBE_YJS_PROTOCOL,

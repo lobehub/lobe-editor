@@ -7,6 +7,7 @@ import { debounce } from 'es-toolkit/compat';
 import type { LexicalEditor } from 'lexical';
 import {
   $createParagraphNode,
+  $getNodeByKey,
   $getSelection,
   $isElementNode,
   $setSelection,
@@ -27,12 +28,16 @@ import {
 } from 'react';
 
 import { lobeTheme, styles, Toolbar } from '@/codemirror';
+import { ICollaborationService } from '@/common/collaboration';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
+import { getKernelFromEditor } from '@/editor-kernel/utils';
 import { ENTER_HOLE_CONTENT_COMMAND, getHoleContentEntrySide } from '@/plugins/common/command';
 import { $resolveStructuralBlockNode } from '@/plugins/common/node/hole';
+import { $getNodeId } from '@/plugins/properties/utils';
 import { createDebugLogger } from '@/utils/debug';
 
+import { EmbeddedTextAdapter } from '../../loro/react/embedded-text';
 import { SELECT_AFTER_CODEMIRROR_COMMAND, SELECT_BEFORE_CODEMIRROR_COMMAND } from '../command';
 import { loadCodeMirror } from '../lib';
 import { normalizeCodeMirrorLanguage } from '../lib/mode';
@@ -50,6 +55,17 @@ type CancellableCallback = (() => void) & { cancel: () => void };
 
 const logger = createDebugLogger('plugin', 'codemirror-block');
 
+const getEmbeddedTextSource = (editor: LexicalEditor, nodeKey: string) => {
+  const service = getKernelFromEditor(editor)?.requireService(ICollaborationService);
+  if (!service?.getEmbeddedText) return null;
+  let nodeId: string | undefined;
+  editor.getEditorState().read(() => {
+    const current = $getNodeByKey(nodeKey);
+    nodeId = current ? $getNodeId(current) : undefined;
+  });
+  return nodeId ? service.getEmbeddedText(nodeId) : null;
+};
+
 const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, editor }) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   const keydownRef = useRef('');
@@ -64,6 +80,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
   const codeMirrorGenerationRef = useRef(0);
   const isMountedRef = useRef(false);
   const pendingCodeUpdateRef = useRef<CancellableCallback | null>(null);
+  const embeddedTextAdapterRef = useRef<EmbeddedTextAdapter | null>(null);
   const t = useTranslation();
   const [isSelected, setSelected, clearSelection, isNodeSelected] =
     useLexicalNodeSelection(nodeKey);
@@ -228,6 +245,8 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     nodeLangRef.current = nextLanguage;
     if (!changedInEditor) return;
 
+    // The collaborative node is the external source of truth for this selector.
+    // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
     setSelectedLang(nextLanguage);
     instanceRef.current?.setOption('mode', nextLanguage);
   }, [node]);
@@ -245,6 +264,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
 
     isEmptyRef.current = !nextCode.trim();
     dispatchCode(nextCode);
+    if (embeddedTextAdapterRef.current) return;
     if (instanceRef.current && instanceRef.current.getValue() !== nextCode) {
       instanceRef.current.setValue(nextCode);
     }
@@ -283,6 +303,49 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       }
     }
   }, [acquireEditLock, clearSelection, editable, editor, isNodeSelected, isSelected]);
+
+  const attachEmbeddedTextAdapter = useCallback(
+    (instance: any): boolean => {
+      if (embeddedTextAdapterRef.current) return true;
+      const embeddedText = getEmbeddedTextSource(editor, nodeKey);
+      if (!embeddedText) return false;
+      pendingCodeUpdateRef.current?.cancel();
+      pendingCodeUpdateRef.current = null;
+      const adapter = new EmbeddedTextAdapter(instance, embeddedText, {
+        canWrite: canWriteNow,
+        onLocalChange: (value) => {
+          dispatchCode(value);
+          editor.update(() => {
+            const current = $getNodeByKey(nodeKey);
+            if (current && current.getType() === 'code') {
+              (current as CodeMirrorNode).setCode(value);
+            }
+          });
+        },
+      });
+      embeddedTextAdapterRef.current = adapter;
+      adapter.start();
+      return true;
+    },
+    [canWriteNow, editor, nodeKey],
+  );
+
+  useEffect(() => {
+    const attach = (): void => {
+      if (instanceRef.current) attachEmbeddedTextAdapter(instanceRef.current);
+    };
+    attach();
+    const disposeUpdates =
+      typeof editor.registerUpdateListener === 'function'
+        ? editor.registerUpdateListener(attach)
+        : () => undefined;
+    const service = getKernelFromEditor(editor)?.requireService(ICollaborationService);
+    const disposeReadiness = service?.subscribeReadiness(attach);
+    return () => {
+      disposeUpdates();
+      disposeReadiness?.();
+    };
+  }, [attachEmbeddedTextAdapter, editor]);
 
   useEffect(() => {
     // 防止重复初始化：如果已经有实例，直接返回
@@ -352,6 +415,8 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           instance.on('keydown', (instance: any, e: KeyboardEvent) => {
             if (!isCurrent()) return;
             e.stopPropagation();
+
+            if (embeddedTextAdapterRef.current?.handleKeyDown(e)) return;
 
             const isExitCommand =
               (e.key === 'Enter' || e.keyCode === 13) && (e.metaKey || e.ctrlKey);
@@ -439,16 +504,18 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
             dispatchCode(currentValue);
           });
 
-          pendingCodeUpdate = debounce(() => {
-            if (!isCurrent() || !canWriteNow()) return;
-            const currentValue = instance.getValue();
-            // 更新代码内容
-            editor.update(() => {
-              if (canWriteNow()) nodeRef.current.setCode(currentValue);
+          if (!attachEmbeddedTextAdapter(instance)) {
+            pendingCodeUpdate = debounce(() => {
+              if (!isCurrent() || !canWriteNow()) return;
+              const currentValue = instance.getValue();
+              // 更新代码内容
+              editor.update(() => {
+                if (canWriteNow()) nodeRef.current.setCode(currentValue);
+              });
             });
-          });
-          pendingCodeUpdateRef.current = pendingCodeUpdate;
-          instance.on('change', pendingCodeUpdate);
+            pendingCodeUpdateRef.current = pendingCodeUpdate;
+            instance.on('change', pendingCodeUpdate);
+          }
           instance.on('focus', () => {
             if (!isCurrent() || enteringFromHoleRef.current) return;
 
@@ -482,7 +549,7 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
           instance.on('blur', scheduleReleaseEditLock);
 
           if (!isCurrent()) {
-            pendingCodeUpdate.cancel();
+            pendingCodeUpdate?.cancel();
             if (pendingCodeUpdateRef.current === pendingCodeUpdate) {
               pendingCodeUpdateRef.current = null;
             }
@@ -522,6 +589,8 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
       }
       pendingCodeUpdateRef.current?.cancel();
       pendingCodeUpdateRef.current = null;
+      embeddedTextAdapterRef.current?.dispose();
+      embeddedTextAdapterRef.current = null;
       pendingCodeUpdate?.cancel();
       clearReleaseLockTimer();
       releaseEditLock();

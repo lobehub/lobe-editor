@@ -1,6 +1,11 @@
 import type { UserState } from '@lexical/yjs';
 import { createRelativePositionFromJSON, type RelativePosition, relativePositionToJSON } from 'yjs';
 
+import {
+  type CollaborationDescriptor,
+  isCollaborationDescriptor,
+} from '@/common/collaboration/protocol';
+
 /**
  * The wire protocol used by browser and headless Node collaboration clients.
  *
@@ -115,6 +120,7 @@ export interface LobeYjsHelloMessage extends ProtocolMessageBase {
 export interface LobeYjsAuthMessage extends ProtocolMessageBase {
   clientId: number;
   clientKind: LobeYjsClientKind;
+  descriptor?: CollaborationDescriptor;
   documentId?: string;
   nonce: string;
   requestId?: string;
@@ -124,6 +130,7 @@ export interface LobeYjsAuthMessage extends ProtocolMessageBase {
 
 export interface LobeYjsAuthOkMessage extends ProtocolMessageBase {
   clientId: number;
+  descriptor?: CollaborationDescriptor;
   roomId: string;
   type: 'auth-ok';
 }
@@ -288,6 +295,9 @@ export const parseLobeYjsMessage = (value: unknown): LobeYjsMessage | null => {
 
       if (candidate.documentId !== undefined && !isString(candidate.documentId)) return null;
       if (candidate.requestId !== undefined && !isString(candidate.requestId)) return null;
+      if (candidate.descriptor !== undefined && !isCollaborationDescriptor(candidate.descriptor)) {
+        return null;
+      }
 
       return candidate as unknown as LobeYjsAuthMessage;
     }
@@ -302,6 +312,9 @@ export const parseLobeYjsMessage = (value: unknown): LobeYjsMessage | null => {
 
     case 'auth-ok': {
       if (!isSafeInteger(candidate.clientId) || !isString(candidate.roomId)) return null;
+      if (candidate.descriptor !== undefined && !isCollaborationDescriptor(candidate.descriptor)) {
+        return null;
+      }
       return candidate as unknown as LobeYjsAuthOkMessage;
     }
 

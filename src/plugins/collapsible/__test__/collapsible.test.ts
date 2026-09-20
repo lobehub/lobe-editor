@@ -14,6 +14,7 @@ import {
 } from 'lexical';
 
 import Editor, { resetRandomKey } from '@/editor-kernel';
+import { ICollaborationService, type CollaborationService } from '@/common/collaboration';
 import { BlockPlugin } from '@/plugins/block';
 import { MOVE_BLOCK_COMMAND } from '@/plugins/block/command';
 import { filterDragBlocksForSource } from '@/plugins/block/react/drag/drag-utils';
@@ -622,6 +623,79 @@ describe('collapsible plugin', () => {
       toggle?.click();
       lexicalEditor.update(() => {}, { discrete: true });
 
+      expect(getCollapsibleCollapsed(lexicalEditor)).toBe(true);
+    } finally {
+      editor.setRootElement(document.createElement('div'));
+      rootElement.remove();
+    }
+  });
+
+  it('prevents collapsing from a neutral Loro remote anchor and allows it after presence clears', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    const rootElement = document.createElement('div');
+    document.body.append(rootElement);
+    editor.setRootElement(rootElement);
+
+    try {
+      setupSingleCollapsibleDocument(lexicalEditor, false);
+      lexicalEditor.update(() => {}, { discrete: true });
+
+      const descriptor = {
+        bindingSchema: 'lexical-loro-v1',
+        engine: 'loro',
+        epoch: 0,
+      } as const;
+      const presence = [
+        {
+          peerId: 'remote-peer',
+          sender: 'remote-sender',
+          sequence: 1,
+          state: {
+            anchor: {
+              descriptor,
+              kind: 'node-boundary',
+              nodeId: 'body-node-id',
+              side: 'before',
+            },
+            focus: {
+              descriptor,
+              kind: 'node-boundary',
+              nodeId: 'body-node-id',
+              side: 'after',
+            },
+          },
+        },
+      ];
+      let bodyKey = '';
+      lexicalEditor.getEditorState().read(() => {
+        const collapsible = $getRoot().getChildren().find($isCollapsibleNode);
+        bodyKey = collapsible?.getChildAtIndex(1)?.getKey() || '';
+      });
+      const collaborationService = {
+        descriptor,
+        resolvePoints: () => ({
+          anchor: { key: bodyKey, offset: 0, type: 'text' as const },
+          focus: { key: bodyKey, offset: 0, type: 'text' as const },
+        }),
+        transport: {
+          getPresence: () => presence,
+          peerId: 'local-peer',
+        },
+      } as unknown as CollaborationService;
+      (editor as IEditorKernel).registerServiceHotReload(
+        ICollaborationService,
+        collaborationService,
+      );
+
+      const toggle = rootElement.querySelector<HTMLButtonElement>(
+        '[data-collapsible-toggle="true"]',
+      );
+      toggle?.click();
+      expect(getCollapsibleCollapsed(lexicalEditor)).toBe(false);
+
+      presence.length = 0;
+      toggle?.click();
+      lexicalEditor.update(() => {}, { discrete: true });
       expect(getCollapsibleCollapsed(lexicalEditor)).toBe(true);
     } finally {
       editor.setRootElement(document.createElement('div'));

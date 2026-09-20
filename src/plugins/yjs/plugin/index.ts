@@ -18,6 +18,7 @@ import {
 import type { Doc, Text as YText, YEvent } from 'yjs';
 import { UndoManager } from 'yjs';
 
+import { ICollaborationService } from '@/common/collaboration';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import {
@@ -27,6 +28,7 @@ import {
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { IYjsService, YjsService } from '../service';
+import { YjsCollaborationService } from '../service/collaboration';
 import { YjsPropertiesProvider } from './properties-provider';
 import type { YjsPluginOptions } from './types';
 import { getAwarenessUsers } from './utils/awareness';
@@ -154,6 +156,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
   static pluginName = 'YjsPlugin';
 
   private bootstrapCurrentEditorState: (() => void) | null = null;
+  private collaborationService: YjsCollaborationService | null = null;
   private docMap = new Map<string, Doc>();
   private hasInitialized = false;
   private isReloadingDoc = false;
@@ -184,6 +187,8 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     this.isReloadingDoc = false;
     this.markDocumentChanged = null;
     this.service.setState(null);
+    this.collaborationService?.dispose();
+    this.collaborationService = null;
   }
 
   private registerPropertiesProvider(): void {
@@ -533,6 +538,13 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     });
   }
 
+  private registerCollaborationService(): void {
+    const annotations = this.propertiesService.getCollaborationProvider();
+    const service = new YjsCollaborationService(this.service, undefined, annotations);
+    this.collaborationService = service;
+    this.kernel.registerServiceHotReload(ICollaborationService, service);
+  }
+
   onInit(editor: LexicalEditor): void {
     const {
       excludedProperties,
@@ -580,6 +592,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
       excludedProperties,
     );
     this.setServiceState(binding, id, provider, this.docMap.get(id));
+    this.registerCollaborationService();
     const holeService = this.kernel.requireService(IHoleService);
     if (holeService) {
       this.register(

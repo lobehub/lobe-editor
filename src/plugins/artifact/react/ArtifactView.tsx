@@ -11,9 +11,12 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 import type { ICodeMirrorInstance } from '@/codemirror';
 import { loadCodeMirror, lobeTheme } from '@/codemirror';
+import { ICollaborationService } from '@/common/collaboration';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
+import { getKernelFromEditor } from '@/editor-kernel/utils';
 import { BLOCK_MENU_ANCHOR_ATTRIBUTE } from '@/plugins/block/react/core/types';
 import { ENTER_HOLE_CONTENT_COMMAND, getHoleContentEntrySide } from '@/plugins/common/command';
+import { EmbeddedTextAdapter } from '@/plugins/loro/react/embedded-text';
 import { $getNodeId } from '@/plugins/properties/utils';
 
 import { SELECT_AFTER_ARTIFACT_COMMAND, SELECT_BEFORE_ARTIFACT_COMMAND } from '../command';
@@ -35,6 +38,17 @@ interface ArtifactViewProps {
 export type ArtifactViewMode = 'split' | 'code-only' | 'preview-only';
 
 const ARTIFACT_VIEW_MODE_STORAGE_PREFIX = 'lobe-artifact-view-mode:';
+
+const getEmbeddedTextSource = (editor: LexicalEditor, nodeKey: string) => {
+  const service = getKernelFromEditor(editor)?.requireService(ICollaborationService);
+  if (!service?.getEmbeddedText) return null;
+  let nodeId: string | undefined;
+  editor.getEditorState().read(() => {
+    const current = $getNodeByKey(nodeKey);
+    nodeId = current ? $getNodeId(current) : undefined;
+  });
+  return nodeId ? service.getEmbeddedText(nodeId) : null;
+};
 
 const readStoredArtifactViewMode = (storageKey: string): ArtifactViewMode | undefined => {
   if (typeof window === 'undefined') return undefined;
@@ -84,6 +98,7 @@ const ArtifactView: FC<ArtifactViewProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLIFrameElement>(null);
   const instanceRef = useRef<ICodeMirrorInstance | null>(null);
+  const embeddedTextAdapterRef = useRef<EmbeddedTextAdapter | null>(null);
   const [editable, setEditable] = useState(editor.isEditable());
   const [html, dispatchHtml] = useReducer((_state: string, value: string) => value, node.getHtml());
   const [title, dispatchTitle] = useReducer(
@@ -121,12 +136,57 @@ const ArtifactView: FC<ArtifactViewProps> = ({
     }, 200),
   );
 
+  const attachEmbeddedTextAdapter = useCallback(
+    (instance: ICodeMirrorInstance): boolean => {
+      if (embeddedTextAdapterRef.current) return true;
+      const embeddedText = getEmbeddedTextSource(editor, nodeKeyRef.current);
+      if (!embeddedText) return false;
+      persistHtmlRef.current.cancel();
+      const adapter = new EmbeddedTextAdapter(instance, embeddedText, {
+        canWrite: () => {
+          const host = editor.getElementByKey(nodeKeyRef.current);
+          return editor.isEditable() && !host?.closest('[data-collaborative-target-locked="true"]');
+        },
+        onLocalChange: (value) => {
+          dispatchHtml(value);
+          editor.update(() => {
+            const current = $getNodeByKey(nodeKeyRef.current);
+            if ($isArtifactNode(current)) current.setHtml(value);
+          });
+        },
+      });
+      embeddedTextAdapterRef.current = adapter;
+      adapter.start();
+      return true;
+    },
+    [editor],
+  );
+
+  useEffect(() => {
+    const attach = (): void => {
+      if (instanceRef.current) attachEmbeddedTextAdapter(instanceRef.current);
+    };
+    attach();
+    const disposeUpdates =
+      typeof editor.registerUpdateListener === 'function'
+        ? editor.registerUpdateListener(attach)
+        : () => undefined;
+    const service = getKernelFromEditor(editor)?.requireService(ICollaborationService);
+    const disposeReadiness = service?.subscribeReadiness(attach);
+    return () => {
+      disposeUpdates();
+      disposeReadiness?.();
+    };
+  }, [attachEmbeddedTextAdapter, editor]);
+
   useEffect(() => editor.registerEditableListener(setEditable), [editor]);
 
   useEffect(() => {
     const storageKey = getArtifactStorageKey(editor, node);
     storageKeyRef.current = storageKey;
     const stored = readStoredArtifactViewMode(storageKey);
+    // Local storage is an external source, so hydrate the local view state when the node identity changes.
+    // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
     if (stored) setViewMode(stored);
   }, [editor, node]);
 
@@ -146,7 +206,11 @@ const ArtifactView: FC<ArtifactViewProps> = ({
     dispatchTitle(nextTitle);
     if (htmlChangedInEditor) {
       dispatchHtml(nextHtml);
-      if (instanceRef.current && instanceRef.current.getValue() !== nextHtml) {
+      if (
+        !embeddedTextAdapterRef.current &&
+        instanceRef.current &&
+        instanceRef.current.getValue() !== nextHtml
+      ) {
         instanceRef.current.setValue(nextHtml);
       }
       persistHtmlRef.current.cancel();
@@ -201,6 +265,8 @@ const ArtifactView: FC<ArtifactViewProps> = ({
     if (!codePaneVisible || !textareaRef.current) {
       instanceRef.current?.destroy();
       instanceRef.current = null;
+      embeddedTextAdapterRef.current?.dispose();
+      embeddedTextAdapterRef.current = null;
       return;
     }
 
@@ -228,10 +294,12 @@ const ArtifactView: FC<ArtifactViewProps> = ({
           instance.on('change', () => {
             const value = instance!.getValue();
             dispatchHtml(value);
-            persistHtmlRef.current(value);
+            if (!embeddedTextAdapterRef.current) persistHtmlRef.current(value);
           });
+          attachEmbeddedTextAdapter(instance);
           instance.on('keydown', (_, event: KeyboardEvent) => {
             event.stopPropagation();
+            if (embeddedTextAdapterRef.current?.handleKeyDown(event)) return;
             if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
               event.preventDefault();
               instance!.blur();
@@ -247,11 +315,15 @@ const ArtifactView: FC<ArtifactViewProps> = ({
             editor.dispatchCommand(SELECT_AFTER_ARTIFACT_COMMAND, { key: nodeKeyRef.current });
           });
           if (disposed) {
+            embeddedTextAdapterRef.current?.dispose();
+            embeddedTextAdapterRef.current = null;
             instance.destroy();
             return;
           }
           instanceRef.current = instance;
         } catch {
+          embeddedTextAdapterRef.current?.dispose();
+          embeddedTextAdapterRef.current = null;
           instance?.destroy();
           if (!disposed) dispatchCodeMirrorLoadFailed(true);
         }
@@ -264,8 +336,10 @@ const ArtifactView: FC<ArtifactViewProps> = ({
       disposed = true;
       instanceRef.current?.destroy();
       instanceRef.current = null;
+      embeddedTextAdapterRef.current?.dispose();
+      embeddedTextAdapterRef.current = null;
     };
-  }, [codePaneVisible, editor]);
+  }, [attachEmbeddedTextAdapter, codePaneVisible, editor]);
 
   useEffect(
     () => () => {

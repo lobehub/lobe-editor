@@ -15,6 +15,15 @@ import {
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
 
+import {
+  type CollaborationAnchor,
+  type CollaborationDescriptor,
+  type CollaborationPresenceSnapshot,
+  type CollaborationService,
+  type CollaborationTransportPort,
+  ICollaborationService,
+  parseCollaborationAnchor,
+} from '@/common/collaboration';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { $getNearestNodeFromDOMNode } from '@/editor-kernel/utils';
@@ -169,6 +178,11 @@ function hasRemoteSelectionInsideCollapsible(
   kernel: IEditorKernel,
   collapsible: CollapsibleNode,
 ): boolean {
+  const collaborationService = kernel.requireService(ICollaborationService);
+  if (collaborationService?.descriptor.engine === 'loro') {
+    return hasNeutralRemoteSelectionInsideCollapsible(collaborationService, collapsible);
+  }
+
   const collaborationState = kernel.requireService(IYjsService)?.getState();
   if (!collaborationState) return false;
 
@@ -183,6 +197,63 @@ function hasRemoteSelectionInsideCollapsible(
   }
 
   return false;
+}
+
+function hasNeutralRemoteSelectionInsideCollapsible(
+  service: Pick<CollaborationService, 'descriptor' | 'resolvePoints' | 'transport'>,
+  collapsible: CollapsibleNode,
+): boolean {
+  if (typeof service.transport.getPresence !== 'function') return false;
+  const localPeerId = (service.transport as CollaborationTransportPort & { peerId?: string })
+    .peerId;
+
+  for (const snapshot of service.transport.getPresence()) {
+    if (snapshot.state === null || snapshot.peerId === localPeerId) continue;
+    const selection = readNeutralPresenceSelection(snapshot, service.descriptor);
+    if (!selection) continue;
+
+    let resolved;
+    try {
+      resolved = service.resolvePoints(selection.anchor, selection.focus);
+    } catch {
+      resolved = null;
+    }
+    if (!resolved) continue;
+
+    const selectionNodes = [
+      $getNodeByKey(resolved.anchor.key),
+      $getNodeByKey(resolved.focus.key),
+    ].filter((node): node is LexicalNode => Boolean(node));
+    if (selectionNodes.some((node) => isDescendantOf(node, collapsible))) return true;
+  }
+
+  return false;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+function readNeutralPresenceSelection(
+  snapshot: CollaborationPresenceSnapshot,
+  descriptor: CollaborationDescriptor,
+): { anchor: CollaborationAnchor; focus: CollaborationAnchor } | null {
+  const state = isRecord(snapshot.state) ? snapshot.state : null;
+  if (!state) return null;
+
+  const candidates = [state];
+  if (isRecord(state.state)) candidates.push(state.state);
+  for (const candidate of candidates) {
+    if (!Object.hasOwn(candidate, 'anchor') || !Object.hasOwn(candidate, 'focus')) continue;
+    try {
+      return {
+        anchor: parseCollaborationAnchor(candidate.anchor, descriptor),
+        focus: parseCollaborationAnchor(candidate.focus, descriptor),
+      };
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 function getRemoteSelectionNodes(

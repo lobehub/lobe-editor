@@ -10,6 +10,7 @@ import {
 import { encodeStateVector, relativePositionToJSON } from 'yjs';
 
 import { getBlockOffset } from '@/editor-kernel/linear-text';
+import type { CapturedAnchorRewriteSelection } from '@/plugins/collaboration/selection';
 import { $getNodeId, $isNodeIdentityBlockTarget } from '@/plugins/properties/utils';
 import type { IEditor } from '@/types';
 import { hashRewriteText, normalizeRewriteText } from '@/utils/rewrite-text';
@@ -65,7 +66,7 @@ export interface CapturedBlockRewriteSelection {
 }
 
 export type CapturedCollaborativeRewriteSelection =
-  CapturedBlockRewriteSelection | CapturedRelativeRewriteSelection;
+  CapturedAnchorRewriteSelection | CapturedBlockRewriteSelection | CapturedRelativeRewriteSelection;
 
 export interface CaptureCollaborativeRewriteSelectionOptions {
   /** Override the room id only when the host has an explicit room namespace. */

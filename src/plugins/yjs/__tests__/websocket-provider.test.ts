@@ -102,6 +102,55 @@ describe('WebSocketYjsProvider', () => {
     docMap.forEach((doc) => doc.destroy());
   });
 
+  it('binds authenticated v1 browser auth to the room descriptor', () => {
+    const doc = new Doc();
+    const descriptor = {
+      bindingSchema: 'lexical-yjs-v1',
+      engine: 'yjs',
+      epoch: 0,
+    } as const;
+    const provider = new WebSocketYjsProvider('room-auth', doc, {
+      descriptor,
+      legacyProtocol: false,
+      ticket: 'browser-ticket',
+      webSocketConstructor: FakeWebSocket,
+      wsBaseUrl: 'ws://example.test',
+    });
+    const statuses: string[] = [];
+    provider.on('status', ({ status }) => statuses.push(status));
+
+    provider.connect();
+    const socket = FakeWebSocket.instances[0];
+    socket.open();
+    socket.serverMessage({
+      nonce: 'server-nonce',
+      protocol: 'lobe-yjs-v1',
+      roomId: 'room-auth',
+      type: 'hello',
+      version: 1,
+    });
+
+    const auth = getSentMessages(socket).find((message) => message.type === 'auth');
+    expect(auth).toMatchObject({
+      descriptor,
+      ticket: 'browser-ticket',
+      type: 'auth',
+    });
+
+    socket.serverMessage({
+      clientId: 7,
+      descriptor,
+      protocol: 'lobe-yjs-v1',
+      roomId: 'room-auth',
+      type: 'auth-ok',
+      version: 1,
+    });
+    expect(statuses).toContain('connected');
+
+    provider.disconnect();
+    doc.destroy();
+  });
+
   it('does not republish stale historical Yjs structs after a rebuilt room snapshot', () => {
     const clientDoc = new Doc();
     const historicalDoc = new Doc();

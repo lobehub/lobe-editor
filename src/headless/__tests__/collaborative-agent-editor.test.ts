@@ -370,6 +370,24 @@ describe('CollaborativeAgentEditor', () => {
       }),
     ).rejects.toThrow('requires documentId');
     expect(() =>
+      CollaborativeAgentEditor.create({
+        descriptor: { bindingSchema: 'lexical-loro-v1', engine: 'loro', epoch: 0 },
+        documentId: 'document',
+        requestId: 'request',
+        roomId: 'room',
+        ticket: 'ticket',
+      }),
+    ).toThrow('Loro descriptor requires the loro options block');
+    expect(() =>
+      CollaborativeAgentEditor.create({
+        descriptor: { bindingSchema: 'lexical-yjs-v2', engine: 'yjs', epoch: 0 },
+        documentId: 'document',
+        requestId: 'request',
+        roomId: 'room',
+        ticket: 'ticket',
+      }),
+    ).toThrow('has no lexical-yjs-v2 factory');
+    expect(() =>
       __createCollaborativeAgentEditorForTesting({
         documentId: 'document',
         provider: {} as never,

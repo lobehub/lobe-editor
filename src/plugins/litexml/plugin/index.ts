@@ -1,12 +1,10 @@
 import { $isTableNode } from '@lexical/table';
 import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
 import { $nodesOfType, HISTORIC_TAG } from 'lexical';
-import { encodeStateVector } from 'yjs';
 
+import { ICollaborationService } from '@/common/collaboration';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { encodeYjsBase64 } from '@/plugins/yjs/protocol';
-import { IYjsService } from '@/plugins/yjs/service';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 
 import {
@@ -114,8 +112,12 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     this.kernel.registerService(
       IRewriteReviewService,
       new RewriteReviewService(editor, this.resultChannel, () => {
-        const doc = this.kernel.requireService(IYjsService)?.getState()?.doc;
-        return doc ? encodeYjsBase64(encodeStateVector(doc)) : undefined;
+        try {
+          return this.kernel.requireService(ICollaborationService)?.getVersionProof().causalVersion
+            .value;
+        } catch {
+          return undefined;
+        }
       }),
     );
     this.register(registerLegacyTableCellDiffNormalization(editor));

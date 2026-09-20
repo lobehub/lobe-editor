@@ -474,8 +474,15 @@ export function $stripAnnotationIds(node: LexicalNode): void {
 export function $prepareCopiedNode(node: LexicalNode): void {
   const previous = $getNodeProperties(node);
   const isIdentityTarget = $isNodeIdentityTarget(node);
-  if (isIdentityTarget || previous.nodeId !== undefined || previous.annotationIds) {
-    const { annotationIds: _annotationIds, ...withoutAnnotations } = previous;
+  const isInlineIdentity =
+    typeof node.isInline === 'function' && node.isInline() && previous.inlineId !== undefined;
+  if (
+    isIdentityTarget ||
+    isInlineIdentity ||
+    previous.nodeId !== undefined ||
+    previous.annotationIds
+  ) {
+    const { annotationIds: _annotationIds, inlineId: _inlineId, ...withoutAnnotations } = previous;
     $setNodeProperties(node, {
       ...withoutAnnotations,
       ...(isIdentityTarget || previous.nodeId !== undefined ? { nodeId: createNodeId() } : {}),

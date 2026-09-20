@@ -66,6 +66,16 @@ export class MentionNode extends DecoratorNode<any> {
     return this.__metadata;
   }
 
+  setLabel(label: string): this {
+    this.getWritable().__label = label;
+    return this;
+  }
+
+  setMetadata(metadata: Record<string, unknown>): this {
+    this.getWritable().__metadata = metadata;
+    return this;
+  }
+
   exportDOM(): DOMExportOutput {
     return { element: document.createElement('span') };
   }

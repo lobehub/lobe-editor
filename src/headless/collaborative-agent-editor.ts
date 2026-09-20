@@ -20,6 +20,7 @@ import {
   $setSelection,
   HISTORY_PUSH_TAG,
 } from 'lexical';
+import type { LoroDoc } from 'loro-crdt';
 import {
   createRelativePositionFromJSON,
   Doc,
@@ -28,6 +29,15 @@ import {
   relativePositionToJSON,
 } from 'yjs';
 
+import {
+  type BoundCausalVersion,
+  type CollaborationAnchor,
+  type CollaborationDescriptor,
+  type CollaborationPoint,
+  type CollaborationService,
+  type CollaborationTransportPort,
+  parseCollaborationDescriptor,
+} from '@/common/collaboration';
 import Editor, { moment } from '@/editor-kernel';
 import { getBlockOffset, getBlockPoint } from '@/editor-kernel/linear-text';
 import { IAISessionService } from '@/plugins/ai-session/service';
@@ -48,6 +58,7 @@ import {
   type CollaborativeAgentCommandGateway,
   createCollaborativeAgentCommandGateway,
 } from '@/plugins/litexml/command/gateway';
+import type { LoroTransportProviderOptions } from '@/plugins/loro/transport-provider';
 import { $getNodeProperties } from '@/plugins/properties/state';
 import {
   $clearStreamingGenerationRegion,
@@ -83,6 +94,8 @@ import { IYjsService } from '@/plugins/yjs/service';
 import type { IEditor, IPlugin } from '@/types';
 import { hashRewriteText, normalizeRewriteText } from '@/utils/rewrite-text';
 
+import { getCollaborationEngine } from './collaboration/engine-adapter';
+import type { LoroHeadlessFactory, LoroHeadlessFactoryResult } from './collaboration/loro-factory';
 import { DEFAULT_HEADLESS_EDITOR_PLUGINS } from './default-plugins';
 import {
   clearStreamingRegionMetadata,
@@ -147,8 +160,24 @@ export interface BlockRewriteSelection {
   targetNodeIds?: string[];
 }
 
+/** New descriptor-bound selection wire; legacy block/relative shapes stay intact. */
+export interface CollaborationAnchorRewriteSelection {
+  anchor: CollaborationAnchor;
+  baseVersion: BoundCausalVersion;
+  capturedAt: string;
+  descriptor: CollaborationDescriptor;
+  endNodeId?: string;
+  quotedTextHash: string;
+  focus: CollaborationAnchor;
+  kind: 'anchor';
+  quotedText: string;
+  roomId: string;
+  startNodeId?: string;
+  targetNodeIds?: string[];
+}
+
 export type CollaborativeRewriteSelection =
-  BlockRewriteSelection | SerializedRelativeRewriteSelection;
+  BlockRewriteSelection | CollaborationAnchorRewriteSelection | SerializedRelativeRewriteSelection;
 
 /** Input for the incremental, direct-to-document Agent rewrite protocol. */
 export interface CollaborativeRewriteStreamStartInput {
@@ -264,6 +293,8 @@ interface CollaborativeRewriteStreamState {
   provider?: string;
   /** Yjs anchor used to relocate a zero-length region while its prefix edits. */
   regionAnchorPosition?: RelativePosition;
+  /** Descriptor-bound anchor used by engine-neutral streaming resolution. */
+  regionAnchor?: CollaborationAnchor;
   regionStartOffset: number;
   requestId: string;
   selectionRange: AgentRewriteRange;
@@ -313,8 +344,16 @@ export interface ResolvedBlockRewriteTarget {
 }
 
 export interface CollaborativeAgentEditorConnectOptions {
+  /** Omitted for the legacy Yjs v1 Agent API. */
+  descriptor?: CollaborationDescriptor;
   documentId: string;
   providerOptions?: NodeWebSocketYjsProviderOptions;
+  loro?: {
+    doc?: LoroDoc;
+    factory?: LoroHeadlessFactory;
+    transport?: CollaborationTransportPort;
+    transportOptions?: Omit<LoroTransportProviderOptions, 'applyRemoteUpdate'>;
+  };
   requestId: string;
   roomId: string;
   ticket: string;
@@ -322,8 +361,11 @@ export interface CollaborativeAgentEditorConnectOptions {
 
 interface CollaborativeAgentEditorInternalOptions extends CollaborativeAgentEditorConnectOptions {
   ownsDoc: boolean;
-  provider: CollaborativeAgentProvider;
-  yjsDoc: Doc;
+  loroCanonical?: LoroHeadlessFactoryResult['canonical'];
+  loroPlugin?: IPlugin;
+  provider?: CollaborativeAgentProvider;
+  transport?: CollaborationTransportPort;
+  yjsDoc?: Doc;
 }
 
 export interface CollaborativeAgentProvider extends Provider {
@@ -533,6 +575,18 @@ const validateConnectOptions = (options: CollaborativeAgentEditorConnectOptions)
   ) {
     throw new Error('CollaborativeAgentEditor requires documentId, roomId, requestId, and ticket.');
   }
+
+  if (options.descriptor) {
+    const descriptor = parseCollaborationDescriptor(options.descriptor);
+    if (descriptor.engine === 'yjs' && descriptor.bindingSchema !== 'lexical-yjs-v1') {
+      throw new Error(
+        `CollaborativeAgentEditor has no ${descriptor.bindingSchema} factory; the legacy headless entry is lexical-yjs-v1.`,
+      );
+    }
+    if (descriptor.engine === 'loro' && !options.loro) {
+      throw new Error('CollaborativeAgentEditor Loro descriptor requires the loro options block.');
+    }
+  }
 };
 
 const ACTIVE_STREAM_AWARENESS_STATUSES = new Set<AgentAwarenessStatus>([
@@ -627,16 +681,46 @@ export class CollaborativeAgentEditor {
    */
   static create(options: CollaborativeAgentEditorConnectOptions): CollaborativeAgentEditor {
     validateConnectOptions(options);
+    const descriptor = options.descriptor ?? {
+      bindingSchema: 'lexical-yjs-v1' as const,
+      engine: 'yjs' as const,
+      epoch: 0,
+    };
+    if (descriptor.engine === 'loro') {
+      const factory = options.loro?.factory;
+      if (!factory) {
+        throw new Error(
+          'CollaborativeAgentEditor Loro descriptor requires a Loro headless factory from @lobehub/editor/loro/headless.',
+        );
+      }
+      const loro = factory.create({
+        descriptor,
+        doc: options.loro?.doc,
+        roomId: options.roomId,
+        transport: options.loro?.transport,
+        transportOptions: options.loro?.transportOptions,
+      });
+      return new CollaborativeAgentEditor({
+        ...options,
+        descriptor,
+        loroCanonical: loro.canonical,
+        loroPlugin: loro.plugin,
+        ownsDoc: !options.loro?.doc,
+        transport: options.loro?.transport,
+      });
+    }
     const yjsDoc = new Doc();
     try {
       const provider = new NodeWebSocketYjsProvider(options.roomId, yjsDoc, {
         ...options.providerOptions,
+        descriptor,
         documentId: options.documentId,
         requestId: options.requestId,
         ticket: options.ticket,
       });
       return new CollaborativeAgentEditor({
         ...options,
+        descriptor,
         ownsDoc: true,
         provider,
         yjsDoc,
@@ -664,12 +748,16 @@ export class CollaborativeAgentEditor {
   private readonly documentId: string;
   private readonly kernel: IEditor;
   private readonly ownsDoc: boolean;
-  private readonly provider: CollaborativeAgentProvider;
+  private readonly provider?: CollaborativeAgentProvider;
   private readonly commandGateway: CollaborativeAgentCommandGateway;
+  private readonly collaborationService: CollaborationService;
   private readonly resultChannel: RewriteCommandResultChannel;
   private readonly requestId: string;
   private readonly roomId: string;
-  private readonly yjsDoc: Doc;
+  private readonly yjsDoc?: Doc;
+  private readonly loroCanonical?: LoroHeadlessFactoryResult['canonical'];
+  private readonly transportStatusDisposer: (() => void) | null;
+  private readonly transportSyncDisposer: (() => void) | null;
   private transportUnavailable = false;
   private connected = false;
   private disconnected = false;
@@ -693,37 +781,71 @@ export class CollaborativeAgentEditor {
   }>();
 
   private constructor(options: CollaborativeAgentEditorInternalOptions) {
-    if (
-      typeof options.provider.connect !== 'function' ||
-      typeof options.provider.disconnect !== 'function' ||
-      !options.provider.awareness ||
-      typeof options.provider.awareness.getStates !== 'function'
-    ) {
-      throw new Error('CollaborativeAgentEditor provider is invalid.');
-    }
-
     this.documentId = options.documentId;
     this.requestId = options.requestId;
     this.roomId = options.roomId;
     this.ownsDoc = options.ownsDoc;
     this.yjsDoc = options.yjsDoc;
+    this.loroCanonical = options.loroCanonical;
     this.provider = options.provider;
-    this.provider.on('status', this.providerStatusListener);
-    this.provider.on('sync', this.providerSyncListener);
 
-    const yjsPlugin: IPlugin = [
-      YjsPlugin,
-      {
-        id: this.roomId,
-        providerFactory: () => this.provider,
-        shouldBootstrap: false,
-        yjsDoc: this.yjsDoc,
-      },
-    ];
+    if (
+      options.descriptor?.engine !== 'loro' &&
+      (!options.provider ||
+        typeof options.provider.connect !== 'function' ||
+        typeof options.provider.disconnect !== 'function' ||
+        !options.provider.awareness ||
+        typeof options.provider.awareness.getStates !== 'function' ||
+        !options.yjsDoc)
+    ) {
+      throw new Error('CollaborativeAgentEditor provider is invalid.');
+    }
+
+    const yjsPlugin: IPlugin | null =
+      options.descriptor?.engine === 'loro'
+        ? null
+        : [
+            YjsPlugin,
+            {
+              id: this.roomId,
+              providerFactory: () => options.provider!,
+              shouldBootstrap: false,
+              yjsDoc: options.yjsDoc,
+            },
+          ];
+    const loroPlugin: IPlugin | null =
+      options.descriptor?.engine === 'loro' ? (options.loroPlugin ?? null) : null;
     this.kernel = Editor.createEditor();
-    this.kernel.registerPlugins([...DEFAULT_HEADLESS_EDITOR_PLUGINS, yjsPlugin] as never);
+    this.kernel.registerPlugins([
+      ...DEFAULT_HEADLESS_EDITOR_PLUGINS,
+      ...(yjsPlugin ? [yjsPlugin] : []),
+      ...(loroPlugin ? [loroPlugin] : []),
+    ] as never);
     const lexicalEditor = this.kernel.initHeadlessEditor();
     if (!lexicalEditor) throw new Error('CollaborativeAgentEditor failed to initialize editor.');
+    const collaborationService = getCollaborationEngine(this.kernel);
+    if (!collaborationService) {
+      throw new Error('CollaborativeAgentEditor collaboration service is not registered.');
+    }
+    if (options.descriptor) {
+      const descriptor = parseCollaborationDescriptor(options.descriptor);
+      if (
+        descriptor.engine !== collaborationService.descriptor.engine ||
+        descriptor.bindingSchema !== collaborationService.descriptor.bindingSchema ||
+        descriptor.epoch !== collaborationService.descriptor.epoch
+      ) {
+        throw new Error(
+          'CollaborativeAgentEditor descriptor does not match the registered engine.',
+        );
+      }
+    }
+    this.collaborationService = collaborationService;
+    this.transportStatusDisposer = this.collaborationService.transport.onStatus((status) =>
+      this.providerStatusListener({ status }),
+    );
+    this.transportSyncDisposer = this.collaborationService.transport.onSync((synced) =>
+      this.providerSyncListener(synced),
+    );
     internalStates.set(this, { kernel: this.kernel });
     this.resultChannel =
       this.kernel.requireService(IRewriteCommandResultService) ??
@@ -767,7 +889,7 @@ export class CollaborativeAgentEditor {
       this.connected = true;
       this.transportUnavailable = false;
       const syncPromise = this.waitForSync();
-      await this.provider.connect();
+      await this.collaborationService.transport.connect();
       await syncPromise;
       await moment();
       this.assertConnectionAfterSync();
@@ -791,6 +913,9 @@ export class CollaborativeAgentEditor {
     if (this.disconnected) throw new Error('CollaborativeAgentEditor is disconnected.');
     if (!this.connected || this.transportUnavailable) {
       throw new Error('CollaborativeAgentEditor provider disconnected during sync.');
+    }
+    if (this.collaborationService.getReadiness() !== 'ready') {
+      throw new Error('CollaborativeAgentEditor binding projection is not ready after sync.');
     }
     this.synced = true;
   }
@@ -821,14 +946,21 @@ export class CollaborativeAgentEditor {
   }
 
   getStateVector(): string {
-    if (typeof this.provider.getStateVector === 'function') {
-      return this.provider.getStateVector();
+    if (this.collaborationService.descriptor.engine === 'loro') {
+      return this.collaborationService.getVersionProof().causalVersion.value;
     }
+    try {
+      return this.collaborationService.getVersionProof().causalVersion.value;
+    } catch {
+      if (this.provider && typeof this.provider.getStateVector === 'function') {
+        return this.provider.getStateVector();
+      }
 
-    const service = this.getYjsServiceState();
-    if (!service?.doc) throw new Error('Yjs binding is not initialized.');
+      const service = this.getYjsServiceState();
+      if (!service?.doc) throw new Error('Yjs binding is not initialized.');
 
-    return encodeYjsBase64(encodeStateVector(service.doc));
+      return encodeYjsBase64(encodeStateVector(service.doc));
+    }
   }
 
   /** Wait until the provider has received acknowledgements for local updates. */
@@ -836,7 +968,7 @@ export class CollaborativeAgentEditor {
     if (this.disconnected) {
       throw new Error('CollaborativeAgentEditor is disconnected.');
     }
-    await this.provider.waitForPendingUpdates?.(timeoutMs);
+    await this.collaborationService.transport.waitForPendingUpdates(timeoutMs);
   }
 
   private getStateVectorSafely(): string | null {
@@ -861,6 +993,42 @@ export class CollaborativeAgentEditor {
       (isFullAgentAwarenessState(input) && input.awarenessData.role !== 'agent')
     ) {
       throw new Error('Agent awareness identity does not match this request.');
+    }
+
+    if (this.collaborationService.descriptor.engine === 'loro') {
+      const caret = isFullAgentAwarenessState(input) ? input.caret : input.caret;
+      const selectionRange = isFullAgentAwarenessState(input)
+        ? input.awarenessData.selectionRange
+        : input.selectionRange;
+      const anchor = caret
+        ? this.collaborationService.capturePoint(caret)
+        : selectionRange
+          ? this.collaborationService.capturePoint({
+              nodeId: selectionRange.startNodeId,
+              offset: selectionRange.startOffset,
+            })
+          : null;
+      const focus = caret
+        ? anchor
+        : selectionRange
+          ? this.collaborationService.capturePoint({
+              nodeId: selectionRange.endNodeId,
+              offset: selectionRange.endOffset,
+            })
+          : null;
+      const neutralState = isFullAgentAwarenessState(input)
+        ? input.awarenessData
+        : Object.fromEntries(
+            Object.entries(input).filter(([key]) => key !== 'anchorPos' && key !== 'focusPos'),
+          );
+      this.collaborationService.transport.setPresence({
+        anchor,
+        descriptor: this.collaborationService.descriptor,
+        focus,
+        requestId: this.requestId,
+        state: neutralState,
+      });
+      return;
     }
 
     // Durable block anchors are the request contract. Project them through the
@@ -891,12 +1059,7 @@ export class CollaborativeAgentEditor {
       };
     }
 
-    if (typeof this.provider.setAgentAwareness === 'function') {
-      this.provider.setAgentAwareness(input);
-      return;
-    }
-
-    this.provider.awareness.setLocalState(
+    this.collaborationService.transport.setPresence(
       isFullAgentAwarenessState(input)
         ? input
         : {
@@ -926,6 +1089,15 @@ export class CollaborativeAgentEditor {
       this.clearAwareness();
       return;
     }
+    if (!this.provider) {
+      this.collaborationService.transport.setPresence({
+        descriptor: this.collaborationService.descriptor,
+        documentId: this.documentId,
+        requestId: this.requestId,
+        status,
+      });
+      return;
+    }
     const state = this.provider.awareness.getLocalState();
     if (!state || typeof state.awarenessData !== 'object' || state.awarenessData === null) return;
 
@@ -942,12 +1114,8 @@ export class CollaborativeAgentEditor {
   /** Clear the Agent cursor/state without exposing the underlying provider. */
   clearAwareness(): void {
     if (this.disconnected) return;
-    if (!this.provider.awareness.getLocalState()) return;
-    if (typeof this.provider.clearAgentAwareness === 'function') {
-      this.provider.clearAgentAwareness();
-      return;
-    }
-    this.provider.awareness.setLocalState(null);
+    if (this.provider && !this.provider.awareness.getLocalState()) return;
+    this.collaborationService.transport.clearPresence();
   }
 
   resolveSelection(selection: CollaborativeRewriteSelection): ResolvedRewriteSelection | null {
@@ -956,12 +1124,23 @@ export class CollaborativeAgentEditor {
       return null;
     }
 
+    if (this.collaborationService.descriptor.engine === 'loro') {
+      if (selection.kind === 'anchor') return this.resolveAnchorSelection(selection);
+      if (selection.kind === 'relative') return null;
+      const lexicalEditor = this.collaborationService.getLexicalEditor();
+      return lexicalEditor ? this.resolveBlockSelection(selection, lexicalEditor) : null;
+    }
+
     const service = this.getYjsServiceState();
     const lexicalEditor = service?.binding.editor;
     if (!service || !lexicalEditor) return null;
 
     if (selection.kind === 'relative') {
       return this.resolveRelativeSelection(selection, service.binding, lexicalEditor);
+    }
+
+    if (selection.kind === 'anchor') {
+      return this.resolveAnchorSelection(selection);
     }
 
     return this.resolveBlockSelection(selection, lexicalEditor);
@@ -1545,6 +1724,7 @@ export class CollaborativeAgentEditor {
     // The post-removal suffix item is durable and shifts naturally when the
     // human-authored prefix grows or shrinks.
     lexicalEditor.getEditorState().read(() => {
+      if (this.collaborationService.descriptor.engine === 'loro') return;
       const yjsState = this.getYjsServiceState();
       const block = $findNodeById(anchor.nodeId);
       if (!yjsState || !block) return;
@@ -1553,6 +1733,8 @@ export class CollaborativeAgentEditor {
       regionAnchorPosition =
         createRelativePositionForLexicalPoint(point, yjsState.binding) ?? undefined;
     });
+    const regionAnchor: CollaborationAnchor | undefined =
+      this.collaborationService.capturePoint(anchor as CollaborationPoint) ?? undefined;
 
     const currentTargetTexts = readStreamingTargetTexts(
       this.getLexicalEditor(),
@@ -1598,6 +1780,7 @@ export class CollaborativeAgentEditor {
       originalTextHash: input.expectedTextHash,
       ...(provenanceSessionId ? { provenanceSessionId } : {}),
       ...(input.provider ? { provider: input.provider } : {}),
+      ...(regionAnchor ? { regionAnchor } : {}),
       ...(regionAnchorPosition ? { regionAnchorPosition } : {}),
       regionStartOffset: anchor.offset,
       requestId: this.requestId,
@@ -1725,6 +1908,12 @@ export class CollaborativeAgentEditor {
     }
 
     const insertionOffset = getStreamingInsertionOffset(lexicalEditor, state, (streamState) => {
+      if (streamState.regionAnchor) {
+        return this.collaborationService.resolveAnchorOffset(
+          streamState.regionAnchor,
+          streamState.caret.nodeId,
+        );
+      }
       const regionAnchorPosition = streamState.regionAnchorPosition;
       const yjsState = this.getYjsServiceState();
       if (!regionAnchorPosition || !yjsState) return null;
@@ -2225,7 +2414,13 @@ export class CollaborativeAgentEditor {
   }
 
   private isReadyForStreaming(): boolean {
-    return !this.disconnected && this.connected && this.synced && !this.transportUnavailable;
+    return (
+      !this.disconnected &&
+      this.connected &&
+      this.synced &&
+      !this.transportUnavailable &&
+      this.collaborationService.getReadiness() === 'ready'
+    );
   }
 
   private getChunkText(input: CollaborativeRewriteStreamAppendInput): string | null {
@@ -2242,6 +2437,7 @@ export class CollaborativeAgentEditor {
     selectionRange: AgentRewriteRange,
     targetNodeIds: ReadonlyArray<string>,
   ): 'stream-session-busy' | 'stream-session-conflict' | null {
+    if (!this.provider) return null;
     const local = this.provider.awareness.getLocalState();
     for (const state of this.provider.awareness.getStates().values()) {
       if (!state || state === local) continue;
@@ -2405,16 +2601,19 @@ export class CollaborativeAgentEditor {
     );
     this.syncWaiters.clear();
     this.providerSyncPromise = null;
-    this.provider.off('status', this.providerStatusListener);
-    this.provider.off('sync', this.providerSyncListener);
-    this.provider.disconnect();
+    this.transportStatusDisposer?.();
+    this.transportSyncDisposer?.();
+    await this.collaborationService.transport.disconnect();
     this.kernel.destroy();
     internalStates.delete(this);
-    if (this.ownsDoc) this.yjsDoc.destroy();
+    if (this.ownsDoc) {
+      this.yjsDoc?.destroy();
+      this.loroCanonical?.doc.free();
+    }
   }
 
   private getLexicalEditor(): LexicalEditor | null {
-    return this.kernel.getLexicalEditor();
+    return this.collaborationService.getLexicalEditor() ?? this.kernel.getLexicalEditor();
   }
 
   private readonly providerStatusListener = ({ status }: { status: string }): void => {
@@ -2459,24 +2658,118 @@ export class CollaborativeAgentEditor {
   private getProviderSyncPromise(): Promise<void> {
     if (this.providerSyncPromise) return this.providerSyncPromise;
 
-    if (typeof this.provider.waitForSync === 'function') {
-      this.providerSyncPromise = this.provider.waitForSync();
-      return this.providerSyncPromise;
+    this.providerSyncPromise = this.collaborationService.transport.waitForSync();
+    return this.providerSyncPromise;
+  }
+
+  private resolveAnchorSelection(
+    selection: CollaborationAnchorRewriteSelection,
+  ): ResolvedRewriteSelection | null {
+    if (
+      selection.roomId !== this.roomId ||
+      !isValidStreamId(selection.capturedAt) ||
+      typeof selection.quotedText !== 'string' ||
+      !isValidTargetNodeIds(selection.targetNodeIds)
+    ) {
+      return null;
     }
 
-    this.providerSyncPromise = new Promise<void>((resolve, reject) => {
-      const onSync = (isSynced: boolean) => {
-        if (!isSynced) return;
-        this.provider.off('sync', onSync);
-        resolve();
-      };
-      this.provider.on('sync', onSync);
-      if (this.disconnected) {
-        this.provider.off('sync', onSync);
-        reject(new Error('CollaborativeAgentEditor is disconnected.'));
+    const descriptor = parseCollaborationDescriptor(selection.descriptor);
+    const service = this.collaborationService;
+    if (
+      descriptor.engine !== service.descriptor.engine ||
+      descriptor.bindingSchema !== service.descriptor.bindingSchema ||
+      descriptor.epoch !== service.descriptor.epoch
+    ) {
+      return null;
+    }
+    if (
+      selection.baseVersion.descriptor.engine !== descriptor.engine ||
+      selection.baseVersion.descriptor.bindingSchema !== descriptor.bindingSchema ||
+      selection.baseVersion.descriptor.epoch !== descriptor.epoch
+    ) {
+      return null;
+    }
+
+    const lexicalEditor = service.getLexicalEditor();
+    if (!lexicalEditor) return null;
+    const points = service.resolvePoints(selection.anchor, selection.focus);
+    if (!points) return null;
+
+    let result: ResolvedRewriteSelection | null = null;
+    lexicalEditor.getEditorState().read(() => {
+      const anchorNode = $getNodeByKey(points.anchor.key);
+      const focusNode = $getNodeByKey(points.focus.key);
+      if (!anchorNode || !focusNode) return;
+      if (
+        !isValidLexicalPoint(points.anchor.key, points.anchor.offset, points.anchor.type) ||
+        !isValidLexicalPoint(points.focus.key, points.focus.offset, points.focus.type)
+      ) {
+        return;
       }
+
+      const range = $createRangeSelection();
+      setRangePoint(range, points.anchor, 'anchor');
+      setRangePoint(range, points.focus, 'focus');
+      let quotedText: string;
+      try {
+        const rawQuotedText = range.getTextContent();
+        quotedText =
+          hashRewriteText(rawQuotedText) === selection.quotedTextHash
+            ? rawQuotedText
+            : getProvenanceSelectionText(range);
+      } catch {
+        return;
+      }
+      if (normalizeRewriteText(quotedText) !== normalizeRewriteText(selection.quotedText)) return;
+      if (hashRewriteText(quotedText) !== selection.quotedTextHash) {
+        return;
+      }
+      if (!quotedText) return;
+
+      const [startLexicalNode, endLexicalNode] = range.isBackward()
+        ? [focusNode, anchorNode]
+        : [anchorNode, focusNode];
+      const startBlock = getBlockAncestor(startLexicalNode);
+      const endBlock = getBlockAncestor(endLexicalNode);
+      if (!startBlock || !endBlock) return;
+      const startNodeId = $getNodeId(startBlock);
+      const endNodeId = $getNodeId(endBlock);
+      if (!startNodeId || !endNodeId) return;
+      if (selection.startNodeId && selection.startNodeId !== startNodeId) return;
+      if (selection.endNodeId && selection.endNodeId !== endNodeId) return;
+
+      const targetNodeIds = validateTargetBlocks(
+        range,
+        startBlock,
+        endBlock,
+        selection.targetNodeIds,
+      );
+      if (!targetNodeIds) return;
+      const startOffset = getBlockOffset(
+        range.isBackward() ? range.focus : range.anchor,
+        startBlock,
+      );
+      const endOffset = getBlockOffset(range.isBackward() ? range.anchor : range.focus, endBlock);
+      if (startOffset === null || endOffset === null) return;
+
+      result = {
+        baseStateVector: selection.baseVersion.causalVersion.value,
+        endNodeId,
+        endOffset,
+        isBackward: range.isBackward(),
+        quotedText: normalizeRewriteText(quotedText),
+        selection: range,
+        startNodeId,
+        startOffset,
+        targetNodeIds,
+        stateVectorDrifted: getStateVectorDrift(
+          this.getStateVectorSafely(),
+          selection.baseVersion.causalVersion.value,
+        ),
+      };
     });
-    return this.providerSyncPromise;
+    return result;
   }
 
   /**
