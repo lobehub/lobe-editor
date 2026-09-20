@@ -102,9 +102,11 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage  --passWithNoTests",
     "test:verify-final-head": "vitest run ./scripts/verify-final-head.test.mjs",
+    "test:verify-packed-loro": "vitest run ./scripts/verify-packed-loro.test.mjs",
     "test:watch": "vitest --watch",
     "type-check": "tsc --noEmit",
-    "verify:final-head": "node ./scripts/verify-final-head.mjs"
+    "verify:final-head": "node ./scripts/verify-final-head.mjs",
+    "verify:packed-loro": "node ./scripts/verify-packed-loro.mjs"
   },
   "lint-staged": {
     "*.{md,mdc}": [

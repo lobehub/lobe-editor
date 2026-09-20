@@ -30,6 +30,8 @@ import { createLoroHeadlessFactory } from '@lobehub/editor/loro/headless';
 
 `@lobehub/editor/loro/headless` 提供 `createLoroHeadlessFactory()`。`CollaborativeAgentEditor.create` 使用 Loro 时必须显式注入该 factory；旧 Yjs 调用不需要 factory。browser/headless consumer 负责按自己的 WASM bundler 配置加载 `loro-crdt@1.16.1`。
 
+发布包把 `loro-crdt@1.16.1` 声明为 optional peer dependency，并保留开发/测试用的 exact devDependency。使用 `@lobehub/editor`、`/react` 或 `/headless` 的默认/Yjs consumer 不需要安装 Loro；只有显式导入 `/loro`、`/loro/react` 或 `/loro/headless` 时，宿主才需要安装 `loro-crdt@1.16.1`。可用 `pnpm run verify:packed-loro -- --offline` 做真实 pack、隔离 consumer、postinstall patch、入口加载、声明图和 unbundle identity 验证；去掉 `--offline` 可让包管理器使用正常网络安装。
+
 `tsdown` 让 headless 和 browser entry 使用 unbundle 共享模块；`propertiesState`、Lexical runtime 和 command symbols 不能各自复制。packed integration 必须同时加载 root 与 headless entry，并验证 `propertiesState`/editor identity 以及一次真实 Loro anchor capture。
 
 核心调用边界是 `LoroCanonicalDocument`（创建、`fromSnapshot`、增量 `import`、snapshot/update export）、`LoroLexicalBinding`（Lexical projection 与 readiness）和 `createLoroHeadlessBinding`（DOM-free 同一 binding）。transport 只能把已包 descriptor 的 update 交给 binding 的 `applyUpdate`；不得直接调用外部 `LoroDoc.import`。
