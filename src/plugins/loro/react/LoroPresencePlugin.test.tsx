@@ -115,12 +115,19 @@ describe('LoroPresencePlugin', () => {
     mocks.editor = {
       getLexicalEditor: () => lexicalEditor,
       requireService: () => service,
+      t: (key: string) =>
+        ({
+          'collaboration.aiAgent': 'AI Agent',
+          'collaboration.aiAgentThinking': 'AI Agent (thinking…)',
+          'collaboration.aiAgentWriting': 'AI Agent (typing…)',
+        })[key] ?? key,
     };
   });
 
   afterEach(async () => {
     await act(async () => view.unmount());
     host.remove();
+    document.getElementById('lobe-collaboration-agent-cursor-styles')?.remove();
     vi.restoreAllMocks();
     presenceListener = undefined;
   });
@@ -135,6 +142,142 @@ describe('LoroPresencePlugin', () => {
     expect(layer).toBeTruthy();
     expect(layer?.parentElement).toBe(host);
     expect(layer?.querySelector('[data-loro-presence-peer="peer-2"]')).toBeTruthy();
+    expect(layer?.querySelectorAll('[data-loro-presence-label="peer-2"]')).toHaveLength(1);
+  });
+
+  it('renders one visible Agent label for a multi-rect selection and updates status in place', async () => {
+    range.getClientRects = () => [
+      {
+        bottom: 20,
+        height: 10,
+        left: 10,
+        right: 30,
+        top: 10,
+        width: 20,
+      } as DOMRect,
+      {
+        bottom: 40,
+        height: 10,
+        left: 10,
+        right: 30,
+        top: 30,
+        width: 20,
+      } as DOMRect,
+    ];
+
+    await act(async () => view.render(<LoroPresencePlugin />));
+
+    let layer = host.querySelector('[data-loro-presence-layer]');
+    expect(layer?.querySelectorAll('[data-loro-presence-peer="peer-2"]')).toHaveLength(2);
+    expect(layer?.querySelector('[data-loro-presence-label="peer-2"]')?.textContent).toBe('Agent');
+
+    await act(async () =>
+      presenceListener?.({
+        peerId: 'peer-2',
+        sender: 'sender-2',
+        sequence: 2,
+        state: {
+          anchor: { cursor: 'anchor' },
+          focus: { cursor: 'focus' },
+          state: {
+            color: '#c026d3',
+            name: 'Rewrite Agent',
+            role: 'agent',
+            status: 'thinking',
+          },
+        },
+      }),
+    );
+
+    layer = host.querySelector('[data-loro-presence-layer]');
+    expect(layer?.querySelectorAll('[data-loro-presence-label="peer-2"]')).toHaveLength(1);
+    expect(layer?.querySelector('[data-loro-presence-label="peer-2"]')?.textContent).toContain(
+      'Rewrite Agent (thinking…)',
+    );
+    expect(
+      layer?.querySelector(
+        '[data-loro-presence-label="peer-2"] .lobe-collaboration-agent-loading-dot',
+      ),
+    ).toBeTruthy();
+
+    await act(async () =>
+      presenceListener?.({
+        peerId: 'peer-2',
+        sender: 'sender-2',
+        sequence: 3,
+        state: {
+          anchor: { cursor: 'anchor' },
+          focus: { cursor: 'focus' },
+          state: {
+            color: '#c026d3',
+            name: 'Rewrite Agent',
+            role: 'agent',
+            status: 'writing',
+          },
+        },
+      }),
+    );
+    expect(layer?.querySelector('[data-loro-presence-label="peer-2"]')?.textContent).toContain(
+      'Rewrite Agent (typing…)',
+    );
+
+    await act(async () =>
+      presenceListener?.({
+        peerId: 'peer-2',
+        sender: 'sender-2',
+        sequence: 4,
+        state: {
+          anchor: { cursor: 'anchor' },
+          focus: { cursor: 'focus' },
+          state: {
+            color: '#c026d3',
+            name: 'Rewrite Agent',
+            role: 'agent',
+            status: 'done',
+          },
+        },
+      }),
+    );
+    expect(layer?.querySelector('[data-loro-presence-label="peer-2"]')).toBeNull();
+
+    await act(async () =>
+      presenceListener?.({
+        peerId: 'peer-2',
+        sender: 'sender-2',
+        sequence: 5,
+        state: {
+          anchor: { cursor: 'anchor' },
+          focus: { cursor: 'focus' },
+          state: {
+            color: '#c026d3',
+            name: 'Rewrite Agent',
+            role: 'agent',
+            status: 'error',
+          },
+        },
+      }),
+    );
+    expect(layer?.querySelector('[data-loro-presence-label="peer-2"]')).toBeNull();
+  });
+
+  it('keeps a visible label beside a collapsed Agent caret', async () => {
+    range.collapsed = true;
+    range.getClientRects = () => [
+      {
+        bottom: 20,
+        height: 10,
+        left: 10,
+        right: 10,
+        top: 10,
+        width: 0,
+      } as DOMRect,
+    ];
+
+    await act(async () => view.render(<LoroPresencePlugin />));
+
+    const layer = host.querySelector('[data-loro-presence-layer]');
+    expect(layer?.querySelectorAll('[data-loro-presence-peer="peer-2"]')).toHaveLength(1);
+    expect(layer?.querySelector('[data-loro-presence-label="peer-2"]')?.textContent).toBe('Agent');
   });
 
   it('tears down the sibling overlay and restores host positioning', async () => {

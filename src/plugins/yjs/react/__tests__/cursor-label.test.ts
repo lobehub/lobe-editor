@@ -116,6 +116,15 @@ describe('status-aware Yjs cursor labels', () => {
     expect(agentName.querySelector('.lobe-yjs-agent-loading-dot')).not.toBeNull();
     expect(document.getElementById('lobe-yjs-agent-cursor-styles')).not.toBeNull();
 
+    expect(
+      formatter({
+        name: 'Rewrite Agent',
+        role: 'agent',
+        state: states.get(101)!,
+        status: 'thinking',
+      }),
+    ).toEqual({ label: 'Rewrite Agent（思考中…）', loading: true });
+
     const browserInput = {
       name: 'Alice',
       role: 'browser',

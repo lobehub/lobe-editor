@@ -417,6 +417,9 @@ const internalStates = new WeakMap<object, CollaborativeAgentEditorInternalState
 // the single implementation shared by the command package.
 export { hashRewriteText, normalizeRewriteText };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 const isFullAgentAwarenessState = (
   state: AgentAwarenessInput | AgentAwarenessState,
 ): state is AgentAwarenessState =>
@@ -794,6 +797,7 @@ export class CollaborativeAgentEditor {
   private readonly loroCanonical?: LoroHeadlessFactoryResult['canonical'];
   private readonly transportStatusDisposer: (() => void) | null;
   private readonly transportSyncDisposer: (() => void) | null;
+  private loroPresencePayload: Record<string, unknown> | null = null;
   private transportUnavailable = false;
   private connected = false;
   private disconnected = false;
@@ -1048,6 +1052,9 @@ export class CollaborativeAgentEditor {
     }
 
     if (this.collaborationService.descriptor.engine === 'loro') {
+      const awarenessStatus = isFullAgentAwarenessState(input)
+        ? input.awarenessData.status
+        : input.status;
       const caret = isFullAgentAwarenessState(input) ? input.caret : input.caret;
       const selectionRange = isFullAgentAwarenessState(input)
         ? input.awarenessData.selectionRange
@@ -1068,18 +1075,26 @@ export class CollaborativeAgentEditor {
               offset: selectionRange.endOffset,
             })
           : null;
-      const neutralState = isFullAgentAwarenessState(input)
-        ? input.awarenessData
-        : Object.fromEntries(
-            Object.entries(input).filter(([key]) => key !== 'anchorPos' && key !== 'focusPos'),
-          );
-      this.collaborationService.transport.setPresence({
+      const neutralState = {
+        ...(isFullAgentAwarenessState(input)
+          ? input.awarenessData
+          : Object.fromEntries(
+              Object.entries(input).filter(([key]) => key !== 'anchorPos' && key !== 'focusPos'),
+            )),
+        color: input.color ?? '#7c3aed',
+        focusing: input.focusing ?? (awarenessStatus !== 'done' && awarenessStatus !== 'error'),
+        name: input.name ?? 'AI Agent',
+        role: 'agent' as const,
+      };
+      const presencePayload = {
         anchor,
         descriptor: this.collaborationService.descriptor,
         focus,
         requestId: this.requestId,
         state: neutralState,
-      });
+      };
+      this.loroPresencePayload = presencePayload;
+      this.collaborationService.transport.setPresence(presencePayload);
       return;
     }
 
@@ -1137,17 +1152,37 @@ export class CollaborativeAgentEditor {
   }
 
   setAgentStatus(status: AgentAwarenessStatus): void {
+    if (this.disconnected) return;
     if (status === 'done' || status === 'error') {
       this.clearAwareness();
       return;
     }
     if (!this.provider) {
-      this.collaborationService.transport.setPresence({
+      const previousPayload = this.loroPresencePayload ?? {
+        anchor: null,
         descriptor: this.collaborationService.descriptor,
-        documentId: this.documentId,
+        focus: null,
         requestId: this.requestId,
-        status,
-      });
+        state: {
+          color: '#7c3aed',
+          documentId: this.documentId,
+          focusing: true,
+          name: 'AI Agent',
+          role: 'agent',
+        },
+      };
+      const previousState = isRecord(previousPayload.state) ? previousPayload.state : {};
+      const nextPayload = {
+        ...previousPayload,
+        state: {
+          ...previousState,
+          focusing: true,
+          role: 'agent' as const,
+          status,
+        },
+      };
+      this.loroPresencePayload = nextPayload;
+      this.collaborationService.transport.setPresence(nextPayload);
       return;
     }
     const state = this.provider.awareness.getLocalState();
@@ -1167,6 +1202,7 @@ export class CollaborativeAgentEditor {
   clearAwareness(): void {
     if (this.disconnected) return;
     if (this.provider && !this.provider.awareness.getLocalState()) return;
+    this.loroPresencePayload = null;
     this.collaborationService.transport.clearPresence();
   }
 
@@ -2783,6 +2819,7 @@ export class CollaborativeAgentEditor {
     try {
       await this.collaborationService.transport.disconnect();
     } finally {
+      this.loroPresencePayload = null;
       // A disconnected facade cannot serve a replay, so release both the
       // compact tombstones and any recovered result buffers on teardown.
       this.rewriteSessions.clear();

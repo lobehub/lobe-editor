@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { LoroDoc } from 'loro-crdt';
 
 import type { CollaborationTransportPort } from '@/common/collaboration';
+import type { AgentAwarenessState } from '@/plugins/yjs/protocol';
 import { CollaborativeAgentEditor, hashRewriteText } from '../collaborative-agent-editor';
 import { createLoroHeadlessFactory } from '../loro';
 import {
@@ -17,13 +18,18 @@ class ReadinessGateTransport implements CollaborationTransportPort {
   private readonly syncPromise = new Promise<void>((resolve) => {
     this.resolveSync = resolve;
   });
+  readonly presence: unknown[] = [];
 
   connect(): void {}
   disconnect(): void {
     this.syncListeners.forEach((listener) => listener(false));
   }
-  clearPresence(): void {}
-  setPresence(): void {}
+  clearPresence(): void {
+    this.presence.push(null);
+  }
+  setPresence(value: unknown): void {
+    this.presence.push(value);
+  }
   onStatus(): () => void {
     return () => undefined;
   }
@@ -142,6 +148,99 @@ describe('CollaborativeAgentEditor with the real Loro binding', () => {
     expect(finalized.status).toBe('applied');
     const node = canonical.findNodeById('paragraph-1');
     expect(node && getAttachedText(node, 'flow')?.toString()).toBe('hello Loro');
+  });
+
+  it('keeps Loro Agent display identity and anchors when awareness status changes', async () => {
+    const descriptor = createLoroBindingDescriptor();
+    const doc = new LoroDoc();
+    docs.push(doc);
+    const canonical = new LoroCanonicalDocument(doc, descriptor);
+    canonical.commit(
+      () => {
+        canonical.createNode({
+          flow: 'hello',
+          nodeId: 'paragraph-awareness',
+          role: 'element',
+          type: 'paragraph',
+        });
+      },
+      { origin: 'loro:seed' },
+    );
+    const transport = new ReadinessGateTransport();
+    const session = CollaborativeAgentEditor.create({
+      descriptor,
+      documentId: 'loro-awareness-document',
+      loro: { doc, factory: createLoroHeadlessFactory(), transport },
+      requestId: 'loro-awareness-request',
+      roomId: 'loro-awareness-room',
+      ticket: 'local-ticket',
+    });
+    sessions.push(session);
+    const connecting = session.connect();
+    transport.release();
+    await connecting;
+
+    session.setAgentAwareness({
+      caret: { nodeId: 'paragraph-awareness', offset: 2 },
+      color: '#9333ea',
+      documentId: 'loro-awareness-document',
+      name: 'Rewrite Agent',
+      requestId: 'loro-awareness-request',
+      status: 'thinking',
+    });
+
+    const initial = transport.presence.at(-1) as {
+      anchor: unknown;
+      focus: unknown;
+      state: Record<string, unknown>;
+    };
+    expect(initial.anchor).toBeTruthy();
+    expect(initial.focus).toBeTruthy();
+    expect(initial.state).toMatchObject({
+      color: '#9333ea',
+      name: 'Rewrite Agent',
+      role: 'agent',
+      status: 'thinking',
+    });
+
+    session.setAgentStatus('writing');
+    const updated = transport.presence.at(-1) as typeof initial;
+    expect(updated.anchor).toEqual(initial.anchor);
+    expect(updated.focus).toEqual(initial.focus);
+    expect(updated.state).toMatchObject({
+      color: '#9333ea',
+      name: 'Rewrite Agent',
+      role: 'agent',
+      status: 'writing',
+    });
+
+    session.setAgentAwareness({
+      anchorPos: null,
+      awarenessData: {
+        documentId: 'loro-awareness-document',
+        requestId: 'loro-awareness-request',
+        role: 'agent',
+        status: 'thinking',
+      },
+      caret: { nodeId: 'paragraph-awareness', offset: 3 },
+      color: '#0f766e',
+      focusPos: null,
+      focusing: true,
+      name: 'Full Agent',
+    } satisfies AgentAwarenessState);
+    const full = transport.presence.at(-1) as typeof initial;
+    expect(full.anchor).toBeTruthy();
+    expect(full.focus).toEqual(full.anchor);
+    expect(full.state).toMatchObject({
+      color: '#0f766e',
+      focusing: true,
+      name: 'Full Agent',
+      role: 'agent',
+      status: 'thinking',
+    });
+
+    session.clearAwareness();
+    expect(transport.presence.at(-1)).toBeNull();
   });
 
   it('does not report Loro ready before transport sync releases the causal barrier', async () => {

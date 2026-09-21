@@ -28,6 +28,12 @@ import { normalizeRelativeSelectionForAtomicHoles } from '@/plugins/yjs/relative
 import { IYjsService, type YjsPluginState } from '@/plugins/yjs/service';
 import type { ILocaleKeys } from '@/types';
 
+import {
+  type CollaborationCursorLabel,
+  type CollaborationCursorLabelTranslationKey,
+  ensureCollaborationAgentCursorStyles,
+  formatCollaborationCursorLabel,
+} from '../../collaboration/cursor-label';
 import { createCodemirrorEditLockProvider } from './codemirrorEditLockProvider';
 
 export interface ReactYjsPluginProps {
@@ -53,39 +59,13 @@ export interface AwarenessCursorLabelInput {
   status?: string;
 }
 
-export interface AwarenessCursorLabel {
-  label: string;
-  loading?: boolean;
-}
+export type AwarenessCursorLabel = CollaborationCursorLabel;
 
 export type AwarenessCursorLabelFormatter = (
   input: AwarenessCursorLabelInput,
 ) => AwarenessCursorLabel | string;
 
-export type AwarenessCursorLabelTranslationKey =
-  | 'collaboration.aiAgent'
-  | 'collaboration.aiAgentAwaitingReview'
-  | 'collaboration.aiAgentConnecting'
-  | 'collaboration.aiAgentSyncing'
-  | 'collaboration.aiAgentThinking'
-  | 'collaboration.aiAgentWriting';
-
-const DEFAULT_AWARENESS_LABELS: Record<AwarenessCursorLabelTranslationKey, string> = {
-  'collaboration.aiAgent': 'AI Agent',
-  'collaboration.aiAgentAwaitingReview': 'AI Agent (awaiting review…)',
-  'collaboration.aiAgentConnecting': 'AI Agent (connecting…)',
-  'collaboration.aiAgentSyncing': 'AI Agent (syncing…)',
-  'collaboration.aiAgentThinking': 'AI Agent (thinking…)',
-  'collaboration.aiAgentWriting': 'AI Agent (typing…)',
-};
-
-const ACTIVE_AGENT_STATUSES = new Set([
-  'awaiting-review',
-  'connecting',
-  'syncing',
-  'thinking',
-  'writing',
-]);
+export type AwarenessCursorLabelTranslationKey = CollaborationCursorLabelTranslationKey;
 
 /**
  * Format an awareness label without changing ordinary collaborator names.
@@ -93,27 +73,12 @@ const ACTIVE_AGENT_STATUSES = new Set([
  */
 export const formatAwarenessCursorLabel = (
   input: AwarenessCursorLabelInput,
-  translate: (key: AwarenessCursorLabelTranslationKey) => string = (key) =>
-    DEFAULT_AWARENESS_LABELS[key],
+  translate?: (key: AwarenessCursorLabelTranslationKey) => string,
 ): AwarenessCursorLabel => {
-  if (input.role !== 'agent') return { label: input.name, loading: false };
-
-  const keyByStatus: Partial<
-    Record<NonNullable<AwarenessCursorLabelInput['status']>, AwarenessCursorLabelTranslationKey>
-  > = {
-    'awaiting-review': 'collaboration.aiAgentAwaitingReview',
-    'connecting': 'collaboration.aiAgentConnecting',
-    'syncing': 'collaboration.aiAgentSyncing',
-    'thinking': 'collaboration.aiAgentThinking',
-    'writing': 'collaboration.aiAgentWriting',
-  };
-  const status = input.status;
-  const key = status ? keyByStatus[status] : undefined;
-
-  return {
-    label: translate(key ?? 'collaboration.aiAgent'),
-    loading: status !== undefined && ACTIVE_AGENT_STATUSES.has(status),
-  };
+  return formatCollaborationCursorLabel(
+    { name: input.name, role: input.role, status: input.status },
+    translate,
+  );
 };
 
 const getAwarenessStableClientId = (state: UserState): number | undefined => {
@@ -174,22 +139,7 @@ export const getRenderableAwarenessStates = (
 const AGENT_CURSOR_STYLE_ID = 'lobe-yjs-agent-cursor-styles';
 
 const ensureAgentCursorStyles = (): void => {
-  if (typeof document === 'undefined' || document.getElementById(AGENT_CURSOR_STYLE_ID)) return;
-
-  const style = document.createElement('style');
-  style.id = AGENT_CURSOR_STYLE_ID;
-  style.textContent = `
-    @keyframes lobe-yjs-agent-loading-dot {
-      0%, 100% { opacity: .28; transform: scale(.82); }
-      50% { opacity: 1; transform: scale(1); }
-    }
-    .lobe-yjs-agent-loading-dot {
-      display: inline-block;
-      margin-left: 3px;
-      animation: lobe-yjs-agent-loading-dot 1.1s ease-in-out infinite;
-    }
-  `;
-  document.head.append(style);
+  ensureCollaborationAgentCursorStyles(AGENT_CURSOR_STYLE_ID);
 };
 
 const updateAwarenessCursorLabels = (

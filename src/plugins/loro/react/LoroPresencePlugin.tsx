@@ -12,6 +12,13 @@ import {
   ICollaborationService,
 } from '@/common/collaboration';
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
+import type { ILocaleKeys } from '@/types';
+
+import {
+  type CollaborationCursorLabelFormatter,
+  ensureCollaborationAgentCursorStyles,
+  formatCollaborationCursorLabel,
+} from '../../collaboration/cursor-label';
 
 interface PresencePayload {
   anchor?: CollaborationAnchor | null;
@@ -35,15 +42,33 @@ const readPayload = (value: unknown): PresencePayload | null => {
   };
 };
 
-const readDisplay = (value: unknown): { color: string; name: string; status?: string } => {
+const readDisplay = (
+  value: unknown,
+): { color: string; name: string; role?: string; status?: string } => {
   const record = isRecord(value) ? value : {};
   const nested = isRecord(record.state) ? record.state : record;
   const state = isRecord(nested.state) ? nested.state : nested;
   const awarenessData = isRecord(state.awarenessData) ? state.awarenessData : state;
+  const role =
+    typeof state.role === 'string'
+      ? state.role
+      : typeof awarenessData.role === 'string'
+        ? awarenessData.role
+        : undefined;
   return {
     color: typeof state.color === 'string' && state.color.length > 0 ? state.color : '#7c3aed',
-    name: typeof state.name === 'string' && state.name.length > 0 ? state.name : 'Collaborator',
-    ...(typeof awarenessData.status === 'string' ? { status: awarenessData.status } : {}),
+    name:
+      typeof state.name === 'string' && state.name.length > 0
+        ? state.name
+        : role === 'agent'
+          ? 'AI Agent'
+          : 'Collaborator',
+    ...(role ? { role } : {}),
+    ...(typeof awarenessData.status === 'string'
+      ? { status: awarenessData.status }
+      : typeof state.status === 'string'
+        ? { status: state.status }
+        : {}),
   };
 };
 
@@ -131,6 +156,7 @@ const renderPresence = (
   host: HTMLElement,
   layer: HTMLElement,
   localPeerId?: string,
+  labelFormatter: CollaborationCursorLabelFormatter = formatCollaborationCursorLabel,
 ): void => {
   const root = lexicalEditor.getRootElement();
   if (!root) return;
@@ -155,14 +181,26 @@ const renderPresence = (
     const range = createRange(lexicalEditor, resolved.anchor, resolved.focus);
     if (!range) return;
 
-    const rects = Array.from(range.getClientRects());
+    const rects = Array.from(range.getClientRects()).filter(
+      (rect) => rect.width !== 0 || rect.height !== 0,
+    );
     const collapsed = range.collapsed;
     const color = display.color;
-    for (const rect of rects.length > 0 ? rects : [range.getBoundingClientRect()]) {
-      if (rect.width === 0 && rect.height === 0) continue;
+    const visibleRects = rects.length > 0 ? rects : [range.getBoundingClientRect()];
+    const firstRect = visibleRects.find((rect) => rect.width !== 0 || rect.height !== 0);
+    if (!firstRect) return;
+
+    const formatted = labelFormatter({
+      name: display.name,
+      role: display.role,
+      status: display.status,
+    });
+    const label = typeof formatted === 'string' ? { label: formatted, loading: false } : formatted;
+
+    for (const rect of visibleRects) {
       const marker = layer.ownerDocument.createElement('span');
       marker.dataset.loroPresencePeer = snapshot.peerId;
-      marker.setAttribute('aria-label', display.name);
+      marker.setAttribute('aria-label', label.label);
       marker.style.background = collapsed ? color : `${color}33`;
       marker.style.borderLeft = collapsed ? `2px solid ${color}` : `1px solid ${color}`;
       marker.style.boxSizing = 'border-box';
@@ -175,6 +213,35 @@ const renderPresence = (
       marker.style.zIndex = '2';
       layer.append(marker);
     }
+
+    const name = layer.ownerDocument.createElement('span');
+    name.dataset.loroPresenceLabel = snapshot.peerId;
+    if (display.role === 'agent') name.dataset.loroPresenceAgentStatus = display.status ?? '';
+    name.setAttribute('aria-label', label.label);
+    name.style.background = color;
+    name.style.boxSizing = 'border-box';
+    name.style.color = '#fff';
+    name.style.fontFamily = 'Arial, sans-serif';
+    name.style.fontSize = '12px';
+    name.style.fontWeight = 'bold';
+    name.style.left = `${firstRect.left - layerRect.left - 2}px`;
+    name.style.lineHeight = '12px';
+    name.style.padding = '2px';
+    name.style.pointerEvents = 'none';
+    name.style.position = 'absolute';
+    name.style.top = `${firstRect.top - layerRect.top - 16}px`;
+    name.style.whiteSpace = 'nowrap';
+    name.style.zIndex = '3';
+    name.textContent = label.label;
+    if (label.loading) {
+      ensureCollaborationAgentCursorStyles();
+      const dot = layer.ownerDocument.createElement('span');
+      dot.className = 'lobe-collaboration-agent-loading-dot';
+      dot.setAttribute('aria-hidden', 'true');
+      dot.textContent = '•';
+      name.append(dot);
+    }
+    layer.append(name);
   });
 };
 
@@ -197,6 +264,7 @@ const syncLayerGeometry = (root: HTMLElement, host: HTMLElement, layer: HTMLElem
 };
 
 export interface LoroPresencePluginProps {
+  awarenessLabelFormatter?: CollaborationCursorLabelFormatter;
   enabled?: boolean;
 }
 
@@ -205,7 +273,10 @@ export interface LoroPresencePluginProps {
  * `ICollaborationService.resolvePoints`; no Yjs RelativePosition or CRDT
  * internals cross into the browser projection.
  */
-export const LoroPresencePlugin: FC<LoroPresencePluginProps> = ({ enabled = true }) => {
+export const LoroPresencePlugin: FC<LoroPresencePluginProps> = ({
+  awarenessLabelFormatter,
+  enabled = true,
+}) => {
   const [editor] = useLexicalComposerContext();
   const presenceRef = useRef(new Map<string, CollaborationPresenceSnapshot>());
   const layerRef = useRef<HTMLElement | null>(null);
@@ -217,6 +288,10 @@ export const LoroPresencePlugin: FC<LoroPresencePluginProps> = ({ enabled = true
       if (!root) return undefined;
       const service = editor.requireService(ICollaborationService);
       if (!service) return undefined;
+      const labelFormatter =
+        awarenessLabelFormatter ??
+        ((input) =>
+          formatCollaborationCursorLabel(input, (key) => editor.t(key as keyof ILocaleKeys)));
 
       // Match the existing Yjs cursor portal: the overlay is a sibling of the
       // managed editor root (or document.body as the last resort), never a
@@ -248,6 +323,7 @@ export const LoroPresencePlugin: FC<LoroPresencePluginProps> = ({ enabled = true
             host,
             layerRef.current,
             transport.peerId,
+            labelFormatter,
           );
       };
       const disposePresence = transport.onPresence?.((snapshot) => {
@@ -271,6 +347,7 @@ export const LoroPresencePlugin: FC<LoroPresencePluginProps> = ({ enabled = true
       const onResize = (): void => rerender();
       window.addEventListener('resize', onResize);
       root.addEventListener('scroll', onResize, { passive: true });
+      host.addEventListener('scroll', onResize, { passive: true });
       rerender();
 
       return () => {
@@ -280,6 +357,7 @@ export const LoroPresencePlugin: FC<LoroPresencePluginProps> = ({ enabled = true
         disposeUpdate();
         window.removeEventListener('resize', onResize);
         root.removeEventListener('scroll', onResize);
+        host.removeEventListener('scroll', onResize);
         layer.remove();
         layerRef.current = null;
         presenceRef.current.clear();
@@ -288,7 +366,7 @@ export const LoroPresencePlugin: FC<LoroPresencePluginProps> = ({ enabled = true
         }
       };
     },
-    [editor, enabled],
+    [awarenessLabelFormatter, editor, enabled],
   );
 
   return null;
