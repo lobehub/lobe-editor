@@ -32,11 +32,32 @@ import {
   UnderlineIcon,
   Undo2Icon,
 } from 'lucide-react';
-import { type CSSProperties, type FC, useMemo } from 'react';
+import { type CSSProperties, type FC, type ReactNode, useMemo } from 'react';
 
 import { openFileSelector } from './actions';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
+  annotationAction: css`
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+
+    height: 36px;
+    padding-inline: 10px;
+    border: 0;
+    border-radius: 8px;
+
+    font-size: 13px;
+    color: ${cssVar.colorTextSecondary};
+
+    background: transparent;
+    cursor: pointer;
+
+    &:hover {
+      color: ${cssVar.colorText};
+      background: ${cssVar.colorFillSecondary};
+    }
+  `,
   block: css`
     position: sticky;
     z-index: 10;
@@ -49,13 +70,14 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
 }));
 
 export interface ToolbarProps {
+  annotationAction?: ReactNode;
   className?: string;
   editor: IEditor;
   floating?: boolean;
   style?: CSSProperties;
 }
 
-const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
+const Toolbar: FC<ToolbarProps> = ({ annotationAction, floating, editor, style, className }) => {
   const editorState = useEditorState(editor);
 
   const items = useMemo(
@@ -191,6 +213,11 @@ const Toolbar: FC<ToolbarProps> = ({ floating, editor, style, className }) => {
         },
         {
           type: 'divider',
+        },
+        annotationAction && {
+          children: annotationAction,
+          key: 'annotation',
+          label: '评论',
         },
         {
           icon: ImageIcon,

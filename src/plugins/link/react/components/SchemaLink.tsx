@@ -1,12 +1,12 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import { LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import { type FC, useEffect, useState } from 'react';
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 
-import { SchemaNode } from '../../node/SchemaNode';
-import { ILinkService, LinkService } from '../../service/i-link-service';
-import { LinkReactRendererRegistry } from '../renderer-registry';
+import type { SchemaNode } from '../../node/SchemaNode';
+import type { LinkService } from '../../service/i-link-service';
+import { ILinkService } from '../../service/i-link-service';
+import type { LinkReactRendererRegistry } from '../renderer-registry';
 
 interface SchemaLinkProps {
   editor: LexicalEditor;

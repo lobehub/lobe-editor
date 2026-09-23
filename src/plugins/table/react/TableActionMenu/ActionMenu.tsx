@@ -39,6 +39,7 @@ import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState
 
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
+import { $getValidTableSelectionShape } from '../../utils';
 import {
   $canUnmerge,
   $selectLastDescendant,
@@ -100,13 +101,13 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
           const tableNode = $getTableNodeFromLexicalNodeOrThrow(latestTableCellNode);
           const [gridMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
           const selection = $getSelection();
+          const selectionShape = $getValidTableSelectionShape(selection, tableNode.getKey());
           const previewCellKeys = new Set<string>();
 
           if (target === 'columns') {
-            const selectedColumns =
-              $isTableSelection(selection) && selection.tableKey === tableNode.getKey()
-                ? range(selection.getShape().fromX, selection.getShape().toX)
-                : [];
+            const selectedColumns = selectionShape
+              ? range(selectionShape.fromX, selectionShape.toX)
+              : [];
             const columnIndexes =
               selectedColumns.length > 0
                 ? selectedColumns
@@ -121,10 +122,9 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
               }
             }
           } else if (target === 'rows') {
-            const selectedRows =
-              $isTableSelection(selection) && selection.tableKey === tableNode.getKey()
-                ? range(selection.getShape().fromY, selection.getShape().toY)
-                : [];
+            const selectedRows = selectionShape
+              ? range(selectionShape.fromY, selectionShape.toY)
+              : [];
             const rowIndexes =
               selectedRows.length > 0
                 ? selectedRows
@@ -250,7 +250,7 @@ const TableActionMenu = memo<TableCellActionMenuProps>(
     const mergeTableCellsAtSelection = () => {
       editor.update(() => {
         const selection = $getSelection();
-        if (!$isTableSelection(selection)) {
+        if (!$isTableSelection(selection) || !$getValidTableSelectionShape(selection)) {
           return;
         }
 

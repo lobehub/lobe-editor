@@ -204,6 +204,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       border-color: ${cssVar.colorFillSecondary};
       border-style: solid;
       border-width: 1px 0.5px 0 1px;
+      border-inline-end-width: 1px;
     `,
     rowDragIndicator: css`
       inset-inline-start: 15px;
@@ -212,6 +213,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     `,
     rowLast: css`
       border-width: 1px 0.5px 1px 1px;
+      border-inline-end-width: 1px;
       border-end-start-radius: 8px;
     `,
     rowLeft: css`

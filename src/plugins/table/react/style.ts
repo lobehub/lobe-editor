@@ -14,6 +14,21 @@ export const styles = createStaticStyles(
       padding-block-start: 14px;
     }
 
+    /*
+     * Standalone/legacy tables keep the anchor-padding bleed above. Once the
+     * viewport is mounted inside a Hole, the Hole slot is the complete visual
+     * boundary: both the scrollport and table start/end margins must collapse
+     * to it so the boundary caret remains outside the grid at every scroll
+     * position.
+     */
+    .lobe-editor-table-scroll-wrapper[data-hole-table-viewport] {
+      margin-inline: 0;
+    }
+
+    .lobe-editor-table-scroll-wrapper[data-hole-table-viewport] > table.editor_table {
+      margin-inline: 0;
+    }
+
     .lobe-editor-table-scroll-indicator {
       pointer-events: none;
 
@@ -73,10 +88,22 @@ export const styles = createStaticStyles(
     }
 
     > .toolbar-col,
-    > .toolbar-row,
     > .lobe-editor-table-scroll-wrapper > .toolbar-col,
     > .lobe-editor-table-scroll-wrapper > .toolbar-row {
       inset-inline-start: var(--lobe-block-anchor-padding, 54px);
+    }
+
+    .lobe-editor-table-scroll-wrapper[data-hole-table-viewport] > .toolbar-col,
+    .lobe-editor-table-scroll-wrapper[data-hole-table-viewport] > .toolbar-row,
+    > .toolbar-row[data-hole-table-overlay] {
+      inset-inline-start: 0;
+    }
+
+    /* The Hole boundary hit area occupies the same gutter as the fixed row
+       controller. Keep the controller above that hit area; its host remains
+       click-through and only the actual controls opt into pointer events. */
+    > .toolbar-row[data-hole-table-overlay] {
+      z-index: 4;
     }
 
     .table-controller,
@@ -139,9 +166,42 @@ export const styles = createStaticStyles(
       outline: none;
     }
 
+    /* While row controls are mounted, their own end border is the stable seam
+       at the viewport edge. The table restores its outer border when the
+       controller unmounts (including readonly/blurred states). */
+    &:has(> .toolbar-row > .table-controller-row)
+      > .lobe-editor-table-scroll-wrapper
+      > table.editor_table
+      > tr
+      > .editor_table_cell:first-child,
+    &:has(> .toolbar-row > .table-controller-row)
+      > .lobe-editor-table-scroll-wrapper
+      > table.editor_table
+      > tbody
+      > tr
+      > .editor_table_cell:first-child {
+      border-inline-start-width: 0;
+    }
+
     .editor_table_cell_selected {
-      background-color: color-mix(in srgb, ${cssVar.yellow} 3%, transparent);
       caret-color: transparent;
+
+      &::after {
+        pointer-events: none;
+        content: '';
+
+        position: absolute;
+        z-index: 1;
+        inset: 1px;
+
+        background: color-mix(in srgb, ${cssVar.yellow} 12%, transparent);
+      }
+
+      &::selection,
+      *::selection {
+        color: inherit;
+        background: transparent;
+      }
     }
 
     .lobe-editor-table-delete-preview {

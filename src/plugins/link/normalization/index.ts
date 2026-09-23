@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import { LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 
-import { LinkNode } from '../node/LinkNode';
+import type { LinkNode } from '../node/LinkNode';
 import { $createSchemaNode } from '../node/SchemaNode';
-import { LinkService } from '../service/i-link-service';
+import type { LinkService } from '../service/i-link-service';
 
 export function normalizeSchemaLinkNode(
   node: LinkNode,

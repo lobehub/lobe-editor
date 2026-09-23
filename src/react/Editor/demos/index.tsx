@@ -1,5 +1,9 @@
 import {
   type IEditor,
+  AnnotationToolbarAction,
+  type AnnotationBubbleContext,
+  type AnnotationComposerContext,
+  INSERT_ARTIFACT_COMMAND,
   INSERT_CODEINLINE_COMMAND,
   INSERT_CODEMIRROR_COMMAND,
   INSERT_COLLAPSIBLE_COMMAND,
@@ -12,6 +16,7 @@ import {
   INSERT_TABLE_COMMAND,
   type LinkEmbedRule,
   ReactAutoCompletePlugin,
+  ReactArtifactPlugin,
   ReactBlockPlugin,
   ReactCodePlugin,
   ReactCodemirrorPlugin,
@@ -23,6 +28,7 @@ import {
   ReactListPlugin,
   ReactLiteXmlPlugin,
   ReactMathPlugin,
+  ReactNodePropertiesPlugin,
   ReactTablePlugin,
   ReactTocPlugin,
   ReactToolbarPlugin,
@@ -35,7 +41,7 @@ import {
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
-import { Alert, Button, Segmented, Space, Tag } from 'antd';
+import { Alert, Button, Input, Segmented, Space, Tag } from 'antd';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
@@ -43,7 +49,9 @@ import {
   Heading2Icon,
   Heading3Icon,
   ListCollapseIcon,
+  MessageSquareQuote,
   MinusIcon,
+  PanelsTopLeftIcon,
   SigmaIcon,
   Table2Icon,
 } from 'lucide-react';
@@ -229,6 +237,52 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     font-size: 12px;
     color: ${cssVar.colorTextSecondary};
   `,
+  annotationBubble: css`
+    display: grid;
+    gap: 8px;
+
+    min-width: 240px;
+    max-width: min(360px, calc(100vw - 32px));
+    padding: 12px;
+    border: 1px solid ${cssVar.colorBorderSecondary};
+    border-radius: 10px;
+
+    background: ${cssVar.colorBgElevated};
+    box-shadow: ${cssVar.boxShadowSecondary};
+  `,
+  annotationComposer: css`
+    display: grid;
+    gap: 10px;
+
+    width: min(360px, calc(100vw - 32px));
+    padding: 12px;
+    border: 1px solid ${cssVar.colorBorderSecondary};
+    border-radius: 10px;
+
+    background: ${cssVar.colorBgElevated};
+    box-shadow: ${cssVar.boxShadowSecondary};
+  `,
+  annotationAction: css`
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+
+    height: 36px;
+    padding-inline: 10px;
+    border: 0;
+    border-radius: 8px;
+
+    font-size: 13px;
+    color: ${cssVar.colorTextSecondary};
+
+    background: transparent;
+    cursor: pointer;
+
+    &:hover {
+      color: ${cssVar.colorText};
+      background: ${cssVar.colorFillSecondary};
+    }
+  `,
   schemaLink: css`
     display: inline-grid;
     gap: 4px;
@@ -278,6 +332,59 @@ function getDocumentSafely<T>(editor: IEditor, type: string, fallback: T): T {
     return fallback;
   }
 }
+
+const AnnotationComposer: FC<AnnotationComposerContext> = ({ close, quotedText, submit }) => {
+  const [text, setText] = useState('');
+
+  return (
+    <div className={styles.annotationComposer}>
+      <Text type={'secondary'}>评论选中文本：{quotedText || '（无选中文本）'}</Text>
+      <Input.TextArea
+        autoFocus
+        placeholder={'写下你的评论'}
+        rows={3}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+      />
+      <Space direction={'horizontal'} size={8}>
+        <Button size={'small'} onClick={close}>
+          取消
+        </Button>
+        <Button
+          disabled={!text.trim()}
+          size={'small'}
+          type={'primary'}
+          onClick={() => submit({ kind: 'comment', payload: { text: text.trim() } })}
+        >
+          提交
+        </Button>
+      </Space>
+    </div>
+  );
+};
+
+const renderAnnotationBubble = ({ close, records }: AnnotationBubbleContext) => (
+  <div className={styles.annotationBubble}>
+    {records.map((record) => (
+      <div key={record.id}>
+        <Text strong>{record.kind === 'comment' ? '评论' : record.kind}</Text>
+        <div>{getAnnotationText(record.payload)}</div>
+      </div>
+    ))}
+    <Button size={'small'} type={'text'} onClick={close}>
+      关闭
+    </Button>
+  </div>
+);
+
+const getAnnotationText = (payload: AnnotationBubbleContext['records'][number]['payload']) => {
+  if (typeof payload === 'string') return payload;
+  if (payload && typeof payload === 'object' && !Array.isArray(payload) && 'text' in payload) {
+    const text = payload.text;
+    if (typeof text === 'string') return text;
+  }
+  return JSON.stringify(payload);
+};
 
 const amapIcon =
   'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22%3E%3Crect width=%2248%22 height=%2248%22 rx=%2210%22 fill=%22%23f6fbff%22/%3E%3Cpath d=%22M8 24 40 8 27 40l-5-13-14-3Z%22 fill=%22%231677ff%22/%3E%3Cpath d=%22m22 27 18-19-13 32-5-13Z%22 fill=%22%2300b96b%22 opacity=%22.82%22/%3E%3Cpath d=%22M8 24 40 8 19 29l3-2-14-3Z%22 fill=%22%2369c0ff%22/%3E%3C/svg%3E';
@@ -471,6 +578,30 @@ const EditorDemo: FC<EditorDemoProps> = ({
         },
       },
       {
+        icon: PanelsTopLeftIcon,
+        key: 'artifact',
+        label: 'Artifact',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_ARTIFACT_COMMAND, {
+            html: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body { font-family: system-ui; padding: 32px; }
+      .card { padding: 24px; border: 1px solid #ddd; border-radius: 16px; }
+    </style>
+  </head>
+  <body>
+    <div class="card"><h1>Hello Artifact</h1><p>Edit the HTML on the left.</p></div>
+  </body>
+</html>`,
+            title: 'HTML Artifact',
+          });
+        },
+      },
+      {
         type: 'divider',
       },
       {
@@ -588,6 +719,7 @@ const EditorDemo: FC<EditorDemoProps> = ({
         placeholder={'Type something...'}
         plugins={[
           ReactLiteXmlPlugin,
+          ReactArtifactPlugin,
           ReactBlockPlugin,
           ReactListPlugin,
           Editor.withProps(ReactLinkPlugin, {
@@ -681,8 +813,23 @@ const EditorDemo: FC<EditorDemoProps> = ({
             providerFactory,
             username: tabUser.name,
           }),
+          Editor.withProps(ReactNodePropertiesPlugin, {
+            renderAnnotationBubble,
+            renderComposer: (context) => <AnnotationComposer {...context} />,
+          }),
           Editor.withProps(ReactToolbarPlugin, {
-            children: <Toolbar editor={editor} floating />,
+            children: (
+              <Toolbar
+                annotationAction={
+                  <AnnotationToolbarAction className={styles.annotationAction} kind={'comment'}>
+                    <MessageSquareQuote size={16} />
+                    <span>评论</span>
+                  </AnnotationToolbarAction>
+                }
+                editor={editor}
+                floating
+              />
+            ),
           }),
           Editor.withProps(ReactAutoCompletePlugin, {
             delay: 1000,

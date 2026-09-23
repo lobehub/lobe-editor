@@ -56,7 +56,7 @@ interface IUploadService {
   registerUpload(
     handler: (file: File, from: string, range: Range | null | undefined) => Promise<boolean | null>,
     priority?: UPLOAD_PRIORITY,
-  ): void;
+  ): () => void;
   uploadFile(file: File, from: string, range: Range | null | undefined): Promise<boolean>;
 }
 ```
@@ -106,7 +106,7 @@ const uploadService = kernel.requireService(IUploadService);
 
 ```typescript
 // High priority image handler
-uploadService.registerUpload(async (file, from, range) => {
+const unregisterImageUpload = uploadService.registerUpload(async (file, from, range) => {
   if (file.type.startsWith('image/')) {
     const imageUrl = await uploadImageToServer(file);
 
@@ -127,6 +127,9 @@ uploadService.registerUpload(async (file, from, range) => {
   }
   return false; // Not an image, try next handler
 }, UPLOAD_PRIORITY_HIGH);
+
+// Keep the disposer with the owning plugin/editor and call it during teardown.
+const disposeImageUpload = () => unregisterImageUpload();
 
 // Medium priority file handler
 uploadService.registerUpload(async (file, from, range) => {

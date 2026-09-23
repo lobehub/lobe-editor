@@ -30,6 +30,10 @@
       "types": "./es/codemirror.d.ts",
       "import": "./es/codemirror.js"
     },
+    "./collaboration": {
+      "types": "./es/collaboration.d.ts",
+      "import": "./es/collaboration.js"
+    },
     "./headless": {
       "types": "./es/headless.d.ts",
       "import": "./es/headless.js"
@@ -37,6 +41,18 @@
     "./litexml-commands": {
       "types": "./es/plugins/litexml/command/symbols.d.ts",
       "import": "./es/plugins/litexml/command/symbols.js"
+    },
+    "./loro": {
+      "types": "./es/loro.d.ts",
+      "import": "./es/loro.js"
+    },
+    "./loro/headless": {
+      "types": "./es/loro/headless.d.ts",
+      "import": "./es/loro/headless.js"
+    },
+    "./loro/react": {
+      "types": "./es/loro/react.d.ts",
+      "import": "./es/loro/react.js"
     },
     "./react": {
       "types": "./es/react.d.ts",
@@ -85,8 +101,12 @@
     "start": "npm run docs:dev",
     "test": "vitest",
     "test:coverage": "vitest run --coverage  --passWithNoTests",
+    "test:verify-final-head": "vitest run ./scripts/verify-final-head.test.mjs",
+    "test:verify-packed-loro": "vitest run ./scripts/verify-packed-loro.test.mjs",
     "test:watch": "vitest --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "verify:final-head": "node ./scripts/verify-final-head.mjs",
+    "verify:packed-loro": "node ./scripts/verify-packed-loro.mjs"
   },
   "lint-staged": {
     "*.{md,mdc}": [
@@ -177,6 +197,7 @@
     "jsdom": "^29.1.1",
     "leva": "^0.10.1",
     "lint-staged": "^17.2.0",
+    "loro-crdt": "1.16.1",
     "motion": "^12.42.2",
     "prettier": "^3.9.6",
     "react": "^19.2.8",
@@ -196,9 +217,15 @@
   "peerDependencies": {
     "@lobehub/ui": "^5.0.0",
     "antd": "^6.1.1",
+    "loro-crdt": "1.16.1",
     "motion": "^12.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "loro-crdt": {
+      "optional": true
+    }
   },
   "packageManager": "pnpm@10.20.0",
   "publishConfig": {

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import Editor, { moment, resetRandomKey } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
+import { $resolveLogicalBlockNode } from '@/plugins/common/node/hole';
 import {
   DiffAction,
   LITEXML_DIFFNODE_ALL_COMMAND,
@@ -60,7 +61,8 @@ describe('table LiteXML row diffs', () => {
 
     const lexicalEditor = editor.getLexicalEditor()!;
     const snapshot = lexicalEditor.getEditorState().read(() => {
-      const table = $getRoot().getFirstChild();
+      const firstChild = $getRoot().getFirstChildOrThrow();
+      const table = $resolveLogicalBlockNode(firstChild);
       expect($isTableNode(table)).toBe(true);
       const rows = $isTableNode(table) ? table.getChildren() : [];
       const diffs = $nodesOfType(TableRowDiffNode);

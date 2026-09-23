@@ -20,8 +20,11 @@ import { createDebugLogger } from '@/utils/debug';
 import { HIDE_TOOLBAR_COMMAND, registerToolbarCommand } from '../command';
 import { getDOMRangeRect } from '../utils/getDOMRangeRect';
 import { setFloatingElemPosition } from '../utils/setFloatingElemPosition';
+import { $shouldSuppressTextToolbar } from './selection';
 import { styles } from './style';
 import type { ReactToolbarPluginProps } from './type';
+
+const logger = createDebugLogger('plugin', 'toolbar');
 
 const resolveDefaultPortalContainer = (): HTMLElement | null => {
   if (typeof document === 'undefined') return null;
@@ -42,8 +45,6 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({
   const { isDarkMode } = useThemeMode();
   const isMouseDownRef = useRef(false);
   const linkToolbarSuppressionTokenRef = useRef<symbol | null>(null);
-  const logger = createDebugLogger('plugin', 'toolbar');
-
   const resolvePortalContainer = useCallback(() => {
     if (!usePortal) return null;
     if (getPopupContainer) return getPopupContainer();
@@ -83,6 +84,13 @@ export const ReactToolbarPlugin: FC<ReactToolbarPluginProps> = ({
       const nativeSelection = getDOMSelection(editor._window);
 
       if (popupCharStylesEditorElem === null) {
+        return;
+      }
+
+      if ($shouldSuppressTextToolbar(selection)) {
+        popupCharStylesEditorElem.style.opacity = '0';
+        popupCharStylesEditorElem.style.transform = 'translate(-10000px, -10000px)';
+        restoreLinkToolbar();
         return;
       }
 

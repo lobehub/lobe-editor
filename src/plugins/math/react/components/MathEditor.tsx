@@ -1,11 +1,18 @@
 import { mergeRegister } from '@lexical/utils';
 import { type TextAreaRef } from 'antd/es/input/TextArea';
-import { $getNodeByKey, $getSelection, $isNodeSelection, $isRangeSelection } from 'lexical';
+import {
+  $createParagraphNode,
+  $getNodeByKey,
+  $getSelection,
+  $isNodeSelection,
+  $isRangeSelection,
+} from 'lexical';
 import { type FC, memo, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLexicalComposerContext, useLexicalEditor } from '@/editor-kernel/react';
 import PortalAnchor from '@/editor-kernel/react/PortalAnchor';
 import { compareNodeOrder } from '@/editor-kernel/utils';
+import { $isHoleNode } from '@/plugins/common/node/hole';
 
 import { SELECT_MATH_SIDE_COMMAND, UPDATE_MATH_COMMAND } from '../../command';
 import type { MathInlineNode } from '../../node';
@@ -107,6 +114,25 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
     const lexicalEditor = editor.getLexicalEditor();
     if (lexicalEditor) {
       lexicalEditor.update(() => {
+        const hole = mathNode.getParent();
+        if ($isHoleNode(hole)) {
+          const previous = hole.getPreviousSibling();
+          const next = hole.getNextSibling();
+          mathNode.remove();
+          if (hole.getContentChildren().length > 0) {
+            hole.getAfterCursor()?.selectStart();
+            return;
+          }
+          if (next) next.selectStart();
+          else if (previous) previous.selectEnd();
+          else {
+            const paragraph = $createParagraphNode();
+            hole.insertAfter(paragraph);
+            paragraph.selectStart();
+          }
+          hole.remove();
+          return;
+        }
         mathNode.remove();
       });
     }

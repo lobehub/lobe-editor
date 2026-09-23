@@ -15,6 +15,9 @@ export default defineConfig([
     clean: true,
     entry: {
       'headless': 'src/headless/index.ts',
+      'loro': 'src/plugins/loro/index.ts',
+      'loro/headless': 'src/headless/loro.ts',
+      'loro/react': 'src/plugins/loro/react/index.ts',
       // Emit the LiteXML command identities as their own chunk so the bundled
       // node build references them instead of inlining a second copy. Both this
       // entry and the unbundled browser build resolve to the same emitted
@@ -24,11 +27,13 @@ export default defineConfig([
     },
     outExtensions: () => ({ dts: '.d.ts', js: '.js' }),
     platform: 'node',
+    unbundle: true,
   },
   {
     ...commonConfig,
     clean: false,
     entry: {
+      collaboration: 'src/common/collaboration/index.ts',
       codemirror: 'src/codemirror/index.ts',
       index: 'src/index.ts',
       react: 'src/react/index.ts',
