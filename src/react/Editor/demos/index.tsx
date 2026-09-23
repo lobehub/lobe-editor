@@ -34,8 +34,8 @@ import {
   scrollIntoView,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
-import { Alert, Button, Segmented, Space, Tag } from 'antd';
+import { Avatar, type CollapseProps, Segmented, Text } from '@lobehub/ui';
+import { Alert, Button, Space, Tag } from 'antd';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
@@ -242,9 +242,19 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
   `,
   modeBar: css`
     display: flex;
-    justify-content: flex-end;
-    padding-block: 12px;
-    padding-inline: 0;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+
+    padding-block: 10px;
+    padding-inline: 16px;
+    border-block-end: 1px solid ${cssVar.colorBorderSecondary};
+  `,
+  modeLabel: css`
+    font-size: 12px;
+    line-height: 1;
+    color: ${cssVar.colorTextTertiary};
   `,
 }));
 
@@ -885,6 +895,7 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
   return (
     <>
       <div className={styles.modeBar}>
+        <span className={styles.modeLabel}>Collaboration</span>
         <Segmented
           onChange={(value) => {
             const nextMode = value as 'broadcast' | 'websocket';
@@ -903,11 +914,12 @@ const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props
             }
           }}
           options={[
-            { label: 'BroadcastChannel', value: 'broadcast' },
-            { label: 'WebSocket JSON', value: 'websocket' },
+            { label: 'Broadcast', value: 'broadcast' },
+            { label: 'WebSocket', value: 'websocket' },
           ]}
           size="small"
           value={mode}
+          variant="outlined"
         />
       </div>
       {mode === 'websocket' ? (

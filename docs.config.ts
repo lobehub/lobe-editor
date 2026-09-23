@@ -15,8 +15,7 @@ export default defineDocsConfig({
     { dir: 'src/plugins', subType: 'plugins', type: 'component' },
     { dir: 'src/renderer', subType: 'renderer', type: 'component' },
   ],
-  description:
-    "A powerful and extensible rich text editor built on Meta's Lexical framework, providing a modern editing experience with React integration.",
+  description: 'A Lexical editor for React, with markdown, plugins, and a chat composer.',
   favicons: {
     icon: 'https://lobehub.com/favicon.ico',
   },
@@ -56,12 +55,8 @@ export default defineDocsConfig({
           'https://repository-images.githubusercontent.com/1020194321/a13f7ca8-0d9b-4ac0-a6c3-3932f39e42bd',
       },
     },
-    navItems: [
-      { external: true, href: 'https://ui.lobehub.com', label: 'UI' },
-      { external: true, href: 'https://icon.lobehub.com', label: 'Icons' },
-      { href: '/changelog', label: 'Changelog' },
-    ],
-    prefersColor: 'dark',
+    navItems: [{ href: '/changelog', label: 'Changelog' }],
+    prefersColor: 'auto',
     socialLinks: [
       {
         href: 'https://github.com/lobehub/lobe-editor',
