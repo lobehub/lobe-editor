@@ -90,6 +90,17 @@ const getResizeUpdateTags = (skipHistory: boolean) => {
   return skipHistory ? [SKIP_SCROLL_INTO_VIEW_TAG, HISTORIC_TAG] : SKIP_SCROLL_INTO_VIEW_TAG;
 };
 
+export const getTableResizePortalContainer = (editor: LexicalEditor) => {
+  const rootElement = editor.getRootElement();
+
+  return (
+    rootElement?.closest<HTMLElement>('[role="dialog"] > *') ||
+    rootElement?.closest<HTMLElement>('.ant-app') ||
+    (document.querySelector('.ant-app') as HTMLElement) ||
+    document.body
+  );
+};
+
 export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, resizeMode }) => {
   const targetRef = useRef<HTMLElement | null>(null);
   const resizerRef = useRef<HTMLDivElement | null>(null);
@@ -473,26 +484,26 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
       const { height, width, top, left } = activeCell.elem.getBoundingClientRect();
       const zoom = calculateZoomLevel(activeCell.elem);
       const zoneWidth = 16; // Pixel width of the zone where you can drag the edge
-
-      // Default to 0 for server side
-      const scrollX = typeof window !== 'undefined' ? window.scrollX : 0;
-      const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+      const portalContainer = getTableResizePortalContainer(editor);
+      const containerRect = portalContainer.getBoundingClientRect();
+      const offsetX = portalContainer.scrollLeft - containerRect.left;
+      const offsetY = portalContainer.scrollTop - containerRect.top;
 
       const styles: Record<string, CSSProperties> = {
         bottom: {
           backgroundColor: 'none',
           cursor: 'row-resize',
           height: `${zoneWidth}px`,
-          left: `${scrollX + left}px`,
-          top: `${scrollY + top + height - zoneWidth / 2}px`,
+          left: `${offsetX + left}px`,
+          top: `${offsetY + top + height - zoneWidth / 2}px`,
           width: `${width}px`,
         },
         right: {
           backgroundColor: 'none',
           cursor: 'col-resize',
           height: `${height}px`,
-          left: `${scrollX + left + width - zoneWidth / 2}px`,
-          top: `${scrollY + top}px`,
+          left: `${offsetX + left + width - zoneWidth / 2}px`,
+          top: `${offsetY + top}px`,
           width: `${zoneWidth}px`,
         },
       };
@@ -501,13 +512,13 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
 
       if (draggingDirection && pointerCurrentPos && tableRect) {
         if (isHeightChanging(draggingDirection)) {
-          styles[draggingDirection].left = `${scrollX + tableRect.left}px`;
-          styles[draggingDirection].top = `${scrollY + pointerCurrentPos.y / zoom}px`;
+          styles[draggingDirection].left = `${offsetX + tableRect.left}px`;
+          styles[draggingDirection].top = `${offsetY + pointerCurrentPos.y / zoom}px`;
           styles[draggingDirection].height = '3px';
           styles[draggingDirection].width = `${tableRect.width}px`;
         } else {
-          styles[draggingDirection].top = `${scrollY + tableRect.top}px`;
-          styles[draggingDirection].left = `${scrollX + pointerCurrentPos.x / zoom}px`;
+          styles[draggingDirection].top = `${offsetY + tableRect.top}px`;
+          styles[draggingDirection].left = `${offsetX + pointerCurrentPos.x / zoom}px`;
           styles[draggingDirection].width = '3px';
           styles[draggingDirection].height = `${tableRect.height}px`;
         }
@@ -525,7 +536,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
       right: null,
       top: null,
     };
-  }, [activeCell, draggingDirection, pointerCurrentPos]);
+  }, [activeCell, draggingDirection, editor, pointerCurrentPos]);
 
   const resizerStyles = getResizers();
 
@@ -555,11 +566,10 @@ export default memo<TableResizeProps>(({ editor, eventEmitter, resizeMode }) => 
     return null;
   }
 
-  // Mount to .ant-app if exists, otherwise document.body
-  const container = (document.querySelector('.ant-app') as HTMLElement) || document.body;
+  const portalContainer = getTableResizePortalContainer(editor);
 
   return createPortal(
     <TableCellResize editor={editor} eventEmitter={eventEmitter} resizeMode={resizeMode} />,
-    container,
+    portalContainer,
   );
 });
