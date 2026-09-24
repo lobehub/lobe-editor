@@ -14,6 +14,7 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 import { registerMentionCommand } from '../command';
 import type { SerializedMentionNode } from '../node/MentionNode';
 import { $isMentionNode, MentionNode } from '../node/MentionNode';
+import { IMentionService, MentionService } from '../service';
 import { registerMentionNodeSelectionObserver } from './register';
 
 export interface MentionPluginOptions {
@@ -31,11 +32,15 @@ export const MentionPlugin: IEditorPluginConstructor<MentionPluginOptions> = cla
 {
   static pluginName = 'MentionPlugin';
 
+  public service: MentionService;
+
   constructor(
     protected kernel: IEditorKernel,
     public config?: MentionPluginOptions,
   ) {
     super();
+    this.service = new MentionService();
+    kernel.registerServiceHotReload(IMentionService, this.service);
     // Register the file node
     kernel.registerNodes([MentionNode]);
     if (config?.theme) {
@@ -51,13 +56,19 @@ export const MentionPlugin: IEditorPluginConstructor<MentionPluginOptions> = cla
   }
 
   onInit(editor: LexicalEditor): void {
-    this.register(registerMentionCommand(editor));
+    this.service.bindEditor(editor);
+    this.register(registerMentionCommand(editor, this.service));
     if (this.config?.decorator) {
       this.register(registerMentionNodeSelectionObserver(editor));
     }
 
     this.registerMarkdown();
     this.registerLiteXml();
+  }
+
+  destroy(): void {
+    super.destroy();
+    this.service.dispose();
   }
 
   private registerLiteXml() {
