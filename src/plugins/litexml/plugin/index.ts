@@ -142,6 +142,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
           }
           break;
         }
+        case 'listItemAdd':
         case 'add': {
           diffNode.getChildren().forEach((child) => nodeToXML(child, lines, indent));
           break;
@@ -223,6 +224,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
           }
           break;
         }
+        case 'listItemAdd':
         case 'add': {
           diffNode.getChildren().forEach((child) => ctx.processChild(ctx, child));
           break;

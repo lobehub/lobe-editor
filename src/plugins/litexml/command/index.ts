@@ -153,7 +153,7 @@ function handleReplaceForApplyDelay(
 
     const before = $createDiffContentNode('before');
     const after = $createDiffContentNode('after');
-    oldNode.getChildren().forEach((child) => before.append($cloneNode(child, editor)));
+    oldNode.getChildren().forEach((child) => before.append(child));
     newNode.getChildren().forEach((child) => after.append($cloneNode(child, editor)));
 
     const diffNode = $createDiffNode('modify');
@@ -175,10 +175,23 @@ function handleReplaceForApplyDelay(
     oldNode.replace(newNode, false);
     return;
   }
+  if ($isListItemNode(oldNode) && $isListItemNode(newNode)) {
+    const before = $createParagraphNode();
+    const after = $createParagraphNode();
+    oldNode.getChildren().forEach((child) => before.append(child));
+    newNode.getChildren().forEach((child) => after.append(child));
+    oldNode.clear();
+    oldNode.append($createDiffNode('listItemModify').append(before, after));
+    return;
+  }
   if (oldNode === oldBlock) {
     const diffNode = $createDiffNode('modify');
-    diffNode.append($cloneNode(oldBlock, editor), newNode);
     oldNode.replace(diffNode, false);
+    // Adjacent lists merge during normalization unless each side is wrapped.
+    diffNode.append(
+      $createDiffContentNode('before').append(oldBlock),
+      $createDiffContentNode('after').append(newNode),
+    );
   } else {
     if (!modifyBlockNodes.has(oldBlock.getKey())) {
       modifyBlockNodes.add(oldBlock.getKey());
@@ -517,7 +530,8 @@ function handleRemove(editor: LexicalEditor, key: string, delay?: boolean) {
           case 'modify': {
             const children = originDiffNode.getChildren();
             const newDiff = $createDiffNode('remove');
-            newDiff.append(children[0]);
+            const before = children[0];
+            newDiff.append(...($isDiffContentNode(before) ? before.getChildren() : [before]));
             originDiffNode.replace(newDiff, false);
             return;
           }
@@ -716,11 +730,16 @@ function handleInsert(
             referenceNode = originDiffNode;
           }
           const diffNodes = newNodes.map((node: LexicalNode) => {
+            if ($isListItemNode(node)) {
+              const diffNode = $createDiffNode('listItemAdd');
+              node.getChildren().forEach((child) => diffNode.append(child));
+              return node.append(diffNode);
+            }
             const diffNode = $createDiffNode('add');
             diffNode.append(node);
             return diffNode;
           });
-          diffNodes.reverse().forEach((diffNode: DiffNode) => {
+          diffNodes.reverse().forEach((diffNode: LexicalNode) => {
             if (referenceNode) {
               referenceNode = referenceNode.insertBefore(diffNode);
             }
