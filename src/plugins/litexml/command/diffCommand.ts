@@ -169,7 +169,7 @@ function doAction(editor: LexicalEditor, node: DiffNode | TableRowDiffNode, acti
       node.getParentOrThrow().selectEnd();
       node.remove();
     } else if (action === DiffAction.Reject) {
-      node.remove();
+      node.getParentOrThrow().remove();
     }
   }
 }

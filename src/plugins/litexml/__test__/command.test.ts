@@ -250,7 +250,7 @@ describe('Common Plugin Tests', () => {
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('- Item 1\n- Item 2\n-\n- Item 3\n');
+    expect(markdown).toBe('- Item 1\n- Item 2\n- New Item\n- Item 3\n');
     const { root } = kernel.getDocument('json') as unknown as any;
 
     expect(root.children[0].children[2].type).toBe('listitem');

@@ -183,7 +183,8 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
       if (!parent) {
         return 0;
       }
-      return getLevel($getNearestNodeOfType(parent, ListNode)) + 1;
+      const parentList = $getNearestNodeOfType(parent, ListNode);
+      return parentList ? getLevel(parentList) + 1 : 0;
     };
 
     markdownService.registerMarkdownWriter(ListItemNode.getType(), (ctx, node) => {
