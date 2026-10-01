@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;4.27.4](https://github.com/lobehub/lobe-editor/compare/v4.27.3...v4.27.4)
+<sup>Released on **2026-10-01**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **litexml**: Keep list item edits reviewable.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **litexml**: Keep list item edits reviewable, closes [#220](https://github.com/lobehub/lobe-editor/issues/220) ([31d65f8](https://github.com/lobehub/lobe-editor/commit/31d65f8))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.27.3](https://github.com/lobehub/lobe-editor/compare/v4.27.2...v4.27.3)
 <sup>Released on **2026-09-11**</sup>
 
