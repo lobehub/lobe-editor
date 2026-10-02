@@ -25,6 +25,7 @@ const SendButton: FC<SendButtonProps> = ({
   placement = 'topRight',
   trigger,
   title,
+  ...rest
 }) => {
   const cssVariables = useMemo<Record<string, string>>(
     () => ({
@@ -58,6 +59,7 @@ const SendButton: FC<SendButtonProps> = ({
         }}
         title={title}
         type={'fill'}
+        {...rest}
       >
         <StopIcon size={size * 0.75} />
       </Button>
@@ -77,6 +79,7 @@ const SendButton: FC<SendButtonProps> = ({
         }}
         title={title}
         type={type}
+        {...rest}
       />
     );
 
@@ -94,6 +97,7 @@ const SendButton: FC<SendButtonProps> = ({
         }}
         title={title}
         type={type}
+        {...rest}
       />
     );
 
@@ -112,7 +116,7 @@ const SendButton: FC<SendButtonProps> = ({
       }}
       type={type}
     >
-      <SplitButton.Main icon={<SendIcon />} onClick={handleSend} title={title} />
+      <SplitButton.Main icon={<SendIcon />} onClick={handleSend} title={title} {...rest} />
       <SplitButton.Menu items={menu.items} placement={placement} trigger={trigger} />
     </SplitButton>
   );
