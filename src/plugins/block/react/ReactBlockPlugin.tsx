@@ -2,7 +2,8 @@
 
 import { $findTableNode, $isTableSelection } from '@lexical/table';
 import { DropdownMenu, type DropdownMenuProps, Icon, useAppElement } from '@lobehub/ui';
-import { Button, theme } from 'antd';
+import { Button } from '@lobehub/ui/base-ui';
+import { theme } from 'antd';
 import { cx } from 'antd-style';
 import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
 import { GripVerticalIcon, PlusIcon } from 'lucide-react';

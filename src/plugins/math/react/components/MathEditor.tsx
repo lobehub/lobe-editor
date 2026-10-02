@@ -1,5 +1,4 @@
 import { mergeRegister } from '@lexical/utils';
-import { type TextAreaRef } from 'antd/es/input/TextArea';
 import { $getNodeByKey, $getSelection, $isNodeSelection, $isRangeSelection } from 'lexical';
 import { type FC, memo, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
@@ -19,7 +18,7 @@ interface MathEditProps {
 }
 
 const MathEdit = memo<MathEditProps>(({ renderComp }) => {
-  const textareaRef = useRef<TextAreaRef>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isUpdatingRef = useRef<boolean>(false);
   const [mathNode, setMathNode] = useState<MathInlineNode | MathBlockNode | null>(null);
   const [value, setValue] = useState<string>('');
@@ -128,12 +127,12 @@ const MathEdit = memo<MathEditProps>(({ renderComp }) => {
   const handleFocus = useCallback(() => {
     textareaRef.current?.focus();
     if (prev) {
-      textareaRef.current?.resizableTextArea?.textArea?.setSelectionRange(0, 0);
+      textareaRef.current?.setSelectionRange(0, 0);
     }
   }, [prev]);
 
   // 设置 textarea ref
-  const setTextareaRef = useCallback((ref: TextAreaRef | null) => {
+  const setTextareaRef = useCallback((ref: HTMLTextAreaElement | null) => {
     textareaRef.current = ref;
   }, []);
 

@@ -1,3 +1,4 @@
+import { Text, Button } from '@lobehub/ui/base-ui';
 import {
   type IEditor,
   INSERT_CODEINLINE_COMMAND,
@@ -34,8 +35,8 @@ import {
   scrollIntoView,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Avatar, type CollapseProps, Segmented, Text } from '@lobehub/ui';
-import { Alert, Button, Space, Tag } from 'antd';
+import { Avatar, type CollapseProps, Segmented } from '@lobehub/ui';
+import { Alert, Space, Tag } from 'antd';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {

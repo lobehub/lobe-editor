@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@lobehub/ui', async (importOriginal) => ({
+vi.mock('@lobehub/ui/base-ui', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   ActionIcon: ({
     'aria-label': ariaLabel,

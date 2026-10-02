@@ -1,5 +1,5 @@
-import { Button, Flexbox, Hotkey, Text, TextArea } from '@lobehub/ui';
-import { type TextAreaRef } from 'antd/es/input/TextArea';
+import { Flexbox, Hotkey } from '@lobehub/ui';
+import { Button, Text, TextArea } from '@lobehub/ui/base-ui';
 import { renderToString } from 'katex';
 import { isModifierMatch } from 'lexical';
 import { type KeyboardEvent, memo, useCallback, useEffect, useRef, useState } from 'react';
@@ -12,7 +12,7 @@ import { styles } from '../style';
 
 export interface MathEditorContentProps {
   /** 焦点引用 */
-  focusRef?: (ref: TextAreaRef | null) => void;
+  focusRef?: (ref: HTMLTextAreaElement | null) => void;
   /** 数学节点 */
   mathNode: MathInlineNode | MathBlockNode | null;
   /** 左箭头回调 */
@@ -50,7 +50,7 @@ const MathEditorContent = memo<MathEditorContentProps>(
     value,
   }) => {
     const t = useTranslation();
-    const textareaRef = useRef<TextAreaRef>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [latexError, setLatexError] = useState<string>('');
 
     // 将 ref 暴露给父组件
@@ -63,7 +63,7 @@ const MathEditorContent = memo<MathEditorContentProps>(
     //   if (textareaRef.current) {
     //     textareaRef.current.focus();
     //     if (prev) {
-    //       textareaRef.current.resizableTextArea?.textArea?.setSelectionRange(0, 0);
+    //       textareaRef.current?.setSelectionRange(0, 0);
     //     }
     //   }
     // }, [prev]);
@@ -182,8 +182,7 @@ const MathEditorContent = memo<MathEditorContentProps>(
               onSubmit();
             }}
             size={'small'}
-            type={'text'}
-            variant={'filled'}
+            type={'fill'}
           >
             {t('confirm')}
             <Hotkey compact keys="mod+enter" variant={'borderless'} />

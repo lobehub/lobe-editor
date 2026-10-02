@@ -1,6 +1,6 @@
 'use client';
 
-import { message } from 'antd';
+import { toast } from '@lobehub/ui/base-ui';
 import { type FC, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';
@@ -219,7 +219,7 @@ export const ReactLinkPlugin: FC<ReactLinkPluginProps> = ({
       onClick: async ({ editor, linkNode }) => {
         const linkUrl = editor.getEditorState().read(() => linkNode.getURL());
         await copyTextToClipboard(linkUrl);
-        message.success(t('link.copySuccess'));
+        toast.success(t('link.copySuccess'));
       },
       order: 30,
     });

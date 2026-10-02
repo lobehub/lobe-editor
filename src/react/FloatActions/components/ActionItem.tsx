@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionIcon, Dropdown } from '@lobehub/ui';
+import { ActionIcon, DropdownMenu } from '@lobehub/ui/base-ui';
 import { type FC } from 'react';
 
 import type { FloatActionsItem, FloatActionsProps } from '../type';
@@ -46,12 +46,7 @@ const ActionItem: FC<FloatActionsItemProps> = ({
 
   if (item.type === 'dropdown') {
     return (
-      <Dropdown
-        key={item.key}
-        menu={{
-          items: item.children,
-        }}
-      >
+      <DropdownMenu items={item.children} key={item.key} trigger={'hover'}>
         <ActionIcon
           active={item.active}
           danger={item.danger}
@@ -68,7 +63,7 @@ const ActionItem: FC<FloatActionsItemProps> = ({
             ...item.tooltipProps,
           }}
         />
-      </Dropdown>
+      </DropdownMenu>
     );
   }
 

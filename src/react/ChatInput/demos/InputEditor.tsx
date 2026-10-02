@@ -1,3 +1,4 @@
+import { Text } from '@lobehub/ui/base-ui';
 import {
   type IEditor,
   INSERT_COLLAPSIBLE_COMMAND,
@@ -17,7 +18,7 @@ import {
   type SlashOptions,
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
-import { Avatar, Text } from '@lobehub/ui';
+import { Avatar } from '@lobehub/ui';
 import {
   Heading1Icon,
   Heading2Icon,

@@ -1,6 +1,6 @@
 import { mergeRegister } from '@lexical/utils';
-import { Block, Button, Flexbox, Hotkey, Icon, Input, Text } from '@lobehub/ui';
-import type { InputRef } from 'antd';
+import { Block, Flexbox, Hotkey, Icon } from '@lobehub/ui';
+import { Button, Input, Text } from '@lobehub/ui/base-ui';
 import { cssVar } from 'antd-style';
 import type { LexicalEditor } from 'lexical';
 import {
@@ -44,8 +44,8 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const linkNodeRef = useRef<LinkNode | null>(null);
   const cardNodeRef = useRef<LinkCardNode | null>(null);
-  const linkInputRef = useRef<InputRef | null>(null);
-  const linkTextInputRef = useRef<InputRef | null>(null);
+  const linkInputRef = useRef<HTMLInputElement | null>(null);
+  const linkTextInputRef = useRef<HTMLInputElement | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
   const [openTarget, setOpenTarget] = useState('_blank');
@@ -72,9 +72,9 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
     if (!linkInputRef.current || !linkTextInputRef.current || !editor) return;
 
     const input = linkInputRef.current;
-    const inputDOM = input.input as HTMLInputElement;
+    const inputDOM = input;
     const textInput = linkTextInputRef.current;
-    const textInputDOM = textInput.input as HTMLInputElement;
+    const textInputDOM = textInput;
 
     if (cardNodeRef.current) {
       const cardNode = cardNodeRef.current;
@@ -129,9 +129,9 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
 
       const linkNode = linkNodeRef.current;
       const input = linkInputRef.current;
-      const inputDOM = input.input as HTMLInputElement;
+      const inputDOM = input;
       const textInput = linkTextInputRef.current;
-      const textInputDOM = textInput.input as HTMLInputElement;
+      const textInputDOM = textInput;
       switch (event.key) {
         case 'Enter': {
           event.preventDefault();
@@ -356,8 +356,7 @@ const LinkEdit: FC<LinkEditProps> = ({ editor }) => {
             handleSubmit();
           }}
           size={'small'}
-          type={'text'}
-          variant={'filled'}
+          type={'fill'}
         >
           {t('confirm')}
           <Hotkey compact keys="enter" variant={'borderless'} />

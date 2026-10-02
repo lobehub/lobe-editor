@@ -1,3 +1,4 @@
+import { Text } from '@lobehub/ui/base-ui';
 import {
   type IEditor,
   INSERT_CODEINLINE_COMMAND,
@@ -27,7 +28,7 @@ import {
   type SlashOptions,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Avatar, type CollapseProps, Text } from '@lobehub/ui';
+import { Avatar, type CollapseProps } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {

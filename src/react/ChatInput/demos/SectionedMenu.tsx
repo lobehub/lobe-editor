@@ -1,3 +1,4 @@
+import { Text } from '@lobehub/ui/base-ui';
 import type { IEditor, ISlashMenuOption, SlashOptions } from '@lobehub/editor';
 import {
   INSERT_HEADING_COMMAND,
@@ -6,7 +7,7 @@ import {
   INSERT_TABLE_COMMAND,
 } from '@lobehub/editor';
 import { ChatInput, Editor, useEditor, useEditorState } from '@lobehub/editor/react';
-import { Avatar, Text } from '@lobehub/ui';
+import { Avatar } from '@lobehub/ui';
 import {
   BrainCircuitIcon,
   FileTextIcon,

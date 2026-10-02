@@ -1,10 +1,8 @@
 'use client';
 
-import { Button, Icon } from '@lobehub/ui';
-import { Dropdown, Space } from 'antd';
+import { Button, SplitButton } from '@lobehub/ui/base-ui';
 import { cx } from 'antd-style';
-import { ChevronDownIcon } from 'lucide-react';
-import { type FC, useMemo } from 'react';
+import { type FC, type MouseEvent, useMemo } from 'react';
 
 import SendIcon from './components/SendIcon';
 import StopIcon from './components/StopIcon';
@@ -24,11 +22,9 @@ const SendButton: FC<SendButtonProps> = ({
   onStop,
   disabled,
   onClick,
-
-  styles: _styles,
-
-  classNames: _classNames,
-  ...rest
+  placement = 'topRight',
+  trigger,
+  title,
 }) => {
   const cssVariables = useMemo<Record<string, string>>(
     () => ({
@@ -37,6 +33,13 @@ const SendButton: FC<SendButtonProps> = ({
     [size],
   );
 
+  const handleSend = (e: MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onSend?.(e);
+    onClick?.(e);
+  };
+
   if (generating)
     return (
       <Button
@@ -44,8 +47,8 @@ const SendButton: FC<SendButtonProps> = ({
         onClick={(e) => {
           e.stopPropagation();
           e.preventDefault();
-          if (onStop) onStop(e);
-          if (onClick) onClick(e);
+          onStop?.(e);
+          onClick?.(e);
         }}
         shape={shape}
         style={{
@@ -53,8 +56,8 @@ const SendButton: FC<SendButtonProps> = ({
           ...style,
           width: menu ? size * 2 : size,
         }}
-        variant={'filled'}
-        {...rest}
+        title={title}
+        type={'fill'}
       >
         <StopIcon size={size * 0.75} />
       </Button>
@@ -72,8 +75,8 @@ const SendButton: FC<SendButtonProps> = ({
           ...style,
           width: menu ? size * 2 : size,
         }}
+        title={title}
         type={type}
-        {...rest}
       />
     );
 
@@ -83,68 +86,35 @@ const SendButton: FC<SendButtonProps> = ({
         className={cx(styles.button, disabled && styles.disabled, className)}
         disabled={disabled}
         icon={<SendIcon />}
-        onClick={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          if (onSend) onSend(e);
-          if (onClick) onClick(e);
-        }}
+        onClick={handleSend}
         shape={shape}
         style={{
           ...cssVariables,
           ...style,
         }}
+        title={title}
         type={type}
-        {...rest}
       />
     );
 
   return (
-    <Space.Compact
+    <SplitButton
       className={cx(
-        styles.dropdownButton,
-        disabled && styles.disabled,
-        shape === 'round' && styles.dropdownButtonRound,
+        styles.splitButton,
+        disabled && styles.splitButtonDisabled,
+        shape === 'round' && styles.splitButtonRound,
         className,
       )}
+      disabled={disabled}
       style={{
         ...cssVariables,
         ...style,
       }}
-      {...rest}
+      type={type}
     >
-      <Button
-        className={cx(styles.button, disabled && styles.disabled, className)}
-        disabled={disabled}
-        icon={<SendIcon />}
-        onClick={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          if (onSend) onSend(e);
-          if (onClick) onClick(e);
-        }}
-        shape={shape}
-        style={{
-          ...cssVariables,
-          ...style,
-        }}
-        type={type}
-        {...rest}
-      />
-      <Dropdown menu={menu} placement={'topRight'} {...rest}>
-        <Button
-          className={cx(styles.button, disabled && styles.disabled, className)}
-          disabled={disabled}
-          icon={<Icon icon={ChevronDownIcon} />}
-          shape={shape}
-          style={{
-            ...cssVariables,
-            cursor: 'pointer',
-          }}
-          type={type}
-        />
-      </Dropdown>
-    </Space.Compact>
+      <SplitButton.Main icon={<SendIcon />} onClick={handleSend} title={title} />
+      <SplitButton.Menu items={menu.items} placement={placement} trigger={trigger} />
+    </SplitButton>
   );
 };
 
