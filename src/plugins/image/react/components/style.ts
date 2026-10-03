@@ -10,6 +10,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     cursor: default;
     user-select: none;
 
+    isolation: isolate;
     position: relative;
 
     overflow: hidden;
