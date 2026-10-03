@@ -25,28 +25,40 @@ export enum DiffAction {
   Accept,
 }
 
-export const LITEXML_MODIFY_COMMAND = createCommand<
-  Array<
-    | {
-        action: 'insert';
-        beforeId: string;
-        litexml: string;
-      }
-    | {
-        action: 'insert';
-        afterId: string;
-        litexml: string;
-      }
-    | {
-        action: 'remove';
-        id: string;
-      }
-    | {
-        action: 'modify';
-        litexml: string | string[];
-      }
-  >
->('LITEXML_MODIFY_COMMAND');
+export type LiteXmlModifyOperation =
+  | {
+      action: 'insert';
+      beforeId: string;
+      litexml: string;
+    }
+  | {
+      action: 'insert';
+      afterId: string;
+      litexml: string;
+    }
+  | {
+      action: 'remove';
+      id: string;
+    }
+  | {
+      action: 'modify';
+      litexml: string | string[];
+    };
+
+export interface LiteXmlOperationResult {
+  action: LiteXmlModifyOperation['action'];
+  index: number;
+  reason?: string;
+  status: 'applied' | 'failed';
+}
+
+export const LITEXML_MODIFY_COMMAND =
+  createCommand<LiteXmlModifyOperation[]>('LITEXML_MODIFY_COMMAND');
+
+export const LITEXML_MODIFY_WITH_RESULTS_COMMAND = createCommand<{
+  onResults: (results: LiteXmlOperationResult[]) => void;
+  operations: ReadonlyArray<LiteXmlModifyOperation>;
+}>('LITEXML_MODIFY_WITH_RESULTS_COMMAND');
 
 export const LITEXML_APPLY_COMMAND = createCommand<{ delay?: boolean; litexml: string | string[] }>(
   'LITEXML_APPLY_COMMAND',

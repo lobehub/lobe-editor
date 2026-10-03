@@ -4,6 +4,7 @@ import { $getRoot, $getSelection } from 'lexical';
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
+import { $normalizeNodeIds } from '@/plugins/common/node/node-id';
 
 export default class TextDataSource extends DataSource {
   read(editor: LexicalEditor, data: string) {
@@ -21,7 +22,10 @@ export default class TextDataSource extends DataSource {
       INodeHelper.appendChild(rootNode, paragraph);
     });
 
-    editor.setEditorState(editor.parseEditorState({ root: rootNode } as any));
+    const editorState = editor.parseEditorState({ root: rootNode } as any, () => {
+      $normalizeNodeIds($getRoot());
+    });
+    editor.setEditorState(editorState);
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {

@@ -14,7 +14,9 @@ import {
   LITEXML_APPLY_COMMAND,
   LITEXML_INSERT_COMMAND,
   LITEXML_MODIFY_COMMAND,
+  LITEXML_MODIFY_WITH_RESULTS_COMMAND,
   LITEXML_REMOVE_COMMAND,
+  type LiteXmlOperationResult,
 } from '@/plugins/litexml/command';
 import { LitexmlPlugin } from '@/plugins/litexml/plugin';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
@@ -83,6 +85,8 @@ export interface HeadlessLiteXMLBatchOperation {
   operations: CommandPayloadType<typeof LITEXML_MODIFY_COMMAND>;
 }
 
+export type { LiteXmlOperationResult };
+
 export type HeadlessLiteXMLOperation =
   | HeadlessLiteXMLBatchOperation
   | HeadlessLiteXMLInsertOperation
@@ -90,44 +94,11 @@ export type HeadlessLiteXMLOperation =
   | HeadlessLiteXMLReplaceOperation;
 
 type SerializedRecord = Record<string, unknown>;
-
-interface NormalizeLegacyEditorDataContext {
-  nextId: number;
-}
-
-const getNumericId = (id: unknown): number | null => {
-  if (typeof id !== 'number' && typeof id !== 'string') return null;
-
-  const numericId = Number(id);
-  return Number.isInteger(numericId) && numericId >= 0 ? numericId : null;
-};
-
-const findMaxSerializedId = (node: unknown): number => {
-  if (!node || typeof node !== 'object') return -1;
-
-  const record = node as SerializedRecord;
-  const id = getNumericId(record.id);
-  const ownMax = id ?? -1;
-
-  if (!Array.isArray(record.children)) return ownMax;
-
-  return record.children.reduce(
-    (maxId: number, child: unknown) => Math.max(maxId, findMaxSerializedId(child)),
-    ownMax,
-  );
-};
-
-const createSerializedId = (context: NormalizeLegacyEditorDataContext) => String(context.nextId++);
-
-const createCodeChildrenFromLegacyCode = (
-  code: string,
-  context: NormalizeLegacyEditorDataContext,
-) =>
+const createCodeChildrenFromLegacyCode = (code: string) =>
   code.split('\n').flatMap((text, index, array) => {
     const textNode = {
       detail: 0,
       format: 0,
-      id: createSerializedId(context),
       mode: 'normal',
       style: '',
       text,
@@ -142,28 +113,24 @@ const createCodeChildrenFromLegacyCode = (
     return [
       textNode,
       {
-        id: createSerializedId(context),
         type: 'linebreak',
         version: 1,
       },
     ];
   });
 
-const normalizeLegacyEditorDataNode = (
-  node: unknown,
-  context: NormalizeLegacyEditorDataContext,
-): unknown => {
+const normalizeLegacyEditorDataNode = (node: unknown): unknown => {
   if (!node || typeof node !== 'object') return node;
 
   const record = node as SerializedRecord;
   const children = Array.isArray(record.children)
-    ? record.children.map((child: unknown) => normalizeLegacyEditorDataNode(child, context))
+    ? record.children.map((child: unknown) => normalizeLegacyEditorDataNode(child))
     : record.children;
 
   if (record.type === 'code' && typeof record.code === 'string' && !Array.isArray(children)) {
     return {
       ...record,
-      children: createCodeChildrenFromLegacyCode(record.code, context),
+      children: createCodeChildrenFromLegacyCode(record.code),
       direction: record.direction ?? 'ltr',
       format: record.format ?? '',
       indent: record.indent ?? 0,
@@ -190,13 +157,9 @@ const normalizeLegacyEditorData = (
       ? (JSON.parse(editorData) as SerializedEditorState<SerializedLexicalNode>)
       : editorData;
 
-  const context = {
-    nextId: findMaxSerializedId(data.root) + 1,
-  };
-
   return {
     ...data,
-    root: normalizeLegacyEditorDataNode(data.root, context),
+    root: normalizeLegacyEditorDataNode(data.root),
   } as SerializedEditorState<SerializedLexicalNode>;
 };
 
@@ -329,6 +292,21 @@ export class HeadlessEditor {
     this.kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, operations);
     await moment();
     return this;
+  }
+
+  async applyLiteXMLBatchWithResults(
+    operations: CommandPayloadType<typeof LITEXML_MODIFY_COMMAND>,
+  ): Promise<LiteXmlOperationResult[]> {
+    let results: LiteXmlOperationResult[] | undefined;
+    const handled = this.kernel.dispatchCommand(LITEXML_MODIFY_WITH_RESULTS_COMMAND, {
+      onResults: (operationResults) => {
+        results = operationResults;
+      },
+      operations,
+    });
+    if (!handled || !results) throw new Error('LiteXML batch result command is not registered.');
+    await moment();
+    return results;
   }
 
   export(options: HeadlessEditorExportOptions = {}): HeadlessEditorExport {

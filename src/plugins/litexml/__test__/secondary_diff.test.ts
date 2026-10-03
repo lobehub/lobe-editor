@@ -40,8 +40,27 @@ function findDiffNodeContaining(node: any, content: string): any {
   return null;
 }
 
+function getTextContent(node: any): string {
+  if (typeof node?.text === 'string') return node.text;
+  return Array.isArray(node?.children) ? node.children.map(getTextContent).join('') : '';
+}
+
 describe('Secondary Diff Tests', () => {
   let kernel: IEditor;
+
+  const xml = () => kernel.getDocument('litexml') as unknown as string;
+  const idFor = (tag: string, text: string, exactText = false): string => {
+    const elements = xml().matchAll(new RegExp(`<${tag}\\b([^>]*)>([\\s\\S]*?)</${tag}>`, 'g'));
+
+    for (const match of elements) {
+      const content = match[2].replace(/<[^>]+>/g, '').trim();
+      if (exactText ? content !== text : !content.includes(text)) continue;
+      const id = /\bid="([^"]+)"/.exec(match[1])?.[1];
+      if (id) return id;
+    }
+
+    throw new Error(`Could not find <${tag}> for text ${JSON.stringify(text)} in LiteXML`);
+  };
 
   beforeEach(() => {
     // reset key
@@ -56,15 +75,21 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const titleTextId = idFor('span', 'This is a title', true);
+    const bodyTextId = idFor('span', 'This is', true);
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: ['<span id="lqqe">ModifiedText</span>', '<span id="m1v0">THIS IS </span>'],
+      litexml: [
+        `<span id="${titleTextId}">ModifiedText</span>`,
+        `<span id="${bodyTextId}">THIS IS </span>`,
+      ],
       delay: true,
     });
     await moment();
+    const headingId = idFor('h1', 'ModifiedText');
 
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       delay: true,
-      beforeId: 'odbl',
+      beforeId: headingId,
       litexml: '<p><span italic="true">InsertedBeforeBlock</span></p>',
     });
     await moment();
@@ -85,15 +110,21 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const titleTextId = idFor('span', 'This is a title', true);
+    const bodyTextId = idFor('span', 'This is', true);
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: ['<span id="lqqe">ModifiedText</span>', '<span id="m1v0">THIS IS </span>'],
+      litexml: [
+        `<span id="${titleTextId}">ModifiedText</span>`,
+        `<span id="${bodyTextId}">THIS IS </span>`,
+      ],
       delay: true,
     });
     await moment();
+    const headingId = idFor('h1', 'ModifiedText');
 
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       delay: true,
-      afterId: 'odbl',
+      afterId: headingId,
       litexml: '<p><span italic="true">InsertedAfterBlock</span></p>',
     });
     await moment();
@@ -114,15 +145,17 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const titleTextId = idFor('span', 'This is a title', true);
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: ['<span id="lqqe">ModifiedText</span>'],
+      litexml: [`<span id="${titleTextId}">ModifiedText</span>`],
       delay: true,
     });
     await moment();
+    const modifiedTextId = idFor('span', 'ModifiedText', true);
 
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       delay: true,
-      afterId: 'nfxr',
+      afterId: modifiedTextId,
       litexml: '<span italic="true">InsertedAfterBlock</span>',
     });
     await moment();
@@ -142,15 +175,17 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const titleTextId = idFor('span', 'This is a title', true);
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: ['<span id="lqqe">ModifiedText</span>'],
+      litexml: [`<span id="${titleTextId}">ModifiedText</span>`],
       delay: true,
     });
     await moment();
+    const modifiedTextId = idFor('span', 'ModifiedText', true);
 
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
       delay: true,
-      litexml: '<span id="nfxr" italic="true">Modify inline</span>',
+      litexml: `<span id="${modifiedTextId}" italic="true">Modify inline</span>`,
     });
     await moment();
 
@@ -173,15 +208,17 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const titleTextId = idFor('span', 'This is a title', true);
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: ['<span id="lqqe">ModifiedText</span>'],
+      litexml: [`<span id="${titleTextId}">ModifiedText</span>`],
       delay: true,
     });
     await moment();
+    const headingId = idFor('h1', 'ModifiedText');
 
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
       delay: true,
-      litexml: '<h1 id="nadg"><span italic="true">Modify block</span></h1>',
+      litexml: `<h1 id="${headingId}"><span italic="true">Modify block</span></h1>`,
     });
     await moment();
 
@@ -204,15 +241,17 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const titleTextId = idFor('span', 'This is a title', true);
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: ['<span id="lqqe">ModifiedText</span>'],
+      litexml: [`<span id="${titleTextId}">ModifiedText</span>`],
       delay: true,
     });
     await moment();
+    const headingId = idFor('h1', 'ModifiedText');
 
     kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
       delay: true,
-      id: 'nadg',
+      id: headingId,
     });
     await moment();
 
@@ -233,16 +272,18 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const headingId = idFor('h1', 'This is a title');
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
-      litexml: '<h2><span id="lqqe">ModifiedText</span></h2>',
-      afterId: 'll63',
+      litexml: '<h2><span>ModifiedText</span></h2>',
+      afterId: headingId,
       delay: true,
     });
     await moment();
+    const insertedHeadingId = idFor('h2', 'ModifiedText', true);
 
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
-      litexml: '<h3><span id="lqqe">ModifiedText</span></h3>',
-      afterId: 'mo48',
+      litexml: '<h3><span>ModifiedText</span></h3>',
+      afterId: insertedHeadingId,
       delay: true,
     });
     await moment();
@@ -264,16 +305,18 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const headingId = idFor('h1', 'This is a title');
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
-      litexml: '<h2><span id="lqqe">ModifiedText</span></h2>',
-      afterId: 'll63',
+      litexml: '<h2><span>ModifiedText</span></h2>',
+      afterId: headingId,
       delay: true,
     });
     await moment();
 
+    const insertedSpanId = idFor('span', 'ModifiedText', true);
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
-      litexml: '<span id="lqqe">ModifiedText</span>',
-      afterId: 'mtoj',
+      litexml: '<span>ModifiedText</span>',
+      afterId: insertedSpanId,
       delay: true,
     });
     await moment();
@@ -287,7 +330,8 @@ describe('Secondary Diff Tests', () => {
     // 第一步插入节点
     expect(root.children[1].type).toBe('diff');
     expect(root.children[1].diffType).toBe('add');
-    expect(root.children[1].children[0].children[0].text).toBe('ModifiedTextModifiedText');
+    expect(getTextContent(root.children[1].children[0])).toBe('ModifiedTextModifiedText');
+    expect(kernel.getDocument('markdown')).toContain('ModifiedTextModifiedText');
 
     expect(root.children[2].type).toBe('paragraph');
   });
@@ -297,15 +341,16 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const headingId = idFor('h1', 'This is a title');
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
-      litexml: '<h2><span id="lqqe">123</span></h2>',
-      afterId: 'll63',
+      litexml: '<h2><span>123</span></h2>',
+      afterId: headingId,
       delay: true,
     });
     await moment();
 
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: '<span id="mtoj">ModifiedText</span>',
+      litexml: `<span id="${idFor('span', '123', true)}">ModifiedText</span>`,
       delay: true,
     });
     await moment();
@@ -329,15 +374,18 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const headingId = idFor('h1', 'This is a title');
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
-      litexml: '<h2><span id="lqqe">123</span></h2>',
-      afterId: 'll63',
+      litexml: '<h2><span>123</span></h2>',
+      afterId: headingId,
       delay: true,
     });
     await moment();
 
+    const insertedHeadingId = idFor('h2', '123', true);
+    const insertedSpanId = idFor('span', '123', true);
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: '<h3 id="mo48"><span id="mtoj">ModifiedText</span></h3>',
+      litexml: `<h3 id="${insertedHeadingId}"><span id="${insertedSpanId}">ModifiedText</span></h3>`,
       delay: true,
     });
     await moment();
@@ -362,15 +410,16 @@ describe('Secondary Diff Tests', () => {
       'markdown',
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
+    const headingId = idFor('h1', 'This is a title');
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
-      litexml: '<h2><span id="lqqe">123</span></h2>',
-      afterId: 'll63',
+      litexml: '<h2><span>123</span></h2>',
+      afterId: headingId,
       delay: true,
     });
     await moment();
 
     kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-      id: 'mo48',
+      id: idFor('h2', '123', true),
       delay: true,
     });
     await moment();

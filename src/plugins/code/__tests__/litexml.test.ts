@@ -6,6 +6,7 @@ import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import { IEditor } from '@/types';
 
+import { normalizeOpaqueIds } from '../../litexml/__test__/normalize-opaque-ids';
 import { CodePlugin } from '../plugin';
 
 describe('codeblock litexml', () => {
@@ -27,8 +28,10 @@ describe('codeblock litexml', () => {
   it('writer should work', () => {
     editor.setDocument('markdown', '`123`');
     const xml = editor.getDocument('litexml') as unknown as string;
-    expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="ll63"><codeInline id="lqqe"><span id="m7fb">123</span></codeInline></p></root>`,
+    expect(normalizeOpaqueIds(xml.replace(/>\n\s*?</g, '><'))).toBe(
+      normalizeOpaqueIds(
+        `<?xml version="1.0" encoding="UTF-8"?><root><p id="ll63"><codeInline id="lqqe"><span id="m7fb">123</span></codeInline></p></root>`,
+      ),
     );
   });
 });

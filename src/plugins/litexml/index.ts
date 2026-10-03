@@ -1,7 +1,9 @@
+export type { LiteXmlModifyOperation, LiteXmlOperationResult } from './command';
 export {
   LITEXML_APPLY_COMMAND,
   LITEXML_INSERT_COMMAND,
   LITEXML_MODIFY_COMMAND,
+  LITEXML_MODIFY_WITH_RESULTS_COMMAND,
   LITEXML_REMOVE_COMMAND,
 } from './command';
 export {

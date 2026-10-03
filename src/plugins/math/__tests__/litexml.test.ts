@@ -6,6 +6,7 @@ import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import { IEditor } from '@/types';
 
+import { normalizeOpaqueIds } from '../../litexml/__test__/normalize-opaque-ids';
 import { MathPlugin } from '../plugin';
 
 describe('math litexml', () => {
@@ -30,8 +31,10 @@ describe('math litexml', () => {
   it('writer should work', async () => {
     editor.setDocument('markdown', '$$E=mc^2$$');
     const xml = editor.getDocument('litexml') as unknown as string;
-    expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="ll63"><math id="lqqe" code="$E=mc^2$"></math></p></root>`,
+    expect(normalizeOpaqueIds(xml.replace(/>\n\s*?</g, '><'))).toBe(
+      normalizeOpaqueIds(
+        `<?xml version="1.0" encoding="UTF-8"?><root><p id="ll63"><math id="lqqe" code="$E=mc^2$"></math></p></root>`,
+      ),
     );
   });
 });

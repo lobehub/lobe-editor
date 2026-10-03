@@ -34,6 +34,12 @@ const isActionableDiff = (node: SerializedDiffTreeNode | undefined): boolean =>
 
 const isElementNode = (node: SerializedDiffTreeNode): boolean => Array.isArray(node.children);
 
+const getNodeId = (node: SerializedDiffTreeNode): string | undefined => {
+  if (typeof node.id === 'string' && node.id.length > 0) return node.id;
+  const properties = (node.$ as { properties?: { nodeId?: unknown } } | undefined)?.properties;
+  return typeof properties?.nodeId === 'string' ? properties.nodeId : undefined;
+};
+
 const cloneNode = <T>(node: T): T => structuredClone(node);
 
 export function hasActionableDiffDescendant(node: SerializedDiffTreeNode): boolean {
@@ -83,11 +89,11 @@ export function collectIllegalNestedDiffPaths(root: SerializedDiffTreeNode): str
 
     if (!isElementNode(node)) return;
     node.children?.forEach((child) => {
-      visit(child, [...ancestors, node], `${path}/${child.id || child.type || 'node'}`);
+      visit(child, [...ancestors, node], `${path}/${getNodeId(child) || child.type || 'node'}`);
     });
   };
 
-  visit(root, [], root.id || root.type || 'root');
+  visit(root, [], getNodeId(root) || root.type || 'root');
   return violations;
 }
 
@@ -118,22 +124,72 @@ interface NodeLocation {
   parent: SerializedDiffTreeNode | null;
 }
 
-function findNodeLocation(
+function findActiveNodeLocation(
   root: SerializedDiffTreeNode,
   id: string,
   ancestors: SerializedDiffTreeNode[] = [],
 ): NodeLocation | null {
-  if (root.id === id) return { ancestors, index: -1, node: root, parent: null };
+  if (
+    isActionableDiff(root) &&
+    (root.diffType === 'remove' || root.diffType === 'listItemRemove')
+  ) {
+    return null;
+  }
+  if (
+    (root.type === 'table-cell-diff' || root.type === 'table-row-diff') &&
+    root.diffType === 'remove'
+  ) {
+    return null;
+  }
+  if (
+    root.type === 'listitem' &&
+    root.children?.[0]?.type === 'diff' &&
+    root.children[0].diffType === 'listItemRemove'
+  ) {
+    return null;
+  }
 
-  for (const [index, child] of (root.children || []).entries()) {
-    if (child.id === id) {
-      return { ancestors: [...ancestors, root], index, node: child, parent: root };
-    }
-    const nested = findNodeLocation(child, id, [...ancestors, root]);
+  if (getNodeId(root) === id) {
+    const parent = ancestors.at(-1) || null;
+    return {
+      ancestors,
+      index: parent ? (parent.children || []).indexOf(root) : -1,
+      node: root,
+      parent,
+    };
+  }
+
+  const activeChildren =
+    root.type === 'diff' && (root.diffType === 'modify' || root.diffType === 'listItemModify')
+      ? root.children?.[1]
+        ? [root.children[1]]
+        : []
+      : root.children || [];
+  for (const child of activeChildren) {
+    const nested = findActiveNodeLocation(child, id, [...ancestors, root]);
     if (nested) return nested;
   }
 
   return null;
+}
+
+function findNodeLocationByNode(
+  root: SerializedDiffTreeNode,
+  target: SerializedDiffTreeNode,
+  ancestors: SerializedDiffTreeNode[] = [],
+): NodeLocation | null {
+  if (root === target) return { ancestors, index: -1, node: root, parent: null };
+  for (const [index, child] of (root.children || []).entries()) {
+    if (child === target)
+      return { ancestors: [...ancestors, root], index, node: child, parent: root };
+    const nested = findNodeLocationByNode(child, target, [...ancestors, root]);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+export function hasActiveLiteXmlNodeId(root: SerializedDiffTreeNode, id: string): boolean {
+  return findActiveNodeLocation(root, id) !== null;
 }
 
 function replaceNode(location: NodeLocation, replacements: SerializedDiffTreeNode[]): void {
@@ -153,8 +209,9 @@ function createDiffContent(
 }
 
 function projectModifyTarget(root: SerializedDiffTreeNode, incoming: SerializedDiffTreeNode): void {
-  if (!incoming.id) return;
-  const location = findNodeLocation(root, incoming.id);
+  const incomingId = getNodeId(incoming);
+  if (!incomingId) return;
+  const location = findActiveNodeLocation(root, incomingId);
   if (!location) return;
 
   const target = location.node;
@@ -205,11 +262,31 @@ function projectModifyTarget(root: SerializedDiffTreeNode, incoming: SerializedD
     return;
   }
 
+  if (target.type === 'listitem') {
+    const existingDiff = (target.children || []).find((child) => child.type === 'diff');
+    if (existingDiff?.diffType === 'listItemModify') {
+      const after = existingDiff.children?.[1];
+      if (after) after.children = cloneNode(next.children || []);
+      return;
+    }
+    if (existingDiff?.diffType === 'listItemAdd') {
+      existingDiff.children = cloneNode(next.children || []);
+      return;
+    }
+    target.children = [
+      createDiff('listItemModify', [
+        { children: cloneNode(target.children || []), type: 'paragraph' },
+        { children: cloneNode(next.children || []), type: 'paragraph' },
+      ]),
+    ];
+    return;
+  }
+
   replaceNode(location, [createDiff('modify', [cloneNode(target), next])]);
 }
 
 function projectRemoveTarget(root: SerializedDiffTreeNode, id: string): void {
-  const location = findNodeLocation(root, id);
+  const location = findActiveNodeLocation(root, id);
   if (!location) return;
   if (location.ancestors.some(isActionableDiff)) {
     replaceNode(location, []);
@@ -249,7 +326,7 @@ function projectInsert(
 ): void {
   const referenceId = 'beforeId' in operation ? operation.beforeId : operation.afterId;
   const reference =
-    referenceId === 'root' ? null : findNodeLocation(root, referenceId)?.node || null;
+    referenceId === 'root' ? null : findActiveNodeLocation(root, referenceId)?.node || null;
   const location =
     referenceId === 'root'
       ? {
@@ -258,7 +335,7 @@ function projectInsert(
           node: root.children?.[0] || root,
           parent: root,
         }
-      : findNodeLocation(root, referenceId);
+      : findActiveNodeLocation(root, referenceId);
   if (!location) return;
 
   const incoming = (readXml(operation.litexml).root?.children || []).map(cloneNode);
@@ -305,15 +382,13 @@ function projectInsert(
 
   if (!actionableAncestor && blockAncestor && hasActionableDiffDescendant(blockAncestor)) {
     const wrapped = createDiff('modify', [cloneNode(blockAncestor), cloneNode(blockAncestor)]);
-    const blockLocation = findNodeLocation(root, blockAncestor.id || '');
+    const blockLocation = findNodeLocationByNode(root, blockAncestor);
     if (blockLocation) replaceNode(blockLocation, [wrapped]);
     return;
   }
 
   if (actionableAncestor && !isInlineReference) {
-    const originLocation = actionableAncestor.id
-      ? findNodeLocation(root, actionableAncestor.id)
-      : null;
+    const originLocation = findNodeLocationByNode(root, actionableAncestor);
     if (originLocation?.parent && originLocation.index >= 0) {
       const originInsertAt =
         'beforeId' in operation ? originLocation.index : originLocation.index + 1;

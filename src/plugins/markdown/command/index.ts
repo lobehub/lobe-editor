@@ -1,16 +1,22 @@
 import type { HistoryStateEntry } from '@lexical/history';
 import { mergeRegister } from '@lexical/utils';
-import type { LexicalEditor } from 'lexical';
+import type { LexicalEditor, LexicalNode } from 'lexical';
 import {
+  $getNodeByKey,
+  $getRoot,
   $getSelection,
+  $isElementNode,
   $isRangeSelection,
+  $isRootNode,
+  $isTextNode,
   COMMAND_PRIORITY_HIGH,
   createCommand,
   HISTORIC_TAG,
   HISTORY_PUSH_TAG,
 } from 'lexical';
 
-import type { IEditorKernel } from '@/types';
+import { $findNodeById, $getNodeId } from '@/plugins/common/node/node-id';
+import type { IEditorKernel, ISelectionObject } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import { parseMarkdownToLexical } from '../data-source/markdown/parse';
@@ -41,6 +47,79 @@ const SPICAL_TEXT = '\uFFF0';
 const getLineNumber = (content: string, charIndex: number): number => {
   return content.slice(0, Math.max(0, charIndex)).split('\n').length;
 };
+
+type SelectionNodeReference = { id: string; kind: 'node' } | { kind: 'root' };
+
+function getNodeReferenceForKey(editor: LexicalEditor, key: string): SelectionNodeReference | null {
+  return editor.getEditorState().read(() => {
+    const node = $getNodeByKey(key);
+    if (!node) return null;
+    if ($isRootNode(node)) return { kind: 'root' };
+
+    const id = $getNodeId(node);
+    return id ? { id, kind: 'node' } : null;
+  });
+}
+
+function getNodeKeyForReference(
+  editor: LexicalEditor,
+  reference: SelectionNodeReference,
+  offset: number,
+): { key: string; offset: number } | undefined {
+  return editor.getEditorState().read(() => {
+    if (reference.kind === 'node') {
+      const node = $findNodeById(reference.id);
+      return node ? { key: node.getKey(), offset } : undefined;
+    }
+
+    const root = $getRoot();
+    const findBoundaryText = (node: LexicalNode, first: boolean): LexicalNode | null => {
+      if ($isTextNode(node)) return node;
+      if (!$isElementNode(node)) return null;
+
+      const children = node.getChildren();
+      const orderedChildren = first ? children : [...children].reverse();
+      for (const child of orderedChildren) {
+        const textNode = findBoundaryText(child, first);
+        if (textNode) return textNode;
+      }
+      return null;
+    };
+
+    if (offset === 0) {
+      const firstText = findBoundaryText(root, true);
+      if (firstText) return { key: firstText.getKey(), offset: 0 };
+    }
+    if (offset === root.getChildrenSize()) {
+      const lastText = findBoundaryText(root, false);
+      if (lastText) return { key: lastText.getKey(), offset: lastText.getTextContentSize() };
+    }
+
+    return { key: root.getKey(), offset };
+  });
+}
+
+function mapSelectionToEditor(
+  selection: ISelectionObject,
+  sourceEditor: LexicalEditor,
+  targetEditor: LexicalEditor,
+): ISelectionObject | null {
+  const startReference = getNodeReferenceForKey(sourceEditor, selection.startNodeId);
+  const endReference = getNodeReferenceForKey(sourceEditor, selection.endNodeId);
+  if (!startReference || !endReference) return null;
+
+  const startPoint = getNodeKeyForReference(targetEditor, startReference, selection.startOffset);
+  const endPoint = getNodeKeyForReference(targetEditor, endReference, selection.endOffset);
+  if (!startPoint || !endPoint) return null;
+
+  return {
+    ...selection,
+    endNodeId: endPoint.key,
+    endOffset: endPoint.offset,
+    startNodeId: startPoint.key,
+    startOffset: startPoint.offset,
+  };
+}
 
 export function registerMarkdownCommand(
   editor: LexicalEditor,
@@ -80,9 +159,15 @@ export function registerMarkdownCommand(
       GET_MARKDOWN_SELECTION_COMMAND,
       (payload) => {
         const newEditor = kernel.cloneNodeEditor();
-        const s = kernel.getSelection();
-        if (s) {
-          newEditor.setSelection(s);
+        const sourceEditor = kernel.getLexicalEditor();
+        const selection = kernel.getSelection();
+        const targetEditor = newEditor.getLexicalEditor();
+        const mappedSelection =
+          sourceEditor && targetEditor && selection
+            ? mapSelectionToEditor(selection, sourceEditor, targetEditor)
+            : null;
+        if (mappedSelection && targetEditor) {
+          newEditor.setSelection(mappedSelection);
           newEditor.getLexicalEditor()?.update(
             () => {
               const sel = $getSelection();

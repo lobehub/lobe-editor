@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -7,12 +9,11 @@ const { test } = require('node:test');
 
 const script = path.join(__dirname, 'postinstall-lexical-patch.cjs');
 
-test('concurrent installers never observe partially written Lexical files', () => {
+test('concurrent installers never observe partially written Lexical Yjs files', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'editor-patch-race-'));
   try {
     const env = { ...process.env };
     for (const [name, variable, patch] of [
-      ['lexical', 'LOBE_EDITOR_LEXICAL_ROOT', 'lexical@0.42.0.patch'],
       ['@lexical/yjs', 'LOBE_EDITOR_LEXICAL_YJS_ROOT', '@lexical__yjs@0.42.0.patch'],
     ]) {
       const source = process.env[variable] || path.dirname(require.resolve(name));
@@ -38,7 +39,7 @@ const { spawnSync } = require('node:child_process');
 const originalWrite = fs.writeFileSync;
 let interrupted = false;
 fs.writeFileSync = function (file, content, options) {
-  if (!interrupted && String(file).includes('Lexical.dev.js')) {
+  if (!interrupted && String(file).includes('LexicalYjs.dev.js')) {
     interrupted = true;
     const fd = fs.openSync(file, 'w');
     fs.writeSync(fd, content.slice(0, Math.floor(content.length / 2)));
@@ -66,8 +67,8 @@ fs.writeFileSync = function (file, content, options) {
     assert.equal(reader.status, 0, reader.stderr || reader.error);
     const repeat = spawnSync(process.execPath, [script], { env, encoding: 'utf8' });
     assert.equal(repeat.status, 0, repeat.stderr);
-    assert.equal(repeat.stdout, '', 'Both dependencies should already be completely patched');
-    for (const variable of ['LOBE_EDITOR_LEXICAL_ROOT', 'LOBE_EDITOR_LEXICAL_YJS_ROOT']) {
+    assert.equal(repeat.stdout, '', 'Lexical Yjs should already be completely patched');
+    for (const variable of ['LOBE_EDITOR_LEXICAL_YJS_ROOT']) {
       assert.ok(!fs.readdirSync(env[variable]).some((name) => name.endsWith('.tmp')));
     }
   } finally {

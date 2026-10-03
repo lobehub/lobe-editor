@@ -1,7 +1,13 @@
 import { type Binding, type Provider, type UserState } from '@lexical/yjs';
-import { SKIP_COLLAB_TAG } from 'lexical';
+import { $getRoot, SKIP_COLLAB_TAG } from 'lexical';
 import type { Doc } from 'yjs';
 
+import {
+  $normalizeNodeIds,
+  editorStateHasCompleteNodeIds,
+  inheritMissingSerializedNodeIds,
+  migrateSerializedNodeIds,
+} from '@/plugins/common/node/node-id';
 import type { IServiceID } from '@/types';
 
 import { createEmptyPreviousEditorState } from '../plugin/utils/editor-state';
@@ -24,7 +30,7 @@ type YjsPluginStateListener = (state: YjsPluginState | null) => void;
 type YjsAwarenessUsersListener = (users: YjsAwarenessUser[]) => void;
 
 const serializeComparableEditorState = (state: { toJSON: () => unknown }): string => {
-  const serialized = state.toJSON() as {
+  const serialized = structuredClone(state.toJSON()) as {
     root?: { direction?: string | null };
   };
 
@@ -33,6 +39,55 @@ const serializeComparableEditorState = (state: { toJSON: () => unknown }): strin
   // meaningful RTL snapshots still produce a diff.
   if (serialized.root?.direction === 'ltr') serialized.root.direction = null;
 
+  return JSON.stringify(serialized);
+};
+
+const serializeComparableStateForSnapshot = (
+  state: { toJSON: () => unknown },
+  snapshotRoot: unknown,
+): string => {
+  const serialized = structuredClone(state.toJSON()) as {
+    root?: { direction?: string | null } & Record<string, any>;
+  };
+  if (serialized.root?.direction === 'ltr') serialized.root.direction = null;
+
+  const stripMissingIds = (stateNode: unknown, snapshotNode: unknown) => {
+    if (
+      !stateNode ||
+      typeof stateNode !== 'object' ||
+      Array.isArray(stateNode) ||
+      !snapshotNode ||
+      typeof snapshotNode !== 'object' ||
+      Array.isArray(snapshotNode)
+    ) {
+      return;
+    }
+    const stateRecord = stateNode as Record<string, any>;
+    const snapshotRecord = snapshotNode as Record<string, any>;
+    if (stateRecord.type === snapshotRecord.type) {
+      const properties = snapshotRecord.$?.properties;
+      const hasExplicitId =
+        snapshotRecord.type !== 'root' &&
+        ((typeof snapshotRecord.id === 'string' && snapshotRecord.id.trim()) ||
+          (typeof snapshotRecord.id === 'number' && Number.isFinite(snapshotRecord.id)) ||
+          (typeof properties?.nodeId === 'string' && properties.nodeId.trim()));
+      if (!hasExplicitId) {
+        delete stateRecord.id;
+        if (stateRecord.$?.properties) {
+          delete stateRecord.$.properties.nodeId;
+          if (Object.keys(stateRecord.$.properties).length === 0) delete stateRecord.$.properties;
+          if (Object.keys(stateRecord.$).length === 0) delete stateRecord.$;
+        }
+      }
+      if (Array.isArray(stateRecord.children) && Array.isArray(snapshotRecord.children)) {
+        const length = Math.min(stateRecord.children.length, snapshotRecord.children.length);
+        for (let index = 0; index < length; index++) {
+          stripMissingIds(stateRecord.children[index], snapshotRecord.children[index]);
+        }
+      }
+    }
+  };
+  stripMissingIds(serialized.root, snapshotRoot);
   return JSON.stringify(serialized);
 };
 
@@ -83,12 +138,24 @@ export class YjsService {
     }
 
     const previousEditorState = binding.editor.getEditorState();
-    const nextEditorState = binding.editor.parseEditorState(JSON.stringify(editorData));
+    const snapshot = structuredClone(editorData);
+    migrateSerializedNodeIds(snapshot.root);
+    inheritMissingSerializedNodeIds(
+      (previousEditorState.toJSON() as { root?: unknown }).root,
+      snapshot.root,
+    );
+    const nextEditorState = binding.editor.parseEditorState(JSON.stringify(snapshot), () => {
+      $normalizeNodeIds($getRoot());
+    });
     const isSameState =
       serializeComparableEditorState(previousEditorState) ===
       serializeComparableEditorState(nextEditorState);
-
-    if (hasSharedState && isSameState) {
+    const isSameStateIgnoringOmittedIds =
+      hasSharedState &&
+      editorStateHasCompleteNodeIds(previousEditorState) &&
+      serializeComparableStateForSnapshot(previousEditorState, snapshot.root) ===
+        serializeComparableStateForSnapshot(nextEditorState, snapshot.root);
+    if (hasSharedState && (isSameState || isSameStateIgnoringOmittedIds)) {
       return false;
     }
 

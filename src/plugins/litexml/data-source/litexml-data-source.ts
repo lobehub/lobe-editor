@@ -5,13 +5,13 @@ import { $getRoot, $getSelection, $isElementNode, $isRangeSelection } from 'lexi
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
+import { $getNodeId, $normalizeNodeIds } from '@/plugins/common/node/node-id';
 import { INodeService } from '@/plugins/inode';
 import type { IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import type { ILitexmlService, IWriterContext, IXmlNode } from '../service/litexml-service';
 import { LitexmlService } from '../service/litexml-service';
-import { $parseSerializedNodeImpl, charToId, idToChar } from '../utils';
 
 const logger = createDebugLogger('plugin', 'litexml');
 
@@ -69,19 +69,9 @@ export default class LitexmlDataSource extends DataSource {
     try {
       const inode = this.readLiteXMLToInode(data);
 
-      const newState = editor.parseEditorState(
-        {
-          root: INodeHelper.createRootNode(),
-        },
-        (state) => {
-          try {
-            const root = $parseSerializedNodeImpl(inode.root, editor, true, state);
-            state._nodeMap.set(root.getKey(), root);
-          } catch (error) {
-            console.error(error);
-          }
-        },
-      );
+      const newState = editor.parseEditorState(inode, () => {
+        $normalizeNodeIds($getRoot());
+      });
 
       editor.setEditorState(newState);
     } catch (error) {
@@ -175,6 +165,19 @@ export default class LitexmlDataSource extends DataSource {
   private processXMLElement(xmlElement: any, parentNode: any): void {
     const tagName = xmlElement.tagName.toLowerCase();
     const customReaders = this.litexmlService.getXMLReaders();
+    const publicId = xmlElement.getAttribute('id') || undefined;
+    const attachPublicId = (node: any, id = publicId) => {
+      if (!node || !id) return;
+      node.id = id;
+      node.$ = {
+        ...node.$,
+        properties: { ...node.$?.properties, nodeId: id },
+      };
+    };
+    const append = (node: any) => {
+      attachPublicId(node);
+      INodeHelper.appendChild(parentNode, node);
+    };
 
     // Check if there's a custom reader for this tag
     if (customReaders[tagName]) {
@@ -188,15 +191,10 @@ export default class LitexmlDataSource extends DataSource {
 
         if (result !== false) {
           if (Array.isArray(result)) {
-            if (result.length > 0) {
-              const attrId = xmlElement.getAttribute('id');
-              result[0].id = attrId ? charToId(attrId) : undefined;
-            }
+            if (result.length > 0) attachPublicId(result[0]);
             INodeHelper.appendChild(parentNode, ...result);
           } else if (result) {
-            const attrId = xmlElement.getAttribute('id');
-            result.id = attrId ? charToId(attrId) : undefined;
-            INodeHelper.appendChild(parentNode, result);
+            append(result);
           }
           return; // Custom reader handled it
         }
@@ -209,7 +207,7 @@ export default class LitexmlDataSource extends DataSource {
       case 'paragraph': {
         const paragraph = INodeHelper.createParagraph();
         this.processXMLChildren(xmlElement, paragraph);
-        INodeHelper.appendChild(parentNode, paragraph);
+        append(paragraph);
         break;
       }
 
@@ -225,7 +223,7 @@ export default class LitexmlDataSource extends DataSource {
           tag: `h${level}`,
         });
         this.processXMLChildren(xmlElement, heading);
-        INodeHelper.appendChild(parentNode, heading);
+        append(heading);
         break;
       }
 
@@ -238,6 +236,7 @@ export default class LitexmlDataSource extends DataSource {
             children: [],
             value: 1,
           });
+          attachPublicId(listItem, child.getAttribute('id') || undefined);
           this.processXMLChildren(child, listItem);
           INodeHelper.appendChild(parentNode, listItem);
         });
@@ -249,7 +248,7 @@ export default class LitexmlDataSource extends DataSource {
           children: [],
         });
         this.processXMLChildren(xmlElement, quote);
-        INodeHelper.appendChild(parentNode, quote);
+        append(quote);
         break;
       }
 
@@ -257,7 +256,7 @@ export default class LitexmlDataSource extends DataSource {
         const codeNode = INodeHelper.createElementNode('codeInline', {
           children: [INodeHelper.createTextNode(xmlElement.textContent || '')],
         });
-        INodeHelper.appendChild(parentNode, codeNode);
+        append(codeNode);
         break;
       }
 
@@ -265,7 +264,7 @@ export default class LitexmlDataSource extends DataSource {
         const textContent = xmlElement.textContent || '';
         if (textContent) {
           const textNode = INodeHelper.createTextNode(textContent);
-          INodeHelper.appendChild(parentNode, textNode);
+          append(textNode);
         }
         break;
       }
@@ -332,10 +331,9 @@ export default class LitexmlDataSource extends DataSource {
             lines.push(...handled.lines);
             return;
           }
-          const attrs = this.buildXMLAttributes({
-            id: idToChar(node.getKey()),
-            ...handled.attributes,
-          });
+          const attributes = { id: $getNodeId(node), ...handled.attributes };
+          attributes.id = $getNodeId(node);
+          const attrs = this.buildXMLAttributes(attributes);
           const openTag = `${indentStr}<${handled.tagName}${attrs}>`;
           const closeTag = `</${handled.tagName}>`;
           if (handled.textContent) {
