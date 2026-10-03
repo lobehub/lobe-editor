@@ -1,4 +1,6 @@
+import { MotionProvider } from '@lobehub/ui';
 import type { LexicalEditor } from 'lexical';
+import { motion } from 'motion/react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,7 +31,11 @@ describe('DiffNodeToolbar', () => {
     const editor = { _key: 'toolbar-test', dispatchCommand } as unknown as LexicalEditor;
     const node = { getKey: () => 'diff-node-key' } as unknown as DiffNode;
     await act(async () => {
-      root.render(<ReactDiffNodeToolbar editor={editor} node={node} />);
+      root.render(
+        <MotionProvider motion={motion}>
+          <ReactDiffNodeToolbar editor={editor} node={node} />
+        </MotionProvider>,
+      );
     });
   });
 

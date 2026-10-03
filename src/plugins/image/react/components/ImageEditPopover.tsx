@@ -1,4 +1,5 @@
-import { Button, Flexbox, Icon, Input, Popover } from '@lobehub/ui';
+import { Flexbox, Icon, Popover } from '@lobehub/ui';
+import { Button, Input } from '@lobehub/ui/base-ui';
 import { cssVar } from 'antd-style';
 import { LinkIcon, UploadIcon } from 'lucide-react';
 import {
@@ -169,7 +170,7 @@ const ImageEditPopover: FC<ImageEditPopoverProps> = memo(
               </Button>
             </>
           )}
-          <Button onClick={handleUrlSubmit} size="small" type="text" variant="filled">
+          <Button onClick={handleUrlSubmit} size="small" type="fill">
             {t('confirm')}
           </Button>
         </Flexbox>

@@ -1,6 +1,7 @@
 'use client';
 
-import { Flexbox, MaterialFileTypeIcon, Select, Text } from '@lobehub/ui';
+import { Flexbox, MaterialFileTypeIcon } from '@lobehub/ui';
+import { Select, Text } from '@lobehub/ui/base-ui';
 import { cx } from 'antd-style';
 import { type FC, useMemo } from 'react';
 import { bundledLanguagesInfo } from 'shiki';
@@ -12,7 +13,6 @@ const CodeLanguageSelect: FC<CodeLanguageSelectProps> = ({ className, ...rest })
   const options = useMemo(
     () => [
       {
-        aliases: ['text', 'txt'],
         label: (
           <Flexbox align={'center'} gap={4} horizontal>
             <MaterialFileTypeIcon
@@ -27,10 +27,10 @@ const CodeLanguageSelect: FC<CodeLanguageSelectProps> = ({ className, ...rest })
             </Text>
           </Flexbox>
         ),
+        title: 'plaintext text txt',
         value: 'plaintext',
       },
       ...bundledLanguagesInfo.map((item) => ({
-        aliases: item.aliases,
         label: (
           <Flexbox align={'center'} gap={4} horizontal>
             <MaterialFileTypeIcon
@@ -45,10 +45,7 @@ const CodeLanguageSelect: FC<CodeLanguageSelectProps> = ({ className, ...rest })
             </Text>
           </Flexbox>
         ),
-        title: (item.aliases || [item.id])
-          .filter(Boolean)
-          .map((item) => `*.${item}`)
-          .join(','),
+        title: [item.id, ...(item.aliases || [])].join(' '),
         value: item.id,
       })),
     ],
@@ -59,12 +56,6 @@ const CodeLanguageSelect: FC<CodeLanguageSelectProps> = ({ className, ...rest })
     <Select
       className={cx(styles.container, className)}
       defaultValue={'plaintext'}
-      filterOption={(input, option) => {
-        const lang: string = input.toLowerCase();
-        if ((option?.value as string)?.startsWith(lang)) return true;
-        if (option?.aliases?.some((item: string) => item.startsWith(lang))) return true;
-        return false;
-      }}
       options={options}
       showSearch
       variant={'filled'}

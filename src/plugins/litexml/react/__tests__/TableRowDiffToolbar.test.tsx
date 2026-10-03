@@ -1,3 +1,5 @@
+import { MotionProvider } from '@lobehub/ui';
+import { motion } from 'motion/react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -74,7 +76,11 @@ describe('TableRowDiffToolbar', () => {
     await moment();
 
     await act(async () => {
-      reactRoot.render(<TableRowDiffToolbar editor={editor.getLexicalEditor()!} />);
+      reactRoot.render(
+        <MotionProvider motion={motion}>
+          <TableRowDiffToolbar editor={editor.getLexicalEditor()!} />
+        </MotionProvider>,
+      );
     });
   });
 

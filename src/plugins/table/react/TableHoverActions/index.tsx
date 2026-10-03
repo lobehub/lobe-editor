@@ -11,7 +11,7 @@ import {
   TableNode,
 } from '@lexical/table';
 import { $findMatchingParent, mergeRegister } from '@lexical/utils';
-import { ActionIcon } from '@lobehub/ui';
+import { ActionIcon } from '@lobehub/ui/base-ui';
 import { cx } from 'antd-style';
 import type { LexicalEditor, NodeKey } from 'lexical';
 import { $getNearestNodeFromDOMNode } from 'lexical';
