@@ -410,6 +410,50 @@ describe('LiteXML issue #218 headless regressions', () => {
     });
   }
 
+  it('uses the original afterId anchor when an earlier batch insertion is removed', async () => {
+    const editor = createEditor();
+    editor.hydrateMarkdown('Anchor paragraph');
+    const before = editor.export({ litexml: true });
+    const anchorId = elementId(before.litexml!, 'p', 'Anchor paragraph');
+
+    const results = await editor.applyLiteXMLBatchWithResults([
+      {
+        action: 'insert',
+        afterId: anchorId,
+        litexml: '<root><p id="issue-218-temporary-insert"><span>Temporary</span></p></root>',
+      },
+      { action: 'remove', id: 'issue-218-temporary-insert' },
+      { action: 'insert', afterId: anchorId, litexml: '<root><p><span>Survivor</span></p></root>' },
+    ]);
+
+    expect(results.map((result) => result.status)).toEqual(['applied', 'applied', 'applied']);
+    expect(editor.export().markdown).toContain('Survivor');
+    expect(editor.export().markdown).not.toContain('Temporary');
+  });
+
+  it('keeps inline afterId batch inserts in order when a prior inserted span is removed', async () => {
+    const editor = createEditor();
+    editor.hydrateMarkdown('Anchor text');
+    const before = editor.export({ litexml: true });
+    const anchorId = elementId(before.litexml!, 'span', 'Anchor text');
+
+    const results = await editor.applyLiteXMLBatchWithResults([
+      { action: 'insert', afterId: anchorId, litexml: '<span id="issue-218-inline-a">A</span>' },
+      { action: 'insert', afterId: anchorId, litexml: '<span id="issue-218-inline-b">B</span>' },
+      { action: 'remove', id: 'issue-218-inline-b' },
+      { action: 'insert', afterId: anchorId, litexml: '<span id="issue-218-inline-c">C</span>' },
+    ]);
+
+    expect(results.map((result) => result.status)).toEqual([
+      'applied',
+      'applied',
+      'applied',
+      'applied',
+    ]);
+    expect(editor.export().markdown).toContain('Anchor textAC');
+    expect(editor.export().markdown).not.toContain('B');
+  });
+
   it('reports unknown batch targets by operation and continues with later valid operations', async () => {
     const editor = createEditor();
     editor.hydrateMarkdown(LIST_MARKDOWN);

@@ -12,7 +12,7 @@ import {
 } from 'lexical';
 
 import { $closest } from '@/editor-kernel';
-import { $ensureUniqueNodeIds, $findNodeById } from '@/plugins/common/node/node-id';
+import { $ensureUniqueNodeIds, $findNodeById, $getNodeId } from '@/plugins/common/node/node-id';
 import { exportNodeToJSON } from '@/plugins/common/utils';
 import { createDebugLogger } from '@/utils/debug';
 
@@ -150,7 +150,7 @@ function applyLiteXMLBatch(
   operations: ReadonlyArray<LiteXmlModifyOperation>,
 ): LiteXmlOperationResult[] {
   let projectedDocument = getActiveSerializedDocument();
-  const afterAnchors = new Map<string, LexicalNode>();
+  const afterAnchors = new Map<string, string[]>();
   const results: LiteXmlOperationResult[] = [];
 
   operations.forEach((operation, index) => {
@@ -177,7 +177,6 @@ function applyLiteXMLBatch(
 
     try {
       let applied = false;
-      let insertedNode: LexicalNode | null = null;
       switch (operation.action) {
         case 'modify': {
           applied = handleModify(editor, dataSource, toArrayXml(operation.litexml), true);
@@ -188,11 +187,29 @@ function applyLiteXMLBatch(
           break;
         }
         case 'insert': {
-          const override = 'afterId' in operation ? afterAnchors.get(operation.afterId) : undefined;
-          insertedNode = handleInsert(editor, { ...operation, delay: true }, dataSource, override);
-          applied = insertedNode !== null;
-          if ('afterId' in operation && insertedNode) {
-            afterAnchors.set(operation.afterId, insertedNode);
+          const cursorIds =
+            'afterId' in operation ? afterAnchors.get(operation.afterId) : undefined;
+          let override: LexicalNode | undefined;
+          if (cursorIds) {
+            for (let cursorIndex = cursorIds.length - 1; cursorIndex >= 0; cursorIndex--) {
+              const cursor = $findNodeById(cursorIds[cursorIndex]);
+              if (cursor) {
+                override = cursor;
+                break;
+              }
+            }
+          }
+          const insertedNodeId = handleInsert(
+            editor,
+            { ...operation, delay: true },
+            dataSource,
+            override,
+          );
+          applied = insertedNodeId !== null;
+          if ('afterId' in operation && insertedNodeId) {
+            const nextCursors = afterAnchors.get(operation.afterId) || [];
+            nextCursors.push(insertedNodeId);
+            afterAnchors.set(operation.afterId, nextCursors);
           }
           break;
         }
@@ -732,11 +749,11 @@ function handleInsert(
       },
   dataSource: LitexmlDataSource,
   referenceNodeOverride?: LexicalNode,
-): LexicalNode | null {
+): string | null {
   const { litexml, delay } = payload;
   const isBefore = 'beforeId' in payload;
   const inode = dataSource.readLiteXMLToInode(litexml);
-  let insertedNode: LexicalNode | null = null;
+  let insertedNodeId: string | null = null;
 
   try {
     let referenceNode: LexicalNode | null = referenceNodeOverride || null;
@@ -764,6 +781,7 @@ function handleInsert(
       $parseSerializedNodeImpl(child, editor),
     );
     $ensureUniqueNodeIds(newNodes);
+    insertedNodeId = newNodes.length ? $getNodeId(newNodes.at(-1)!) || null : null;
 
     const referencesTableCell = $isTableCellNode(referenceNode);
     const insertsOnlyTableCells = newNodes.length > 0 && newNodes.every($isTableCellNode);
@@ -812,8 +830,7 @@ function handleInsert(
           referenceNode = referenceNode!.insertAfter(cell);
         });
       }
-      insertedNode = referenceNode;
-      return insertedNode;
+      return insertedNodeId;
     }
 
     if (!delay) {
@@ -828,8 +845,7 @@ function handleInsert(
           }
         });
       }
-      insertedNode = referenceNode;
-      return insertedNode;
+      return insertedNodeId;
     }
 
     const referencesTableRow = $isTableRowNode(referenceNode);
@@ -857,8 +873,7 @@ function handleInsert(
           referenceNode = referenceNode!.insertAfter(diffRow);
         });
       }
-      insertedNode = referenceNode;
-      return insertedNode;
+      return insertedNodeId;
     }
 
     // delay insertion: show diffs or wrap block modifications
@@ -964,11 +979,11 @@ function handleInsert(
         }
       }
     }
-    insertedNode = referenceNode;
   } catch (error) {
     logger.error('❌ Error inserting node:', error);
+    insertedNodeId = null;
   }
-  return insertedNode;
+  return insertedNodeId;
 }
 
 // Command identities live in the side-effect-free `./symbols` module so they
