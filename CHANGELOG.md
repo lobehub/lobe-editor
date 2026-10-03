@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;4.29.0](https://github.com/lobehub/lobe-editor/compare/v4.28.0...v4.29.0)
+<sup>Released on **2026-10-03**</sup>
+
+
+#### ✨ Features
+
+- **image**: Preview images with the @lobehub/ui viewer.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **image**: Preview images with the @lobehub/ui viewer, closes [#223](https://github.com/lobehub/lobe-editor/issues/223) ([93753ed](https://github.com/lobehub/lobe-editor/commit/93753ed))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.28.0](https://github.com/lobehub/lobe-editor/compare/v4.27.4...v4.28.0)
 <sup>Released on **2026-10-03**</sup>
 
