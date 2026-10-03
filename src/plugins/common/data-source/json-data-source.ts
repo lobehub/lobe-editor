@@ -14,25 +14,50 @@ import {
   $isRangeSelection,
   $isTextNode,
   IS_CODE,
-  resetRandomKey,
 } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
-import { INodeHelper } from '@/editor-kernel/inode/helper';
-import { $parseSerializedNodeImpl } from '@/plugins/litexml/utils';
+import { $normalizeNodeIds, migrateSerializedNodeIds } from '@/plugins/common/node/node-id';
 
 import { cursorNodeSerialized } from '../node/cursor';
 import { exportNodeToJSON } from '../utils';
 
 export default class JSONDataSource extends DataSource {
   read(editor: LexicalEditor, data: any, options: Record<string, unknown> = {}) {
-    let dataObj: SerializedEditorState<SerializedLexicalNode>;
+    let inputData: SerializedEditorState<SerializedLexicalNode>;
     if (typeof data === 'string') {
-      dataObj = JSON.parse(data) as SerializedEditorState<SerializedLexicalNode>;
+      inputData = JSON.parse(data) as SerializedEditorState<SerializedLexicalNode>;
     } else {
-      dataObj = data as SerializedEditorState<SerializedLexicalNode>;
+      inputData = data as SerializedEditorState<SerializedLexicalNode>;
     }
+    const dataObj = structuredClone(inputData) as SerializedEditorState<SerializedLexicalNode> & {
+      keepId?: boolean;
+    };
+    const keepIds = options.keepId ?? dataObj.keepId ?? false;
+
+    if (!keepIds) {
+      const stripNodeIds = (node: Record<string, any>) => {
+        delete node.id;
+        const state = node.$;
+        if (state && typeof state === 'object' && state.properties) {
+          const properties = { ...state.properties };
+          delete properties.nodeId;
+          if (Object.keys(properties).length > 0) {
+            node.$ = { ...state, properties };
+          } else {
+            const nextState = { ...state };
+            delete nextState.properties;
+            if (Object.keys(nextState).length > 0) node.$ = nextState;
+            else delete node.$;
+          }
+        }
+        if (Array.isArray(node.children)) {
+          node.children.forEach((child: Record<string, any>) => stripNodeIds(child));
+        }
+      };
+      stripNodeIds(dataObj.root as unknown as Record<string, any>);
+    } else migrateSerializedNodeIds(dataObj.root);
     const process = (node: SerializedElementNode) => {
       for (let i = 0; i < node.children.length; i++) {
         const child = node.children[i];
@@ -63,35 +88,10 @@ export default class JSONDataSource extends DataSource {
       }
     };
     process(dataObj.root);
-    // @ts-expect-error add id option
-    if (dataObj.keepId || options.keepId) {
-      const state = editor.parseEditorState(
-        {
-          root: INodeHelper.createRootNode(),
-        },
-        (state) => {
-          try {
-            const root = $parseSerializedNodeImpl(dataObj.root, editor, true, state);
-            let maxId = -1;
-            Array.from(state._nodeMap.keys()).forEach((key) => {
-              if (key === 'root') return;
-              const numericKey = Number(key);
-              if (Number.isInteger(numericKey) && numericKey >= 0) {
-                maxId = Math.max(maxId, numericKey);
-              }
-            });
-            // make sure to reset random key to avoid id conflicts
-            resetRandomKey(maxId + 1);
-            state._nodeMap.set(root.getKey(), root);
-          } catch (error) {
-            console.error(error);
-          }
-        },
-      );
-      editor.setEditorState(state);
-    } else {
-      editor.setEditorState(editor.parseEditorState({ root: dataObj.root }));
-    }
+    const editorState = editor.parseEditorState({ root: dataObj.root }, () => {
+      $normalizeNodeIds($getRoot());
+    });
+    editor.setEditorState(editorState);
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {

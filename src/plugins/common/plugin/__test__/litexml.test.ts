@@ -6,6 +6,8 @@ import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 import { IEditor } from '@/types';
 
+import { normalizeOpaqueIds } from '../../../litexml/__test__/normalize-opaque-ids';
+
 describe('Common Plugin Tests', () => {
   let kernel: IEditor;
 
@@ -28,8 +30,10 @@ describe('Common Plugin Tests', () => {
   it('should litexml writer work', () => {
     kernel.setDocument('markdown', 'this is <ins>underline</ins> and this is <u>underline2</u>');
     const xml = kernel.getDocument('litexml') as unknown as string;
-    expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="ll63"><span id="lqqe">this is </span><span id="lwap" underline="true">underline</span><span id="m1v0"> and this is </span><span id="m7fb" underline="true">underline2</span></p></root>`,
+    expect(normalizeOpaqueIds(xml.replace(/>\n\s*?</g, '><'))).toBe(
+      normalizeOpaqueIds(
+        `<?xml version="1.0" encoding="UTF-8"?><root><p id="ll63"><span id="lqqe">this is </span><span id="lwap" underline="true">underline</span><span id="m1v0"> and this is </span><span id="m7fb" underline="true">underline2</span></p></root>`,
+      ),
     );
   });
 

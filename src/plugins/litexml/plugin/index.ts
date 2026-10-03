@@ -150,6 +150,9 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
         case 'remove': {
           break;
         }
+        case 'listItemRemove': {
+          break;
+        }
         case 'listItemModify': {
           (diffNode.getChildAtIndex(1) as ElementNode).getChildren().forEach((child) => {
             nodeToXML(child, lines, indent);
@@ -230,6 +233,9 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
           break;
         }
         case 'remove': {
+          break;
+        }
+        case 'listItemRemove': {
           break;
         }
         case 'listItemModify': {

@@ -16,6 +16,7 @@ import {
   $createLineBreakNode,
   $createParagraphNode,
   $getSelection,
+  $isElementNode,
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
@@ -24,12 +25,15 @@ import {
   INSERT_PARAGRAPH_COMMAND,
   ParagraphNode,
   PASTE_COMMAND,
+  RootNode,
+  SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
   TEXT_TYPE_TO_FORMAT,
   TextNode,
 } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { $clearNodeId, $normalizeNodeIds } from '@/plugins/common/node/node-id';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { isPunctuationChar } from '@/plugins/markdown/utils';
@@ -337,6 +341,15 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       if (!$isTextNode(node)) {
         return;
       }
+      let parentNode = node.getParent();
+      let isInTableCell = false;
+      while (parentNode) {
+        if (parentNode.getType() === 'tablecell' || parentNode.getType() === 'table-cell-diff') {
+          isInTableCell = true;
+          break;
+        }
+        parentNode = parentNode.getParent();
+      }
       const isBold = formats.bold && node.hasFormat('bold');
       const isItalic = formats.italic && node.hasFormat('italic');
       const isUnderline = node.hasFormat('underline');
@@ -371,7 +384,10 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       }
       const append = textContent.trimEnd();
       const lastChar = append.at(-1);
-      ctx.appendLine(append);
+      const markdownText = isInTableCell
+        ? append.replaceAll('\\', '\\\\').replaceAll('|', '\\|')
+        : append;
+      ctx.appendLine(markdownText);
 
       if (isSubscript) {
         ctx.appendLine('~');
@@ -411,6 +427,21 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    this.register(editor.registerNodeTransform(RootNode, $normalizeNodeIds));
+    this.register(
+      editor.registerCommand(
+        SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
+        ({ nodes }) => {
+          const clearCopiedIds = (node: import('lexical').LexicalNode) => {
+            $clearNodeId(node);
+            if ($isElementNode(node)) node.getChildren().forEach(clearCopiedIds);
+          };
+          nodes.forEach(clearCopiedIds);
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+    );
     this.register(
       this.kernel.registerHighCommand(
         PASTE_COMMAND,

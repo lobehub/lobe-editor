@@ -49,7 +49,135 @@ const getShape = (editor: Kernel) => {
   };
 };
 
+const collectNodeIds = (node: any): string[] => {
+  const id = node?.$?.properties?.nodeId;
+  return [
+    ...(typeof id === 'string' ? [id] : []),
+    ...(Array.isArray(node?.children) ? node.children.flatMap(collectNodeIds) : []),
+  ];
+};
+
+const removeSerializedNodeIds = (node: any): void => {
+  if (!node || typeof node !== 'object') return;
+  delete node.id;
+  if (node.$?.properties) {
+    delete node.$.properties.nodeId;
+    if (Object.keys(node.$.properties).length === 0) delete node.$.properties;
+    if (Object.keys(node.$).length === 0) delete node.$;
+  }
+  node.children?.forEach(removeSerializedNodeIds);
+};
+
 describe('YjsService external snapshots', () => {
+  it('replays legacy and mixed-ID snapshots idempotently and preserves front-inserted identities', () => {
+    const editorA = createEditor();
+    const editorB = createEditor();
+    const docA = new Doc();
+    const docB = new Doc();
+    const providerA = createProvider();
+    const providerB = createProvider();
+    const bindingA = createBinding(
+      editorA.getLexicalEditor()!,
+      providerA,
+      'legacy-page',
+      docA,
+      new Map(),
+    );
+    const bindingB = createBinding(
+      editorB.getLexicalEditor()!,
+      providerB,
+      'legacy-page',
+      docB,
+      new Map(),
+    );
+    const serviceA = new YjsService();
+    const serviceB = new YjsService();
+    serviceA.setState({
+      binding: bindingA,
+      doc: docA,
+      docMap: new Map(),
+      id: 'legacy-page',
+      provider: providerA,
+    });
+    serviceB.setState({
+      binding: bindingB,
+      doc: docB,
+      docMap: new Map(),
+      id: 'legacy-page',
+      provider: providerB,
+    });
+
+    editorA.setDocument('markdown', 'Legacy snapshot paragraph');
+    const snapshot = editorA.getDocument('json') as unknown as Record<string, any>;
+    const legacySnapshot = structuredClone(snapshot);
+    removeSerializedNodeIds(legacySnapshot.root);
+
+    expect(serviceA.applyExternalEditorData(legacySnapshot)).toBe(true);
+    const firstIds = collectNodeIds((editorA.getDocument('json') as any).root);
+    expect(firstIds.length).toBeGreaterThan(0);
+    expect(collectNodeIds((editorA.getDocument('json') as any).root)).toEqual(firstIds);
+
+    expect(serviceA.applyExternalEditorData(legacySnapshot)).toBe(false);
+    applyUpdate(docB, encodeStateAsUpdate(docA));
+    expect(serviceB.applyExternalEditorData(legacySnapshot)).toBe(false);
+    expect(collectNodeIds((editorB.getDocument('json') as any).root)).toEqual(firstIds);
+
+    const originalParagraphId = firstIds[0];
+    const originalTextId = firstIds[1];
+    const mixedSnapshot = structuredClone(legacySnapshot);
+    const mixedParagraph = mixedSnapshot.root.children[0];
+    mixedParagraph.id = originalParagraphId;
+    mixedParagraph.$ = { properties: { nodeId: originalParagraphId } };
+    expect(mixedParagraph.children[0].id).toBeUndefined();
+    expect(mixedParagraph.children[0].$?.properties?.nodeId).toBeUndefined();
+
+    expect(serviceB.applyExternalEditorData(mixedSnapshot)).toBe(false);
+    expect(collectNodeIds((editorB.getDocument('json') as any).root)).toEqual(firstIds);
+    expect(serviceA.applyExternalEditorData(mixedSnapshot)).toBe(false);
+    expect(collectNodeIds((editorA.getDocument('json') as any).root)).toEqual(firstIds);
+
+    const changedSnapshot = structuredClone(mixedSnapshot);
+    const paragraph = changedSnapshot.root.children[0];
+    paragraph.$.properties.nodeId = 'explicit-node-id-update';
+    paragraph.id = 'explicit-node-id-update';
+    expect(serviceB.applyExternalEditorData(changedSnapshot)).toBe(true);
+    expect(collectNodeIds((editorB.getDocument('json') as any).root)).toEqual([
+      'explicit-node-id-update',
+      originalTextId,
+    ]);
+
+    const insertedSnapshot = structuredClone(legacySnapshot);
+    insertedSnapshot.root.children.unshift({
+      children: [
+        {
+          detail: 0,
+          format: 0,
+          mode: 'normal',
+          style: '',
+          text: 'Inserted C',
+          type: 'text',
+          version: 1,
+        },
+      ],
+      direction: 'ltr',
+      format: '',
+      indent: 0,
+      textFormat: 0,
+      textStyle: '',
+      type: 'paragraph',
+      version: 1,
+    });
+    expect(serviceA.applyExternalEditorData(insertedSnapshot)).toBe(true);
+    const paragraphs = (editorA.getDocument('json') as any).root.children;
+    const insertedParagraph = paragraphs[0];
+    expect(insertedParagraph.children[0].text).toBe('Inserted C');
+    expect(insertedParagraph.$.properties.nodeId).not.toBe(originalParagraphId);
+    expect(paragraphs[1].children[0].text).toBe('Legacy snapshot paragraph');
+
+    editorA.destroy();
+    editorB.destroy();
+  });
+
   it('applies one AI snapshot across two clients without growing paragraphs or table cells', () => {
     const editorA = createEditor();
     const editorB = createEditor();

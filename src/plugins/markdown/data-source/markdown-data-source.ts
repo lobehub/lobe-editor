@@ -20,6 +20,7 @@ import remarkGfm from 'remark-gfm';
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
+import { $normalizeNodeIds } from '@/plugins/common/node/node-id';
 import { INodeService } from '@/plugins/inode';
 import type { IServiceID } from '@/types';
 
@@ -66,7 +67,10 @@ export default class MarkdownDataSource extends DataSource {
 
     logger.debug('Parsed Lexical State:', inode);
 
-    editor.setEditorState(editor.parseEditorState(inode));
+    const editorState = editor.parseEditorState(inode, () => {
+      $normalizeNodeIds($getRoot());
+    });
+    editor.setEditorState(editorState);
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {

@@ -43,6 +43,7 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
   - [Plugin Features](#plugin-features)
 - [📖 API Reference](#-api-reference)
   - [Editor Kernel](#editor-kernel)
+  - [LiteXML and Node IDs](#litexml-and-node-ids)
   - [Plugin System](#plugin-system)
 - [🛠️ Development](#️-development)
   - [Setup](#setup)
@@ -350,6 +351,56 @@ interface IEditor {
   getLexicalEditor(): LexicalEditor | null;
   getRootElement(): HTMLElement | null;
   requireService<T>(serviceId: ServiceID<T>): T | null;
+}
+```
+
+### LiteXML and Node IDs
+
+Each node's durable public ID is stored at `$.properties.nodeId`; LiteXML exposes the same value as its `id` attribute. These IDs are opaque and independent of Lexical runtime keys. Read them from an exported LiteXML snapshot before using them as an operation's `id`, `beforeId`, or `afterId`. Replacing a node or showing its before/after review sides preserves its ID; an independent new node receives a unique ID. Importing JSON with `keepId: true` preserves the ID strings verbatim, while `keepId: false` assigns fresh IDs.
+
+`HeadlessEditor.applyLiteXMLBatchWithResults(operations)` returns one result per input operation, in array order. `status: 'applied'` means the change is staged in the editor; pending review diffs still need a separate accept or reject action. Failed operations include a reason, and later operations still run:
+
+```typescript
+import { createHeadlessEditor } from '@lobehub/editor/headless';
+
+const editor = createHeadlessEditor();
+editor.hydrateMarkdown('- first\n- second');
+const { litexml } = editor.export({ litexml: true });
+const targetId = /<li id="([^"]+)"/.exec(litexml!)?.[1];
+if (!targetId) throw new Error('No list item ID found in LiteXML');
+
+const operations = [
+  { action: 'remove' as const, id: targetId },
+  { action: 'remove' as const, id: 'unknown-id' },
+];
+
+const results = await editor.applyLiteXMLBatchWithResults(operations);
+// results[1] has status: 'failed' and a reason.
+editor.destroy();
+```
+
+For a direct `IEditor` integration, dispatch `LITEXML_MODIFY_WITH_RESULTS_COMMAND` instead of calling the headless wrapper:
+
+```typescript
+import type { IEditor } from '@lobehub/editor';
+import { LITEXML_MODIFY_WITH_RESULTS_COMMAND } from '@lobehub/editor/litexml-commands';
+
+function applyWithResults(kernel: IEditor) {
+  // The editor is already initialized with LiteXML and has a loaded document.
+  const currentLiteXml = kernel.getDocument('litexml') as unknown as string;
+  const targetId = /<li id="([^"]+)"/.exec(currentLiteXml)?.[1];
+  if (!targetId) throw new Error('No list item ID found in LiteXML');
+
+  kernel.dispatchCommand(LITEXML_MODIFY_WITH_RESULTS_COMMAND, {
+    operations: [
+      { action: 'remove', id: targetId },
+      { action: 'remove', id: 'unknown-id' },
+    ],
+    onResults: (batchResults) => {
+      const failed = batchResults.filter((result) => result.status === 'failed');
+      console.log(failed);
+    },
+  });
 }
 ```
 

@@ -1,6 +1,6 @@
 import {
-  CodePlugin,
   CodeblockPlugin,
+  CodePlugin,
   CommonPlugin,
   FilePlugin,
   HRPlugin,
@@ -12,13 +12,66 @@ import {
   MentionPlugin,
   TablePlugin,
 } from '@lobehub/editor';
-import { COPY_COMMAND, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
+import {
+  $getRoot,
+  $isElementNode,
+  $isTextNode,
+  COPY_COMMAND,
+  type LexicalNode,
+  REDO_COMMAND,
+  UNDO_COMMAND,
+} from 'lexical';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Editor from '@/editor-kernel';
+import { LitexmlPlugin } from '@/plugins/litexml';
+import { LITEXML_APPLY_COMMAND } from '@/plugins/litexml/command';
 
 import { MarkdownPlugin } from '../../plugin';
 import { GET_MARKDOWN_SELECTION_COMMAND, INSERT_MARKDOWN_COMMAND } from '../index';
+
+function findLexicalNode(
+  node: LexicalNode,
+  predicate: (candidate: LexicalNode) => boolean,
+): LexicalNode | null {
+  if (predicate(node)) return node;
+  if (!$isElementNode(node)) return null;
+  for (const child of node.getChildren()) {
+    const found = findLexicalNode(child, predicate);
+    if (found) return found;
+  }
+  return null;
+}
+
+function getTextNodeRuntimeKey(
+  editor: ReturnType<typeof Editor.createEditor>,
+  text: string,
+): string {
+  const lexicalEditor = editor.getLexicalEditor();
+  if (!lexicalEditor) throw new Error('Expected the editor to be initialized.');
+
+  return lexicalEditor.getEditorState().read(() => {
+    const node = findLexicalNode(
+      $getRoot(),
+      (candidate) => $isTextNode(candidate) && candidate.getTextContent() === text,
+    );
+    if (!$isTextNode(node)) throw new Error(`Could not find text node ${JSON.stringify(text)}`);
+    return node.getKey();
+  });
+}
+
+function getFirstParagraphRuntimeKey(editor: ReturnType<typeof Editor.createEditor>): string {
+  const lexicalEditor = editor.getLexicalEditor();
+  if (!lexicalEditor) throw new Error('Expected the editor to be initialized.');
+
+  return lexicalEditor.getEditorState().read(() => {
+    const node = $getRoot().getFirstChild();
+    if (!node || node.getType() !== 'paragraph') {
+      throw new Error('Could not find the first paragraph.');
+    }
+    return node.getKey();
+  });
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -574,10 +627,11 @@ describe('Markdown Commands', () => {
         { keepId: true },
       );
 
+      const textNodeKey = getTextNodeRuntimeKey(editor, 'before js代码 after');
       await editor.setSelection({
-        endNodeId: '2',
+        endNodeId: textNodeKey,
         endOffset: 11,
-        startNodeId: '2',
+        startNodeId: textNodeKey,
         startOffset: 7,
         type: 'range',
       });
@@ -653,10 +707,12 @@ describe('Markdown Commands', () => {
         { keepId: true },
       );
 
+      const firstTextNodeKey = getTextNodeRuntimeKey(editor, 'before 第一段');
+      const secondTextNodeKey = getTextNodeRuntimeKey(editor, '第二段 after');
       await editor.setSelection({
-        endNodeId: '4',
+        endNodeId: secondTextNodeKey,
         endOffset: 3,
-        startNodeId: '2',
+        startNodeId: firstTextNodeKey,
         startOffset: 7,
         type: 'range',
       });
@@ -701,13 +757,16 @@ describe('Markdown Commands', () => {
         { keepId: true },
       );
 
-      await editor.setSelection({
-        endNodeId: '1',
-        endOffset: 0,
-        startNodeId: '1',
-        startOffset: 0,
-        type: 'range',
-      });
+      const paragraphKey = getFirstParagraphRuntimeKey(editor);
+      expect(
+        await editor.setSelection({
+          endNodeId: paragraphKey,
+          endOffset: 0,
+          startNodeId: paragraphKey,
+          startOffset: 0,
+          type: 'range',
+        }),
+      ).toBe(true);
 
       const prePasteHistoryState = editor.getHistoryState().current;
 
@@ -764,13 +823,20 @@ describe('Markdown Commands', () => {
       editor.initNodeEditor();
       // Set up editor with multi-line content
       editor.setDocument('json', json, { keepId: true });
-      editor.setSelection({
-        endNodeId: '28',
-        endOffset: 6,
-        startNodeId: '6',
-        startOffset: 33,
-        type: 'range',
-      });
+      const startNodeKey = getTextNodeRuntimeKey(
+        editor,
+        'The playground is a demo environment built with ',
+      );
+      const endNodeKey = getTextNodeRuntimeKey(editor, 'GitHub repository');
+      expect(
+        await editor.setSelection({
+          endNodeId: endNodeKey,
+          endOffset: 6,
+          startNodeId: startNodeKey,
+          startOffset: 33,
+          type: 'range',
+        }),
+      ).toBe(true);
       const ret = await new Promise((resolve) => {
         editor.dispatchCommand(GET_MARKDOWN_SELECTION_COMMAND, {
           onResult: (startLine: number, endLine: number) => {
@@ -779,6 +845,75 @@ describe('Markdown Commands', () => {
         });
       });
       expect(ret).toEqual({ startLine: 5, endLine: 8 });
+    });
+
+    it('maps a root-boundary range selection into the clone', async () => {
+      const editor = Editor.createEditor().registerPlugins([CommonPlugin, MarkdownPlugin]);
+      editor.initNodeEditor();
+      editor.setDocument('markdown', 'First paragraph\n\nSecond paragraph');
+
+      const lexicalEditor = editor.getLexicalEditor()!;
+      const { rootKey, rootChildren } = lexicalEditor.getEditorState().read(() => ({
+        rootChildren: $getRoot().getChildrenSize(),
+        rootKey: $getRoot().getKey(),
+      }));
+      expect(
+        await editor.setSelection({
+          endNodeId: rootKey,
+          endOffset: rootChildren,
+          startNodeId: rootKey,
+          startOffset: 0,
+          type: 'range',
+        }),
+      ).toBe(true);
+
+      const result = await new Promise((resolve) => {
+        editor.dispatchCommand(GET_MARKDOWN_SELECTION_COMMAND, {
+          onResult: (startLine: number, endLine: number) => resolve({ startLine, endLine }),
+        });
+      });
+
+      expect(result).toEqual({ startLine: 1, endLine: 3 });
+    });
+
+    it('maps a pending review selection to its active after side in the clone', async () => {
+      const editor = Editor.createEditor().registerPlugins([
+        CommonPlugin,
+        MarkdownPlugin,
+        LitexmlPlugin,
+      ]);
+      editor.initNodeEditor();
+      editor.setDocument('markdown', 'First paragraph\n\nTarget text\n\nLast paragraph');
+
+      const sourceXml = editor.getDocument('litexml') as unknown as string;
+      const targetId = /<span id="([^"]+)">Target text<\/span>/.exec(sourceXml)?.[1];
+      expect(targetId).toBeTruthy();
+
+      editor.dispatchCommand(LITEXML_APPLY_COMMAND, {
+        delay: true,
+        litexml: `<span id="${targetId}">Replacement text</span>`,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(editor.getDocument('markdown')).toContain('Replacement text');
+      const afterSideKey = getTextNodeRuntimeKey(editor, 'Replacement text');
+      expect(
+        await editor.setSelection({
+          endNodeId: afterSideKey,
+          endOffset: 'Replacement text'.length,
+          startNodeId: afterSideKey,
+          startOffset: 0,
+          type: 'range',
+        }),
+      ).toBe(true);
+
+      const result = await new Promise((resolve) => {
+        editor.dispatchCommand(GET_MARKDOWN_SELECTION_COMMAND, {
+          onResult: (startLine: number, endLine: number) => resolve({ startLine, endLine }),
+        });
+      });
+
+      expect(result).toEqual({ startLine: 3, endLine: 3 });
     });
   });
 });
