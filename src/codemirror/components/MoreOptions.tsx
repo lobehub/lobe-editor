@@ -36,6 +36,7 @@ export const MoreOptions: FC<MoreOptionsProps> = ({
               min={1}
               onChange={handleTabSizeChange as any}
               size="small"
+              style={{ width: 80 }}
               value={tabSize}
             />
           </Flexbox>
