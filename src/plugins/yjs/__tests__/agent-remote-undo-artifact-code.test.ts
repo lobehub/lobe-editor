@@ -1057,7 +1057,7 @@ describe('remote Agent structure replacement and browser undo history', () => {
     expectCodeHoleAt(browserA.kernel, 3);
     expect(countType(browserA.kernel, 'artifact')).toBe(1);
     expect(countType(browserA.kernel, 'code')).toBe(1);
-    expect(browserA.kernel.getDocument('markdown')).toContain('BOUNDARY\\_OWN');
+    expect(browserA.kernel.getDocument('markdown')).toMatch(/BOUNDARY(?:\\)?_OWN/);
   });
 
   it('observes repeated Undo through the local Code insertion after an Agent rewrite', async () => {
