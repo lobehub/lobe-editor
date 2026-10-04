@@ -6,6 +6,7 @@ import {
   $normalizeNodeIds,
   editorStateHasCompleteNodeIds,
   inheritMissingSerializedNodeIds,
+  isValidContentNodeId,
   migrateSerializedNodeIds,
 } from '@/plugins/common/node/node-id';
 import type { IServiceID } from '@/types';
@@ -68,9 +69,9 @@ const serializeComparableStateForSnapshot = (
       const properties = snapshotRecord.$?.properties;
       const hasExplicitId =
         snapshotRecord.type !== 'root' &&
-        ((typeof snapshotRecord.id === 'string' && snapshotRecord.id.trim()) ||
+        (isValidContentNodeId(snapshotRecord.id) ||
           (typeof snapshotRecord.id === 'number' && Number.isFinite(snapshotRecord.id)) ||
-          (typeof properties?.nodeId === 'string' && properties.nodeId.trim()));
+          isValidContentNodeId(properties?.nodeId));
       if (!hasExplicitId) {
         delete stateRecord.id;
         if (stateRecord.$?.properties) {
@@ -145,7 +146,7 @@ export class YjsService {
       snapshot.root,
     );
     const nextEditorState = binding.editor.parseEditorState(JSON.stringify(snapshot), () => {
-      $normalizeNodeIds($getRoot());
+      $normalizeNodeIds($getRoot(), { stableDuplicateRepair: true });
     });
     const isSameState =
       serializeComparableEditorState(previousEditorState) ===

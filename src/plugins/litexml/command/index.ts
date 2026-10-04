@@ -1,4 +1,4 @@
-import { $isListItemNode } from '@lexical/list';
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import { $isTableCellNode, $isTableNode, $isTableRowNode } from '@lexical/table';
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor, LexicalNode } from 'lexical';
@@ -23,6 +23,7 @@ import {
   type LiteXmlProjectionOperation,
   projectLiteXmlOperation,
   type SerializedDiffDocument,
+  type SerializedDiffTreeNode,
 } from '../diff-validation';
 import { $createDiffContentNode, $isDiffContentNode } from '../node/DiffContentNode';
 import { $createDiffNode, $isDiffNode, DiffNode } from '../node/DiffNode';
@@ -66,11 +67,11 @@ function projectOperation(
   dataSource: LitexmlDataSource,
   document: SerializedDiffDocument,
   operation: LiteXmlProjectionOperation,
+  readXml: (xml: string) => { root?: { children?: SerializedDiffTreeNode[] } } = (xml) =>
+    dataSource.readLiteXMLToInode(xml),
 ): SerializedDiffDocument | null {
   try {
-    const projected = projectLiteXmlOperation(document, operation, (xml) =>
-      dataSource.readLiteXMLToInode(xml),
-    );
+    const projected = projectLiteXmlOperation(document, operation, readXml);
     const newIllegalDiffs = hasNewIllegalDiffs(document, projected);
     if (newIllegalDiffs.length > 0) {
       logger.warn('⚠️ Skipping operation with illegal nested diff', newIllegalDiffs);
@@ -95,6 +96,79 @@ function getSerializedNodeId(node: any): string | undefined {
 
 function getActiveSerializedDocument(): SerializedDiffDocument {
   return { root: exportNodeToJSON($getRoot()) as SerializedDiffDocument['root'] };
+}
+
+interface PreparedModify {
+  pairs: Array<{ newNode: LexicalNode; oldNode: LexicalNode }>;
+  readXml: (xml: string) => { root?: { children?: SerializedDiffTreeNode[] } };
+}
+
+/** Resolve every target before staging any part of one modify operation. */
+function prepareModify(
+  editor: LexicalEditor,
+  dataSource: LitexmlDataSource,
+  xmls: string[],
+): PreparedModify {
+  const pairs: PreparedModify['pairs'] = [];
+  const parsed = new Map<string, { root?: { children?: SerializedDiffTreeNode[] } }>();
+  const targetIds = new Set<string>();
+
+  for (const xml of xmls) {
+    const inode = dataSource.readLiteXMLToInode(xml);
+    parsed.set(xml, inode);
+    const children = inode.root?.children as SerializedDiffTreeNode[] | undefined;
+    if (!children?.length) throw new Error('Modify operation contains no LiteXML nodes.');
+
+    for (const child of children) {
+      const nodeId = getSerializedNodeId(child);
+      if (!nodeId) throw new Error('Modify operation root is missing its public node id.');
+      if (targetIds.has(nodeId)) throw new Error(`Node id "${nodeId}" is targeted more than once.`);
+      targetIds.add(nodeId);
+
+      const oldNode = $findNodeById(nodeId);
+      if (!oldNode) throw new Error(`Node id "${nodeId}" was not found.`);
+      const newNode = $parseSerializedNodeImpl(child, editor);
+      if (oldNode.isInline() !== newNode.isInline()) {
+        throw new Error(`Node id "${nodeId}" cannot change between inline and block structure.`);
+      }
+      const parent = oldNode.getParent();
+      if (
+        ($isListNode(parent) || $isListItemNode(oldNode) || $isListItemNode(newNode)) &&
+        (!$isListNode(parent) || !$isListItemNode(oldNode) || !$isListItemNode(newNode))
+      ) {
+        throw new Error(`Node id "${nodeId}" has an incompatible list-item structure.`);
+      }
+      if (
+        ($isTableNode(parent) && (!$isTableRowNode(oldNode) || !$isTableRowNode(newNode))) ||
+        ($isTableRowNode(parent) && (!$isTableCellNode(oldNode) || !$isTableCellNode(newNode))) ||
+        ($isTableRowNode(newNode) && !$isTableNode(parent)) ||
+        ($isTableCellNode(newNode) && !$isTableRowNode(parent))
+      ) {
+        throw new Error(`Node id "${nodeId}" has an incompatible table structure.`);
+      }
+      if (
+        ($isTableRowNode(oldNode) || $isTableRowNode(newNode)) &&
+        (!$isTableRowNode(oldNode) ||
+          !$isTableRowNode(newNode) ||
+          !$isTableNode(parent) ||
+          !$areTableRowStructuresCompatible(oldNode, newNode))
+      ) {
+        throw new Error(`Node id "${nodeId}" has an incompatible table row structure.`);
+      }
+      pairs.push({ newNode, oldNode });
+    }
+  }
+
+  const targetKeys = new Set(pairs.map(({ oldNode }) => oldNode.getKey()));
+  for (const { oldNode } of pairs) {
+    for (let parent = oldNode.getParent(); parent; parent = parent.getParent()) {
+      if (targetKeys.has(parent.getKey())) {
+        throw new Error('Modify operation targets overlapping ancestor and descendant nodes.');
+      }
+    }
+  }
+
+  return { pairs, readXml: (xml) => parsed.get(xml)! };
 }
 
 function getBatchTargetError(
@@ -126,21 +200,6 @@ function getBatchTargetError(
       : `Insertion anchor "${anchorId}" was not found.`;
   }
 
-  try {
-    const xmls = Array.isArray(operation.litexml) ? operation.litexml : [operation.litexml];
-    for (const xml of xmls) {
-      const inode = dataSource.readLiteXMLToInode(xml);
-      for (const node of inode.root.children || []) {
-        const nodeId = getSerializedNodeId(node);
-        if (!nodeId) return 'Modify operation root is missing its public node id.';
-        if (!hasActiveLiteXmlNodeId(document.root, nodeId)) {
-          return `Node id "${nodeId}" was not found.`;
-        }
-      }
-    }
-  } catch (error) {
-    return error instanceof Error ? error.message : String(error);
-  }
   return undefined;
 }
 
@@ -160,10 +219,26 @@ function applyLiteXMLBatch(
       return;
     }
 
+    let preparedModify: PreparedModify | undefined;
+    if (operation.action === 'modify') {
+      try {
+        preparedModify = prepareModify(editor, dataSource, toArrayXml(operation.litexml));
+      } catch (error) {
+        results.push({
+          action: operation.action,
+          index,
+          reason: error instanceof Error ? error.message : String(error),
+          status: 'failed',
+        });
+        return;
+      }
+    }
+
     const projection = projectOperation(
       dataSource,
       projectedDocument,
       toProjectionOperation(operation),
+      preparedModify?.readXml,
     );
     if (!projection) {
       results.push({
@@ -179,7 +254,7 @@ function applyLiteXMLBatch(
       let applied = false;
       switch (operation.action) {
         case 'modify': {
-          applied = handleModify(editor, dataSource, toArrayXml(operation.litexml), true);
+          applied = applyPreparedModify(editor, preparedModify!);
           break;
         }
         case 'remove': {
@@ -491,14 +566,26 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
         const { litexml, delay } = payload;
         const arrayXml = toArrayXml(litexml);
         if (!delay) {
-          handleModify(editor, dataSource, arrayXml, delay);
+          handleModify(editor, dataSource, arrayXml);
           return false;
         }
 
         const operation = { action: 'modify' as const, litexml };
         const document = getActiveSerializedDocument();
-        if (projectOperation(dataSource, document, toProjectionOperation(operation))) {
-          handleModify(editor, dataSource, arrayXml, delay);
+        try {
+          const prepared = prepareModify(editor, dataSource, arrayXml);
+          if (
+            projectOperation(
+              dataSource,
+              document,
+              toProjectionOperation(operation),
+              prepared.readXml,
+            )
+          ) {
+            applyPreparedModify(editor, prepared);
+          }
+        } catch (error) {
+          logger.error('❌ Failed to apply LiteXML modification:', error);
         }
         return false;
       },
@@ -550,72 +637,58 @@ export function registerLiteXMLCommand(editor: LexicalEditor, dataSource: Litexm
   );
 }
 
+function applyPreparedModify(editor: LexicalEditor, prepared: PreparedModify): boolean {
+  const modifyBlockNodes = new Set<string>();
+  const diffNodeMap = new Map<string, DiffNode>();
+  for (const { oldNode, newNode } of prepared.pairs) {
+    if (!handleReplaceForApplyDelay(oldNode, newNode, modifyBlockNodes, diffNodeMap, editor)) {
+      throw new Error(`Node id "${$getNodeId(oldNode)}" could not be modified.`);
+    }
+  }
+  finalizeModifyBlocks(modifyBlockNodes, diffNodeMap, editor);
+  return prepared.pairs.length > 0;
+}
+
 function handleModify(
   editor: LexicalEditor,
   dataSource: LitexmlDataSource,
   arrayXml: string[],
-  delay?: boolean,
 ): boolean {
   let applied = false;
-  if (delay) {
-    const modifyBlockNodes = new Set<string>();
-    const diffNodeMap = new Map<string, DiffNode>();
-    arrayXml.forEach((xml) => {
-      const inode = dataSource.readLiteXMLToInode(xml);
-      inode.root.children.forEach((child: any) => {
-        try {
-          const { oldNode, newNode } = tryParseChild(child, editor);
-          if (oldNode && newNode) {
-            applied =
-              handleReplaceForApplyDelay(oldNode, newNode, modifyBlockNodes, diffNodeMap, editor) ||
-              applied;
-          } else {
-            logger.warn(`⚠️ Node with key ${child.id} not found for diffing.`);
-          }
-        } catch (error) {
-          logger.error('❌ Error replacing node:', error);
-        }
-      });
-    });
-    // replace modified block nodes with diff nodes
-    finalizeModifyBlocks(modifyBlockNodes, diffNodeMap, editor);
-    applied ||= modifyBlockNodes.size > 0;
-  } else {
-    arrayXml.forEach((xml) => {
-      const inode = dataSource.readLiteXMLToInode(xml);
-      let prevNode: LexicalNode | null = null;
-      inode.root.children.forEach((child: any) => {
-        try {
-          const { oldNode, newNode } = tryParseChild(child, editor);
-          if (oldNode && newNode) {
-            prevNode = oldNode.replace(newNode, false);
-            applied = true;
-          } else if (newNode) {
-            if (prevNode) {
-              if (!newNode.isInline()) {
-                const prevBlock = $closest(prevNode, (node) => node.isInline() === false);
-                if (prevBlock) {
-                  prevNode = prevBlock.insertAfter(newNode);
-                } else {
-                  $insertNodes([newNode]);
-                  prevNode = newNode;
-                }
-                applied = true;
+  arrayXml.forEach((xml) => {
+    const inode = dataSource.readLiteXMLToInode(xml);
+    let prevNode: LexicalNode | null = null;
+    inode.root.children.forEach((child: any) => {
+      try {
+        const { oldNode, newNode } = tryParseChild(child, editor);
+        if (oldNode && newNode) {
+          prevNode = oldNode.replace(newNode, false);
+          applied = true;
+        } else if (newNode) {
+          if (prevNode) {
+            if (!newNode.isInline()) {
+              const prevBlock = $closest(prevNode, (node) => node.isInline() === false);
+              if (prevBlock) {
+                prevNode = prevBlock.insertAfter(newNode);
               } else {
-                prevNode = prevNode.insertAfter(newNode);
-                applied = true;
+                $insertNodes([newNode]);
+                prevNode = newNode;
               }
+              applied = true;
             } else {
-              $insertNodes([newNode]);
+              prevNode = prevNode.insertAfter(newNode);
               applied = true;
             }
+          } else {
+            $insertNodes([newNode]);
+            applied = true;
           }
-        } catch (error) {
-          logger.error('❌ Error replacing node:', error);
         }
-      });
+      } catch (error) {
+        logger.error('❌ Error replacing node:', error);
+      }
     });
-  }
+  });
   return applied;
 }
 

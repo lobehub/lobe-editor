@@ -6,7 +6,12 @@ import type {
 } from 'lexical';
 import { $isElementNode } from 'lexical';
 
-import { $getNodeId, $setNodeId } from '@/plugins/common/node/node-id';
+import {
+  $clearNodeId,
+  $getNodeId,
+  $setNodeId,
+  isValidContentNodeId,
+} from '@/plugins/common/node/node-id';
 
 export function $parseSerializedNodeImpl(serializedNode: any, editor: LexicalEditor): LexicalNode {
   const type = serializedNode.type;
@@ -23,8 +28,9 @@ export function $parseSerializedNodeImpl(serializedNode: any, editor: LexicalEdi
   }
 
   const node = nodeClass.importJSON(serializedNode);
-  const nodeId = typeof serializedNode.id === 'string' ? serializedNode.id : $getNodeId(node);
-  if (nodeId) $setNodeId(node, nodeId);
+  const nodeId = isValidContentNodeId(serializedNode.id) ? serializedNode.id : $getNodeId(node);
+  if (isValidContentNodeId(nodeId)) $setNodeId(node, nodeId);
+  else if (nodeId) $clearNodeId(node);
   const children = serializedNode.children;
 
   if ($isElementNode(node) && Array.isArray(children)) {

@@ -356,9 +356,11 @@ interface IEditor {
 
 ### LiteXML and Node IDs
 
-Each content node's durable public ID is stored at `$.properties.nodeId`; LiteXML exposes the same value as its `id` attribute. These IDs are opaque and independent of Lexical runtime keys. Read them from an exported LiteXML snapshot before using them as an operation's `id`, `beforeId`, or `afterId`. Importing JSON with `keepId: true` preserves the ID strings verbatim, while `keepId: false` assigns fresh IDs.
+Each content node's durable public ID is stored at `$.properties.nodeId`; LiteXML exposes the same value as its `id` attribute. These IDs are opaque and independent of Lexical runtime keys. Read them from an exported LiteXML snapshot before using them as an operation's `id`, `beforeId`, or `afterId`. Importing JSON with `keepId: true` preserves valid, nonconflicting IDs; `keepId: false` assigns fresh IDs. The literal `root` is reserved for document-boundary `beforeId` and `afterId` insertion anchors. Imported content IDs that trim to `root` are repaired with fresh IDs.
 
 An ID names a **logical content node**, not one physical Lexical object. A pending LiteXML modification can contain before and after representations with the same ID. Lookup addresses the active after representation; pending removals are absent from the active view. Accepting or rejecting a change keeps the surviving logical ID, while an independent copy or split receives a new ID. Review wrappers and the document root are not addressable. Without `LitexmlPlugin`, `CommonPlugin` uses a plain tree view with no review rules.
+
+Yjs external snapshots repair duplicate explicit IDs deterministically. Replaying the same malformed snapshot therefore keeps the repaired IDs and does not rewrite the shared document again.
 
 Use `$getNodeById` only synchronously inside a Lexical read or update. It returns a Lexical node in that context, so do not retain the result across updates. A historical `EditorState.read` must receive `{ editor: lexicalEditor }` to select that editor's identity policy. Invalid or unknown IDs return `null`.
 
@@ -389,7 +391,7 @@ function inspectNode(kernel: IEditor, id: string) {
 }
 ```
 
-`HeadlessEditor.applyLiteXMLBatchWithResults(operations)` returns one result per input operation, in array order. `status: 'applied'` means the change is staged in the editor; pending review diffs still need a separate accept or reject action. Failed operations include a reason, and later operations still run:
+`HeadlessEditor.applyLiteXMLBatchWithResults(operations)` returns one result per input operation, in array order. `status: 'applied'` means the change is staged in the editor; pending review diffs still need a separate accept or reject action. A `modify` operation containing multiple LiteXML fragments applies all of its targets or none: missing targets, malformed fragments, incompatible list, table, or inline/block structure, repeated target IDs, and ancestor/descendant target pairs fail that operation before it changes the document. Distinct sibling targets can be modified together. Failed operations include a reason, and later independent operations still run:
 
 ```typescript
 import { createHeadlessEditor } from '@lobehub/editor/headless';

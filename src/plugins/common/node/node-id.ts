@@ -15,6 +15,11 @@ import { $getNodeIdentityPolicy, type NodeIdentityPolicy } from './node-identity
 
 type NodeProperties = Record<string, unknown> & { nodeId?: string };
 
+/** `root` is the document insertion anchor, never a content-node identity. */
+export function isValidContentNodeId(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && value.trim() !== 'root';
+}
+
 const cloneProperties = (value: Record<string, unknown>): Record<string, unknown> => {
   if (typeof structuredClone === 'function') {
     try {
@@ -30,7 +35,7 @@ const parseProperties = (value: unknown): NodeProperties => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   const properties = cloneProperties(value as Record<string, unknown>);
   const nodeId = properties.nodeId;
-  if (typeof nodeId === 'string' && nodeId.trim()) {
+  if (isValidContentNodeId(nodeId)) {
     properties.nodeId = nodeId.trim();
   } else {
     delete properties.nodeId;
@@ -50,12 +55,15 @@ export const nodePropertiesState = createState('properties', {
 
 export function $getNodeId(node: LexicalNode): string | undefined {
   const nodeId = $getState(node, nodePropertiesState).nodeId;
-  return typeof nodeId === 'string' && nodeId.length > 0 ? nodeId : undefined;
+  return isValidContentNodeId(nodeId) ? nodeId : undefined;
 }
 
 export function $setNodeId(node: LexicalNode, nodeId: string): void {
   const normalized = nodeId.trim();
   if (!normalized) throw new Error('Node ID must be a non-empty string.');
+  if (!isValidContentNodeId(normalized)) {
+    throw new Error('Node ID "root" is reserved for the document anchor.');
+  }
   $setState(node, nodePropertiesState, (properties) => ({ ...properties, nodeId: normalized }));
 }
 
@@ -77,7 +85,7 @@ export function migrateSerializedNodeIds(node: unknown): void {
   const record = node as Record<string, unknown>;
   const legacyId =
     typeof record.id === 'string' || typeof record.id === 'number' ? String(record.id).trim() : '';
-  if (record.type !== 'root' && legacyId) {
+  if (record.type !== 'root') {
     const state =
       record.$ && typeof record.$ === 'object' && !Array.isArray(record.$)
         ? (record.$ as Record<string, unknown>)
@@ -86,19 +94,27 @@ export function migrateSerializedNodeIds(node: unknown): void {
       state.properties && typeof state.properties === 'object' && !Array.isArray(state.properties)
         ? (state.properties as Record<string, unknown>)
         : {};
-    if (typeof properties.nodeId !== 'string' || !properties.nodeId.trim()) {
+    if (!isValidContentNodeId(properties.nodeId) && isValidContentNodeId(legacyId)) {
       record.$ = { ...state, properties: { ...properties, nodeId: legacyId } };
+    } else if (!isValidContentNodeId(properties.nodeId) && 'nodeId' in properties) {
+      const nextProperties = { ...properties };
+      delete nextProperties.nodeId;
+      const nextState: Record<string, unknown> = { ...state, properties: nextProperties };
+      if (Object.keys(nextProperties).length === 0) delete nextState.properties;
+      if (Object.keys(nextState).length === 0) delete record.$;
+      else record.$ = nextState;
     }
+    if (!isValidContentNodeId(legacyId) && 'id' in record) delete record.id;
   }
   if (Array.isArray(record.children)) record.children.forEach(migrateSerializedNodeIds);
 }
 
 const serializedNodeId = (node: Record<string, any>): string | undefined => {
   const nodeId = node.$?.properties?.nodeId;
-  if (typeof nodeId === 'string' && nodeId.trim()) return nodeId.trim();
+  if (isValidContentNodeId(nodeId)) return nodeId.trim();
   if (typeof node.id === 'string' || typeof node.id === 'number') {
     const legacyId = String(node.id).trim();
-    return legacyId || undefined;
+    return isValidContentNodeId(legacyId) ? legacyId : undefined;
   }
   return undefined;
 };
@@ -213,6 +229,53 @@ function createNodeId(): string {
   return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+/** Serialize a subtree without identities so sibling order cannot stand in for identity. */
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'undefined';
+}
+
+function identityFreeNodeTree(
+  node: LexicalNode,
+  cache: WeakMap<LexicalNode, Record<string, unknown>>,
+): Record<string, unknown> {
+  const cached = cache.get(node);
+  if (cached) return cached;
+  const serialized = { ...node.exportJSON() } as Record<string, any>;
+  delete serialized.id;
+  if (serialized.$?.properties) {
+    serialized.$ = { ...serialized.$, properties: { ...serialized.$.properties } };
+    delete serialized.$.properties.nodeId;
+    if (Object.keys(serialized.$.properties).length === 0) delete serialized.$.properties;
+    if (Object.keys(serialized.$).length === 0) delete serialized.$;
+  }
+  if ($isElementNode(node)) {
+    serialized.children = node.getChildren().map((child) => identityFreeNodeTree(child, cache));
+  }
+  cache.set(node, serialized);
+  return serialized;
+}
+
+/** A stable, opaque repair ID for malformed external snapshots with duplicate IDs. */
+function duplicateRepairId(sourceId: string, fingerprint: string, occurrence: number): string {
+  const input = `${sourceId}\u0000${fingerprint}\u0000${occurrence}`;
+  const hashes = [0x811C9DC5, 0x9E3779B9, 0x85EBCA6B, 0xC2B2AE35];
+  for (let index = 0; index < input.length; index++) {
+    const code = input.charCodeAt(index);
+    for (let part = 0; part < hashes.length; part++) {
+      hashes[part] = Math.imul(hashes[part] ^ (code + part), 0x01000193);
+    }
+  }
+  return `dup-${hashes.map((hash) => (hash >>> 0).toString(16).padStart(8, '0')).join('')}`;
+}
+
 function recordActiveOwners(
   node: LexicalNode,
   owners: Map<string, string>,
@@ -235,17 +298,25 @@ function recordActiveOwners(
 }
 
 /** Assign identities once per root transform and repair copy/split collisions in one pass. */
-export function $normalizeNodeIds(root: LexicalNode): void {
+export function $normalizeNodeIds(
+  root: LexicalNode,
+  options: { stableDuplicateRepair?: boolean } = {},
+): void {
   if (!$isRootNode(root)) return;
   const editor = $getEditor();
   const policy = $getNodeIdentityPolicy();
   const previousOwners = new Map<string, string>();
-  editor.getEditorState().read(
-    () => {
-      recordActiveOwners($getRoot(), previousOwners, policy);
-    },
-    { editor },
-  );
+  const previousFingerprints = new Map<string, Set<string>>();
+  const previousIdsByFingerprint = new Map<string, Set<string>>();
+  const identityFreeTrees = new WeakMap<LexicalNode, Record<string, unknown>>();
+  const fingerprintCache = new WeakMap<LexicalNode, string>();
+  const fingerprint = (node: LexicalNode): string => {
+    const cached = fingerprintCache.get(node);
+    if (cached) return cached;
+    const signature = stableStringify(identityFreeNodeTree(node, identityFreeTrees));
+    fingerprintCache.set(node, signature);
+    return signature;
+  };
 
   const nodes: LexicalNode[] = [];
   const visit = (node: LexicalNode) => {
@@ -267,25 +338,80 @@ export function $normalizeNodeIds(root: LexicalNode): void {
     idGroups.set(nodeId, group);
   }
 
+  const duplicateIds = new Set(
+    [...idGroups]
+      .filter(
+        ([, group]) =>
+          group.length > 1 && !(group.length === 2 && policy.canShareId(group[0], group[1])),
+      )
+      .map(([nodeId]) => nodeId),
+  );
+  editor.getEditorState().read(
+    () => {
+      recordActiveOwners($getRoot(), previousOwners, policy);
+      if (options.stableDuplicateRepair && duplicateIds.size > 0) {
+        const visit = (node: LexicalNode) => {
+          if (policy.isIdentityNode(node)) {
+            const nodeId = $getNodeId(node);
+            if (nodeId && (duplicateIds.has(nodeId) || nodeId.startsWith('dup-'))) {
+              const signature = fingerprint(node);
+              if (duplicateIds.has(nodeId)) {
+                const signatures = previousFingerprints.get(nodeId) || new Set<string>();
+                signatures.add(signature);
+                previousFingerprints.set(nodeId, signatures);
+              }
+              const ids = previousIdsByFingerprint.get(signature) || new Set<string>();
+              ids.add(nodeId);
+              previousIdsByFingerprint.set(signature, ids);
+            }
+          }
+          if ($isElementNode(node)) node.getChildren().forEach(visit);
+        };
+        $getRoot().getChildren().forEach(visit);
+      }
+    },
+    { editor },
+  );
+
   const usedIds = new Set(idGroups.keys());
-  const assignFreshId = (node: LexicalNode) => {
-    let nodeId = createNodeId();
-    while (usedIds.has(nodeId)) nodeId = createNodeId();
+  const assignFreshId = (node: LexicalNode, duplicateSourceId?: string) => {
+    let nodeId: string;
+    if (options.stableDuplicateRepair && duplicateSourceId) {
+      const signature = fingerprint(node);
+      let occurrence = 0;
+      do {
+        nodeId = duplicateRepairId(duplicateSourceId, signature, occurrence++);
+      } while (usedIds.has(nodeId));
+    } else {
+      nodeId = createNodeId();
+      while (usedIds.has(nodeId)) nodeId = createNodeId();
+    }
     $setNodeId(node, nodeId);
     usedIds.add(nodeId);
   };
 
   for (const [nodeId, group] of idGroups) {
     if (group.length < 2) continue;
+    if (options.stableDuplicateRepair && !duplicateIds.has(nodeId)) continue;
 
     const previousOwner = group.find((node) => node.getKey() === previousOwners.get(nodeId));
-    const primary = previousOwner || group[0];
+    const matchingPreviousOwner = options.stableDuplicateRepair
+      ? group.find((node) => previousFingerprints.get(nodeId)?.has(fingerprint(node)))
+      : undefined;
+    const notPreviouslyRepaired = options.stableDuplicateRepair
+      ? group.find((node) => {
+          const signature = fingerprint(node);
+          const priorIds = previousIdsByFingerprint.get(signature);
+          return !priorIds?.has(duplicateRepairId(nodeId, signature, 0));
+        })
+      : undefined;
+    const primary = previousOwner || matchingPreviousOwner || notPreviouslyRepaired || group[0];
     const reviewCounterpart = group.find(
       (node) => node !== primary && policy.canShareId(primary, node),
     );
     const preserved = new Set([primary, ...(reviewCounterpart ? [reviewCounterpart] : [])]);
     for (const node of group) {
-      if (!preserved.has(node)) assignFreshId(node);
+      if (!preserved.has(node)) assignFreshId(node, nodeId);
     }
   }
 
@@ -347,7 +473,7 @@ export function $ensureUniqueNodeIds(nodes: ReadonlyArray<LexicalNode>): void {
 
 /** Find the active representation of a logical ID in a Lexical read/update context. */
 export function $getNodeById(nodeId: string, root?: LexicalNode): LexicalNode | null {
-  if (typeof nodeId !== 'string' || !nodeId.trim()) return null;
+  if (!isValidContentNodeId(nodeId)) return null;
   const policy = $getNodeIdentityPolicy();
   const start = root ?? $getRoot();
 
