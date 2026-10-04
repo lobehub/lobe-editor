@@ -13,7 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Editor, { moment } from '@/editor-kernel';
 import { CommonPlugin, INodeIdentityService, $getNodeById } from '@/plugins/common';
-import { $getNodeId, $setNodeId } from '@/plugins/common/node/node-id';
+import { $getNodeId, $normalizeNodeIds, $setNodeId } from '@/plugins/common/node/node-id';
 import { registerNodeIdentityPolicy } from '@/plugins/common/node/node-identity-policy';
 import { NodeIdentityService } from '@/plugins/common/service/node-identity-service';
 import {
@@ -72,6 +72,19 @@ function loadParagraphs(editor: IEditor, paragraphs: Paragraph[]): void {
     },
   };
   editor.setDocument('json', document as Parameters<IEditor['setDocument']>[1], { keepId: true });
+}
+
+function findLexicalNode(
+  node: LexicalNode,
+  predicate: (candidate: LexicalNode) => boolean,
+): LexicalNode | null {
+  if (predicate(node)) return node;
+  if (!$isElementNode(node)) return null;
+  for (const child of node.getChildren()) {
+    const found = findLexicalNode(child, predicate);
+    if (found) return found;
+  }
+  return null;
 }
 
 function summarize(node: LexicalNode | null): NodeSummary | null {
@@ -488,6 +501,71 @@ describe('public node identity contract', () => {
     expect(lookup(first, 'shared-text')?.textContent).toBe('First');
     expect(lookup(second, 'shared-text')?.textContent).toBe('Second');
     expect(lookup(first, 'shared-text')?.textContent).toBe('First');
+  });
+
+  it('keeps a legal review pair together when a third shared-ID node sorts first', async () => {
+    const editor = createEditor([CommonPlugin, LitexmlPlugin]);
+    editor.setDocument('litexml', '<root><p id="review-paragraph">Before</p></root>');
+    editor.dispatchCommand(LITEXML_APPLY_COMMAND, {
+      delay: true,
+      litexml: '<p id="review-paragraph">After</p>',
+    });
+    await moment();
+
+    const lexicalEditor = editor.getLexicalEditor()!;
+    lexicalEditor.update(() => {
+      const before = findLexicalNode(
+        $getRoot(),
+        (node) => node.getType() === 'paragraph' && node.getTextContent() === 'Before',
+      );
+      const after = findLexicalNode(
+        $getRoot(),
+        (node) => node.getType() === 'paragraph' && node.getTextContent() === 'After',
+      );
+      if (!before || !after) throw new Error('Expected both sides of the review diff.');
+
+      const third = $createParagraphNode();
+      third.append($createTextNode('Third collider'));
+      $setNodeId(third, 'review-paragraph');
+      $getRoot().append(third);
+
+      const stableKeys = new Map([
+        [third.getKey(), '00000000000000000000'],
+        [before.getKey(), '00000000000000000001'],
+        [after.getKey(), '00000000000000000002'],
+      ]);
+      $normalizeNodeIds($getRoot(), {
+        stableDuplicateRepair: true,
+        stableOwnershipKey: (node) => stableKeys.get(node.getKey()),
+      });
+    });
+
+    const ids = lexicalEditor.getEditorState().read(
+      () => {
+        const before = findLexicalNode(
+          $getRoot(),
+          (node) => node.getType() === 'paragraph' && node.getTextContent() === 'Before',
+        );
+        const after = findLexicalNode(
+          $getRoot(),
+          (node) => node.getType() === 'paragraph' && node.getTextContent() === 'After',
+        );
+        return {
+          after: after ? $getNodeId(after) : undefined,
+          before: before ? $getNodeId(before) : undefined,
+        };
+      },
+      { editor: lexicalEditor },
+    );
+    const third = (editor.getDocument('json') as any).root.children.find(
+      (node: any) => node.type === 'paragraph' && node.children?.[0]?.text === 'Third collider',
+    );
+    const thirdId = third?.$.properties?.nodeId as string | undefined;
+
+    expect(ids.before).toBe('review-paragraph');
+    expect(ids.after).toBe('review-paragraph');
+    expect(thirdId).toMatch(/^[0-9a-z]{10}$/);
+    expect(thirdId).not.toBe('review-paragraph');
   });
 
   it('resolves the active side of a delayed modification and hides a removal', async () => {

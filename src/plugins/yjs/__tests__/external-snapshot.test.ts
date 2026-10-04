@@ -72,6 +72,61 @@ const removeSerializedNodeIds = (node: any): void => {
 };
 
 describe('YjsService external snapshots', () => {
+  it('preserves a legacy dup-prefixed repair ID when replaying its malformed source snapshot', () => {
+    const editor = new Kernel();
+    editor.registerPlugins([CommonPlugin, MarkdownPlugin]);
+    editor.setRootElement(document.createElement('div'));
+    editor.setDocument('markdown', 'Alpha\n\nBeta');
+
+    const baseSnapshot = structuredClone(editor.getDocument('json')) as any;
+    const legacySnapshot = structuredClone(baseSnapshot);
+    const malformedSnapshot = structuredClone(baseSnapshot);
+    const legacyRepairId = 'dup-ea80aa2b445b6394a65762d75b63895a';
+    const setParagraphId = (paragraph: any, nodeId: string) => {
+      paragraph.id = nodeId;
+      paragraph.$ = { ...paragraph.$, properties: { ...paragraph.$?.properties, nodeId } };
+    };
+
+    setParagraphId(legacySnapshot.root.children[0], 'duplicate-paragraph');
+    setParagraphId(legacySnapshot.root.children[1], legacyRepairId);
+    malformedSnapshot.root.children.forEach((paragraph: any) =>
+      setParagraphId(paragraph, 'duplicate-paragraph'),
+    );
+    editor.setDocument('json', legacySnapshot, { keepId: true });
+
+    const doc = new Doc();
+    const provider = createProvider();
+    const binding = createBinding(
+      editor.getLexicalEditor()!,
+      provider,
+      'legacy-duplicate-page',
+      doc,
+      new Map(),
+    );
+    const service = new YjsService();
+    service.setState({
+      binding,
+      doc,
+      docMap: new Map(),
+      id: 'legacy-duplicate-page',
+      provider,
+    });
+
+    expect(service.applyExternalEditorData(malformedSnapshot)).toBe(true);
+    const ids = (editor.getDocument('json') as any).root.children.map(
+      (paragraph: any) => paragraph.$.properties.nodeId,
+    );
+    expect(ids).toEqual(['duplicate-paragraph', legacyRepairId]);
+    expect(service.applyExternalEditorData(malformedSnapshot)).toBe(false);
+    expect(
+      (editor.getDocument('json') as any).root.children.map(
+        (paragraph: any) => paragraph.$.properties.nodeId,
+      ),
+    ).toEqual(ids);
+
+    editor.destroy();
+  });
+
   it('replays a deeply nested duplicate list with quoted content without identity churn', () => {
     const editor = new Kernel();
     editor.registerPlugins([CommonPlugin, LitexmlPlugin, ListPlugin]);
@@ -123,7 +178,7 @@ describe('YjsService external snapshots', () => {
     const lists = (editor.getDocument('json') as any).root.children;
     const ids = lists.map((list: any) => list.$.properties.nodeId);
     expect(ids[0]).toBe('duplicate-nested-list');
-    expect(ids[1]).toMatch(/^dup-[0-9a-f]{32}$/);
+    expect(ids[1]).toMatch(/^[0-9a-z]{10}$/);
     expect(lists[1].$.properties.payload).toEqual({
       id: 'application-1',
       nested: { id: 'child-1' },
