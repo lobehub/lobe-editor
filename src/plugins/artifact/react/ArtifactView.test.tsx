@@ -20,6 +20,11 @@ const codeMirrorMock = vi.hoisted(() => ({
 }));
 const lexicalSelectionMock = vi.hoisted(() => ({ setSelection: vi.fn() }));
 
+const getViewModeButton = (root: ParentNode, label: string): HTMLButtonElement | undefined =>
+  Array.from(root.querySelectorAll<HTMLButtonElement>('button[aria-pressed]')).find((button) =>
+    button.textContent?.includes(label),
+  );
+
 vi.mock('lexical', async (importOriginal) => ({
   ...(await importOriginal<typeof import('lexical')>()),
   $setSelection: lexicalSelectionMock.setSelection,
@@ -127,16 +132,12 @@ describe('ArtifactView', () => {
     document.body.append(host);
     const root = createRoot(host);
 
-    const selectMode = async (label: string, hitArea: 'input' | 'label' = 'input') => {
-      const option = Array.from(host.querySelectorAll('label')).find((candidate) =>
-        candidate.textContent?.includes(label),
-      );
-      const input = option?.querySelector<HTMLInputElement>('input');
-      if (!input) throw new Error(`Artifact ${label} switch missing.`);
-      await act(async () => {
-        if (hitArea === 'label') option?.click();
-        else input.click();
-      });
+    const selectMode = async (label: string) => {
+      const button = getViewModeButton(host, label);
+      if (!button) throw new Error(`Artifact ${label} button missing.`);
+      expect(button.getAttribute('aria-pressed')).toBe('false');
+      await act(async () => button.click());
+      expect(button.getAttribute('aria-pressed')).toBe('true');
     };
 
     await act(async () => {
@@ -154,7 +155,7 @@ describe('ArtifactView', () => {
     if (!iframe) throw new Error('Artifact preview iframe missing.');
     const focus = vi.spyOn(iframe, 'focus');
 
-    await selectMode('Code only', 'label');
+    await selectMode('Code only');
     expect(surface.dataset.artifactViewMode).toBe('code-only');
     expect(surface.querySelector('.artifact-code')).not.toBeNull();
     expect(surface.querySelector('.artifact-preview')).not.toBeNull();
@@ -163,7 +164,7 @@ describe('ArtifactView', () => {
       'code-only',
     );
 
-    await selectMode('Preview only', 'input');
+    await selectMode('Preview only');
     expect(surface.dataset.artifactViewMode).toBe('preview-only');
     expect(surface.querySelector('.artifact-code')).toBeNull();
     expect(surface.querySelector('.artifact-preview')).not.toBeNull();
@@ -182,7 +183,7 @@ describe('ArtifactView', () => {
     });
     const restoredSurface = host.querySelector<HTMLElement>(`.${artifactStyles}`);
     expect(restoredSurface?.dataset.artifactViewMode).toBe('preview-only');
-    await selectMode('Split view', 'label');
+    await selectMode('Split view');
     expect(restoredSurface?.dataset.artifactViewMode).toBe('split');
     expect(restoredSurface?.querySelector('.artifact-code')).not.toBeNull();
     expect(localStorage.getItem('lobe-artifact-view-mode:artifact-persistent-key')).toBe('split');
@@ -227,23 +228,26 @@ describe('ArtifactView', () => {
 
     const control = host.querySelector<HTMLElement>('.artifact-view-controls');
     if (!control) throw new Error('Artifact view control missing.');
+    expect(
+      host.querySelector('.artifact-view-mode[role="group"][aria-label="Artifact view"]'),
+    ).not.toBeNull();
+    const codeOnly = getViewModeButton(control, 'Code only');
+    if (!codeOnly) throw new Error('Code-only button missing.');
+    expect(codeOnly.getAttribute('aria-pressed')).toBe('false');
     selectionMock.set.mockReset();
     const pointerDown = new Event('pointerdown', { bubbles: true, cancelable: true });
     const mouseDown = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
     const click = new MouseEvent('click', { bubbles: true, cancelable: true });
-    control.dispatchEvent(pointerDown);
-    control.dispatchEvent(mouseDown);
-    control.dispatchEvent(click);
+    await act(async () => {
+      codeOnly.dispatchEvent(pointerDown);
+      codeOnly.dispatchEvent(mouseDown);
+      codeOnly.dispatchEvent(click);
+    });
     expect(pointerDown.defaultPrevented).toBe(false);
     expect(mouseDown.defaultPrevented).toBe(false);
     expect(click.defaultPrevented).toBe(false);
     expect(selectionMock.set).not.toHaveBeenCalled();
-
-    const codeOnly = Array.from(control.querySelectorAll('label')).find((candidate) =>
-      candidate.textContent?.includes('Code only'),
-    );
-    if (!codeOnly) throw new Error('Code-only hit area missing.');
-    await act(async () => codeOnly.click());
+    expect(codeOnly.getAttribute('aria-pressed')).toBe('true');
     expect(host.querySelector<HTMLElement>(`.${artifactStyles}`)?.dataset.artifactViewMode).toBe(
       'code-only',
     );
@@ -282,12 +286,11 @@ describe('ArtifactView', () => {
     const root = createRoot(host);
 
     const selectMode = async (label: string) => {
-      const option = Array.from(host.querySelectorAll('label')).find((candidate) =>
-        candidate.textContent?.includes(label),
-      );
-      const input = option?.querySelector<HTMLInputElement>('input');
-      if (!input) throw new Error(`Artifact ${label} switch missing.`);
-      await act(async () => input.click());
+      const button = getViewModeButton(host, label);
+      if (!button) throw new Error(`Artifact ${label} button missing.`);
+      expect(button.getAttribute('aria-pressed')).toBe('false');
+      await act(async () => button.click());
+      expect(button.getAttribute('aria-pressed')).toBe('true');
     };
 
     await act(async () => {
@@ -397,7 +400,7 @@ describe('ArtifactView', () => {
     expect(styleText).toContain('.artifact-view-controls');
     expect(styleText).toContain('display: flex');
     expect(styleText).toContain('justify-content: flex-end');
-    expect(styleText).toContain('.artifact-view-mode .ant-segmented');
+    expect(styleText).toContain('.artifact-view-mode [data-segmented-item]');
     expect(styleText).toContain('width: 100%');
   });
 

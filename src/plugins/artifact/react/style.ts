@@ -37,7 +37,9 @@ export const artifactStyles = createStaticStyles(
       display: grid;
       grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
       align-items: center;
+
       border-block-end: 1px solid ${cssVar.colorBorderSecondary};
+
       background: ${cssVar.colorFillQuaternary};
     }
 
@@ -60,7 +62,8 @@ export const artifactStyles = createStaticStyles(
       justify-content: flex-end;
 
       min-width: 0;
-      padding: 6px 12px;
+      padding-block: 6px;
+      padding-inline: 12px;
     }
 
     .artifact-view-mode {
@@ -68,33 +71,32 @@ export const artifactStyles = createStaticStyles(
       min-width: 0;
     }
 
-    .artifact-view-mode .ant-segmented,
-    .artifact-view-mode .ant-segmented-group {
+    .artifact-view-mode [role='group'] {
       width: 100%;
     }
 
-    .artifact-view-mode .ant-segmented-item {
-      min-width: 0;
+    .artifact-view-mode [data-segmented-item] {
       flex: 1;
+      min-width: 0;
     }
 
-    .artifact-view-mode .ant-segmented-item-label {
+    .artifact-view-mode .artifact-view-option-label {
       overflow: hidden;
-
+      min-width: 0;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .artifact-view-option {
-      display: inline-flex;
       overflow: hidden;
+      display: inline-flex;
       gap: 4px;
       align-items: center;
 
       max-width: 100%;
 
-      white-space: nowrap;
       text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .artifact-title {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Segmented } from 'antd';
+import { Segmented } from '@lobehub/ui/base-ui';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
 import type { LexicalEditor } from 'lexical';
@@ -475,9 +475,14 @@ const ArtifactView: FC<ArtifactViewProps> = ({
           onMouseDown={stopViewControlEvent}
           onPointerDown={stopViewControlEvent}
         >
-          <div aria-label={labels?.viewMode || 'Artifact view'} className="artifact-view-mode">
+          <div
+            aria-label={labels?.viewMode || 'Artifact view'}
+            className="artifact-view-mode"
+            role="group"
+          >
             <Segmented
-              aria-label={labels?.viewMode || 'Artifact view'}
+              block
+              classNames={{ itemLabel: 'artifact-view-option-label' }}
               options={[
                 {
                   label: (
