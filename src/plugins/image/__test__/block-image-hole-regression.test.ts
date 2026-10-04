@@ -682,7 +682,7 @@ const createBareBlockImageSnapshot = async (): Promise<{ json: unknown; snapshot
   legacy.registerPlugins([[CommonPlugin, { enableHotkey: false }], PropertiesPlugin]);
   legacy.registerNodes([BlockImageNode]);
   legacy.initHeadlessEditor();
-  legacy.setDocument('json', documentWith(legacyImage, paragraph('保留段落')));
+  legacy.setDocument('json', documentWith(legacyImage, paragraph('保留段落')), { keepId: true });
   await settle();
   const doc = new Doc();
   const provider = createSyncProvider();

@@ -101,10 +101,6 @@ export function assertPackedPatchAssets(packageRoot) {
     'packed package must contain its reviewed Lexical postinstall patcher',
   );
   assert.ok(
-    existsSync(path.join(packageRoot, 'patches', 'lexical@0.42.0.patch')),
-    'packed package must contain the Lexical compatibility patch',
-  );
-  assert.ok(
     existsSync(path.join(packageRoot, 'patches', '@lexical__yjs@0.42.0.patch')),
     'packed package must contain the Lexical Yjs compatibility patch',
   );
@@ -457,7 +453,6 @@ function runInstalledPostinstall(consumerDirectory) {
   );
   assert.ok(existsSync(patchScript), 'installed tarball must expose its postinstall patcher');
   const output = run(process.execPath, [patchScript], { cwd: consumerDirectory });
-  assert.match(output, /Applied Lexical compatibility patch/);
   assert.match(output, /Applied Lexical Yjs compatibility patch/);
   return output;
 }

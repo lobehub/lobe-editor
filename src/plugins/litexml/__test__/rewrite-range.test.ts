@@ -72,6 +72,49 @@ const findProvenance = (node: any, generationId: string): any => {
   return node?.children?.map((child: any) => findProvenance(child, generationId)).find(Boolean);
 };
 
+const collectSerializedNodeIds = (node: any): string[] => {
+  const ids: string[] = [];
+  const visit = (candidate: any) => {
+    const nodeId = candidate?.$?.properties?.nodeId;
+    if (typeof nodeId === 'string') ids.push(nodeId);
+    candidate?.children?.forEach(visit);
+  };
+  visit(node);
+  return ids;
+};
+
+const collectReviewSideIdGroups = (root: any): string[][] => {
+  const groups: string[][] = [];
+  const visit = (node: any) => {
+    if (node?.type === 'diff-content' && (node.side === 'before' || node.side === 'after')) {
+      groups.push(collectSerializedNodeIds(node));
+    }
+    node?.children?.forEach(visit);
+  };
+  visit(root);
+  return groups;
+};
+
+const collectRewriteIdentityIds = (root: any): string[] => {
+  const ids: string[] = [];
+  const visit = (node: any) => {
+    const transfers = node?.$?.properties?.rewriteIdentityMap;
+    if (Array.isArray(transfers)) {
+      for (const transfer of transfers) {
+        if (typeof transfer?.nodeId === 'string') ids.push(transfer.nodeId);
+      }
+    }
+    node?.children?.forEach(visit);
+  };
+  visit(root);
+  return ids;
+};
+
+const serializedTextContent = (node: any): string =>
+  node?.type === 'text'
+    ? String(node.text ?? '')
+    : (node?.children ?? []).map(serializedTextContent).join('');
+
 async function selectRange(
   editor: IEditor,
   startBlockIndex: number,
@@ -160,15 +203,16 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
     const result = channel?.get('request-1');
     expect(result?.status).toBe('diff-created');
     const pending = editor.getDocument('json') as any;
-    const ids: string[] = [];
-    const collectIds = (node: any) => {
-      const id = node?.$?.properties?.nodeId;
-      if (typeof id === 'string') ids.push(id);
-      node?.children?.forEach(collectIds);
-    };
-    collectIds(pending.root);
+    const ids = collectSerializedNodeIds(pending.root);
     expect(ids.filter((id) => id === originalNodeId)).toHaveLength(1);
-    expect(new Set(ids).size).toBe(ids.length);
+    const pendingDiff = pending.root.children[0];
+    expect(pendingDiff.type).toBe('diff');
+    const reviewSides = pendingDiff.children.filter((node: any) => node.type === 'diff-content');
+    expect(reviewSides.map(serializedTextContent)).toEqual(['Hello world', 'Hi world']);
+    for (const sideIds of collectReviewSideIdGroups(pending.root)) {
+      expect(new Set(sideIds).size).toBe(sideIds.length);
+    }
+    expect(collectRewriteIdentityIds(pending.root)).toContain(originalNodeId);
     expect(findProvenance(pending.root, 'generation-1')).toMatchObject({
       generationId: 'generation-1',
       model: 'test-model',
@@ -725,23 +769,26 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
       requestId: 'request-cross',
       selection,
     });
-    await waitForRewriteResult(editor, 'request-cross');
+    const result = await waitForRewriteResult(editor, 'request-cross');
+    expect(result).toMatchObject({
+      affectedNodeIds: ids.slice(0, 2),
+      status: 'diff-created',
+    });
     const pending = editor.getDocument('json') as any;
     expect(JSON.stringify(pending)).toContain('rewritten');
     expect(JSON.stringify(pending)).toContain('paragraph');
-    const allIds: string[] = [];
-    const walk = (node: any) => {
-      const id = node?.$?.properties?.nodeId;
-      if (typeof id === 'string') allIds.push(id);
-      node?.children?.forEach(walk);
-    };
-    walk(pending.root);
-    expect(new Set(allIds).size).toBe(allIds.length);
+    const reviewSideIds = collectReviewSideIdGroups(pending.root);
+    expect(reviewSideIds.length).toBeGreaterThan(0);
+    for (const sideIds of reviewSideIds) {
+      expect(new Set(sideIds).size).toBe(sideIds.length);
+    }
+    expect(collectRewriteIdentityIds(pending.root)).toEqual(
+      expect.arrayContaining(ids.slice(0, 2)),
+    );
     editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Accept });
     await moment();
     const markdown = editor.getDocument('markdown') as unknown as string;
-    expect(markdown).toContain('first rewritten');
-    expect(markdown).toContain('paragraph');
+    expect(markdown).toBe('first rewritten\n\nparagraph\n\nthird\n');
     const acceptedIds: string[] = [];
     const collectAcceptedIds = (node: any) => {
       const id = node?.$?.properties?.nodeId;
@@ -793,11 +840,16 @@ describe('LITEXML_REWRITE_RANGE_COMMAND', () => {
     lexical.getEditorState().read(() => {
       const paragraph = $getRoot().getFirstChildOrThrow();
       if (!$isElementNode(paragraph)) throw new Error('paragraph missing after rewrite');
-      expect(paragraph.getChildren().map((node) => node.getTextContent())).toEqual([
-        'a',
-        '\n',
-        'Xc',
-      ]);
+      const paragraphText = paragraph.getTextContent();
+      expect(paragraphText).toBe('a\nXc');
+      expect(paragraphText.slice(2, 3)).toBe('X');
+      expect($getNodeId(paragraph)).toBe(nodeId);
+      expect(
+        paragraph
+          .getChildren()
+          .filter($isTextNode)
+          .every((node) => node.getFormat() === 0),
+      ).toBe(true);
     });
   });
 

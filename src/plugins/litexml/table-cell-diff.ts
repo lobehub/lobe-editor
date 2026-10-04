@@ -9,6 +9,7 @@ import {
 import type { LexicalEditor } from 'lexical';
 import { $nodesOfType } from 'lexical';
 
+import { $copyNodeProperties } from '@/plugins/common/node/node-id';
 import { createNodeId } from '@/plugins/properties/state';
 
 import { $createDiffNode, DiffNode } from './node/DiffNode';
@@ -20,6 +21,7 @@ import {
 import {
   captureTableDiffLogicalIdentity,
   copyTableDiffReviewMetadata,
+  normalizeTableDiffWrapperIdentity,
   restoreTableDiffLogicalIdentity,
 } from './table-diff-identity';
 import { $cloneNode } from './utils';
@@ -45,8 +47,10 @@ export function $createTableCellDiffFromCell(
     cell.getColSpan(),
     cell.getWidth(),
   );
+  $copyNodeProperties(cell, diffCell);
   copyCellStructure(cell, diffCell);
   captureTableDiffLogicalIdentity(cell, diffCell);
+  normalizeTableDiffWrapperIdentity(diffCell);
 
   const diff = $createDiffNode(diffType);
   diff.append(...cell.getChildren().map((child) => $cloneNode(child, editor)));
@@ -63,6 +67,7 @@ export function $createPlainTableCellFromDiff(
     cell.getColSpan(),
     cell.getWidth(),
   );
+  $copyNodeProperties(cell, plainCell);
   copyCellStructure(cell, plainCell);
   restoreTableDiffLogicalIdentity(cell, plainCell);
   if (cell.getDiffType() === 'add') copyTableDiffReviewMetadata(cell, plainCell);

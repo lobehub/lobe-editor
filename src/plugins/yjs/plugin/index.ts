@@ -24,6 +24,7 @@ import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import {
   getOrCreatePropertiesService,
   type IPropertiesService,
+  registerPropertiesNodeIdentityNormalization,
 } from '@/plugins/properties/service/properties';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -35,6 +36,7 @@ import { getAwarenessUsers } from './utils/awareness';
 import { createRemoteCaretViewportStabilizer } from './utils/caret-viewport-anchor';
 import { clearEditorSkipCollab, initializeEditor } from './utils/editor-state';
 import { createYjsHumanOrigin, registerYjsHistory, type YjsHistoryOrigin } from './utils/history';
+import { isNodeIdReconciliationOrigin, reconcileSharedNodeIds } from './utils/node-identity';
 import {
   $syncAnnotationNodePropertiesFromYjs,
   ensureYjsNodePropertiesFromEditorState,
@@ -355,6 +357,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
         if (binding.root._xmlText._length > 0) {
           replaceLexicalStateFromYjs(editor, binding);
           this.service.setReady(true);
+          reconcileSharedNodeIds(binding);
           return;
         }
       }
@@ -362,6 +365,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
       if (binding.root.isEmpty() && binding.root._xmlText._length > 0) {
         replaceLexicalStateFromYjs(editor, binding);
         this.service.setReady(true);
+        reconcileSharedNodeIds(binding);
         return;
       }
 
@@ -435,6 +439,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
       if (transaction.origin === binding || localOrigins.has(transaction.origin)) {
         return;
       }
+      if (isNodeIdReconciliationOrigin(binding, transaction.origin)) return;
 
       // Do not project the provider's first snapshot into host-hydrated JSON
       // before the sync barrier. Once an initial snapshot has been applied,
@@ -469,6 +474,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
                 { tag: isFromUndoManager ? HISTORIC_TAG : COLLABORATION_TAG },
               );
             }
+            reconcileSharedNodeIds(binding);
           },
         );
       } catch (error) {
@@ -566,6 +572,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
     // A reconfigured plugin has already disposed its previous provider
     // registration in destroy(); restore the neutral bridge before binding.
     this.registerPropertiesProvider();
+    this.register(registerPropertiesNodeIdentityNormalization(editor, this.propertiesService));
 
     this.hasInitialized = true;
 

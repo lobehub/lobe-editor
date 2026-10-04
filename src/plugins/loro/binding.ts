@@ -40,8 +40,11 @@ import {
   $setNodeProperties,
   createNodeId,
 } from '@/plugins/properties';
-import type { IPropertiesService } from '@/plugins/properties/service/properties';
-import { IPropertiesService as IPropertiesServiceId } from '@/plugins/properties/service/properties';
+import {
+  getOrCreatePropertiesService,
+  type IPropertiesService,
+  registerPropertiesNodeIdentityNormalization,
+} from '@/plugins/properties/service/properties';
 
 import {
   createDefaultLoroCapabilities,
@@ -131,6 +134,19 @@ const directLogicalChildren = (node: LexicalNode): LexicalNode[] => {
   return $getLogicalChildren(node);
 };
 
+const logicalPathFrom = (root: LexicalNode, target: LexicalNode): number[] | undefined => {
+  const visit = (node: LexicalNode, path: number[]): number[] | undefined => {
+    if (node === target) return path;
+    const children = $getLogicalChildren(node);
+    for (let index = 0; index < children.length; index++) {
+      const found = visit(children[index], [...path, index]);
+      if (found) return found;
+    }
+    return undefined;
+  };
+  return visit(root, []);
+};
+
 const readNodeAttrs = (node: LexicalNode): Record<string, unknown> => {
   const serialized = node.exportJSON() as Record<string, unknown>;
   const attrs: Record<string, unknown> = {};
@@ -182,6 +198,7 @@ export class LoroLexicalBinding {
   private readonly propertiesService: IPropertiesService | null;
   private readonly propertiesProvider: LoroPropertiesProvider;
   private readonly unregisterProperties: (() => void) | null;
+  private readonly unregisterNodeIdentityNormalization: (() => void) | null;
   private readonly unsubscribeLexical: () => void;
   private readonly unsubscribeLoro: () => void;
   private applyingLoro = 0;
@@ -236,10 +253,13 @@ export class LoroLexicalBinding {
     });
 
     this.propertiesProvider = new LoroPropertiesProvider(this);
-    this.propertiesService =
-      getKernelFromEditor(this.editor)?.requireService(IPropertiesServiceId) ?? null;
+    const kernel = getKernelFromEditor(this.editor);
+    this.propertiesService = kernel ? getOrCreatePropertiesService(kernel) : null;
     this.unregisterProperties =
       this.propertiesService?.registerCollaborationProvider(this.propertiesProvider) ?? null;
+    this.unregisterNodeIdentityNormalization = this.propertiesService
+      ? registerPropertiesNodeIdentityNormalization(this.editor, this.propertiesService)
+      : null;
 
     this.unsubscribeLoro = this.canonical.subscribe((event) => this.onLoroEvent(event));
     this.unsubscribeLexical = this.editor.registerUpdateListener((payload) => {
@@ -387,12 +407,28 @@ export class LoroLexicalBinding {
   }
 
   getNodeIdentity(node: LexicalNode): string | undefined {
+    return $getNodeId(node);
+  }
+
+  /** Stable CRDT ownership key used only for convergent identity repair. */
+  getStableNodeIdentity(node: LexicalNode): string | undefined {
     const direct = $getNodeId(node);
-    if (direct) return direct;
-    for (const [nodeId, entry] of this.projectionCache) {
-      if (entry.treeId === node.getKey()) return nodeId;
+    if (!$isTextNode(node) && direct) {
+      const mappedNode = this.lexicalByNodeId.get(direct);
+      const canonicalNode = this.canonical.findNodeById(direct);
+      if (mappedNode?.is(node) && canonicalNode) return `loro-tree:${canonicalNode.id}`;
+      const cachedNode = this.projectionCache.get(direct);
+      if (cachedNode && mappedNode?.is(node)) return `loro-tree:${cachedNode.treeId}`;
     }
-    return undefined;
+
+    for (let parent = node.getParent(); parent; parent = parent.getParent()) {
+      const parentId = $getNodeId(parent);
+      if (!parentId) continue;
+      const path = logicalPathFrom(parent, node);
+      if (path) return `loro-path:${parentId}:${path.join('.')}`;
+    }
+    const rootPath = logicalPathFrom($getRoot(), node);
+    return rootPath ? `loro-root:${rootPath.join('.')}` : undefined;
   }
 
   applyUpdate(update: Uint8Array, options: { trusted?: boolean } = {}): void {
@@ -789,6 +825,7 @@ export class LoroLexicalBinding {
     this.unsubscribeLexical();
     this.unsubscribeLoro();
     this.unregisterProperties?.();
+    this.unregisterNodeIdentityNormalization?.();
     this.propertiesProvider.dispose();
     this.undoManager.free();
     this.readinessListeners.clear();

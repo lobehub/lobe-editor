@@ -43,6 +43,7 @@ export const LORO_MODE_KEY = 'lexical_mode';
 export const LORO_PROPERTY_PREFIX = 'lexical_property_';
 export const LORO_TEXT_PROPERTY_KEYS = [
   'annotationIds',
+  'nodeId',
   'provenance',
   'rewriteGenerationId',
   'rewriteRegionLength',

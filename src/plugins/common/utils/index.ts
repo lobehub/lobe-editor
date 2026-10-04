@@ -16,6 +16,7 @@ import {
 } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
+import { $getNodeId } from '@/plugins/common/node/node-id';
 import type { ElementTransformer } from '@/plugins/markdown/service/transformers';
 
 export const sampleReader = (format: number, xmlElement: Element, children: any[]) => {
@@ -193,7 +194,7 @@ export function exportNodeToJSON<SerializedNode extends SerializedLexicalNode>(
   const serializedNode = node.exportJSON();
   const nodeClass = node.constructor;
   // @ts-expect-error not error
-  serializedNode.id = node.getKey();
+  serializedNode.id = $getNodeId(node);
 
   if (serializedNode.type !== nodeClass.getType()) {
     throw new Error(

@@ -19,6 +19,8 @@ import {
 } from 'lexical';
 
 import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
+import { $getNodeId } from '@/plugins/common/node/node-id';
+import { $getNodeIdentityPolicy } from '@/plugins/common/node/node-identity-policy';
 
 import {
   $getNodeProperties,
@@ -28,6 +30,10 @@ import {
   isNodeId,
 } from './state';
 import type { NodePropertiesUpdater, NodeProvenance } from './types';
+
+// Preserve the historical Properties entry point while exposing the exact
+// Common identity function used by headless and collaboration consumers.
+export { $getNodeId };
 
 /** Runtime-only or review wrappers which must never become addressable blocks. */
 const NON_LOCATABLE_NODE_TYPES = new Set([
@@ -79,12 +85,6 @@ export function $isNodeIdentityBlockTarget(node: LexicalNode): boolean {
   return (
     $isNodeIdentityTarget(node) && !$isTextNode(node) && (!$isElementNode(node) || !node.isInline())
   );
-}
-
-/** Read the durable identity, never the ephemeral Lexical node key. */
-export function $getNodeId(node: LexicalNode): string | undefined {
-  const nodeId = $getNodeProperties(node).nodeId;
-  return isNodeId(nodeId) ? nodeId : undefined;
 }
 
 /**
@@ -181,6 +181,8 @@ export function $clearStreamingGenerationRegion(
 export function $setNodeId(node: LexicalNode, nodeId: string): LexicalNode {
   if (!isNodeId(nodeId)) throw new Error('nodeId must be a non-empty string');
   const normalizedNodeId = nodeId.trim();
+  if (normalizedNodeId === 'root')
+    throw new Error('nodeId "root" is reserved for the document anchor');
   if (node.isAttached()) {
     const conflictingNode = $findNodesById(normalizedNodeId).find(
       (candidate) => candidate !== node,
@@ -245,16 +247,20 @@ export function $ensureNodeIdsInTree(
   const duplicateNodeIds: string[] = [];
   const nodes: LexicalNode[] = [];
   const reassignedNodeIds: string[] = [];
-  const seenIds = new Set<string>();
+  const seenIds = new Map<string, LexicalNode[]>();
   const duplicateIds = new Set<string>();
   const assignedIds = new Set<string>();
+  const policy = $getNodeIdentityPolicy();
 
   const visit = (node: LexicalNode, path: number[]): void => {
     if ($isNodeIdentityTarget(node)) {
       const before = $getNodeId(node);
       let after = before;
+      const existingOwners = before ? (seenIds.get(before) ?? []) : [];
+      const canShareExistingIdentity =
+        existingOwners.length === 1 && policy.canShareId(existingOwners[0], node);
 
-      if (before && seenIds.has(before)) {
+      if (before && existingOwners.length > 0 && !canShareExistingIdentity) {
         duplicateIds.add(before);
         let attempt = 0;
         do {
@@ -275,7 +281,9 @@ export function $ensureNodeIdsInTree(
 
       if (after) {
         nodes.push(node);
-        seenIds.add(after);
+        const owners = seenIds.get(after) ?? [];
+        owners.push(node);
+        seenIds.set(after, owners);
         assignedIds.add(after);
       }
     }

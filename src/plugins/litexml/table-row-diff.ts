@@ -17,6 +17,7 @@ import {
 import {
   captureTableDiffLogicalIdentity,
   copyTableDiffReviewMetadata,
+  normalizeTableDiffWrapperIdentity,
   restoreTableDiffLogicalIdentity,
 } from './table-diff-identity';
 import { $cloneNode } from './utils';
@@ -66,6 +67,7 @@ export function $createTableRowDiffFromRow(
   }
   const diffRow = $createTableRowDiffNode(diffType, changeId, row.getHeight());
   captureTableDiffLogicalIdentity(row, diffRow);
+  normalizeTableDiffWrapperIdentity(diffRow);
   diffRow.append(...source.getChildren());
   return diffRow;
 }

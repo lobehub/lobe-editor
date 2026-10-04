@@ -128,6 +128,7 @@ export type {
   SerializedBlockRewriteSelection,
   SerializedRewritePoint,
 } from '@/plugins/litexml/command';
+export type { LiteXmlOperationResult } from '@/plugins/litexml/command';
 export {
   COLLABORATIVE_AGENT_COMMAND_ALLOWLIST,
   createAgentCommandGateway,
@@ -139,6 +140,7 @@ export {
   IRewriteService,
   LITEXML_INSERT_COMMAND,
   LITEXML_MODIFY_COMMAND,
+  LITEXML_MODIFY_WITH_RESULTS_COMMAND,
   LITEXML_REMOVE_COMMAND,
   LITEXML_REVIEW_COMMAND,
   LITEXML_REWRITE_RANGE_COMMAND,
@@ -185,13 +187,16 @@ export {
   isNodeId,
   propertiesState,
 } from '@/plugins/properties/state';
+// Resolve the active logical node through Common's identity policy so review
+// and other hidden representations do not shadow the content node.
+export { $getNodeById, $getNodeId } from '@/plugins/common/node/node-id';
+export type { NodeIdentitySnapshot } from '@/plugins/common/service/i-node-identity-service';
+export { INodeIdentityService } from '@/plugins/common/service/i-node-identity-service';
 export {
   $ensureNodeId,
   $ensureNodeIdsInTree,
   $findNodeById,
   $findNodesById,
-  $getNodeById,
-  $getNodeId,
   $isNodeIdentityBlockTarget,
   $isNodeIdentityTarget,
   $migrateNodeIds,

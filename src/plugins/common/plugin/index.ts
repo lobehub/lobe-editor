@@ -11,11 +11,12 @@ import {
   registerRichText,
 } from '@lexical/rich-text';
 import { CAN_USE_DOM } from '@lexical/utils';
-import type { LexicalEditor } from 'lexical';
+import type { LexicalEditor, LexicalNode } from 'lexical';
 import {
   $createLineBreakNode,
   $createParagraphNode,
   $getSelection,
+  $isElementNode,
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
@@ -24,12 +25,17 @@ import {
   INSERT_PARAGRAPH_COMMAND,
   ParagraphNode,
   PASTE_COMMAND,
+  RootNode,
+  SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
   TEXT_TYPE_TO_FORMAT,
   TextNode,
 } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { $clearNodeId, $normalizeNodeIds } from '@/plugins/common/node/node-id';
+import { INodeIdentityService } from '@/plugins/common/service/i-node-identity-service';
+import { NodeIdentityService } from '@/plugins/common/service/node-identity-service';
 import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { isPunctuationChar } from '@/plugins/markdown/utils';
@@ -113,6 +119,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
   static pluginName = 'CommonPlugin';
 
+  public identityService = new NodeIdentityService();
+
   private formats = {
     bold: true,
     header: true,
@@ -132,6 +140,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     this.diagnosticsService = new EditorDiagnosticsService();
     kernel.registerServiceHotReload(IHoleService, this.holeService);
     kernel.registerServiceHotReload(IEditorDiagnosticsService, this.diagnosticsService);
+
+    kernel.registerService(INodeIdentityService, this.identityService);
 
     // Parse markdown options and update formats
     const markdownOption = config.markdownOption ?? true;
@@ -365,6 +375,15 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       if (!$isTextNode(node)) {
         return;
       }
+      let parentNode = node.getParent();
+      let isInTableCell = false;
+      while (parentNode) {
+        if (parentNode.getType() === 'tablecell' || parentNode.getType() === 'table-cell-diff') {
+          isInTableCell = true;
+          break;
+        }
+        parentNode = parentNode.getParent();
+      }
       const isBold = formats.bold && node.hasFormat('bold');
       const isItalic = formats.italic && node.hasFormat('italic');
       const isUnderline = node.hasFormat('underline');
@@ -372,22 +391,40 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const isSuperscript = formats.superscript && node.hasFormat('superscript');
       const isSubscript = formats.subscript && node.hasFormat('subscript');
 
-      if (isBold) {
+      // Lexical keeps adjacent TextNodes separate when they carry different
+      // NodeState identities. Markdown cares about rendered text formatting,
+      // so continue a delimiter across adjacent siblings with the same emitted
+      // format without merging or changing either editor node.
+      const previousSibling = node.getPreviousSibling();
+      const nextSibling = node.getNextSibling();
+      const hasSameMarkdownFormatting = (sibling: LexicalNode | null) =>
+        $isTextNode(sibling) &&
+        sibling.getTextContent().length > 0 &&
+        (formats.bold && sibling.hasFormat('bold')) === isBold &&
+        (formats.italic && sibling.hasFormat('italic')) === isItalic &&
+        sibling.hasFormat('underline') === isUnderline &&
+        (formats.strikethrough && sibling.hasFormat('strikethrough')) === isStrikethrough &&
+        (formats.superscript && sibling.hasFormat('superscript')) === isSuperscript &&
+        (formats.subscript && sibling.hasFormat('subscript')) === isSubscript;
+      const continuesFromPrevious = hasSameMarkdownFormatting(previousSibling);
+      const continuesToNext = hasSameMarkdownFormatting(nextSibling);
+
+      if (isBold && !continuesFromPrevious) {
         ctx.appendLine('**');
       }
-      if (isStrikethrough) {
+      if (isStrikethrough && !continuesFromPrevious) {
         ctx.appendLine('~~');
       }
-      if (isItalic) {
+      if (isItalic && !continuesFromPrevious) {
         ctx.appendLine('_');
       }
-      if (isUnderline) {
+      if (isUnderline && !continuesFromPrevious) {
         ctx.appendLine('<ins>');
       }
-      if (isSuperscript) {
+      if (isSuperscript && !continuesFromPrevious) {
         ctx.appendLine('^');
       }
-      if (isSubscript) {
+      if (isSubscript && !continuesFromPrevious) {
         ctx.appendLine('~');
       }
 
@@ -399,27 +436,29 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       }
       const append = textContent.trimEnd();
       const lastChar = append.at(-1);
-      ctx.appendLine(append);
-      const nextSibling = node.getNextSibling();
+      const markdownText = isInTableCell
+        ? append.replaceAll('\\', '\\\\').replaceAll('|', '\\|')
+        : append;
+      ctx.appendLine(markdownText);
       const nextTextStartsWithSpace =
         $isTextNode(nextSibling) && /^\s/.test(nextSibling.getTextContent());
 
-      if (isSubscript) {
+      if (isSubscript && !continuesToNext) {
         ctx.appendLine('~');
       }
-      if (isSuperscript) {
+      if (isSuperscript && !continuesToNext) {
         ctx.appendLine('^');
       }
-      if (isUnderline) {
+      if (isUnderline && !continuesToNext) {
         ctx.appendLine('</ins>');
       }
-      if (isItalic) {
+      if (isItalic && !continuesToNext) {
         ctx.appendLine('_');
       }
-      if (isStrikethrough) {
+      if (isStrikethrough && !continuesToNext) {
         ctx.appendLine('~~');
       }
-      if (isBold) {
+      if (isBold && !continuesToNext) {
         ctx.appendLine('**');
       }
 
@@ -447,6 +486,23 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    this.register(this.identityService.bindEditor(editor));
+    this.register(editor.registerNodeTransform(RootNode, $normalizeNodeIds));
+    this.register(
+      editor.registerCommand(
+        SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
+        ({ nodes }) => {
+          const clearCopiedIds = (node: import('lexical').LexicalNode) => {
+            $clearNodeId(node);
+            if ($isElementNode(node)) node.getChildren().forEach(clearCopiedIds);
+          };
+          nodes.forEach(clearCopiedIds);
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+    );
+
     this.register(this.holeService.bindEditor(editor));
     this.register(registerHoleSelectionDOM(this.kernel, editor, this.holeService));
     // Install passive CRITICAL command observers before clipboard handlers so

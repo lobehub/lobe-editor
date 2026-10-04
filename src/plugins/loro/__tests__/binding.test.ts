@@ -6,7 +6,9 @@ import {
   $getRoot,
   $getSelection,
   $setSelection,
+  $isElementNode,
   $isRangeSelection,
+  $isTextNode,
   createEditor,
   ParagraphNode,
   type ElementNode,
@@ -35,6 +37,11 @@ import {
 } from '@lexical/table';
 import { $createQuoteNode, QuoteNode } from '@lexical/rich-text';
 import { $getNodeId, $getNodeProperties, $setNodeProperties } from '@/plugins/properties';
+import { $normalizeNodeIds } from '@/plugins/common/node/node-id';
+import {
+  PropertiesService,
+  registerPropertiesNodeIdentityNormalization,
+} from '@/plugins/properties/service/properties';
 import { LoroDoc } from 'loro-crdt';
 import { describe, expect, it } from 'vitest';
 
@@ -56,6 +63,24 @@ const makeEditor = (nodes: ReadonlyArray<unknown> = [ParagraphNode]) =>
 
 const readText = (editor: ReturnType<typeof makeEditor>): string =>
   editor.getEditorState().read(() => $getRoot().getTextContent());
+
+const readFirstTextNodeId = (editor: ReturnType<typeof makeEditor>): string | undefined =>
+  editor.getEditorState().read(() => {
+    const block = $getRoot().getFirstChild();
+    if (!$isElementNode(block)) return undefined;
+    const text = block.getChildren().find($isTextNode);
+    return text ? $getNodeId(text) : undefined;
+  });
+
+const readTextNodeIds = (editor: ReturnType<typeof makeEditor>): string[] =>
+  editor.getEditorState().read(() => {
+    const block = $getRoot().getFirstChild();
+    if (!$isElementNode(block)) return [];
+    return block
+      .getChildren()
+      .filter($isTextNode)
+      .map((text) => $getNodeId(text) || '');
+  });
 
 describe('LoroLexicalBinding', () => {
   it('does not bootstrap metadata while joining an empty existing room', async () => {
@@ -100,6 +125,101 @@ describe('LoroLexicalBinding', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(readText(rightEditor)).toBe('hello world');
 
+    leftBinding.dispose();
+    rightBinding.dispose();
+  });
+
+  it('persists a normalized TextNode identity through two Loro clients', async () => {
+    const leftEditor = makeEditor();
+    leftEditor.update(() => {
+      $getRoot().append($createParagraphNode().append($createTextNode('identity')));
+    });
+    const leftDoc = new LoroCanonicalDocument(new LoroDoc());
+    const leftBinding = new LoroLexicalBinding({ doc: leftDoc, editor: leftEditor });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    leftEditor.update(() => $normalizeNodeIds($getRoot()));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const textNodeId = readFirstTextNodeId(leftEditor);
+    expect(textNodeId).toMatch(/^[0-9a-z]{10}$/);
+    const snapshot = leftBinding.exportSnapshot();
+    const rightEditor = makeEditor();
+    const rightDoc = new LoroCanonicalDocument(LoroDoc.fromSnapshot(snapshot));
+    const rightBinding = new LoroLexicalBinding({ doc: rightDoc, editor: rightEditor });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(readFirstTextNodeId(rightEditor)).toBe(textNodeId);
+
+    const beforeEdit = leftDoc.doc.version();
+    leftEditor.update(() => {
+      const block = $getRoot().getFirstChild();
+      const text = $isElementNode(block) ? block.getChildren().find($isTextNode) : undefined;
+      text?.setTextContent('identity updated');
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    rightBinding.applyUpdate(leftDoc.exportUpdate(beforeEdit));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(readText(rightEditor)).toBe('identity updated');
+    expect(readFirstTextNodeId(rightEditor)).toBe(textNodeId);
+
+    leftBinding.dispose();
+    rightBinding.dispose();
+  });
+
+  it('repairs split text identity duplicates with stable paths before a two-client roundtrip', async () => {
+    const leftEditor = makeEditor();
+    leftEditor.update(() => {
+      $getRoot().append($createParagraphNode().append($createTextNode('collaborative')));
+    });
+    const leftDoc = new LoroCanonicalDocument(new LoroDoc());
+    const leftBinding = new LoroLexicalBinding({ doc: leftDoc, editor: leftEditor });
+    const propertiesService = new PropertiesService();
+    const unregisterProvider = propertiesService.registerCollaborationProvider(
+      leftBinding.getPropertiesProvider(),
+    );
+    const unregisterNormalization = registerPropertiesNodeIdentityNormalization(
+      leftEditor,
+      propertiesService,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    leftEditor.update(() => $normalizeNodeIds($getRoot()));
+    leftEditor.update(() => {
+      const block = $getRoot().getFirstChild();
+      const text = $isElementNode(block) ? block.getChildren().find($isTextNode) : undefined;
+      if (!$isTextNode(text)) throw new Error('Expected the initial text node.');
+      text.splitText(4);
+      $normalizeNodeIds($getRoot());
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const leftIds = readTextNodeIds(leftEditor);
+    expect(leftIds).toHaveLength(2);
+    expect(new Set(leftIds).size).toBe(2);
+    expect(leftIds.every((id) => /^[0-9a-z]{10}$/.test(id))).toBe(true);
+
+    const snapshot = leftBinding.exportSnapshot();
+    const rightEditor = makeEditor();
+    const rightDoc = new LoroCanonicalDocument(LoroDoc.fromSnapshot(snapshot));
+    const rightBinding = new LoroLexicalBinding({ doc: rightDoc, editor: rightEditor });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(readTextNodeIds(rightEditor)).toEqual(leftIds);
+
+    const beforeEdit = leftDoc.doc.version();
+    leftEditor.update(() => {
+      const block = $getRoot().getFirstChild();
+      const textNodes = $isElementNode(block) ? block.getChildren().filter($isTextNode) : [];
+      textNodes[1]?.setTextContent('aborative updated');
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    rightBinding.applyUpdate(leftDoc.exportUpdate(beforeEdit));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(readText(rightEditor)).toBe('collaborative updated');
+    expect(readTextNodeIds(rightEditor)).toEqual(leftIds);
+
+    unregisterNormalization();
+    unregisterProvider();
     leftBinding.dispose();
     rightBinding.dispose();
   });

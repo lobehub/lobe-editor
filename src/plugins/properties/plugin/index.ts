@@ -1,20 +1,15 @@
-import { ListItemNode, ListNode } from '@lexical/list';
-import { HeadingNode, QuoteNode } from '@lexical/rich-text';
-import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
-import type { Klass, LexicalEditor, LexicalNode } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import {
   $getRoot,
   COLLABORATION_TAG,
   COMMAND_PRIORITY_CRITICAL,
   HISTORIC_TAG,
   HISTORY_MERGE_TAG,
-  ParagraphNode,
   SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { ArtifactNode } from '@/plugins/artifact/node/ArtifactNode';
-import { CollapsibleNode } from '@/plugins/collapsible/node/CollapsibleNode';
+import { editorStateNeedsNodeIdNormalization } from '@/plugins/common/node/node-id';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerPropertiesCommands } from '../command';
@@ -28,16 +23,14 @@ import {
   readAnnotationSnapshot,
   registerJSONDataSourceMetadataExtension,
 } from '../service/json-metadata';
-import { getOrCreatePropertiesService, type IPropertiesService } from '../service/properties';
+import {
+  getOrCreatePropertiesService,
+  type IPropertiesService,
+  registerPropertiesNodeIdentityNormalization,
+} from '../service/properties';
 import { $getNodeProperties, propertiesState } from '../state';
 import { registerStreamingGenerationRegionGuard } from '../streaming-guard';
-import {
-  $ensureNodeId,
-  $ensureNodeIdsInTree,
-  $getNodeId,
-  $isNodeIdentityTarget,
-  $prepareCopiedNode,
-} from '../utils';
+import { $ensureNodeIdsInTree, $prepareCopiedNode } from '../utils';
 import { syncNodePropertiesToDOM } from '../utils-dom';
 
 export interface PropertiesPluginOptions {
@@ -94,7 +87,7 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
   }
 
   onInit(editor: LexicalEditor): void {
-    this.registerNodeIdentityTransforms(editor);
+    this.register(registerPropertiesNodeIdentityNormalization(editor, this.propertiesService));
 
     const scheduleReconcile = () => {
       if (this.reconcileScheduled) return;
@@ -254,7 +247,9 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
     // initial content. Establish the first anchor baseline immediately.
     this.reconcileAnchors(editor.getEditorState());
     syncNodePropertiesToDOM(editor);
-    this.migrateNodeIds(editor);
+    // Run after every plugin's onInit so a Yjs or Loro identity provider can
+    // publish its initial readiness barrier before the root normalizer runs.
+    this.scheduleNodeIdMigration(editor);
   }
 
   onDocumentChange(): void {
@@ -269,35 +264,6 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
     super.destroy();
   }
 
-  /** Register transforms for the block classes shipped by this package. */
-  private registerNodeIdentityTransforms(editor: LexicalEditor): void {
-    const classes: Array<Klass<LexicalNode>> = [
-      ParagraphNode,
-      HeadingNode,
-      QuoteNode,
-      ListNode,
-      ListItemNode,
-      TableNode,
-      TableRowNode,
-      TableCellNode,
-      ArtifactNode,
-      CollapsibleNode,
-    ];
-
-    for (const nodeClass of classes) {
-      if (!editor.hasNode(nodeClass)) continue;
-      this.register(
-        editor.registerNodeTransform(nodeClass, (node) => {
-          // A collaborative binding owns the stable identity seed. Avoid
-          // assigning a local value before the binding is ready, otherwise
-          // simultaneous clients could preserve different legacy IDs.
-          if (this.propertiesService.getCollaborationProvider()) return;
-          $ensureNodeId(node);
-        }),
-      );
-    }
-  }
-
   /** Run an idempotent legacy migration in its own syncable history group. */
   private migrateNodeIds(editor: LexicalEditor): void {
     if (this.destroyed) return;
@@ -305,7 +271,7 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
     // Wait for the collaboration plugin to publish its binding. The first
     // migration must not race that setup and choose a client-local identity.
     if (provider && provider.getReadiness() !== 'ready') return;
-    if (!this.hasNodeIdentityConflicts(editor)) return;
+    if (!editorStateNeedsNodeIdNormalization(editor.getEditorState(), editor)) return;
 
     editor.update(
       () => {
@@ -326,29 +292,6 @@ export const PropertiesPlugin: IEditorPluginConstructor<PropertiesPluginOptions>
       this.nodeIdMigrationScheduled = false;
       if (!this.destroyed) this.migrateNodeIds(editor);
     });
-  }
-
-  private hasNodeIdentityConflicts(editor: LexicalEditor): boolean {
-    let hasConflict = false;
-    const seen = new Set<string>();
-    editor.getEditorState().read(() => {
-      const visit = (node: import('lexical').LexicalNode): void => {
-        if (!$isNodeIdentityTarget(node)) {
-          if ('getChildren' in node && typeof node.getChildren === 'function') {
-            node.getChildren().forEach(visit);
-          }
-          return;
-        }
-        const nodeId = $getNodeId(node);
-        if (!nodeId || seen.has(nodeId)) hasConflict = true;
-        if (nodeId) seen.add(nodeId);
-        if ('getChildren' in node && typeof node.getChildren === 'function') {
-          node.getChildren().forEach(visit);
-        }
-      };
-      visit($getRoot());
-    });
-    return hasConflict;
   }
 
   private reconcileAnchors(

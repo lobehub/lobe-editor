@@ -1,4 +1,5 @@
 import { defineConfig } from '@lobehub/lint';
+import { restrictedImports } from '@lobehub/ui/eslint';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -45,4 +46,5 @@ export default defineConfig(
       'unicorn/prefer-logical-operator-over-ternary': 'off',
     },
   },
+  restrictedImports,
 );

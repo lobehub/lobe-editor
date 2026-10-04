@@ -547,7 +547,13 @@ describe('Loro binding with the real headless plugin registry', () => {
         .getEditorState()
         .read(() => {
           const paragraph = $getRoot().getFirstChild() as any;
-          return paragraph.getChildren().map((node: any) => node.getType());
+          const order: string[] = [];
+          paragraph.getChildren().forEach((node: any) => {
+            const type = node.getType();
+            if (type === 'text' && order.at(-1) === 'text') return;
+            order.push(type);
+          });
+          return order;
         });
     const order = readInlineOrder(right);
     expect(order).toEqual([
@@ -870,10 +876,32 @@ describe('Loro binding with the real headless plugin registry', () => {
       lexical.getEditorState().read(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) return null;
+        const anchorNode = selection.anchor.getNode();
+        const block = anchorNode.getParent();
+        if (!$isElementNode(block)) return null;
+        const siblings = block.getChildren();
+        const anchorIndex = siblings.findIndex((node) => node.getKey() === anchorNode.getKey());
+        if (anchorIndex < 0) return null;
+        const logicalOffset =
+          siblings
+            .slice(0, anchorIndex)
+            .reduce((offset, node) => offset + node.getTextContent().length, 0) +
+          selection.anchor.offset;
+        const formatRuns: Array<{ format: number; text: string }> = [];
+        for (const node of siblings) {
+          if (!$isTextNode(node)) continue;
+          const previous = formatRuns.at(-1);
+          if (previous?.format === node.getFormat()) {
+            previous.text += node.getTextContent();
+          } else {
+            formatRuns.push({ format: node.getFormat(), text: node.getTextContent() });
+          }
+        }
         return {
-          anchorText: selection.anchor.getNode().getTextContent(),
+          anchorBlockText: block.getTextContent(),
           anchorOffset: selection.anchor.offset,
-          focusText: selection.focus.getNode().getTextContent(),
+          logicalBlockOffset: logicalOffset,
+          formatRuns,
           focusOffset: selection.focus.offset,
         };
       });
@@ -891,26 +919,50 @@ describe('Loro binding with the real headless plugin registry', () => {
     });
     await settle();
     expect(flowTexts()).toEqual(['abc', 'typeddef']);
-    expect(readSelection()).toMatchObject({ anchorText: 'typeddef', anchorOffset: 5 });
+    expect(flowTexts().join('')).toBe('abctypeddef');
+    expect(readSelection()).toMatchObject({
+      anchorBlockText: 'typeddef',
+      logicalBlockOffset: 5,
+      formatRuns: [{ format: 0, text: 'typeddef' }],
+    });
 
     expect(lexical.dispatchCommand(UNDO_COMMAND, undefined)).toBe(true);
     await settle();
     expect(flowTexts()).toEqual(afterSplit);
     expect(flowTexts().join('')).toBe('abcdef');
-    expect(readSelection()).toMatchObject({ anchorText: 'def', anchorOffset: 0 });
+    expect(readSelection()).toMatchObject({
+      anchorBlockText: 'def',
+      logicalBlockOffset: 0,
+      formatRuns: [{ format: 0, text: 'def' }],
+    });
 
     expect(lexical.dispatchCommand(UNDO_COMMAND, undefined)).toBe(true);
     await settle();
     expect(flowTexts()).toEqual(['abcdef']);
     expect(flowTexts().join('')).toBe('abcdef');
-    expect(readSelection()).toMatchObject({ anchorText: 'abcdef', anchorOffset: 3 });
+    expect(readSelection()).toMatchObject({
+      anchorBlockText: 'abcdef',
+      logicalBlockOffset: 3,
+      formatRuns: [{ format: 0, text: 'abcdef' }],
+    });
 
     expect(lexical.dispatchCommand(REDO_COMMAND, undefined)).toBe(true);
     await settle();
-    expect(readSelection()).toMatchObject({ anchorText: 'def', anchorOffset: 0 });
+    expect(flowTexts().join('')).toBe('abcdef');
+    expect(readSelection()).toMatchObject({
+      anchorBlockText: 'def',
+      logicalBlockOffset: 0,
+      formatRuns: [{ format: 0, text: 'def' }],
+    });
     expect(lexical.dispatchCommand(REDO_COMMAND, undefined)).toBe(true);
     await settle();
-    expect(readSelection()).toMatchObject({ anchorText: 'typeddef', anchorOffset: 5 });
+    expect(flowTexts()).toEqual(['abc', 'typeddef']);
+    expect(flowTexts().join('')).toBe('abctypeddef');
+    expect(readSelection()).toMatchObject({
+      anchorBlockText: 'typeddef',
+      logicalBlockOffset: 5,
+      formatRuns: [{ format: 0, text: 'typeddef' }],
+    });
 
     unregisterHistory();
     binding.dispose();

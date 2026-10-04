@@ -1,7 +1,7 @@
 'use client';
 
-import { ActionIcon, Flexbox, InputNumber, Popover, Text } from '@lobehub/ui';
-import { Switch } from 'antd';
+import { Flexbox, Popover } from '@lobehub/ui';
+import { ActionIcon, InputNumber, Switch, Text } from '@lobehub/ui/base-ui';
 import { MoreHorizontalIcon } from 'lucide-react';
 import { type FC, useCallback } from 'react';
 
@@ -38,6 +38,7 @@ export const MoreOptions: FC<MoreOptionsProps> = ({
               min={1}
               onChange={handleTabSizeChange as any}
               size="small"
+              style={{ width: 80 }}
               value={tabSize}
             />
           </Flexbox>

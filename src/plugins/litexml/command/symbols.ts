@@ -123,6 +123,8 @@ export type LiteXMLModifyCommandOperation =
       litexml: string | string[];
     };
 
+export type LiteXmlModifyOperation = LiteXMLModifyCommandOperation;
+
 export type LiteXMLModifyCommandPayload = Array<LiteXMLModifyCommandOperation> &
   Partial<LiteXMLRewriteMetadata>;
 
@@ -145,6 +147,18 @@ export type LiteXMLInsertCommandPayload =
 
 export const LITEXML_MODIFY_COMMAND =
   createCommand<LiteXMLModifyCommandPayload>('LITEXML_MODIFY_COMMAND');
+
+export interface LiteXmlOperationResult {
+  action: LiteXmlModifyOperation['action'];
+  index: number;
+  reason?: string;
+  status: 'applied' | 'failed';
+}
+
+export const LITEXML_MODIFY_WITH_RESULTS_COMMAND = createCommand<{
+  onResults: (results: LiteXmlOperationResult[]) => void;
+  operations: ReadonlyArray<LiteXmlModifyOperation>;
+}>('LITEXML_MODIFY_WITH_RESULTS_COMMAND');
 
 export const LITEXML_APPLY_COMMAND = createCommand<{ delay?: boolean; litexml: string | string[] }>(
   'LITEXML_APPLY_COMMAND',

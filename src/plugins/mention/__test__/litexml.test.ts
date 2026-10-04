@@ -6,6 +6,7 @@ import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import { IEditor } from '@/types';
 
+import { normalizeOpaqueIds } from '../../litexml/__test__/normalize-opaque-ids';
 import { MentionPlugin } from '../plugin';
 
 describe('mention litexml', () => {
@@ -61,8 +62,10 @@ describe('mention litexml', () => {
   it('writer should work', async () => {
     editor.setDocument('markdown', '<mention>xxx[123]</mention>');
     const xml = editor.getDocument('litexml') as unknown as string;
-    expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><p id="lwap"><mention id="m1v0" label="xxx" metadata="{&quot;id&quot;:&quot;123&quot;}"></mention></p></root>`,
+    expect(normalizeOpaqueIds(xml.replace(/>\n\s*?</g, '><'))).toBe(
+      normalizeOpaqueIds(
+        `<?xml version="1.0" encoding="UTF-8"?><root><p id="lwap"><mention id="m1v0" label="xxx" metadata="{&quot;id&quot;:&quot;123&quot;}"></mention></p></root>`,
+      ),
     );
   });
 });

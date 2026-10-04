@@ -15,7 +15,7 @@ import {
   getTableObserverFromTableElement,
 } from '@lexical/table';
 import { mergeRegister } from '@lexical/utils';
-import { ActionIcon } from '@lobehub/ui';
+import { ActionIcon } from '@lobehub/ui/base-ui';
 import type { LexicalEditor } from 'lexical';
 import {
   $getNodeByKey,

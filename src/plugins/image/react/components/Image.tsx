@@ -1,5 +1,5 @@
-import { ActionIcon, Icon } from '@lobehub/ui';
-import { Image as AntImage } from 'antd';
+import { Icon, useImagePreview } from '@lobehub/ui';
+import { ActionIcon } from '@lobehub/ui/base-ui';
 import { cx } from 'antd-style';
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
 import { LoaderCircleIcon, ZoomInIcon } from 'lucide-react';
@@ -37,7 +37,6 @@ const Image = memo<ImageProps>(
   ({ node, className, showScaleInfo = false, handleUpload, onPickFile }) => {
     const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
     const [isHovered, setIsHovered] = useState(false);
-    const [previewOpen, setPreviewOpen] = useState(false);
     const [scale, setScale] = useState(1);
     const [size, setSize] = useState({ height: 0, width: 0 });
     const [newWidth, setNewWidth] = useState<number | null>(null);
@@ -46,6 +45,8 @@ const Image = memo<ImageProps>(
     const editorRef = useRef<any>(null);
     const startWidthRef = useRef<number>(0);
     const lastLoadedSrcRef = useRef<string | null>(null);
+    const previewImageRef = useRef<HTMLImageElement | null>(null);
+    const { open: openPreview, outlet: previewOutlet } = useImagePreview(previewImageRef);
     const t = useTranslation();
     const isBlock = useMemo(() => {
       return $isBlockImageNode(node);
@@ -139,11 +140,15 @@ const Image = memo<ImageProps>(
       setIsHovered(false);
     }, []);
 
-    const handlePreview = useCallback((e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setPreviewOpen(true);
-    }, []);
+    const handlePreview = useCallback(
+      (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        previewImageRef.current = imageRef.current?.querySelector('img') ?? null;
+        openPreview();
+      },
+      [openPreview],
+    );
 
     const children = useMemo(() => {
       switch (node.status) {
@@ -250,10 +255,7 @@ const Image = memo<ImageProps>(
             />
           )}
 
-          <AntImage.PreviewGroup
-            items={[node.src]}
-            preview={{ open: previewOpen, onOpenChange: setPreviewOpen }}
-          />
+          {previewOutlet}
 
           {/* Scale info display */}
           {showScaleInfo && isSelected && scale !== 1 && (

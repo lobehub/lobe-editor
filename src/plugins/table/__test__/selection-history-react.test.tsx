@@ -11,6 +11,7 @@ import {
   type TableRowNode,
 } from '@lexical/table';
 import type { Provider, ProviderAwareness, UserState } from '@lexical/yjs';
+import { MotionProvider } from '@lobehub/ui';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -24,6 +25,7 @@ import {
   KEY_ARROW_RIGHT_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
+import { motion } from 'motion/react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -156,12 +158,14 @@ describe('table selection history with mounted React decorators', () => {
 
     await act(async () => {
       reactRoot?.render(
-        <ReactEditor editor={kernel}>
-          <ReactPlainText>
-            <ReactEditorContent content="" type="text" />
-          </ReactPlainText>
-          <ReactTablePlugin />
-        </ReactEditor>,
+        <MotionProvider motion={motion}>
+          <ReactEditor editor={kernel}>
+            <ReactPlainText>
+              <ReactEditorContent content="" type="text" />
+            </ReactPlainText>
+            <ReactTablePlugin />
+          </ReactEditor>
+        </MotionProvider>,
       );
       await moment();
       await moment();

@@ -1,6 +1,7 @@
 'use client';
 
-import { Flexbox, MaterialFileTypeIcon, Select, Text } from '@lobehub/ui';
+import { Flexbox, MaterialFileTypeIcon } from '@lobehub/ui';
+import { Select, Text } from '@lobehub/ui/base-ui';
 import { cx } from 'antd-style';
 import { type FC, useMemo } from 'react';
 
@@ -20,7 +21,6 @@ export const LanguageSelect: FC<LanguageSelectProps> = ({
   const languageOptions = useMemo(
     () =>
       modes.map((mode) => ({
-        aliases: mode.ext || [],
         label: (
           <Flexbox align={'center'} gap={4} horizontal>
             <MaterialFileTypeIcon
@@ -35,7 +35,7 @@ export const LanguageSelect: FC<LanguageSelectProps> = ({
             </Text>
           </Flexbox>
         ),
-        title: mode.ext?.length ? mode.ext.map((ext) => `*.${ext}`).join(',') : `*.${mode.value}`,
+        title: [mode.value, mode.name, ...(mode.ext || [])].join(' '),
         value: mode.value,
       })),
     [modes],
@@ -52,15 +52,9 @@ export const LanguageSelect: FC<LanguageSelectProps> = ({
       <Select
         className={cx(styles.container)}
         disabled={disabled}
-        filterOption={(input, option) => {
-          const lang: string = input.toLowerCase();
-          if ((option?.value as string)?.toLowerCase().startsWith(lang)) return true;
-          if (String(option?.label).toLowerCase().includes(lang)) return true;
-          if (option?.aliases?.some((ext: string) => ext.toLowerCase().startsWith(lang)))
-            return true;
-          return false;
+        onChange={(value) => {
+          if (typeof value === 'string') onLanguageChange(value);
         }}
-        onChange={onLanguageChange}
         options={languageOptions}
         placeholder={labels?.selectLanguage ?? 'Select language'}
         showSearch

@@ -1,28 +1,47 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { $getRoot, type LexicalNode } from 'lexical';
+
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
+import { $getNodeId, $isNodeIdentityBlockTarget, $setNodeId } from '@/plugins/properties/utils';
+
 import { HeadlessEditor } from '../index';
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+type MarkdownNodeIdEntry = { nodeId: string; path: number[] };
 type SerializedNode = {
   $?: { properties?: { nodeId?: unknown } };
   children?: SerializedNode[];
+  text?: string;
   type?: string;
 };
 
-type MarkdownNodeIdEntry = { nodeId: string; path: number[] };
+const allNodes = (node: SerializedNode): SerializedNode[] => [
+  node,
+  ...(node.children ?? []).flatMap(allNodes),
+];
 
-const collectNodeIds = (
-  root: SerializedNode,
-): Array<{ id: string; path: number[]; type?: string }> => {
-  const result: Array<{ id: string; path: number[]; type?: string }> = [];
-  const visit = (node: SerializedNode, path: number[]) => {
-    const nodeId = node.$?.properties?.nodeId;
-    if (typeof nodeId === 'string') result.push({ id: nodeId, path, type: node.type });
-    node.children?.forEach((child, index) => visit(child, [...path, index]));
-  };
-  visit(root, []);
+const collectBlockNodeIds = (
+  editor: HeadlessEditor,
+): Array<{ id: string; path: number[]; type: string }> => {
+  const result: Array<{ id: string; path: number[]; type: string }> = [];
+  const lexicalEditor = editor.kernel.getLexicalEditor();
+  if (!lexicalEditor) throw new Error('Expected an initialized headless editor.');
+  lexicalEditor.getEditorState().read(
+    () => {
+      const visit = (node: LexicalNode, path: number[]) => {
+        if ($isNodeIdentityBlockTarget(node)) {
+          const nodeId = $getNodeId(node);
+          if (nodeId) result.push({ id: nodeId, path, type: node.getType() });
+        }
+        $getLogicalChildren(node).forEach((child, index) => visit(child, [...path, index]));
+      };
+      visit($getRoot(), []);
+    },
+    { editor: lexicalEditor },
+  );
   return result;
 };
 
@@ -73,11 +92,62 @@ describe('Markdown durable node-id transport', () => {
     target.hydrateMarkdown(transport);
     await flush();
 
-    const sourceData = source.export().editorData.root as unknown as SerializedNode;
-    const targetData = target.export().editorData.root as unknown as SerializedNode;
-    expect(collectNodeIds(targetData)).toEqual(collectNodeIds(sourceData));
+    expect(collectBlockNodeIds(target)).toEqual(collectBlockNodeIds(source));
+    const targetData = target.export().editorData;
     expect(JSON.stringify(targetData)).not.toContain('lobe-node-id');
     expect(target.export().markdown).not.toContain('lobe-node-id');
+  });
+
+  it('keeps following block IDs stable after adjacent same-format text fragments collapse', async () => {
+    const source = new HeadlessEditor();
+    editors.push(source);
+    source.hydrateMarkdown(
+      '- **HelloWorld** [Link](https://example.com)\n' + '  - Nested item\n\nFollowing paragraph',
+    );
+    await flush();
+
+    const sourceLexical = source.kernel.getLexicalEditor()!;
+    sourceLexical.update(() => {
+      const boldText = $getRoot()
+        .getAllTextNodes()
+        .find((node) => node.getTextContent() === 'HelloWorld');
+      if (!boldText) throw new Error('Expected one formatted text fragment.');
+      const [left, right] = boldText.splitText(5);
+      if (!left || !right) throw new Error('Expected adjacent formatted text fragments.');
+      $setNodeId(left, 'bold-fragment-left');
+      $setNodeId(right, 'bold-fragment-right');
+    });
+    await flush();
+
+    const expectedBlockIds = collectBlockNodeIds(source);
+    const sourceData = source.export().editorData.root as unknown as SerializedNode;
+    const sourceTextIds = allNodes(sourceData)
+      .filter((node) => node.type === 'text' && ['Hello', 'World'].includes(node.text ?? ''))
+      .map((node) => node.$?.properties?.nodeId);
+    expect(sourceTextIds).toEqual(['bold-fragment-left', 'bold-fragment-right']);
+
+    const transport = source.kernel.getDocument('markdown', {
+      includeNodeIds: true,
+    }) as unknown as string;
+    expect(transport).toContain('**HelloWorld**');
+    expect(transport).toContain('[Link](https://example.com)');
+    expect(collectMarkdownNodeIdEntries(transport).map(({ nodeId }) => nodeId)).not.toContain(
+      'bold-fragment-left',
+    );
+    expect(collectMarkdownNodeIdEntries(transport).map(({ nodeId }) => nodeId)).not.toContain(
+      'bold-fragment-right',
+    );
+    const sourceLiteXML = source.export({ litexml: true }).litexml;
+    expect(sourceLiteXML).toContain('id="bold-fragment-left"');
+    expect(sourceLiteXML).toContain('id="bold-fragment-right"');
+
+    const target = new HeadlessEditor();
+    editors.push(target);
+    target.hydrateMarkdown(transport);
+    await flush();
+
+    expect(target.export().markdown).toBe(source.export().markdown);
+    expect(collectBlockNodeIds(target)).toEqual(expectedBlockIds);
   });
 
   it('keeps top-level code and table identities through transparent Hole transport', async () => {
@@ -100,11 +170,11 @@ describe('Markdown durable node-id transport', () => {
     target.hydrateMarkdown(transport);
     await flush();
 
-    const sourceData = source.export().editorData.root as unknown as SerializedNode;
-    const targetData = target.export().editorData.root as unknown as SerializedNode;
     expect(
-      collectNodeIds(targetData).filter(({ type }) => type === 'code' || type === 'table'),
-    ).toEqual(collectNodeIds(sourceData).filter(({ type }) => type === 'code' || type === 'table'));
+      collectBlockNodeIds(target).filter(({ type }) => type === 'code' || type === 'table'),
+    ).toEqual(
+      collectBlockNodeIds(source).filter(({ type }) => type === 'code' || type === 'table'),
+    );
   });
 
   it('writes logical sidecar paths for code and table Holes nested in containers', async () => {
@@ -115,14 +185,10 @@ describe('Markdown durable node-id transport', () => {
     source.hydrateMarkdown(markdown);
     await flush();
 
-    const sourceData = source.export().editorData.root as unknown as SerializedNode;
-    const nestedSourceIds = collectNodeIds(sourceData).filter(
+    const nestedSourceIds = collectBlockNodeIds(source).filter(
       ({ type }) => type === 'code' || type === 'table',
     );
-    expect(nestedSourceIds.map(({ type, path }) => ({ type, path }))).toEqual([
-      { type: 'table', path: [0, 0] },
-      { type: 'code', path: [1, 1, 0] },
-    ]);
+    expect(nestedSourceIds.map(({ type }) => type)).toEqual(['table', 'code']);
 
     const transport = source.kernel.getDocument('markdown', {
       includeNodeIds: true,

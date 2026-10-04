@@ -5,7 +5,9 @@ import {
   LITEXML_APPLY_COMMAND,
   LITEXML_INSERT_COMMAND,
   LITEXML_MODIFY_COMMAND,
+  LITEXML_MODIFY_WITH_RESULTS_COMMAND,
   LITEXML_REMOVE_COMMAND,
+  type LiteXmlOperationResult,
 } from '@/plugins/litexml/command';
 import type { IDocumentOptions, IEditor, IPlugin } from '@/types';
 
@@ -270,7 +272,10 @@ export class HeadlessEditor {
     editorData: SerializedEditorState<SerializedLexicalNode> | string,
     options?: IDocumentOptions,
   ): this {
-    this.kernel.setDocument('json', normalizeLegacyEditorData(editorData), options);
+    this.kernel.setDocument('json', normalizeLegacyEditorData(editorData), {
+      ...options,
+      keepId: options?.keepId ?? true,
+    });
     return this;
   }
 
@@ -303,6 +308,21 @@ export class HeadlessEditor {
     this.kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, operations);
     await moment();
     return this;
+  }
+
+  async applyLiteXMLBatchWithResults(
+    operations: CommandPayloadType<typeof LITEXML_MODIFY_COMMAND>,
+  ): Promise<LiteXmlOperationResult[]> {
+    let results: LiteXmlOperationResult[] | undefined;
+    const handled = this.kernel.dispatchCommand(LITEXML_MODIFY_WITH_RESULTS_COMMAND, {
+      onResults: (operationResults) => {
+        results = operationResults;
+      },
+      operations,
+    });
+    if (!handled || !results) throw new Error('LiteXML batch result command is not registered.');
+    await moment();
+    return results;
   }
 
   export(options: HeadlessEditorExportOptions = {}): HeadlessEditorExport {

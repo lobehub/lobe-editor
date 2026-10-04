@@ -9,6 +9,7 @@ import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import type { IEditor } from '@/types';
 
+import { normalizeOpaqueIds } from '../../litexml/__test__/normalize-opaque-ids';
 import { BlockImageNode } from '../node/block-image-node';
 import { ImagePlugin } from '../plugin';
 
@@ -57,8 +58,10 @@ describe('image litexml', () => {
 
     const stableXML = editor.getDocument('litexml') as unknown as string;
     const stableState = readImageState();
-    expect(immediateXML.replaceAll(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><img id="lqqe" block="true" src="https://logo.com/logo.png" alt="logo" width="inherit" max-width="4200"></img></root>`,
+    expect(normalizeOpaqueIds(immediateXML.replaceAll(/>\n\s*?</g, '><'))).toBe(
+      normalizeOpaqueIds(
+        `<?xml version="1.0" encoding="UTF-8"?><root><img id="lqqe" block="true" src="https://logo.com/logo.png" alt="logo" width="inherit" max-width="4200"></img></root>`,
+      ),
     );
     expect(stableXML).toBe(immediateXML);
     expect(immediateXML).not.toContain('hole');

@@ -1,5 +1,12 @@
-import type { EditorState, LexicalEditor } from 'lexical';
+import type {
+  EditorState,
+  LexicalEditor,
+  SerializedEditorState,
+  SerializedLexicalNode,
+} from 'lexical';
 import { $createParagraphNode, $getRoot, HISTORY_MERGE_TAG, SKIP_COLLAB_TAG } from 'lexical';
+
+import { $normalizeNodeIds, migrateSerializedNodeIds } from '@/plugins/common/node/node-id';
 
 import type { YjsInitialEditorState } from '../types';
 
@@ -34,12 +41,18 @@ export function initializeEditor(
       return;
     }
 
-    editor.setEditorState(
+    const serializedState =
       typeof initialEditorState === 'string'
-        ? editor.parseEditorState(initialEditorState)
-        : initialEditorState,
-      updateOptions,
+        ? (JSON.parse(initialEditorState) as SerializedEditorState<SerializedLexicalNode>)
+        : initialEditorState.toJSON();
+    migrateSerializedNodeIds((serializedState as { root?: unknown }).root);
+    const parsedState = editor.parseEditorState(
+      serializedState as SerializedEditorState<SerializedLexicalNode>,
+      () => {
+        $normalizeNodeIds($getRoot());
+      },
     );
+    editor.setEditorState(parsedState, updateOptions);
     return;
   }
 

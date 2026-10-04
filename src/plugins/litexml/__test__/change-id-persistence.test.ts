@@ -8,6 +8,7 @@ import { Doc, encodeStateAsUpdate } from 'yjs';
 
 import { moment } from '@/editor-kernel';
 import { exportYjsSnapshotProjection, HeadlessEditor } from '@/headless';
+import { INodeIdentityService } from '@/plugins/common/service/i-node-identity-service';
 import { DiffAction, LITEXML_DIFFNODE_ALL_COMMAND } from '@/plugins/litexml';
 import {
   createCollaborativeAgentCommandGateway,
@@ -183,9 +184,7 @@ describe('LiteXML changeId persistence', () => {
     const stagedIds = collectChangeIds(staged.root, 'table-row-diff');
     expect(stagedIds).toHaveLength(2);
     expect(stagedIds[0]).toBe(stagedIds[1]);
-    expect(stagedIds[0]).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu,
-    );
+    expect(stagedIds[0]).toMatch(/^[0-9a-z]{10}$/iu);
     expect(rowKey).toBeDefined();
     expect(stagedIds).not.toContain(rowKey);
     expect(JSON.stringify(staged)).toContain('request-row-persistence');
@@ -261,6 +260,12 @@ describe('LiteXML changeId persistence', () => {
     expect(new Set([...pending.removeCellIds, ...pending.addCellIds]).size).toBe(
       pending.removeCellIds.length + pending.addCellIds.length,
     );
+    expect(
+      editor.kernel.requireService(INodeIdentityService)?.getNodeById(original.rowId!),
+    ).toMatchObject({
+      id: original.rowId,
+      type: 'table-row-diff',
+    });
 
     const staged = editor.export().editorData;
     const stagedRowDiffs = [

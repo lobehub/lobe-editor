@@ -99,10 +99,9 @@ describe('PropertiesPlugin', () => {
     await flush();
 
     const sourceIds: Record<string, string> = {};
-    source.kernel
-      .getLexicalEditor()!
-      .getEditorState()
-      .read(() => {
+    const sourceLexical = source.kernel.getLexicalEditor()!;
+    sourceLexical.getEditorState().read(
+      () => {
         $getRoot()
           .getChildren()
           .forEach((node) => {
@@ -111,29 +110,28 @@ describe('PropertiesPlugin', () => {
               if (nodeId) sourceIds[node.getType()] = nodeId;
             }
           });
-      });
-    expect(sourceIds.heading).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      },
+      { editor: sourceLexical },
     );
-    expect(sourceIds.paragraph).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
+    expect(sourceIds.heading).toMatch(/^[0-9a-z]{10}$/);
+    expect(sourceIds.paragraph).toMatch(/^[0-9a-z]{10}$/);
 
     const exported = source.export().editorData;
     const target = createHeadlessEditor();
     target.hydrateEditorData(exported);
     await flush();
 
-    target.kernel
-      .getLexicalEditor()!
-      .getEditorState()
-      .read(() => {
+    const targetLexical = target.kernel.getLexicalEditor()!;
+    targetLexical.getEditorState().read(
+      () => {
         for (const nodeId of Object.values(sourceIds)) {
           const node = $findNodeById(nodeId);
           expect(node).not.toBeNull();
           expect($getNodeId(node!)).toBe(nodeId);
         }
-      });
+      },
+      { editor: targetLexical },
+    );
 
     source.destroy();
     target.destroy();
@@ -189,9 +187,7 @@ describe('PropertiesPlugin', () => {
       expect($getNodeProperties(source).annotationIds).toBeUndefined();
     });
     await flush();
-    expect(copiedId).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
+    expect(copiedId).toMatch(/^[0-9a-z]{10}$/);
     headless.destroy();
   });
 

@@ -1,32 +1,18 @@
 import type { LexicalNode } from 'lexical';
 import { $getState, $setState, createState } from 'lexical';
 
+import { createNodeId } from '@/plugins/common/node/create-node-id';
+
 import type { NodeProperties, NodePropertiesUpdater } from './types';
 
 const EMPTY_PROPERTIES: NodeProperties = {};
 
 /**
- * Generate a durable RFC 4122 v4 identifier without requiring a browser
- * runtime. The fallback is intentionally kept here (rather than in a Page
- * integration) so headless and Node collaborators create the same shape of
- * identity as browser editors.
+ * Generate a compact 10-character base-36 identity for newly created nodes.
+ * The shared implementation uses crypto entropy when available and also runs
+ * in headless and Node environments.
  */
-export function createNodeId(): string {
-  const cryptoObject = (
-    globalThis as typeof globalThis & {
-      crypto?: { randomUUID?: () => string };
-    }
-  ).crypto;
-  if (typeof cryptoObject?.randomUUID === 'function') {
-    return cryptoObject.randomUUID();
-  }
-
-  const bytes = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
-  bytes[6] = (bytes[6] & 0x0F) | 0x40;
-  bytes[8] = (bytes[8] & 0x3F) | 0x80;
-  const hex = bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
+export { createNodeId };
 
 /**
  * Create a UUID-shaped durable identity from a stable document-local seed.
@@ -56,7 +42,7 @@ export function createDeterministicNodeId(seed: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-/** A non-empty string is accepted for import compatibility; new IDs are UUIDs. */
+/** Accept imported legacy IDs; newly generated IDs use the compact base-36 format. */
 export function isNodeId(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -95,8 +81,9 @@ const parseProperties = (value: unknown): NodeProperties => {
   const properties = cloneValue(value) as NodeProperties;
 
   if (properties.nodeId !== undefined) {
-    if (!isNodeId(properties.nodeId)) delete properties.nodeId;
-    else properties.nodeId = properties.nodeId.trim();
+    if (!isNodeId(properties.nodeId) || properties.nodeId.trim() === 'root') {
+      delete properties.nodeId;
+    } else properties.nodeId = properties.nodeId.trim();
   }
 
   if (Array.isArray(properties.annotationIds)) {
@@ -121,7 +108,8 @@ const parseProperties = (value: unknown): NodeProperties => {
     }
     if (
       properties.provenance.turnIndex !== undefined &&
-      (!Number.isSafeInteger(properties.provenance.turnIndex) || properties.provenance.turnIndex < 0)
+      (!Number.isSafeInteger(properties.provenance.turnIndex) ||
+        properties.provenance.turnIndex < 0)
     ) {
       delete properties.provenance.turnIndex;
     }
@@ -134,6 +122,10 @@ const parseProperties = (value: unknown): NodeProperties => {
 export const propertiesState = createState('properties', {
   isEqual,
   parse: parseProperties,
+  // Keep exported JSON detached from the mutable metadata object stored on the
+  // Lexical node. This also preserves the `properties` state contract used by
+  // the shared identity API.
+  unparse: cloneValue,
 });
 
 export function $getNodeProperties(node: LexicalNode): NodeProperties {

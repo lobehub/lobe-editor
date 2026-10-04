@@ -8,27 +8,6 @@ const path = require('node:path');
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 const PATCH_CONFIGS = [
   {
-    displayName: 'Lexical',
-    fileHashes: {
-      'Lexical.dev.js': {
-        patched: '040185c436ac5e005d602aef4c7caec3bad226d1001e49f7ab41092341062d03',
-      },
-      'Lexical.dev.mjs': {
-        patched: '927edd6e8985942dda6c48b6529c1e65310ac610a40db1633f943230b4d5e85e',
-      },
-      'Lexical.prod.js': {
-        patched: '01ab2486b22bb0f09c94b5e83ce6d4cbff78c869913d5e9da02a162249bbe92b',
-      },
-      'Lexical.prod.mjs': {
-        patched: '53c1342a05753a78c6ac9272ae59e6129e1425a29a514775244e6f312cc80377',
-      },
-    },
-    packageName: 'lexical',
-    patchFile: path.join(PACKAGE_ROOT, 'patches', 'lexical@0.42.0.patch'),
-    rootOverride: process.env.LOBE_EDITOR_LEXICAL_ROOT,
-    supportedVersion: '0.42.0',
-  },
-  {
     displayName: 'Lexical Yjs',
     fileHashes: {
       'LexicalYjs.dev.js': {

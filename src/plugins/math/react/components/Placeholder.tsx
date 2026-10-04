@@ -1,4 +1,5 @@
-import { Center, Text } from '@lobehub/ui';
+import { Center } from '@lobehub/ui';
+import { Text } from '@lobehub/ui/base-ui';
 import { cx } from 'antd-style';
 import { type FC } from 'react';
 

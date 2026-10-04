@@ -43,6 +43,7 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
   - [Plugin Features](#plugin-features)
 - [📖 API Reference](#-api-reference)
   - [Editor Kernel](#editor-kernel)
+  - [LiteXML and Node IDs](#litexml-and-node-ids)
   - [Plugin System](#plugin-system)
 - [🛠️ Development](#️-development)
   - [Setup](#setup)
@@ -350,6 +351,91 @@ interface IEditor {
   getLexicalEditor(): LexicalEditor | null;
   getRootElement(): HTMLElement | null;
   requireService<T>(serviceId: ServiceID<T>): T | null;
+}
+```
+
+### LiteXML and Node IDs
+
+Each content node's durable public ID is stored at `$.properties.nodeId`; LiteXML exposes the same value as its `id` attribute. These IDs are opaque and independent of Lexical runtime keys. Newly generated IDs use 10 lowercase base-36 characters, with cryptographic randomness when the runtime provides it. Existing imported IDs remain unchanged unless they are invalid or collide with another content node. Read IDs from an exported LiteXML snapshot before using them as an operation's `id`, `beforeId`, or `afterId`. Importing JSON with `keepId: true` preserves valid, nonconflicting IDs; `keepId: false` assigns fresh IDs. The literal `root` is reserved for document-boundary `beforeId` and `afterId` insertion anchors. Imported content IDs that trim to `root` are repaired with fresh IDs.
+
+Yjs v1 reconciles collisions created when disconnected clients import different nodes with the same explicit ID. Valid LiteXML review before/after pairs stay together; otherwise, the node with the smallest shared Yjs identity in deterministic order keeps the ID. Other nodes receive the same deterministic repair IDs on every client, and the repair is excluded from user undo history.
+
+An ID names a **logical content node**, not one physical Lexical object. A pending LiteXML modification can contain before and after representations with the same ID. Lookup addresses the active after representation; pending removals are absent from the active view. Accepting or rejecting a change keeps the surviving logical ID, while an independent copy or split receives a new ID. Review wrappers and the document root are not addressable. Without `LitexmlPlugin`, `CommonPlugin` uses a plain tree view with no review rules.
+
+Yjs external snapshots repair duplicate explicit IDs deterministically. Replaying the same malformed snapshot therefore keeps the repaired IDs and does not rewrite the shared document again.
+
+Use `$getNodeById` only synchronously inside a Lexical read or update. It returns a Lexical node in that context, so do not retain the result across updates. A historical `EditorState.read` must receive `{ editor: lexicalEditor }` to select that editor's identity policy. Invalid or unknown IDs return `null`.
+
+For application code outside a Lexical callback, `CommonPlugin` registers `INodeIdentityService`. Its `getNodeById` returns detached, immutable `{ id, type, textContent }` metadata from the last committed state. `textContent` is the native Lexical text for that node; an outer review container can include both pending sides. Use a LiteXML or Markdown export when you need the projected document text. `subscribe` signals committed updates and identity-policy changes; call `getNodeById` in the listener to refresh the metadata. Unsubscribe when the consumer unmounts. After the editor is destroyed, a retained service returns `null`.
+
+The same `$getNodeById`, `$getNodeId`, and `INodeIdentityService` exports are available from `@lobehub/editor/headless`; headless consumers can use that entry without importing the browser bundle.
+
+`$getNodeById` walks the active tree in O(N) time so pending edits and historical reads use the exact Lexical state in the callback. The service builds a key-only index once per committed `EditorState` in O(N) time, then resolves later IDs in O(1) before extracting native `textContent` (which can itself traverse a subtree). The [identity benchmark](scripts/benchmark-node-identity.ts) records diagnostic timings; it does not set CI timing thresholds.
+
+```typescript
+import { $getNodeById, INodeIdentityService, type IEditor } from '@lobehub/editor';
+
+function inspectNode(kernel: IEditor, id: string) {
+  // CommonPlugin must be registered and the editor initialized.
+  const identity = kernel.requireService(INodeIdentityService);
+  const snapshot = identity?.getNodeById(id); // Safe to keep outside Lexical callbacks.
+
+  const lexicalEditor = kernel.getLexicalEditor();
+  lexicalEditor?.getEditorState().read(
+    () => {
+      const node = $getNodeById(id); // Active LiteXML representation, if installed.
+      console.log(node?.getType());
+    },
+    { editor: lexicalEditor },
+  );
+
+  return snapshot;
+}
+```
+
+`HeadlessEditor.applyLiteXMLBatchWithResults(operations)` returns one result per input operation, in array order. `status: 'applied'` means the change is staged in the editor; pending review diffs still need a separate accept or reject action. A `modify` operation containing multiple LiteXML fragments applies all of its targets or none: missing targets, malformed fragments, incompatible list, table, or inline/block structure, repeated target IDs, and ancestor/descendant target pairs fail that operation before it changes the document. Distinct sibling targets can be modified together. Failed operations include a reason, and later independent operations still run:
+
+```typescript
+import { createHeadlessEditor } from '@lobehub/editor/headless';
+
+const editor = createHeadlessEditor();
+editor.hydrateMarkdown('- first\n- second');
+const { litexml } = editor.export({ litexml: true });
+const targetId = /<li id="([^"]+)"/.exec(litexml!)?.[1];
+if (!targetId) throw new Error('No list item ID found in LiteXML');
+
+const operations = [
+  { action: 'remove' as const, id: targetId },
+  { action: 'remove' as const, id: 'unknown-id' },
+];
+
+const results = await editor.applyLiteXMLBatchWithResults(operations);
+// results[1] has status: 'failed' and a reason.
+editor.destroy();
+```
+
+For a direct `IEditor` integration, dispatch `LITEXML_MODIFY_WITH_RESULTS_COMMAND` instead of calling the headless wrapper:
+
+```typescript
+import type { IEditor } from '@lobehub/editor';
+import { LITEXML_MODIFY_WITH_RESULTS_COMMAND } from '@lobehub/editor/litexml-commands';
+
+function applyWithResults(kernel: IEditor) {
+  // The editor is already initialized with LiteXML and has a loaded document.
+  const currentLiteXml = kernel.getDocument('litexml') as unknown as string;
+  const targetId = /<li id="([^"]+)"/.exec(currentLiteXml)?.[1];
+  if (!targetId) throw new Error('No list item ID found in LiteXML');
+
+  kernel.dispatchCommand(LITEXML_MODIFY_WITH_RESULTS_COMMAND, {
+    operations: [
+      { action: 'remove', id: targetId },
+      { action: 'remove', id: 'unknown-id' },
+    ],
+    onResults: (batchResults) => {
+      const failed = batchResults.filter((result) => result.status === 'failed');
+      console.log(failed);
+    },
+  });
 }
 ```
 

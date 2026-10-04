@@ -1,49 +1,17 @@
 import { DOMParser } from '@xmldom/xmldom';
-import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
-import {
-  $getRoot,
-  $getSelection,
-  $isElementNode,
-  $isRangeSelection,
-  resetRandomKey,
-} from 'lexical';
+import type { ElementNode, LexicalEditor } from 'lexical';
+import { $getRoot, $getSelection, $isElementNode, $isRangeSelection } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
+import { $getNodeId, $normalizeNodeIds } from '@/plugins/common/node/node-id';
 import { INodeService } from '@/plugins/inode/service';
-import { $getNodeId } from '@/plugins/properties/utils';
 import type { IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
 import type { ILitexmlService, IWriterContext, IXmlNode } from '../service/litexml-service';
 import { LitexmlService } from '../service/litexml-service';
-import { $parseSerializedNodeImpl, charToId, idToChar } from '../utils';
-
-const LEGACY_LITEXML_ID = /^[\da-z]{1,4}$/i;
-const DURABLE_LITEXML_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const hasNumericSerializedNodeId = (node: unknown): boolean => {
-  if (!node || typeof node !== 'object') return false;
-  const record = node as { children?: unknown; id?: unknown };
-  if (
-    (typeof record.id === 'number' || typeof record.id === 'string') &&
-    Number.isInteger(Number(record.id)) &&
-    Number(record.id) >= 0
-  ) {
-    return true;
-  }
-  return Array.isArray(record.children) && record.children.some(hasNumericSerializedNodeId);
-};
-
-/**
- * IDs emitted by older LiteXML writers are short base-36 encodings of a
- * Lexical node key. New writers emit durable node IDs (normally UUIDs), which
- * must be stored in NodeState instead of being fed through charToId.
- */
-const isLegacyLiteXMLId = (value: string): boolean => LEGACY_LITEXML_ID.test(value);
-const isDurableLiteXMLId = (value: string): boolean =>
-  DURABLE_LITEXML_ID.test(value) || /[-_:]/.test(value);
 
 const setSerializedNodeIdentity = (
   node: Record<string, any> | null | undefined,
@@ -52,11 +20,6 @@ const setSerializedNodeIdentity = (
   if (!node) return;
   const id = xmlElement.getAttribute('id')?.trim();
   if (!id) return;
-
-  if (isLegacyLiteXMLId(id) || !isDurableLiteXMLId(id)) {
-    node.id = charToId(id);
-    return;
-  }
 
   const state = isRecord(node.$) ? node.$ : {};
   const properties = isRecord(state.properties) ? state.properties : {};
@@ -75,10 +38,9 @@ const setSerializedNodeIdentityOnResult = (result: unknown, xmlElement: Element)
     if (firstNode) {
       if (firstNode.type === 'hole') {
         // Hole is a runtime-only wrapper. Applying the source XML identity to
-        // both the wrapper and its logical payload makes keepId parsing reset
-        // the Lexical key counter twice to the same value, producing a key
-        // collision while the payload is appended. The durable identity
-        // belongs to the wrapped business node, never to Hole itself.
+        // both the wrapper and its logical payload creates duplicate owners.
+        // The durable identity belongs to the wrapped business node, never to
+        // Hole itself.
         setSerializedNodeIdentityOnWrappedContent(firstNode, xmlElement);
       } else {
         setSerializedNodeIdentity(firstNode, xmlElement);
@@ -89,9 +51,7 @@ const setSerializedNodeIdentityOnResult = (result: unknown, xmlElement: Element)
 
   if (isRecord(result)) {
     if (result.type === 'hole') {
-      // See the array branch above: do not assign an XML id to the transient
-      // Hole wrapper because it would collide with its logical content when
-      // the data source imports with keepId=true.
+      // See the array branch above: identity belongs to Hole's logical payload.
       setSerializedNodeIdentityOnWrappedContent(result, xmlElement);
     } else {
       setSerializedNodeIdentity(result, xmlElement);
@@ -168,37 +128,9 @@ export default class LitexmlDataSource extends DataSource {
   read(editor: LexicalEditor, data: string): void {
     try {
       const inode = this.readLiteXMLToInode(data);
-      const hasExplicitIds = hasNumericSerializedNodeId(inode.root);
-
-      const newState = resetRandomKey(() =>
-        editor.parseEditorState(
-          {
-            root: INodeHelper.createRootNode(),
-          },
-          (state) => {
-            let root: LexicalNode | undefined;
-            try {
-              root = $parseSerializedNodeImpl(inode.root, editor, true, state);
-            } catch (error) {
-              console.error(error);
-            }
-
-            if (root) state._nodeMap.set(root.getKey(), root);
-
-            if (hasExplicitIds) {
-              let maxId = -1;
-              Array.from(state._nodeMap.keys()).forEach((key) => {
-                if (key === 'root') return;
-                const numericKey = Number(key);
-                if (Number.isInteger(numericKey) && numericKey >= 0) {
-                  maxId = Math.max(maxId, numericKey);
-                }
-              });
-              resetRandomKey(maxId + 1);
-            }
-          },
-        ),
-      );
+      const newState = editor.parseEditorState(inode, () => {
+        $normalizeNodeIds($getRoot());
+      });
 
       editor.setEditorState(newState);
     } catch (error) {
@@ -292,6 +224,10 @@ export default class LitexmlDataSource extends DataSource {
   private processXMLElement(xmlElement: any, parentNode: any): void {
     const tagName = xmlElement.tagName.toLowerCase();
     const customReaders = this.litexmlService.getXMLReaders();
+    const append = (node: any) => {
+      setSerializedNodeIdentityOnResult(node, xmlElement);
+      INodeHelper.appendChild(parentNode, node);
+    };
 
     // Check if there's a custom reader for this tag
     if (customReaders[tagName]) {
@@ -321,8 +257,7 @@ export default class LitexmlDataSource extends DataSource {
       case 'paragraph': {
         const paragraph = INodeHelper.createParagraph();
         this.processXMLChildren(xmlElement, paragraph);
-        setSerializedNodeIdentity(paragraph, xmlElement);
-        INodeHelper.appendChild(parentNode, paragraph);
+        append(paragraph);
         break;
       }
 
@@ -338,8 +273,7 @@ export default class LitexmlDataSource extends DataSource {
           tag: `h${level}`,
         });
         this.processXMLChildren(xmlElement, heading);
-        setSerializedNodeIdentity(heading, xmlElement);
-        INodeHelper.appendChild(parentNode, heading);
+        append(heading);
         break;
       }
 
@@ -352,8 +286,8 @@ export default class LitexmlDataSource extends DataSource {
             children: [],
             value: 1,
           });
-          this.processXMLChildren(child, listItem);
           setSerializedNodeIdentity(listItem, child);
+          this.processXMLChildren(child, listItem);
           INodeHelper.appendChild(parentNode, listItem);
         });
         break;
@@ -364,8 +298,7 @@ export default class LitexmlDataSource extends DataSource {
           children: [],
         });
         this.processXMLChildren(xmlElement, quote);
-        setSerializedNodeIdentity(quote, xmlElement);
-        INodeHelper.appendChild(parentNode, quote);
+        append(quote);
         break;
       }
 
@@ -373,8 +306,7 @@ export default class LitexmlDataSource extends DataSource {
         const codeNode = INodeHelper.createElementNode('codeInline', {
           children: [INodeHelper.createTextNode(xmlElement.textContent || '')],
         });
-        setSerializedNodeIdentity(codeNode, xmlElement);
-        INodeHelper.appendChild(parentNode, codeNode);
+        append(codeNode);
         break;
       }
 
@@ -382,8 +314,7 @@ export default class LitexmlDataSource extends DataSource {
         const textContent = xmlElement.textContent || '';
         if (textContent) {
           const textNode = INodeHelper.createTextNode(textContent);
-          setSerializedNodeIdentity(textNode, xmlElement);
-          INodeHelper.appendChild(parentNode, textNode);
+          append(textNode);
         }
         break;
       }
@@ -481,14 +412,10 @@ export default class LitexmlDataSource extends DataSource {
     lines.push(...childLines);
   }
 
-  /**
-   * New LiteXML output addresses nodes by NodeState identity. The encoded
-   * Lexical key remains a read-only compatibility fallback for editors that
-   * have not installed PropertiesPlugin (and therefore cannot migrate IDs).
-   */
+  /** New LiteXML output addresses nodes by persistent NodeState identity. */
   private getStableXMLIdentity(node: any): { id?: string } {
     const nodeId = $getNodeId(node);
-    return { id: nodeId ?? idToChar(node.getKey()) };
+    return nodeId ? { id: nodeId } : {};
   }
 
   /**

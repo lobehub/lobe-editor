@@ -110,6 +110,16 @@ const annotationIds = (kernel: Kernel): string[] => {
   );
 };
 
+const textNodeIds = (kernel: Kernel): string[] => {
+  const editor = kernel.getLexicalEditor()!;
+  return editor.getEditorState().read(() =>
+    $getRoot()
+      .getAllTextNodes()
+      .map($getNodeId)
+      .filter((nodeId): nodeId is string => Boolean(nodeId)),
+  );
+};
+
 const textContent = (kernel: Kernel): string =>
   kernel
     .getLexicalEditor()!
@@ -217,14 +227,20 @@ describe('Yjs + annotation history', () => {
     expect(textContent(kernelA)).toBe('Shared text');
     expect(textContent(kernelB)).toBe('Shared text');
 
-    const paragraphId = kernelA.getLexicalEditor()!.getEditorState().read(() => {
-      const paragraph = $getRoot().getFirstChild();
-      return paragraph ? $getNodeId(paragraph) : undefined;
-    });
+    const paragraphId = kernelA
+      .getLexicalEditor()!
+      .getEditorState()
+      .read(() => {
+        const paragraph = $getRoot().getFirstChild();
+        return paragraph ? $getNodeId(paragraph) : undefined;
+      });
     expect(paragraphId).toBeTruthy();
-    kernelB.getLexicalEditor()!.getEditorState().read(() => {
-      expect($findNodeById(paragraphId!)).not.toBeNull();
-    });
+    kernelB
+      .getLexicalEditor()!
+      .getEditorState()
+      .read(() => {
+        expect($findNodeById(paragraphId!)).not.toBeNull();
+      });
 
     const editorA = kernelA.getLexicalEditor()!;
     editorA.update(() => {
@@ -243,6 +259,9 @@ describe('Yjs + annotation history', () => {
 
     expect(annotationIds(kernelA)).toContain('peer-comment');
     expect(annotationIds(kernelB)).toContain('peer-comment');
+    expect(textNodeIds(kernelA).length).toBeGreaterThan(1);
+    expect(new Set(textNodeIds(kernelA)).size).toBe(textNodeIds(kernelA).length);
+    expect(textNodeIds(kernelB)).toEqual(textNodeIds(kernelA));
     expect(textContent(kernelB)).toBe('Shared text');
     expect(kernelA.requireService(IAnnotationService)?.get('peer-comment')?.status).toBe('active');
     expect(kernelB.requireService(IAnnotationService)?.get('peer-comment')?.status).toBe('active');

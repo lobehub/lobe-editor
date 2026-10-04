@@ -4,6 +4,7 @@ import { $nodesOfType, HISTORIC_TAG } from 'lexical';
 
 import { ICollaborationService } from '@/common/collaboration';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { registerNodeIdentityPolicy } from '@/plugins/common/node/node-identity-policy';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 
@@ -22,6 +23,7 @@ import { registerLiteXMLDiffCommand } from '../command/diffCommand';
 import LitexmlDataSource from '../data-source/litexml-data-source';
 import { $isDiffContentNode, DiffContentNode } from '../node/DiffContentNode';
 import { DiffNode } from '../node/DiffNode';
+import { liteXmlIdentityPolicy } from '../node/identity-policy';
 import { $isTableCellDiffNode, TableCellDiffNode } from '../node/TableCellDiffNode';
 import { $isTableRowDiffNode, TableRowDiffNode } from '../node/TableRowDiffNode';
 import { ILitexmlService, LitexmlService } from '../service/litexml-service';
@@ -100,7 +102,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
   }
 
   onInit(editor: LexicalEditor): void {
-    // Plugin initialization logic can be added here if needed
+    this.register(registerNodeIdentityPolicy(editor, liteXmlIdentityPolicy));
     this.register(registerLiteXMLCommand(editor, this.datasource));
     const rewriteService = new RewriteService(editor, this.datasource, this.resultChannel);
     this.kernel.registerService(IRewriteService, rewriteService);
@@ -175,11 +177,15 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
           }
           break;
         }
+        case 'listItemAdd':
         case 'add': {
           diffNode.getChildren().forEach((child) => nodeToXML(child, lines, indent));
           break;
         }
         case 'remove': {
+          break;
+        }
+        case 'listItemRemove': {
           break;
         }
         case 'listItemModify': {
@@ -256,11 +262,15 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
           }
           break;
         }
+        case 'listItemAdd':
         case 'add': {
           diffNode.getChildren().forEach((child) => ctx.processChild(ctx, child));
           break;
         }
         case 'remove': {
+          break;
+        }
+        case 'listItemRemove': {
           break;
         }
         case 'listItemModify': {

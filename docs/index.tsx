@@ -1,173 +1,35 @@
-import { Block, Center } from '@lobehub/ui';
-import { Features, type FeaturesProps } from '@lobehub/ui/awesome';
-import { Github } from '@lobehub/ui/icons';
-import { createStaticStyles } from 'antd-style';
-import { Puzzle, Slash, Zap } from 'lucide-react';
+import { ChatInput, CodeLanguageSelect, Editor } from '@lobehub/editor/react';
+import { Block } from '@lobehub/ui';
+import {
+  AgentSkillCard,
+  CodeShowcase,
+  FeatureGrid,
+  InstallBanner,
+  LandingHero,
+  type LandingLinkRender,
+  LandingSection,
+} from '@lobehub/ui/awesome';
+import { GithubIcon } from '@lobehub/ui/icons';
+import {
+  ArrowRight,
+  AtSign,
+  FileText,
+  MessageSquare,
+  Slash,
+  SquareCode,
+  Table2,
+} from 'lucide-react';
 import { type ComponentType, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 
-const description =
-  "A powerful and extensible rich text editor built on Meta's Lexical framework, providing a modern editing experience with React integration.";
+const siteUrl = 'https://editor.lobehub.com';
 
-const styles = createStaticStyles(({ css }) => ({
-  accent: css`
-    color: transparent;
-    background: var(--docs-gradient-spectral);
-    background-clip: text;
-  `,
-  action: css`
-    cursor: pointer;
-
-    display: inline-flex;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: center;
-
-    min-width: 9.375rem;
-    min-height: 2.8125rem;
-    padding-inline: 1.5rem;
-    border: 1px solid transparent;
-    border-radius: 0.75rem;
-
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--docs-text-primary);
-    text-decoration: none;
-
-    background-image:
-      linear-gradient(var(--docs-surface-raised), var(--docs-surface-raised)),
-      var(--docs-gradient-spectral);
-    background-clip: padding-box, border-box;
-    background-origin: border-box;
-    box-shadow: var(--docs-shadow-control);
-
-    transition:
-      background-color 140ms ease,
-      filter 140ms ease,
-      transform 90ms ease;
-
-    &:hover {
-      background-image:
-        linear-gradient(var(--docs-surface-hover), var(--docs-surface-hover)),
-        var(--docs-gradient-spectral);
-    }
-
-    &:active {
-      transform: scale(0.97);
-    }
-  `,
-  actions: css`
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-block-start: 1.5rem;
-
-    @media (width <= 47.5rem) {
-      flex-direction: column;
-      width: 100%;
-    }
-  `,
-  content: css`
-    width: 100%;
-  `,
-  hero: css`
-    isolation: isolate;
-    position: relative;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 100vw;
-    min-height: 29.25rem;
-    margin-inline: calc(50% - 50vw);
-    padding-block: 8.25rem 3rem;
-    padding-inline: 1.5rem;
-
-    text-align: center;
-
-    &::before {
-      pointer-events: none;
-      content: '';
-
-      position: absolute;
-      z-index: -1;
-      inset: 0;
-      inset-block-start: -55px;
-
-      background:
-        radial-gradient(42% 68% at 24% 18%, var(--docs-aurora-violet), transparent 72%),
-        radial-gradient(38% 72% at 67% 6%, var(--docs-aurora-blue), transparent 72%),
-        radial-gradient(32% 62% at 90% 24%, var(--docs-aurora-pink), transparent 72%);
-    }
-
-    @media (width <= 47.5rem) {
-      min-height: 40rem;
-      padding-block: 8rem 3.75rem;
-      padding-inline: 1.5rem;
-    }
-  `,
-  heroInner: css`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: min(100%, 64rem);
-
-    h1 {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0 0.18em;
-      justify-content: center;
-
-      margin: 0;
-
-      font-size: clamp(4rem, 7.8125vw, 6.25rem);
-      font-weight: 500;
-      line-height: 1.2;
-      color: var(--docs-text-primary);
-      letter-spacing: -0.045em;
-    }
-
-    p {
-      max-width: 54rem;
-      margin-block: 0;
-      margin-inline: 0;
-
-      font-size: 1.5rem;
-      line-height: 1.5714;
-      color: var(--docs-text-secondary);
-      text-wrap: balance;
-    }
-
-    @media (width <= 47.5rem) {
-      h1 {
-        font-size: 4rem;
-      }
-
-      p {
-        max-width: 19.375rem;
-        margin-block: 1.5rem 0;
-        font-size: 1rem;
-        line-height: 1.5714;
-      }
-    }
-  `,
-  primaryAction: css`
-    && {
-      color: var(--docs-background);
-      background: var(--docs-text-primary);
-    }
-
-    &&:hover {
-      background: color-mix(in srgb, var(--docs-text-primary) 86%, var(--docs-background));
-    }
-  `,
-  root: css`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-  `,
-}));
+const renderLink: LandingLinkRender = ({ external, href, ...props }) =>
+  external ? (
+    <a href={href} rel="noreferrer" target="_blank" {...props} />
+  ) : (
+    <Link to={href} {...props} />
+  );
 
 interface EditorDemoProps {
   collapsible?: boolean;
@@ -175,13 +37,13 @@ interface EditorDemoProps {
 }
 
 const EditorPreview = () => {
-  const [Editor, setEditor] = useState<ComponentType<EditorDemoProps>>();
+  const [EditorDemo, setEditorDemo] = useState<ComponentType<EditorDemoProps>>();
 
   useEffect(() => {
     let mounted = true;
 
-    void import('../src/react/Editor/demos/index').then(({ default: EditorDemo }) => {
-      if (mounted) setEditor(() => EditorDemo);
+    void import('../src/react/Editor/demos/index').then(({ default: Demo }) => {
+      if (mounted) setEditorDemo(() => Demo);
     });
 
     return () => {
@@ -189,70 +51,203 @@ const EditorPreview = () => {
     };
   }, []);
 
-  if (!Editor) return <div aria-busy="true" style={{ minHeight: 420 }} />;
+  if (!EditorDemo) return <div aria-busy="true" style={{ minHeight: 420 }} />;
 
-  return <Editor collapsible defaultActiveKey={['editor']} />;
+  return <EditorDemo collapsible defaultActiveKey={['editor']} />;
 };
 
-const items: FeaturesProps['items'] = [
-  {
-    description:
-      "Built on Meta's robust Lexical framework for reliable rich text editing with powerful features.",
-    icon: Zap,
-    title: 'Lexical-Powered',
-  },
+const editorSnippet = `import { Editor } from '@lobehub/editor/react';
 
-  {
-    description:
-      'Extensible architecture with modular plugins for images, code blocks, links, lists, and more.',
-    icon: Puzzle,
-    title: 'Plugin System',
-  },
-  {
-    description:
-      'Quick content insertion with customizable slash menu for enhanced editing experience.',
-    icon: Slash,
-    title: 'Slash Commands',
-  },
-];
+export default () => (
+  <Editor
+    content={'# Notes\\n\\nWrite in **Markdown**.'}
+    placeholder="Write in Markdown…"
+    type="markdown"
+  />
+);`;
 
-export default () => {
+const chatSnippet = `import { ChatInput, Editor } from '@lobehub/editor/react';
+
+export default () => (
+  <ChatInput minHeight={120} resize={false} style={{ width: '100%' }}>
+    <Editor content="Draft a reply." placeholder="Ask anything…" type="markdown" />
+  </ChatInput>
+);`;
+
+const languageSnippet = `import { CodeLanguageSelect } from '@lobehub/editor/react';
+
+export default () => <CodeLanguageSelect />;`;
+
+interface HomePageProps {
+  description: string;
+  getStartedPathname: string;
+}
+
+export default function Home({ description, getStartedPathname }: HomePageProps) {
+  const navigate = useNavigate();
+
   return (
-    <div className={styles.root}>
-      <section aria-labelledby="home-hero-title" className={styles.hero}>
-        <div className={styles.heroInner}>
-          <h1 id="home-hero-title">
-            <span>LobeHub</span>
-            <span className={styles.accent}>Editor</span>
-          </h1>
-          <p>{description}</p>
-          <div className={styles.actions}>
-            <a
-              className={`${styles.action} ${styles.primaryAction}`}
-              href="https://github.com/lobehub/lobe-editor"
-              rel="noreferrer"
-              target="_blank"
-            >
-              <Github aria-hidden size={18} strokeWidth={1.8} />
-              GitHub
-            </a>
-            <a className={styles.action} href="/components/react/editor">
-              Get Started
-            </a>
-          </div>
-        </div>
-      </section>
+    <>
+      <LandingHero
+        accent="Editor"
+        actions={[
+          {
+            href: getStartedPathname,
+            icon: ArrowRight,
+            iconPlacement: 'end',
+            label: 'Get Started',
+            primary: true,
+          },
+          {
+            href: 'https://github.com/lobehub/lobe-editor',
+            icon: GithubIcon,
+            label: 'GitHub',
+          },
+        ]}
+        aside={
+          <AgentSkillCard
+            agent={{
+              code: `Read ${siteUrl}/skills.md and follow it to add @lobehub/editor.`,
+              description: 'Send this prompt to your agent to build with the editor',
+            }}
+            human={{
+              code: 'npx skills add lobehub/lobe-editor',
+              description: 'Install the Lobe Editor skills into your project',
+            }}
+            footer={
+              <>
+                <a href={`${siteUrl}/skills.md`} rel="noreferrer" target="_blank">
+                  skills.md
+                </a>
+                <a href={`${siteUrl}/llms.txt`} rel="noreferrer" target="_blank">
+                  llms.txt
+                </a>
+              </>
+            }
+          />
+        }
+        description={<span data-pagefind-meta="description">{description}</span>}
+        onNavigate={navigate}
+        renderLink={renderLink}
+        title={<span data-pagefind-meta="title">Lobe</span>}
+      />
 
-      <Center
-        className={styles.content}
-        gap={48}
-        style={{ maxWidth: 960, overflow: 'hidden', position: 'relative' }}
+      <LandingSection
+        actions={[{ href: '/components/react/editor', label: 'Editor docs' }]}
+        description="Type into the editor, open the slash menu, and read the markdown back out."
+        eyebrow="Playground"
+        eyebrowColor="purple"
+        id="home-editor"
+        onNavigate={navigate}
+        title="Write in the browser"
       >
-        <Block variant={'outlined'} width={'100%'}>
+        <Block style={{ overflow: 'hidden' }} variant="outlined" width="100%">
           <EditorPreview />
         </Block>
-        <Features items={items} />
-      </Center>
-    </div>
+      </LandingSection>
+
+      <LandingSection
+        description="Mount an editor, a chat composer, or a language select."
+        eyebrow="Usage"
+        eyebrowColor="green"
+        id="home-usage"
+        title="A few lines to start"
+      >
+        <CodeShowcase
+          items={[
+            {
+              code: editorSnippet,
+              key: 'editor',
+              label: 'Editor',
+              preview: (
+                <Editor
+                  content={'# Notes\n\nWrite in **Markdown**.'}
+                  placeholder="Write in Markdown…"
+                  style={{ width: '100%' }}
+                  type="markdown"
+                />
+              ),
+            },
+            {
+              code: chatSnippet,
+              key: 'chat',
+              label: 'Chat',
+              preview: (
+                <ChatInput minHeight={120} resize={false} style={{ width: '100%' }}>
+                  <Editor content="Draft a reply." placeholder="Ask anything…" type="markdown" />
+                </ChatInput>
+              ),
+            },
+            {
+              code: languageSnippet,
+              key: 'language',
+              label: 'Language',
+              preview: <CodeLanguageSelect />,
+            },
+          ]}
+          minHeight={220}
+        />
+      </LandingSection>
+
+      <LandingSection
+        description="Blocks for documents, and the pieces a chat composer is made of."
+        eyebrow="Foundations"
+        eyebrowColor="orange"
+        id="home-foundations"
+        title="Documents and chat"
+      >
+        <FeatureGrid
+          items={[
+            {
+              description: 'Type bold, headings, and lists, then export the document as markdown.',
+              href: '/components/plugins/markdown',
+              icon: FileText,
+              title: 'Markdown',
+            },
+            {
+              description: 'Fence a block and highlight it in the language you pick.',
+              href: '/components/plugins/codeblock',
+              icon: SquareCode,
+              title: 'Code blocks',
+            },
+            {
+              description: 'Insert a table and edit its rows from the keyboard.',
+              href: '/components/plugins/table',
+              icon: Table2,
+              title: 'Tables',
+            },
+            {
+              description: 'Press slash to insert headings, lists, tables, and rules.',
+              href: '/components/plugins/slash',
+              icon: Slash,
+              title: 'Slash menu',
+            },
+            {
+              description: 'Suggest people or files when the caret is after an @.',
+              href: '/components/plugins/mention',
+              icon: AtSign,
+              title: 'Mentions',
+            },
+            {
+              description: 'Resize a message box and send it from the footer.',
+              href: '/components/react/chat-input',
+              icon: MessageSquare,
+              title: 'Chat input',
+            },
+          ]}
+          renderLink={renderLink}
+        />
+      </LandingSection>
+
+      <InstallBanner
+        command="pnpm add @lobehub/editor"
+        footnote={
+          <>
+            Open source · MIT license · <Link to={getStartedPathname}>Get Started</Link>
+          </>
+        }
+        title="Start building"
+      />
+    </>
   );
-};
+}

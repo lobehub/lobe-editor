@@ -19,12 +19,14 @@ const mocks = vi.hoisted(() => {
   return {
     editor,
     isSelected: false,
+    openPreview: vi.fn(),
+    previewRef: undefined as undefined | { current: HTMLImageElement | null },
     resizeHandleProps: [] as ResizeHandleProps[],
     setSelected: vi.fn(),
   };
 });
 
-vi.mock('@lobehub/ui', async (importOriginal) => ({
+vi.mock('@lobehub/ui/base-ui', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   ActionIcon: ({
     'aria-label': ariaLabel,
@@ -35,16 +37,13 @@ vi.mock('@lobehub/ui', async (importOriginal) => ({
   }) => <button aria-label={ariaLabel} type="button" onClick={onClick} />,
 }));
 
-vi.mock('antd', async (importOriginal) => {
-  const original = await importOriginal<typeof import('antd')>();
-  const MockImage = Object.assign(() => null, {
-    PreviewGroup: ({ preview }: { preview?: { open?: boolean } }) => (
-      <div data-preview-open={String(preview?.open)} />
-    ),
-  });
-
-  return { ...original, Image: MockImage };
-});
+vi.mock('@lobehub/ui', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useImagePreview: (ref: { current: HTMLImageElement | null }) => {
+    mocks.previewRef = ref;
+    return { open: mocks.openPreview, outlet: null };
+  },
+}));
 
 vi.mock('@/editor-kernel/react/useLexicalEditor', async () => {
   const React = await vi.importActual<typeof import('react')>('react');
@@ -195,7 +194,8 @@ describe('Image resize', () => {
       previewButton!.click();
     });
 
-    expect(host.querySelector('[data-preview-open="true"]')).not.toBeNull();
+    expect(mocks.openPreview).toHaveBeenCalledTimes(1);
+    expect(mocks.previewRef?.current).toBe(image);
     expect(mocks.setSelected).not.toHaveBeenCalled();
   });
 

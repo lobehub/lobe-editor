@@ -1,6 +1,6 @@
 {
   "name": "@lobehub/editor",
-  "version": "4.27.3",
+  "version": "4.29.0",
   "description": "A powerful and extensible rich text editor built on Meta's Lexical framework, providing a modern editing experience with React integration.",
   "keywords": [
     "lobehub",
@@ -106,6 +106,7 @@
     "test:watch": "vitest --watch",
     "type-check": "tsc --noEmit",
     "verify:final-head": "node ./scripts/verify-final-head.mjs",
+    "verify:node-identity-package": "node scripts/verify-node-identity-package.mjs",
     "verify:packed-loro": "node ./scripts/verify-packed-loro.mjs"
   },
   "lint-staged": {
@@ -176,9 +177,9 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@emotion/is-prop-valid": "^1.4.0",
-    "@lobehub/docs-kit": "^5.23.4",
+    "@lobehub/docs-kit": "^5.27.4",
     "@lobehub/lint": "^2.1.5",
-    "@lobehub/ui": "^5.29.1",
+    "@lobehub/ui": "^5.55.0",
     "@react-router/dev": "8.2.0",
     "@shikijs/types": "^4.3.1",
     "@types/debug": "^4.1.12",
@@ -215,7 +216,7 @@
     "ws": "^8.21.0"
   },
   "peerDependencies": {
-    "@lobehub/ui": "^5.0.0",
+    "@lobehub/ui": "^5.55.0",
     "antd": "^6.1.1",
     "loro-crdt": "1.16.1",
     "motion": "^12.0.0",
@@ -238,8 +239,7 @@
       "chalk": "^4.1.2"
     },
     "patchedDependencies": {
-      "@lexical/yjs@0.42.0": "patches/@lexical__yjs@0.42.0.patch",
-      "lexical@0.42.0": "patches/lexical@0.42.0.patch"
+      "@lexical/yjs@0.42.0": "patches/@lexical__yjs@0.42.0.patch"
     }
   }
 }

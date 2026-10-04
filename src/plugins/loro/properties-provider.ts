@@ -8,11 +8,10 @@ import type {
   PropertiesCollaborationReadiness,
 } from '@/plugins/properties/service/properties';
 import type { AnnotationRecord } from '@/plugins/properties/types';
-import { $getNodeId } from '@/plugins/properties/utils';
 
 export interface LoroPropertiesBindingPort {
   getAnnotationMap(): LoroMap;
-  getNodeIdentity(node: LexicalNode): string | undefined;
+  getStableNodeIdentity(node: LexicalNode): string | undefined;
   getReadiness(): PropertiesCollaborationReadiness;
   runLocalTransaction(origin: string, mutate: () => void): void;
   subscribeReadiness(listener: () => void): () => void;
@@ -128,7 +127,7 @@ export class LoroPropertiesProvider implements PropertiesCollaborationProvider {
   }
 
   getNodeIdentity(node: LexicalNode): string | undefined {
-    return this.binding.getNodeIdentity(node) ?? $getNodeId(node);
+    return this.binding.getStableNodeIdentity(node);
   }
 
   getReadiness(): PropertiesCollaborationReadiness {

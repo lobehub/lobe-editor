@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import Editor from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
@@ -6,6 +6,7 @@ import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import { IEditor } from '@/types';
 
+import { normalizeOpaqueIds } from '../../litexml/__test__/normalize-opaque-ids';
 import { CodeblockPlugin } from '../plugin';
 
 describe('codeblock litexml', () => {
@@ -28,8 +29,10 @@ describe('codeblock litexml', () => {
     const xml = editor.getDocument('litexml') as unknown as string;
     const id = /<code id="([^"]+)"/.exec(xml)?.[1];
     expect(id).toBeTruthy();
-    expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><code id="${id}" lang="javascript">hello\nworld</code></root>`,
+    expect(normalizeOpaqueIds(xml.replace(/>\n\s*?</g, '><'))).toBe(
+      normalizeOpaqueIds(
+        `<?xml version="1.0" encoding="UTF-8"?><root><code id="mczm" lang="javascript">hello\nworld</code></root>`,
+      ),
     );
     expect(editor.getDocument('litexml')).toBe(xml);
     editor.setDocument('litexml', xml);

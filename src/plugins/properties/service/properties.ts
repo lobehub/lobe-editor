@@ -1,6 +1,7 @@
-import type { LexicalNode } from 'lexical';
+import type { LexicalEditor, LexicalNode } from 'lexical';
 
 import { genServiceId } from '@/editor-kernel';
+import { registerNodeIdentityNormalizationContext } from '@/plugins/common/node/node-id';
 import type { IEditorKernel, IServiceID } from '@/types';
 
 import type { AnnotationMap } from './annotation';
@@ -61,6 +62,55 @@ export interface IPropertiesService {
 }
 
 export const IPropertiesService: IServiceID<IPropertiesService> = genServiceId('PropertiesService');
+
+interface NodeIdentityNormalizationRegistration {
+  dispose: () => void;
+  references: number;
+}
+
+const nodeIdentityNormalizationRegistrations = new WeakMap<
+  LexicalEditor,
+  NodeIdentityNormalizationRegistration
+>();
+
+/**
+ * Install one readiness-aware identity resolver for every collaboration
+ * provider using this editor's transport-neutral Properties service.
+ */
+export function registerPropertiesNodeIdentityNormalization(
+  editor: LexicalEditor,
+  service: IPropertiesService,
+): () => void {
+  let registration = nodeIdentityNormalizationRegistrations.get(editor);
+  if (!registration) {
+    registration = {
+      dispose: registerNodeIdentityNormalizationContext(editor, () => {
+        const provider = service.getCollaborationProvider();
+        if (!provider) return null;
+        if (provider.getReadiness() !== 'ready') return { defer: true };
+        return {
+          stableDuplicateRepair: true,
+          stableOwnershipKey: (node) => provider.getNodeIdentity(node),
+        };
+      }),
+      references: 0,
+    };
+    nodeIdentityNormalizationRegistrations.set(editor, registration);
+  }
+
+  registration.references += 1;
+  let active = true;
+  return () => {
+    if (!active) return;
+    active = false;
+    const current = nodeIdentityNormalizationRegistrations.get(editor);
+    if (current !== registration) return;
+    current.references -= 1;
+    if (current.references > 0) return;
+    current.dispose();
+    nodeIdentityNormalizationRegistrations.delete(editor);
+  };
+}
 
 /**
  * Editor-scoped registry for collaboration integrations. There is deliberately

@@ -1,67 +1,58 @@
 import { createStaticStyles } from 'antd-style';
 
-const prefixCls = 'ant';
-
 export const styles = createStaticStyles(({ css, cssVar }) => ({
   button: css`
-    &.${prefixCls}-btn {
-      flex: none;
-      width: var(--send-button-size, 32px) !important;
-      height: var(--send-button-size, 32px);
-      padding-inline: 0 !important;
-    }
+    flex: none;
+    width: var(--send-button-size, 32px) !important;
+    height: var(--send-button-size, 32px) !important;
+    padding-inline: 0 !important;
   `,
   disabled: css`
-    &.${prefixCls}-btn {
-      cursor: default;
-      border-color: ${cssVar.colorBorderSecondary};
-      background: transparent;
-    }
-
-    .${prefixCls}-btn-compact-first-item {
-      cursor: default;
-      border-color: ${cssVar.colorBorderSecondary};
-      background: transparent;
-    }
-    .${prefixCls}-dropdown-trigger {
-      cursor: default;
-      border-color: ${cssVar.colorBorderSecondary};
-      border-inline-start-color: transparent;
-      background: transparent;
-    }
+    cursor: default;
+    border-color: ${cssVar.colorBorderSecondary};
+    background: transparent;
   `,
-  dropdownButton: css`
+  loadingButton: css`
+    flex: none;
+    height: var(--send-button-size, 32px) !important;
+    padding-inline: 0 !important;
+  `,
+  splitButton: css`
     flex: none;
     width: fit-content;
-    .${prefixCls}-btn {
-      width: calc(var(--send-button-size, 32px) * 1.2);
-      height: var(--send-button-size, 32px);
+
+    & > :where(button, a) {
+      height: var(--send-button-size, 32px) !important;
+      padding-inline: 0 !important;
     }
-    .${prefixCls}-dropdown-trigger {
-      width: calc(var(--send-button-size, 32px) * 0.8);
-      &.${prefixCls}-btn-primary {
-        &::before {
-          background-color: color-mix(in srgb, ${cssVar.colorBgLayout} 10%, transparent) !important;
-        }
-      }
+
+    & > :where(button, a):first-of-type {
+      width: calc(var(--send-button-size, 32px) * 1.2) !important;
+    }
+
+    & > :where(button, a):last-of-type {
+      width: calc(var(--send-button-size, 32px) * 0.8) !important;
     }
   `,
-  dropdownButtonRound: css`
-    .${prefixCls}-btn-compact-first-item {
+  splitButtonDisabled: css`
+    opacity: 1;
+
+    & > :where(button, a) {
+      cursor: default;
+      border-color: ${cssVar.colorBorderSecondary};
+      background: transparent;
+    }
+  `,
+  splitButtonRound: css`
+    & > :where(button, a):first-of-type {
       border-start-start-radius: calc(var(--send-button-size, 32px) / 2);
       border-end-start-radius: calc(var(--send-button-size, 32px) / 2);
     }
-    .${prefixCls}-dropdown-trigger {
-      width: var(--send-button-size, 32px);
+
+    & > :where(button, a):last-of-type {
+      width: var(--send-button-size, 32px) !important;
       border-start-end-radius: calc(var(--send-button-size, 32px) / 2);
       border-end-end-radius: calc(var(--send-button-size, 32px) / 2);
-    }
-  `,
-  loadingButton: css`
-    &.${prefixCls}-btn {
-      flex: none;
-      height: var(--send-button-size, 32px);
-      padding-inline: 0 !important;
     }
   `,
 }));

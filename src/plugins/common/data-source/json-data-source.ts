@@ -2,7 +2,6 @@ import { $isTableSelection } from '@lexical/table';
 import type {
   EditorState,
   LexicalEditor,
-  LexicalNode,
   SerializedEditorState,
   SerializedElementNode,
   SerializedLexicalNode,
@@ -16,48 +15,62 @@ import {
   $isRangeSelection,
   $isTextNode,
   IS_CODE,
-  resetRandomKey,
 } from 'lexical';
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
-import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { getKernelFromEditor } from '@/editor-kernel/utils';
+import { $normalizeNodeIds, migrateSerializedNodeIds } from '@/plugins/common/node/node-id';
 import { IHoleService } from '@/plugins/common/service/i-hole-service';
-import { $parseSerializedNodeImpl } from '@/plugins/litexml/utils';
 import {
   notifyJSONDataSourceRead,
   notifyJSONDataSourceWrite,
 } from '@/plugins/properties/service/json-metadata';
+import { IPropertiesService } from '@/plugins/properties/service/properties';
+import { $ensureNodeIdsInTree } from '@/plugins/properties/utils';
 
 import { cursorNodeSerialized } from '../node/cursor';
 import { projectRuntimeHolesForJSON, type SerializedRecord } from '../node/hole-serialization';
 import { exportNodeToJSON } from '../utils';
-
-const hasNumericSerializedNodeId = (node: unknown): boolean => {
-  if (!node || typeof node !== 'object') return false;
-  const record = node as { children?: unknown; id?: unknown };
-  if (
-    (typeof record.id === 'number' || typeof record.id === 'string') &&
-    Number.isInteger(Number(record.id)) &&
-    Number(record.id) >= 0
-  ) {
-    return true;
-  }
-  return Array.isArray(record.children) && record.children.some(hasNumericSerializedNodeId);
-};
 
 /** Kept for callers that historically imported the projection from JSONDataSource. */
 export { projectRuntimeHolesForJSON } from '../node/hole-serialization';
 
 export default class JSONDataSource extends DataSource {
   read(editor: LexicalEditor, data: any, options: Record<string, unknown> = {}) {
-    let dataObj: SerializedEditorState<SerializedLexicalNode>;
+    let inputData: SerializedEditorState<SerializedLexicalNode>;
     if (typeof data === 'string') {
-      dataObj = JSON.parse(data) as SerializedEditorState<SerializedLexicalNode>;
+      inputData = JSON.parse(data) as SerializedEditorState<SerializedLexicalNode>;
     } else {
-      dataObj = data as SerializedEditorState<SerializedLexicalNode>;
+      inputData = data as SerializedEditorState<SerializedLexicalNode>;
     }
+    const dataObj = structuredClone(inputData) as SerializedEditorState<SerializedLexicalNode> & {
+      keepId?: boolean;
+    };
+    const keepIds = options.keepId ?? dataObj.keepId ?? false;
+
+    if (!keepIds) {
+      const stripNodeIds = (node: Record<string, any>) => {
+        delete node.id;
+        const state = node.$;
+        if (state && typeof state === 'object' && state.properties) {
+          const properties = { ...state.properties };
+          delete properties.nodeId;
+          if (Object.keys(properties).length > 0) {
+            node.$ = { ...state, properties };
+          } else {
+            const nextState = { ...state };
+            delete nextState.properties;
+            if (Object.keys(nextState).length > 0) node.$ = nextState;
+            else delete node.$;
+          }
+        }
+        if (Array.isArray(node.children)) {
+          node.children.forEach((child: Record<string, any>) => stripNodeIds(child));
+        }
+      };
+      stripNodeIds(dataObj.root as unknown as Record<string, any>);
+    } else migrateSerializedNodeIds(dataObj.root);
     const process = (node: SerializedElementNode) => {
       for (let i = 0; i < node.children.length; i++) {
         const child = node.children[i];
@@ -90,54 +103,20 @@ export default class JSONDataSource extends DataSource {
     process(dataObj.root);
     notifyJSONDataSourceRead(editor, dataObj.root as unknown as Record<string, unknown>);
     const normalizeIncoming = () => {
-      getKernelFromEditor(editor)?.requireService(IHoleService)?.normalizeIncoming();
+      const kernel = getKernelFromEditor(editor);
+      kernel?.requireService(IHoleService)?.normalizeIncoming();
+      const provider = kernel?.requireService(IPropertiesService)?.getCollaborationProvider();
+      if (keepIds && (!provider || provider.getReadiness() === 'ready')) {
+        $ensureNodeIdsInTree($getRoot(), {
+          stableIdentity: provider ? (node) => provider.getNodeIdentity(node) : undefined,
+        });
+      }
     };
-    // @ts-expect-error add id option
-    if (dataObj.keepId || options.keepId) {
-      const hasExplicitIds = hasNumericSerializedNodeId(dataObj.root);
-      const state = resetRandomKey(() =>
-        editor.parseEditorState(
-          {
-            root: INodeHelper.createRootNode(),
-          },
-          (state) => {
-            let root: LexicalNode | undefined;
-            try {
-              root = $parseSerializedNodeImpl(dataObj.root, editor, true, state);
-            } catch (error) {
-              console.error(error);
-            }
-
-            if (root) state._nodeMap.set(root.getKey(), root);
-
-            normalizeIncoming();
-
-            if (hasExplicitIds) {
-              // Include every node allocated before a malformed child aborted
-              // the import. This keeps the scoped allocator above all ids even
-              // when the parser reset to a lower explicit id immediately
-              // beforehand.
-              let maxId = -1;
-              Array.from(state._nodeMap.keys()).forEach((key) => {
-                if (key === 'root') return;
-                const numericKey = Number(key);
-                if (Number.isInteger(numericKey) && numericKey >= 0) {
-                  maxId = Math.max(maxId, numericKey);
-                }
-              });
-              resetRandomKey(maxId + 1);
-            }
-          },
-        ),
-      );
-      editor.setEditorState(state);
-    } else {
-      editor.setEditorState(
-        editor.parseEditorState({ root: dataObj.root }, () => {
-          normalizeIncoming();
-        }),
-      );
-    }
+    const editorState = editor.parseEditorState({ root: dataObj.root }, () => {
+      normalizeIncoming();
+      $normalizeNodeIds($getRoot());
+    });
+    editor.setEditorState(editorState);
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {

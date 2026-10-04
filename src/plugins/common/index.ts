@@ -33,6 +33,7 @@ export {
   type HoleNormalizationTarget,
 } from './node/hole-normalization';
 export { $getLogicalChildren } from './node/logical-children';
+export { $getNodeById, $getNodeId } from './node/node-id';
 export * from './plugin';
 export * from './react';
 export type { IEditorAsyncScope } from './service/editor-async-scope';
@@ -60,3 +61,5 @@ export {
   type HoleBoundaryState,
   IHoleService,
 } from './service/i-hole-service';
+export type { NodeIdentitySnapshot } from './service/i-node-identity-service';
+export { INodeIdentityService } from './service/i-node-identity-service';

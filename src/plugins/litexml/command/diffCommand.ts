@@ -1,10 +1,10 @@
 import { mergeRegister } from '@lexical/utils';
-import type { LexicalEditor } from 'lexical';
+import type { LexicalEditor, LexicalNode } from 'lexical';
 import { $getNodeByKey, $isElementNode, COMMAND_PRIORITY_EDITOR } from 'lexical';
 
 import { genServiceId, moment } from '@/editor-kernel';
 import { $getNodeProperties, $setNodeProperties } from '@/plugins/properties/state';
-import { $getNodeId } from '@/plugins/properties/utils';
+import { $getNodeId, $isNodeIdentityBlockTarget } from '@/plugins/properties/utils';
 
 import { $isDiffContentNode } from '../node/DiffContentNode';
 import { DiffNode } from '../node/DiffNode';
@@ -37,13 +37,11 @@ interface DiffIdentityTransfer {
 }
 
 /**
- * Pending rewrite diffs keep the original durable ids on the before side and
- * private ids on the after side. Accept is the only point where the original
- * id/annotation anchors are transferred to after, so `$findNodeById` never
- * observes duplicate logical identities in a committed editor state.
+ * Pending modify diffs keep the original durable ID on the active after side
+ * and a private ID on the hidden before side. Reject restores the original ID
+ * to before; accept keeps it on after.
  */
 function transferRewriteIdentities(node: DiffNode, action: DiffAction): void {
-  if (action !== DiffAction.Accept) return;
   const transfers = $getNodeProperties(node).rewriteIdentityMap;
   if (!Array.isArray(transfers)) return;
 
@@ -52,31 +50,40 @@ function transferRewriteIdentities(node: DiffNode, action: DiffAction): void {
 
   for (const transfer of transfers as unknown as DiffIdentityTransfer[]) {
     if (!transfer || typeof transfer.nodeId !== 'string') continue;
+    const getSideNode = (content: LexicalNode, index: number): LexicalNode | null => {
+      if (!$isDiffContentNode(content)) return null;
+      const selected = content.getChildAtIndex(index);
+      // Older snapshots wrote afterIndex against the flattened [before, after]
+      // array even after introducing one-child DiffContent wrappers.
+      return selected || (content.getChildrenSize() === 1 ? content.getFirstChild() : null);
+    };
     const beforeNode =
       $isDiffContentNode(beforeContent) && $isDiffContentNode(afterContent)
-        ? beforeContent.getChildAtIndex(transfer.beforeIndex)
+        ? getSideNode(beforeContent, transfer.beforeIndex)
         : node.getChildAtIndex(transfer.beforeIndex);
     const afterNode =
       $isDiffContentNode(beforeContent) && $isDiffContentNode(afterContent)
-        ? afterContent.getChildAtIndex(transfer.afterIndex)
+        ? getSideNode(afterContent, transfer.afterIndex)
         : node.getChildAtIndex(transfer.afterIndex);
-    if (!afterNode) continue;
+    if (!beforeNode || !afterNode) continue;
 
-    const beforeProperties = beforeNode ? $getNodeProperties(beforeNode) : {};
-    if (beforeNode) {
-      $setNodeProperties(beforeNode, (previous) => {
-        const next = { ...previous };
-        delete next.nodeId;
-        delete next.annotationIds;
-        return next;
-      });
-    }
+    const survivor = action === DiffAction.Accept ? afterNode : beforeNode;
+    const discarded = action === DiffAction.Accept ? beforeNode : afterNode;
+    const survivorProperties = $getNodeProperties(survivor);
+    const discardedProperties = $getNodeProperties(discarded);
+    const annotationIds = survivorProperties.annotationIds ?? discardedProperties.annotationIds;
 
-    $setNodeProperties(afterNode, (previous) => ({
+    $setNodeProperties(survivor, (previous) => ({
       ...previous,
       nodeId: transfer.nodeId,
-      ...(beforeProperties.annotationIds ? { annotationIds: beforeProperties.annotationIds } : {}),
+      ...(annotationIds ? { annotationIds } : {}),
     }));
+    $setNodeProperties(discarded, (previous) => {
+      const next = { ...previous };
+      delete next.nodeId;
+      delete next.annotationIds;
+      return next;
+    });
   }
 }
 
@@ -231,7 +238,7 @@ function doAction(editor: LexicalEditor, node: DiffNode | TableRowDiffNode, acti
       node.getParentOrThrow().selectEnd();
       node.remove();
     } else if (action === DiffAction.Reject) {
-      node.remove();
+      node.getParentOrThrow().remove();
     }
   }
 }
@@ -324,17 +331,22 @@ const collectReviewNodeKeys = (
 const collectReviewAffectedNodeIds = (node: DiffNode | TableRowDiffNode): string[] => {
   const ids = new Set<string>();
   const properties = $getNodeProperties(node);
+  const temporaryBeforeIds = new Set<string>();
 
   if (typeof properties.logicalNodeId === 'string') ids.add(properties.logicalNodeId);
   if (Array.isArray(properties.rewriteIdentityMap)) {
-    for (const transfer of properties.rewriteIdentityMap) {
-      if (
-        transfer &&
-        typeof transfer === 'object' &&
-        'nodeId' in transfer &&
-        typeof transfer.nodeId === 'string'
-      ) {
+    const beforeContent = node.getFirstChild();
+    const afterContent = node.getChildAtIndex(1);
+    for (const transfer of properties.rewriteIdentityMap as unknown as DiffIdentityTransfer[]) {
+      if (transfer && typeof transfer === 'object' && typeof transfer.nodeId === 'string') {
         ids.add(transfer.nodeId);
+        const beforeNode =
+          $isDiffContentNode(beforeContent) && $isDiffContentNode(afterContent)
+            ? beforeContent.getChildAtIndex(transfer.beforeIndex) ||
+              (beforeContent.getChildrenSize() === 1 ? beforeContent.getFirstChild() : null)
+            : node.getChildAtIndex(transfer.beforeIndex);
+        const temporaryId = beforeNode ? $getNodeId(beforeNode) : undefined;
+        if (temporaryId) temporaryBeforeIds.add(temporaryId);
       }
     }
   }
@@ -342,8 +354,10 @@ const collectReviewAffectedNodeIds = (node: DiffNode | TableRowDiffNode): string
   const visit = (candidate: unknown): void => {
     if (!candidate || typeof candidate !== 'object') return;
     const lexicalNode = candidate as Parameters<typeof $getNodeId>[0];
-    const nodeId = $getNodeId(lexicalNode);
-    if (nodeId) ids.add(nodeId);
+    if ($isNodeIdentityBlockTarget(lexicalNode)) {
+      const nodeId = $getNodeId(lexicalNode);
+      if (nodeId && !temporaryBeforeIds.has(nodeId)) ids.add(nodeId);
+    }
     if ('getChildren' in lexicalNode && typeof lexicalNode.getChildren === 'function') {
       lexicalNode.getChildren().forEach(visit);
     }

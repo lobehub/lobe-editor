@@ -1,7 +1,8 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { ActionIcon, Block } from '@lobehub/ui';
+import { Block } from '@lobehub/ui';
+import { ActionIcon } from '@lobehub/ui/base-ui';
 import { cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
 import type { LexicalEditor } from 'lexical';

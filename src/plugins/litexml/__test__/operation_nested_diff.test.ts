@@ -30,17 +30,21 @@ const json = (editor: IEditor): any => editor.getDocument('json') as any;
 
 const idFor = (editor: IEditor, tag: string, text: string): string => {
   const xml = editor.getDocument('litexml') as unknown as string;
-  const pattern = new RegExp(`<${tag} id="([^"]+)"[^>]*>[\\s\\S]*?</${tag}>`, 'g');
-  const match = [...xml.matchAll(pattern)].find((candidate) => candidate[0].includes(text));
-  if (!match) throw new Error(`Could not find ${tag} containing ${text}: ${xml}`);
-  return match[1];
+  const pattern = new RegExp(`<${tag}\\b([^>]*)>([\\s\\S]*?)</${tag}>`, 'g');
+  const match = [...xml.matchAll(pattern)].find((candidate) =>
+    candidate[2].replace(/<[^>]+>/g, '').includes(text),
+  );
+  const id = match && /\bid="([^"]+)"/.exec(match[1])?.[1];
+  if (!id) throw new Error(`Could not find ${tag} containing ${text}: ${xml}`);
+  return id;
 };
 
 const tableId = (editor: IEditor): string => {
   const xml = editor.getDocument('litexml') as unknown as string;
-  const match = /<table id="([^"]+)"/.exec(xml);
-  if (!match) throw new Error(`Could not find table: ${xml}`);
-  return match[1];
+  const match = /<table\b([^>]*)>/.exec(xml);
+  const id = match && /\bid="([^"]+)"/.exec(match[1])?.[1];
+  if (!id) throw new Error(`Could not find table: ${xml}`);
+  return id;
 };
 
 const collectTypes = (node: any, types: string[] = []): string[] => {
@@ -200,13 +204,13 @@ describe('operation nested diff behavior', () => {
       const cells = [...row[1].matchAll(/<td id="([^"]+)"/g)];
       return cells.at(-1)![1];
     });
-    const tableId = /<table id="([^"]+)"/.exec(xml)![1];
+    const currentTableId = tableId(editor);
 
     editor.dispatchCommand(LITEXML_MODIFY_COMMAND, [
       ...lastCellIds.map((id) => ({ action: 'remove' as const, id })),
       {
         action: 'modify' as const,
-        litexml: `<table id="${tableId}" colWidths="250,250"></table>`,
+        litexml: `<table id="${currentTableId}" colWidths="250,250"></table>`,
       },
     ]);
     await moment();

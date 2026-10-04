@@ -12,6 +12,7 @@ import { applyUpdate, Doc, encodeStateAsUpdate } from 'yjs';
 
 import { DEFAULT_HEADLESS_EDITOR_PLUGINS, HeadlessEditor } from '@/headless';
 import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
+import { $clearNodeId } from '@/plugins/common/node/node-id';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -142,6 +143,14 @@ describe('durable node identity migration', () => {
       await flush();
 
       lexical.update(() => {
+        // Common now assigns short identities to ordinary local insertions.
+        // Clear this fixture back to a serialized legacy tree before testing
+        // the deterministic migration API.
+        const clearIds = (node: LexicalNode): void => {
+          $clearNodeId(node);
+          if ($isElementNode(node)) node.getChildren().forEach(clearIds);
+        };
+        clearIds($getRoot());
         $ensureNodeIdsInTree($getRoot(), { pathPrefix: [7, 11] });
       });
       await flush();
@@ -241,8 +250,8 @@ describe('durable node identity migration', () => {
     const first = new HeadlessEditor();
     const second = new HeadlessEditor();
     editors.push(first, second);
-    first.hydrateEditorData(structuredClone(legacyDocument) as any);
-    second.hydrateEditorData(structuredClone(legacyDocument) as any);
+    first.hydrateEditorData(structuredClone(legacyDocument) as any, { keepId: true });
+    second.hydrateEditorData(structuredClone(legacyDocument) as any, { keepId: true });
     await flush();
 
     const readIds = (editor: HeadlessEditor) =>
@@ -261,13 +270,13 @@ describe('durable node identity migration', () => {
   it('keeps the first duplicate and deterministically reassigns later duplicates', async () => {
     const editor = new HeadlessEditor();
     editors.push(editor);
-    editor.hydrateEditorData(structuredClone(legacyDocument) as any);
+    editor.hydrateEditorData(structuredClone(legacyDocument) as any, { keepId: true });
     await flush();
 
     const duplicateDocument = structuredClone(legacyDocument) as any;
     duplicateDocument.root.children[0].$ = { properties: { nodeId: 'duplicate-id' } };
     duplicateDocument.root.children[1].$ = { properties: { nodeId: 'duplicate-id' } };
-    editor.hydrateEditorData(duplicateDocument as any);
+    editor.hydrateEditorData(duplicateDocument as any, { keepId: true });
     await flush();
     const ids = editor.kernel
       .getLexicalEditor()!

@@ -100,6 +100,14 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
 
     litexmlService.registerXMLWriter(ListItemNode.getType(), (node, ctx) => {
       if ($isListItemNode(node)) {
+        const child = node.getFirstChild();
+        if (
+          child?.getType() === 'diff' &&
+          'diffType' in child &&
+          child.diffType === 'listItemRemove'
+        ) {
+          return { lines: [] };
+        }
         return ctx.createXmlNode('li');
       }
       return false;
@@ -183,12 +191,21 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
       if (!parent) {
         return 0;
       }
-      return getLevel($getNearestNodeOfType(parent, ListNode)) + 1;
+      const parentList = $getNearestNodeOfType(parent, ListNode);
+      return parentList ? getLevel(parentList) + 1 : 0;
     };
 
     markdownService.registerMarkdownWriter(ListItemNode.getType(), (ctx, node) => {
       const parent = node.getParent();
       if ($isListItemNode(node) && $isListNode(parent)) {
+        const child = node.getFirstChild();
+        if (
+          child?.getType() === 'diff' &&
+          'diffType' in child &&
+          child.diffType === 'listItemRemove'
+        ) {
+          return true;
+        }
         if ($isListNode(node.getFirstChild())) {
           return;
         }
