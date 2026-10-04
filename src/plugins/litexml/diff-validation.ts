@@ -1,3 +1,5 @@
+import { getLiteXmlIdentityProjection } from './node/identity-policy';
+
 export interface SerializedDiffTreeNode {
   children?: SerializedDiffTreeNode[];
   diffType?: string;
@@ -129,27 +131,15 @@ function findActiveNodeLocation(
   id: string,
   ancestors: SerializedDiffTreeNode[] = [],
 ): NodeLocation | null {
-  if (
-    isActionableDiff(root) &&
-    (root.diffType === 'remove' || root.diffType === 'listItemRemove')
-  ) {
-    return null;
-  }
-  if (
-    (root.type === 'table-cell-diff' || root.type === 'table-row-diff') &&
-    root.diffType === 'remove'
-  ) {
-    return null;
-  }
-  if (
-    root.type === 'listitem' &&
-    root.children?.[0]?.type === 'diff' &&
-    root.children[0].diffType === 'listItemRemove'
-  ) {
-    return null;
-  }
+  const projection = getLiteXmlIdentityProjection({
+    diffType: root.diffType,
+    firstChildDiffType: root.children?.[0]?.diffType,
+    firstChildType: root.children?.[0]?.type,
+    type: root.type,
+  });
+  if (projection === 'hidden') return null;
 
-  if (getNodeId(root) === id) {
+  if (projection === 'content' && getNodeId(root) === id) {
     const parent = ancestors.at(-1) || null;
     return {
       ancestors,
@@ -160,9 +150,9 @@ function findActiveNodeLocation(
   }
 
   const activeChildren =
-    root.type === 'diff' && (root.diffType === 'modify' || root.diffType === 'listItemModify')
-      ? root.children?.[1]
-        ? [root.children[1]]
+    typeof projection === 'object'
+      ? root.children?.[projection.childIndex]
+        ? [root.children[projection.childIndex]]
         : []
       : root.children || [];
   for (const child of activeChildren) {

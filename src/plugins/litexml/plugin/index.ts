@@ -3,6 +3,7 @@ import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
 import { $nodesOfType, HISTORIC_TAG } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { registerNodeIdentityPolicy } from '@/plugins/common/node/node-identity-policy';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 
@@ -11,6 +12,7 @@ import { registerLiteXMLDiffCommand } from '../command/diffCommand';
 import LitexmlDataSource from '../data-source/litexml-data-source';
 import { $isDiffContentNode, DiffContentNode } from '../node/DiffContentNode';
 import { DiffNode } from '../node/DiffNode';
+import { liteXmlIdentityPolicy } from '../node/identity-policy';
 import { $isTableCellDiffNode, TableCellDiffNode } from '../node/TableCellDiffNode';
 import { $isTableRowDiffNode, TableRowDiffNode } from '../node/TableRowDiffNode';
 import { ILitexmlService, LitexmlService } from '../service/litexml-service';
@@ -84,7 +86,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
   }
 
   onInit(editor: LexicalEditor): void {
-    // Plugin initialization logic can be added here if needed
+    this.register(registerNodeIdentityPolicy(editor, liteXmlIdentityPolicy));
     this.register(registerLiteXMLCommand(editor, this.datasource));
     this.register(registerLiteXMLDiffCommand(editor));
     this.register(registerLegacyTableCellDiffNormalization(editor));

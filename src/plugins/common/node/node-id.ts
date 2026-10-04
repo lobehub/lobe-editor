@@ -7,8 +7,11 @@ import {
   $setState,
   createState,
   type EditorState,
+  type LexicalEditor,
   type LexicalNode,
 } from 'lexical';
+
+import { $getNodeIdentityPolicy, type NodeIdentityPolicy } from './node-identity-policy';
 
 type NodeProperties = Record<string, unknown> & { nodeId?: string };
 
@@ -52,7 +55,7 @@ export function $getNodeId(node: LexicalNode): string | undefined {
 
 export function $setNodeId(node: LexicalNode, nodeId: string): void {
   const normalized = nodeId.trim();
-  if (!normalized) throw new Error('LiteXML node id must be a non-empty string.');
+  if (!normalized) throw new Error('Node ID must be a non-empty string.');
   $setState(node, nodePropertiesState, (properties) => ({ ...properties, nodeId: normalized }));
 }
 
@@ -210,121 +213,44 @@ function createNodeId(): string {
   return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-interface ReviewSide {
-  group: string;
-  side: string;
-}
-
-const getDiffType = (node: LexicalNode): string | undefined =>
-  'diffType' in node && typeof node.diffType === 'string' ? node.diffType : undefined;
-
-function recordActiveOwners(node: LexicalNode, owners: Map<string, string>): void {
-  const diffType = getDiffType(node);
-  if (node.getType() === 'diff') {
-    if (diffType === 'remove' || diffType === 'listItemRemove') return;
-    if (diffType === 'modify' || diffType === 'listItemModify') {
-      if ($isElementNode(node)) {
-        const after = node.getChildAtIndex(1);
-        if (after) recordActiveOwners(after, owners);
-      }
-      return;
+function recordActiveOwners(
+  node: LexicalNode,
+  owners: Map<string, string>,
+  policy: NodeIdentityPolicy,
+): void {
+  const projection = policy.project(node);
+  if (projection === 'hidden') return;
+  if (projection === 'content') {
+    const nodeId = $getNodeId(node);
+    if (nodeId && !owners.has(nodeId)) owners.set(nodeId, node.getKey());
+  }
+  if ($isElementNode(node)) {
+    if (typeof projection === 'object') {
+      const selected = node.getChildAtIndex(projection.childIndex);
+      if (selected) recordActiveOwners(selected, owners, policy);
+    } else {
+      node.getChildren().forEach((child) => recordActiveOwners(child, owners, policy));
     }
   }
-  if (
-    (node.getType() === 'table-cell-diff' || node.getType() === 'table-row-diff') &&
-    'getDiffType' in node &&
-    typeof node.getDiffType === 'function' &&
-    node.getDiffType() === 'remove'
-  ) {
-    return;
-  }
-  if (
-    $isElementNode(node) &&
-    node.getType() === 'listitem' &&
-    node.getFirstChild()?.getType() === 'diff' &&
-    getDiffType(node.getFirstChild()!) === 'listItemRemove'
-  ) {
-    return;
-  }
-
-  const nodeId = $getNodeId(node);
-  if (nodeId && !owners.has(nodeId)) owners.set(nodeId, node.getKey());
-  if ($isElementNode(node))
-    node.getChildren().forEach((child) => recordActiveOwners(child, owners));
-}
-
-function getTableReviewSide(node: LexicalNode): ReviewSide | null {
-  const type = node.getType();
-  if (type !== 'table-cell-diff' && type !== 'table-row-diff') return null;
-  if (!('getChangeId' in node) || typeof node.getChangeId !== 'function') return null;
-  const changeId = node.getChangeId();
-  const side =
-    'getDiffType' in node && typeof node.getDiffType === 'function'
-      ? node.getDiffType()
-      : undefined;
-  return changeId && side ? { group: `${type}:${changeId}`, side: String(side) } : null;
-}
-
-function getReviewSide(node: LexicalNode): ReviewSide | null {
-  const selfSide = getTableReviewSide(node);
-  if (selfSide) return selfSide;
-
-  let branch = node;
-  for (let parent = node.getParent(); parent; branch = parent, parent = parent.getParent()) {
-    const parentDiffType = getDiffType(parent);
-    if (parent.getType() === 'diff') {
-      if (parentDiffType === 'modify') {
-        if (branch.getType() === 'diff-content' && 'side' in branch) {
-          return { group: `diff:${parent.getKey()}`, side: String(branch.side) };
-        }
-        const branchIndex = parent.getChildren().indexOf(branch);
-        if (branchIndex >= 0 && branchIndex < 2) {
-          return {
-            group: `diff:${parent.getKey()}`,
-            side: branchIndex === 0 ? 'before' : 'after',
-          };
-        }
-      }
-      if (parentDiffType === 'listItemModify') {
-        const branchIndex = parent.getChildren().indexOf(branch);
-        if (branchIndex >= 0 && branchIndex < 2) {
-          return {
-            group: `diff:${parent.getKey()}`,
-            side: branchIndex === 0 ? 'before' : 'after',
-          };
-        }
-      }
-    }
-
-    const tableSide = getTableReviewSide(parent);
-    if (tableSide) return tableSide;
-  }
-  return null;
-}
-
-function areReviewSides(left: LexicalNode, right: LexicalNode): boolean {
-  const leftSide = getReviewSide(left);
-  const rightSide = getReviewSide(right);
-  return Boolean(
-    leftSide && rightSide && leftSide.group === rightSide.group && leftSide.side !== rightSide.side,
-  );
 }
 
 /** Assign identities once per root transform and repair copy/split collisions in one pass. */
 export function $normalizeNodeIds(root: LexicalNode): void {
   if (!$isRootNode(root)) return;
   const editor = $getEditor();
+  const policy = $getNodeIdentityPolicy();
   const previousOwners = new Map<string, string>();
-  editor.getEditorState().read(() => {
-    recordActiveOwners($getRoot(), previousOwners);
-  });
+  editor.getEditorState().read(
+    () => {
+      recordActiveOwners($getRoot(), previousOwners, policy);
+    },
+    { editor },
+  );
 
   const nodes: LexicalNode[] = [];
   const visit = (node: LexicalNode) => {
-    if (node.getType() !== 'diff' && node.getType() !== 'diff-content') nodes.push(node);
-    if ('getChildren' in node && typeof node.getChildren === 'function') {
-      node.getChildren().forEach(visit);
-    }
+    if (policy.isIdentityNode(node)) nodes.push(node);
+    if ($isElementNode(node)) node.getChildren().forEach(visit);
   };
   root.getChildren().forEach(visit);
 
@@ -355,7 +281,7 @@ export function $normalizeNodeIds(root: LexicalNode): void {
     const previousOwner = group.find((node) => node.getKey() === previousOwners.get(nodeId));
     const primary = previousOwner || group[0];
     const reviewCounterpart = group.find(
-      (node) => node !== primary && areReviewSides(primary, node),
+      (node) => node !== primary && policy.canShareId(primary, node),
     );
     const preserved = new Set([primary, ...(reviewCounterpart ? [reviewCounterpart] : [])]);
     for (const node of group) {
@@ -366,25 +292,32 @@ export function $normalizeNodeIds(root: LexicalNode): void {
   for (const node of missingIds) assignFreshId(node);
 }
 
-export function editorStateHasCompleteNodeIds(editorState: EditorState): boolean {
+export function editorStateHasCompleteNodeIds(
+  editorState: EditorState,
+  editor: LexicalEditor,
+): boolean {
   let nodeCount = 0;
   let complete = true;
-  editorState.read(() => {
-    const visit = (node: LexicalNode) => {
-      const type = node.getType();
-      if (type !== 'root' && type !== 'diff' && type !== 'diff-content') {
-        nodeCount += 1;
-        if (!$getNodeId(node)) complete = false;
-      }
-      if ($isElementNode(node)) node.getChildren().forEach(visit);
-    };
-    visit($getRoot());
-  });
+  editorState.read(
+    () => {
+      const policy = $getNodeIdentityPolicy();
+      const visit = (node: LexicalNode) => {
+        if (policy.isIdentityNode(node)) {
+          nodeCount += 1;
+          if (!$getNodeId(node)) complete = false;
+        }
+        if ($isElementNode(node)) node.getChildren().forEach(visit);
+      };
+      visit($getRoot());
+    },
+    { editor },
+  );
   return nodeCount > 0 && complete;
 }
 
 /** Ensure newly imported nodes can be addressed before the enclosing update commits. */
 export function $ensureUniqueNodeIds(nodes: ReadonlyArray<LexicalNode>): void {
+  const policy = $getNodeIdentityPolicy();
   const usedIds = new Set<string>();
   const collectExisting = (node: LexicalNode) => {
     const nodeId = $getNodeId(node);
@@ -394,6 +327,10 @@ export function $ensureUniqueNodeIds(nodes: ReadonlyArray<LexicalNode>): void {
   collectExisting($getRoot());
 
   const ensureNode = (node: LexicalNode) => {
+    if (!policy.isIdentityNode(node)) {
+      if ($isElementNode(node)) node.getChildren().forEach(ensureNode);
+      return;
+    }
     let nodeId = $getNodeId(node);
     if (!nodeId || usedIds.has(nodeId)) {
       do {
@@ -408,53 +345,56 @@ export function $ensureUniqueNodeIds(nodes: ReadonlyArray<LexicalNode>): void {
   nodes.forEach(ensureNode);
 }
 
-/** Find a public ID in the user-visible side of pending review changes. */
-export function $findNodeById(nodeId: string, root?: LexicalNode): LexicalNode | null {
+/** Find the active representation of a logical ID in a Lexical read/update context. */
+export function $getNodeById(nodeId: string, root?: LexicalNode): LexicalNode | null {
+  if (typeof nodeId !== 'string' || !nodeId.trim()) return null;
+  const policy = $getNodeIdentityPolicy();
   const start = root ?? $getRoot();
 
   const visit = (node: LexicalNode): LexicalNode | null => {
-    const diffType = getDiffType(node);
-    if (node.getType() === 'diff') {
-      switch (diffType) {
-        case 'remove':
-        case 'listItemRemove': {
-          return null;
-        }
-        case 'modify':
-        case 'listItemModify': {
-          const after = $isElementNode(node) ? node.getChildAtIndex(1) : null;
-          return after ? visit(after) : null;
-        }
-        default: {
-          break;
-        }
-      }
+    if (!$isElementNode(node)) {
+      return $getNodeId(node) === nodeId && policy.project(node) === 'content' ? node : null;
     }
-    if (
-      (node.getType() === 'table-cell-diff' || node.getType() === 'table-row-diff') &&
-      'getDiffType' in node &&
-      typeof node.getDiffType === 'function' &&
-      node.getDiffType() === 'remove'
-    ) {
-      return null;
+    const projection = policy.project(node);
+    if (projection === 'hidden') return null;
+    if (projection === 'content' && $getNodeId(node) === nodeId) return node;
+    if (typeof projection === 'object') {
+      const selected = node.getChildAtIndex(projection.childIndex);
+      return selected ? visit(selected) : null;
     }
-    if (
-      $isElementNode(node) &&
-      node.getType() === 'listitem' &&
-      node.getFirstChild()?.getType() === 'diff' &&
-      getDiffType(node.getFirstChild()!) === 'listItemRemove'
-    ) {
-      return null;
-    }
-    if ($getNodeId(node) === nodeId) return node;
-    if ('getChildren' in node && typeof node.getChildren === 'function') {
-      for (const child of node.getChildren()) {
-        const found = visit(child);
-        if (found) return found;
-      }
+    for (const child of node.getChildren()) {
+      const found = visit(child);
+      if (found) return found;
     }
     return null;
   };
 
   return visit(start);
+}
+
+/** Legacy internal spelling kept for existing command callers. */
+export const $findNodeById = $getNodeById;
+
+/** Build a key-only index for one immutable editor state; never cache LexicalNode objects. */
+export function $getActiveNodeIdKeys(): Map<string, string> {
+  const policy = $getNodeIdentityPolicy();
+  const keys = new Map<string, string>();
+  const visit = (node: LexicalNode) => {
+    const projection = policy.project(node);
+    if (projection === 'hidden') return;
+    if (projection === 'content') {
+      const id = $getNodeId(node);
+      if (id && !keys.has(id)) keys.set(id, node.getKey());
+    }
+    if ($isElementNode(node)) {
+      if (typeof projection === 'object') {
+        const selected = node.getChildAtIndex(projection.childIndex);
+        if (selected) visit(selected);
+      } else {
+        node.getChildren().forEach(visit);
+      }
+    }
+  };
+  visit($getRoot());
+  return keys;
 }

@@ -86,7 +86,8 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage  --passWithNoTests",
     "test:watch": "vitest --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "verify:node-identity-package": "node scripts/verify-node-identity-package.mjs"
   },
   "lint-staged": {
     "*.{md,mdc}": [

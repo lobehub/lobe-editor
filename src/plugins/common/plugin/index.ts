@@ -34,6 +34,8 @@ import {
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { $clearNodeId, $normalizeNodeIds } from '@/plugins/common/node/node-id';
+import { INodeIdentityService } from '@/plugins/common/service/i-node-identity-service';
+import { NodeIdentityService } from '@/plugins/common/service/node-identity-service';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { isPunctuationChar } from '@/plugins/markdown/utils';
@@ -105,6 +107,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 {
   static pluginName = 'CommonPlugin';
 
+  public identityService = new NodeIdentityService();
+
   private formats = {
     bold: true,
     header: true,
@@ -120,6 +124,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     public config: CommonPluginOptions = {},
   ) {
     super();
+
+    kernel.registerService(INodeIdentityService, this.identityService);
 
     // Parse markdown options and update formats
     const markdownOption = config.markdownOption ?? true;
@@ -427,6 +433,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    this.register(this.identityService.bindEditor(editor));
     this.register(editor.registerNodeTransform(RootNode, $normalizeNodeIds));
     this.register(
       editor.registerCommand(

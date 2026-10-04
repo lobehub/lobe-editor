@@ -152,7 +152,7 @@ export class YjsService {
       serializeComparableEditorState(nextEditorState);
     const isSameStateIgnoringOmittedIds =
       hasSharedState &&
-      editorStateHasCompleteNodeIds(previousEditorState) &&
+      editorStateHasCompleteNodeIds(previousEditorState, binding.editor) &&
       serializeComparableStateForSnapshot(previousEditorState, snapshot.root) ===
         serializeComparableStateForSnapshot(nextEditorState, snapshot.root);
     if (hasSharedState && (isSameState || isSameStateIgnoringOmittedIds)) {

@@ -66,37 +66,40 @@ function getNodeKeyForReference(
   reference: SelectionNodeReference,
   offset: number,
 ): { key: string; offset: number } | undefined {
-  return editor.getEditorState().read(() => {
-    if (reference.kind === 'node') {
-      const node = $findNodeById(reference.id);
-      return node ? { key: node.getKey(), offset } : undefined;
-    }
-
-    const root = $getRoot();
-    const findBoundaryText = (node: LexicalNode, first: boolean): LexicalNode | null => {
-      if ($isTextNode(node)) return node;
-      if (!$isElementNode(node)) return null;
-
-      const children = node.getChildren();
-      const orderedChildren = first ? children : [...children].reverse();
-      for (const child of orderedChildren) {
-        const textNode = findBoundaryText(child, first);
-        if (textNode) return textNode;
+  return editor.getEditorState().read(
+    () => {
+      if (reference.kind === 'node') {
+        const node = $findNodeById(reference.id);
+        return node ? { key: node.getKey(), offset } : undefined;
       }
-      return null;
-    };
 
-    if (offset === 0) {
-      const firstText = findBoundaryText(root, true);
-      if (firstText) return { key: firstText.getKey(), offset: 0 };
-    }
-    if (offset === root.getChildrenSize()) {
-      const lastText = findBoundaryText(root, false);
-      if (lastText) return { key: lastText.getKey(), offset: lastText.getTextContentSize() };
-    }
+      const root = $getRoot();
+      const findBoundaryText = (node: LexicalNode, first: boolean): LexicalNode | null => {
+        if ($isTextNode(node)) return node;
+        if (!$isElementNode(node)) return null;
 
-    return { key: root.getKey(), offset };
-  });
+        const children = node.getChildren();
+        const orderedChildren = first ? children : [...children].reverse();
+        for (const child of orderedChildren) {
+          const textNode = findBoundaryText(child, first);
+          if (textNode) return textNode;
+        }
+        return null;
+      };
+
+      if (offset === 0) {
+        const firstText = findBoundaryText(root, true);
+        if (firstText) return { key: firstText.getKey(), offset: 0 };
+      }
+      if (offset === root.getChildrenSize()) {
+        const lastText = findBoundaryText(root, false);
+        if (lastText) return { key: lastText.getKey(), offset: lastText.getTextContentSize() };
+      }
+
+      return { key: root.getKey(), offset };
+    },
+    { editor },
+  );
 }
 
 function mapSelectionToEditor(

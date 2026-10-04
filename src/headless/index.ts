@@ -29,6 +29,9 @@ import { HeadlessCollapsiblePlugin } from './collapsible-plugin';
 
 export type { FileListItem, ImageListItem, MediaLists } from './extract-media-from-editor-state';
 export { extractMediaFromEditorState } from './extract-media-from-editor-state';
+export { $getNodeById, $getNodeId } from '@/plugins/common/node/node-id';
+export type { NodeIdentitySnapshot } from '@/plugins/common/service/i-node-identity-service';
+export { INodeIdentityService } from '@/plugins/common/service/i-node-identity-service';
 
 export type HeadlessDocumentType = 'json' | 'litexml' | 'markdown' | (string & object);
 
