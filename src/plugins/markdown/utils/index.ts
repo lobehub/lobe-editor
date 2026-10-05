@@ -96,6 +96,39 @@ export function isPunctuationChar(char: string): boolean {
   return Punctuation.test(char);
 }
 
+// Characters that can open or close inline markdown syntax (emphasis, code,
+// links, autolinks/HTML, entities, strikethrough, table cells) or start an escape.
+const MARKDOWN_INLINE_SPECIAL = /[&*<[\\\]_`|~]/g;
+// Autolink literals keep their characters verbatim: an escape inside a URL ends it.
+const URL_LIKE = /(?:https?:\/\/|www\.)[^\s<>]*/gi;
+// Block syntax that only counts at the start of a line: headings, quotes,
+// bullet and ordered list markers.
+const LINE_START_BLOCK_MARKER = /^( {0,3})(#{1,6}(?=\s|$)|>|[+-](?=\s|$)|\d{1,9}(?=[).](?:\s|$)))/;
+
+const escapeInline = (text: string) => text.replaceAll(MARKDOWN_INLINE_SPECIAL, '\\$&');
+
+/**
+ * Escapes literal text so that markdown parsing gives the same text back.
+ * Text nodes hold literal characters: writing them out raw lets `*`, `_`, `\`,
+ * `<`, `[` … be read back as formatting, HTML or escapes.
+ */
+export function escapeMarkdownText(text: string, atLineStart = false): string {
+  let escaped = '';
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(URL_LIKE)) {
+    escaped += escapeInline(text.slice(lastIndex, match.index)) + match[0];
+    lastIndex = match.index + match[0].length;
+  }
+  escaped += escapeInline(text.slice(lastIndex));
+
+  if (!atLineStart) return escaped;
+
+  return escaped.replace(LINE_START_BLOCK_MARKER, (_, indent: string, marker: string) =>
+    /^\d/.test(marker) ? `${indent}${marker}\\` : `${indent}\\${marker}`,
+  );
+}
+
 function $updateSelectionOnInsert(selection: BaseSelection): void {
   if ($isRangeSelection(selection) && selection.isCollapsed()) {
     const anchor = selection.anchor;

@@ -16,6 +16,7 @@ import {
   $createLineBreakNode,
   $createParagraphNode,
   $getSelection,
+  $isLineBreakNode,
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
@@ -32,7 +33,7 @@ import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { isPunctuationChar } from '@/plugins/markdown/utils';
+import { escapeMarkdownText, isPunctuationChar } from '@/plugins/markdown/utils';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { registerCommands } from '../command';
@@ -94,6 +95,14 @@ export interface CommonPluginOptions extends PasteHandlerConfig {
     textUnderlineStrikethrough?: string;
   };
 }
+
+const $isInCode = (node: TextNode): boolean => {
+  if (node.hasFormat('code')) return true;
+  for (let parent = node.getParent(); parent; parent = parent.getParent()) {
+    if (parent.getType() === 'code' || parent.getType() === 'codeInline') return true;
+  }
+  return false;
+};
 
 export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   extends KernelPlugin
@@ -371,7 +380,12 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       }
       const append = textContent.trimEnd();
       const lastChar = append.at(-1);
-      ctx.appendLine(append);
+      const previous = node.getPreviousSibling();
+      ctx.appendLine(
+        ctx.escapeText && !$isInCode(node)
+          ? escapeMarkdownText(append, !previous || $isLineBreakNode(previous))
+          : append,
+      );
 
       if (isSubscript) {
         ctx.appendLine('~');
@@ -394,7 +408,15 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
       if (tailSpace) {
         ctx.appendLine(tailSpace);
-      } else if (lastChar && isPunctuationChar(lastChar)) {
+      } else if (
+        lastChar &&
+        isPunctuationChar(lastChar) &&
+        /^\S/.test(node.getNextSibling()?.getTextContent() ?? '')
+      ) {
+        // A closing delimiter after punctuation only closes when whitespace
+        // follows it (`**Mission:**Eric` is not bold), so add one — but only
+        // when the next text does not already start with whitespace, or every
+        // export would add another space.
         ctx.appendLine(' ');
       }
     });
