@@ -41,6 +41,12 @@ export interface IMarkdownWriterContext {
   appendLine: (line: string) => void;
 
   /**
+   * Whether text nodes must escape literal markdown characters. Set when the
+   * output is read back as markdown (document export), so text round-trips.
+   */
+  readonly escapeText?: boolean;
+
+  /**
    * Control child node to markdown
    * @param parentCtx
    * @param child

@@ -10,8 +10,11 @@ export class MarkdownWriterContext implements IMarkdownWriterContext {
   private markdownService: MarkdownShortCutService;
   private processor?: (before: string, content: string, after: string) => string;
 
-  constructor(markdownService?: MarkdownShortCutService) {
+  readonly escapeText: boolean;
+
+  constructor(markdownService?: MarkdownShortCutService, options?: { escapeText?: boolean }) {
     this.markdownService = markdownService!;
+    this.escapeText = options?.escapeText ?? false;
   }
 
   appendLine(line: string): void {
@@ -19,7 +22,9 @@ export class MarkdownWriterContext implements IMarkdownWriterContext {
   }
 
   newChild(): MarkdownWriterContext {
-    const child = new MarkdownWriterContext(this.markdownService);
+    const child = new MarkdownWriterContext(this.markdownService, {
+      escapeText: this.escapeText,
+    });
     this.children.push(child);
     return child;
   }

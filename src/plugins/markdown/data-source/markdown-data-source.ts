@@ -195,7 +195,7 @@ export default class MarkdownDataSource extends DataSource {
           const editorState = editor.parseEditorState({ root: rootNode });
 
           const lexicalRootNode = editorState._nodeMap.get('root') as ElementNode;
-          const rootCtx = new MarkdownWriterContext(this.markdownService);
+          const rootCtx = new MarkdownWriterContext(this.markdownService, { escapeText: true });
 
           return editorState.read(() => {
             lexicalRootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
@@ -227,7 +227,7 @@ export default class MarkdownDataSource extends DataSource {
     }
     return editor.getEditorState().read(() => {
       const rootNode = $getRoot();
-      const rootCtx = new MarkdownWriterContext(this.markdownService);
+      const rootCtx = new MarkdownWriterContext(this.markdownService, { escapeText: true });
 
       rootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
       return this.formatMarkdown(rootCtx.toString());
