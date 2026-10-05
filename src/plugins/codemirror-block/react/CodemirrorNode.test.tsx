@@ -1,15 +1,23 @@
 /**
  * @vitest-environment happy-dom
  */
-import { act, createElement, StrictMode, type ReactNode } from 'react';
+import {
+  $getRoot,
+  $nodesOfType,
+  KEY_ARROW_LEFT_COMMAND,
+  KEY_ARROW_RIGHT_COMMAND,
+  KEY_ENTER_COMMAND,
+} from 'lexical';
+import { act, createElement, type ReactNode, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { $getRoot, $nodesOfType } from 'lexical';
 
 import KernelEditor, { moment } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
 import { ENTER_HOLE_CONTENT_COMMAND } from '@/plugins/common/command';
 import { HoleNode } from '@/plugins/common/node/hole';
+import { VirtualBlockPlugin } from '@/plugins/virtual-block/plugin';
+
 import { CodemirrorPlugin } from '../plugin';
 
 const mocks = vi.hoisted(() => ({
@@ -362,6 +370,150 @@ describe('ReactCodemirrorNode', () => {
 
     await act(async () => view.unmount());
     host.remove();
+  });
+
+  it('inserts a paragraph outside the CodeMirror Hole after exiting through its right boundary', async () => {
+    const lexicalActual = await vi.importActual<typeof import('lexical')>('lexical');
+    lexicalSelectionMock.getSelection.mockImplementation((() =>
+      lexicalActual.$getSelection()) as never);
+    lexicalSelectionMock.setSelection.mockImplementation(((
+      selection: Parameters<typeof lexicalActual.$setSelection>[0],
+    ) => lexicalActual.$setSelection(selection)) as never);
+
+    const code = 'const acceptance = 203;';
+    const handlers = new Map<string, Array<(...args: any[]) => void>>();
+    const instance = createCodeMirrorInstance(code, handlers);
+    mocks.loadCodeMirror.mockResolvedValue({ fromTextArea: vi.fn(() => instance) });
+
+    const kernel = KernelEditor.createEditor().registerPlugins([
+      CommonPlugin,
+      CodemirrorPlugin,
+      VirtualBlockPlugin,
+    ]);
+    kernel.initHeadlessEditor();
+    const lexical = kernel.getLexicalEditor()!;
+    lexical.update(
+      () => {
+        $getRoot().append($createCodeMirrorNode('javascript', code));
+      },
+      { discrete: true },
+    );
+    await moment();
+    const focus = vi.spyOn(lexical, 'focus').mockImplementation(() => {});
+
+    const payload = lexical
+      .getEditorState()
+      .read(() => lexicalActual.$nodesOfType(HoleNode)[0]?.getContentChildren()[0]);
+    if (!payload) throw new Error('CodeMirror Hole payload missing');
+
+    const host = document.createElement('div');
+    document.body.append(host);
+    const view = createRoot(host);
+    await act(async () => {
+      view.render(
+        createElement(ReactCodemirrorNode, {
+          editor: lexical,
+          node: payload as CodeMirrorNode,
+        }),
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const leftOut = handlers.get('leftOut')?.[0];
+    const rightOut = handlers.get('rightOut')?.[0];
+    if (!leftOut || !rightOut) throw new Error('CodeMirror exit handler missing');
+
+    // Exercise CodeMirror's left-exit callback, then enter at the start using
+    // the Hole arrow command. This follows the browser's Home/Left, Right path.
+    await act(async () => {
+      leftOut();
+      await moment();
+      await Promise.resolve();
+    });
+    lexical.getEditorState().read(() => {
+      const hole = lexicalActual.$nodesOfType(HoleNode)[0];
+      const selection = lexicalActual.$getSelection();
+      if (!hole || !lexicalActual.$isRangeSelection(selection)) {
+        throw new Error('CodeMirror left exit did not leave a Hole boundary selection');
+      }
+      expect(selection.anchor.key).toBe(hole.getBeforeCursor()?.getKey());
+      expect(selection.anchor.offset).toBe(1);
+    });
+
+    const enterFromStart = new KeyboardEvent('keydown', {
+      cancelable: true,
+      key: 'ArrowRight',
+    });
+    expect(lexical.dispatchCommand(KEY_ARROW_RIGHT_COMMAND, enterFromStart)).toBe(true);
+    expect(enterFromStart.defaultPrevented).toBe(true);
+    await moment();
+    expect(instance.setSelectionToStart).toHaveBeenCalledOnce();
+
+    // CodeMirror exits right after End, re-enters at the end with Left, and
+    // exits right again. Every transfer runs through the actual component and
+    // Hole command handlers; the test never sets a boundary selection itself.
+    await act(async () => {
+      rightOut();
+      await moment();
+      await Promise.resolve();
+    });
+    lexical.getEditorState().read(() => {
+      const hole = lexicalActual.$nodesOfType(HoleNode)[0];
+      const selection = lexicalActual.$getSelection();
+      if (!hole || !lexicalActual.$isRangeSelection(selection)) {
+        throw new Error('CodeMirror exit did not leave a Hole boundary selection');
+      }
+      expect(selection.anchor.key).toBe(hole.getAfterCursor()?.getKey());
+      expect(selection.anchor.offset).toBe(0);
+    });
+
+    const enterFromEnd = new KeyboardEvent('keydown', {
+      cancelable: true,
+      key: 'ArrowLeft',
+    });
+    expect(lexical.dispatchCommand(KEY_ARROW_LEFT_COMMAND, enterFromEnd)).toBe(true);
+    expect(enterFromEnd.defaultPrevented).toBe(true);
+    await moment();
+    expect(instance.setSelectionToEnd).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      rightOut();
+      await moment();
+      await Promise.resolve();
+    });
+    lexical.getEditorState().read(() => {
+      const hole = lexicalActual.$nodesOfType(HoleNode)[0];
+      const selection = lexicalActual.$getSelection();
+      if (!hole || !lexicalActual.$isRangeSelection(selection)) {
+        throw new Error('CodeMirror re-exit did not leave a Hole boundary selection');
+      }
+      expect(selection.anchor.key).toBe(hole.getAfterCursor()?.getKey());
+      expect(selection.anchor.offset).toBe(0);
+    });
+    expect(focus).toHaveBeenCalledTimes(3);
+
+    const enter = new KeyboardEvent('keydown', { cancelable: true, key: 'Enter' });
+    expect(lexical.dispatchCommand(KEY_ENTER_COMMAND, enter)).toBe(true);
+    expect(enter.defaultPrevented).toBe(true);
+    await moment();
+
+    lexical.getEditorState().read(() => {
+      const rootChildren = lexicalActual.$getRoot().getChildren();
+      const hole = lexicalActual.$nodesOfType(HoleNode)[0];
+      const selection = lexicalActual.$getSelection();
+      expect(rootChildren.map((node) => node.getType())).toEqual(['hole', 'paragraph']);
+      expect((hole?.getContentChildren()[0] as CodeMirrorNode | undefined)?.code).toBe(code);
+      if (!lexicalActual.$isRangeSelection(selection)) {
+        throw new Error('Enter did not select the paragraph after the CodeMirror Hole');
+      }
+      expect(selection.anchor.getNode().getType()).toBe('paragraph');
+      expect(selection.anchor.getNode().isAttached()).toBe(true);
+    });
+
+    await act(async () => view.unmount());
+    host.remove();
+    kernel.destroy();
   });
 
   it('removes a sole empty CodeMirror Hole and leaves a usable paragraph selection', async () => {
