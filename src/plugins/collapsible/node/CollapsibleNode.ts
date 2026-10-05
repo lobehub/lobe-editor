@@ -1,15 +1,10 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { addClassNamesToElement } from '@lexical/utils';
-import {
-  $applyNodeReplacement,
-  $createParagraphNode,
-  $createTextNode,
+import type {
   DOMConversionMap,
   DOMConversionOutput,
   DOMExportOutput,
   EditorConfig,
   ElementDOMSlot,
-  ElementNode,
   LexicalEditor,
   LexicalNode,
   LexicalUpdateJSON,
@@ -17,6 +12,7 @@ import {
   SerializedElementNode,
   Spread,
 } from 'lexical';
+import { $applyNodeReplacement, $createParagraphNode, $createTextNode, ElementNode } from 'lexical';
 
 export type SerializedCollapsibleNode = Spread<
   {
@@ -51,7 +47,9 @@ export class CollapsibleNode extends ElementNode {
   }
 
   static importJSON(serializedNode: SerializedCollapsibleNode): CollapsibleNode {
-    const node = $createCollapsibleNode(serializedNode.title || 'Details').updateFromJSON(serializedNode);
+    const node = $createCollapsibleNode(serializedNode.title || 'Details').updateFromJSON(
+      serializedNode,
+    );
     if (shouldPrependTitle(serializedNode)) {
       const titleParagraph = $createTitleParagraph(serializedNode.title || 'Details');
       const firstChild = node.getFirstChild();
@@ -81,7 +79,10 @@ export class CollapsibleNode extends ElementNode {
     toggle.contentEditable = 'false';
     toggle.dataset.collapsibleToggle = 'true';
     toggle.setAttribute('aria-expanded', String(!this.__collapsed));
-    toggle.setAttribute('aria-label', this.__collapsed ? 'Expand collapsible block' : 'Collapse collapsible block');
+    toggle.setAttribute(
+      'aria-label',
+      this.__collapsed ? 'Expand collapsible block' : 'Collapse collapsible block',
+    );
     toggle.addEventListener('click', () => {
       editor.update(() => {
         const latest = this.getLatest();
@@ -181,9 +182,7 @@ export function $createCollapsibleNode(
   return $applyNodeReplacement(new CollapsibleNode(title, collapsed));
 }
 
-export function $isCollapsibleNode(
-  node: LexicalNode | null | undefined,
-): node is CollapsibleNode {
+export function $isCollapsibleNode(node: LexicalNode | null | undefined): node is CollapsibleNode {
   return node instanceof CollapsibleNode;
 }
 

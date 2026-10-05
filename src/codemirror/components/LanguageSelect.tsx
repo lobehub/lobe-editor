@@ -10,6 +10,7 @@ import type { LanguageSelectProps } from '../types';
 import { styles } from './style';
 
 export const LanguageSelect: FC<LanguageSelectProps> = ({
+  disabled,
   selectedLang,
   onLanguageChange,
   options,
@@ -50,7 +51,10 @@ export const LanguageSelect: FC<LanguageSelectProps> = ({
     >
       <Select
         className={cx(styles.container)}
-        onChange={(value) => onLanguageChange(value as string)}
+        disabled={disabled}
+        onChange={(value) => {
+          if (typeof value === 'string') onLanguageChange(value);
+        }}
         options={languageOptions}
         placeholder={labels?.selectLanguage ?? 'Select language'}
         showSearch

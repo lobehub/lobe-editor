@@ -121,6 +121,22 @@ describe('renderBuiltinNode', () => {
     expect(renderBuiltinNode({ type: 'cursor' }, 'k', null, slugs)).toBeNull();
   });
 
+  it('renders Hole transparently without its boundary markers', () => {
+    const html = toHTML({ type: 'hole' }, [null, 'artifact', null]);
+    expect(html).toBe('artifact');
+  });
+
+  it('renders Artifact as a readonly sandboxed iframe', () => {
+    const html = toHTML({ html: '<h1>safe</h1>', title: 'Preview', type: 'artifact' });
+    expect(html).toContain('class="editor_artifact_preview"');
+    expect(html).toContain('sandbox=""');
+    expect(html).toContain('allow=""');
+    expect(html).toContain('referrerPolicy="no-referrer"');
+    expect(html).toContain('title="Preview preview"');
+    expect(html).toContain('srcDoc="&lt;h1&gt;safe&lt;/h1&gt;"');
+    expect(html).toContain('height:420px');
+  });
+
   it('renders codeInline with class', () => {
     const html = toHTML({ type: 'codeInline' }, ['inline code']);
     expect(html).toContain('editor_code');

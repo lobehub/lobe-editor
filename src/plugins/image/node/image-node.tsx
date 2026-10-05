@@ -20,15 +20,17 @@ export class ImageNode extends BaseImageNode {
   private __message: string | null = null;
   private __extra: Record<string, unknown> | null = null;
 
-  constructor(opt: {
-    altText: string;
-    height?: 'inherit' | number;
-    key?: NodeKey;
-    maxWidth: number;
-    src: string;
-    status?: 'uploaded' | 'loading' | 'error';
-    width?: 'inherit' | number;
-  }) {
+  constructor(
+    opt: {
+      altText: string;
+      height?: 'inherit' | number;
+      key?: NodeKey;
+      maxWidth: number;
+      src: string;
+      status?: 'uploaded' | 'loading' | 'error';
+      width?: 'inherit' | number;
+    } = { altText: '', maxWidth: 4200, src: '' },
+  ) {
     super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key);
     this.__status = opt.status ?? 'uploaded';
   }

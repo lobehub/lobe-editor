@@ -1,7 +1,15 @@
 import { type Binding, type Provider, type UserState } from '@lexical/yjs';
-import { SKIP_COLLAB_TAG } from 'lexical';
+import { $getRoot, SKIP_COLLAB_TAG } from 'lexical';
 import type { Doc } from 'yjs';
 
+import { projectRuntimeHolesForJSON } from '@/plugins/common/data-source/json-data-source';
+import {
+  $normalizeNodeIds,
+  editorStateHasCompleteNodeIds,
+  inheritMissingSerializedNodeIds,
+  isValidContentNodeId,
+  migrateSerializedNodeIds,
+} from '@/plugins/common/node/node-id';
 import type { IServiceID } from '@/types';
 
 import { createEmptyPreviousEditorState } from '../plugin/utils/editor-state';
@@ -22,11 +30,71 @@ export interface YjsPluginState {
 
 type YjsPluginStateListener = (state: YjsPluginState | null) => void;
 type YjsAwarenessUsersListener = (users: YjsAwarenessUser[]) => void;
+type YjsReadinessListener = (ready: boolean) => void;
+
+/**
+ * `getDocument('json')` includes each Lexical runtime node key as `id`. Those
+ * keys are intentionally local to one editor instance: the Agent and every
+ * browser peer deserialize the same Yjs tree with different keys. Comparing
+ * them makes the server's post-write echo look like a new document and causes
+ * `applyExternalEditorData` to replace the shared root a second time. That
+ * second replacement disconnects the existing binding history from later
+ * remote edits, so a browser Undo can consume another peer's change.
+ *
+ * Keep durable node properties (for example `$.properties.nodeId`) and nested
+ * payload data intact; only an `id` on a serialized Lexical node is runtime
+ * identity.
+ */
+const cloneComparableValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(cloneComparableValue);
+  if (!value || typeof value !== 'object') return value;
+
+  const cloned: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) cloned[key] = cloneComparableValue(child);
+  return cloned;
+};
+
+/** Remove runtime ids only while walking the serialized Lexical node tree. */
+const normalizeComparableLexicalNode = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(normalizeComparableLexicalNode);
+  if (!value || typeof value !== 'object') return cloneComparableValue(value);
+
+  const normalized: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'id') continue;
+    // `children` on a serialized Lexical node is the only place where nested
+    // `id` fields are known to be runtime node keys. Business payloads may
+    // themselves contain `{ id, type }` objects and must remain byte-stable.
+    normalized[key] =
+      key === 'children' && Array.isArray(child)
+        ? child.map(normalizeComparableLexicalNode)
+        : cloneComparableValue(child);
+  }
+  return normalized;
+};
+
+const normalizeComparableEditorData = (value: unknown): unknown => {
+  const cloned = cloneComparableValue(value) as Record<string, unknown> | null;
+  if (!cloned || typeof cloned !== 'object') return cloned;
+  if (cloned.root && typeof cloned.root === 'object') {
+    cloned.root = normalizeComparableLexicalNode(cloned.root);
+  }
+  return cloned;
+};
 
 const serializeComparableEditorState = (state: { toJSON: () => unknown }): string => {
-  const serialized = state.toJSON() as {
-    root?: { direction?: string | null };
+  const serialized = normalizeComparableEditorData(state.toJSON()) as {
+    root?: { direction?: string | null; [key: string]: unknown };
   };
+
+  // Artifact/code blocks are represented by an internal Hole with boundary
+  // Cursor nodes in a live Yjs binding, while persisted editorData projects
+  // that runtime wrapper away. Compare the public projection on both sides so
+  // a server echo does not look like a second structural replacement.
+  if (serialized.root && Array.isArray(serialized.root.children)) {
+    const [projectedRoot] = projectRuntimeHolesForJSON(serialized.root as never);
+    if (projectedRoot) serialized.root = projectedRoot as typeof serialized.root;
+  }
 
   // Lexical's root direction is a local default and is not represented by the
   // v1 Yjs binding. Treat the default `ltr` and hydrated `null` as equivalent;
@@ -36,10 +104,61 @@ const serializeComparableEditorState = (state: { toJSON: () => unknown }): strin
   return JSON.stringify(serialized);
 };
 
+const serializeComparableStateForSnapshot = (
+  state: { toJSON: () => unknown },
+  snapshotRoot: unknown,
+): string => {
+  const serialized = structuredClone(state.toJSON()) as {
+    root?: { direction?: string | null } & Record<string, any>;
+  };
+  if (serialized.root?.direction === 'ltr') serialized.root.direction = null;
+
+  const stripMissingIds = (stateNode: unknown, snapshotNode: unknown) => {
+    if (
+      !stateNode ||
+      typeof stateNode !== 'object' ||
+      Array.isArray(stateNode) ||
+      !snapshotNode ||
+      typeof snapshotNode !== 'object' ||
+      Array.isArray(snapshotNode)
+    ) {
+      return;
+    }
+    const stateRecord = stateNode as Record<string, any>;
+    const snapshotRecord = snapshotNode as Record<string, any>;
+    if (stateRecord.type === snapshotRecord.type) {
+      const properties = snapshotRecord.$?.properties;
+      const hasExplicitId =
+        snapshotRecord.type !== 'root' &&
+        (isValidContentNodeId(snapshotRecord.id) ||
+          (typeof snapshotRecord.id === 'number' && Number.isFinite(snapshotRecord.id)) ||
+          isValidContentNodeId(properties?.nodeId));
+      if (!hasExplicitId) {
+        delete stateRecord.id;
+        if (stateRecord.$?.properties) {
+          delete stateRecord.$.properties.nodeId;
+          if (Object.keys(stateRecord.$.properties).length === 0) delete stateRecord.$.properties;
+          if (Object.keys(stateRecord.$).length === 0) delete stateRecord.$;
+        }
+      }
+      if (Array.isArray(stateRecord.children) && Array.isArray(snapshotRecord.children)) {
+        const length = Math.min(stateRecord.children.length, snapshotRecord.children.length);
+        for (let index = 0; index < length; index++) {
+          stripMissingIds(stateRecord.children[index], snapshotRecord.children[index]);
+        }
+      }
+    }
+  };
+  stripMissingIds(serialized.root, snapshotRoot);
+  return JSON.stringify(serialized);
+};
+
 export class YjsService {
   private awarenessUsers: YjsAwarenessUser[] = [];
   private awarenessUsersListeners = new Set<YjsAwarenessUsersListener>();
   private listeners = new Set<YjsPluginStateListener>();
+  private readinessListeners = new Set<YjsReadinessListener>();
+  private ready = false;
   private state: YjsPluginState | null = null;
 
   getAwarenessUsers(): YjsAwarenessUser[] {
@@ -48,6 +167,16 @@ export class YjsService {
 
   getState(): YjsPluginState | null {
     return this.state;
+  }
+
+  /**
+   * Whether the current binding has completed its initial room snapshot.
+   * This is a binding lifecycle signal, not transport authentication or edit
+   * permission; it remains true through transient reconnects and resets when
+   * the provider replaces the document/binding.
+   */
+  isReady(): boolean {
+    return this.state !== null && this.ready;
   }
 
   /**
@@ -83,12 +212,24 @@ export class YjsService {
     }
 
     const previousEditorState = binding.editor.getEditorState();
-    const nextEditorState = binding.editor.parseEditorState(JSON.stringify(editorData));
+    const snapshot = structuredClone(editorData);
+    migrateSerializedNodeIds(snapshot.root);
+    inheritMissingSerializedNodeIds(
+      (previousEditorState.toJSON() as { root?: unknown }).root,
+      snapshot.root,
+    );
+    const nextEditorState = binding.editor.parseEditorState(JSON.stringify(snapshot), () => {
+      $normalizeNodeIds($getRoot(), { stableDuplicateRepair: true });
+    });
     const isSameState =
       serializeComparableEditorState(previousEditorState) ===
       serializeComparableEditorState(nextEditorState);
-
-    if (hasSharedState && isSameState) {
+    const isSameStateIgnoringOmittedIds =
+      hasSharedState &&
+      editorStateHasCompleteNodeIds(previousEditorState, binding.editor) &&
+      serializeComparableStateForSnapshot(previousEditorState, snapshot.root) ===
+        serializeComparableStateForSnapshot(nextEditorState, snapshot.root);
+    if (hasSharedState && (isSameState || isSameStateIgnoringOmittedIds)) {
       return false;
     }
 
@@ -128,8 +269,19 @@ export class YjsService {
   }
 
   setState(state: YjsPluginState | null): void {
+    const readinessChanged = this.ready;
     this.state = state;
+    this.ready = false;
     this.listeners.forEach((listener) => listener(state));
+    if (readinessChanged) this.readinessListeners.forEach((listener) => listener(false));
+  }
+
+  /** Publish completion of the current binding's initial room snapshot. */
+  setReady(ready: boolean): void {
+    const nextReady = ready && this.state !== null;
+    if (this.ready === nextReady) return;
+    this.ready = nextReady;
+    this.readinessListeners.forEach((listener) => listener(nextReady));
   }
 
   subscribeAwarenessUsers(listener: YjsAwarenessUsersListener): () => void {
@@ -147,6 +299,15 @@ export class YjsService {
 
     return () => {
       this.listeners.delete(listener);
+    };
+  }
+
+  subscribeReadiness(listener: YjsReadinessListener): () => void {
+    this.readinessListeners.add(listener);
+    listener(this.ready);
+
+    return () => {
+      this.readinessListeners.delete(listener);
     };
   }
 }

@@ -11,11 +11,12 @@ import {
   registerRichText,
 } from '@lexical/rich-text';
 import { CAN_USE_DOM } from '@lexical/utils';
-import type { LexicalEditor } from 'lexical';
+import type { LexicalEditor, LexicalNode } from 'lexical';
 import {
   $createLineBreakNode,
   $createParagraphNode,
   $getSelection,
+  $isElementNode,
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
@@ -24,13 +25,18 @@ import {
   INSERT_PARAGRAPH_COMMAND,
   ParagraphNode,
   PASTE_COMMAND,
+  RootNode,
+  SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
   TEXT_TYPE_TO_FORMAT,
   TextNode,
 } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { ILitexmlService } from '@/plugins/litexml';
+import { $clearNodeId, $normalizeNodeIds } from '@/plugins/common/node/node-id';
+import { INodeIdentityService } from '@/plugins/common/service/i-node-identity-service';
+import { NodeIdentityService } from '@/plugins/common/service/node-identity-service';
+import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { isPunctuationChar } from '@/plugins/markdown/utils';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -38,9 +44,17 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 import { registerCommands } from '../command';
 import JSONDataSource from '../data-source/json-data-source';
 import TextDataSource from '../data-source/text-data-source';
-import { CursorNode, registerCursorNode } from '../node/cursor';
+import { $isCursorNode, CursorNode, registerCursorNode } from '../node/cursor';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
+import { $isHoleNode, HoleNode } from '../node/hole';
+import { registerHoleClipboard } from '../node/hole-clipboard';
+import { reconcileHoleNodes, registerHoleNode } from '../node/hole-controller';
+import { EditorDiagnosticsService } from '../service/editor-diagnostics-service';
+import { HoleService } from '../service/hole';
+import { IEditorDiagnosticsService } from '../service/i-editor-diagnostics-service';
+import { IHoleService } from '../service/i-hole-service';
 import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
+import { registerHoleSelectionDOM } from './hole-selection';
 import { registerMDReader } from './mdReader';
 import {
   handleFilePaste,
@@ -99,7 +113,13 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
   extends KernelPlugin
   implements IEditorPlugin<CommonPluginOptions>
 {
+  private readonly holeService: HoleService;
+
+  private readonly diagnosticsService: EditorDiagnosticsService;
+
   static pluginName = 'CommonPlugin';
+
+  public identityService = new NodeIdentityService();
 
   private formats = {
     bold: true,
@@ -116,6 +136,12 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     public config: CommonPluginOptions = {},
   ) {
     super();
+    this.holeService = new HoleService();
+    this.diagnosticsService = new EditorDiagnosticsService();
+    kernel.registerServiceHotReload(IHoleService, this.holeService);
+    kernel.registerServiceHotReload(IEditorDiagnosticsService, this.diagnosticsService);
+
+    kernel.registerService(INodeIdentityService, this.identityService);
 
     // Parse markdown options and update formats
     const markdownOption = config.markdownOption ?? true;
@@ -143,7 +169,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     // Register the text data source
     kernel.registerDataSource(new TextDataSource('text'));
     // Register common nodes and themes
-    kernel.registerNodes([HeadingNode, QuoteNode, CursorNode]);
+    kernel.registerNodes([HeadingNode, QuoteNode, CursorNode, HoleNode]);
     if (config?.theme) {
       kernel.registerThemes({
         quote: config.theme.quote,
@@ -285,6 +311,18 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       ctx.wrap('', breakMark);
     });
 
+    // Hole is a runtime boundary, not a Markdown construct. Project its
+    // payload children directly and never leak the persistent cursor markers.
+    markdownService.registerMarkdownWriter(HoleNode.getType(), (ctx, node) => {
+      if (!$isHoleNode(node)) return false;
+      node.getChildren().forEach((child) => {
+        if (!$isCursorNode(child)) {
+          ctx.processChild(ctx, child);
+        }
+      });
+      return true;
+    });
+
     // Register quote writer only if quote format is enabled
     if (formats.quote) {
       markdownService.registerMarkdownWriter('quote', (ctx, node) => {
@@ -337,6 +375,15 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       if (!$isTextNode(node)) {
         return;
       }
+      let parentNode = node.getParent();
+      let isInTableCell = false;
+      while (parentNode) {
+        if (parentNode.getType() === 'tablecell' || parentNode.getType() === 'table-cell-diff') {
+          isInTableCell = true;
+          break;
+        }
+        parentNode = parentNode.getParent();
+      }
       const isBold = formats.bold && node.hasFormat('bold');
       const isItalic = formats.italic && node.hasFormat('italic');
       const isUnderline = node.hasFormat('underline');
@@ -344,22 +391,40 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       const isSuperscript = formats.superscript && node.hasFormat('superscript');
       const isSubscript = formats.subscript && node.hasFormat('subscript');
 
-      if (isBold) {
+      // Lexical keeps adjacent TextNodes separate when they carry different
+      // NodeState identities. Markdown cares about rendered text formatting,
+      // so continue a delimiter across adjacent siblings with the same emitted
+      // format without merging or changing either editor node.
+      const previousSibling = node.getPreviousSibling();
+      const nextSibling = node.getNextSibling();
+      const hasSameMarkdownFormatting = (sibling: LexicalNode | null) =>
+        $isTextNode(sibling) &&
+        sibling.getTextContent().length > 0 &&
+        (formats.bold && sibling.hasFormat('bold')) === isBold &&
+        (formats.italic && sibling.hasFormat('italic')) === isItalic &&
+        sibling.hasFormat('underline') === isUnderline &&
+        (formats.strikethrough && sibling.hasFormat('strikethrough')) === isStrikethrough &&
+        (formats.superscript && sibling.hasFormat('superscript')) === isSuperscript &&
+        (formats.subscript && sibling.hasFormat('subscript')) === isSubscript;
+      const continuesFromPrevious = hasSameMarkdownFormatting(previousSibling);
+      const continuesToNext = hasSameMarkdownFormatting(nextSibling);
+
+      if (isBold && !continuesFromPrevious) {
         ctx.appendLine('**');
       }
-      if (isStrikethrough) {
+      if (isStrikethrough && !continuesFromPrevious) {
         ctx.appendLine('~~');
       }
-      if (isItalic) {
+      if (isItalic && !continuesFromPrevious) {
         ctx.appendLine('_');
       }
-      if (isUnderline) {
+      if (isUnderline && !continuesFromPrevious) {
         ctx.appendLine('<ins>');
       }
-      if (isSuperscript) {
+      if (isSuperscript && !continuesFromPrevious) {
         ctx.appendLine('^');
       }
-      if (isSubscript) {
+      if (isSubscript && !continuesFromPrevious) {
         ctx.appendLine('~');
       }
 
@@ -371,30 +436,35 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       }
       const append = textContent.trimEnd();
       const lastChar = append.at(-1);
-      ctx.appendLine(append);
+      const markdownText = isInTableCell
+        ? append.replaceAll('\\', '\\\\').replaceAll('|', '\\|')
+        : append;
+      ctx.appendLine(markdownText);
+      const nextTextStartsWithSpace =
+        $isTextNode(nextSibling) && /^\s/.test(nextSibling.getTextContent());
 
-      if (isSubscript) {
+      if (isSubscript && !continuesToNext) {
         ctx.appendLine('~');
       }
-      if (isSuperscript) {
+      if (isSuperscript && !continuesToNext) {
         ctx.appendLine('^');
       }
-      if (isUnderline) {
+      if (isUnderline && !continuesToNext) {
         ctx.appendLine('</ins>');
       }
-      if (isItalic) {
+      if (isItalic && !continuesToNext) {
         ctx.appendLine('_');
       }
-      if (isStrikethrough) {
+      if (isStrikethrough && !continuesToNext) {
         ctx.appendLine('~~');
       }
-      if (isBold) {
+      if (isBold && !continuesToNext) {
         ctx.appendLine('**');
       }
 
       if (tailSpace) {
         ctx.appendLine(tailSpace);
-      } else if (lastChar && isPunctuationChar(lastChar)) {
+      } else if (lastChar && isPunctuationChar(lastChar) && !nextTextStartsWithSpace) {
         ctx.appendLine(' ');
       }
     });
@@ -410,7 +480,34 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     registerMDReader(markdownService);
   }
 
+  onDocumentChange(): void {
+    reconcileHoleNodes(this.kernel.getLexicalEditor());
+    this.holeService.reconcile();
+  }
+
   onInit(editor: LexicalEditor): void {
+    this.register(this.identityService.bindEditor(editor));
+    this.register(editor.registerNodeTransform(RootNode, $normalizeNodeIds));
+    this.register(
+      editor.registerCommand(
+        SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
+        ({ nodes }) => {
+          const clearCopiedIds = (node: import('lexical').LexicalNode) => {
+            $clearNodeId(node);
+            if ($isElementNode(node)) node.getChildren().forEach(clearCopiedIds);
+          };
+          nodes.forEach(clearCopiedIds);
+          return false;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+    );
+
+    this.register(this.holeService.bindEditor(editor));
+    this.register(registerHoleSelectionDOM(this.kernel, editor, this.holeService));
+    // Install passive CRITICAL command observers before clipboard handlers so
+    // a handler that consumes COPY/CUT/PASTE cannot hide the command trace.
+    this.register(this.diagnosticsService.bindEditor(editor));
     this.register(
       this.kernel.registerHighCommand(
         PASTE_COMMAND,
@@ -448,6 +545,12 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         COMMAND_PRIORITY_CRITICAL,
       ),
     );
+    this.register(
+      registerHoleClipboard(editor, {
+        serializeTextContent: (nodes, context) =>
+          this.holeService.serializeTextContent(nodes, context),
+      }),
+    );
     // Dragon installs a window-level message listener whose closure captures
     // the editor. Tie it to the root lifecycle so Activity can detach the
     // listener while keeping the same editor/plugins alive for reattachment.
@@ -482,6 +585,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       }),
       registerCommands(editor),
       registerBreakLineClick(editor),
+      registerHoleNode(editor),
       registerCursorNode(editor),
       registerLastElement(editor),
       // Convert soft line breaks (Shift+Enter) to hard line breaks (paragraph breaks)
@@ -538,6 +642,20 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     }
 
     const formats = this.formats;
+
+    // The Hole wrapper is intentionally transparent in LiteXML. Returning
+    // lines bypasses the generic wrapper while preserving the payload's own
+    // registered XML writers (Artifact, table, and future complex blocks).
+    litexmlService.registerXMLWriter(HoleNode.getType(), (node, _ctx, indent, nodeToXML) => {
+      if (!$isHoleNode(node)) return false;
+      const lines: string[] = [];
+      node.getChildren().forEach((child) => {
+        if (!$isCursorNode(child)) {
+          nodeToXML(child, lines, indent);
+        }
+      });
+      return { lines };
+    });
 
     litexmlService.registerXMLWriter(TextNode.getType(), (node, ctx) => {
       const attr = {} as Record<string, string>;

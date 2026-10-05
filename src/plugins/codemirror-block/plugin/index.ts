@@ -3,6 +3,8 @@ import { $createNodeSelection, $setSelection } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { registerBlockRewriteAdapter } from '@/plugins/block/service/rewrite-adapter';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -10,6 +12,7 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 import { registerCodeMirrorCommand } from '../command';
 import { modeMatch } from '../lib/mode';
 import { $createCodeMirrorNode, CodeMirrorNode } from '../node/CodeMirrorNode';
+import { codeMirrorBlockRewriteAdapter } from '../rewrite-adapter';
 import { CodemirrorEditLockService, ICodemirrorEditLockService } from '../service';
 
 export interface CodemirrorPluginOptions {
@@ -41,9 +44,13 @@ export const CodemirrorPlugin: IEditorPluginConstructor<CodemirrorPluginOptions>
         return config?.decorator ? config.decorator(node as CodeMirrorNode, editor) : null;
       },
     );
+    this.register(registerBlockRewriteAdapter(kernel, codeMirrorBlockRewriteAdapter));
   }
 
   onInit(editor: LexicalEditor): void {
+    const holeService = this.kernel.requireService(IHoleService);
+    if (holeService) this.register(holeService.registerTarget(CodeMirrorNode));
+
     this.register(registerCodeMirrorCommand(editor));
 
     this.registerMarkdown();

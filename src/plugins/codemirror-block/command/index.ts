@@ -12,7 +12,9 @@ import {
   createCommand,
 } from 'lexical';
 
+import { getKernelFromEditor } from '@/editor-kernel/utils';
 import { UPDATE_CODEBLOCK_LANG } from '@/plugins/codeblock/command/symbols';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 
 import { $createCodeMirrorNode, $isCodeMirrorNode } from '../node/CodeMirrorNode';
 
@@ -32,6 +34,10 @@ export function registerCodeMirrorCommand(editor: LexicalEditor) {
       INSERT_CODEMIRROR_COMMAND,
       () => {
         editor.update(() => {
+          const currentSelection = $getSelection();
+          const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
+          if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
+
           const codeMirrorNode = $createCodeMirrorNode('', '');
           $insertNodes([codeMirrorNode]);
 
@@ -83,6 +89,11 @@ export function registerCodeMirrorCommand(editor: LexicalEditor) {
     editor.registerCommand(
       SELECT_BEFORE_CODEMIRROR_COMMAND,
       (payload) => {
+        const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
+        const boundarySelected = holeService?.selectBoundary(payload.key, 'before');
+        if (boundarySelected) {
+          return true;
+        }
         editor.update(() => {
           const node = $getNodeByKey(payload.key);
           if (!node) {
@@ -90,7 +101,6 @@ export function registerCodeMirrorCommand(editor: LexicalEditor) {
           }
           const prevNode = node.getPreviousSibling();
           const sel = prevNode?.selectEnd();
-          console.info('SELECT_BEFORE_CODEMIRROR_COMMAND', prevNode, sel);
           if (sel) {
             $setSelection(sel);
           }
@@ -103,6 +113,10 @@ export function registerCodeMirrorCommand(editor: LexicalEditor) {
     editor.registerCommand(
       SELECT_AFTER_CODEMIRROR_COMMAND,
       (payload) => {
+        const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
+        if (holeService?.selectBoundary(payload.key, 'after')) {
+          return true;
+        }
         editor.update(() => {
           const node = $getNodeByKey(payload.key);
           if (!node) {

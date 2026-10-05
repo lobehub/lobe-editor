@@ -12,7 +12,7 @@ import { $isRootNode } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { ILitexmlService } from '@/plugins/litexml';
+import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { cx } from '@/utils/cx';
@@ -100,6 +100,14 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
 
     litexmlService.registerXMLWriter(ListItemNode.getType(), (node, ctx) => {
       if ($isListItemNode(node)) {
+        const child = node.getFirstChild();
+        if (
+          child?.getType() === 'diff' &&
+          'diffType' in child &&
+          child.diffType === 'listItemRemove'
+        ) {
+          return { lines: [] };
+        }
         return ctx.createXmlNode('li');
       }
       return false;
@@ -190,6 +198,14 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
     markdownService.registerMarkdownWriter(ListItemNode.getType(), (ctx, node) => {
       const parent = node.getParent();
       if ($isListItemNode(node) && $isListNode(parent)) {
+        const child = node.getFirstChild();
+        if (
+          child?.getType() === 'diff' &&
+          'diffType' in child &&
+          child.diffType === 'listItemRemove'
+        ) {
+          return true;
+        }
         if ($isListNode(node.getFirstChild())) {
           return;
         }

@@ -104,6 +104,7 @@ const Image = memo<ImageProps>(
       (e: React.MouseEvent) => {
         e.stopPropagation();
         setSelected(true);
+        editorRef.current?.focus();
       },
       [setSelected],
     );

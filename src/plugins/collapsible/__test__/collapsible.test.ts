@@ -8,11 +8,13 @@ import {
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
+  KEY_ENTER_COMMAND,
   LexicalEditor,
   LexicalNode,
 } from 'lexical';
 
 import Editor, { resetRandomKey } from '@/editor-kernel';
+import { ICollaborationService, type CollaborationService } from '@/common/collaboration';
 import { BlockPlugin } from '@/plugins/block';
 import { MOVE_BLOCK_COMMAND } from '@/plugins/block/command';
 import { filterDragBlocksForSource } from '@/plugins/block/react/drag/drag-utils';
@@ -20,6 +22,7 @@ import { CommonPlugin, INSERT_HEADING_COMMAND, INSERT_QUOTE_COMMAND } from '@/pl
 import { INSERT_CODEMIRROR_COMMAND } from '@/plugins/codemirror-block';
 import { $createCodeMirrorNode } from '@/plugins/codemirror-block/node/CodeMirrorNode';
 import { CodemirrorPlugin } from '@/plugins/codemirror-block/plugin';
+import { HoleNode } from '@/plugins/common/node/hole';
 import { HRPlugin, INSERT_HORIZONTAL_RULE_COMMAND } from '@/plugins/hr';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
@@ -400,7 +403,7 @@ describe('collapsible plugin', () => {
       lexicalEditor.update(() => {}, { discrete: true });
 
       expect(event.defaultPrevented).toBe(true);
-      expect(getRootChildTypes(lexicalEditor)).toEqual(['code', 'paragraph', 'collapsible']);
+      expect(getRootChildTypes(lexicalEditor)).toEqual(['hole', 'collapsible']);
       expect(getSelectionLabel(lexicalEditor)).toBe('before');
 
       const downEvent = new KeyboardEvent('keydown', {
@@ -414,7 +417,7 @@ describe('collapsible plugin', () => {
       lexicalEditor.update(() => {}, { discrete: true });
 
       expect(downEvent.defaultPrevented).toBe(true);
-      expect(getRootChildTypes(lexicalEditor)).toEqual(['code', 'collapsible']);
+      expect(getRootChildTypes(lexicalEditor)).toEqual(['hole', 'collapsible']);
       expect(getSelectionLabel(lexicalEditor)).toBe('title');
     } finally {
       editor.setRootElement(document.createElement('div'));
@@ -453,7 +456,35 @@ describe('collapsible plugin', () => {
         lexicalEditor.dispatchCommand(INSERT_CODEMIRROR_COMMAND, undefined);
       }
       lexicalEditor.update(() => {}, { discrete: true });
-      expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', expectedType]);
+
+      if (expectedType === 'horizontalrule') {
+        expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible']);
+        expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', 'hole']);
+        lexicalEditor.getEditorState().read(() => {
+          const rootChildren = $getRoot().getChildren();
+          expect(rootChildren).toHaveLength(1);
+          const collapsible = rootChildren[0];
+          expect($isCollapsibleNode(collapsible)).toBe(true);
+          if (!$isCollapsibleNode(collapsible)) return;
+
+          const title = collapsible.getFirstChild();
+          expect(title).toBeDefined();
+          expect(title).not.toBeInstanceOf(HoleNode);
+
+          const hole = collapsible.getLastChild();
+          expect(hole).toBeInstanceOf(HoleNode);
+          if (!(hole instanceof HoleNode)) return;
+          expect(hole.getContentChildren().map((node) => node.getType())).toEqual([
+            'horizontalrule',
+          ]);
+        });
+        return;
+      }
+
+      expect(getCollapsibleChildTypes(lexicalEditor)).toEqual([
+        'paragraph',
+        expectedType === 'code' ? 'hole' : expectedType,
+      ]);
     },
   );
 
@@ -466,13 +497,35 @@ describe('collapsible plugin', () => {
     lexicalEditor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '2', rows: '2' });
     lexicalEditor.update(() => {}, { discrete: true });
     expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', 'paragraph']);
-    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible', 'table']);
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible', 'hole']);
+    lexicalEditor.getEditorState().read(() => {
+      expect($getRoot().getLastChildOrThrow().getType()).toBe('hole');
+    });
+
+    lexicalEditor.update(() => {
+      const tableHole = $getRoot().getLastChildOrThrow();
+      if (!(tableHole instanceof HoleNode)) throw new Error('Table Hole missing');
+      tableHole.getAfterCursor()?.selectStart();
+    });
+    const enterEvent = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'Enter',
+    });
+    expect(lexicalEditor.dispatchCommand(KEY_ENTER_COMMAND, enterEvent)).toBe(true);
+    lexicalEditor.update(() => {}, { discrete: true });
+    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible', 'hole', 'paragraph']);
 
     selectSingleCollapsibleChild(lexicalEditor, 'body');
     lexicalEditor.dispatchCommand(INSERT_COLLAPSIBLE_COMMAND, undefined);
     lexicalEditor.update(() => {}, { discrete: true });
     expect(getCollapsibleChildTypes(lexicalEditor)).toEqual(['paragraph', 'paragraph']);
-    expect(getRootChildTypes(lexicalEditor)).toEqual(['collapsible', 'collapsible', 'table']);
+    expect(getRootChildTypes(lexicalEditor)).toEqual([
+      'collapsible',
+      'collapsible',
+      'hole',
+      'paragraph',
+    ]);
   });
 
   it('marks collapsible children as editable blocks', () => {
@@ -570,6 +623,79 @@ describe('collapsible plugin', () => {
       toggle?.click();
       lexicalEditor.update(() => {}, { discrete: true });
 
+      expect(getCollapsibleCollapsed(lexicalEditor)).toBe(true);
+    } finally {
+      editor.setRootElement(document.createElement('div'));
+      rootElement.remove();
+    }
+  });
+
+  it('prevents collapsing from a neutral Loro remote anchor and allows it after presence clears', () => {
+    const lexicalEditor = editor.getLexicalEditor() as LexicalEditor;
+    const rootElement = document.createElement('div');
+    document.body.append(rootElement);
+    editor.setRootElement(rootElement);
+
+    try {
+      setupSingleCollapsibleDocument(lexicalEditor, false);
+      lexicalEditor.update(() => {}, { discrete: true });
+
+      const descriptor = {
+        bindingSchema: 'lexical-loro-v1',
+        engine: 'loro',
+        epoch: 0,
+      } as const;
+      const presence = [
+        {
+          peerId: 'remote-peer',
+          sender: 'remote-sender',
+          sequence: 1,
+          state: {
+            anchor: {
+              descriptor,
+              kind: 'node-boundary',
+              nodeId: 'body-node-id',
+              side: 'before',
+            },
+            focus: {
+              descriptor,
+              kind: 'node-boundary',
+              nodeId: 'body-node-id',
+              side: 'after',
+            },
+          },
+        },
+      ];
+      let bodyKey = '';
+      lexicalEditor.getEditorState().read(() => {
+        const collapsible = $getRoot().getChildren().find($isCollapsibleNode);
+        bodyKey = collapsible?.getChildAtIndex(1)?.getKey() || '';
+      });
+      const collaborationService = {
+        descriptor,
+        resolvePoints: () => ({
+          anchor: { key: bodyKey, offset: 0, type: 'text' as const },
+          focus: { key: bodyKey, offset: 0, type: 'text' as const },
+        }),
+        transport: {
+          getPresence: () => presence,
+          peerId: 'local-peer',
+        },
+      } as unknown as CollaborationService;
+      (editor as IEditorKernel).registerServiceHotReload(
+        ICollaborationService,
+        collaborationService,
+      );
+
+      const toggle = rootElement.querySelector<HTMLButtonElement>(
+        '[data-collapsible-toggle="true"]',
+      );
+      toggle?.click();
+      expect(getCollapsibleCollapsed(lexicalEditor)).toBe(false);
+
+      presence.length = 0;
+      toggle?.click();
+      lexicalEditor.update(() => {}, { discrete: true });
       expect(getCollapsibleCollapsed(lexicalEditor)).toBe(true);
     } finally {
       editor.setRootElement(document.createElement('div'));

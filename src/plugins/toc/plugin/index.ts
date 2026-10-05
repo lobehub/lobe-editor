@@ -4,7 +4,8 @@ import { $getNodeByKey, type EditorState, type LexicalEditor, type LexicalNode }
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
-import { ITocService, TocPluginOptions, TocService } from '../service';
+import type { TocPluginOptions } from '../service';
+import { ITocService, TocService } from '../service';
 
 function $hasHeadingAncestor(node: LexicalNode | null) {
   let current: LexicalNode | null = node;

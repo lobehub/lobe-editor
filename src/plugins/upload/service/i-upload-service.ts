@@ -8,40 +8,56 @@ export const UPLOAD_PRIORITY_HIGH = 0;
 export type UPLOAD_PRIORITY =
   typeof UPLOAD_PRIORITY_LOW | typeof UPLOAD_PRIORITY_MEDIUM | typeof UPLOAD_PRIORITY_HIGH;
 
+export type UploadHandler = (
+  file: File,
+  from: string,
+  range: Range | null | undefined,
+) => Promise<boolean | null>;
+
 export interface IUploadService {
-  registerUpload(
-    handler: (file: File, from: string, range: Range | null | undefined) => Promise<boolean | null>,
-    priority?: UPLOAD_PRIORITY,
-  ): void;
+  registerUpload(handler: UploadHandler, priority?: UPLOAD_PRIORITY): () => void;
   uploadFile(file: File, from: string, range: Range | null | undefined): Promise<boolean>;
 }
 
 export const IUploadService: IServiceID<IUploadService> =
   genServiceId<IUploadService>('UploadService');
 
+interface UploadRegistration {
+  active: boolean;
+  handler: UploadHandler;
+}
+
 export class UploadService implements IUploadService {
-  private uploadHandlers: [
-    Array<(file: File, from: string, range: Range | null | undefined) => Promise<boolean>>,
+  private uploadHandlers: [UploadRegistration[], UploadRegistration[], UploadRegistration[]] = [
+    [],
+    [],
+    [],
+  ];
 
-    Array<(file: File, from: string, range: Range | null | undefined) => Promise<boolean>>,
+  registerUpload(handler: UploadHandler, priority = UPLOAD_PRIORITY_LOW): () => void {
+    const registration: UploadRegistration = { active: true, handler };
+    this.uploadHandlers[priority].push(registration);
 
-    Array<(file: File, from: string, range: Range | null | undefined) => Promise<boolean>>,
-  ] = [[], [], []];
-
-  registerUpload(
-    handler: (file: File, from: string, range: Range | null | undefined) => Promise<boolean>,
-    priority = UPLOAD_PRIORITY_LOW,
-  ): void {
-    this.uploadHandlers[priority].push(handler);
+    let registered = true;
+    return () => {
+      if (!registered) return;
+      registered = false;
+      registration.active = false;
+      const registrations = this.uploadHandlers[priority];
+      const index = registrations.indexOf(registration);
+      if (index !== -1) registrations.splice(index, 1);
+    };
   }
 
   async uploadFile(file: File, from: string, range: Range | null | undefined): Promise<boolean> {
     for (const uploadHandlers of this.uploadHandlers) {
-      if (uploadHandlers.length === 0) {
+      const registrations = uploadHandlers.slice();
+      if (registrations.length === 0) {
         continue; // Skip empty handler arrays
       }
-      for (const handler of uploadHandlers) {
-        const result = await handler(file, from, range);
+      for (const registration of registrations) {
+        if (!registration.active) continue;
+        const result = await registration.handler(file, from, range);
         if (result) {
           return result;
         }

@@ -53,4 +53,18 @@ describe('resolveBlockMenuTop', () => {
       }),
     ).toBe(98);
   });
+
+  it('centers the menu against an explicitly marked visual anchor', () => {
+    expect(
+      resolveBlockMenuTop({
+        anchorAlignment: 'center',
+        anchorHeight: 39,
+        anchorTop: 123,
+        blockHeight: 491,
+        blockTagName: 'DIV',
+        lineHeight: '25.6px',
+        menuHeight: 27,
+      }),
+    ).toBe(129);
+  });
 });

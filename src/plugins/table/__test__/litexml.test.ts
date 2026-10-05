@@ -6,6 +6,7 @@ import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import { IEditor } from '@/types';
 
+import { normalizeOpaqueIds } from '../../litexml/__test__/normalize-opaque-ids';
 import { TablePlugin } from '../plugin';
 
 describe('table litexml', () => {
@@ -41,8 +42,10 @@ describe('table litexml', () => {
         `| Charlie | 28 | Tokyo | Japan |\n`,
     );
     const xml = editor.getDocument('litexml') as unknown as string;
-    expect(xml.replace(/>\n\s*?</g, '><')).toBe(
-      `<?xml version="1.0" encoding="UTF-8"?><root><table id="ll63" colWidths="187,187,187,189"><tr id="lqqe"><td id="lwap"><span id="m1v0">Name</span></td><td id="m7fb"><span id="mczm">Age</span></td><td id="mijx"><span id="mo48">City</span></td><td id="mtoj"><span id="mz8u">Country</span></td></tr><tr id="n4t5"><td id="nadg"><span id="nfxr">Alice</span></td><td id="nli2"><span id="nr2d">25</span></td><td id="nwmo"><span id="o26z">New York</span></td><td id="o7ra"><span id="odbl">USA</span></td></tr><tr id="oivw"><td id="oog7"><span id="ou0i">Bob</span></td><td id="ozkt"><span id="p554">30</span></td><td id="papf"><span id="pg9q">London</span></td><td id="plu1"><span id="prec">UK</span></td></tr><tr id="pwyn"><td id="q2iy"><span id="q839">Charlie</span></td><td id="qdnk"><span id="qj7v">28</span></td><td id="qos6"><span id="quch">Tokyo</span></td><td id="qzws"><span id="r5h3">Japan</span></td></tr></table></root>`,
+    expect(normalizeOpaqueIds(xml.replace(/>\n\s*?</g, '><'))).toBe(
+      normalizeOpaqueIds(
+        `<?xml version="1.0" encoding="UTF-8"?><root><table id="ll63" colWidths="187,187,187,189"><tr id="lqqe"><td id="lwap"><span id="m1v0">Name</span></td><td id="m7fb"><span id="mczm">Age</span></td><td id="mijx"><span id="mo48">City</span></td><td id="mtoj"><span id="mz8u">Country</span></td></tr><tr id="n4t5"><td id="nadg"><span id="nfxr">Alice</span></td><td id="nli2"><span id="nr2d">25</span></td><td id="nwmo"><span id="o26z">New York</span></td><td id="o7ra"><span id="odbl">USA</span></td></tr><tr id="oivw"><td id="oog7"><span id="ou0i">Bob</span></td><td id="ozkt"><span id="p554">30</span></td><td id="papf"><span id="pg9q">London</span></td><td id="plu1"><span id="prec">UK</span></td></tr><tr id="pwyn"><td id="q2iy"><span id="q839">Charlie</span></td><td id="qdnk"><span id="qj7v">28</span></td><td id="qos6"><span id="quch">Tokyo</span></td><td id="qzws"><span id="r5h3">Japan</span></td></tr></table></root>`,
+      ),
     );
   });
 });

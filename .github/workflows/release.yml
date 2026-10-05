@@ -48,6 +48,9 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Verify node identity package entries
+        run: pnpm run verify:node-identity-package
+
       - name: Disable git hooks in CI
         run: git config core.hooksPath /dev/null
 

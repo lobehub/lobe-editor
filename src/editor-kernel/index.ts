@@ -2,6 +2,7 @@ import type { IEditor } from '@/types';
 
 import { Kernel } from './kernel';
 
+export type { IWriteOptions } from './data-source';
 export { default as DataSource } from './data-source';
 export * from './utils';
 

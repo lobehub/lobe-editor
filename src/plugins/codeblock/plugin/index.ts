@@ -19,11 +19,15 @@ import {
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IBlockMenuService } from '@/plugins/block/service';
+import { registerBlockRewriteAdapter } from '@/plugins/block/service/rewrite-adapter';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { CustomShikiTokenizer, registerCodeCommand } from '../command';
+import { registerCodeblockHoleEntry } from '../command/hole-entry';
+import { codeBlockRewriteAdapter } from '../rewrite-adapter';
 import { getCodeLanguageByInput } from '../utils/language';
 import { registerCodeHighlighting, toCodeTheme } from './CodeHighlighterShiki';
 
@@ -100,9 +104,14 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
     if (this.config?.shikiTheme) {
       CustomShikiTokenizer.defaultTheme = this.config?.shikiTheme;
     }
+    this.register(registerBlockRewriteAdapter(kernel, codeBlockRewriteAdapter));
   }
 
   onInit(editor: LexicalEditor): void {
+    const holeService = this.kernel.requireService(IHoleService);
+    if (holeService) this.register(holeService.registerTarget(CodeNode));
+    this.register(registerCodeblockHoleEntry(editor));
+
     if (!isHeadlessEditor(editor)) {
       if (this.config?.shikiTheme) {
         this.register(registerCodeHighlighting(editor, CustomShikiTokenizer));

@@ -4,6 +4,7 @@ import type {
   DOMConversionMap,
   DOMConversionOutput,
   EditorConfig,
+  ElementDOMSlot,
   LexicalCommand,
   LexicalEditor,
   LexicalNode,
@@ -13,7 +14,6 @@ import type {
   RangeSelection,
   SerializedElementNode,
   Spread,
-  ElementDOMSlot,
 } from 'lexical';
 import {
   $applyNodeReplacement,
@@ -30,7 +30,8 @@ import {
 import { assert, getKernelFromEditorConfig } from '@/editor-kernel/utils';
 import { createDebugLogger } from '@/utils/debug';
 
-import { ILinkService, LinkService } from '../service/i-link-service';
+import type { LinkService } from '../service/i-link-service';
+import { ILinkService } from '../service/i-link-service';
 
 const logger = createDebugLogger('plugin', 'link');
 
@@ -171,11 +172,10 @@ export class LinkNode extends ElementNode {
   }
 
   sanitizeUrl(url: string, allowedProtocols: Set<string> = SUPPORTED_URL_PROTOCOLS): string {
-    // eslint-disable-next-line no-param-reassign
     url = formatUrl(url);
     try {
       const parsedUrl = new URL(formatUrl(url));
-      // eslint-disable-next-line no-script-url
+
       if (!allowedProtocols.has(parsedUrl.protocol)) {
         return 'about:blank';
       }

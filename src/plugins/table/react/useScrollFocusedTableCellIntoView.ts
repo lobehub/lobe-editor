@@ -3,9 +3,15 @@ import type { EditorState, LexicalEditor, NodeKey } from 'lexical';
 import { $getSelection, $isRangeSelection } from 'lexical';
 import { useEffect } from 'react';
 
+import { $getValidTableSelectionShape } from '../utils';
+
 const $getSelectedTableCellKey = (): NodeKey | null => {
   const selection = $getSelection();
-  if (!$isRangeSelection(selection) && !$isTableSelection(selection)) return null;
+  if ($isTableSelection(selection)) {
+    if (!$getValidTableSelectionShape(selection)) return null;
+  } else if (!$isRangeSelection(selection)) {
+    return null;
+  }
 
   return $getTableCellNodeFromLexicalNode(selection.anchor.getNode())?.getKey() ?? null;
 };

@@ -2,7 +2,7 @@ import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, HISTORY_MERGE_TAG } from 'lexical';
 
-import { $createCursorNode } from '@/plugins/common';
+import { $createCursorNode } from '@/plugins/common/node/cursor';
 import type { IEditorKernel } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 

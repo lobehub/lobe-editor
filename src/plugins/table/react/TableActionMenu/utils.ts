@@ -9,11 +9,16 @@ import {
   type LexicalEditor,
 } from 'lexical';
 
+import { $getValidTableSelectionShape } from '../../utils';
+
 export function computeSelectionCount(selection: TableSelection): {
   columns: number;
   rows: number;
 } {
-  const selectionShape = selection.getShape();
+  const selectionShape = $getValidTableSelectionShape(selection);
+  if (!selectionShape) {
+    return { columns: 0, rows: 0 };
+  }
   return {
     columns: selectionShape.toX - selectionShape.fromX + 1,
     rows: selectionShape.toY - selectionShape.fromY + 1,
@@ -22,13 +27,17 @@ export function computeSelectionCount(selection: TableSelection): {
 
 export function $canUnmerge(): boolean {
   const selection = $getSelection();
+  const tableSelection =
+    $isTableSelection(selection) && $getValidTableSelectionShape(selection) ? selection : null;
   if (
     ($isRangeSelection(selection) && !selection.isCollapsed()) ||
-    ($isTableSelection(selection) && !selection.anchor.is(selection.focus)) ||
+    (tableSelection !== null && !tableSelection.anchor.is(tableSelection.focus)) ||
+    ($isTableSelection(selection) && tableSelection === null) ||
     (!$isRangeSelection(selection) && !$isTableSelection(selection))
   ) {
     return false;
   }
+  if (!selection) return false;
   const [cell] = $getNodeTriplet(selection.anchor);
   return cell.__colSpan > 1 || cell.__rowSpan > 1;
 }
@@ -47,7 +56,10 @@ export function $selectLastDescendant(node: ElementNode): void {
 export function currentCellBackgroundColor(editor: LexicalEditor): null | string {
   return editor.getEditorState().read(() => {
     const selection = $getSelection();
-    if ($isRangeSelection(selection) || $isTableSelection(selection)) {
+    if (
+      $isRangeSelection(selection) ||
+      ($isTableSelection(selection) && $getValidTableSelectionShape(selection))
+    ) {
       const [cell] = $getNodeTriplet(selection.anchor);
       if ($isTableCellNode(cell)) {
         return cell.getBackgroundColor();

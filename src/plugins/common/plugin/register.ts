@@ -1,16 +1,13 @@
-import { $isCodeHighlightNode, $isCodeNode } from '@lexical/code-core';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { $isHeadingNode, $isQuoteNode, QuoteNode } from '@lexical/rich-text';
 import { mergeRegister } from '@lexical/utils';
-import type { ElementNode, LexicalEditor, LexicalNode, PointType, RangeSelection } from 'lexical';
+import type { LexicalEditor, LexicalNode, RangeSelection } from 'lexical';
 import {
   $createNodeSelection,
   $createParagraphNode,
-  $getRoot,
   $getSelection,
   $isDecoratorNode,
   $isElementNode,
-  $isLineBreakNode,
   $isNodeSelection,
   $isRangeSelection,
   $isRootOrShadowRoot,
@@ -20,12 +17,12 @@ import {
   COMMAND_PRIORITY_LOW,
   COMMAND_PRIORITY_NORMAL,
   FORMAT_TEXT_COMMAND,
-  HISTORIC_TAG,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
   REDO_COMMAND,
+  RootNode,
   UNDO_COMMAND,
 } from 'lexical';
 
@@ -34,110 +31,17 @@ import type { IEditor } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 import { createDebugLogger } from '@/utils/debug';
 
+import {
+  $getAdjacentNode,
+  $getDownUpNode,
+  $isSelectionAtEndOfRoot,
+  $isSelectionInHole,
+} from '../node/navigation';
+import { shouldHandleNavigationEvent } from '../node/navigation-guards';
+
+export { $getAdjacentNode, $getDownUpNode } from '../node/navigation';
+
 const logger = createDebugLogger('plugin', 'common');
-
-function resolveElement(
-  element: ElementNode,
-  isBackward: boolean,
-  focusOffset: number,
-): LexicalNode | null {
-  const parent = element.getParent();
-  let offset = focusOffset;
-  let block = element;
-  if (parent !== null) {
-    if (isBackward && focusOffset === 0) {
-      offset = block.getIndexWithinParent();
-      block = parent;
-    } else if (!isBackward && focusOffset === block.getChildrenSize()) {
-      offset = block.getIndexWithinParent() + 1;
-      block = parent;
-    }
-  }
-  const childIndex = isBackward ? offset - 1 : offset;
-  if (childIndex < 0 || childIndex >= block.getChildrenSize()) {
-    return null;
-  }
-  return block.getChildAtIndex(childIndex);
-}
-
-function isCodeNodeLastLine(focusNode: LexicalNode) {
-  if (!$isCodeHighlightNode(focusNode)) {
-    return false;
-  }
-  const codeNode = focusNode.getParent();
-  if (!$isCodeNode(codeNode)) {
-    return false;
-  }
-  let last: LexicalNode | null | undefined = codeNode.getLastChild();
-  do {
-    if ($isLineBreakNode(last)) {
-      return false;
-    }
-    if (last === focusNode) {
-      return codeNode;
-    }
-    last = last?.getPreviousSibling();
-  } while (last !== focusNode && last);
-  if (last === focusNode) {
-    return codeNode;
-  }
-  return false;
-}
-
-export function $getAdjacentNode(focus: PointType, isBackward: boolean): null | LexicalNode {
-  const focusOffset = focus.offset;
-  if (focus.type === 'element') {
-    const block = focus.getNode();
-    return resolveElement(block, isBackward, focusOffset);
-  } else {
-    const focusNode = focus.getNode();
-    if (
-      (isBackward && focusOffset === 0) ||
-      (!isBackward && focusOffset === focusNode.getTextContentSize())
-    ) {
-      const possibleNode = isBackward ? focusNode.getPreviousSibling() : focusNode.getNextSibling();
-      if (possibleNode === null) {
-        return resolveElement(
-          focusNode.getParentOrThrow(),
-          isBackward,
-          focusNode.getIndexWithinParent() + (isBackward ? 0 : 1),
-        );
-      }
-      return possibleNode;
-    } else if (!isBackward && isCodeNodeLastLine(focusNode)) {
-      return focusNode.getParent()?.getNextSibling() || null;
-    }
-  }
-  return null;
-}
-
-export function $getDownUpNode(focus: PointType, isUp: boolean): null | LexicalNode {
-  const focusNode = focus.getNode();
-  let blockParent: LexicalNode | null = focusNode;
-  while (blockParent !== null && blockParent.isInline()) {
-    blockParent = blockParent.getParent();
-  }
-  if (!blockParent) {
-    return null;
-  }
-  let nextNode = isUp ? blockParent.getPreviousSibling() : blockParent.getNextSibling();
-  while (!nextNode && !$isRootOrShadowRoot(blockParent)) {
-    blockParent = blockParent.getParent();
-    if (!blockParent) {
-      return null;
-    }
-    nextNode = isUp ? blockParent.getPreviousSibling() : blockParent.getNextSibling();
-  }
-  if (!nextNode) {
-    return null;
-  }
-  return nextNode;
-}
-
-function $isSelectionAtEndOfRoot(selection: RangeSelection) {
-  const focus = selection.focus;
-  return focus.key === 'root' && focus.offset === $getRoot().getChildrenSize();
-}
 
 function $isSelectionInList(selection: RangeSelection) {
   return Boolean(
@@ -356,7 +260,9 @@ export function registerRichKeydown(
     kernel.registerHighCommand(
       KEY_ARROW_UP_COMMAND,
       (event) => {
+        if (!shouldHandleNavigationEvent(editor, event, true)) return false;
         const selection = $getSelection();
+        if ($isSelectionInHole(selection) && !event.shiftKey) return false;
         if ($isNodeSelection(selection)) {
           // If selection is on a node, let's try and move selection
           // back to being a range selection.
@@ -401,7 +307,9 @@ export function registerRichKeydown(
     kernel.registerHighCommand<KeyboardEvent>(
       KEY_ARROW_DOWN_COMMAND,
       (event) => {
+        if (!shouldHandleNavigationEvent(editor, event, true)) return false;
         const selection = $getSelection();
+        if ($isSelectionInHole(selection) && !event.shiftKey) return false;
         if ($isRangeSelection(selection)) {
           if (!selection.isCollapsed()) {
             return false;
@@ -441,7 +349,9 @@ export function registerRichKeydown(
     kernel.registerHighCommand<KeyboardEvent>(
       KEY_ARROW_DOWN_COMMAND,
       (event) => {
+        if (!shouldHandleNavigationEvent(editor, event, true)) return false;
         const selection = $getSelection();
+        if ($isSelectionInHole(selection) && !event.shiftKey) return false;
         if ($isNodeSelection(selection)) {
           // If selection is on a node, let's try and move selection
           // back to being a range selection.
@@ -501,7 +411,9 @@ export function registerRichKeydown(
     kernel.registerHighCommand(
       KEY_ARROW_RIGHT_COMMAND,
       (event) => {
+        if (!shouldHandleNavigationEvent(editor, event)) return false;
         const selection = $getSelection();
+        if ($isSelectionInHole(selection)) return false;
         if ($isRangeSelection(selection)) {
           const focusNode = selection.focus.getNode();
           if (
@@ -541,53 +453,14 @@ const NEEDS_FOLLOWING_PARAGRAPH_TYPES = new Set<string | undefined>([
 ]);
 
 export function registerLastElement(editor: LexicalEditor) {
-  let isProcessing = false;
-
-  return editor.registerUpdateListener(({ dirtyElements }) => {
-    if (!editor.isEditable()) {
-      return;
-    }
-    // Only process when root node or its direct children have changes
-    if (
-      !dirtyElements.has('root') &&
-      !Array.from(dirtyElements.keys()).some((key) => {
-        const node = editor.getEditorState()._nodeMap.get(key);
-        return node?.getParent()?.getKey() === 'root';
-      })
-    ) {
-      return;
-    }
-
-    if (isProcessing) return;
-
-    const needsParagraph = editor.getEditorState().read(() => {
-      const root = $getRoot();
-      const lastChild = root.getLastChild();
-
-      // Check if the last element needs a trailing paragraph
-      return NEEDS_FOLLOWING_PARAGRAPH_TYPES.has(lastChild?.getType());
-    });
-
-    if (needsParagraph) {
-      isProcessing = true;
-
-      queueMicrotask(() => {
-        editor.update(
-          () => {
-            const root = $getRoot();
-            const currentLast = root.getLastChild();
-
-            // Double check to ensure the state still needs processing
-            if (NEEDS_FOLLOWING_PARAGRAPH_TYPES.has(currentLast?.getType())) {
-              const paragraph = $createParagraphNode();
-              root.append(paragraph);
-            }
-
-            isProcessing = false;
-          },
-          { tag: HISTORIC_TAG },
-        );
-      });
+  // Root transforms run inside the originating local editor transaction, so
+  // the trailing paragraph is included in the same Yjs update. Remote Yjs
+  // projection uses skipTransforms and therefore does not synthesize a second
+  // paragraph on every peer.
+  return editor.registerNodeTransform(RootNode, (root) => {
+    if (!editor.isEditable()) return;
+    if (NEEDS_FOLLOWING_PARAGRAPH_TYPES.has(root.getLastChild()?.getType())) {
+      root.append($createParagraphNode());
     }
   });
 }

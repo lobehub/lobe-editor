@@ -3,8 +3,8 @@ import { $setSelection, TextNode } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { $createCursorNode, cursorNodeSerialized } from '@/plugins/common';
-import { ILitexmlService } from '@/plugins/litexml';
+import { $createCursorNode, cursorNodeSerialized } from '@/plugins/common/node/cursor';
+import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 

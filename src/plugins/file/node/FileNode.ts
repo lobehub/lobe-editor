@@ -91,6 +91,31 @@ export class FileNode extends DecoratorNode<any> {
     return this.__message;
   }
 
+  setName(name: string): this {
+    this.getWritable().__name = name;
+    return this;
+  }
+
+  setFileUrl(fileUrl?: string): this {
+    this.getWritable().__fileUrl = fileUrl;
+    return this;
+  }
+
+  setSize(size?: number): this {
+    this.getWritable().__size = size;
+    return this;
+  }
+
+  setStatus(status: 'pending' | 'uploaded' | 'error'): this {
+    this.getWritable().__status = status;
+    return this;
+  }
+
+  setMessage(message?: string): this {
+    this.getWritable().__message = message;
+    return this;
+  }
+
   constructor(
     name: string,
     fileUrl?: string,
@@ -150,7 +175,7 @@ export class FileNode extends DecoratorNode<any> {
     return '\n';
   }
 
-  updateDOM(): boolean {
+  updateDOM(_previousNode?: FileNode, _dom?: HTMLElement): boolean {
     return false;
   }
 
