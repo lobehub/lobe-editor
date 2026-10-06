@@ -1,4 +1,4 @@
-import { Text } from '@lobehub/ui/base-ui';
+import { Avatar, Text } from '@lobehub/ui/base-ui';
 import {
   type IEditor,
   INSERT_CODEINLINE_COMMAND,
@@ -28,7 +28,6 @@ import {
   type SlashOptions,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Avatar, type CollapseProps } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
@@ -44,7 +43,7 @@ import { type FC, useMemo, useState } from 'react';
 
 import { devConsole } from '@/utils/debug';
 
-import Container from './Container';
+import Container, { type ContainerLayoutProps } from './Container';
 import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
 import content from './data.json';
@@ -55,7 +54,7 @@ const styles = createStaticStyles(({ css }) => ({
   `,
 }));
 
-const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+const Demo: FC<ContainerLayoutProps> = (props) => {
   const editor = useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');

@@ -3,13 +3,12 @@ import type { Provider, ProviderAwareness, UserState } from '@lexical/yjs';
 import type { EditorCollaborationConfig, IEditor } from '@lobehub/editor';
 import { ReactBlockPlugin } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import type { CollapseProps } from '@lobehub/ui';
 import { Block, Flexbox } from '@lobehub/ui';
 import { debounce } from 'es-toolkit';
 import { type FC, useCallback, useMemo, useState } from 'react';
 import { Doc, applyUpdate, encodeStateAsUpdate } from 'yjs';
 
-import Container from './Container';
+import Container, { type ContainerLayoutProps } from './Container';
 import content from './disableMakrdownData.json';
 
 class InMemoryCollaborationRoom {
@@ -222,7 +221,7 @@ type ProviderListener =
   | ((_event: { status: string }) => void)
   | ((_isSynced: boolean) => void);
 
-const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+const Demo: FC<ContainerLayoutProps> = (props) => {
   const leftEditor = useEditor();
   const rightEditor = useEditor();
   const leftYjsDocMap = useMemo(() => new Map([[roomId, new Doc()]]), []);

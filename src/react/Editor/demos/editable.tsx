@@ -1,14 +1,14 @@
 import { Button, Text } from '@lobehub/ui/base-ui';
 import { type IEditor, ReactBlockPlugin } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { type CollapseProps, Flexbox } from '@lobehub/ui';
+import { Flexbox } from '@lobehub/ui';
 import { debounce } from 'es-toolkit';
 import { type FC, useMemo, useState } from 'react';
 
-import Container from './Container';
+import Container, { type ContainerLayoutProps } from './Container';
 import content from './disableMakrdownData.json';
 
-const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+const Demo: FC<ContainerLayoutProps> = (props) => {
   const editor = useEditor();
   const [editable, setEditable] = useState(true);
   const [json, setJson] = useState('');

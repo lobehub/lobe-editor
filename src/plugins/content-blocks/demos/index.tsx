@@ -11,7 +11,8 @@ import {
   extractMediaLists,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Collapse, Highlighter, ToastHost } from '@lobehub/ui';
+import { Highlighter, ToastHost } from '@lobehub/ui';
+import { Accordion } from '@lobehub/ui/base-ui';
 import { debounce } from 'es-toolkit';
 import { type FC, useLayoutEffect, useMemo, useState } from 'react';
 
@@ -62,8 +63,8 @@ export default () => {
   return (
     <>
       <ToastHost />
-      <Collapse
-        defaultActiveKey={['editor', 'blocks', 'media']}
+      <Accordion
+        defaultValue={['editor', 'blocks', 'media']}
         items={[
           {
             children: (
@@ -83,21 +84,21 @@ export default () => {
               />
             ),
             key: 'editor',
-            label: 'Playground',
+            title: 'Playground',
           },
           {
             children: <Panel value={blocks} />,
             key: 'blocks',
-            label: `content-blocks (${blocks.length})`,
+            title: `content-blocks (${blocks.length})`,
           },
           {
             children: <Panel value={media} />,
             key: 'media',
-            label: `extractMediaLists → ${media.imageList.length} image · ${media.fileList.length} file`,
+            title: `extractMediaLists → ${media.imageList.length} image · ${media.fileList.length} file`,
           },
         ]}
-        padding={{ body: 0 }}
-        style={{ border: 'none', borderRadius: 0, width: '100%' }}
+        style={{ border: 'none', borderRadius: 0 }}
+        styles={{ content: { padding: 0 } }}
         variant="outlined"
       />
     </>

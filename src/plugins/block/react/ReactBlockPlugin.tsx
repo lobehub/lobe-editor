@@ -3,8 +3,7 @@
 import { $findTableNode, $isTableSelection } from '@lexical/table';
 import { DropdownMenu, type DropdownMenuProps, Icon, useAppElement } from '@lobehub/ui';
 import { Button } from '@lobehub/ui/base-ui';
-import { theme } from 'antd';
-import { cx } from 'antd-style';
+import { cx, useTheme } from 'antd-style';
 import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
 import { GripVerticalIcon, PlusIcon } from 'lucide-react';
 import {
@@ -90,7 +89,7 @@ const getElementDepth = (element: HTMLElement, stopAt: HTMLElement): number => {
 };
 
 const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
-  const { token } = theme.useToken();
+  const theme = useTheme();
   const [editor] = useLexicalComposerContext();
   const appElement = useAppElement();
   const {
@@ -1020,7 +1019,7 @@ const ReactBlockPlugin: FC<ReactBlockPluginProps> = (props) => {
               <div
                 className={styles.dragIndicator}
                 style={{
-                  backgroundColor: token.colorPrimary,
+                  backgroundColor: theme.colorPrimary,
                   left: dragIndicator.left,
                   top: dragIndicator.top,
                   width: dragIndicator.width,
