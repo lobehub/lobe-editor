@@ -389,6 +389,9 @@ export default class LitexmlDataSource extends DataSource {
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
-      .replaceAll("'", '&apos;');
+      .replaceAll("'", '&apos;')
+      .replaceAll('\t', '&#9;')
+      .replaceAll('\n', '&#10;')
+      .replaceAll('\r', '&#13;');
   }
 }
