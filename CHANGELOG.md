@@ -2,6 +2,48 @@
 
 # Changelog
 
+### [Version&nbsp;4.29.2](https://github.com/lobehub/lobe-editor/compare/v4.29.1...v4.29.2)
+<sup>Released on **2026-10-07**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: Drop remaining antd component usage.
+
+
+#### 🐛 Bug Fixes
+
+- **litexml**: Decouple document IDs and stabilize review edits.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: Drop remaining antd component usage, closes [#227](https://github.com/lobehub/lobe-editor/issues/227) ([768ad03](https://github.com/lobehub/lobe-editor/commit/768ad03))
+
+
+
+#### What's fixed
+
+* **litexml**: Decouple document IDs and stabilize review edits, closes [#224](https://github.com/lobehub/lobe-editor/issues/224) ([1437ee1](https://github.com/lobehub/lobe-editor/commit/1437ee1))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.29.1](https://github.com/lobehub/lobe-editor/compare/v4.29.0...v4.29.1)
 <sup>Released on **2026-10-05**</sup>
 
