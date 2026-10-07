@@ -3,11 +3,13 @@ import {
   $isTableCellNode,
   $isTableNode,
   $isTableRowNode,
-  TableNode,
   type TableCellNode,
+  TableNode,
 } from '@lexical/table';
 import type { LexicalEditor } from 'lexical';
 import { $nodesOfType } from 'lexical';
+
+import { $copyNodeProperties } from '@/plugins/common/node/node-id';
 
 import { $createDiffNode, DiffNode } from './node/DiffNode';
 import {
@@ -38,6 +40,7 @@ export function $createTableCellDiffFromCell(
     cell.getColSpan(),
     cell.getWidth(),
   );
+  $copyNodeProperties(cell, diffCell);
   copyCellStructure(cell, diffCell);
 
   const diff = $createDiffNode(diffType);
@@ -55,6 +58,7 @@ export function $createPlainTableCellFromDiff(
     cell.getColSpan(),
     cell.getWidth(),
   );
+  $copyNodeProperties(cell, plainCell);
   copyCellStructure(cell, plainCell);
 
   const diff = cell.getFirstChild();

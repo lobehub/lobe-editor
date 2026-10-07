@@ -20,7 +20,7 @@ describe('List item diffs', () => {
   const markdown = () => (kernel.getDocument('markdown') as unknown as string).trim();
   const json = () => JSON.stringify(kernel.getDocument('json'));
   const idOf = (tag: string, text: string) =>
-    xml().match(new RegExp(`<${tag} id="(\\w+)">\\s*(?:<span[^>]*>)?${text}`))![1];
+    xml().match(new RegExp(`<${tag} id="([^"]+)">\\s*(?:<span[^>]*>)?${text}`))![1];
 
   const modify = async (operations: Parameters<IEditor['dispatchCommand']>[1]) => {
     kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, operations as any);

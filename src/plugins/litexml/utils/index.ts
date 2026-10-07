@@ -1,25 +1,19 @@
 import type {
-  EditorState,
   LexicalEditor,
   LexicalNode,
   SerializedElementNode,
   SerializedLexicalNode,
 } from 'lexical';
-import { $isElementNode, resetRandomKey } from 'lexical';
+import { $isElementNode } from 'lexical';
 
-const getNumericId = (id: unknown): number | null => {
-  if (typeof id !== 'number' && typeof id !== 'string') return null;
+import {
+  $clearNodeId,
+  $getNodeId,
+  $setNodeId,
+  isValidContentNodeId,
+} from '@/plugins/common/node/node-id';
 
-  const numericId = Number(id);
-  return Number.isInteger(numericId) && numericId >= 0 ? numericId : null;
-};
-
-export function $parseSerializedNodeImpl(
-  serializedNode: any,
-  editor: LexicalEditor,
-  keepId = false,
-  state: EditorState | null = null,
-): LexicalNode {
+export function $parseSerializedNodeImpl(serializedNode: any, editor: LexicalEditor): LexicalNode {
   const type = serializedNode.type;
   const registeredNode = editor._nodes.get(type);
 
@@ -33,20 +27,16 @@ export function $parseSerializedNodeImpl(
     throw new Error(`LexicalNode: Node ${nodeClass.name} does not implement .importJSON().`);
   }
 
-  if (keepId) {
-    const id = getNumericId(serializedNode.id);
-
-    if (id !== null) {
-      resetRandomKey(id);
-    }
-  }
   const node = nodeClass.importJSON(serializedNode);
+  const nodeId = isValidContentNodeId(serializedNode.id) ? serializedNode.id : $getNodeId(node);
+  if (isValidContentNodeId(nodeId)) $setNodeId(node, nodeId);
+  else if (nodeId) $clearNodeId(node);
   const children = serializedNode.children;
 
   if ($isElementNode(node) && Array.isArray(children)) {
     const childNodes = [];
     for (const serializedJSONChildNode of children) {
-      const childNode = $parseSerializedNodeImpl(serializedJSONChildNode, editor, keepId, state);
+      const childNode = $parseSerializedNodeImpl(serializedJSONChildNode, editor);
       childNodes.push(childNode);
     }
     node.append(...childNodes);
@@ -60,6 +50,8 @@ function exportNodeToJSON<SerializedNode extends SerializedLexicalNode>(
 ): SerializedNode {
   const serializedNode = node.exportJSON();
   const nodeClass = node.constructor;
+  // @ts-expect-error LiteXML JSON mirrors the durable public identity.
+  serializedNode.id = $getNodeId(node);
 
   if (serializedNode.type !== nodeClass.getType()) {
     throw new Error(
@@ -90,19 +82,4 @@ function exportNodeToJSON<SerializedNode extends SerializedLexicalNode>(
 export function $cloneNode(node: LexicalNode, editor: LexicalEditor): LexicalNode {
   const json = exportNodeToJSON(node);
   return $parseSerializedNodeImpl(json, editor);
-}
-
-const maxId = 1_679_616; // 36^4
-const startId = 1_000_000; // to avoid short ids
-const step = 7211; // a prime number to reduce collisions
-const modInverse = 1_394_051; // modular inverse of step mod maxId
-
-export function idToChar(id: string | number): string {
-  const nId = (Number(id) * step + startId) % maxId;
-  return nId.toString(36).padStart(4, '0');
-}
-
-export function charToId(char: string): string {
-  const nId = parseInt(char, 36);
-  return String(((nId - startId + maxId) * modInverse) % maxId);
 }

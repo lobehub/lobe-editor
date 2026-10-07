@@ -7,6 +7,8 @@ import {
 import type { ElementNode, LexicalEditor } from 'lexical';
 import { $nodesOfType } from 'lexical';
 
+import { $copyNodeProperties } from '@/plugins/common/node/node-id';
+
 import {
   $createTableRowDiffNode,
   TableRowDiffNode,
@@ -52,6 +54,7 @@ export function $createTableRowDiffFromRow(
 ): TableRowDiffNode {
   const source = $cloneNode(row, editor) as TableRowNode;
   const diffRow = $createTableRowDiffNode(diffType, changeId, row.getHeight());
+  $copyNodeProperties(row, diffRow);
   diffRow.append(...source.getChildren());
   return diffRow;
 }
@@ -61,6 +64,7 @@ export function $createPlainTableRowFromDiff(
   row: TableRowDiffNode,
 ): TableRowNode {
   const plainRow = $createTableRowNode(row.getHeight());
+  $copyNodeProperties(row, plainRow);
   plainRow.append(...row.getChildren().map((child) => $cloneNode(child, editor)));
   return plainRow;
 }

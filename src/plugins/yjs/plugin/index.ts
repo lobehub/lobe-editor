@@ -25,6 +25,7 @@ import type { YjsPluginOptions } from './types';
 import { getAwarenessUsers } from './utils/awareness';
 import { clearEditorSkipCollab, initializeEditor } from './utils/editor-state';
 import { registerYjsHistory } from './utils/history';
+import { isNodeIdReconciliationOrigin, reconcileSharedNodeIds } from './utils/node-identity';
 import { ensureYjsNodePropertiesFromEditorState } from './utils/node-properties';
 import { hydrateLexicalFromYjsState, syncCurrentEditorStateToYjs } from './utils/sync';
 
@@ -190,7 +191,8 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
       }
 
       if (binding.root.isEmpty() && binding.root._xmlText._length > 0) {
-        hydrateLexicalFromYjsState(binding);
+        hydrateLexicalFromYjsState(binding, { discrete: true });
+        reconcileSharedNodeIds(binding);
         return;
       }
 
@@ -247,7 +249,10 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
 
   private registerYjsTreeSync(binding: Binding, provider: Provider): void {
     const onYjsTreeChanges: OnYjsTreeChanges = (events, transaction) => {
-      if (transaction.origin === binding) {
+      if (
+        transaction.origin === binding ||
+        isNodeIdReconciliationOrigin(binding, transaction.origin)
+      ) {
         return;
       }
 
@@ -256,7 +261,7 @@ export const YjsPlugin: IEditorPluginConstructor<YjsPluginOptions> = class
         provider,
         events,
         transaction.origin instanceof UndoManager,
-        () => undefined,
+        () => reconcileSharedNodeIds(binding),
       );
     };
 

@@ -1,5 +1,5 @@
 import { resetRandomKey } from 'lexical';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import Editor, { moment } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common/plugin';
@@ -19,6 +19,20 @@ import { IEditor } from '@/types';
 describe('Common Plugin Tests', () => {
   let kernel: IEditor;
 
+  const xml = () => kernel.getDocument('litexml') as unknown as string;
+  const idFor = (tag: string, text: string, exactText = false): string => {
+    const elements = xml().matchAll(new RegExp(`<${tag}\\b([^>]*)>([\\s\\S]*?)</${tag}>`, 'g'));
+
+    for (const match of elements) {
+      const content = match[2].replace(/<[^>]+>/g, '').trim();
+      if (exactText ? content !== text : !content.includes(text)) continue;
+      const id = /\bid="([^"]+)"/.exec(match[1])?.[1];
+      if (id) return id;
+    }
+
+    throw new Error(`Could not find <${tag}> for text ${JSON.stringify(text)} in LiteXML`);
+  };
+
   beforeEach(() => {
     resetRandomKey();
     kernel = Editor.createEditor();
@@ -32,7 +46,10 @@ describe('Common Plugin Tests', () => {
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: ['<span id="lqqe">ModifiedText</span>', '<span id="m1v0">THIS IS </span>'],
+      litexml: [
+        `<span id="${idFor('span', 'This is a title', true)}">ModifiedText</span>`,
+        `<span id="${idFor('span', 'This is', true)}">THIS IS </span>`,
+      ],
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
@@ -48,7 +65,7 @@ describe('Common Plugin Tests', () => {
     );
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       litexml: '<p><span bold="true">InsertedText</span></p>',
-      afterId: 'll63',
+      afterId: idFor('h1', 'This is a title'),
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
@@ -63,7 +80,7 @@ describe('Common Plugin Tests', () => {
       '# This is a title \n' + 'This is <ins>underline</ins> and this is <ins>underline2</ins>\n\n',
     );
     kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-      id: 'll63',
+      id: idFor('h1', 'This is a title'),
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
@@ -77,7 +94,10 @@ describe('Common Plugin Tests', () => {
     );
     const before = kernel.getDocument('json') as any;
     kernel.dispatchCommand(LITEXML_APPLY_COMMAND, {
-      litexml: ['<span id="lqqe">ModifiedText</span>', '<span id="m1v0">THIS IS </span>'],
+      litexml: [
+        `<span id="${idFor('span', 'This is a title', true)}">ModifiedText</span>`,
+        `<span id="${idFor('span', 'This is', true)}">THIS IS </span>`,
+      ],
       delay: true,
     });
     await moment();
@@ -109,7 +129,7 @@ describe('Common Plugin Tests', () => {
     const beforeIns = kernel.getDocument('json') as any;
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       litexml: '<p><span bold="true">InsertedText</span></p>',
-      afterId: 'll63',
+      afterId: idFor('h1', 'This is a title'),
       delay: true,
     });
     await moment();
@@ -139,7 +159,7 @@ describe('Common Plugin Tests', () => {
     );
     const beforeRem = kernel.getDocument('json') as any;
     kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
-      id: 'll63',
+      id: idFor('h1', 'This is a title'),
       delay: true,
     });
     await moment();
@@ -169,7 +189,7 @@ describe('Common Plugin Tests', () => {
     kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, [
       {
         action: 'modify',
-        litexml: '<span id="lqqe">ModifiedTextDirect</span>',
+        litexml: `<span id="${idFor('span', 'This is a title', true)}">ModifiedTextDirect</span>`,
       },
     ]);
     await moment();
@@ -184,7 +204,10 @@ describe('Common Plugin Tests', () => {
     kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, [
       {
         action: 'modify',
-        litexml: ['<span id="nr2d">ModifiedText</span>', '<span id="o26z">THIS IS </span>'],
+        litexml: [
+          `<span id="${idFor('span', 'This is a title', true)}">ModifiedText</span>`,
+          `<span id="${idFor('span', 'This is', true)}">THIS IS </span>`,
+        ],
       },
     ]);
     await moment();
@@ -203,12 +226,12 @@ describe('Common Plugin Tests', () => {
     kernel.dispatchCommand(LITEXML_MODIFY_COMMAND, [
       {
         action: 'insert',
-        afterId: 'll63',
+        afterId: idFor('h1', 'This is a title'),
         litexml: '<p>New Contents</p>',
       },
       {
         action: 'modify',
-        litexml: '<h1 id="ll63"><b>ModifiedTextDirect</b></h1>',
+        litexml: `<h1 id="${idFor('h1', 'This is a title')}"><b>ModifiedTextDirect</b></h1>`,
       },
     ]);
     await moment();
@@ -222,11 +245,11 @@ describe('Common Plugin Tests', () => {
     kernel.setDocument('markdown', '- Item 1\n- Item 2\n- Item 3\n\n');
     kernel.dispatchCommand(LITEXML_REMOVE_COMMAND, {
       delay: true,
-      id: 'm1v0', // id of 'Item 2'
+      id: idFor('li', 'Item 2'),
     });
     await moment();
     const markdown = kernel.getDocument('markdown') as unknown as string;
-    expect(markdown).toBe('- Item 1\n-\n- Item 3\n');
+    expect(markdown).toBe('- Item 1\n- Item 3\n');
     const { root } = kernel.getDocument('json') as unknown as any;
 
     expect(root.children[0].children[1].type).toBe('listitem');
@@ -245,7 +268,7 @@ describe('Common Plugin Tests', () => {
     kernel.setDocument('markdown', '- Item 1\n- Item 2\n- Item 3\n\n');
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       delay: true,
-      afterId: 'm1v0', // id of 'Item 2'
+      afterId: idFor('li', 'Item 2'),
       litexml: '<li id="newitem">New Item</li>',
     });
     await moment();
@@ -280,7 +303,7 @@ describe('Common Plugin Tests', () => {
     kernel.setDocument('markdown', 'Paragraph 1\nParagraph 2\n');
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       litexml:
-        '<root><p id="newpara">Inserted Paragraph</p><p id="newpara">Inserted Paragraph2</p></root>',
+        '<root><p id="newpara-1">Inserted Paragraph</p><p id="newpara-2">Inserted Paragraph2</p></root>',
       beforeId: 'root',
     });
     await moment();
@@ -306,7 +329,7 @@ describe('Common Plugin Tests', () => {
     kernel.setDocument('markdown', 'Paragraph 1\nParagraph 2\n');
     kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
       litexml:
-        '<root><p id="newpara">Inserted Paragraph</p><p id="newpara">Inserted Paragraph2</p></root>',
+        '<root><p id="newpara-1">Inserted Paragraph</p><p id="newpara-2">Inserted Paragraph2</p></root>',
       beforeId: 'root',
       delay: true,
     });
@@ -315,5 +338,27 @@ describe('Common Plugin Tests', () => {
     expect(markdown).toBe(
       'Inserted Paragraph\n\nInserted Paragraph2\n\nParagraph 1\nParagraph 2\n',
     );
+  });
+
+  it('repairs duplicate supplied IDs on inserted nodes without losing either node', async () => {
+    kernel.setDocument('markdown', 'Paragraph 1\nParagraph 2\n');
+    kernel.dispatchCommand(LITEXML_INSERT_COMMAND, {
+      litexml:
+        '<root><p id="shared-id">First inserted paragraph</p><p id="shared-id">Second inserted paragraph</p></root>',
+      beforeId: 'root',
+    });
+    await moment();
+
+    const markdown = kernel.getDocument('markdown') as unknown as string;
+    const insertedIds = [
+      idFor('p', 'First inserted paragraph'),
+      idFor('p', 'Second inserted paragraph'),
+    ];
+    const paragraphIds = [...xml().matchAll(/<p id="([^"]+)"/g)].map((match) => match[1]);
+
+    expect(markdown).toContain('First inserted paragraph');
+    expect(markdown).toContain('Second inserted paragraph');
+    expect(new Set(insertedIds).size).toBe(2);
+    expect(new Set(paragraphIds).size).toBe(paragraphIds.length);
   });
 });
