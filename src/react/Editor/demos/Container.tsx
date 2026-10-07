@@ -1,5 +1,4 @@
-import { CodeEditor, Highlighter, ToastHost } from '@lobehub/ui';
-import { Accordion } from '@lobehub/ui/base-ui';
+import { CodeEditor, Highlighter, ToastHost, Accordion } from '@lobehub/ui';
 import { type FC, type PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
 
 import type { IEditor } from '@/types';

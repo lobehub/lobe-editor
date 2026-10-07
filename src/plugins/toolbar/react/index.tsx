@@ -1,6 +1,5 @@
 import { mergeRegister } from '@lexical/utils';
-import { Block, LOBE_THEME_APP_ID } from '@lobehub/ui';
-import { cx, useThemeMode } from 'antd-style';
+import { Block, cx, LOBE_THEME_APP_ID, useThemeMode } from '@lobehub/ui';
 import type { LexicalEditor } from 'lexical';
 import {
   $getSelection,

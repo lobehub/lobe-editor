@@ -1,7 +1,6 @@
 'use client';
 
-import { Mermaid } from '@lobehub/ui';
-import { cssVar } from 'antd-style';
+import { cssVar, Mermaid } from '@lobehub/ui';
 import { type FC, useEffect, useState } from 'react';
 
 const MermaidPreview: FC<{ code: string }> = ({ code }) => {

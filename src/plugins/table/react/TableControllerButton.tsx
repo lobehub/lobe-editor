@@ -1,4 +1,4 @@
-import { cx } from 'antd-style';
+import { cx, LOBE_THEME_APP_ID } from '@lobehub/ui';
 import { type CSSProperties, memo, type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -24,7 +24,7 @@ const getPortalContainer = () => {
     return null;
   }
 
-  return (document.querySelector('.ant-app') as HTMLElement | null) || document.body;
+  return (document.querySelector(`#${LOBE_THEME_APP_ID}`) as HTMLElement | null) || document.body;
 };
 
 const getButtonStyle = (

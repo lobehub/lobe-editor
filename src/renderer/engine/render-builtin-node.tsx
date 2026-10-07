@@ -77,7 +77,7 @@ const DIFF_LIST_ITEM_ROOT_STYLE: CSSProperties = {
 };
 
 const DIFF_DELETED_STYLE: CSSProperties = {
-  color: 'var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45))',
+  color: 'var(--lobe-color-text-quaternary, rgba(0, 0, 0, 0.45))',
   textDecoration: 'line-through',
 };
 
@@ -96,10 +96,10 @@ function renderDiffNode(
 
   const borderColor =
     diffType === 'add' || diffType === 'listItemAdd'
-      ? 'var(--ant-color-success, #52c41a)'
+      ? 'var(--lobe-color-success, #52c41a)'
       : diffType === 'remove' || diffType === 'listItemRemove'
-        ? 'var(--ant-color-error, #ff4d4f)'
-        : 'var(--ant-color-warning, #faad14)';
+        ? 'var(--lobe-color-error, #ff4d4f)'
+        : 'var(--lobe-color-warning, #faad14)';
 
   const contentStyle: CSSProperties =
     diffType === 'unchanged'

@@ -1,4 +1,4 @@
-import { Avatar, Text } from '@lobehub/ui/base-ui';
+import { Avatar, Text, createStaticStyles } from '@lobehub/ui';
 import {
   type IEditor,
   INSERT_CODEINLINE_COMMAND,
@@ -28,7 +28,6 @@ import {
   type SlashOptions,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
   Heading1Icon,

@@ -1,6 +1,4 @@
-import { Icon, useImagePreview } from '@lobehub/ui';
-import { ActionIcon } from '@lobehub/ui/base-ui';
-import { cx } from 'antd-style';
+import { ActionIcon, cx, Icon, useImagePreview } from '@lobehub/ui';
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
 import { LoaderCircleIcon, ZoomInIcon } from 'lucide-react';
 import React, { memo, Suspense, useCallback, useMemo, useRef, useState } from 'react';

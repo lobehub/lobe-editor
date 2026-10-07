@@ -9,8 +9,7 @@ import {
   type MediaLists,
   extractMediaLists,
 } from '@lobehub/editor';
-import { CodeEditor, Highlighter } from '@lobehub/ui';
-import { Accordion } from '@lobehub/ui/base-ui';
+import { CodeEditor, Highlighter, Accordion } from '@lobehub/ui';
 import { debounce } from 'es-toolkit';
 import { useMemo, useState } from 'react';
 

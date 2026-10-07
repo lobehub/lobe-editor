@@ -1,4 +1,4 @@
-import type { ButtonProps, DropdownItem, DropdownMenuProps } from '@lobehub/ui/base-ui';
+import type { ButtonProps, DropdownItem, DropdownMenuProps } from '@lobehub/ui';
 import type { CSSProperties, MouseEvent, Ref } from 'react';
 
 export type SendButtonClickHandler = (e: MouseEvent<HTMLElement>) => void;

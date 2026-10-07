@@ -49,9 +49,9 @@ type AlignOp =
 const CHAR_DIFF_MAX_MATRIX_CELLS = 50_000;
 
 const DELETE_MARK_STYLE =
-  'background-color: color-mix(in srgb, var(--ant-color-error) 18%, transparent); text-decoration: line-through;';
+  'background-color: color-mix(in srgb, var(--lobe-color-error) 18%, transparent); text-decoration: line-through;';
 const INSERT_MARK_STYLE =
-  'background-color: color-mix(in srgb, var(--ant-color-success) 18%, transparent);';
+  'background-color: color-mix(in srgb, var(--lobe-color-success) 18%, transparent);';
 
 function getBaseNodeType(node: SerializedLexicalNode | null): string | null {
   if (!node) return null;

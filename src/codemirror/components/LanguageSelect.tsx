@@ -1,8 +1,6 @@
 'use client';
 
-import { Flexbox, MaterialFileTypeIcon } from '@lobehub/ui';
-import { Select, Text } from '@lobehub/ui/base-ui';
-import { cx } from 'antd-style';
+import { cx, Flexbox, MaterialFileTypeIcon, Select, Text } from '@lobehub/ui';
 import { type FC, useMemo } from 'react';
 
 import { LANGUAGES } from '../constants';

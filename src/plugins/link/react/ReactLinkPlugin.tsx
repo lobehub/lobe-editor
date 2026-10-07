@@ -1,6 +1,6 @@
 'use client';
 
-import { toast } from '@lobehub/ui/base-ui';
+import { toast } from '@lobehub/ui';
 import { type FC, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useLexicalEditor } from '@/editor-kernel/react';

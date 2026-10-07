@@ -1,9 +1,7 @@
 'use client';
 
 import { $findTableNode, $isTableSelection } from '@lexical/table';
-import { DropdownMenu, type DropdownMenuProps, Icon, useAppElement } from '@lobehub/ui';
-import { Button } from '@lobehub/ui/base-ui';
-import { cx } from 'antd-style';
+import { Button, cx, DropdownMenu, type DropdownMenuProps, Icon, useAppElement } from '@lobehub/ui';
 import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';
 import { GripVerticalIcon, PlusIcon } from 'lucide-react';
 import {

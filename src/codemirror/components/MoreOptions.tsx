@@ -1,7 +1,6 @@
 'use client';
 
-import { Flexbox, Popover } from '@lobehub/ui';
-import { ActionIcon, InputNumber, Switch, Text } from '@lobehub/ui/base-ui';
+import { ActionIcon, Flexbox, InputNumber, Popover, Switch, Text } from '@lobehub/ui';
 import { MoreHorizontalIcon } from 'lucide-react';
 import { type FC, useCallback } from 'react';
 

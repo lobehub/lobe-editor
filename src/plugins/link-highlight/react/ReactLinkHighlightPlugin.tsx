@@ -1,4 +1,4 @@
-import { cx } from 'antd-style';
+import { cx } from '@lobehub/ui';
 import { type FC, useLayoutEffect } from 'react';
 
 import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
