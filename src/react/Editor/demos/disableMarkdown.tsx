@@ -1,4 +1,4 @@
-import { Text } from '@lobehub/ui/base-ui';
+import { Avatar, Text } from '@lobehub/ui/base-ui';
 import {
   type IEditor,
   INSERT_CODEINLINE_COMMAND,
@@ -14,7 +14,6 @@ import {
   type SlashOptions,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Avatar, type CollapseProps } from '@lobehub/ui';
 import { debounce } from 'es-toolkit';
 import {
   Heading1Icon,
@@ -27,12 +26,12 @@ import {
 } from 'lucide-react';
 import { type FC, useMemo, useState } from 'react';
 
-import Container from './Container';
+import Container, { type ContainerLayoutProps } from './Container';
 import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
 import content from './disableMakrdownData.json';
 
-const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+const Demo: FC<ContainerLayoutProps> = (props) => {
   const editor = useEditor();
   const [json, setJson] = useState('');
   const [markdown, setMarkdown] = useState('');

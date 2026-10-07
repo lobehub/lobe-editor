@@ -1,11 +1,17 @@
-import { CodeEditor, Collapse, type CollapseProps, Highlighter, ToastHost } from '@lobehub/ui';
+import { CodeEditor, Highlighter, ToastHost } from '@lobehub/ui';
+import { Accordion } from '@lobehub/ui/base-ui';
 import { type FC, type PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
 
 import type { IEditor } from '@/types';
 
 import XmlModifier from './XmlModifier';
 
-interface ContainerProps extends Omit<CollapseProps, 'items'> {
+export interface ContainerLayoutProps {
+  collapsible?: boolean;
+  defaultActiveKey?: string[];
+}
+
+interface ContainerProps extends ContainerLayoutProps {
   editor?: IEditor;
   json: string;
   markdown: string;
@@ -42,14 +48,16 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({
   return (
     <>
       <ToastHost />
-      <Collapse
-        collapsible={collapsible}
-        defaultActiveKey={defaultActiveKey}
+      <Accordion
+        defaultValue={defaultActiveKey}
+        hideIndicator={!collapsible}
+        value={collapsible ? undefined : defaultActiveKey}
+        variant={'outlined'}
         items={[
           {
             children: children,
             key: 'editor',
-            label: 'Playground',
+            title: 'Playground',
           },
           ...(shouldShowXml
             ? [
@@ -62,7 +70,7 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({
                     </XmlModifier>
                   ),
                   key: 'xml',
-                  label: 'Litexml Output',
+                  title: 'Litexml Output',
                 },
               ]
             : []),
@@ -77,7 +85,7 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({
               </Highlighter>
             ),
             key: 'text',
-            label: 'Text Output',
+            title: 'Text Output',
           },
           {
             children: (
@@ -100,18 +108,16 @@ const Container: FC<PropsWithChildren<ContainerProps>> = ({
               />
             ),
             key: 'json',
-            label: 'JSON Output',
+            title: 'JSON Output',
           },
         ]}
-        padding={{
-          body: 0,
-        }}
         style={{
           border: 'none',
           borderRadius: 0,
-          width: '100%',
         }}
-        variant={'outlined'}
+        styles={{
+          content: { padding: 0 },
+        }}
       />
     </>
   );

@@ -9,7 +9,8 @@ import {
   type MediaLists,
   extractMediaLists,
 } from '@lobehub/editor';
-import { CodeEditor, Collapse, Highlighter } from '@lobehub/ui';
+import { CodeEditor, Highlighter } from '@lobehub/ui';
+import { Accordion } from '@lobehub/ui/base-ui';
 import { debounce } from 'es-toolkit';
 import { useMemo, useState } from 'react';
 
@@ -82,8 +83,8 @@ export default () => {
   };
 
   return (
-    <Collapse
-      defaultActiveKey={['input', 'blocks', 'media']}
+    <Accordion
+      defaultValue={['input', 'blocks', 'media']}
       items={[
         {
           children: (
@@ -96,7 +97,7 @@ export default () => {
             />
           ),
           key: 'input',
-          label: 'Editor JSON (input)',
+          title: 'Editor JSON (input)',
         },
         {
           children: (
@@ -105,7 +106,7 @@ export default () => {
             </Highlighter>
           ),
           key: 'blocks',
-          label: `content-blocks (${result.blocks.length})`,
+          title: `content-blocks (${result.blocks.length})`,
         },
         {
           children: (
@@ -114,11 +115,11 @@ export default () => {
             </Highlighter>
           ),
           key: 'media',
-          label: `extractMediaLists → ${result.media.imageList.length} image · ${result.media.fileList.length} file`,
+          title: `extractMediaLists → ${result.media.imageList.length} image · ${result.media.fileList.length} file`,
         },
       ]}
-      padding={{ body: 0 }}
-      style={{ border: 'none', borderRadius: 0, width: '100%' }}
+      style={{ border: 'none', borderRadius: 0 }}
+      styles={{ content: { padding: 0 } }}
       variant="outlined"
     />
   );

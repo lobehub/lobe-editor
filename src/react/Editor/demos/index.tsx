@@ -1,4 +1,4 @@
-import { Text, Button } from '@lobehub/ui/base-ui';
+import { Alert, Avatar, Button, Segmented, Tag, Text } from '@lobehub/ui/base-ui';
 import {
   type IEditor,
   INSERT_CODEINLINE_COMMAND,
@@ -35,8 +35,7 @@ import {
   scrollIntoView,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Avatar, type CollapseProps, Segmented } from '@lobehub/ui';
-import { Alert, Space, Tag } from 'antd';
+import { Flexbox } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
@@ -61,7 +60,7 @@ import {
 import { devConsole } from '@/utils/debug';
 
 import { createBroadcastChannelYjsProvider } from './BroadcastChannelYjsProvider';
-import Container from './Container';
+import Container, { type ContainerLayoutProps } from './Container';
 import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
 import localContent from './data.json';
@@ -275,7 +274,7 @@ function getInitialYjsDemoMode(): 'broadcast' | 'websocket' {
     : 'broadcast';
 }
 
-type EditorDemoProps = Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'> & {
+type EditorDemoProps = ContainerLayoutProps & {
   content: unknown;
   onEditorReady?: (editor: IEditor) => void;
   providerFactory: YjsProviderFactory;
@@ -782,7 +781,7 @@ const EditorDemo: FC<EditorDemoProps> = ({
   );
 };
 
-const WebSocketJsonDemo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+const WebSocketJsonDemo: FC<ContainerLayoutProps> = (props) => {
   const [content, setContent] = useState<unknown>(null);
   const [connectionStatus, setConnectionStatus] =
     useState<WebSocketYjsProviderStatus>('disconnected');
@@ -845,12 +844,12 @@ const WebSocketJsonDemo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKe
 
   if (loadError) {
     return (
-      <Alert message={`WebSocket demo server is not ready: ${loadError}`} showIcon type="warning" />
+      <Alert showIcon title={`WebSocket demo server is not ready: ${loadError}`} type="warning" />
     );
   }
 
   if (!content) {
-    return <Alert message="Loading document JSON from demo server..." showIcon type="info" />;
+    return <Alert showIcon title="Loading document JSON from demo server..." type="info" />;
   }
 
   return (
@@ -861,7 +860,7 @@ const WebSocketJsonDemo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKe
       }}
       providerFactory={providerFactory}
       renderControls={(editor) => (
-        <Space size={8}>
+        <Flexbox horizontal align={'center'} gap={8}>
           <Tag color={connectionStatusColors[connectionStatus]}>{connectionStatus}</Tag>
           <Text code fontSize={12} type="secondary">
             {saveStatus}
@@ -883,14 +882,14 @@ const WebSocketJsonDemo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKe
           >
             Save JSON
           </Button>
-        </Space>
+        </Flexbox>
       )}
       {...props}
     />
   );
 };
 
-const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+const Demo: FC<ContainerLayoutProps> = (props) => {
   const [mode, setMode] = useState<'broadcast' | 'websocket'>(getInitialYjsDemoMode);
 
   return (
