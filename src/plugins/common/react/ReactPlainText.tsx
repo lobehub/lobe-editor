@@ -1,6 +1,6 @@
 'use client';
 
-import { cx } from 'antd-style';
+import { cx } from '@lobehub/ui';
 import { COMMAND_PRIORITY_EDITOR, KEY_DOWN_COMMAND } from 'lexical';
 import {
   Children,

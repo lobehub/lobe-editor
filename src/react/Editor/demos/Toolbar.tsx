@@ -12,8 +12,7 @@ import {
   FloatActions,
   useEditorState,
 } from '@lobehub/editor/react';
-import { Block } from '@lobehub/ui';
-import { createStaticStyles, cx } from 'antd-style';
+import { Block, createStaticStyles, cx } from '@lobehub/ui';
 import {
   BoldIcon,
   CodeXmlIcon,

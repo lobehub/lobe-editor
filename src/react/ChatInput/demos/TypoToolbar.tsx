@@ -6,7 +6,7 @@ import {
   CodeLanguageSelect,
   useEditorState,
 } from '@lobehub/editor/react';
-import { createStaticStyles, cx } from 'antd-style';
+import { createStaticStyles, cx } from '@lobehub/ui';
 import {
   BoldIcon,
   CodeXmlIcon,

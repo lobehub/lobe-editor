@@ -6,7 +6,7 @@ import {
   ReactPlainText,
   type SchemaRule,
 } from '@lobehub/editor';
-import { createStaticStyles } from 'antd-style';
+import { createStaticStyles } from '@lobehub/ui';
 
 import content from './data.json';
 

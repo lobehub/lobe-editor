@@ -6,7 +6,7 @@ import {
   $isTableNode,
   $isTableSelection,
 } from '@lexical/table';
-import { cx } from 'antd-style';
+import { cx } from '@lobehub/ui';
 import EventEmitter from 'eventemitter3';
 import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, $getSelection, $isRangeSelection } from 'lexical';

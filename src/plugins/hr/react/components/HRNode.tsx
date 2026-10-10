@@ -1,7 +1,7 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { cx } from 'antd-style';
+import { cx } from '@lobehub/ui';
 import type { LexicalEditor } from 'lexical';
 import { CLICK_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { type FC, useEffect } from 'react';

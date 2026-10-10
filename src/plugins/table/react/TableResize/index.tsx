@@ -11,7 +11,7 @@ import {
   TableNode,
 } from '@lexical/table';
 import { calculateZoomLevel, mergeRegister } from '@lexical/utils';
-import { cssVar, cx } from 'antd-style';
+import { cssVar, cx, LOBE_THEME_APP_ID } from '@lobehub/ui';
 import type EventEmitter from 'eventemitter3';
 import type { LexicalEditor, NodeKey } from 'lexical';
 import {
@@ -555,8 +555,8 @@ export default memo<TableResizeProps>(({ editor, eventEmitter, resizeMode }) => 
     return null;
   }
 
-  // Mount to .ant-app if exists, otherwise document.body
-  const container = (document.querySelector('.ant-app') as HTMLElement) || document.body;
+  const container =
+    (document.querySelector(`#${LOBE_THEME_APP_ID}`) as HTMLElement) || document.body;
 
   return createPortal(
     <TableCellResize editor={editor} eventEmitter={eventEmitter} resizeMode={resizeMode} />,

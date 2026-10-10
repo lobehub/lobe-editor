@@ -1,7 +1,6 @@
 'use client';
 
-import { Flexbox, TooltipGroup } from '@lobehub/ui';
-import { cx } from 'antd-style';
+import { cx, Flexbox, TooltipGroup } from '@lobehub/ui';
 import { memo, useMemo } from 'react';
 import useMergeState from 'use-merge-value';
 

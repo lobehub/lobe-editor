@@ -1,4 +1,13 @@
-import { Alert, Avatar, Button, Segmented, Tag, Text } from '@lobehub/ui/base-ui';
+import {
+  Alert,
+  Avatar,
+  Button,
+  Segmented,
+  Tag,
+  Text,
+  Flexbox,
+  createStaticStyles,
+} from '@lobehub/ui';
 import {
   type IEditor,
   INSERT_CODEINLINE_COMMAND,
@@ -35,8 +44,6 @@ import {
   scrollIntoView,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Flexbox } from '@lobehub/ui';
-import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
   Heading1Icon,

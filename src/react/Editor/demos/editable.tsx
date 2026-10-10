@@ -1,7 +1,6 @@
-import { Button, Text } from '@lobehub/ui/base-ui';
+import { Button, Text, Flexbox } from '@lobehub/ui';
 import { type IEditor, ReactBlockPlugin } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Flexbox } from '@lobehub/ui';
 import { debounce } from 'es-toolkit';
 import { type FC, useMemo, useState } from 'react';
 

@@ -1,7 +1,6 @@
 'use client';
 
-import { Button, SplitButton } from '@lobehub/ui/base-ui';
-import { cx } from 'antd-style';
+import { Button, cx, SplitButton } from '@lobehub/ui';
 import { type FC, type MouseEvent, useMemo } from 'react';
 
 import SendIcon from './components/SendIcon';

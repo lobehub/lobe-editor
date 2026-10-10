@@ -1,9 +1,8 @@
-import { Text } from '@lobehub/ui/base-ui';
+import { Text, Block, Flexbox } from '@lobehub/ui';
 import type { Provider, ProviderAwareness, UserState } from '@lexical/yjs';
 import type { EditorCollaborationConfig, IEditor } from '@lobehub/editor';
 import { ReactBlockPlugin } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Block, Flexbox } from '@lobehub/ui';
 import { debounce } from 'es-toolkit';
 import { type FC, useCallback, useMemo, useState } from 'react';
 import { Doc, applyUpdate, encodeStateAsUpdate } from 'yjs';
