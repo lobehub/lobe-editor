@@ -1,4 +1,4 @@
-import { Avatar, Text } from '@lobehub/ui/base-ui';
+import { Avatar, Text } from '@lobehub/ui';
 import {
   type IEditor,
   INSERT_COLLAPSIBLE_COMMAND,

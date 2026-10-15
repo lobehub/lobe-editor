@@ -1,4 +1,4 @@
-import { createStaticStyles } from 'antd-style';
+import { createStaticStyles } from '@lobehub/ui';
 
 export const ANCHOR_PADDING_CSS_VAR = '--lobe-block-anchor-padding';
 

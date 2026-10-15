@@ -1,4 +1,4 @@
-import { createStaticStyles, cx } from 'antd-style';
+import { createStaticStyles, cx } from '@lobehub/ui';
 
 export const styles = createStaticStyles(({ css, cssVar }) => {
   const latex = css`

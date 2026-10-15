@@ -7,7 +7,7 @@ import {
   ReactSlashOption,
   ReactSlashPlugin,
 } from '@lobehub/editor';
-import { Avatar } from '@lobehub/ui/base-ui';
+import { Avatar } from '@lobehub/ui';
 import { useRef } from 'react';
 
 import content from './data.json';

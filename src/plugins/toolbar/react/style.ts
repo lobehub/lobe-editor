@@ -1,4 +1,4 @@
-import { createStaticStyles } from 'antd-style';
+import { createStaticStyles } from '@lobehub/ui';
 
 const FLOATING_TOOLBAR_Z_INDEX = 1001;
 

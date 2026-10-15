@@ -1,9 +1,7 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { Block } from '@lobehub/ui';
-import { ActionIcon } from '@lobehub/ui/base-ui';
-import { cx } from 'antd-style';
+import { ActionIcon, Block, cx } from '@lobehub/ui';
 import { debounce } from 'es-toolkit/compat';
 import type { LexicalEditor } from 'lexical';
 import { $getSelection, $setSelection, COMMAND_PRIORITY_CRITICAL, KEY_DOWN_COMMAND } from 'lexical';

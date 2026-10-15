@@ -1,4 +1,4 @@
-import { cx } from 'antd-style';
+import { cx } from '@lobehub/ui';
 import { type FC, useEffect, useState } from 'react';
 
 import type { BlockImageNode } from '../../node/block-image-node';

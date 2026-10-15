@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@lobehub/ui/base-ui', async (importOriginal) => ({
+vi.mock('@lobehub/ui', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   ActionIcon: ({
     'aria-label': ariaLabel,
@@ -34,10 +34,6 @@ vi.mock('@lobehub/ui/base-ui', async (importOriginal) => ({
     'aria-label'?: string;
     'onClick'?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   }) => <button aria-label={ariaLabel} type="button" onClick={onClick} />,
-}));
-
-vi.mock('@lobehub/ui', async (importOriginal) => ({
-  ...(await importOriginal<object>()),
   useImagePreview: (ref: { current: HTMLImageElement | null }) => {
     mocks.previewRef = ref;
     return { open: mocks.openPreview, outlet: null };

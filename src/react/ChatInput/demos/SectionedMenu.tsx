@@ -1,4 +1,4 @@
-import { Avatar, Text } from '@lobehub/ui/base-ui';
+import { Avatar, Text } from '@lobehub/ui';
 import type { IEditor, ISlashMenuOption, SlashOptions } from '@lobehub/editor';
 import {
   INSERT_HEADING_COMMAND,

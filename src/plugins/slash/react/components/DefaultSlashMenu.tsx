@@ -9,8 +9,7 @@ import {
   size,
   useFloating,
 } from '@floating-ui/react';
-import { Icon, LOBE_THEME_APP_ID, menuSharedStyles } from '@lobehub/ui';
-import { createStaticStyles } from 'antd-style';
+import { createStaticStyles, Icon, LOBE_THEME_APP_ID, menuSharedStyles } from '@lobehub/ui';
 import {
   type FC,
   isValidElement,

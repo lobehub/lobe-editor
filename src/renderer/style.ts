@@ -1,4 +1,4 @@
-import { createStaticStyles, cx } from 'antd-style';
+import { createStaticStyles, cx } from '@lobehub/ui';
 
 import { styles as commonStyles } from '@/plugins/common/react/style';
 import { styles as imageStyles } from '@/plugins/image/react/style';

@@ -1,6 +1,4 @@
-import { Flexbox, Icon, Popover } from '@lobehub/ui';
-import { Button, Input } from '@lobehub/ui/base-ui';
-import { cssVar } from 'antd-style';
+import { Button, cssVar, Flexbox, Icon, Input, Popover } from '@lobehub/ui';
 import { LinkIcon, UploadIcon } from 'lucide-react';
 import {
   type ChangeEvent,

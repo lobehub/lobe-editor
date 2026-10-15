@@ -1,6 +1,6 @@
 import type { TableNode } from '@lexical/table';
 import { $computeTableMapSkipCellCheck } from '@lexical/table';
-import { cx } from 'antd-style';
+import { cx } from '@lobehub/ui';
 import type { LexicalEditor } from 'lexical';
 import {
   type DragEvent as ReactDragEvent,

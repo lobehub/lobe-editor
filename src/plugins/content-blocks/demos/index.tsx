@@ -11,8 +11,7 @@ import {
   extractMediaLists,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Highlighter, ToastHost } from '@lobehub/ui';
-import { Accordion } from '@lobehub/ui/base-ui';
+import { Highlighter, ToastHost, Accordion } from '@lobehub/ui';
 import { debounce } from 'es-toolkit';
 import { type FC, useLayoutEffect, useMemo, useState } from 'react';
 

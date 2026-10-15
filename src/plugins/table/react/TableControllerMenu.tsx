@@ -1,4 +1,4 @@
-import { cx } from 'antd-style';
+import { cx, LOBE_THEME_APP_ID } from '@lobehub/ui';
 import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -21,8 +21,7 @@ interface TableControllerMenuSeparatorItem {
 }
 
 export type TableControllerMenuItem =
-  | TableControllerMenuActionItem
-  | TableControllerMenuSeparatorItem;
+  TableControllerMenuActionItem | TableControllerMenuSeparatorItem;
 
 interface TableControllerMenuProps {
   anchorElement: HTMLElement | null;
@@ -48,7 +47,7 @@ const getPortalContainer = () => {
     return null;
   }
 
-  return (document.querySelector('.ant-app') as HTMLElement | null) || document.body;
+  return (document.querySelector(`#${LOBE_THEME_APP_ID}`) as HTMLElement | null) || document.body;
 };
 
 const getMenuStyle = (

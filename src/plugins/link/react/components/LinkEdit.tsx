@@ -1,7 +1,5 @@
 import { mergeRegister } from '@lexical/utils';
-import { Block, Flexbox, Hotkey, Icon } from '@lobehub/ui';
-import { Button, Input, Text } from '@lobehub/ui/base-ui';
-import { cssVar } from 'antd-style';
+import { Block, Button, cssVar, Flexbox, Hotkey, Icon, Input, Text } from '@lobehub/ui';
 import type { LexicalEditor } from 'lexical';
 import {
   COMMAND_PRIORITY_EDITOR,

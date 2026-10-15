@@ -224,7 +224,7 @@ describe('computeLexicalDiffRows', () => {
     ).toBe(true);
     expect(
       newTextNodes.some(
-        (node) => typeof node.style === 'string' && node.style.includes('--ant-color-success'),
+        (node) => typeof node.style === 'string' && node.style.includes('--lobe-color-success'),
       ),
     ).toBe(true);
   });
@@ -289,7 +289,7 @@ describe('LexicalDiff', () => {
     expect(html).toContain('New');
     expect(html).toContain('paragraph');
     expect(html).toContain('line-through');
-    expect(html).toContain('--ant-color-success');
+    expect(html).toContain('--lobe-color-success');
   });
 
   it('supports custom labels and fallback block renderer', () => {
@@ -345,7 +345,7 @@ describe('LexicalDiff', () => {
 
     expect(html).toContain('custom old');
     expect(html).toContain('render');
-    expect(html).toContain('--ant-color-success');
+    expect(html).toContain('--lobe-color-success');
   });
 
   it('passes extraNodes, renderContext, variant, and overrides to the inner LexicalRenderer', () => {
@@ -381,7 +381,7 @@ describe('LexicalDiff', () => {
 
     expect(overrideHtml).toContain('<section');
     expect(overrideHtml).toContain('override');
-    expect(overrideHtml).toContain('--ant-color-success');
+    expect(overrideHtml).toContain('--lobe-color-success');
   });
 
   it('keeps table column widths on both sides', () => {

@@ -1,4 +1,4 @@
-import { cx } from 'antd-style';
+import { cx } from '@lobehub/ui';
 import {
   type FC,
   type MouseEvent as ReactMouseEvent,
