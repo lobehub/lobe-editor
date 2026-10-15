@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;5.0.0](https://github.com/lobehub/lobe-editor/compare/v4.29.2...v5.0.0)
+<sup>Released on **2026-10-15**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Adopt lobe-ui 6 and drop antd [force major].
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Adopt lobe-ui 6 and drop antd [force major], closes [#228](https://github.com/lobehub/lobe-editor/issues/228) ([e73756d](https://github.com/lobehub/lobe-editor/commit/e73756d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;4.29.2](https://github.com/lobehub/lobe-editor/compare/v4.29.1...v4.29.2)
 <sup>Released on **2026-10-07**</sup>
 
