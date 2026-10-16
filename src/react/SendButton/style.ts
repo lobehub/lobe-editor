@@ -1,16 +1,11 @@
 import { createStaticStyles } from '@lobehub/ui';
 
-export const styles = createStaticStyles(({ css, cssVar }) => ({
+export const styles = createStaticStyles(({ css }) => ({
   button: css`
     flex: none;
     width: var(--send-button-size, 32px) !important;
     height: var(--send-button-size, 32px) !important;
     padding-inline: 0 !important;
-  `,
-  disabled: css`
-    cursor: default;
-    border-color: ${cssVar.colorBorderSecondary};
-    background: transparent;
   `,
   loadingButton: css`
     flex: none;
@@ -32,15 +27,6 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
 
     & > :where(button, a):last-of-type {
       width: calc(var(--send-button-size, 32px) * 0.8) !important;
-    }
-  `,
-  splitButtonDisabled: css`
-    opacity: 1;
-
-    & > :where(button, a) {
-      cursor: default;
-      border-color: ${cssVar.colorBorderSecondary};
-      background: transparent;
     }
   `,
   splitButtonRound: css`

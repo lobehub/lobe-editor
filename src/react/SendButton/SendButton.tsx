@@ -85,7 +85,7 @@ const SendButton: FC<SendButtonProps> = ({
   if (!menu)
     return (
       <Button
-        className={cx(styles.button, disabled && styles.disabled, className)}
+        className={cx(styles.button, className)}
         disabled={disabled}
         icon={<SendIcon />}
         onClick={handleSend}
@@ -102,12 +102,7 @@ const SendButton: FC<SendButtonProps> = ({
 
   return (
     <SplitButton
-      className={cx(
-        styles.splitButton,
-        disabled && styles.splitButtonDisabled,
-        shape === 'round' && styles.splitButtonRound,
-        className,
-      )}
+      className={cx(styles.splitButton, shape === 'round' && styles.splitButtonRound, className)}
       disabled={disabled}
       style={{
         ...cssVariables,
