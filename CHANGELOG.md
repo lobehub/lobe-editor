@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;5.0.1](https://github.com/lobehub/lobe-editor/compare/v5.0.0...v5.0.1)
+<sup>Released on **2026-10-16**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Let lobe-ui own the SendButton disabled look.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Let lobe-ui own the SendButton disabled look, closes [#231](https://github.com/lobehub/lobe-editor/issues/231) ([f69904d](https://github.com/lobehub/lobe-editor/commit/f69904d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;5.0.0](https://github.com/lobehub/lobe-editor/compare/v4.29.2...v5.0.0)
 <sup>Released on **2026-10-15**</sup>
 
