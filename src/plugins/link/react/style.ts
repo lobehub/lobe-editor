@@ -88,7 +88,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
       height: 28px;
       padding: 0;
       border: 0;
-      border-radius: ${cssVar.borderRadius}px;
+      border-radius: ${cssVar.borderRadius};
 
       color: inherit;
 
