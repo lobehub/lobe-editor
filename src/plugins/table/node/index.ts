@@ -1,5 +1,11 @@
-import { TableNode } from '@lexical/table';
-import { type EditorConfig, type LexicalEditor, setDOMUnmanaged } from 'lexical';
+import { TableNode, TableObserver } from '@lexical/table';
+import {
+  $getNodeByKey,
+  type EditorConfig,
+  type LexicalEditor,
+  type LexicalNode,
+  setDOMUnmanaged,
+} from 'lexical';
 
 import {
   getKernelFromEditor,
@@ -197,10 +203,97 @@ function reconcileTableDecorator(
   });
 }
 
+/**
+ * T-632 / Lexical #232 guard.
+ *
+ * The editor kernel supports reversible root detach (route switches and React
+ * Activity hide the subtree through `setRootElement(null)`). Lexical's
+ * TableObserver survives a detach: its DOM MutationObserver and the
+ * editor-level SELECTION_CHANGE_COMMAND listener stay registered, and async
+ * work flushed after the detach (queued table DOM mutations, selection
+ * cleanup) resolves the table element through `$lookup()`. With no root
+ * attached, `getElementByKey()` returns null and Lexical throws the uncaught
+ * "Minified Lexical error #232" (TableObserver: Expected to find TableElement
+ * in DOM), crashing the whole editor tree.
+ *
+ * While detached — or when the upstream lookup throws on a missing element —
+ * degrade to the observer's last-known table element so read-only
+ * bookkeeping keeps working instead of taking the editor down.
+ */
+const LAST_KNOWN_TABLE_ELEMENT = 'lastKnownTableElement';
+
+type ObserverInternals = {
+  editor: LexicalEditor;
+  tableNodeKey: string;
+};
+
+function resolveTableNode(editor: LexicalEditor, tableNodeKey: string): LexicalNode | null {
+  return (editor.getEditorState().read(() => $getNodeByKey(tableNodeKey)) ??
+    null) as LexicalNode | null;
+}
+
+function degradeLookup(
+  observer: TableObserver,
+  internals: ObserverInternals,
+): { tableNode: LexicalNode; tableElement: HTMLElement } | null {
+  const lastElement = (observer as unknown as Record<string, unknown>)[LAST_KNOWN_TABLE_ELEMENT] as
+    HTMLElement | undefined;
+
+  if (!(lastElement instanceof HTMLElement)) {
+    return null;
+  }
+
+  const tableNode = resolveTableNode(internals.editor, internals.tableNodeKey);
+  if (!tableNode) {
+    return null;
+  }
+
+  return { tableNode, tableElement: lastElement };
+}
+
 export function patchTableNode() {
   if (TableNode.prototype.createDOM !== OriginalCreateDOM) {
     return;
   }
+
+  // Guard the observer's element lookup: the lookup runs from async callbacks
+  // (DOM MutationObserver flush, selection cleanup) that can execute after the
+  // root has been detached, where upstream throws #232.
+  const OriginalLookup = TableObserver.prototype.$lookup;
+  if (!OriginalLookup) {
+    // @lexical/table builds without dev exports guard; bail defensively.
+    return;
+  }
+
+  TableObserver.prototype.$lookup = function (
+    this: TableObserver,
+  ): ReturnType<TableObserver['$lookup']> {
+    const internals = this as unknown as ObserverInternals;
+    const { editor, tableNodeKey } = internals;
+
+    if (editor && editor.getRootElement() === null) {
+      const fallback = degradeLookup(this, internals);
+      if (fallback) {
+        return fallback as unknown as ReturnType<TableObserver['$lookup']>;
+      }
+    }
+
+    try {
+      const result = OriginalLookup.call(this);
+      const element = (result as unknown as { tableElement?: unknown }).tableElement;
+      if (element instanceof HTMLElement) {
+        (this as unknown as Record<string, unknown>)[LAST_KNOWN_TABLE_ELEMENT] = element;
+      }
+      return result;
+    } catch (error) {
+      const fallback = degradeLookup(this, internals);
+      if (fallback) {
+        return fallback as unknown as ReturnType<TableObserver['$lookup']>;
+      }
+      throw error;
+    }
+  };
+
   Object.defineProperty(TableNode.prototype, 'createDOM', {
     configurable: true,
     enumerable: false,
