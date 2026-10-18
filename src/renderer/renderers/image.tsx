@@ -5,7 +5,8 @@ import { getBlockImageClassName, getImageClassName } from '../style';
 export function renderImage(node: Record<string, any>, key: string): ReactNode {
   const { src, altText, width, height, maxWidth } = node;
   const style: CSSProperties = {};
-  if (maxWidth) style.maxWidth = maxWidth;
+  // Keep the persisted width, but never let it exceed the container (mobile/share view).
+  if (maxWidth) style.maxWidth = `min(${maxWidth}px, 100%)`;
   if (width && width !== 'inherit') style.width = width;
   if (height && height !== 'inherit') style.height = height;
 
@@ -19,7 +20,8 @@ export function renderImage(node: Record<string, any>, key: string): ReactNode {
 export function renderBlockImage(node: Record<string, any>, key: string): ReactNode {
   const { src, altText, width, height, maxWidth } = node;
   const style: CSSProperties = {};
-  if (maxWidth) style.maxWidth = maxWidth;
+  // Keep the persisted width, but never let it exceed the container (mobile/share view).
+  if (maxWidth) style.maxWidth = `min(${maxWidth}px, 100%)`;
   if (width && width !== 'inherit') style.width = width;
   if (height && height !== 'inherit') style.height = height;
 
