@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;5.0.2](https://github.com/lobehub/lobe-editor/compare/v5.0.1...v5.0.2)
+<sup>Released on **2026-10-18**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Clamp rendered image max width to the container.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Clamp rendered image max width to the container, closes [#232](https://github.com/lobehub/lobe-editor/issues/232) ([fbd76b7](https://github.com/lobehub/lobe-editor/commit/fbd76b7))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;5.0.1](https://github.com/lobehub/lobe-editor/compare/v5.0.0...v5.0.1)
 <sup>Released on **2026-10-16**</sup>
 
