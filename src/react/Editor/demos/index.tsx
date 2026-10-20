@@ -116,6 +116,10 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
   `,
   editor: css`
     padding: 16px;
+
+    > [data-lexical-editor]:focus-visible {
+      outline: none;
+    }
   `,
   linkCard: css`
     display: inline-flex;
@@ -577,10 +581,7 @@ const EditorDemo: FC<EditorDemoProps> = ({
       xml={xml}
       {...props}
     >
-      <div className={styles.controls}>
-        <Toolbar editor={editor} />
-        {renderControls?.(editor)}
-      </div>
+      {renderControls && <div className={styles.controls}>{renderControls(editor)}</div>}
       <Editor
         className={styles.editor}
         content={editorContent}
