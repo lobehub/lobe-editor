@@ -43,7 +43,10 @@ export default class MarkdownDataSource extends DataSource {
           tightDefinitions: true,
         })
         .processSync(markdown);
-      return String(result);
+      // Since emphasis uses '*' and strong uses '*', underscore '_' is never used
+      // as a markdown syntax marker. Revert remark-stringify's unnecessary escaping
+      // of underscores in text nodes.
+      return String(result).replaceAll('\\_', '_');
     } catch (error) {
       logger.error('Failed to format markdown:', error);
       return markdown;
