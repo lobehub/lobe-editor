@@ -2,7 +2,7 @@
 
 ![](https://github.com/user-attachments/assets/c85842e8-9e3a-4f64-aad6-4ad24bca5323)
 
-<h1>LobeHub Editor</h1>
+<h1>Lobe Editor</h1>
 
 <h3>One editor for chat, documents and AI edits.</h3>
 
