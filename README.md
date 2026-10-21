@@ -1,8 +1,6 @@
 <div align="center"><a name="readme-top"></a>
 
-<img height="120" src="https://raw.githubusercontent.com/lobehub/lobe-assets/master/packages/assets-logo/assets/logo-3d.webp">
-<img height="120" src="https://raw.githubusercontent.com/lobehub/lobe-assets/master/packages/assets-logo/assets/split.svg">
-<img height="120" src="https://raw.githubusercontent.com/lobehub/fluent-emoji/master/packages/3d/assets/2712-fe0f.webp">
+![](https://github.com/user-attachments/assets/c85842e8-9e3a-4f64-aad6-4ad24bca5323)
 
 <h1>LobeHub Editor</h1>
 
@@ -21,8 +19,6 @@ A rich text editor for React, built on Meta's Lexical, for developers building A
 [![][github-license-shield]][github-license-link]
 
 [Documentation](https://editor.lobehub.com) · [Changelog](./CHANGELOG.md) · [Report Bug][github-issues-link] · [Request Feature][github-issues-link]
-
-![](https://github.com/user-attachments/assets/98c9a810-1c7d-4c33-acd7-ae9d4c0695da)
 
 </div>
 
