@@ -6,7 +6,9 @@
 
 <h1>LobeHub Editor</h1>
 
-A modern, extensible rich text editor built on Meta's Lexical framework with dual-architecture design, featuring both a powerful kernel and React integration. Optimized for AI applications and chat interfaces.
+<h3>One editor for chat, documents and AI edits.</h3>
+
+A rich text editor for React, built on Meta's Lexical, for developers building AI apps: chat composers, Markdown documents and agent-driven editing.
 
 [![][npm-release-shield]][npm-release-link]
 [![][github-releasedate-shield]][github-releasedate-link]
@@ -18,7 +20,7 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
 [![][github-issues-shield]][github-issues-link]
 [![][github-license-shield]][github-license-link]
 
-[Changelog](./CHANGELOG.md) · [Report Bug][github-issues-link] · [Request Feature][github-issues-link]
+[Documentation](https://editor.lobehub.com) · [Changelog](./CHANGELOG.md) · [Report Bug][github-issues-link] · [Request Feature][github-issues-link]
 
 ![](https://github.com/user-attachments/assets/98c9a810-1c7d-4c33-acd7-ae9d4c0695da)
 
@@ -29,84 +31,53 @@ A modern, extensible rich text editor built on Meta's Lexical framework with dua
 
 #### TOC
 
-- [✨ Features](#-features)
-- [📦 Installation](#-installation)
-- [🚀 Quick Start](#-quick-start)
-  - [Basic Editor](#basic-editor)
-  - [Advanced Usage with Plugins](#advanced-usage-with-plugins)
-  - [Chat Input Component](#chat-input-component)
-  - [Editor Kernel API](#editor-kernel-api)
-- [🔌 Available Plugins](#-available-plugins)
-  - [Core Plugins](#core-plugins)
-  - [Content Plugins](#content-plugins)
-  - [Plugin Architecture](#plugin-architecture)
-  - [Plugin Features](#plugin-features)
-- [📖 API Reference](#-api-reference)
-  - [Editor Kernel](#editor-kernel)
-  - [LiteXML and Node IDs](#litexml-and-node-ids)
-  - [Plugin System](#plugin-system)
-- [🛠️ Development](#️-development)
-  - [Setup](#setup)
-  - [Available Scripts](#available-scripts)
-  - [Debug Environment Variables](#debug-environment-variables)
-  - [Project Architecture](#project-architecture)
+- [💡 Why Lobe Editor?](#-why-lobe-editor)
+- [🚀 Getting Started](#-getting-started)
+- [🤖 AI-Powered Development](#-ai-powered-development)
+- [👥 Who is this for?](#-who-is-this-for)
+- [📦 Entry Points](#-entry-points)
+- [📚 Documentation](#-documentation)
+- [🛠️ Local Development](#️-local-development)
 - [🤝 Contributing](#-contributing)
 - [🔗 Links](#-links)
-  - [More Products](#more-products)
-  - [Design Resources](#design-resources)
-  - [Development Resources](#development-resources)
 
 ####
 
 </details>
 
-## ✨ Features
+## 💡 Why Lobe Editor?
 
-- 🎯 **Dual Architecture** - Both kernel-based API and React components for maximum flexibility
-- ⚛️ **React-First** - Built for React 19+ with modern hooks and patterns
-- 🔌 **Rich Plugin Ecosystem** - 10+ built-in plugins for comprehensive content editing
-- 💬 **Chat Interface Ready** - Pre-built chat input components with mention support
-- ⌨️ **Slash Commands** - Intuitive `/` and `@` triggered menus for quick content insertion
-- 📝 **Multiple Export Formats** - JSON, Markdown, and plain text export capabilities
-- 🎨 **Customizable UI** - Antd-styled components with flexible theming
-- 🔗 **File & Media Support** - Native support for images, files, tables, and more
-- 🎯 **TypeScript Native** - Built with TypeScript for excellent developer experience
-- 📱 **Modern Build System** - Optimized with Vite, lobedocs, and comprehensive testing
+Lobe Editor (`@lobehub/editor`) is a drop-in rich text editor for React apps that talk to AI, from chat input boxes to full documents.
 
-## 📦 Installation
+- **Ready for chat** — A chat composer with slash commands, `@` mentions, attachments and a send button, ready to drop in
+- **Markdown in, Markdown out** — Type Markdown shortcuts, paste Markdown, and get clean Markdown or JSON back
+- **Let AI edit safely** — Models can change the document while users review and accept or reject each change
+- **Rich content** — Tables, code blocks, math, images, files, links, lists and collapsible sections
+- **Works beyond the browser** — Process content on the server, render it read-only (SSR-friendly), and collaborate in real time
+- **AI-native** — [`skills.md`](https://editor.lobehub.com/skills.md) and [`llms.txt`](https://editor.lobehub.com/llms.txt) let coding agents use the editor correctly
 
-To install `@lobehub/editor`, run the following command:
+<div align="right">
+
+[![][back-to-top]](#readme-top)
+
+</div>
+
+## 🚀 Getting Started
 
 [![][bun-shield]][bun-link]
 
 ```bash
 $ bun add @lobehub/editor
-```
-
-```bash
+# or
 $ pnpm add @lobehub/editor
 ```
 
-<div align="right">
+Requires React 19 and the peer dependencies `react`, `react-dom`, `@lobehub/ui` and `motion`.
 
-\[!\[][back-to-top\]](#readme-top)
-
-</div>
-
-## 🚀 Quick Start
-
-### Basic Editor
-
-The simplest way to get started with a fully-featured editor:
+A minimal editor with lists, links and code blocks:
 
 ```tsx
-import {
-  INSERT_HEADING_COMMAND,
-  ReactCodeblockPlugin,
-  ReactImagePlugin,
-  ReactLinkPlugin,
-  ReactListPlugin,
-} from '@lobehub/editor';
+import { ReactCodeblockPlugin, ReactLinkPlugin, ReactListPlugin } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
 
 export default function MyEditor() {
@@ -114,381 +85,91 @@ export default function MyEditor() {
 
   return (
     <Editor
-      placeholder="Start typing..."
       editor={editor}
-      plugins={[ReactListPlugin, ReactLinkPlugin, ReactImagePlugin, ReactCodeblockPlugin]}
-      slashOption={{
-        items: [
-          {
-            key: 'h1',
-            label: 'Heading 1',
-            onSelect: (editor) => {
-              editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
-            },
-          },
-          // More slash commands...
-        ],
-      }}
-      onChange={(editor) => {
-        // Handle content changes
-        const markdown = editor.getDocument('markdown');
-        const json = editor.getDocument('json');
+      placeholder="Type / for commands..."
+      plugins={[ReactListPlugin, ReactLinkPlugin, ReactCodeblockPlugin]}
+      onTextChange={(editor) => {
+        console.log(editor.getDocument('markdown'));
       }}
     />
   );
 }
 ```
 
-### Advanced Usage with Plugins
+Next steps:
 
-Add more functionality with built-in plugins:
-
-```tsx
-import {
-  INSERT_FILE_COMMAND,
-  INSERT_MENTION_COMMAND,
-  INSERT_TABLE_COMMAND,
-  ReactFilePlugin,
-  ReactHRPlugin,
-  ReactTablePlugin,
-} from '@lobehub/editor';
-import { Editor, useEditor } from '@lobehub/editor/react';
-
-export default function AdvancedEditor() {
-  const editor = useEditor();
-
-  return (
-    <Editor
-      editor={editor}
-      plugins={[
-        ReactTablePlugin,
-        ReactHRPlugin,
-        Editor.withProps(ReactFilePlugin, {
-          handleUpload: async (file) => {
-            // Handle file upload
-            return { url: await uploadFile(file) };
-          },
-        }),
-      ]}
-      mentionOption={{
-        items: async (search) => [
-          {
-            key: 'user1',
-            label: 'John Doe',
-            onSelect: (editor) => {
-              editor.dispatchCommand(INSERT_MENTION_COMMAND, {
-                label: 'John Doe',
-                extra: { userId: 1 },
-              });
-            },
-          },
-        ],
-      }}
-    />
-  );
-}
-```
-
-### Chat Input Component
-
-Pre-built component optimized for chat interfaces:
-
-```tsx
-import { ChatInput } from '@lobehub/editor/react';
-
-export default function ChatApp() {
-  return (
-    <ChatInput
-      placeholder="Type a message..."
-      onSend={(content) => {
-        // Handle message send
-        console.log('Message:', content);
-      }}
-      enabledFeatures={['mention', 'upload', 'codeblock']}
-    />
-  );
-}
-```
-
-### Editor Kernel API
-
-For advanced use cases, access the underlying kernel directly:
-
-```typescript
-import { IEditor, createEditor } from '@lobehub/editor';
-
-// Create editor instance
-const editor: IEditor = createEditor();
-
-// Register plugins
-editor.registerPlugin(SomePlugin, { config: 'value' });
-
-// Interact with content
-editor.setDocument('text', 'Hello world');
-const content = editor.getDocument('json');
-
-// Listen to events
-editor.on('content-changed', (newContent) => {
-  console.log('Content updated:', newContent);
-});
-
-// Execute commands
-editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h2' });
-```
+- [Editor](https://editor.lobehub.com/components/react/editor) — props, plugins, mentions and slash menus
+- [ChatInput](https://editor.lobehub.com/components/react/chat-input) — build a chat composer
+- [Components](https://editor.lobehub.com/components) — all components, plugins and renderers
 
 <div align="right">
 
-\[!\[][back-to-top\]](#readme-top)
+[![][back-to-top]](#readme-top)
 
 </div>
 
-## 🔌 Available Plugins
+## 🤖 AI-Powered Development
 
-### Core Plugins
+Lobe Editor is built for AI-assisted development. The docs site publishes machine-readable references, so agents use real props and APIs instead of guessing.
 
-| Plugin             | Description                   | Features                                                        |
-| ------------------ | ----------------------------- | --------------------------------------------------------------- |
-| **CommonPlugin**   | Foundation editor components  | ReactEditor, ReactEditorContent, ReactPlainText, base utilities |
-| **MarkdownPlugin** | Markdown processing engine    | Shortcuts, transformers, serialization, custom writers          |
-| **UploadPlugin**   | File upload management system | Priority handlers, drag-drop, multi-source uploads              |
+| Resource          | What it does                                                                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Agent Skills**  | [editor.lobehub.com/skills.md](https://editor.lobehub.com/skills.md) — setup, workflow and an index of every component and plugin. Give this URL to your agent in Cursor, Claude Code, Codex and others |
+| **llms.txt**      | [editor.lobehub.com/llms.txt](https://editor.lobehub.com/llms.txt) — structured page index with descriptions and outlines for LLMs                                                                      |
+| **Markdown docs** | Every docs page has a `.md` version, e.g. [Editor](https://editor.lobehub.com/skills/components/react/editor.md) and [ChatInput](https://editor.lobehub.com/skills/components/react/chat-input.md)      |
 
-### Content Plugins
+Copy this prompt to your agent:
 
-| Plugin                   | Description               | Features                                                        |
-| ------------------------ | ------------------------- | --------------------------------------------------------------- |
-| **ReactSlashPlugin**     | Slash command menu system | `/` and `@` triggered menus, customizable items, async search   |
-| **ReactMentionPlugin**   | User mention support      | `@username` mentions, custom markdown output, async user search |
-| **ReactImagePlugin**     | Image handling            | Upload, display, drag & drop, captions, resizing                |
-| **ReactCodeblockPlugin** | Code syntax highlighting  | Shiki-powered, 100+ languages, custom themes, color schemes     |
-| **ReactListPlugin**      | List management           | Ordered/unordered lists, nested lists, keyboard shortcuts       |
-| **ReactLinkPlugin**      | Link management           | Auto-detection, validation, previews, custom styling            |
-| **ReactTablePlugin**     | Table support             | Insert tables, edit cells, add/remove rows/columns, i18n        |
-| **ReactHRPlugin**        | Horizontal rules          | Divider insertion, custom styling, markdown shortcuts           |
-| **ReactFilePlugin**      | File attachments          | File upload, status tracking, validation, drag-drop             |
-
-### Plugin Architecture
-
-All plugins follow a **dual-architecture design**:
-
-#### 🧠 **Kernel Layer** (Framework-agnostic)
-
-- **Plugin Interface**: Standardized plugin system with lifecycle management
-- **Service Container**: Centralized service registration and dependency injection
-- **Command System**: Event-driven command pattern for editor operations
-- **Node System**: Custom node types with serialization and transformation
-- **Data Sources**: Content management and format conversion (JSON, Markdown, Text)
-
-#### ⚛️ **React Layer** (React-specific)
-
-- **React Components**: High-level components for easy integration
-- **Hook Integration**: Custom hooks for editor state and functionality
-- **Event Handling**: React-friendly event system and callbacks
-- **UI Components**: Pre-built UI elements with theming support
-
-### Plugin Features
-
-- ✅ **Fully configurable** with TypeScript-typed options
-- ✅ **Composable** - use any combination together
-- ✅ **Extensible** - create custom plugins using the same API
-- ✅ **Event-driven** - react to user interactions and content changes
-- ✅ **Service-oriented** - modular architecture with dependency injection
-- ✅ **Internationalization** - Built-in i18n support where applicable
-- ✅ **Markdown integration** - Shortcuts, import/export, custom transformers
-- ✅ **Theme system** - Customizable styling and appearance
-- ✅ **Command pattern** - Programmatic control and automation
-
-## 📖 API Reference
-
-#### Utility Hooks
-
-```tsx
-// Get editor instance
-const editor = useEditor();
-
-// Helper for plugin configuration
-const PluginWithConfig = Editor.withProps(ReactFilePlugin, {
-  handleUpload: async (file) => ({ url: 'uploaded-url' }),
-});
+```text
+Read https://editor.lobehub.com/skills.md and follow it to add @lobehub/editor.
 ```
 
-### Editor Kernel
-
-#### `createEditor(): IEditor`
-
-Create a new editor kernel instance:
-
-```typescript
-const editor = createEditor();
-```
-
-#### `IEditor` Interface
-
-Core editor methods:
-
-```typescript
-interface IEditor {
-  // Content management
-  setDocument(type: string, content: any): void;
-  getDocument(type: string): any;
-
-  // Plugin system
-  registerPlugin<T>(plugin: Constructor<T>, config?: T): IEditor;
-  registerPlugins(plugins: Plugin[]): IEditor;
-
-  // Commands
-  dispatchCommand<T>(command: LexicalCommand<T>, payload: T): boolean;
-
-  // Events
-  on<T>(event: string, listener: (data: T) => void): this;
-  off<T>(event: string, listener: (data: T) => void): this;
-
-  // Lifecycle
-  focus(): void;
-  blur(): void;
-  destroy(): void;
-
-  // Access
-  getLexicalEditor(): LexicalEditor | null;
-  getRootElement(): HTMLElement | null;
-  requireService<T>(serviceId: ServiceID<T>): T | null;
-}
-```
-
-### LiteXML and Node IDs
-
-Each content node's durable public ID is stored at `$.properties.nodeId`; LiteXML exposes the same value as its `id` attribute. These IDs are opaque and independent of Lexical runtime keys. Newly generated IDs use 10 lowercase base-36 characters, with cryptographic randomness when the runtime provides it. Existing imported IDs remain unchanged unless they are invalid or collide with another content node. Read IDs from an exported LiteXML snapshot before using them as an operation's `id`, `beforeId`, or `afterId`. Importing JSON with `keepId: true` preserves valid, nonconflicting IDs; `keepId: false` assigns fresh IDs. The literal `root` is reserved for document-boundary `beforeId` and `afterId` insertion anchors. Imported content IDs that trim to `root` are repaired with fresh IDs.
-
-Yjs v1 reconciles collisions created when disconnected clients import different nodes with the same explicit ID. Valid LiteXML review before/after pairs stay together; otherwise, the node with the smallest shared Yjs identity in deterministic order keeps the ID. Other nodes receive the same deterministic repair IDs on every client, and the repair is excluded from user undo history.
-
-An ID names a **logical content node**, not one physical Lexical object. A pending LiteXML modification can contain before and after representations with the same ID. Lookup addresses the active after representation; pending removals are absent from the active view. Accepting or rejecting a change keeps the surviving logical ID, while an independent copy or split receives a new ID. Review wrappers and the document root are not addressable. Without `LitexmlPlugin`, `CommonPlugin` uses a plain tree view with no review rules.
-
-Yjs external snapshots repair duplicate explicit IDs deterministically. Replaying the same malformed snapshot therefore keeps the repaired IDs and does not rewrite the shared document again.
-
-Use `$getNodeById` only synchronously inside a Lexical read or update. It returns a Lexical node in that context, so do not retain the result across updates. A historical `EditorState.read` must receive `{ editor: lexicalEditor }` to select that editor's identity policy. Invalid or unknown IDs return `null`.
-
-For application code outside a Lexical callback, `CommonPlugin` registers `INodeIdentityService`. Its `getNodeById` returns detached, immutable `{ id, type, textContent }` metadata from the last committed state. `textContent` is the native Lexical text for that node; an outer review container can include both pending sides. Use a LiteXML or Markdown export when you need the projected document text. `subscribe` signals committed updates and identity-policy changes; call `getNodeById` in the listener to refresh the metadata. Unsubscribe when the consumer unmounts. After the editor is destroyed, a retained service returns `null`.
-
-The same `$getNodeById`, `$getNodeId`, and `INodeIdentityService` exports are available from `@lobehub/editor/headless`; headless consumers can use that entry without importing the browser bundle.
-
-`$getNodeById` walks the active tree in O(N) time so pending edits and historical reads use the exact Lexical state in the callback. The service builds a key-only index once per committed `EditorState` in O(N) time, then resolves later IDs in O(1) before extracting native `textContent` (which can itself traverse a subtree). The [identity benchmark](scripts/benchmark-node-identity.ts) records diagnostic timings; it does not set CI timing thresholds.
-
-```typescript
-import { $getNodeById, INodeIdentityService, type IEditor } from '@lobehub/editor';
-
-function inspectNode(kernel: IEditor, id: string) {
-  // CommonPlugin must be registered and the editor initialized.
-  const identity = kernel.requireService(INodeIdentityService);
-  const snapshot = identity?.getNodeById(id); // Safe to keep outside Lexical callbacks.
-
-  const lexicalEditor = kernel.getLexicalEditor();
-  lexicalEditor?.getEditorState().read(
-    () => {
-      const node = $getNodeById(id); // Active LiteXML representation, if installed.
-      console.log(node?.getType());
-    },
-    { editor: lexicalEditor },
-  );
-
-  return snapshot;
-}
-```
-
-`HeadlessEditor.applyLiteXMLBatchWithResults(operations)` returns one result per input operation, in array order. `status: 'applied'` means the change is staged in the editor; pending review diffs still need a separate accept or reject action. A `modify` operation containing multiple LiteXML fragments applies all of its targets or none: missing targets, malformed fragments, incompatible list, table, or inline/block structure, repeated target IDs, and ancestor/descendant target pairs fail that operation before it changes the document. Distinct sibling targets can be modified together. Failed operations include a reason, and later independent operations still run:
-
-```typescript
-import { createHeadlessEditor } from '@lobehub/editor/headless';
-
-const editor = createHeadlessEditor();
-editor.hydrateMarkdown('- first\n- second');
-const { litexml } = editor.export({ litexml: true });
-const targetId = /<li id="([^"]+)"/.exec(litexml!)?.[1];
-if (!targetId) throw new Error('No list item ID found in LiteXML');
-
-const operations = [
-  { action: 'remove' as const, id: targetId },
-  { action: 'remove' as const, id: 'unknown-id' },
-];
-
-const results = await editor.applyLiteXMLBatchWithResults(operations);
-// results[1] has status: 'failed' and a reason.
-editor.destroy();
-```
-
-For a direct `IEditor` integration, dispatch `LITEXML_MODIFY_WITH_RESULTS_COMMAND` instead of calling the headless wrapper:
-
-```typescript
-import type { IEditor } from '@lobehub/editor';
-import { LITEXML_MODIFY_WITH_RESULTS_COMMAND } from '@lobehub/editor/litexml-commands';
-
-function applyWithResults(kernel: IEditor) {
-  // The editor is already initialized with LiteXML and has a loaded document.
-  const currentLiteXml = kernel.getDocument('litexml') as unknown as string;
-  const targetId = /<li id="([^"]+)"/.exec(currentLiteXml)?.[1];
-  if (!targetId) throw new Error('No list item ID found in LiteXML');
-
-  kernel.dispatchCommand(LITEXML_MODIFY_WITH_RESULTS_COMMAND, {
-    operations: [
-      { action: 'remove', id: targetId },
-      { action: 'remove', id: 'unknown-id' },
-    ],
-    onResults: (batchResults) => {
-      const failed = batchResults.filter((result) => result.status === 'failed');
-      console.log(failed);
-    },
-  });
-}
-```
-
-### Plugin System
-
-#### Creating Custom Plugins
-
-```typescript
-import { IEditorKernel, IEditorPlugin } from '@lobehub/editor';
-
-class MyCustomPlugin implements IEditorPlugin {
-  constructor(private config: MyPluginConfig) {}
-
-  initialize(kernel: IEditorKernel) {
-    // Register nodes, commands, transforms, etc.
-    kernel.registerNode(MyCustomNode);
-    kernel.registerCommand(MY_COMMAND, this.handleCommand);
-  }
-
-  destroy() {
-    // Cleanup
-  }
-}
-```
-
-#### Available Commands
-
-Common commands you can dispatch:
-
-```typescript
-// Content insertion
-INSERT_HEADING_COMMAND; // { tag: 'h1' | 'h2' | 'h3' }
-INSERT_LINK_COMMAND; // { url: string, text?: string }
-INSERT_IMAGE_COMMAND; // { src: string, alt?: string }
-INSERT_TABLE_COMMAND; // { rows: number, columns: number }
-INSERT_MENTION_COMMAND; // { label: string, extra?: any }
-INSERT_FILE_COMMAND; // { file: File }
-INSERT_HORIZONTAL_RULE_COMMAND;
-
-// Text formatting
-FORMAT_TEXT_COMMAND; // { format: 'bold' | 'italic' | 'underline' }
-CLEAR_FORMAT_COMMAND;
-```
+Works with **Cursor**, **Claude Code**, **Windsurf**, **GitHub Copilot** and any tool that can read `llms.txt` or fetch a URL.
 
 <div align="right">
 
-\[!\[][back-to-top\]](#readme-top)
+[![][back-to-top]](#readme-top)
 
 </div>
 
-## 🛠️ Development
+## 👥 Who is this for?
 
-### Setup
+- **AI chat apps** that need a rich input box with mentions, commands and attachments
+- **AI writing and knowledge tools** where a model edits documents and users review the changes
+- **Backends** that convert or render editor content without a browser
+- **Collaborative editors** that sync documents in real time
+
+## 📦 Entry Points
+
+| Entry                      | Use it for                                                 |
+| -------------------------- | ---------------------------------------------------------- |
+| `@lobehub/editor`          | Plugins, commands and the editor kernel                    |
+| `@lobehub/editor/react`    | `Editor`, `ChatInput`, `SendButton` and hooks              |
+| `@lobehub/editor/headless` | Reading and writing documents on the server, without a DOM |
+| `@lobehub/editor/renderer` | Read-only, SSR-safe rendering and diffs of saved content   |
+
+<div align="right">
+
+[![][back-to-top]](#readme-top)
+
+</div>
+
+## 📚 Documentation
+
+Full guides, API tables and live demos are at **[editor.lobehub.com](https://editor.lobehub.com)**:
+
+- [Editor](https://editor.lobehub.com/components/react/editor) and [ChatInput](https://editor.lobehub.com/components/react/chat-input)
+- [Plugins](https://editor.lobehub.com/components/plugins/common) — Markdown, slash, mention, table, code, math and more
+- [LexicalRenderer](https://editor.lobehub.com/components/renderer/lexical-renderer) and [LexicalDiff](https://editor.lobehub.com/components/renderer/lexical-diff)
+- [Changelog](https://editor.lobehub.com/changelog)
+
+<div align="right">
+
+[![][back-to-top]](#readme-top)
+
+</div>
+
+## 🛠️ Local Development
 
 You can use Github Codespaces for online development:
 
@@ -496,204 +177,14 @@ You can use Github Codespaces for online development:
 
 Or clone it for local development:
 
-[![][bun-shield]][bun-link]
-
 ```bash
 $ git clone https://github.com/lobehub/lobe-editor.git
 $ cd lobe-editor
 $ pnpm install
-$ pnpm run dev
+$ pnpm dev
 ```
 
-This starts the lobedocs development server with the live component playground. The local URL is
-printed in the terminal.
-
-### Available Scripts
-
-| Script               | Description                                  |
-| -------------------- | -------------------------------------------- |
-| `pnpm dev`           | Start lobedocs with the component playground |
-| `pnpm build`         | Build library and generate type definitions  |
-| `pnpm test`          | Run tests with Vitest                        |
-| `pnpm test:coverage` | Run tests with coverage report               |
-| `pnpm lint`          | Lint and fix code with ESLint                |
-| `pnpm type-check`    | Type check with TypeScript                   |
-| `pnpm ci`            | Run all CI checks (lint, type-check, test)   |
-| `pnpm docs:build`    | Build documentation for production           |
-| `pnpm release`       | Publish new version with semantic-release    |
-
-### Debug Environment Variables
-
-LobeHub Editor includes comprehensive debug logging that can be controlled via environment variables:
-
-#### Basic Debug Configuration
-
-```bash
-# Enable all LobeHub Editor debug output
-DEBUG=lobe-editor:*
-
-# Enable only important logs (recommended for development)
-DEBUG=lobe-editor:*:info,lobe-editor:*:warn,lobe-editor:*:error
-
-# Enable specific components
-DEBUG=lobe-editor:kernel,lobe-editor:plugin:*
-```
-
-#### Available Debug Categories
-
-| Category           | Description               | Example                              |
-| ------------------ | ------------------------- | ------------------------------------ |
-| `kernel`           | Core editor functionality | `DEBUG=lobe-editor:kernel`           |
-| `plugin:*`         | All plugins               | `DEBUG=lobe-editor:plugin:*`         |
-| `plugin:slash`     | Slash commands            | `DEBUG=lobe-editor:plugin:slash`     |
-| `plugin:mention`   | Mention system            | `DEBUG=lobe-editor:plugin:mention`   |
-| `plugin:image`     | Image handling            | `DEBUG=lobe-editor:plugin:image`     |
-| `plugin:file`      | File operations           | `DEBUG=lobe-editor:plugin:file`      |
-| `service:*`        | All services              | `DEBUG=lobe-editor:service:*`        |
-| `service:upload`   | Upload service            | `DEBUG=lobe-editor:service:upload`   |
-| `service:markdown` | Markdown processing       | `DEBUG=lobe-editor:service:markdown` |
-
-#### Debug Levels
-
-| Level   | Browser Display       | Usage               | Environment Variable        |
-| ------- | --------------------- | ------------------- | --------------------------- |
-| `debug` | Console.log (gray)    | Detailed tracing    | `DEBUG=lobe-editor:*:debug` |
-| `info`  | Console.log (blue)    | General information | `DEBUG=lobe-editor:*:info`  |
-| `warn`  | Console.warn (yellow) | Warnings            | `DEBUG=lobe-editor:*:warn`  |
-| `error` | Console.error (red)   | Errors              | `DEBUG=lobe-editor:*:error` |
-
-#### Development Usage
-
-```bash
-# Full debug during development
-DEBUG=lobe-editor:*
-
-# Only critical logs
-DEBUG=lobe-editor:*:error,lobe-editor:*:warn
-# Plugin debugging
-DEBUG=lobe-editor:plugin:*
-# Service debugging
-DEBUG=lobe-editor:service:*
-```
-
-### Project Architecture
-
-```
-lobe-editor/
-├── src/
-│   ├── editor-kernel/           # 🧠 Core editor logic
-│   │   ├── kernel.ts           # Main editor class with plugin system
-│   │   ├── data-source.ts      # Content management (JSON/Markdown/Text)
-│   │   ├── service.ts          # Service container and dependency injection
-│   │   ├── plugin/             # Plugin base classes and interfaces
-│   │   ├── react/              # React integration layer
-│   │   └── types.ts            # TypeScript interfaces
-│   │
-│   ├── plugins/                # 🔌 Feature plugins
-│   │   ├── common/             # 🏗️ Foundation components
-│   │   │   ├── plugin/         # Base editor plugin
-│   │   │   ├── react/          # ReactEditor, ReactEditorContent, ReactPlainText
-│   │   │   ├── data-source/    # Content data sources
-│   │   │   └── utils/          # Common utilities
-│   │   │
-│   │   ├── markdown/           # 📝 Markdown processing engine
-│   │   │   ├── plugin/         # Markdown transformation plugin
-│   │   │   ├── service/        # Markdown shortcut service
-│   │   │   ├── data-source/    # Markdown serialization
-│   │   │   └── utils/          # Transformer utilities
-│   │   │
-│   │   ├── upload/             # 📤 Upload management system
-│   │   │   ├── plugin/         # Upload handling plugin
-│   │   │   ├── service/        # Upload service with priority system
-│   │   │   └── utils/          # Upload utilities
-│   │   │
-│   │   ├── slash/              # ⚡ Slash commands (/, @)
-│   │   │   ├── plugin/         # Slash detection plugin
-│   │   │   ├── react/          # ReactSlashPlugin, ReactSlashOption
-│   │   │   ├── service/        # Slash service with fuzzy search
-│   │   │   └── utils/          # Search and trigger utilities
-│   │   │
-│   │   ├── mention/            # 👤 @mention system
-│   │   │   ├── plugin/         # Mention plugin with decorators
-│   │   │   ├── react/          # ReactMentionPlugin
-│   │   │   ├── command/        # INSERT_MENTION_COMMAND
-│   │   │   └── node/           # MentionNode with serialization
-│   │   │
-│   │   ├── codeblock/          # 🎨 Syntax highlighting
-│   │   │   ├── plugin/         # Codeblock plugin with Shiki
-│   │   │   ├── react/          # ReactCodeblockPlugin
-│   │   │   ├── command/        # Language and color commands
-│   │   │   └── utils/          # Language detection
-│   │   │
-│   │   ├── image/              # 🖼️ Image upload & display
-│   │   │   ├── plugin/         # Image plugin with captions
-│   │   │   ├── react/          # ReactImagePlugin
-│   │   │   ├── command/        # INSERT_IMAGE_COMMAND
-│   │   │   └── node/           # BaseImageNode, ImageNode
-│   │   │
-│   │   ├── table/              # 📊 Table support
-│   │   │   ├── plugin/         # Table plugin with i18n
-│   │   │   ├── react/          # ReactTablePlugin
-│   │   │   ├── command/        # Table manipulation commands
-│   │   │   ├── node/           # Enhanced TableNode
-│   │   │   └── utils/          # Table operations
-│   │   │
-│   │   ├── file/               # 📎 File attachments
-│   │   │   ├── plugin/         # File plugin with status tracking
-│   │   │   ├── react/          # ReactFilePlugin
-│   │   │   ├── command/        # INSERT_FILE_COMMAND
-│   │   │   ├── node/           # FileNode with metadata
-│   │   │   └── utils/          # File operations
-│   │   │
-│   │   ├── link/               # 🔗 Link management
-│   │   │   ├── plugin/         # Link plugin with validation
-│   │   │   ├── react/          # ReactLinkPlugin
-│   │   │   ├── command/        # Link commands
-│   │   │   └── utils/          # URL validation and detection
-│   │   │
-│   │   ├── list/               # 📋 Lists (ordered/unordered)
-│   │   │   ├── plugin/         # List plugin with nesting
-│   │   │   ├── react/          # ReactListPlugin
-│   │   │   ├── command/        # List manipulation commands
-│   │   │   └── utils/          # List operations
-│   │   │
-│   │   └── hr/                 # ➖ Horizontal rules
-│   │       ├── plugin/         # HR plugin with styling
-│   │       ├── react/          # ReactHRPlugin
-│   │       ├── command/        # HR insertion commands
-│   │       └── node/           # HorizontalRuleNode
-│   │
-│   ├── react/                  # ⚛️ High-level React components
-│   │   ├── Editor/             # Main Editor component with plugins
-│   │   ├── ChatInput/          # Chat interface component
-│   │   ├── ChatInputActions/   # Chat action buttons
-│   │   ├── ChatInputActionBar/ # Action bar layout
-│   │   ├── SendButton/         # Send button with states
-│   │   └── CodeLanguageSelect/ # Code language selector
-│   │
-│   └── index.ts                # Public API exports
-│
-├── docs/                       # 📚 Documentation source
-├── docs.config.ts              # lobedocs site configuration
-├── tests/                      # 🧪 Test files
-└── vitest.config.ts            # Test configuration
-```
-
-The architecture follows a **dual-layer design**:
-
-1. **Kernel Layer** (`editor-kernel/`) - Framework-agnostic core with plugin system
-2. **React Layer** (`react/` + `plugins/*/react/`) - React-specific implementations
-
-Each plugin follows a consistent structure:
-
-- **`plugin/`** - Core plugin logic and node definitions
-- **`react/`** - React components and hooks (if applicable)
-- **`command/`** - Editor commands and handlers
-- **`service/`** - Services and business logic
-- **`node/`** - Custom Lexical nodes
-- **`utils/`** - Utility functions and helpers
-
-This allows for maximum flexibility - you can use just the kernel for custom integrations, or the React components for rapid development.
+`pnpm dev` starts the docs site with live demos. Run `pnpm test` for tests and `pnpm ci` for lint and type checks.
 
 <div align="right">
 
@@ -704,6 +195,8 @@ This allows for maximum flexibility - you can use just the kernel for custom int
 ## 🤝 Contributing
 
 Contributions of all types are more than welcome, if you are interested in contributing code, feel free to check out our GitHub [Issues][github-issues-link] to get stuck in to show us what you're made of.
+
+If you work on the docs site with an AI agent, the repo ships agent skills in [`.agents/skills`](./.agents/skills) (`using-docs-kit`, `building-landing-home`).
 
 [![][pr-welcome-shield]][pr-welcome-link]
 
@@ -717,24 +210,13 @@ Contributions of all types are more than welcome, if you are interested in contr
 
 ## 🔗 Links
 
-### More Products
-
-- **[🤯 Lobe Chat](https://github.com/lobehub/lobe-chat)** - An open-source, extensible (Function Calling), high-performance chatbot framework. It supports one-click free deployment of your private ChatGPT/LLM web application.
-- **[🅰️ Lobe Theme](https://github.com/lobehub/sd-webui-lobe-theme)** - The modern theme for stable diffusion webui, exquisite interface design, highly customizable UI, and efficiency boosting features.
-- **[🧸 Lobe Vidol](https://github.com/lobehub/lobe-vidol)** - Experience the magic of virtual idol creation with Lobe Vidol, enjoy the elegance of our Exquisite UI Design, dance along using MMD Dance Support, and engage in Smooth Conversations.
-
-### Design Resources
-
-- **[🍭 Lobe UI](https://ui.lobehub.com)** - An open-source UI component library for building AIGC web apps.
-- **[🥨 Lobe Icons](https://lobehub.com/icons)** - Popular AI / LLM Model Brand SVG Logo and Icon Collection.
-- **[📊 Lobe Charts](https://charts.lobehub.com)** - React modern charts components built on recharts
-
-### Development Resources
-
-- **[🎤 Lobe TTS](https://tts.lobehub.com)** - A high-quality & reliable TTS/STT library for Server and Browser
-- **[🌏 Lobe i18n](https://github.com/lobehub/lobe-cli-toolbox/blob/master/packages/lobe-i18n)** - Automation ai tool for the i18n (internationalization) translation process.
-
-[More Resources](https://lobehub.com/resources)
+- **[🤯 Lobe UI](https://github.com/lobehub/lobe-ui)** - React UI component library for AI apps
+- **[🌈 Lobe Icons](https://github.com/lobehub/lobe-icons)** - AI & LLM brand logos and icons
+- **[📊 Lobe Charts](https://github.com/lobehub/lobe-charts)** - React chart components
+- **[✒️ Lobe Editor](https://github.com/lobehub/lobe-editor)** - Lexical-based rich text editor for React, with Markdown, plugins and a chat composer
+- **[🗣️ Lobe TTS](https://github.com/lobehub/lobe-tts)** - TTS & STT speech library
+- **[📐 Lobe Lint](https://github.com/lobehub/lobe-lint)** - ESLint, Prettier, Stylelint, Commitlint and more lint configs
+- **[😊 Fluent Emoji](https://github.com/lobehub/fluent-emoji)** - Fluent Emoji assets
 
 <div align="right">
 
@@ -770,7 +252,7 @@ This project is [MIT](./LICENSE) licensed.
 [github-license-shield]: https://img.shields.io/github/license/lobehub/lobe-editor?color=white&labelColor=black&style=flat-square
 [github-releasedate-link]: https://github.com/lobehub/lobe-editor/releases
 [github-releasedate-shield]: https://img.shields.io/github/release-date/lobehub/lobe-editor?labelColor=black&style=flat-square
-[github-stars-link]: https://github.com/lobehub/lobe-editor/network/stargazers
+[github-stars-link]: https://github.com/lobehub/lobe-editor/stargazers
 [github-stars-shield]: https://img.shields.io/github/stars/lobehub/lobe-editor?color=ffcb47&labelColor=black&style=flat-square
 [npm-release-link]: https://www.npmjs.com/package/@lobehub/editor
 [npm-release-shield]: https://img.shields.io/npm/v/@lobehub/editor?color=369eff&labelColor=black&logo=npm&logoColor=white&style=flat-square

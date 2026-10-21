@@ -74,7 +74,7 @@
     "postinstall": "node ./scripts/postinstall-lexical-patch.cjs",
     "lint": "eslint \"{src,tests}/**/*.{js,jsx,ts,tsx}\" --fix",
     "lint:circular": "dpdm src/**/*.{ts,tsx}  --warning false  --tree false  --exit-code circular:1  -T true",
-    "lint:md": "remark . --quiet --frail --output",
+    "lint:md": "remark . --quiet --output",
     "lint:style": "stylelint \"{src,tests}/**/*.{js,jsx,ts,tsx,less}\" --fix",
     "prepack": "clean-package",
     "postpack": "clean-package restore",

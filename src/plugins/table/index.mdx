@@ -56,12 +56,11 @@ The plugin extends Lexical's table functionality:
 
 React component wrapper for table functionality.
 
-| Property       | Description               | Type                         | Default |
-| -------------- | ------------------------- | ---------------------------- | ------- |
-| rows           | Initial number of rows    | `number`                     | `3`     |
-| columns        | Initial number of columns | `number`                     | `3`     |
-| includeHeaders | Include header row        | `boolean`                    | `true`  |
-| onTableCreate  | Table creation handler    | `(table: TableData) => void` | -       |
+| Property   | Description                                                      | Type                                          | Default      |
+| ---------- | ---------------------------------------------------------------- | --------------------------------------------- | ------------ |
+| className  | Class name for tables                                            | `string`                                      | -            |
+| locale     | Override table UI strings                                        | `Partial<Record<keyof ILocaleKeys, string>>`  | -            |
+| resizeMode | Resize while dragging (`realtime`) or when the drag ends (`deferred`) | `'realtime' \| 'deferred'`                   | `'realtime'` |
 
 ## Commands
 
@@ -71,53 +70,38 @@ Create a new table in the editor:
 
 ```typescript
 editor.dispatchCommand(INSERT_TABLE_COMMAND, {
-  rows: 4,
-  columns: 3,
-  includeHeaders: true,
+  columns: '3',
+  rows: '4',
 });
 ```
 
 **Parameters:**
 
-- `rows`: Number of table rows
-- `columns`: Number of table columns
-- `includeHeaders`: Whether to include header row
+- `rows`: Number of table rows, as a string
+- `columns`: Number of table columns, as a string
+- `includeHeaders` (optional): Lexical `InsertTableCommandPayloadHeaders` (`boolean` or `{ columns, rows }`)
 
 ### SELECT_TABLE_COMMAND
 
 Select a table or table region:
 
 ```typescript
-editor.dispatchCommand(SELECT_TABLE_COMMAND, {
-  tableKey: 'table-node-key',
-  selection: { startRow: 0, endRow: 2, startCol: 0, endCol: 1 },
-});
+// Select the whole table
+editor.dispatchCommand(SELECT_TABLE_COMMAND, { table: tableNode.getKey() });
+
+// Select row 2 (pass columnIndex to select a column; extend to grow the selection)
+editor.dispatchCommand(SELECT_TABLE_COMMAND, { rowIndex: 2, table: tableNode.getKey() });
 ```
 
 ## Plugin Configuration
 
 ### TablePluginOptions
 
-| Property       | Description                   | Type             | Default |
-| -------------- | ----------------------------- | ---------------- | ------- |
-| theme          | Table CSS theme configuration | `TableTheme`     | -       |
-| includeHeaders | Default header inclusion      | `boolean`        | `true`  |
-| allowResize    | Enable column/row resizing    | `boolean`        | `true`  |
-| cellEditor     | Custom cell editor component  | `ReactComponent` | -       |
-
-### TableTheme
-
-CSS theme configuration for table styling:
-
-```typescript
-interface TableTheme {
-  table?: string;
-  tableRow?: string;
-  tableCell?: string;
-  tableCellHeader?: string;
-  tableSelection?: string;
-}
-```
+| Property     | Description                    | Type                                                  | Default |
+| ------------ | ------------------------------ | ----------------------------------------------------- | ------- |
+| decoratorCol | Renders column-level UI        | `(node: TableNode, editor: LexicalEditor) => ReactNode` | -       |
+| decoratorRow | Renders row-level UI           | `(node: TableNode, editor: LexicalEditor) => ReactNode` | -       |
+| theme        | Class name for table nodes     | `string`                                              | -       |
 
 ## Utility Functions
 
@@ -180,50 +164,20 @@ The plugin includes i18n support for table-related text:
 
 ## Usage Examples
 
-### Basic Table Creation
-
-```typescript
-const tablePlugin = new TablePlugin(kernel, {
-  theme: {
-    table: 'custom-table',
-    tableCell: 'custom-cell',
-    tableCellHeader: 'custom-header',
-  },
-  includeHeaders: true,
-  allowResize: true,
-});
-```
-
 ### Programmatic Table Operations
 
 ```typescript
-// Create a 3x4 table with headers
+// Create a 3x4 table with a header row
 editor.dispatchCommand(INSERT_TABLE_COMMAND, {
-  rows: 3,
-  columns: 4,
+  columns: '4',
   includeHeaders: true,
+  rows: '3',
 });
 
-// Add row to existing table
-const tableNode = getSelectedTableNode();
-if (tableNode) {
-  insertTableRow(tableNode, 1);
-}
-```
-
-### Custom Cell Editor
-
-```typescript
-const CustomCellEditor = ({ value, onChange, onSave }) => (
-  <input
-    value={value}
-    onChange={(e) => onChange(e.target.value)}
-    onBlur={onSave}
-    onKeyDown={(e) => e.key === 'Enter' && onSave()}
-  />
-);
-
-const tablePlugin = new TablePlugin(kernel, {
-  cellEditor: CustomCellEditor
+// Insert a row after row 1 of a table (`table` is the table node key)
+editor.dispatchCommand(INSERT_TABLE_ROW_COMMAND, {
+  insertAfter: true,
+  rowIndex: 1,
+  table: tableNode.getKey(),
 });
 ```

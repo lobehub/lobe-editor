@@ -5,226 +5,100 @@ globs: *.ts,*.tsx,*.js,*.jsx
 
 # Coding Standards
 
-## TypeScript Guidelines
+Lint and format rules are enforced by `eslint.config.js`, `prettier.config.js` and
+`stylelint.config.js` (all from `@lobehub/lint`); the pre-commit hook runs them on staged files.
+This rule covers conventions the tools do not check.
 
-### Strict Type Safety
+## TypeScript
 
-- Use strict TypeScript configuration
-- Prefer explicit types over `any`
-- Use proper generics for reusable components
-- Define interfaces for all public APIs
+- `tsconfig.json` is `strict`; prefer explicit types over `any` in public APIs.
+- Public kernel / plugin interfaces live in [src/types/](mdc:src/types/) (`IEditor`,
+  `IEditorKernel`, `IEditorPlugin`, `IEditorPluginConstructor`, `IServiceID`, ...).
+- Naming:
+  - `I` prefix for service interfaces and their ids: `IMarkdownShortCutService`, `ILitexmlService`.
+  - `<Name>Props` for React props, `<Name>PluginOptions` / `<Name>Options` for kernel plugin
+    options, `Serialized<Name>Node` for node JSON.
+  - Commands are `SCREAMING_SNAKE_CASE` and end with `_COMMAND`.
+- Use `import type` / inline `type` imports for type-only imports.
 
-### Interface Naming
-
-- Use `I` prefix for service interfaces: `ICustomService`
-- Use descriptive names for component props: `CustomPluginProps`
-- Use `SerializedXNode` for node serialization types
-
-### Import Organization
+## Imports
 
 ```typescript
-// External libraries first
-import { LexicalEditor, LexicalNode } from 'lexical';
-import { memo } from 'react';
+// External packages first
+import { mergeRegister } from '@lexical/utils';
+import type { LexicalEditor } from 'lexical';
 
-// Internal imports - absolute paths from @/
-import { IEditorKernel } from '@/editor-kernel';
+// Internal modules via the @/ alias (maps to src/)
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import type { IEditorKernel } from '@/types';
+import { createDebugLogger } from '@/utils/debug';
 
 // Relative imports last
-import { CustomNode } from '../node';
-import './styles.css';
+import { MyNode } from '../node/MyNode';
+import { styles } from './style';
 ```
 
-## React Component Standards
+- Library code uses `@/…`; demos and docs import the public package names
+  (`@lobehub/editor`, `@lobehub/editor/react`).
+- Avoid circular imports: `pnpm lint:circular` (dpdm) fails the pre-commit hook on them.
 
-### Component Structure
+## React Components
 
-```typescript
-interface ComponentProps {
-  /** JSDoc description for each prop */
-  propName: PropType;
-}
+```tsx
+'use client';
 
-export const ComponentName = memo<ComponentProps>(({
-  propName,
-  ...rest
-}) => {
-  // Component logic
-  
+import { cx } from '@lobehub/ui';
+import type { FC } from 'react';
+
+import { styles } from './style';
+import type { MyComponentProps } from './type';
+
+const MyComponent: FC<MyComponentProps> = ({ className, children, ...rest }) => {
   return (
-    <div {...rest}>
-      {/* JSX content */}
+    <div className={cx(styles.root, className)} {...rest}>
+      {children}
     </div>
   );
-});
+};
 
-ComponentName.displayName = 'ComponentName';
+MyComponent.displayName = 'MyComponent';
+
+export default MyComponent;
 ```
 
-### Hook Usage
+- `FC` + default export + `displayName`. Use `memo` only when it pays off and leave a comment
+  saying why (`// Keep memo: ...`, see `src/react/Editor/Editor.tsx`).
+- Styles in `style.ts` with `createStaticStyles` from `@lobehub/ui` (no CSS files, no
+  `antd-style` hooks). Details in [react-development](mdc:.cursor/rules/react-development.mdc).
 
-- Use built-in React hooks appropriately
-- Create custom hooks for shared logic
-- Follow hooks rules (no conditional hooks)
+## Kernel Code
 
-## Plugin Development
+- Mutate editor state only inside `editor.update(...)`; command handlers return `true` when
+  handled.
+- Register listeners through `this.register(...)` / `mergeRegister` so they are cleaned up.
+- Log with `createDebugLogger` (see [debug-logging](mdc:.cursor/rules/debug-logging.mdc)), not
+  bare `console.*`; for errors that must always surface use `prodSafeLogger.error`.
 
-### Service Implementation
+## Tests
 
-```typescript
-// Always implement interfaces
-export class ServiceName implements IServiceName {
-  private property: Type;
-  
-  constructor(private dependency: DependencyType) {
-    // Initialization
-  }
-  
-  public method(param: ParamType): ReturnType {
-    // Implementation
-  }
-}
-```
+- Vitest with `globals: true` and the `jsdom` environment (`vitest.config.ts`); import
+  `describe` / `it` / `expect` / `vi` from `vitest` explicitly.
+- Colocate tests in `__tests__/` as `*.test.ts(x)` (a few older folders use `__test__`).
+- React tests render with `createRoot` + `act` from React (no Testing Library dependency),
+  see `src/react/SendButton/__tests__/`.
+- Run: `pnpm test` (watch), `pnpm vitest run <path>`, `pnpm test:coverage`.
 
-### Command Implementation
+## JSDoc
 
-```typescript
-// Use proper command priorities
-export function registerCommand(editor: LexicalEditor) {
-  return editor.registerCommand(
-    COMMAND_NAME,
-    (payload) => {
-      editor.update(() => {
-        // Editor mutations inside update
-      });
-      return true; // Always return boolean
-    },
-    COMMAND_PRIORITY_HIGH,
-  );
-}
-```
+Document public props and exported functions with JSDoc; for props include `@default` when
+there is one. These comments are the source for the hand-written API tables in `index.mdx`.
 
-### Node Implementation
+## File Naming
 
-```typescript
-// Extend appropriate base class
-export class CustomNode extends DecoratorNode<ReactElement> {
-  // Always implement required static methods
-  static getType(): string {
-    return 'custom-node-type';
-  }
-  
-  // Proper serialization
-  exportJSON(): SerializedCustomNode {
-    return {
-      ...super.exportJSON(),
-      customProperty: this.__customProperty,
-    };
-  }
-}
-```
-
-## Error Handling
-
-### Service Error Handling
-
-```typescript
-async serviceMethod(param: Type): Promise<Result> {
-  try {
-    const result = await externalOperation(param);
-    return result;
-  } catch (error) {
-    console.error('Service operation failed:', error);
-    throw new ServiceError('Operation failed', { cause: error });
-  }
-}
-```
-
-### Component Error Boundaries
-
-- Use error boundaries for critical components
-- Provide fallback UI for errors
-- Log errors appropriately
-
-## Testing Standards
-
-### Unit Tests
-
-- Test all public methods
-- Mock external dependencies
-- Use descriptive test names
-- Follow AAA pattern (Arrange, Act, Assert)
-
-### Integration Tests
-
-- Test plugin integration
-- Test service interactions
-- Test command execution
-
-## Performance Guidelines
-
-### React Performance
-
-- Use `memo` for expensive components
-- Optimize re-renders with proper dependencies
-- Use `useMemo` and `useCallback` judiciously
-
-### Editor Performance
-
-- Batch editor updates when possible
-- Avoid unnecessary node transformations
-- Use efficient selection handling
-
-## Documentation Standards
-
-### JSDoc Comments
-
-````typescript
-/**
- * Brief description of the function/class
- * 
- * @param param1 - Description of parameter
- * @param param2 - Description of parameter
- * @returns Description of return value
- * 
- * @example
- * ```typescript
- * const result = functionName(value1, value2);
- * ```
- */
-export function functionName(param1: Type1, param2: Type2): ReturnType {
-  // Implementation
-}
-````
-
-### README Standards
-
-- Clear installation instructions
-- Usage examples with code
-- API documentation
-- Contributing guidelines
-
-## File Organization
-
-### Directory Structure
-
-```
-plugin-name/
-├── index.ts          # Main exports
-├── index.md          # Documentation
-├── plugin/           # Core plugin logic
-├── react/            # React components
-├── command/          # Editor commands
-├── service/          # Business logic
-├── node/             # Custom nodes
-├── utils/            # Utilities
-└── demos/            # Demo examples
-```
-
-### File Naming
-
-- Use kebab-case for directories: `plugin-name`
-- Use PascalCase for component files: `ComponentName.tsx`
-- Use camelCase for utility files: `utilityFunction.ts`
-- Use descriptive names that reflect functionality
+- Directories: kebab-case for plugins (`link-highlight`), PascalCase for React component
+  folders (`src/react/SendButton`).
+- Components and React plugins: PascalCase files (`SendButton.tsx`, `ReactHRPlugin.tsx`).
+- Nodes: PascalCase (`node/HorizontalRuleNode.ts`).
+- Other modules: kebab-case or camelCase, matching neighbouring files (`i-upload-service.ts`,
+  `registerHotkey.ts`).
+- Folder entry is `index.ts`; props in `type.ts`; styles in `style.ts`.

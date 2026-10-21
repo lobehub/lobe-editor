@@ -4,193 +4,119 @@ description: Comprehensive hotkey architecture and management standards for Lobe
 
 # Hotkey Management Standards
 
-## HotkeyOptions Interface
+## Building Blocks
 
-Use the existing [HotkeyOptions](mdc:src/utils/hotkey/registerHotkey.ts) interface for consistent hotkey behavior:
+| What                 | Where                                                                        |
+| -------------------- | ---------------------------------------------------------------------------- |
+| Hotkey ids           | `HotkeyEnum` in [src/types/hotkey.ts](mdc:src/types/hotkey.ts)               |
+| Scopes and key names | `HotkeyScopeEnum`, `KeyEnum` in the same file                                |
+| Default bindings     | `HOTKEYS_REGISTRATION` in [src/const/hotkey.ts](mdc:src/const/hotkey.ts)     |
+| Options + matching   | [src/utils/hotkey/registerHotkey.ts](mdc:src/utils/hotkey/registerHotkey.ts) |
+| Kernel API           | `kernel.registerHotkey(id, callback, options)` (returns a cleanup)           |
+
+Current ids: `Bold`, `BulletList`, `CodeInline`, `Italic`, `Link`, `Mention`, `NumberList`,
+`PasteAsPlainText`, `Redo`, `Slash`, `Strikethrough`, `Underline`, `Undo`.
 
 ```typescript
 export type HotkeyOptions = {
-  enabled?: boolean;           // Controls if hotkey is active
-  preventDefault?: boolean;    // Prevent default browser behavior
-  stopImmediatePropagation?: boolean; // Stop immediate propagation
-  stopPropagation?: boolean;   // Stop event propagation
+  enabled?: boolean; // false: nothing is registered
+  preventDefault?: boolean;
+  stopImmediatePropagation?: boolean; // declared, currently not applied by registerHotkey
+  stopPropagation?: boolean;
 };
 ```
 
-## Plugin Hotkey Architecture
+`kernel.registerHotkey` looks the id up in `HOTKEYS_REGISTRATION` (unknown ids are ignored),
+returns a no-op when `enabled === false`, and otherwise registers a `KEY_DOWN_COMMAND`
+listener at the binding's `priority`.
 
-### Registry Pattern
+## Adding a Hotkey
 
-Create a `plugin/registry.ts` file for hotkey and command registration:
+1. Add the id to `HotkeyEnum` in `src/types/hotkey.ts`.
+2. Add a `HotkeyItem` to `HOTKEYS_REGISTRATION` in `src/const/hotkey.ts`:
+
+```typescript
+{
+  id: HotkeyEnum.Bold,
+  keys: combineKeys([KeyEnum.Mod, 'b']),
+  priority: COMMAND_PRIORITY_LOW,
+  scopes: [HotkeyScopeEnum.Format],
+},
+```
+
+3. Register it from the plugin's registry (next section) behind `enableHotkey`.
+
+## Registering in a Plugin
+
+Hotkeys are registered in the kernel layer, in `plugin/registry.ts` (`code`, `link`,
+`link-highlight`, `list`) or `plugin/register.ts` (`common`):
 
 ```typescript
 import { mergeRegister } from '@lexical/utils';
-import { LexicalEditor } from 'lexical';
-import { IEditorKernel } from '@/types';
+import { INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
+import type { LexicalEditor } from 'lexical';
+
+import type { IEditorKernel } from '@/types';
 import { HotkeyEnum } from '@/types/hotkey';
 
-export interface PluginRegistryOptions {
+export interface ListRegistryOptions {
   enableHotkey?: boolean;
-  // other plugin-specific options
 }
 
-export function registerPluginCommands(
-  editor: LexicalEditor, 
-  kernel: IEditorKernel, 
-  options?: PluginRegistryOptions
+export function registerListCommands(
+  editor: LexicalEditor,
+  kernel: IEditorKernel,
+  options?: ListRegistryOptions,
 ) {
   const { enableHotkey = true } = options || {};
-  
+
   return mergeRegister(
-    // Core commands (always registered)
-    editor.registerCommand(PLUGIN_COMMAND, handler, PRIORITY),
-    
-    // Hotkeys (conditionally enabled via HotkeyOptions.enabled)
     kernel.registerHotkey(
-      HotkeyEnum.PluginHotkey,
-      () => editor.dispatchCommand(PLUGIN_COMMAND, payload),
-      {
-        enabled: enableHotkey, // Use HotkeyOptions.enabled
-        preventDefault: true,
-        stopPropagation: true,
-      },
+      HotkeyEnum.BulletList,
+      () => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined),
+      { enabled: enableHotkey, preventDefault: true, stopImmediatePropagation: true },
     ),
+    // ...commands and listeners
   );
 }
 ```
 
-### Plugin Integration
-
-Update [plugin/index.ts](mdc:src/plugins/*/plugin/index.ts) to use registry:
+Plugin class (`config` is `public` so `onInit` can read it):
 
 ```typescript
-export interface PluginOptions {
-  enableHotkey?: boolean;
-  // other options
+onInit(editor: LexicalEditor): void {
+  this.register(
+    registerListCommands(editor, this.kernel, { enableHotkey: this.config?.enableHotkey }),
+  );
 }
-
-export const Plugin: IEditorPluginConstructor<PluginOptions> = class {
-  constructor(
-    protected kernel: IEditorKernel,
-    public config?: PluginOptions, // Make config public
-  ) {
-    super();
-    // plugin setup
-  }
-
-  onInit(editor: LexicalEditor): void {
-    this.register(registerPluginCommands(editor, this.kernel, {
-      enableHotkey: this.config?.enableHotkey,
-    }));
-  }
-};
 ```
 
-### React Component Interface
+React plugin: expose `enableHotkey?: boolean` (default `true`) in `react/type.ts` and pass it
+to `editor.registerPlugin(XPlugin, { enableHotkey, ... })`. Plugins with `enableHotkey` today:
+`code`, `common`, `link`, `link-highlight`, `list`.
 
-Add `enableHotkey` to React component props:
+## Configuring Hotkeys as a User
 
-```typescript
-export interface ReactPluginProps {
-  enableHotkey?: boolean; // Default: true
-  // other props
-}
+Options are passed per plugin with `Editor.withProps`:
 
-export const ReactPlugin: FC<ReactPluginProps> = ({ 
-  enableHotkey = true,
-  // other props
-}) => {
-  const [editor] = useLexicalComposerContext();
-  
-  useLayoutEffect(() => {
-    editor.registerPlugin(Plugin, {
-      enableHotkey,
-      // other config
-    });
-  }, [enableHotkey, /* other dependencies */]);
-  
-  return /* component JSX */;
-};
-```
+```tsx
+import { ReactLinkPlugin, ReactListPlugin } from '@lobehub/editor';
+import { Editor } from '@lobehub/editor/react';
 
-## Implementation Examples
-
-### Link Plugin ([src/plugins/link/](mdc:src/plugins/link/))
-
-```typescript
-// Registry with enableHotkey support
-kernel.registerHotkey(
-  HotkeyEnum.Link,
-  () => editor.dispatchCommand(TOGGLE_LINK_COMMAND, payload),
-  { enabled: enableHotkey, preventDefault: true, stopPropagation: true },
-);
-```
-
-### List Plugin ([src/plugins/list/](mdc:src/plugins/list/))
-
-```typescript
-// Multiple hotkeys with shared enableHotkey control
-kernel.registerHotkey(HotkeyEnum.UnorderedList, handler, { enabled: enableHotkey });
-kernel.registerHotkey(HotkeyEnum.OrderedList, handler, { enabled: enableHotkey });
-```
-
-### Common Plugin ([src/plugins/common/](mdc:src/plugins/common/))
-
-```typescript
-// Text formatting hotkeys
-kernel.registerHotkey(HotkeyEnum.Bold, handler, { enabled: enableHotkey });
-kernel.registerHotkey(HotkeyEnum.Italic, handler, { enabled: enableHotkey });
-```
-
-## Usage Examples
-
-### Disable All Hotkeys
-
-```typescript
 <Editor
-  plugins={[ReactLinkPlugin, ReactListPlugin, ReactCodePlugin]}
-  linkOption={{ enableHotkey: false }}
-  listOption={{ enableHotkey: false }}
-  codeOption={{ enableHotkey: false }}
-/>
+  plugins={[
+    Editor.withProps(ReactLinkPlugin, { enableHotkey: false }),
+    Editor.withProps(ReactListPlugin, { enableHotkey: false }),
+  ]}
+/>;
 ```
 
-### Selective Hotkey Control
+`getHotkeyById(id)` (exported from `@lobehub/editor`) returns a binding, e.g. to show the
+shortcut in a toolbar tooltip.
 
-```typescript
-<Editor
-  plugins={[ReactLinkPlugin, ReactListPlugin]}
-  linkOption={{ enableHotkey: true }}
-  listOption={{ enableHotkey: false }}
-/>
-```
+## Rules
 
-## Best Practices
-
-1. **Default Behavior**: Always default `enableHotkey` to `true`
-2. **Consistent Naming**: Use `enableHotkey` across all plugins
-3. **Registry Pattern**: Move hotkey logic to `registry.ts` files
-4. **HotkeyOptions**: Use `enabled` property from `HotkeyOptions` interface
-5. **React Separation**: Keep React components focused on UI, not hotkey logic
-6. **Framework Agnostic**: Hotkey logic should be in kernel layer, not React layer
-
-## Migration Checklist
-
-When refactoring existing plugins:
-
-- [ ] Create `plugin/registry.ts` file
-- [ ] Move hotkey registration from React components
-- [ ] Add `enableHotkey?: boolean` to plugin options
-- [ ] Add `enableHotkey?: boolean` to React props
-- [ ] Use `enabled` option in `kernel.registerHotkey()`
-- [ ] Make plugin `config` property `public`
-- [ ] Update React component to pass enableHotkey to plugin
-- [ ] Test hotkey enable/disable functionality
-
-## Benefits
-
-1. **Granular Control**: Users can disable hotkeys per plugin
-2. **Performance**: Disabled hotkeys don't consume resources
-3. **Accessibility**: Better support for users with different needs
-4. **Consistency**: Same pattern across all plugins
-5. **Framework Agnostic**: Hotkey logic stays in kernel layer
+1. Default `enableHotkey` to `true` and use that exact prop name.
+2. Never register hotkeys from React components; use the kernel registry.
+3. New ids need both the `HotkeyEnum` entry and the `HOTKEYS_REGISTRATION` entry.
+4. Test enabling and disabling the hotkey.

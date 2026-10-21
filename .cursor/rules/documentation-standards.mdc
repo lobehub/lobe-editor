@@ -1,120 +1,89 @@
 ---
 description: Documentation standards and formatting guidelines for LobeHub Editor
-globs: *.md
+globs: *.md,*.mdx
 ---
 
 # Documentation Standards
 
-## Plugin Documentation Structure
+The docs site (<https://editor.lobehub.com>) is built with `@lobehub/docs-kit` (`lobedocs`).
+Follow [AGENTS.md](mdc:AGENTS.md) ("Writing Docs") and the
+[using-docs-kit skill](mdc:.agents/skills/using-docs-kit/SKILL.md); this rule summarises them.
 
-All plugin documentation in `src/plugins/*/index.md` follows this standard format:
+## Where Pages Live
 
-### Required Frontmatter
+- One `index.mdx` per documented folder. Only files named `index.mdx` become pages
+  (`index.md` is ignored).
+- [docs.config.ts](mdc:docs.config.ts) `atomDirs` are `src/react`, `src/plugins` and
+  `src/renderer`, so:
+  - `src/plugins/hr/index.mdx` → `/components/plugins/hr`
+  - `src/react/SendButton/index.mdx` → `/components/react/send-button`
+- Site-level pages live in `docs/` (`docs/components.mdx`, `docs/changelog.mdx`); the home page
+  is `docs/index.tsx`.
+
+## Frontmatter
 
 ```yaml
 ---
-nav: Plugins
-group: [Core|Plugins] or { title: "Group Name", order: -1 }
-title: PluginName
-description: Brief description explaining purpose, key features, and capabilities
-atomId: ReactComponentName (for React components)
+title: Horizontal Rule
+description: One or two plain sentences; used for search, SEO and llms.txt.
+category: Plugins
 ---
 ```
 
-### Required Sections
+- Required: `title`, `description`, `category`.
+- Reuse existing categories: `Core`, `Plugins` (plugins); `General`, `Data Entry`, `Layout`,
+  `Playground`, `Providers` (React components); `Renderer`.
+- Do not use dumi fields (`nav`, `group`, `atomId`).
 
-#### 1. Introduction
+## Demos
 
-- Comprehensive explanation of plugin purpose and capabilities
-- Overview of architecture and key features
-- Context of how it fits in the editor ecosystem
+- Put demos in `<folder>/demos/` (`index.tsx` for the basic one), one `export default`
+  component per file.
+- Import the library by package name (`@lobehub/editor`, `@lobehub/editor/react`); the docs
+  config aliases it to `src`.
+- Reference demos with the `?demo` query and `<Demo of>`:
 
-#### 2. Basic Usage (if applicable)
+```mdx
+import DemoIndex from './demos/index.tsx?demo';
 
-- Demo code reference: `<code src="./demos/index.tsx"></code>`
-- Add attributes like `nopadding`, `center`, `iframe` as needed
+## Basic Usage
 
-#### 3. Core Architecture
-
-Document beyond just React components:
-
-- **Plugin Systems**: Service integration, command patterns
-- **Node Architecture**: Custom node types and serialization
-- **Service Integration**: Business logic and data management
-- **Utility Functions**: Helper functions and operations
-
-#### 4. Components (if applicable)
-
-- **Component Name**: Brief description
-- **API Table**: Complete property documentation
-
-#### 5. Commands (if applicable)
-
-- Command examples with TypeScript code blocks
-- Parameter documentation
-- Usage patterns
-
-#### 6. Plugin Configuration
-
-- **PluginOptions**: Configuration interface documentation
-- **Theme Configuration**: CSS theme options
-- **Service APIs**: Interface documentation
-
-#### 7. Usage Examples
-
-- **Basic Setup**: Simple configuration
-- **Advanced Usage**: Complex scenarios
-- **Custom Implementations**: Extension patterns
-- **Integration Examples**: Real-world usage
-
-## API Documentation Format
-
-### Property Tables
-
-Use consistent table formatting:
-
-```markdown
-| Property | Description | Type | Default |
-| -------- | ----------- | ---- | ------- |
-| prop     | Description | `Type` | `default` |
+<Demo editable={false} of={DemoIndex} />
 ```
 
-### Code Examples
+- Common `<Demo>` props: `editable={false}` for editor playgrounds, `layout="bare"` for
+  full-width demos, `isolated` for demos that use portals or global CSS.
+- Do not use dumi `<code src="...">`.
 
-- Use TypeScript for all code examples
-- Include proper imports and context
-- Show both basic and advanced usage patterns
-- Include error handling where relevant
+## Page Structure
 
-### Type Definitions
+- The `title` is the H1; start the body at `##`.
+- Typical sections: `## Introduction`, `## Basic Usage`, feature sections, then `## APIs`.
+- API tables are written by hand and must match the TypeScript types:
 
-- Document interfaces and types clearly
-- Show inheritance relationships
-- Include example usage
+```markdown
+| Property     | Description           | Type      | Default |
+| ------------ | --------------------- | --------- | ------- |
+| enableHotkey | Enable list shortcuts | `boolean` | `true`  |
+```
 
-## Writing Guidelines
+- Escape `|` inside table cells as `\|` (e.g. `` `'top' \| 'bottom'` ``).
+- Code fences need a language (`tsx`, `typescript`, `bash`, ...).
 
-1. **Clarity**: Use clear, concise language
-2. **Completeness**: Cover all aspects of functionality
-3. **Consistency**: Follow established patterns
-4. **Technical Depth**: Go beyond surface-level descriptions
-5. **Practical Examples**: Provide actionable code samples
+## Checking
 
-## Component Documentation
+```bash
+pnpm dev          # lobedocs dev; restart after editing docs.config.ts
+pnpm docs:build   # runs all docs validations (frontmatter, demo references, links)
+pnpm lint:md      # remark lint on Markdown files
+```
 
-For React components in `src/react/*/index.md`:
+- Do not hand-edit `compatibility.json` (legacy URL inventory) unless you move or rename an
+  existing page.
+- `skills.md` and `llms.txt` on the docs site are generated by `lobedocs build`; do not write
+  them by hand.
 
-- Focus on component API and usage
-- Include comprehensive prop tables
-- Show integration patterns
-- Document event handlers and callbacks
+## README
 
-## Architecture Documentation
-
-When documenting plugin architecture:
-
-- Explain service integration
-- Document command patterns
-- Show node relationships
-- Cover serialization aspects
-- Include utility function descriptions
+`README.md` covers installation, a quick start and links; detailed API docs belong on the docs
+site. Update the README only when installation or the quick-start example changes.

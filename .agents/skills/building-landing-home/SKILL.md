@@ -1,14 +1,13 @@
 ---
-
 name: building-landing-home
 description: >
-Compose a product or documentation home page from the @lobehub/ui/awesome landing components:
-LandingHero, AgentSkillCard, LogoMarquee, LandingSection, BentoGrid/BentoCard, CodeShowcase,
-FeatureGrid, InstallBanner and FluidGradient. Covers page structure, the lobedocs homePage
-hook, router links, theming the accent gradient, and a review checklist. Trigger on build a
-home page, landing page, docs home, marketing page, hero section, redesign home, lobedocs
-homePage, 首页, 落地页, 官网首页.
-------------------------
+  Compose a product or documentation home page from the @lobehub/ui/awesome landing components:
+  LandingHero, AgentSkillCard, LogoMarquee, LandingSection, BentoGrid/BentoCard, CodeShowcase,
+  FeatureGrid, InstallBanner and FluidGradient. Covers page structure, the lobedocs homePage
+  hook, router links, theming the accent gradient, and a review checklist. Trigger on build a
+  home page, landing page, docs home, marketing page, hero section, redesign home, lobedocs
+  homePage, 首页, 落地页, 官网首页.
+---
 
 # Building a landing home with @lobehub/ui/awesome
 

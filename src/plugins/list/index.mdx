@@ -50,14 +50,10 @@ The plugin leverages Lexical's list functionality:
 
 React component wrapper for list functionality.
 
-| Property       | Description                | Type                       | Default    |
-| -------------- | -------------------------- | -------------------------- | ---------- |
-| type           | List type                  | `'bullet' \| 'number'`     | `'bullet'` |
-| nested         | Enable nested lists        | `boolean`                  | `true`     |
-| markdown       | Enable markdown shortcuts  | `boolean`                  | `true`     |
-| onListCreate   | List creation handler      | `(type: ListType) => void` | -          |
-| onItemAdd      | List item addition handler | `(item: ListItem) => void` | -          |
-| onIndentChange | Indentation change handler | `(level: number) => void`  | -          |
+| Property     | Description                                                         | Type      | Default |
+| ------------ | ------------------------------------------------------------------- | --------- | ------- |
+| enableHotkey | Enable the bullet / numbered list shortcuts                         | `boolean` | `true`  |
+| className    | Declared in `ReactListPluginProps`, currently not applied           | `string`  | -       |
 
 ## Commands
 
@@ -84,28 +80,10 @@ editor.dispatchCommand(OUTDENT_LIST_COMMAND);
 
 ### ListPluginOptions
 
-| Property        | Description                   | Type        | Default |
-| --------------- | ----------------------------- | ----------- | ------- |
-| theme           | List CSS theme configuration  | `ListTheme` | -       |
-| maxNestingLevel | Maximum nesting depth         | `number`    | `7`     |
-| enableMarkdown  | Enable markdown shortcuts     | `boolean`   | `true`  |
-| autoIndent      | Auto-indent on new list items | `boolean`   | `true`  |
-
-### ListTheme
-
-CSS theme configuration for list styling:
-
-```typescript
-interface ListTheme {
-  list?: string;
-  listItem?: string;
-  listItemChecked?: string;
-  listItemUnchecked?: string;
-  nestedListItem?: string;
-  olDepth?: string[];
-  ulDepth?: string[];
-}
-```
+| Property     | Description                                 | Type      | Default |
+| ------------ | ------------------------------------------- | --------- | ------- |
+| enableHotkey | Enable the bullet / numbered list shortcuts | `boolean` | `true`  |
+| theme        | Class name for list nodes                   | `string`  | -       |
 
 ## Utility Functions
 
@@ -172,21 +150,6 @@ const MARKDOWN_TRANSFORMERS = [
 ```
 
 ## Usage Examples
-
-### Basic List Setup
-
-```typescript
-const listPlugin = new ListPlugin(kernel, {
-  theme: {
-    list: 'custom-list',
-    listItem: 'custom-list-item',
-    nestedListItem: 'custom-nested-item',
-  },
-  maxNestingLevel: 5,
-  enableMarkdown: true,
-  autoIndent: true,
-});
-```
 
 ### Programmatic List Creation
 

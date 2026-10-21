@@ -3,80 +3,91 @@ alwaysApply: true
 description: Core project structure and architecture guide for LobeHub Editor
 ---
 
-# LobeHub Editor Project Structure
+# Project Structure
 
-## Architecture Overview
+`@lobehub/editor` is a Lexical-based rich text editor for React: a framework-agnostic kernel,
+plugins, high-level React components, a headless entry and a read-only renderer. The root
+[AGENTS.md](mdc:AGENTS.md) is the canonical guide; these rules add detail and must not
+contradict it.
 
-LobeHub Editor follows a **dual-layer architecture**:
+## Source Layout (`src/`)
 
-1. **Kernel Layer** (`src/editor-kernel/`) - Framework-agnostic core
-2. **React Layer** (`src/react/` + `src/plugins/*/react/`) - React-specific implementations
+| Path                                           | Contents                                                                                                                                 |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| [src/index.ts](mdc:src/index.ts)               | Main entry (`@lobehub/editor`). Re-exports the kernel, every plugin, hotkey types, `enableHotReload` / `disableHotReload`                |
+| [src/editor-kernel/](mdc:src/editor-kernel/)   | `kernel.ts` (`Kernel`), `plugin.ts` (`KernelPlugin`), `data-source.ts`, `event.ts`, `utils.ts` (`genServiceId`, ...), `inode/`, `react/` |
+| `src/editor-kernel/react/`                     | React glue: `react-context.ts` (`useLexicalComposerContext`), `react-editor.tsx`, `useTranslation.ts`, `useDecorators.tsx`, portals      |
+| [src/plugins/](mdc:src/plugins/)               | One folder per plugin (see below)                                                                                                        |
+| [src/react/](mdc:src/react/)                   | High-level components and hooks (`@lobehub/editor/react`)                                                                                |
+| [src/headless/](mdc:src/headless/)             | `createHeadlessEditor` and `DEFAULT_HEADLESS_EDITOR_PLUGINS` (`@lobehub/editor/headless`)                                                |
+| [src/renderer/](mdc:src/renderer/)             | `LexicalRenderer`, `LexicalDiff`, `nodes/`, per-node `renderers/` (`@lobehub/editor/renderer`)                                           |
+| [src/codemirror/](mdc:src/codemirror/)         | CodeMirror loader and code-block UI (`@lobehub/editor/codemirror`)                                                                       |
+| [src/types/](mdc:src/types/)                   | `kernel.ts` (`IEditor`, `IEditorKernel`, `IEditorPlugin`, `IServiceID`, ...), `hotkey.ts`, `locale.ts`, `global.d.ts`                    |
+| [src/const/hotkey.ts](mdc:src/const/hotkey.ts) | `HOTKEYS_REGISTRATION` (default key bindings)                                                                                            |
+| [src/locale/index.ts](mdc:src/locale/index.ts) | Default English strings; `ILocaleKeys` is inferred from it                                                                               |
+| [src/utils/](mdc:src/utils/)                   | `debug.ts`, `hotkey/` (`registerHotkey.ts`, `parseHotkeys.ts`, `isHotkeyMatch.ts`), `url.ts`, `cx.ts`, `scrollIntoView.ts`, ...          |
+| [src/common/](mdc:src/common/)                 | Environment helpers (`canUseDOM.ts`, `sys.ts`)                                                                                           |
 
-## Directory Structure
+### Plugins (`src/plugins/`)
 
-### Core Editor Kernel
+`auto-complete`, `block`, `code`, `codeblock`, `codemirror-block`, `collaboration`,
+`collapsible`, `common`, `content-blocks`, `file`, `hr`, `image`, `inode`, `link`,
+`link-highlight`, `list`, `litexml`, `markdown`, `math`, `mention`, `slash`, `table`, `toc`,
+`toolbar`, `upload`, `virtual-block`, `yjs`.
 
-- [src/editor-kernel/](mdc:src/editor-kernel/) - Core editor logic
-  - [kernel.ts](mdc:src/editor-kernel/kernel.ts) - Main editor class with plugin system
-  - [data-source.ts](mdc:src/editor-kernel/data-source.ts) - Content management (JSON/Markdown/Text)
-  - [service.ts](mdc:src/editor-kernel/service.ts) - Service container and dependency injection
-  - [plugin/](mdc:src/editor-kernel/plugin/) - Plugin base classes and interfaces
-  - [react/](mdc:src/editor-kernel/react/) - React integration layer
-  - [types.ts](mdc:src/editor-kernel/types.ts) - TypeScript interfaces
+A typical plugin folder (see [src/plugins/hr/](mdc:src/plugins/hr/)):
 
-### Plugin System
+```text
+src/plugins/<name>/
+├── index.ts        # Barrel: commands, kernel plugin, React plugin
+├── index.mdx       # Docs page (/components/plugins/<name>)
+├── command/        # createCommand + register…Command
+├── node/           # Custom Lexical nodes
+├── plugin/         # Kernel plugin (index.ts), optional registry.ts / register.ts
+├── react/          # React<Name>Plugin.tsx, type.ts, style.ts, index.ts(x)
+├── service/        # Optional services (genServiceId tokens)
+├── demos/          # Docs demos (index.tsx, ...)
+└── __tests__/      # Vitest tests (some older folders use __test__)
+```
 
-- [src/plugins/](mdc:src/plugins/) - Feature plugins with consistent structure
+Not every plugin has every folder; `markdown`, `litexml`, `upload` and `common` mostly provide
+services used by other plugins.
 
-#### Core Plugins
+### React (`src/react/`)
 
-- [common/](mdc:src/plugins/common/) - Foundation components (ReactEditor, ReactEditorContent, ReactPlainText)
-- [markdown/](mdc:src/plugins/markdown/) - Markdown processing engine with transformers
-- [upload/](mdc:src/plugins/upload/) - File upload management with priority system
+`ChatInput`, `ChatInputActionBar`, `ChatInputActions`, `CodeLanguageSelect`, `Editor`,
+`EditorProvider`, `FloatActions`, `SendButton`, and `hooks/` (`useEditor`, `useEditorState`,
+`useSize`). See [src/react/index.ts](mdc:src/react/index.ts) for the public exports.
 
-#### Content Plugins
+## Package Entries
 
-- [slash/](mdc:src/plugins/slash/) - Slash commands (/, @) with fuzzy search
-- [mention/](mdc:src/plugins/mention/) - @mention system with decorators
-- [codeblock/](mdc:src/plugins/codeblock/) - Syntax highlighting with Shiki
-- [image/](mdc:src/plugins/image/) - Image handling with captions and resizing
-- [table/](mdc:src/plugins/table/) - Table support with i18n
-- [file/](mdc:src/plugins/file/) - File attachments with status tracking
-- [link/](mdc:src/plugins/link/) - Link management with validation
-- [list/](mdc:src/plugins/list/) - Lists with nesting support
-- [hr/](mdc:src/plugins/hr/) - Horizontal rules with styling
+`package.json` `exports`: `.`, `./react`, `./react/EditorProvider`, `./headless`,
+`./renderer`, `./codemirror`, `./litexml-commands`. Builds are configured in
+[tsdown.config.ts](mdc:tsdown.config.ts); a new entry needs both an `exports` entry and a
+tsdown `entry`.
 
-### React Components
+## Outside `src/`
 
-- [src/react/](mdc:src/react/) - High-level React components
-  - [Editor/](mdc:src/react/Editor/) - Main Editor component
-  - [ChatInput/](mdc:src/react/ChatInput/) - Chat interface component
-  - [ChatInputActions/](mdc:src/react/ChatInputActions/) - Action buttons
-  - [ChatInputActionBar/](mdc:src/react/ChatInputActionBar/) - Action bar layout
-  - [SendButton/](mdc:src/react/SendButton/) - Send button with states
-  - [CodeLanguageSelect/](mdc:src/react/CodeLanguageSelect/) - Language selector
+- `docs/` + [docs.config.ts](mdc:docs.config.ts): docs site built with `@lobehub/docs-kit`
+  (`lobedocs`); `docs/index.tsx` is the home page.
+- `packages/codemirror/`: the `@lobehub/codemirror` package.
+- `examples/`: collaboration demos (`ai-collaboration-demo`, `collaboration-business-demo`).
+- `tests/`: cross-cutting integration tests.
+- `scripts/`: `postinstall-lexical-patch.cjs`, `clean.ts`, `yjs-websocket-demo-server.cjs`,
+  `verify-node-identity-package.mjs`, ...
+- `.agents/skills/`: agent skills (`using-docs-kit`, `building-landing-home`).
 
-## Plugin Structure Convention
+## Key Concepts
 
-Each plugin follows this consistent structure:
-
-- `plugin/` - Core plugin logic and node definitions
-- `react/` - React components and hooks (if applicable)
-- `command/` - Editor commands and handlers
-- `service/` - Services and business logic
-- `node/` - Custom Lexical nodes
-- `utils/` - Utility functions and helpers
-- `index.md` - Comprehensive documentation
-- `index.ts` - Public API exports
-
-## Key Entry Points
-
-- [src/index.ts](mdc:src/index.ts) - Main public API exports
-- [package.json](mdc:package.json) - Project configuration and dependencies
-- [README.md](mdc:README.md) - Project overview and usage guide
-
-## Build and Development
-
-- [vitest.config.ts](mdc:vitest.config.ts) - Test configuration
-- [.dumi/](mdc:.dumi/) - Documentation build system
-- [docs/](mdc:docs/) - Documentation source files
+- **Kernel** (`Kernel`; created internally by `Editor.createEditor()` from `@/editor-kernel`,
+  in React via the `useEditor()` hook, on the server via `createHeadlessEditor()`) owns
+  plugins, services, themes, hotkeys, decorators and documents
+  (`getDocument(type)` / `setDocument(type, content)`).
+- **Kernel plugins** extend `KernelPlugin` and are registered with
+  `editor.registerPlugin(Plugin, options)`; they are framework-agnostic.
+- **React plugins** (`React<Name>Plugin`) only register the kernel plugin and render
+  decorators / UI; pass them to `<Editor plugins={[...]} />`, with options via
+  `Editor.withProps(ReactXPlugin, { ... })`.
+- **Services** are looked up with `kernel.requireService(IServiceId)`; Markdown
+  (`IMarkdownShortCutService`), LiteXML (`ILitexmlService`) and upload (`IUploadService`) are
+  the common extension points.

@@ -34,7 +34,6 @@ The plugin uses Shiki for syntax highlighting:
 ### Command System
 
 - **UPDATE_CODEBLOCK_LANG**: Change code block language
-- **UPDATE_CODEBLOCK_COLOR_REPLACEMENTS**: Update syntax highlighting colors
 - **Markdown Shortcuts**: \`\`\`language shortcuts for quick insertion
 
 ### Markdown Integration
@@ -49,11 +48,10 @@ The plugin uses Shiki for syntax highlighting:
 
 React component wrapper for code block functionality.
 
-| Property | Description               | Type             | Default |
-| -------- | ------------------------- | ---------------- | ------- |
-| language | Default code language     | `string`         | -       |
-| theme    | Syntax highlighting theme | `ShikiTheme`     | -       |
-| onChange | Language change handler   | `(lang) => void` | -       |
+| Property   | Description                                     | Type                                        | Default        |
+| ---------- | ----------------------------------------------- | ------------------------------------------- | -------------- |
+| shikiTheme | Shiki theme name, or one per color scheme       | `string \| { dark: string; light: string }` | `'lobe-theme'` |
+| theme      | Class names for code blocks                     | `{ code?: string }`                         | -              |
 
 ## Commands
 
@@ -67,40 +65,14 @@ editor.dispatchCommand(UPDATE_CODEBLOCK_LANG, {
 });
 ```
 
-### UPDATE_CODEBLOCK_COLOR_REPLACEMENTS
-
-Update syntax highlighting colors:
-
-```typescript
-editor.dispatchCommand(UPDATE_CODEBLOCK_COLOR_REPLACEMENTS, {
-  colorReplacements: {
-    current: {
-      string: '#ff6b6b',
-      keyword: '#4ecdc4',
-    },
-  },
-});
-```
-
 ## Plugin Configuration
 
 ### CodeblockPluginOptions
 
-| Property | Description | Type | Default |
-| --- | --- | --- | --- |
-| shikiTheme | Shiki theme configuration | `string \| { dark: string, light: string }` | - |
-| colorReplacements | Custom color scheme | `{ current?: AllColorReplacements }` | - |
-| theme | CSS theme configuration | `{ code?: string }` | - |
-
-### AllColorReplacements
-
-Color replacement configuration for customizing syntax highlighting:
-
-```typescript
-interface AllColorReplacements {
-  [tokenType: string]: string; // CSS color values
-}
-```
+| Property   | Description                               | Type                                        | Default |
+| ---------- | ----------------------------------------- | ------------------------------------------- | ------- |
+| shikiTheme | Shiki theme name, or one per color scheme | `string \| { dark: string; light: string }` | -       |
+| theme      | Class names for code blocks               | `{ code?: string }`                         | -       |
 
 ## Supported Languages
 
@@ -131,13 +103,6 @@ const codeblockPlugin = new CodeblockPlugin(kernel, {
   shikiTheme: {
     light: 'github-light',
     dark: 'github-dark',
-  },
-  colorReplacements: {
-    current: {
-      string: '#22863a',
-      keyword: '#d73a49',
-      comment: '#6a737d',
-    },
   },
 });
 ```

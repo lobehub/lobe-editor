@@ -23,20 +23,22 @@ ChatInput is a versatile container component designed for chat input interfaces.
 
 ### ChatInput
 
-| Property         | Description                                | Type                                                                       | Default |
-| ---------------- | ------------------------------------------ | -------------------------------------------------------------------------- | ------- |
-| children         | Main content area                          | `ReactNode`                                                                | -       |
-| classNames       | Custom CSS class names for different areas | `{ body?: string; footer?: string; header?: string }`                      | -       |
-| defaultHeight    | Default height of the input container      | `number`                                                                   | `64`    |
-| footer           | Footer content                             | `ReactNode`                                                                | -       |
-| fullscreen       | Enable fullscreen mode                     | `boolean`                                                                  | -       |
-| header           | Header content                             | `ReactNode`                                                                | -       |
-| height           | Controlled height of the input container   | `number`                                                                   | -       |
-| maxHeight        | Maximum height of the input container      | `number`                                                                   | `320`   |
-| minHeight        | Minimum height of the input container      | `number`                                                                   | `64`    |
-| onSizeChange     | Callback when height changes               | `(height: number) => void`                                                 | -       |
-| onSizeDragging   | Callback during height dragging            | `(height: number) => void`                                                 | -       |
-| resize           | Enable resize functionality                | `boolean`                                                                  | `true`  |
-| showResizeHandle | Show visual resize handle                  | `boolean`                                                                  | -       |
-| slashMenuRef     | Reference for slash menu positioning       | `Ref<HTMLDivElement>`                                                      | -       |
-| styles           | Custom inline styles for different areas   | `{ body?: CSSProperties; footer?: CSSProperties; header?: CSSProperties }` | -       |
+| Property              | Description                                                              | Type                                                                       | Default                         |
+| --------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------- |
+| children              | Main content area                                                        | `ReactNode`                                                                | -                               |
+| classNames            | Custom CSS class names for different areas                               | `{ body?: string; footer?: string; header?: string }`                      | -                               |
+| defaultHeight         | Default height of the input container                                    | `number`                                                                   | `minHeight`                     |
+| footer                | Footer content                                                           | `ReactNode`                                                                | -                               |
+| fullscreen            | Enable fullscreen mode                                                   | `boolean`                                                                  | -                               |
+| header                | Header content                                                           | `ReactNode`                                                                | -                               |
+| height                | Controlled height of the input container                                 | `number`                                                                   | -                               |
+| maxHeight             | Maximum height of the input container                                    | `number`                                                                   | `320`                           |
+| minHeight             | Minimum height of the input container                                    | `number`                                                                   | `64`                            |
+| onBodyClick           | Click handler of the body area                                           | `FlexboxProps['onClick']`                                                  | -                               |
+| onSizeChange          | Callback when height changes                                             | `(height: number) => void`                                                 | -                               |
+| onSizeDragging        | Callback during height dragging                                          | `(height: number) => void`                                                 | -                               |
+| resize                | Enable resize functionality                                              | `boolean`                                                                  | `true`                          |
+| resizeMaxHeightOffset | Extra height allowed beyond `maxHeight` while resizing                   | `number`                                                                   | `120`                           |
+| showResizeHandle      | Show visual resize handle                                                | `boolean`                                                                  | -                               |
+| slashMenuRef          | Ref on the root element; pass it to `Editor` `getPopupContainer` to anchor the slash / mention menu | `Ref<HTMLDivElement>`                                         | -                               |
+| styles                | Custom inline styles for different areas                                 | `{ body?: CSSProperties; footer?: CSSProperties; header?: CSSProperties }` | -                               |

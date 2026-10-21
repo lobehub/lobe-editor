@@ -60,29 +60,35 @@ Force all pasted content to be inserted as plain text, stripping any rich text f
 | children | Additional content or components | `ReactNode` | - |
 | className | Custom CSS class | `string` | - |
 | collaboration | Yjs collaboration configuration | `false \| EditorCollaborationConfig` | - |
-| content | Initial editor content | `ReactEditorContentProps['content']` | - |
+| content | Initial editor content | `any` | - |
+| debounceWait | Debounce wait time in milliseconds for `onChange` and `onTextChange` | `number` | `100` |
+| editable | Whether the content can be edited | `boolean` | - |
 | editor | Editor instance to use | `IEditor` | - |
 | enablePasteMarkdown | Enable automatic markdown conversion for pasted content | `boolean` | `true` |
+| getPopupContainer | Custom popup container for slash menu portal rendering and scroll tracking | `() => HTMLElement \| null` | - |
+| lineEmptyPlaceholder | Placeholder shown on empty lines | `string` | - |
 | markdownOption | Enable/disable markdown shortcuts granularly | `boolean \| MarkdownFormatOptions` | `true` |
+| mentionOption | Configuration for mention functionality | `MentionOption` | `{}` |
+| onBlur | Blur event handler | `(props: { editor: IEditor; event: FocusEvent<HTMLDivElement> }) => void` | - |
+| onChange | Content or selection change handler (debounced) | `(editor: IEditor) => void` | - |
+| onCompositionEnd | IME composition end event handler | `(props: { editor: IEditor; event: CompositionEvent<HTMLDivElement> }) => void` | - |
+| onCompositionStart | IME composition start event handler | `(props: { editor: IEditor; event: CompositionEvent<HTMLDivElement> }) => void` | - |
+| onContextMenu | Context menu event handler | `(props: { editor: IEditor; event: MouseEvent<HTMLDivElement> }) => void` | - |
+| onFocus | Focus event handler | `(props: { editor: IEditor; event: FocusEvent<HTMLDivElement> }) => void` | - |
+| onInit | Callback called when editor is initialized | `(editor: IEditor) => void` | - |
+| onKeyDown | Key down event handler. Return `true` to stop further handling | `(props: { editor: IEditor; event: KeyboardEvent }) => boolean \| void` | - |
+| onPressEnter | Enter key press event handler. Return `true` to prevent default behavior | `(props: { editor: IEditor; event: KeyboardEvent }) => boolean \| void` | - |
+| onTextChange | Called only when the text changes, not on cursor or selection changes (debounced) | `(editor: IEditor) => void` | - |
 | pasteAsPlainText | Force paste as plain text, stripping all rich text formatting | `boolean` | `false` |
 | pasteMarkdownAutoConvertThreshold | Minimum markdown score required before auto conversion runs | `number` | `5` |
-| onInit | Callback called when editor is initialized | `(editor: IEditor) => void` | - |
-| mentionOption | Configuration for mention functionality | `MentionOption` | `{}` |
-| onBlur | Blur event handler | `FocusEventHandler<HTMLDivElement>` | - |
-| onChange | Content change event handler | `(editor: IEditor) => void` | - |
-| onCompositionEnd | IME composition end event handler | `CompositionEventHandler<HTMLDivElement>` | - |
-| onCompositionStart | IME composition start event handler | `CompositionEventHandler<HTMLDivElement>` | - |
-| onContextMenu | Context menu event handler | `MouseEventHandler<HTMLDivElement>` | - |
-| onFocus | Focus event handler | `FocusEventHandler<HTMLDivElement>` | - |
-| onKeyDown | Key down event handler | `KeyboardEventHandler<HTMLDivElement>` | - |
-| onPressEnter | Enter key press event handler. Return `true` to prevent default behavior | `(props: { editor: IEditor; event: KeyboardEvent<HTMLDivElement> }) => void \| boolean` | - |
+| pasteVSCodeAsCodeBlock | With `pasteAsPlainText`, paste VS Code content as a code block in its language | `boolean` | `true` |
 | placeholder | Placeholder content | `ReactNode` | - |
 | plugins | Array of editor plugins | `EditorPlugin[]` | `[]` |
 | slashOption | Configuration for slash commands | `Partial<ReactSlashOptionProps>` | `{}` |
+| slashPlacement | Force slash menu placement, skipping auto-flip detection | `'bottom' \| 'top'` | - |
 | style | Custom inline styles | `CSSProperties` | - |
-| theme | Editor theme | `ReactPlainTextProps['theme']` | - |
 | type | Content format type | `string` | `'json'` |
-| variant | Editor variant style | `ReactPlainTextProps['variant']` | - |
+| variant | Editor variant style | `'default' \| 'chat'` | - |
 
 ### EditorPlugin
 
