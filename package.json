@@ -86,7 +86,7 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage  --passWithNoTests",
     "test:watch": "vitest --watch",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsrs --noEmit",
     "verify:node-identity-package": "node scripts/verify-node-identity-package.mjs"
   },
   "lint-staged": {
@@ -188,6 +188,7 @@
     "semantic-release": "^21.1.2",
     "stylelint": "^17.14.1",
     "tsdown": "^0.22.14",
+    "tsrs": "0.18.0-ts7.1.0-dev.20260929",
     "tsx": "^4.23.0",
     "typescript": "^6.0.3",
     "vite": "8.1.4",
