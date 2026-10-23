@@ -10,17 +10,17 @@ import { CodeblockPlugin } from '../plugin';
 import { styles } from './style';
 import type { ReactCodeblockPluginProps } from './type';
 
-export const ReactCodeblockPlugin: FC<ReactCodeblockPluginProps> = ({ theme, shikiTheme }) => {
+export const ReactCodeblockPlugin: FC<ReactCodeblockPluginProps> = ({ theme, codeTheme }) => {
   const [editor] = useLexicalComposerContext();
   const codeStyle = cx(styles.code);
 
   useLayoutEffect(() => {
     editor.registerPlugin(MarkdownPlugin);
     editor.registerPlugin(CodeblockPlugin, {
-      shikiTheme: shikiTheme || 'lobe-theme',
+      codeTheme: codeTheme || 'lobe-theme',
       theme: theme || { code: styles.code },
     });
-  }, [codeStyle, editor, shikiTheme, theme]);
+  }, [codeStyle, editor, codeTheme, theme]);
 
   return null;
 };

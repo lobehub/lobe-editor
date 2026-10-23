@@ -1,6 +1,6 @@
 ---
 title: Codeblock
-description: Codeblock plugin provides advanced code syntax highlighting and editing capabilities. It integrates Shiki for beautiful syntax highlighting, supports multiple programming languages, custom themes, color replacements, and includes markdown shortcuts for easy code block creation.
+description: Codeblock plugin adds code blocks with syntax highlighting by @pierre/highlights, light and dark themes, language switching and markdown shortcuts.
 category: Plugins
 ---
 
@@ -8,7 +8,7 @@ import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
 
-Codeblock plugin enhances the editor with professional code editing capabilities. It leverages Shiki for high-quality syntax highlighting, supports numerous programming languages, and provides extensive customization options including themes, color schemes, and language detection. The plugin includes markdown shortcuts for quick code block insertion and comprehensive command support for language switching.
+Codeblock plugin enhances the editor with code editing capabilities. It highlights code synchronously with `@pierre/highlights` (a WebAssembly highlighter with every language built in), supports light and dark themes and language detection, and includes markdown shortcuts and a command for language switching.
 
 ## Basic Usage
 
@@ -16,14 +16,14 @@ Codeblock plugin enhances the editor with professional code editing capabilities
 
 ## Core Architecture
 
-### Shiki Integration
+### Highlighting
 
-The plugin uses Shiki for syntax highlighting:
+The plugin uses `@pierre/highlights` for syntax highlighting:
 
-- **Language Support**: Extensive language support through Shiki's bundled languages
-- **Theme System**: Customizable themes with light/dark mode support
-- **Tokenization**: Real-time syntax highlighting with customizable tokenizers
-- **Color Replacements**: Dynamic color scheme modifications
+- **Language Support**: every language in `codeLanguages` is built in, so highlighting never waits for a grammar download; other languages render as plain text
+- **Theme System**: `lobe-theme` by default, any bundled theme id (`github-dark`, `one-dark-pro`, ...) loaded on demand, or a light/dark pair
+- **Tokenization**: synchronous, re-run as the code changes
+- **Content Security Policy**: highlighting compiles WebAssembly, so a page with a `script-src` policy needs `'wasm-unsafe-eval'`
 
 ### Node System
 
@@ -48,10 +48,10 @@ The plugin uses Shiki for syntax highlighting:
 
 React component wrapper for code block functionality.
 
-| Property   | Description                                     | Type                                        | Default        |
-| ---------- | ----------------------------------------------- | ------------------------------------------- | -------------- |
-| shikiTheme | Shiki theme name, or one per color scheme       | `string \| { dark: string; light: string }` | `'lobe-theme'` |
-| theme      | Class names for code blocks                     | `{ code?: string }`                         | -              |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| codeTheme | Highlighting theme id, or one per color scheme | `string \| { dark: string; light: string }` | `'lobe-theme'` |
+| theme | Class names for code blocks | `{ code?: string }` | - |
 
 ## Commands
 
@@ -69,14 +69,14 @@ editor.dispatchCommand(UPDATE_CODEBLOCK_LANG, {
 
 ### CodeblockPluginOptions
 
-| Property   | Description                               | Type                                        | Default |
-| ---------- | ----------------------------------------- | ------------------------------------------- | ------- |
-| shikiTheme | Shiki theme name, or one per color scheme | `string \| { dark: string; light: string }` | -       |
-| theme      | Class names for code blocks               | `{ code?: string }`                         | -       |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| codeTheme | Highlighting theme id, or one per color scheme | `string \| { dark: string; light: string }` | - |
+| theme | Class names for code blocks | `{ code?: string }` | - |
 
 ## Supported Languages
 
-The plugin supports all languages included in Shiki's `bundledLanguagesInfo`:
+The plugin highlights every language in the exported `codeLanguages` list (id, name and aliases):
 
 - JavaScript/TypeScript
 - Python, Java, C++, C#
@@ -91,7 +91,7 @@ The plugin supports all languages included in Shiki's `bundledLanguagesInfo`:
 
 ```typescript
 const codeblockPlugin = new CodeblockPlugin(kernel, {
-  shikiTheme: 'github-dark',
+  codeTheme: 'github-dark',
   theme: { code: 'custom-code-style' },
 });
 ```
@@ -100,7 +100,7 @@ const codeblockPlugin = new CodeblockPlugin(kernel, {
 
 ```typescript
 const codeblockPlugin = new CodeblockPlugin(kernel, {
-  shikiTheme: {
+  codeTheme: {
     light: 'github-light',
     dark: 'github-dark',
   },

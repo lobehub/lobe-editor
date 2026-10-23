@@ -46,6 +46,7 @@ import {
   $normalizeCaret,
   $setSelectionFromCaretRange,
   COMMAND_PRIORITY_LOW,
+  HISTORY_MERGE_TAG,
   INDENT_CONTENT_COMMAND,
   INSERT_TAB_COMMAND,
   KEY_ARROW_DOWN_COMMAND,
@@ -62,11 +63,10 @@ import type { INode } from '@/editor-kernel/inode';
 import {
   $getHighlightNodes,
   getHighlightSerializeNode,
-  isCodeLanguageLoaded,
+  isCodeLanguageSupported,
   isCodeThemeLoaded,
-  loadCodeLanguage,
   loadCodeTheme,
-} from './FacadeShiki';
+} from './FacadeHighlights';
 import invariant from './invariant';
 
 export interface Tokenizer {
@@ -92,7 +92,7 @@ export interface Tokenizer {
 
 const DEFAULT_CODE_THEME = 'lobe-theme';
 
-export const ShikiTokenizer: Tokenizer = {
+export const HighlightsTokenizer: Tokenizer = {
   $tokenize(codeNode: CodeNode, language?: string): LexicalNode[] {
     return $getHighlightNodes(codeNode, language || this.defaultLanguage);
   },
@@ -191,28 +191,14 @@ function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tok
     node.setTheme(theme);
   }
 
-  // dynamic import of themes
-  let inFlight = false;
   if (!isCodeThemeLoaded(theme)) {
     loadCodeTheme(theme, editor, nodeKey);
-    inFlight = true;
-  }
-
-  // dynamic import of languages
-  if (isCodeLanguageLoaded(language)) {
-    if (!node.getIsSyntaxHighlightSupported()) {
-      node.setIsSyntaxHighlightSupported(true);
-    }
-  } else {
-    if (node.getIsSyntaxHighlightSupported()) {
-      node.setIsSyntaxHighlightSupported(false);
-    }
-    loadCodeLanguage(language, editor, nodeKey);
-    inFlight = true;
-  }
-
-  if (inFlight) {
     return;
+  }
+
+  const supported = isCodeLanguageSupported(language);
+  if (node.getIsSyntaxHighlightSupported() !== supported) {
+    node.setIsSyntaxHighlightSupported(supported);
   }
 
   if (nodesCurrentlyHighlighting.has(nodeKey)) {
@@ -758,7 +744,7 @@ export function registerCodeHighlighting(editor: LexicalEditor, tokenizer?: Toke
   }
 
   if (tokenizer == null) {
-    tokenizer = ShikiTokenizer;
+    tokenizer = HighlightsTokenizer;
   }
 
   const registrations = [];
@@ -790,21 +776,28 @@ export function registerCodeHighlighting(editor: LexicalEditor, tokenizer?: Toke
     editor.registerMutationListener(
       CodeNode,
       (mutations) => {
-        editor.update(() => {
-          for (const [key, type] of mutations) {
-            if (type !== 'destroyed') {
-              const node = $getNodeByKey(key);
-              if (node !== null) {
-                const codeNode = node as CodeNode;
-                if (codeNode.getTheme()?.endsWith(' needUpdate')) {
-                  editor.update(() => {
-                    codeNode.setTheme(codeNode.getTheme()?.replace(' needUpdate', '') || '');
-                  });
+        editor.update(
+          () => {
+            for (const [key, type] of mutations) {
+              if (type !== 'destroyed') {
+                const node = $getNodeByKey(key);
+                if (node !== null) {
+                  const codeNode = node as CodeNode;
+                  if (codeNode.getTheme()?.endsWith(' needUpdate')) {
+                    editor.update(() => {
+                      codeNode.setTheme(codeNode.getTheme()?.replace(' needUpdate', '') || '');
+                    });
+                  } else if (type === 'created') {
+                    // Loaded documents skip transforms, so stored token styles (e.g. the
+                    // `--ant-*` variables UI v6 no longer defines) would never be refreshed.
+                    codeNode.markDirty();
+                  }
                 }
               }
             }
-          }
-        });
+          },
+          { tag: HISTORY_MERGE_TAG },
+        );
       },
       { skipInitialization: false },
     ),
