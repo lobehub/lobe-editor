@@ -46,6 +46,7 @@ import {
   $normalizeCaret,
   $setSelectionFromCaretRange,
   COMMAND_PRIORITY_LOW,
+  HISTORY_MERGE_TAG,
   INDENT_CONTENT_COMMAND,
   INSERT_TAB_COMMAND,
   KEY_ARROW_DOWN_COMMAND,
@@ -775,21 +776,28 @@ export function registerCodeHighlighting(editor: LexicalEditor, tokenizer?: Toke
     editor.registerMutationListener(
       CodeNode,
       (mutations) => {
-        editor.update(() => {
-          for (const [key, type] of mutations) {
-            if (type !== 'destroyed') {
-              const node = $getNodeByKey(key);
-              if (node !== null) {
-                const codeNode = node as CodeNode;
-                if (codeNode.getTheme()?.endsWith(' needUpdate')) {
-                  editor.update(() => {
-                    codeNode.setTheme(codeNode.getTheme()?.replace(' needUpdate', '') || '');
-                  });
+        editor.update(
+          () => {
+            for (const [key, type] of mutations) {
+              if (type !== 'destroyed') {
+                const node = $getNodeByKey(key);
+                if (node !== null) {
+                  const codeNode = node as CodeNode;
+                  if (codeNode.getTheme()?.endsWith(' needUpdate')) {
+                    editor.update(() => {
+                      codeNode.setTheme(codeNode.getTheme()?.replace(' needUpdate', '') || '');
+                    });
+                  } else if (type === 'created') {
+                    // Loaded documents skip transforms, so stored token styles (e.g. the
+                    // `--ant-*` variables UI v6 no longer defines) would never be refreshed.
+                    codeNode.markDirty();
+                  }
                 }
               }
             }
-          }
-        });
+          },
+          { tag: HISTORY_MERGE_TAG },
+        );
       },
       { skipInitialization: false },
     ),
