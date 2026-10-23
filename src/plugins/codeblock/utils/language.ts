@@ -1,4 +1,4 @@
-import { bundledLanguagesInfo } from 'shiki';
+import { codeLanguages } from './languages';
 
 export function getCodeLanguageByInput(input: string): string {
   if (!input) {
@@ -6,7 +6,7 @@ export function getCodeLanguageByInput(input: string): string {
   }
   const inputLang = input.toLocaleLowerCase();
 
-  const matchLang = bundledLanguagesInfo.find(
+  const matchLang = codeLanguages.find(
     (lang) => lang.id === inputLang || lang.aliases?.includes(inputLang),
   );
   return matchLang?.id || 'plaintext';

@@ -62,11 +62,10 @@ import type { INode } from '@/editor-kernel/inode';
 import {
   $getHighlightNodes,
   getHighlightSerializeNode,
-  isCodeLanguageLoaded,
+  isCodeLanguageSupported,
   isCodeThemeLoaded,
-  loadCodeLanguage,
   loadCodeTheme,
-} from './FacadeShiki';
+} from './FacadeHighlights';
 import invariant from './invariant';
 
 export interface Tokenizer {
@@ -92,7 +91,7 @@ export interface Tokenizer {
 
 const DEFAULT_CODE_THEME = 'lobe-theme';
 
-export const ShikiTokenizer: Tokenizer = {
+export const HighlightsTokenizer: Tokenizer = {
   $tokenize(codeNode: CodeNode, language?: string): LexicalNode[] {
     return $getHighlightNodes(codeNode, language || this.defaultLanguage);
   },
@@ -191,28 +190,14 @@ function codeNodeTransform(node: CodeNode, editor: LexicalEditor, tokenizer: Tok
     node.setTheme(theme);
   }
 
-  // dynamic import of themes
-  let inFlight = false;
   if (!isCodeThemeLoaded(theme)) {
     loadCodeTheme(theme, editor, nodeKey);
-    inFlight = true;
-  }
-
-  // dynamic import of languages
-  if (isCodeLanguageLoaded(language)) {
-    if (!node.getIsSyntaxHighlightSupported()) {
-      node.setIsSyntaxHighlightSupported(true);
-    }
-  } else {
-    if (node.getIsSyntaxHighlightSupported()) {
-      node.setIsSyntaxHighlightSupported(false);
-    }
-    loadCodeLanguage(language, editor, nodeKey);
-    inFlight = true;
-  }
-
-  if (inFlight) {
     return;
+  }
+
+  const supported = isCodeLanguageSupported(language);
+  if (node.getIsSyntaxHighlightSupported() !== supported) {
+    node.setIsSyntaxHighlightSupported(supported);
   }
 
   if (nodesCurrentlyHighlighting.has(nodeKey)) {
@@ -758,7 +743,7 @@ export function registerCodeHighlighting(editor: LexicalEditor, tokenizer?: Toke
   }
 
   if (tokenizer == null) {
-    tokenizer = ShikiTokenizer;
+    tokenizer = HighlightsTokenizer;
   }
 
   const registrations = [];
