@@ -1,8 +1,10 @@
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor, LexicalNode, SerializedLexicalNode } from 'lexical';
 import {
+  $createParagraphNode,
   $createTextNode,
   $getNodeByKey,
+  $getRoot,
   $getSelection,
   $isDecoratorNode,
   $isRangeSelection,
@@ -61,8 +63,76 @@ export function $isCursorNode(node: LexicalNode | null | undefined): node is Cur
   return node instanceof CursorNode;
 }
 
+/**
+ * A cursor parked at the very start of the root (offset 0) has no text to
+ * anchor to when the first child is a non-inline decorator (block image, HR,
+ * ...). The browser then renders a floating caret across the block (the
+ * "horizontal cursor" artifact) and typing mutates the wrong position.
+ * Normalizing to a leading empty paragraph (a la Linear) gives the caret a
+ * real home.
+ */
+export function $isCaretAtRootStartBeforeBlockDecorator(): boolean {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
+
+  const { key, offset, type } = selection.anchor;
+  if (key !== 'root') return false;
+  if (type === 'text') return false;
+  if (offset !== 0) return false;
+
+  const firstChild = $getRoot().getFirstChild();
+  return Boolean(firstChild && firstChild.isInline() === false && $isDecoratorNode(firstChild));
+}
+
+export function $insertParagraphBeforeRootStartBlock(): void {
+  const firstChild = $getRoot().getFirstChild();
+  if (!firstChild) return;
+
+  const paragraph = $createParagraphNode();
+  firstChild.insertBefore(paragraph);
+  paragraph.select(0, 0);
+}
+
 export function registerCursorNode(editor: LexicalEditor) {
+  let isNormalizingRootStartCaret = false;
+
   return mergeRegister(
+    // Keep a caret parked at root-start (offset 0) in front of a leading
+    // non-inline decorator from lingering there: normalize it into a fresh
+    // empty paragraph. Runs passively so every selection path (ArrowLeft,
+    // ArrowUp from the next block, click on the top gap, NodeSelection +
+    // ArrowLeft, ...) lands in a real text anchor.
+    editor.registerUpdateListener(() => {
+      if (isNormalizingRootStartCaret) return;
+      const needsNormalize = editor
+        .getEditorState()
+        .read(() => (editor.isComposing() ? false : $isCaretAtRootStartBeforeBlockDecorator()));
+      if (!needsNormalize) return;
+
+      isNormalizingRootStartCaret = true;
+      queueMicrotask(() => {
+        isNormalizingRootStartCaret = false;
+        // Re-verify against the committed editor state: the caret position
+        // that triggered this path may already have been reconciled away.
+        const stillNeeded = editor
+          .getEditorState()
+          .read(() => $isCaretAtRootStartBeforeBlockDecorator());
+        if (!stillNeeded) return;
+
+        editor.update(
+          () => {
+            // The selection itself does not survive DOM reconciliation at
+            // this unrepresentable position, so only structural state is
+            // re-checked here; the paragraph brings its own fresh selection.
+            const firstChild = $getRoot().getFirstChild();
+            if (!firstChild || firstChild.isInline() || !$isDecoratorNode(firstChild)) return;
+
+            $insertParagraphBeforeRootStartBlock();
+          },
+          { tag: HISTORY_MERGE_TAG, discrete: true },
+        );
+      });
+    }),
     editor.registerUpdateListener(({ mutatedNodes }) => {
       editor.getEditorState().read(() => {
         if (!mutatedNodes) return;
