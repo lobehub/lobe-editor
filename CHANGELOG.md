@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;6.0.1](https://github.com/lobehub/lobe-editor/compare/v6.0.0...v6.0.1)
+<sup>Released on **2026-10-26**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **collapsible**: Parse and paste details blocks correctly.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **collapsible**: Parse and paste details blocks correctly, closes [#235](https://github.com/lobehub/lobe-editor/issues/235) ([a2a9f04](https://github.com/lobehub/lobe-editor/commit/a2a9f04))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;6.0.0](https://github.com/lobehub/lobe-editor/compare/v5.0.2...v6.0.0)
 <sup>Released on **2026-10-23**</sup>
 
