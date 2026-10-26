@@ -158,7 +158,7 @@
     "@lobehub/fluent-emoji": "^5.0.0-beta.1",
     "@lobehub/icons": "^6.0.0-beta.1",
     "@lobehub/lint": "^2.1.5",
-    "@lobehub/ui": "^6.0.0",
+    "@lobehub/ui": "^6.9.0",
     "@react-router/dev": "8.2.0",
     "@types/debug": "^4.1.12",
     "@types/mdast": "^4.0.4",
@@ -193,7 +193,7 @@
     "ws": "^8.21.0"
   },
   "peerDependencies": {
-    "@lobehub/ui": "^6.0.0",
+    "@lobehub/ui": "^6.9.0",
     "motion": "^13.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

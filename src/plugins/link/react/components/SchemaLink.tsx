@@ -1,12 +1,12 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import { LexicalEditor } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import { type FC, useEffect, useState } from 'react';
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 
-import { SchemaNode } from '../../node/SchemaNode';
-import { ILinkService, LinkService } from '../../service/i-link-service';
-import { LinkReactRendererRegistry } from '../renderer-registry';
+import type { SchemaNode } from '../../node/SchemaNode';
+import type { LinkService } from '../../service/i-link-service';
+import { ILinkService } from '../../service/i-link-service';
+import type { LinkReactRendererRegistry } from '../renderer-registry';
 
 interface SchemaLinkProps {
   editor: LexicalEditor;
@@ -17,8 +17,6 @@ interface SchemaLinkProps {
 const SchemaLink: FC<SchemaLinkProps> = ({ editor, node, rendererRegistry }) => {
   const service = getKernelFromEditor(editor)?.requireService(ILinkService) as LinkService | null;
   const [, setRendererVersion] = useState(0);
-  const url = node.getURL();
-  const schema = service?.parseSchemaUrl(url) || null;
 
   useEffect(() => {
     const handleChange = () => {
@@ -30,15 +28,18 @@ const SchemaLink: FC<SchemaLinkProps> = ({ editor, node, rendererRegistry }) => 
     };
   }, [rendererRegistry]);
 
-  const props = {
-    editor,
-    node,
-    payload: node.getPayload(),
-    schema,
-    schemaType: node.getSchemaType(),
-    title: node.getTitle(),
-    url,
-  };
+  const props = editor.getEditorState().read(() => {
+    const url = node.getURL();
+    return {
+      editor,
+      node,
+      payload: node.getPayload(),
+      schema: service?.parseSchemaUrl(url) || null,
+      schemaType: node.getSchemaType(),
+      title: node.getTitle(),
+      url,
+    };
+  });
 
   return (
     rendererRegistry.renderLegacySchemaLink(props) ||

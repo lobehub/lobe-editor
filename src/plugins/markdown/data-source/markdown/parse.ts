@@ -8,6 +8,7 @@ import type { IElementNode, INode, IRootNode, ITextNode } from '@/editor-kernel/
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 
 import { logger } from '../../utils/logger';
+import { selfClosingHtmlTags, splitHtmlBlock } from './html';
 
 export type MarkdownReadNode = INode | ITextNode | IElementNode;
 
@@ -29,45 +30,8 @@ export type TransfromerRecordArray = {
   [K in MarkdownNode['type']]?: Array<MarkdownReaderFunc<K>>;
 };
 
-const selfClosingHtmlTags = new Set([
-  'area',
-  'base',
-  'br',
-  'col',
-  'embed',
-  'hr',
-  'img',
-  'input',
-  'link',
-  'meta',
-  'param',
-  'source',
-  'track',
-  'wbr',
-]);
-
-class MarkdownContext {
-  private stack: Array<IHTMLStack> = [];
-  constructor(
-    public readonly root: Root,
-    public readonly markdown: string,
-  ) {}
-
-  push(html: IHTMLStack) {
-    this.stack.push(html);
-  }
-
-  get isReadingHTML() {
-    return this.stack.length > 0;
-  }
-
-  get last() {
-    return this.stack.at(-1);
-  }
-
-  pop() {
-    return this.stack.pop();
-  }
+interface MarkdownContext {
+  markdown: string;
 }
 
 export interface IHTMLStack {
@@ -132,147 +96,90 @@ function convertMdastToLexical(
       let children: MarkdownReadNode[] = [];
       if ('children' in node && Array.isArray(node.children)) {
         const htmlStack: Array<IHTMLStack> = []; // 当前循环是否包含 HTML 标签
-        children = node.children
-          .reduce(
-            (ret, child, index) => {
-              if (child.type === 'html') {
-                if (!markdownReaders['html']) {
-                  ret.push(INodeHelper.createTextNode(child.value));
-                  return ret;
-                }
-                const isComment = child.value.startsWith('<!--') && child.value.endsWith('-->');
-                if (isComment) {
-                  return ret;
-                }
-                const tag = getHtmlTagName(child.value);
-                const isEndTag = child.value.startsWith('</');
-                const pairedTag = child.value.match(/^<\s*([a-z0-9-]+)\b[^>]*>([\s\S]*)<\/\s*\1\s*>$/i);
-                if (!isEndTag && pairedTag) {
-                  const reader = markdownReaders['html'];
-                  const htmlChildren = pairedTag[2] ? [INodeHelper.createTextNode(pairedTag[2])] : [];
-                  if (Array.isArray(reader)) {
-                    for (const element of reader) {
-                      const inode = element(child as unknown as any, htmlChildren, index);
-                      if (inode) {
-                        ret.push(inode);
-                        return ret;
-                      }
-                    }
-                  } else if (typeof reader === 'function') {
-                    const inode = reader(child as unknown as any, htmlChildren, index);
-                    if (inode) {
-                      ret.push(inode);
-                      return ret;
-                    }
-                  }
+        const result: MarkdownReadNode[] = [];
+        const append = (nodes: MarkdownReadNode | MarkdownReadNode[] | null) => {
+          const target = htmlStack.at(-1)?.children ?? result;
+          if (nodes) target.push(...(Array.isArray(nodes) ? nodes : [nodes]));
+        };
+        const readHtml = (html: Html, children: MarkdownReadNode[], index: number) => {
+          const readers = markdownReaders.html;
+          for (const reader of Array.isArray(readers) ? readers : readers ? [readers] : []) {
+            const value = reader(html, children, index);
+            if (value) return value;
+          }
+          return null;
+        };
+        const processHtml = (child: Html, index: number) => {
+          if (!markdownReaders.html) {
+            append(INodeHelper.createTextNode(child.value));
+            return;
+          }
+          if (child.value.startsWith('<!--') && child.value.endsWith('-->')) return;
 
-                  ret.push(INodeHelper.createTextNode(child.value));
-                  return ret;
-                }
-                if (selfClosingHtmlTags.has(tag)) {
-                  // Self-closing tag
-                  const reader = markdownReaders['html'];
-                  if (Array.isArray(reader)) {
-                    for (const element of reader) {
-                      const inode = element(child as unknown as any, [], index);
-                      if (inode) {
-                        ret.push(inode);
-                        return ret;
-                      }
-                    }
-                  } else if (typeof reader === 'function') {
-                    const inode = reader(child as unknown as any, [], index);
-                    if (inode) {
-                      ret.push(inode);
-                      return ret;
-                    }
-                  }
-
-                  return ret;
-                }
-                if (isEndTag) {
-                  const top = ctx.pop();
-                  htmlStack.pop();
-                  if (top?.tag !== tag) {
-                    logger.warn('HTML tag mismatch:', tag);
-                    ret.push(...(top?.children || []));
-                    return ret;
-                  }
-                  const reader = markdownReaders['html'];
-                  const children = (top.children.flat().filter(Boolean) ||
-                    []) as MarkdownReadNode[];
-                  if (Array.isArray(reader)) {
-                    for (const element of reader) {
-                      const inode = element(top.node as unknown as any, children, index);
-                      if (inode) {
-                        ret.push(inode);
-                        return ret;
-                      }
-                    }
-                  } else if (typeof reader === 'function') {
-                    const inode = reader(top.node as unknown as any, children, index);
-                    if (inode) {
-                      ret.push(inode);
-                      return ret;
-                    }
-                  }
-                  if (top) {
-                    ret.push(...top.children);
-                  }
-                  return ret;
-                }
-
-                const htmlStackItem: IHTMLStack = {
-                  children: [],
-                  index,
-                  isEndTag,
-                  node: child,
-                  tag,
-                };
-
-                htmlStack.push(htmlStackItem);
-                ctx.push(htmlStackItem);
-                return ret;
+          const parts = splitHtmlBlock(child.value);
+          if (parts.length > 1) {
+            for (const part of parts) {
+              if (part.html) processHtml({ type: 'html', value: part.value }, index);
+              else if (part.value.trim()) {
+                append(parseMarkdownToLexical(part.value, markdownReaders).children);
               }
+            }
+            return;
+          }
 
-              if (htmlStack.length > 0) {
-                const top = ctx.last;
-                if (top) {
-                  top.children.push(
-                    convertMdastToLexical(
-                      child as PhrasingContent,
-                      index,
-                      ctx,
-                      markdownReaders,
-                      node.type,
-                    ),
-                  );
-                }
-                return ret;
-              }
-
-              ret.push(
-                convertMdastToLexical(
-                  child as PhrasingContent,
-                  index,
-                  ctx,
-                  markdownReaders,
-                  node.type,
-                ),
+          const tag = getHtmlTagName(child.value);
+          const pairedTag = child.value.match(
+            /^(<[a-z][^>"']*(?:(?:"[^"]*"|'[^']*')[^>"']*)*>)([\s\S]*)<\/\s*[a-z0-9-]+\s*>$/i,
+          );
+          if (pairedTag) {
+            let children: MarkdownReadNode[] = parseMarkdownToLexical(
+              pairedTag[2],
+              markdownReaders,
+            ).children;
+            if (tag !== 'details') {
+              children = children.flatMap((node) =>
+                node.type === 'paragraph' && 'children' in node
+                  ? (node.children as MarkdownReadNode[])
+                  : [node],
               );
-              return ret;
-            },
-            [] as (MarkdownReadNode | MarkdownReadNode[] | null)[],
-          )
-          .filter(Boolean)
-          .flat() as MarkdownReadNode[];
-        while (htmlStack.length > 0) {
-          const tag = htmlStack.shift();
-          ctx.pop();
-          // @ts-expect-error not error
-          children.push(INodeHelper.createTextNode(tag?.node.value), ...tag.children.flat());
-          children = children.flat();
+            }
+            append(
+              readHtml({ ...child, value: pairedTag[1] }, children, index) ??
+                INodeHelper.createTextNode(child.value),
+            );
+            return;
+          }
+          if (selfClosingHtmlTags.has(tag)) {
+            append(readHtml(child, [], index));
+            return;
+          }
+          if (child.value.startsWith('</')) {
+            const top = htmlStack.at(-1);
+            if (!top || top.tag !== tag) {
+              logger.warn('HTML tag mismatch:', tag);
+              append(INodeHelper.createTextNode(child.value));
+              return;
+            }
+            htmlStack.pop();
+            const children = top.children.flat().filter(Boolean) as MarkdownReadNode[];
+            append(readHtml(top.node, children, top.index) ?? children);
+            return;
+          }
+          htmlStack.push({ children: [], index, isEndTag: false, node: child, tag });
+        };
+
+        for (const [index, child] of node.children.entries()) {
+          if (child.type === 'html') processHtml(child, index);
+          else append(convertMdastToLexical(child, index, ctx, markdownReaders, node.type));
         }
+        while (htmlStack.length > 0) {
+          const top = htmlStack.pop()!;
+          append([
+            INodeHelper.createTextNode(top.node.value),
+            ...(top.children.flat().filter(Boolean) as MarkdownReadNode[]),
+          ]);
+        }
+        children = result;
       }
 
       if (markdownReaders[node.type]) {
@@ -346,7 +253,7 @@ export function parseMarkdownToLexical(
     .parse(markdown);
   logger.debug('Parsed MDAST:', ast);
 
-  const ctx = new MarkdownContext(ast, markdown);
+  const ctx: MarkdownContext = { markdown };
   registerDefaultReaders(markdownReaders);
 
   return convertMdastToLexical(ast, 0, ctx, markdownReaders) as IRootNode;

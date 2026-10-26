@@ -7,12 +7,14 @@ import {
   $isDecoratorNode,
   $isElementNode,
   $isRangeSelection,
+  $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_EDITOR,
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
   SELECTION_CHANGE_COMMAND,
+  SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
 } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
@@ -64,6 +66,7 @@ export const CollapsiblePlugin: IEditorPluginConstructor<CollapsiblePluginOption
     this.register(registerCollapsedSelectionGuard(editor));
     this.register(registerEmptyCollapsibleBackspace(editor));
     this.register(registerTableInsertionBoundary(editor));
+    this.register(registerCollapsiblePasteBoundary(editor));
     this.registerMarkdown();
     this.registerLiteXml();
   }
@@ -126,8 +129,11 @@ export const CollapsiblePlugin: IEditorPluginConstructor<CollapsiblePluginOption
           : extractSummaryTitle(node.value) || 'Details';
 
       return INodeHelper.createElementNode(CollapsibleNode.getType(), {
-        children: ensureTitleChildren(contentChildren, title),
-        collapsed: !/\sopen(?:\s|>|$)/i.test(node.value),
+        children: [
+          INodeHelper.createParagraph({ children: [INodeHelper.createTextNode(title)] }),
+          ...contentChildren,
+        ],
+        collapsed: !/\sopen(?:\s|=|>|$)/i.test(node.value.replaceAll(/"[^"]*"|'[^']*'/g, '')),
         title,
       });
     });
@@ -577,6 +583,40 @@ function registerTableInsertionBoundary(editor: LexicalEditor) {
       collapsible.insertAfter(insertionPoint);
       insertionPoint.selectStart();
       return false;
+    },
+    COMMAND_PRIORITY_CRITICAL,
+  );
+}
+
+function registerCollapsiblePasteBoundary(editor: LexicalEditor) {
+  return editor.registerCommand(
+    SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
+    ({ nodes, selection }) => {
+      if (!$isRangeSelection(selection) || !nodes.some($isCollapsibleNode)) return false;
+      if (!getCollapsibleAncestor(selection.anchor.getNode())) return false;
+
+      if (!selection.isCollapsed()) selection.removeText();
+      const anchor = selection.anchor.getNode();
+      const collapsible = getCollapsibleAncestor(anchor);
+      if (!collapsible) return false;
+      const empty = collapsible
+        .getChildren()
+        .every(
+          (child) =>
+            $isElementNode(child) &&
+            child.getType() === 'paragraph' &&
+            child
+              .getChildren()
+              .every((node) => $isTextNode(node) && node.getTextContentSize() === 0),
+        );
+      if (!$isCollapsibleNode(anchor) && !empty) return false;
+
+      // Lexical cannot insert blocks at a shadow-root selection.
+      const paragraph = $createParagraphNode();
+      if (empty) collapsible.replace(paragraph);
+      else collapsible.insertAfter(paragraph);
+      paragraph.selectStart().insertNodes(nodes);
+      return true;
     },
     COMMAND_PRIORITY_CRITICAL,
   );

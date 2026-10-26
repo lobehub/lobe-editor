@@ -17,6 +17,7 @@ import {
   KEY_ENTER_COMMAND,
   PASTE_COMMAND,
 } from 'lexical';
+import { remark } from 'remark';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
@@ -43,11 +44,23 @@ interface MarkdownDetectionResult {
 }
 
 const RICH_HTML_SELECTOR =
-  'strong,em,b,i,h1,h2,h3,h4,h5,h6,ul,ol,table,img,blockquote,pre>code,a[href]';
+  'details,strong,em,b,i,h1,h2,h3,h4,h5,h6,ul,ol,table,img,blockquote,pre>code,a[href]';
 
 export const normalizeMarkdownForClipboard = (markdown: string) => markdown.replace(/\r?\n$/, '');
 
+const detailsDetectionRule: MarkdownDetectionRule = {
+  name: 'details',
+  score: 7,
+  test: (text) =>
+    /<details[\s>]/i.test(text) &&
+    /<\/details\s*>/i.test(text) &&
+    remark()
+      .parse(text)
+      .children.some((node) => node.type === 'html' && /^<details[\s>]/i.test(node.value)),
+};
+
 const MARKDOWN_DETECTION_RULES = [
+  detailsDetectionRule,
   { name: 'headers', score: 5, test: (text) => /^#{1,6}\s+\S/m.test(text) },
   { name: 'code-fence-start', score: 5, test: (text) => /^```[\w-]*$/m.test(text) },
   { name: 'links', score: 4, test: (text) => /\[[^\]]+]\([^)]+\)/.test(text) },
@@ -401,7 +414,8 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
    * Analyze pasted text and determine whether it should auto convert to markdown
    */
   private getMarkdownDetectionResult(text: string): MarkdownDetectionResult {
-    if (this.detectCodeContent(text)) {
+    const hasDetails = detailsDetectionRule.test(text);
+    if (!hasDetails && this.detectCodeContent(text)) {
       return {
         matchedPatterns: [],
         score: 0,
@@ -414,7 +428,7 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
     const threshold = this.getPasteMarkdownAutoConvertThreshold();
 
     for (const rule of MARKDOWN_DETECTION_RULES) {
-      if (!rule.test(text)) continue;
+      if (!(rule === detailsDetectionRule ? hasDetails : rule.test(text))) continue;
 
       matchedPatterns.push(rule.name);
       score += rule.score;
