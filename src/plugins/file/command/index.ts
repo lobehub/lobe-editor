@@ -25,7 +25,9 @@ export function registerFileCommand(
     (payload) => {
       const { file } = payload;
       editor.update(() => {
-        const fileNode = $createFileNode(file.name);
+        const fileNode = $createFileNode(file.name, undefined, file.size, 'pending', undefined, {
+          mimeType: file.type,
+        });
         $insertNodes([fileNode]); // Insert a zero-width space to ensure the image is not the last child
         if ($isRootOrShadowRoot(fileNode.getParentOrThrow())) {
           $wrapNodeInElement(fileNode, $createParagraphNode).selectEnd();

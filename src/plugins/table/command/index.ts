@@ -4,7 +4,6 @@ import {
   $createTableNodeWithDimensions,
   $createTableSelection,
   $findTableNode,
-  $insertTableColumnAtSelection,
   $insertTableRowAtSelection,
   $isSimpleTable,
   $isTableNode,
@@ -25,9 +24,15 @@ import {
   createCommand,
 } from 'lexical';
 
+import {
+  $insertTableColumnAtSelectionWithAlign,
+  $moveTableColumnAligns,
+} from '../node/column-align';
 import { createDefaultTableColWidths, syncTableWidthDOM } from '../utils';
 import { getAutoFitTableColumnWidths } from '../utils/autoFitColumnWidth';
 import { getDistributedTableColumnWidths } from '../utils/distributeColumnWidth';
+
+export * from './align';
 
 export const INSERT_TABLE_COMMAND = createCommand<{
   columns: string;
@@ -265,7 +270,7 @@ export function registerTableCommand(editor: LexicalEditor) {
         const tableSelection = $createTableSelection();
         tableSelection.set(table, firstCell.getKey(), lastCell.getKey());
         $setSelection(tableSelection);
-        $insertTableColumnAtSelection(insertAfter);
+        $insertTableColumnAtSelectionWithAlign(insertAfter);
         return true;
       },
       COMMAND_PRIORITY_EDITOR,
@@ -401,6 +406,7 @@ export function registerTableCommand(editor: LexicalEditor) {
           nextWidths.splice(target, 0, ...movedWidths);
           tableNode.setColWidths(nextWidths);
         }
+        $moveTableColumnAligns(tableNode, from, to, target);
 
         $selectTableColumns(tableNode, target, target + count - 1);
         return true;

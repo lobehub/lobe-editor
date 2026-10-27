@@ -34,6 +34,8 @@ import {
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { $clearNodeId, $normalizeNodeIds } from '@/plugins/common/node/node-id';
+import { HeadingService } from '@/plugins/common/service/heading-service';
+import { IHeadingService } from '@/plugins/common/service/i-heading-service';
 import { INodeIdentityService } from '@/plugins/common/service/i-node-identity-service';
 import { NodeIdentityService } from '@/plugins/common/service/node-identity-service';
 import { ILitexmlService } from '@/plugins/litexml';
@@ -62,6 +64,11 @@ import { registerBlockBackspace, registerLastElement, registerRichKeydown } from
 patchBreakLine();
 
 export interface CommonPluginOptions extends PasteHandlerConfig {
+  /**
+   * Give every heading a unique DOM `id` slug derived from its text
+   * @default true
+   */
+  enableHeadingAnchor?: boolean;
   enableHotkey?: boolean;
   /**
    * Enable/disable markdown shortcuts
@@ -107,6 +114,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 {
   static pluginName = 'CommonPlugin';
 
+  public headingService = new HeadingService();
+
   public identityService = new NodeIdentityService();
 
   private formats = {
@@ -126,6 +135,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     super();
 
     kernel.registerService(INodeIdentityService, this.identityService);
+    kernel.registerService(IHeadingService, this.headingService);
 
     // Parse markdown options and update formats
     const markdownOption = config.markdownOption ?? true;
@@ -434,6 +444,11 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     this.register(this.identityService.bindEditor(editor));
+    this.register(
+      this.headingService.bindEditor(editor, {
+        anchors: this.config.enableHeadingAnchor !== false,
+      }),
+    );
     this.register(editor.registerNodeTransform(RootNode, $normalizeNodeIds));
     this.register(
       editor.registerCommand(

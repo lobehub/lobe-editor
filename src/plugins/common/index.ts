@@ -9,5 +9,10 @@ export {
 export { $getNodeById, $getNodeId } from './node/node-id';
 export * from './plugin';
 export * from './react';
+export {
+  HEADING_FOLDED_ATTRIBUTE,
+  HEADING_HIDDEN_ATTRIBUTE,
+  IHeadingService,
+} from './service/i-heading-service';
 export type { NodeIdentitySnapshot } from './service/i-node-identity-service';
 export { INodeIdentityService } from './service/i-node-identity-service';

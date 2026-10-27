@@ -15,6 +15,8 @@ const ReactFilePlugin: FC<ReactFilePluginProps> = ({
   locale,
   handleUpload,
   markdownWriter,
+  onDownload,
+  onPreview,
   theme,
 }) => {
   const [editor] = useLexicalComposerContext();
@@ -26,7 +28,15 @@ const ReactFilePlugin: FC<ReactFilePluginProps> = ({
     editor.registerPlugin(UploadPlugin);
     editor.registerPlugin(FilePlugin, {
       decorator: (node, editor) => {
-        return <ReactFile className={className} editor={editor} node={node} />;
+        return (
+          <ReactFile
+            className={className}
+            editor={editor}
+            node={node}
+            onDownload={onDownload}
+            onPreview={onPreview}
+          />
+        );
       },
       handleUpload: async (file) => {
         if (handleUpload) {

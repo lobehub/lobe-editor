@@ -108,10 +108,11 @@ export const styles = createStaticStyles(
       word-break: auto-phrase;
       overflow-wrap: break-word;
 
-      > tr:first-of-type {
-        .editor_table_cell_header {
-          font-weight: bold;
-        }
+      tr:first-of-type > .editor_table_cell_header {
+        border-block-end-color: ${cssVar.colorBorder};
+        font-size: 0.8125em;
+        font-weight: 500;
+        color: ${cssVar.colorTextSecondary};
       }
     }
 
@@ -129,9 +130,10 @@ export const styles = createStaticStyles(
       overflow: auto;
 
       width: 75px;
-      padding-block: 6px;
-      padding-inline: 8px;
-      border: 1px solid ${cssVar.colorFillSecondary};
+      padding-block: 10px;
+      padding-inline: 14px;
+      border: 0;
+      border-block-end: 1px solid ${cssVar.colorBorderSecondary};
 
       text-align: start;
       vertical-align: top;

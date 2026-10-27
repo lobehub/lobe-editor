@@ -535,6 +535,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
         <>
           <div
             className={cx(styles, 'TableCellResizer__resizer', 'TableCellResizer__ui')}
+            data-direction="right"
             onPointerDown={toggleResize('right')}
             style={resizerStyles.right || undefined}
           />

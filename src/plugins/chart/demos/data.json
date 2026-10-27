@@ -1,0 +1,99 @@
+{
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "",
+            "text": "Charts are stored as data. Hover a chart and click Edit chart to change it, or use the code button to edit its JSON spec.",
+            "type": "text",
+            "version": 1
+          }
+        ],
+        "direction": "ltr",
+        "format": "",
+        "indent": 0,
+        "type": "paragraph",
+        "version": 1,
+        "textFormat": 0,
+        "textStyle": ""
+      },
+      {
+        "type": "chart",
+        "version": 1,
+        "spec": {
+          "version": 1,
+          "type": "bar",
+          "title": "Quarterly revenue",
+          "subtitle": "Product lines, USD",
+          "x": "quarter",
+          "series": [
+            { "key": "cloud", "label": "Cloud" },
+            { "key": "devices", "label": "Devices" }
+          ],
+          "highlight": "cloud",
+          "format": { "compact": true, "unit": "$" },
+          "refs": [{ "label": "Plan", "y": 1500000 }],
+          "source": "Finance dashboard",
+          "data": [
+            { "quarter": "Q1", "cloud": 1200000, "devices": 800000 },
+            { "quarter": "Q2", "cloud": 1450000, "devices": 760000 },
+            { "quarter": "Q3", "cloud": 1620000, "devices": 820000 },
+            { "quarter": "Q4", "cloud": 1810000, "devices": 900000 }
+          ]
+        }
+      },
+      {
+        "type": "chart",
+        "version": 1,
+        "spec": {
+          "version": 1,
+          "type": "line",
+          "title": "Weekly active users",
+          "x": "week",
+          "series": [{ "key": "users", "label": "Users" }],
+          "format": { "compact": true },
+          "note": "Week 4 includes the launch campaign.",
+          "data": [
+            { "week": "W1", "users": 12000 },
+            { "week": "W2", "users": 15400 },
+            { "week": "W3", "users": 14900 },
+            { "week": "W4", "users": 21800 }
+          ]
+        }
+      },
+      {
+        "type": "chart",
+        "version": 1,
+        "spec": {
+          "version": 1,
+          "type": "pie",
+          "title": "Traffic by channel",
+          "donut": true,
+          "x": "channel",
+          "series": [{ "key": "share" }],
+          "format": { "unit": "%" },
+          "data": [
+            { "channel": "Search", "share": 46 },
+            { "channel": "Direct", "share": 31 },
+            { "channel": "Social", "share": 23 }
+          ]
+        }
+      },
+      {
+        "type": "chart",
+        "version": 1,
+        "spec": null,
+        "raw": "{\n  \"version\": 1,\n  \"type\": \"radar\",\n  \"x\": \"axis\"\n}"
+      }
+    ],
+    "direction": "ltr",
+    "format": "",
+    "indent": 0,
+    "type": "root",
+    "version": 1
+  }
+}

@@ -50,6 +50,9 @@ const Editor = memo<EditorProps>(
     onCompositionEnd,
     onContextMenu,
     onTextChange,
+    enableHeadingAnchor,
+    enableHeadingFold,
+    getHeadingLink,
   }) => {
     const { config } = useEditorContent();
     const enableSlash = Boolean(slashOption?.items && slashOption.items.length > 0);
@@ -123,7 +126,10 @@ const Editor = memo<EditorProps>(
           autoFormatMarkdown={autoFormatMarkdown}
           className={className}
           editable={editable}
+          enableHeadingAnchor={enableHeadingAnchor}
+          enableHeadingFold={enableHeadingFold}
           enablePasteMarkdown={enablePasteMarkdown}
+          getHeadingLink={getHeadingLink}
           markdownOption={markdownOption}
           onBlur={onBlur}
           onChange={debouncedOnChange}

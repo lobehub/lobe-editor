@@ -6,7 +6,9 @@
           {
             "type": "file",
             "version": 1,
+            "ext": "md",
             "fileUrl": "blob:http://localhost:8000/d0a962be-bad4-4514-b9df-a0318461ca05",
+            "mimeType": "text/markdown",
             "name": "README.md",
             "status": "uploaded"
           }
