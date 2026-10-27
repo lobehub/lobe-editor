@@ -1,8 +1,10 @@
 export * from './editor-kernel';
 export * from './editor-kernel/react';
 export * from './headless';
+export * from './plugins/alert';
 export * from './plugins/auto-complete';
 export * from './plugins/block';
+export * from './plugins/chart';
 export * from './plugins/code';
 export * from './plugins/codeblock';
 export * from './plugins/codemirror-block';
@@ -13,6 +15,7 @@ export * from './plugins/common';
 export { $getNodeById, $getNodeId, INodeIdentityService } from './plugins/common';
 export * from './plugins/content-blocks';
 export * from './plugins/file';
+export * from './plugins/footnote';
 export * from './plugins/hr';
 export * from './plugins/image';
 export * from './plugins/inode';

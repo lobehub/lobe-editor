@@ -1,0 +1,124 @@
+---
+title: Footnote
+description: Footnote plugin adds inline footnote references and a footnote section with rich definitions, numbered by first reference, with hover preview, jump links and Markdown, LiteXML, headless and renderer support.
+category: Plugins
+---
+
+import DemoIndex from './demos/index.tsx?demo';
+
+## Introduction
+
+The footnote plugin adds three nodes:
+
+- `FootnoteNode` (type `footnote`): an inline reference with a stable `identifier`.
+- `FootnoteSectionNode` (type `footnote-section`): one block, kept at the end of the document, that holds the definitions.
+- `FootnoteDefinitionNode` (type `footnote-definition`): one definition per identifier, holding rich inline content.
+
+Identifiers are keys; the displayed numbers are derived. A footnote's number is the position of its first reference in the document and is recomputed on every change, so references and definitions renumber as text moves.
+
+## Basic Usage
+
+<Demo editable={false} of={DemoIndex} />
+
+```tsx
+import { INSERT_FOOTNOTE_COMMAND, ReactFootnotePlugin } from '@lobehub/editor';
+import { Editor } from '@lobehub/editor/react';
+
+<Editor
+  plugins={[ReactFootnotePlugin]}
+  slashOption={{
+    items: [
+      {
+        key: 'footnote',
+        label: 'Footnote',
+        onSelect: (editor) => editor.dispatchCommand(INSERT_FOOTNOTE_COMMAND, undefined),
+      },
+    ],
+  }}
+/>;
+```
+
+## Interactions
+
+- Hovering a reference shows its definition.
+- Clicking a reference jumps to its definition; each definition has a back link to its first reference.
+- Inserting a footnote creates the reference and an empty definition, and creates the section at the end of the document when it is missing.
+- The section keeps definitions in number order; extra sections are merged into the first one.
+
+## Consistency rules
+
+- **Reference deleted**: the definition is kept (so cut and paste or undo do not lose its content) and shown as unused, without a number. Backspace in an empty unused definition removes it. Unused definitions are still exported, but `LexicalRenderer` hides them.
+- **Definition deleted**: the reference keeps its number and is flagged as missing. Clicking it recreates an empty definition. While the section exists, Markdown export writes an empty `[^id]:` definition so the reference survives a round trip; without a section the reference is written as `[^id]` and reads back as plain text.
+- **Section emptied**: the section is removed and recreated by the next insert.
+- **Duplicate definitions**: the first definition for an identifier wins; Markdown and LiteXML imports drop the duplicates.
+
+## Serialization
+
+### Markdown
+
+```markdown
+Text with a note[^source].
+
+[^source]: Definition with **inline** formatting.
+```
+
+Definitions are read wherever they appear and merged into one section at the end.
+
+### LiteXML
+
+```xml
+<p>Text with a note<footnote ref="source"/>.</p>
+<footnote-section>
+  <def ref="source">Definition with <b>inline</b> formatting.</def>
+</footnote-section>
+```
+
+`<p>` blocks inside a `<def>` are flattened into inline content separated by line breaks.
+
+### Rendering
+
+`FootnotePlugin` is part of the default headless plugins. `LexicalRenderer` renders references as numbered links to `#fn-<id>` and definitions as an ordered list with back links to `#fnref-<id>`.
+
+## Commands
+
+### INSERT_FOOTNOTE_COMMAND
+
+```typescript
+editor.dispatchCommand(INSERT_FOOTNOTE_COMMAND, { identifier: 'source', focusDefinition: true });
+```
+
+Without an `identifier` the next free number is used. The command does nothing when the caret is inside the footnote section.
+
+### FOOTNOTE_JUMP_TO_DEFINITION_COMMAND / FOOTNOTE_JUMP_TO_REFERENCE_COMMAND
+
+Both take an identifier and move the caret (or, in a read-only editor, only scroll) to the definition or the first reference.
+
+## APIs
+
+### ReactFootnotePlugin
+
+| Property  | Description                                       | Type     | Default |
+| --------- | ------------------------------------------------- | -------- | ------- |
+| className | Class name merged into the footnote section theme | `string` | -       |
+
+### InsertFootnotePayload
+
+| Property        | Description                                     | Type      | Default          |
+| --------------- | ----------------------------------------------- | --------- | ---------------- |
+| identifier      | Identifier of the footnote                      | `string`  | next free number |
+| focusDefinition | Move the caret into the definition after insert | `boolean` | `true`           |
+
+### FootnotePluginOptions
+
+Options of the kernel plugin `FootnotePlugin` (used by `ReactFootnotePlugin` internally).
+
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| decorator | Renders a reference | `(node: FootnoteNode, editor: LexicalEditor) => any` | - |
+| theme.footnote | Class name of the reference element | `string` | - |
+| theme.footnoteSection | Class name of the section | `string` | - |
+| theme.footnoteDefinition | Class name of each definition | `string` | - |
+
+### IFootnoteService
+
+`kernel.requireService(IFootnoteService)` exposes `getSnapshot()` (numbers and definition text per identifier) and `subscribe(listener)` for custom UI.

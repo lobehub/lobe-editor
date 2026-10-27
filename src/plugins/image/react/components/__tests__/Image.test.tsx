@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => {
   };
 
   return {
+    editable: true,
     editor,
     isSelected: false,
     openPreview: vi.fn(),
@@ -51,6 +52,16 @@ vi.mock('@/editor-kernel/react/useLexicalEditor', async () => {
     },
   };
 });
+
+vi.mock('@/editor-kernel/react/useEditable', () => ({
+  useEditable: () => ({ editable: mocks.editable }),
+}));
+
+vi.mock('../ImageCaption', () => ({
+  default: ({ active }: { active: boolean }) => (
+    <span data-active={String(active)} data-testid="caption" />
+  ),
+}));
 
 vi.mock('@/editor-kernel/react/useLexicalNodeSelection', () => ({
   useLexicalNodeSelection: () => [mocks.isSelected, mocks.setSelected, vi.fn(), false],
@@ -107,6 +118,7 @@ describe('Image resize', () => {
     document.body.append(host);
     root = createRoot(host);
     mocks.isSelected = false;
+    mocks.editable = true;
     mocks.resizeHandleProps.length = 0;
     vi.clearAllMocks();
   });
@@ -192,5 +204,53 @@ describe('Image resize', () => {
     expect(mocks.openPreview).toHaveBeenCalledTimes(1);
     expect(mocks.previewRef?.current).toBe(image);
     expect(mocks.setSelected).not.toHaveBeenCalled();
+  });
+
+  it('opens the lightbox on click in read-only mode instead of selecting', async () => {
+    mocks.editable = false;
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    const image = host.querySelector<HTMLImageElement>('[data-testid="image"]');
+    await act(async () => {
+      image!.parentElement!.click();
+    });
+
+    expect(mocks.openPreview).toHaveBeenCalledTimes(1);
+    expect(mocks.setSelected).not.toHaveBeenCalled();
+    expect(mocks.resizeHandleProps).toHaveLength(0);
+  });
+
+  it('renders the caption slot only for block images', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'image',
+      maxWidth: 200,
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+    expect(host.querySelector('[data-testid="caption"]')).toBeNull();
+
+    await act(async () => {
+      root.render(<Image node={{ ...node, getType: () => 'block-image' } as any} />);
+    });
+    expect(host.querySelector('[data-testid="caption"]')).not.toBeNull();
   });
 });

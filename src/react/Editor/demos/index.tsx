@@ -10,10 +10,13 @@ import {
 } from '@lobehub/ui';
 import {
   type IEditor,
+  INSERT_CHART_COMMAND,
+  INSERT_ALERT_COMMAND,
   INSERT_CODEINLINE_COMMAND,
   INSERT_CODEMIRROR_COMMAND,
   INSERT_COLLAPSIBLE_COMMAND,
   INSERT_FILE_COMMAND,
+  INSERT_FOOTNOTE_COMMAND,
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
   INSERT_LINK_COMMAND,
@@ -21,12 +24,15 @@ import {
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
   type LinkEmbedRule,
+  ReactAlertPlugin,
   ReactAutoCompletePlugin,
   ReactBlockPlugin,
+  ReactChartPlugin,
   ReactCodePlugin,
   ReactCodemirrorPlugin,
   ReactCollapsiblePlugin,
   ReactFilePlugin,
+  ReactFootnotePlugin,
   ReactHRPlugin,
   ReactImagePlugin,
   ReactLinkPlugin,
@@ -46,12 +52,15 @@ import {
 import { Editor, useEditor } from '@lobehub/editor/react';
 import { debounce } from 'es-toolkit';
 import {
+  ChartColumnIcon,
   Heading1Icon,
   Heading2Icon,
   Heading3Icon,
+  InfoIcon,
   ListCollapseIcon,
   MinusIcon,
   SigmaIcon,
+  SuperscriptIcon,
   Table2Icon,
 } from 'lucide-react';
 import { type FC, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -488,6 +497,14 @@ const EditorDemo: FC<EditorDemoProps> = ({
         },
       },
       {
+        icon: ChartColumnIcon,
+        key: 'chart',
+        label: 'Chart',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_CHART_COMMAND, undefined);
+        },
+      },
+      {
         type: 'divider',
       },
       {
@@ -496,6 +513,28 @@ const EditorDemo: FC<EditorDemoProps> = ({
         label: '折叠块',
         onSelect: (editor) => {
           editor.dispatchCommand(INSERT_COLLAPSIBLE_COMMAND, {});
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
+      {
+        icon: InfoIcon,
+        key: 'callout',
+        label: 'Alert',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_ALERT_COMMAND, { alertType: 'note' });
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
+      {
+        icon: SuperscriptIcon,
+        key: 'footnote',
+        label: 'Footnote',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_FOOTNOTE_COMMAND, undefined);
           queueMicrotask(() => {
             editor.focus();
           });
@@ -607,6 +646,7 @@ const EditorDemo: FC<EditorDemoProps> = ({
           ReactLiteXmlPlugin,
           ReactBlockPlugin,
           ReactListPlugin,
+          ReactChartPlugin,
           Editor.withProps(ReactLinkPlugin, {
             allowedProtocols: ['schema:', 'alipay:'],
             labels: {
@@ -687,6 +727,8 @@ const EditorDemo: FC<EditorDemoProps> = ({
           ReactVirtualBlockPlugin,
           ReactCodemirrorPlugin,
           ReactCollapsiblePlugin,
+          ReactAlertPlugin,
+          ReactFootnotePlugin,
           ReactHRPlugin,
           ReactTablePlugin,
           ReactMathPlugin,

@@ -32,6 +32,22 @@ describe('renderBuiltinNode', () => {
     expect(html).toContain('id="title"');
   });
 
+  it('keeps heading slugs unique across a document', () => {
+    const slugs = new Map<string, number>();
+    const ids = ['Foo', 'Foo', 'Foo 1'].map((text) => {
+      const html = renderToStaticMarkup(
+        <div>{renderBuiltinNode({ tag: 'h2', type: 'heading' }, 'k', [text], slugs, text)}</div>,
+      );
+      return html.match(/id="([^"]+)"/)?.[1];
+    });
+    expect(ids).toEqual(['foo', 'foo-1', 'foo-1-1']);
+  });
+
+  it('renders table cell column alignment', () => {
+    const html = toHTML({ colAlign: 'right', type: 'tablecell' }, ['1']);
+    expect(html).toContain('text-align:right');
+  });
+
   it('renders quote with editor_quote class', () => {
     const html = toHTML({ type: 'quote' }, ['quoted']);
     expect(html).toContain('class="editor_quote"');

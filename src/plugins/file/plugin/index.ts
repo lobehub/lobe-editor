@@ -70,7 +70,16 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
               }
               $setSelection(rangeSelection);
             }
-            const fileNode = $createFileNode(file.name);
+            const fileNode = $createFileNode(
+              file.name,
+              undefined,
+              file.size,
+              'pending',
+              undefined,
+              {
+                mimeType: file.type,
+              },
+            );
             $insertNodes([fileNode]); // Insert a zero-width space to ensure the image is not the last child
             if ($isRootOrShadowRoot(fileNode.getParentOrThrow())) {
               $wrapNodeInElement(fileNode, $createParagraphNode).selectEnd();
@@ -110,13 +119,20 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
 
     litexmlService.registerXMLWriter(FileNode.getType(), (node, ctx) => {
       if ($isFileNode(node)) {
-        return ctx.createXmlNode('file', {
+        const attributes: Record<string, string> = {
           fileUrl: node.fileUrl || '',
           message: node.message || '',
           name: node.name,
           size: node.size?.toString() || '0',
           status: node.status,
-        });
+        };
+        if (node.mimeType) {
+          attributes.mimeType = node.mimeType;
+        }
+        if (node.ext) {
+          attributes.ext = node.ext;
+        }
+        return ctx.createXmlNode('file', attributes);
       }
       return false;
     });
@@ -127,8 +143,11 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
       const status = xmlElement.getAttribute('status') as
         'pending' | 'uploaded' | 'error' | undefined;
       return INodeHelper.createTypeNode(FileNode.getType(), {
+        ext: xmlElement.getAttribute('ext') || undefined,
         fileUrl,
         message: xmlElement.getAttribute('message') || '',
+        mimeType:
+          xmlElement.getAttribute('mimeType') || xmlElement.getAttribute('mime-type') || undefined,
         name,
         size: parseInt(xmlElement.getAttribute('size') || '0', 10),
         status,

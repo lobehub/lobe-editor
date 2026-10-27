@@ -1,5 +1,7 @@
 import { createElement, type CSSProperties, type ReactNode } from 'react';
 
+import { claimHeadingSlug } from '@/utils/heading-slug';
+
 import { getListClassName, getTableWrapperClassName } from '../style';
 import { parseCSSText } from './utils';
 
@@ -43,15 +45,6 @@ function formatLinkHighlightUrl(url: string): string {
   }
 
   return url;
-}
-
-function textToSlug(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replaceAll(/[^\s\w\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF-]/g, '')
-    .replaceAll(/[\s_]+/g, '-')
-    .replaceAll(/^-+|-+$/g, '');
 }
 
 // `.editor_table` sets `table-layout: fixed`, so a table without column widths
@@ -181,18 +174,7 @@ export function renderBuiltinNode(
     }
     case 'heading': {
       const tag = node.tag as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-      const text = textContent || '';
-      const baseSlug = textToSlug(text);
-      let slug = baseSlug;
-      if (baseSlug) {
-        const count = headingSlugs.get(baseSlug);
-        if (count !== undefined) {
-          slug = `${baseSlug}-${count}`;
-          headingSlugs.set(baseSlug, count + 1);
-        } else {
-          headingSlugs.set(baseSlug, 1);
-        }
-      }
+      const slug = claimHeadingSlug(textContent || '', headingSlugs);
       return createElement(tag, { id: slug || undefined, key }, children);
     }
     case 'quote': {
@@ -282,6 +264,8 @@ export function renderBuiltinNode(
       if (node.width) cellStyle.width = `${node.width}px`;
       if (node.backgroundColor) cellStyle.backgroundColor = node.backgroundColor as string;
       if (node.verticalAlign) cellStyle.verticalAlign = node.verticalAlign as string;
+      const textAlign = node.format || node.colAlign;
+      if (textAlign) cellStyle.textAlign = textAlign as string;
       return (
         <CellTag
           className={cls}

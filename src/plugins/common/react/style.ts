@@ -1,5 +1,7 @@
 import { createStaticStyles, cx, keyframes } from '@lobehub/ui';
 
+import type { CommonPluginOptions } from '../plugin';
+
 const cursorBlink = keyframes`
   to {
     visibility: hidden;
@@ -41,6 +43,33 @@ export const themeStyles = createStaticStyles(({ css, cssVar }) => ({
     text-decoration: underline;
   `,
 }));
+
+const isMarkdownFormatEnabled = (
+  markdownOption: CommonPluginOptions['markdownOption'],
+  format: 'bold' | 'italic' | 'strikethrough' | 'underline' | 'underlineStrikethrough',
+) =>
+  markdownOption === true ||
+  (typeof markdownOption === 'object' && markdownOption[format] === true);
+
+export const getMarkdownThemeStyles = (markdownOption: CommonPluginOptions['markdownOption']) => ({
+  quote: themeStyles.quote,
+  textBold: isMarkdownFormatEnabled(markdownOption, 'bold')
+    ? themeStyles.textBold_true
+    : themeStyles.textBold_false,
+  textCode: themeStyles.textCode,
+  textItalic: isMarkdownFormatEnabled(markdownOption, 'italic')
+    ? themeStyles.textItalic_true
+    : themeStyles.textItalic_false,
+  textStrikethrough: isMarkdownFormatEnabled(markdownOption, 'strikethrough')
+    ? themeStyles.textStrikethrough_true
+    : themeStyles.textStrikethrough_false,
+  textUnderline: isMarkdownFormatEnabled(markdownOption, 'underline')
+    ? themeStyles.textUnderline_true
+    : themeStyles.textUnderline_false,
+  textUnderlineStrikethrough: isMarkdownFormatEnabled(markdownOption, 'underlineStrikethrough')
+    ? themeStyles.textUnderlineStrikethrough_true
+    : themeStyles.textUnderlineStrikethrough_false,
+});
 
 export const styles = createStaticStyles(({ css, cssVar }) => {
   const __root = css`
@@ -144,6 +173,17 @@ export const styles = createStaticStyles(({ css, cssVar }) => {
     h5,
     h6 {
       font-size: calc(var(--lobe-markdown-font-size) * 1);
+    }
+
+    [data-heading-hidden='true'] {
+      display: none !important;
+    }
+
+    [data-heading-folded='true']::after {
+      content: '…';
+      user-select: none;
+      margin-inline-start: 0.25em;
+      color: ${cssVar.colorTextQuaternary};
     }
   `;
 

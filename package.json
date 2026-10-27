@@ -127,6 +127,7 @@
     "@lexical/table": "0.42.0",
     "@lexical/utils": "0.42.0",
     "@lexical/yjs": "0.42.0",
+    "@lobehub/charts": "^6.0.1",
     "@pierre/highlights": "^0.2.0",
     "@xmldom/xmldom": "^0.9.10",
     "ahooks": "^3.9.6",
@@ -147,6 +148,7 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "remark-supersub": "^1.0.0",
+    "thumbhash": "^0.1.1",
     "ts-key-enum": "^3.0.13",
     "use-merge-value": "^1.2.0",
     "yjs": "^13.6.31"

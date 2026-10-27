@@ -38,6 +38,24 @@ The plugin leverages Lexical's list functionality:
 - **Export/Import**: Markdown serialization with proper list formatting
 - **Auto-detection**: Automatic list creation from markdown patterns
 
+### Task Lists
+
+Check lists (`- [ ]` / `- [x]` in Markdown) keep their checked state in every format:
+
+| Format   | Check list                  | Item                                           |
+| -------- | --------------------------- | ---------------------------------------------- |
+| Markdown | `- [ ] todo` / `- [x] done` | `[ ]` unchecked, `[x]` checked                 |
+| LiteXML  | `<ul type="check">`         | `<li checked="false">` / `<li checked="true">` |
+
+Bullet (`<ul>`) and ordered (`<ol start="…">`) lists are written without these attributes.
+
+```xml
+<ul type="check">
+  <li checked="true"><span>Ship the release</span></li>
+  <li checked="false"><span>Write the changelog</span></li>
+</ul>
+```
+
 ### Navigation & Interaction
 
 - **Keyboard Navigation**: Arrow keys, Tab/Shift+Tab for indentation
@@ -50,10 +68,10 @@ The plugin leverages Lexical's list functionality:
 
 React component wrapper for list functionality.
 
-| Property     | Description                                                         | Type      | Default |
-| ------------ | ------------------------------------------------------------------- | --------- | ------- |
-| enableHotkey | Enable the bullet / numbered list shortcuts                         | `boolean` | `true`  |
-| className    | Declared in `ReactListPluginProps`, currently not applied           | `string`  | -       |
+| Property     | Description                                               | Type      | Default |
+| ------------ | --------------------------------------------------------- | --------- | ------- |
+| enableHotkey | Enable the bullet / numbered list shortcuts               | `boolean` | `true`  |
+| className    | Declared in `ReactListPluginProps`, currently not applied | `string`  | -       |
 
 ## Commands
 

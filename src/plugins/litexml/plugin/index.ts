@@ -5,6 +5,7 @@ import { $nodesOfType, HISTORIC_TAG } from 'lexical';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { registerNodeIdentityPolicy } from '@/plugins/common/node/node-identity-policy';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
+import { $getTableMarkdownDelimiterRow } from '@/plugins/table/node/column-align';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor, IServiceID } from '@/types';
 
 import { registerLiteXMLCommand } from '../command';
@@ -208,13 +209,7 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
       if (hasPreviousProjectedRow) {
         ctx.wrap('', '\n');
       } else {
-        ctx.wrap(
-          '',
-          `\n${parent
-            .getColWidths()
-            ?.map(() => '|:--')
-            .join('')}|\n`,
-        );
+        ctx.wrap('', `\n${$getTableMarkdownDelimiterRow(parent)}\n`);
       }
     });
     markdownService?.registerMarkdownWriter(DiffNode.getType(), (ctx, node) => {

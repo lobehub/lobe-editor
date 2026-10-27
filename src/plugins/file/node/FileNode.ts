@@ -14,16 +14,25 @@ import { $applyNodeReplacement, DecoratorNode } from 'lexical';
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 
+import { getExtensionFromMimeType, getFileExtension } from '../utils/meta';
+
 export type SerializedFileNode = Spread<
   {
+    ext?: string;
     fileUrl?: string;
     message?: string;
+    mimeType?: string;
     name: string;
     size?: number;
     status?: 'pending' | 'uploaded' | 'error';
   },
   SerializedLexicalNode
 >;
+
+export interface FileNodeMeta {
+  ext?: string;
+  mimeType?: string;
+}
 
 export class FileNode extends DecoratorNode<any> {
   static getType(): string {
@@ -38,6 +47,7 @@ export class FileNode extends DecoratorNode<any> {
       node.__status,
       node.__message,
       node.__key,
+      { ext: node.__ext, mimeType: node.__mimeType },
     );
   }
 
@@ -48,6 +58,8 @@ export class FileNode extends DecoratorNode<any> {
       serializedNode.size,
       serializedNode.status,
       serializedNode.message,
+      undefined,
+      { ext: serializedNode.ext, mimeType: serializedNode.mimeType },
     );
   }
 
@@ -70,6 +82,8 @@ export class FileNode extends DecoratorNode<any> {
   __size: number | undefined;
   __status: 'pending' | 'uploaded' | 'error';
   __message?: string;
+  __mimeType: string | undefined;
+  __ext: string | undefined;
 
   get name(): string {
     return this.__name;
@@ -91,6 +105,14 @@ export class FileNode extends DecoratorNode<any> {
     return this.__message;
   }
 
+  get mimeType(): string | undefined {
+    return this.__mimeType;
+  }
+
+  get ext(): string | undefined {
+    return this.__ext;
+  }
+
   constructor(
     name: string,
     fileUrl?: string,
@@ -98,6 +120,7 @@ export class FileNode extends DecoratorNode<any> {
     status?: 'pending' | 'uploaded' | 'error',
     message?: string,
     key?: string,
+    meta?: FileNodeMeta,
   ) {
     super(key);
     this.__name = name;
@@ -105,6 +128,11 @@ export class FileNode extends DecoratorNode<any> {
     this.__size = size;
     this.__status = status || 'pending';
     this.__message = message;
+    this.__mimeType = meta?.mimeType || undefined;
+    this.__ext =
+      meta?.ext?.toLowerCase() ||
+      getFileExtension(name) ||
+      getExtensionFromMimeType(meta?.mimeType);
   }
 
   setUploaded(url: string): void {
@@ -133,8 +161,10 @@ export class FileNode extends DecoratorNode<any> {
   exportJSON(): SerializedFileNode {
     return {
       ...super.exportJSON(),
+      ext: this.ext,
       fileUrl: this.fileUrl,
       message: this.message,
+      mimeType: this.mimeType,
       name: this.name,
       size: this.size,
       status: this.status,
@@ -175,8 +205,9 @@ export function $createFileNode(
   size?: number,
   status?: 'pending' | 'uploaded' | 'error',
   message?: string,
+  meta?: FileNodeMeta,
 ): FileNode {
-  return $applyNodeReplacement(new FileNode(name, fileUrl, size, status, message));
+  return $applyNodeReplacement(new FileNode(name, fileUrl, size, status, message, undefined, meta));
 }
 
 function $convertFileElement(): DOMConversionOutput {
