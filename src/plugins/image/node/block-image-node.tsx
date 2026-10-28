@@ -58,18 +58,20 @@ export class BlockImageNode extends BaseImageNode {
     return this.__height;
   }
 
-  constructor(opt: {
-    accent?: string;
-    altText: string;
-    caption?: string;
-    height?: 'inherit' | number;
-    key?: NodeKey;
-    maxWidth: number;
-    src: string;
-    status?: 'uploaded' | 'loading' | 'error';
-    thumbhash?: string;
-    width?: 'inherit' | number;
-  }) {
+  constructor(
+    opt: {
+      accent?: string;
+      altText: string;
+      caption?: string;
+      height?: 'inherit' | number;
+      key?: NodeKey;
+      maxWidth: number;
+      src: string;
+      status?: 'uploaded' | 'loading' | 'error';
+      thumbhash?: string;
+      width?: 'inherit' | number;
+    } = { altText: '', maxWidth: 0, src: '' },
+  ) {
     super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key, {
       accent: opt.accent,
       caption: opt.caption,
