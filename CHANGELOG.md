@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;7.0.1](https://github.com/lobehub/lobe-editor/compare/v7.0.0...v7.0.1)
+<sup>Released on **2026-10-28**</sup>
+
+
+#### 💄 Styles
+
+- **slash**: Use default menu item height.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **slash**: Use default menu item height ([15ae50e](https://github.com/lobehub/lobe-editor/commit/15ae50e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;7.0.0](https://github.com/lobehub/lobe-editor/compare/v6.0.1...v7.0.0)
 <sup>Released on **2026-10-28**</sup>
 
