@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;7.0.2](https://github.com/lobehub/lobe-editor/compare/v7.0.1...v7.0.2)
+<sup>Released on **2026-10-28**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **image**: Allow image nodes to be constructed without arguments.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **image**: Allow image nodes to be constructed without arguments ([e055c46](https://github.com/lobehub/lobe-editor/commit/e055c46))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;7.0.1](https://github.com/lobehub/lobe-editor/compare/v7.0.0...v7.0.1)
 <sup>Released on **2026-10-28**</sup>
 
