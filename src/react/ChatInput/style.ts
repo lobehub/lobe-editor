@@ -34,6 +34,8 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
   `,
 
   editor: css`
+    --lobe-table-bleed: 0px;
+
     cursor: text;
 
     overflow: hidden auto;

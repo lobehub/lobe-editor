@@ -22,7 +22,7 @@ The plugin implements custom file nodes:
 
 - **FileNode**: Custom node extending DecoratorNode for file attachments
 - **Status Management**: Track file upload states (pending, uploaded, error)
-- **Metadata Storage**: Store file information (name, size, URL, status)
+- **Metadata Storage**: Store file information (name, size, URL, status, MIME type, extension)
 - **Serialization**: JSON serialization for persistence and transport
 
 ### Command System
@@ -49,18 +49,27 @@ The plugin implements custom file nodes:
 
 ### ReactFilePlugin
 
-React component wrapper for file functionality.
+React component wrapper for file functionality. Uploaded files show an icon picked from the extension or MIME type, plus Preview and Download actions. The read-only `LexicalRenderer` renders the same actions as plain links.
 
-| Property   | Description            | Type                                 | Default     |
-| ---------- | ---------------------- | ------------------------------------ | ----------- |
-| name       | File name              | `string`                             | -           |
-| fileUrl    | File download URL      | `string`                             | -           |
-| size       | File size in bytes     | `number`                             | -           |
-| status     | Upload status          | `'pending' \| 'uploaded' \| 'error'` | `'pending'` |
-| message    | Status message         | `string`                             | -           |
-| onDownload | Download event handler | `() => void`                         | -           |
-| onRemove   | Remove event handler   | `() => void`                         | -           |
-| onRetry    | Retry upload handler   | `() => void`                         | -           |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| handleUpload | Upload a picked or dropped file | `(file: File) => Promise<{ url }>` | - |
+| onPreview | Called when the Preview action is clicked | `(file: FileActionPayload) => void` | Opens `fileUrl` in a new tab |
+| onDownload | Called when the Download action is clicked | `(file: FileActionPayload) => void` | Clicks an anchor with download |
+| markdownWriter | Custom Markdown output for a file node | `(file: FileNode) => string` | - |
+| locale | Override locale strings | `Partial<Record<keyof ILocaleKeys, string>>` | - |
+| className | Class name for the file content | `string` | - |
+| theme | Theme class names | `{ file?: string }` | - |
+
+`FileActionPayload` is `{ name: string; fileUrl: string; size?: number; mimeType?: string; ext?: string }`.
+
+```tsx
+<ReactFilePlugin
+  handleUpload={upload}
+  onDownload={(file) => saveAs(file.fileUrl, file.name)}
+  onPreview={(file) => openViewer(file)}
+/>
+```
 
 ## Commands
 
@@ -125,8 +134,20 @@ interface SerializedFileNode {
   size?: number;
   status?: 'pending' | 'uploaded' | 'error';
   message?: string;
+  mimeType?: string;
+  ext?: string;
 }
 ```
+
+`mimeType` and `ext` are optional. When `ext` is missing it is derived from `name` (then from `mimeType`), so documents saved before these fields existed load unchanged. Uploads record the browser-reported `File.type` as `mimeType`.
+
+### LiteXML
+
+```xml
+<file name="report.pdf" fileUrl="https://cdn/report.pdf" size="2048" status="uploaded" mimeType="application/pdf" ext="pdf"></file>
+```
+
+`mimeType` and `ext` are written only when set. The reader also accepts `mime-type`.
 
 ## Node API
 

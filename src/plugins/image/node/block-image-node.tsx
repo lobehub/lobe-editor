@@ -59,15 +59,22 @@ export class BlockImageNode extends BaseImageNode {
   }
 
   constructor(opt: {
+    accent?: string;
     altText: string;
+    caption?: string;
     height?: 'inherit' | number;
     key?: NodeKey;
     maxWidth: number;
     src: string;
     status?: 'uploaded' | 'loading' | 'error';
+    thumbhash?: string;
     width?: 'inherit' | number;
   }) {
-    super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key);
+    super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key, {
+      accent: opt.accent,
+      caption: opt.caption,
+      thumbhash: opt.thumbhash,
+    });
     this.__status = opt.status ?? 'uploaded';
   }
 
@@ -106,6 +113,7 @@ export class BlockImageNode extends BaseImageNode {
 
   static clone(node: BlockImageNode): BlockImageNode {
     return new BlockImageNode({
+      ...node.getMeta(),
       altText: node.__altText,
       height: node.__height,
       key: node.__key,
@@ -117,14 +125,18 @@ export class BlockImageNode extends BaseImageNode {
   }
 
   static importJSON(serializedNode: SerializedImageNode): BlockImageNode {
-    const { altText, height, width, maxWidth, src, status } = serializedNode;
+    const { accent, altText, caption, height, width, maxWidth, src, status, thumbhash } =
+      serializedNode;
 
     return $createBlockImageNode({
+      accent,
       altText,
+      caption,
       height,
       maxWidth,
       src,
       status,
+      thumbhash,
       width,
     }).updateFromJSON(serializedNode);
   }
@@ -161,16 +173,30 @@ export class BlockImageNode extends BaseImageNode {
 }
 
 export function $createBlockImageNode({
+  accent,
   altText,
+  caption,
   height,
   maxWidth = 4200,
   src,
   width,
   key,
   status,
+  thumbhash,
 }: ImagePayload): BlockImageNode {
   return $applyNodeReplacement(
-    new BlockImageNode({ altText, height, key, maxWidth, src, status, width }),
+    new BlockImageNode({
+      accent,
+      altText,
+      caption,
+      height,
+      key,
+      maxWidth,
+      src,
+      status,
+      thumbhash,
+      width,
+    }),
   );
 }
 

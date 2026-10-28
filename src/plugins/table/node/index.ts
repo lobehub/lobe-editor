@@ -92,6 +92,21 @@ function ensureTableScrollIndicators(scrollWrapper: HTMLElement): void {
   requestAnimationFrame(() => updateTableScrollIndicators(scrollWrapper));
 }
 
+function syncTableFluidMarker(element: HTMLElement, node: TableNode): void {
+  const table = element instanceof HTMLTableElement ? element : element.querySelector('table');
+  if (!table) {
+    return;
+  }
+
+  if (node.getColWidths()?.length) {
+    delete table.dataset.lobeTableFluid;
+    return;
+  }
+
+  table.dataset.lobeTableFluid = 'true';
+  table.style.removeProperty('width');
+}
+
 function ensureTableControllerDOM(element: HTMLElement): void {
   const table = element instanceof HTMLTableElement ? element : element.querySelector('table');
 
@@ -112,38 +127,34 @@ function ensureTableControllerDOM(element: HTMLElement): void {
     return;
   }
 
+  const hostParent = element instanceof HTMLTableElement ? scrollWrapper : element;
+
   const legacyToolbar = element.querySelector(':scope > .toolbar');
   if (legacyToolbar instanceof HTMLElement) {
     // Old structure only had a single `.toolbar`, which is the lexical decorator host.
     legacyToolbar.className = 'toolbar-col';
     markTableControllerHost(legacyToolbar, true);
-    scrollWrapper.append(legacyToolbar);
+    hostParent.append(legacyToolbar);
   }
 
-  const ensureToolbar = (parent: HTMLElement, className: string, withDecorator = false) => {
-    const existingToolbar = parent.querySelector(`:scope > .${className}`);
+  const ensureToolbar = (className: string) => {
+    const existingToolbar = hostParent.querySelector(`:scope > .${className}`);
     if (existingToolbar instanceof HTMLElement) {
-      markTableControllerHost(existingToolbar, withDecorator);
+      markTableControllerHost(existingToolbar, true);
       return;
     }
 
-    if (!existingToolbar) {
-      const toolbar = document.createElement('div');
-      toolbar.className = className;
-      markTableControllerHost(toolbar, withDecorator);
-      parent.append(toolbar);
-    }
+    const toolbar = document.createElement('div');
+    toolbar.className = className;
+    markTableControllerHost(toolbar, true);
+    hostParent.append(toolbar);
   };
 
-  // Split controller rendering into different hosts:
-  // - toolbar-col: lexical decorator mount point
-  // - toolbar-row: secondary portal host for row/corner controls
   const legacyDecoratedToolbar = scrollWrapper.querySelector(
     ':scope > .toolbar[data-lexical-decorator]',
   );
   if (legacyDecoratedToolbar instanceof HTMLElement) {
     legacyDecoratedToolbar.className = 'toolbar-col';
-    markTableControllerHost(legacyDecoratedToolbar, true);
   }
 
   const legacyPlainToolbar = scrollWrapper.querySelector(
@@ -151,17 +162,20 @@ function ensureTableControllerDOM(element: HTMLElement): void {
   );
   if (legacyPlainToolbar instanceof HTMLElement) {
     legacyPlainToolbar.className = 'toolbar-row';
-    markTableControllerHost(legacyPlainToolbar, true);
-    scrollWrapper.append(legacyPlainToolbar);
   }
 
-  const legacyOuterRowToolbar = element.querySelector(':scope > .toolbar-row');
-  if (legacyOuterRowToolbar instanceof HTMLElement) {
-    scrollWrapper.append(legacyOuterRowToolbar);
+  if (hostParent !== scrollWrapper) {
+    for (const host of scrollWrapper.querySelectorAll<HTMLElement>(
+      ':scope > .toolbar-col, :scope > .toolbar-row',
+    )) {
+      if (!hostParent.querySelector(`:scope > .${host.className}`)) {
+        hostParent.append(host);
+      }
+    }
   }
 
-  ensureToolbar(scrollWrapper, 'toolbar-col', true);
-  ensureToolbar(scrollWrapper, 'toolbar-row', true);
+  ensureToolbar('toolbar-col');
+  ensureToolbar('toolbar-row');
   ensureTableScrollIndicators(scrollWrapper);
 }
 
@@ -207,6 +221,7 @@ export function patchTableNode() {
     value: function (config: EditorConfig, editor: LexicalEditor) {
       const table = OriginalCreateDOM.call(this, config, editor);
       ensureTableControllerDOM(table);
+      syncTableFluidMarker(table, this);
       const kernel = getKernelFromEditor(editor);
       const decorator = kernel?.getDecorator(TableNode.getType()) || null;
       reconcileTableDecorator(editor, this, decorator);
@@ -221,6 +236,7 @@ export function patchTableNode() {
     value: function (_prevNode: TableNode, _dom: HTMLElement, _config: EditorConfig) {
       const table = OriginalUpdateDOM.call(this, _prevNode, _dom, _config);
       ensureTableControllerDOM(_dom);
+      syncTableFluidMarker(_dom, this);
       const kernel = getKernelFromEditorConfig(_config);
       const editor = kernel?.getLexicalEditor();
       if (editor) {

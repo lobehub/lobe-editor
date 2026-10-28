@@ -114,7 +114,8 @@ export function $updateTableWidthsForCellInsertion(
   columnIndex: number,
   insertedSpan: number,
 ): void {
-  const currentWidths = table.getColWidths() || Array.from({ length: rowWidthBefore }, () => 250);
+  const currentWidths = table.getColWidths();
+  if (!currentWidths?.length) return;
   // The first row operation expands the table. Following row operations fill
   // the columns that already exist and must not expand colWidths repeatedly.
   if (rowWidthBefore < currentWidths.length) return;
@@ -184,14 +185,15 @@ function $hasLegacyTableCellDiffs(): boolean {
 
 function $hasIncompleteTableWidths(): boolean {
   return $nodesOfType(TableNode).some((table) => {
-    return (table.getColWidths()?.length || 0) < $getMaximumLogicalColumnCount(table);
+    const widths = table.getColWidths();
+    return !!widths?.length && widths.length < $getMaximumLogicalColumnCount(table);
   });
 }
 
 /**
  * Migrates the old `TableRow > DiffNode > TableCellNode` representation into
- * cell-shaped diff nodes and makes sure the table has a width for every
- * logical column. Safe to call repeatedly.
+ * cell-shaped diff nodes and makes sure a table with saved widths has one for
+ * every logical column. Safe to call repeatedly.
  */
 export function $normalizeLegacyTableCellDiffs(editor: LexicalEditor): boolean {
   let changed = false;
@@ -216,7 +218,7 @@ export function $normalizeLegacyTableCellDiffs(editor: LexicalEditor): boolean {
   $nodesOfType(TableNode).forEach((table) => {
     const requiredWidthCount = $getMaximumLogicalColumnCount(table);
     const currentWidths = table.getColWidths() || [];
-    if (currentWidths.length >= requiredWidthCount) return;
+    if (currentWidths.length === 0 || currentWidths.length >= requiredWidthCount) return;
 
     const fallback = currentWidths.at(-1) || 250;
     table.setColWidths([

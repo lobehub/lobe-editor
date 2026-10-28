@@ -29,6 +29,10 @@ import { logger } from '../utils/logger';
 import { parseMarkdownToLexical } from './markdown/parse';
 import { MarkdownWriterContext } from './markdown-writer-context';
 
+// remark-stringify escapes `[` in phrasing text, which turns GitHub alert markers (`> [!NOTE]`) into plain quotes.
+const ESCAPED_GITHUB_ALERT_MARKER =
+  /^((?:[\t ]*>[\t ]?)+)\\\[!(note|tip|important|warning|caution)]/gim;
+
 export default class MarkdownDataSource extends DataSource {
   private formatMarkdown(markdown: string): string {
     try {
@@ -43,7 +47,7 @@ export default class MarkdownDataSource extends DataSource {
           tightDefinitions: true,
         })
         .processSync(markdown);
-      return String(result);
+      return String(result).replaceAll(ESCAPED_GITHUB_ALERT_MARKER, '$1[!$2]');
     } catch (error) {
       logger.error('Failed to format markdown:', error);
       return markdown;

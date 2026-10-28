@@ -15,9 +15,13 @@ Table plugin enables full-featured table editing in the editor. Built on Lexical
 
 <Demo editable={false} of={DemoIndex} />
 
+## Column Widths
+
+A table without saved `colWidths` is fluid: it fills the text column with equal columns, in the editor and in `LexicalRenderer` alike. New tables, Markdown imports and LiteXML imports without `colWidths` start fluid. Dragging a column border saves the current widths, and from then on both sides use them. **Distribute evenly** turns the table back into a fluid one when its columns fit the text column. HTML pasted with its own widths (for example from Google Docs or Excel) is fitted to the column and saved.
+
 ## Horizontal Scrolling
 
-When a table is wider than the editor's text column, the scroll wrapper bleeds into the editor's own anchor padding on both sides while the table itself stays anchored to the text column at scroll position zero. As the user scrolls horizontally, the leftmost columns slide into the left gutter and the rightmost columns reveal into the right gutter — the visible clip region uses both gutters. The bleed tracks `--lobe-block-anchor-padding`; consumers that override anchor padding (for example, set it to `0`) get the matching bleed amount automatically.
+The table box (its frame) extends `--lobe-table-bleed` (default `14px`) past the text column on each side, so cell text lines up with the surrounding paragraphs. A table wider than that scrolls horizontally inside the same box in the editor and in `LexicalRenderer`. Set `--lobe-table-bleed: 0` where the table must stay inside the text column (the renderer's `chat` variant does this).
 
 <Demo editable={false} of={DemoScrollable} />
 
@@ -32,10 +36,36 @@ The plugin extends Lexical's table functionality:
 - **Cell Management**: Advanced cell manipulation and navigation
 - **Table Structure**: Support for complex table layouts and styling
 
+### Column Alignment
+
+Each column can be aligned `left`, `center`, `right` or left unset (`null`). The alignment is stored on the table node as Lexical node state (`$.colAligns` in JSON), so documents saved before this feature keep loading unchanged. Columns are aligned from the column menu (**Align left / center / right**; picking the active alignment again clears it), and the alignment follows the column when it is inserted, deleted or moved.
+
+| Format   | Representation                                                        |
+| -------- | --------------------------------------------------------------------- |
+| Markdown | GFM delimiter row: `:--` left, `:-:` center, `--:` right, `---` unset |
+| LiteXML  | `<table colWidths="…" colAligns="left,center,,right">`                |
+| JSON     | `"$": { "colAligns": ["left", "center", null, "right"] }`             |
+| Renderer | `text-align` on the cells of the column in `LexicalRenderer`          |
+
+A cell's own text alignment still wins over the column alignment.
+
+```typescript
+import { SET_TABLE_COLUMN_ALIGN_COMMAND } from '@lobehub/editor';
+
+editor.dispatchCommand(SET_TABLE_COLUMN_ALIGN_COMMAND, {
+  align: 'center',
+  columnIndexes: [1],
+  table: tableNode.getKey(),
+});
+```
+
+`$getTableColumnAligns(table)` / `$setTableColumnAligns(table, aligns)` read and write the alignment inside `editor.update()` / `editor.read()`.
+
 ### Command System
 
 - **INSERT_TABLE_COMMAND**: Create new tables with specified dimensions
 - **SELECT_TABLE_COMMAND**: Select entire tables or specific regions
+- **SET_TABLE_COLUMN_ALIGN_COMMAND**: Set (or, with `toggle: true`, toggle) the alignment of columns
 - **Table Utilities**: Helper functions for table operations and validation
 
 ### Internationalization
@@ -50,17 +80,50 @@ The plugin extends Lexical's table functionality:
 - **Validation**: Table structure validation and error handling
 - **Navigation**: Advanced table navigation and selection utilities
 
+## Editing Controls
+
+In an editable editor, controls appear only around the cell under the pointer and never change the table's own borders:
+
+- **Row grip** on the table's left edge and **column grip** on its top edge. Click a grip to select the row or column and open its menu; Shift+click extends the selection; drag a grip to move the row or column.
+- **Corner grip** at the top-left selects the whole table and opens the table menu (distribute widths, delete table).
+- **Insert dots**: move the pointer onto the left edge between two rows, or the top edge between two columns (including before the first and after the last), and a `+` dot with a preview line appears; click it to insert there.
+- **Column resize**: drag a column boundary; hovering it shows a thin guide.
+
+The column menu groups **Insert column left / right**, **Align** (three icon buttons, the active one highlighted), **Column width** (auto fit, distribute evenly, sync to all columns) and **Delete**. The row menu has **Insert row above / below** and **Delete**. Read-only editors and `LexicalRenderer` show none of these controls.
+
+### Extending the menus
+
+Register items on `ITableControllerMenuService` to add entries to the row, column or table menu. Each item has a `key`, an optional `order` and an optional `when(context)`; `context` is `{ axis: 'column' | 'row' | 'table', editor, node, selectedIndexes }`.
+
+| Item `type` | Fields | Renders |
+| --- | --- | --- |
+| `'item'` (default) | `label`, `onClick`, `danger?`, `icon?` | a menu row |
+| `'label'` | `label` | a small group heading |
+| `'segmented'` | `options: { key, label, icon?, active?, onClick }[]` | a row of icon buttons |
+| `'separator'` | - | a divider |
+
+```tsx
+const menuService = editor.requireService(ITableControllerMenuService);
+menuService.registerItem({
+  key: 'my-copy-column',
+  label: 'Copy column',
+  onClick: ({ node, selectedIndexes }) => copyColumns(node, selectedIndexes),
+  order: 45,
+  when: ({ axis }) => axis === 'column',
+});
+```
+
 ## Components
 
 ### ReactTablePlugin
 
 React component wrapper for table functionality.
 
-| Property   | Description                                                      | Type                                          | Default      |
-| ---------- | ---------------------------------------------------------------- | --------------------------------------------- | ------------ |
-| className  | Class name for tables                                            | `string`                                      | -            |
-| locale     | Override table UI strings                                        | `Partial<Record<keyof ILocaleKeys, string>>`  | -            |
-| resizeMode | Resize while dragging (`realtime`) or when the drag ends (`deferred`) | `'realtime' \| 'deferred'`                   | `'realtime'` |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| className | Class name for tables | `string` | - |
+| locale | Override table UI strings | `Partial<Record<keyof ILocaleKeys, string>>` | - |
+| resizeMode | Resize while dragging (`realtime`) or when the drag ends (`deferred`) | `'realtime' \| 'deferred'` | `'realtime'` |
 
 ## Commands
 
@@ -97,11 +160,10 @@ editor.dispatchCommand(SELECT_TABLE_COMMAND, { rowIndex: 2, table: tableNode.get
 
 ### TablePluginOptions
 
-| Property     | Description                    | Type                                                  | Default |
-| ------------ | ------------------------------ | ----------------------------------------------------- | ------- |
-| decoratorCol | Renders column-level UI        | `(node: TableNode, editor: LexicalEditor) => ReactNode` | -       |
-| decoratorRow | Renders row-level UI           | `(node: TableNode, editor: LexicalEditor) => ReactNode` | -       |
-| theme        | Class name for table nodes     | `string`                                              | -       |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| decorator | Renders the editing controls layer for each table (`ReactTablePlugin` mounts the grips here) | `(node: TableNode, editor: LexicalEditor) => ReactNode` | - |
+| theme | Class name for table nodes | `string` | - |
 
 ## Utility Functions
 
@@ -151,14 +213,15 @@ selectTableRange(
 The plugin includes i18n support for table-related text:
 
 ```typescript
-// Example translations
 {
-  "table.insert": "Insert Table",
-  "table.delete": "Delete Table",
-  "table.addRow": "Add Row",
-  "table.addColumn": "Add Column",
-  "table.deleteRow": "Delete Row",
-  "table.deleteColumn": "Delete Column"
+  "table.insertColumnLeft": "Insert column left",
+  "table.insertRowAbove": "Insert row above",
+  "table.align": "Align",
+  "table.columnWidth": "Column width",
+  "table.deleteColumn": "Delete column",
+  "table.deleteColumns": "Delete {{count}} columns",
+  "table.gripRow": "Row {{index}}",
+  "table.delete": "Delete table"
 }
 ```
 

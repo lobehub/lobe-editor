@@ -1,0 +1,105 @@
+---
+title: Alert
+description: Alert plugin adds GitHub-style callout blocks (note, tip, important, warning, caution) that hold regular blocks and round-trip through Markdown, LiteXML, the headless editor and the read-only renderer.
+category: Plugins
+---
+
+import DemoIndex from './demos/index.tsx?demo';
+
+## Introduction
+
+The alert plugin adds an `AlertNode` (type `alert`) for callouts. Each alert has an `alertType` (`note`, `tip`, `important`, `warning` or `caution`) and holds regular block children such as paragraphs, lists and code blocks. In the editor the header shows the type icon and label; click it to switch the type.
+
+## Basic Usage
+
+<Demo editable={false} of={DemoIndex} />
+
+```tsx
+import { INSERT_ALERT_COMMAND, ReactAlertPlugin } from '@lobehub/editor';
+import { Editor } from '@lobehub/editor/react';
+
+<Editor
+  plugins={[ReactAlertPlugin]}
+  slashOption={{
+    items: [
+      {
+        key: 'callout',
+        label: 'Alert',
+        onSelect: (editor) => editor.dispatchCommand(INSERT_ALERT_COMMAND, { alertType: 'note' }),
+      },
+    ],
+  }}
+/>;
+```
+
+## Keyboard
+
+- **Enter** on an empty last paragraph leaves the alert and continues below it.
+- **Backspace** at the start of the first block unwraps the alert and keeps its content.
+
+## Serialization
+
+### Markdown
+
+Alerts use the GitHub syntax. A blockquote whose first line is exactly `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` (case-insensitive) becomes an alert; any other blockquote stays a quote.
+
+```markdown
+> [!WARNING]
+>
+> Back up your data first.
+>
+> - Export the project
+> - Then upgrade
+```
+
+### LiteXML
+
+```xml
+<alert type="warning">
+  <p>Back up your data first.</p>
+</alert>
+```
+
+Unknown `type` values fall back to `note`, and inline content written directly inside `<alert>` is wrapped in a paragraph.
+
+### Rendering
+
+`AlertPlugin` is part of the default headless plugins, and `LexicalRenderer` renders `alert` nodes with the same icon, label and color as the editor.
+
+## Commands
+
+### INSERT_ALERT_COMMAND
+
+Inserts an alert with an empty paragraph and moves the caret into it. An empty paragraph at the caret is replaced; inside another alert the new one is inserted after it instead of nesting.
+
+```typescript
+editor.dispatchCommand(INSERT_ALERT_COMMAND, { alertType: 'tip' });
+```
+
+### UPDATE_ALERT_COMMAND
+
+```typescript
+editor.dispatchCommand(UPDATE_ALERT_COMMAND, { alertType: 'caution', nodeKey });
+```
+
+## APIs
+
+### ReactAlertPlugin
+
+| Property  | Description                                  | Type     | Default |
+| --------- | -------------------------------------------- | -------- | ------- |
+| className | Class name merged into the alert block theme | `string` | -       |
+
+### AlertPluginOptions
+
+Options of the kernel plugin `AlertPlugin` (used by `ReactAlertPlugin` internally).
+
+| Property    | Description                           | Type     | Default |
+| ----------- | ------------------------------------- | -------- | ------- |
+| theme.alert | Class name applied to the alert block | `string` | -       |
+
+### InsertAlertPayload
+
+| Property  | Description       | Type        | Default  |
+| --------- | ----------------- | ----------- | -------- |
+| alertType | Type of the alert | `AlertType` | `'note'` |

@@ -1,5 +1,5 @@
 import type { TableDOMCell, TableSelection } from '@lexical/table';
-import { $isTableCellNode, $isTableSelection } from '@lexical/table';
+import { $isTableCellNode, $isTableSelection, type TableNode } from '@lexical/table';
 import type { TableDOMTable } from '@lexical/table/LexicalTableObserver';
 import { addClassNamesToElement, removeClassNamesFromElement } from '@lexical/utils';
 import type { BaseSelection, LexicalEditor, LexicalNode, NodeKey, RangeSelection } from 'lexical';
@@ -35,10 +35,42 @@ export function createDefaultTableColWidths(columnCount: number, tableWidth = DE
   return colWidths;
 }
 
+export function getRenderedTableColWidths(editor: LexicalEditor, tableNode: TableNode) {
+  const element = editor.getElementByKey(tableNode.getKey());
+  const table = element instanceof HTMLTableElement ? element : element?.querySelector('table');
+  const firstRow = table?.rows[0];
+  if (!firstRow) {
+    return null;
+  }
+
+  const widths: number[] = [];
+  for (const cell of Array.from(firstRow.cells)) {
+    const colSpan = Math.max(1, cell.colSpan);
+    const width = Math.round(cell.getBoundingClientRect().width / colSpan);
+    for (let index = 0; index < colSpan; index += 1) {
+      widths.push(width);
+    }
+  }
+
+  return widths.length === tableNode.getColumnCount() && widths.every((width) => width > 0)
+    ? widths
+    : null;
+}
+
+export function $resolveTableColWidths(editor: LexicalEditor, tableNode: TableNode) {
+  const columnCount = tableNode.getColumnCount();
+  const colWidths = tableNode.getColWidths();
+  if (colWidths && colWidths.length === columnCount) {
+    return [...colWidths];
+  }
+
+  return getRenderedTableColWidths(editor, tableNode) ?? createDefaultTableColWidths(columnCount);
+}
+
 export function syncTableWidthDOM(
   editor: LexicalEditor,
   tableKey: NodeKey,
-  colWidths: readonly number[],
+  colWidths: readonly number[] | undefined,
 ) {
   const tableElement = editor.getElementByKey(tableKey);
   const table =
@@ -47,6 +79,11 @@ export function syncTableWidthDOM(
       : tableElement?.querySelector('table.editor_table, table');
 
   if (!(table instanceof HTMLTableElement)) {
+    return;
+  }
+
+  if (!colWidths) {
+    table.style.removeProperty('width');
     return;
   }
 

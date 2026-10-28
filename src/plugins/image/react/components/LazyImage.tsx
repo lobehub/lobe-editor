@@ -82,7 +82,11 @@ const LazyImage: FC<LazyImageProps> = ({ className, node, newWidth, onError, onL
   return (
     <img
       alt={altText}
-      className={cx(styles.lazyImage, className || undefined)}
+      className={cx(
+        styles.lazyImage,
+        (node.thumbhash || node.accent) && styles.fadeIn,
+        className || undefined,
+      )}
       draggable="false"
       onError={onError}
       onLoad={(e) => {

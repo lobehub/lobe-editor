@@ -29,16 +29,11 @@ import { TablePlugin } from '../plugin';
 import { ITableControllerMenuService } from '../service';
 import { $updateDOMForSelection, type TableSelectionOutlineRect } from '../utils';
 import { selectionOutlineStyles, styles } from './style';
-import TableActionMenuPlugin from './TableActionMenu';
-import TableColController from './TableColController';
-import TableHoverActionsPlugin from './TableHoverActions';
+import TableGrips from './TableGrips';
 import TableCellResizePlugin from './TableResize';
-import TableRowController from './TableRowController';
 import type { ReactTablePluginProps } from './type';
 import { useAutoFitPastedTable } from './useAutoFitPastedTable';
 import { useScrollFocusedTableCellIntoView } from './useScrollFocusedTableCellIntoView';
-
-type SelectionOutlinePreviewSide = 'bottom' | 'left' | 'right' | 'top';
 
 const isEditorRootFocused = (activeEditor: LexicalEditor) => {
   const rootElement = activeEditor.getRootElement();
@@ -60,8 +55,6 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
   const [lexicalEditor, setLexicalEditor] = useState<LexicalEditor | null>(null);
   const [selectionOutlineRect, setSelectionOutlineRect] =
     useState<TableSelectionOutlineRect | null>(null);
-  const [selectionOutlinePreviewSide, setSelectionOutlinePreviewSide] =
-    useState<SelectionOutlinePreviewSide | null>(null);
   const eventEmitter = useMemo(() => {
     return new EventEmitter();
   }, []);
@@ -69,30 +62,18 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
   useAutoFitPastedTable(lexicalEditor);
   useScrollFocusedTableCellIntoView(lexicalEditor);
 
-  const selectionOutlineStyle = useMemo<CSSProperties | undefined>(() => {
-    if (!selectionOutlineRect) {
-      return undefined;
-    }
-
-    const style: CSSProperties = {
-      height: selectionOutlineRect.height,
-      left: selectionOutlineRect.left,
-      top: selectionOutlineRect.top,
-      width: selectionOutlineRect.width,
-    };
-
-    if (!selectionOutlinePreviewSide) {
-      return style;
-    }
-
-    return {
-      ...style,
-      borderBottomWidth: selectionOutlinePreviewSide === 'bottom' ? undefined : 0,
-      borderLeftWidth: selectionOutlinePreviewSide === 'left' ? undefined : 0,
-      borderRightWidth: selectionOutlinePreviewSide === 'right' ? undefined : 0,
-      borderTopWidth: selectionOutlinePreviewSide === 'top' ? undefined : 0,
-    };
-  }, [selectionOutlinePreviewSide, selectionOutlineRect]);
+  const selectionOutlineStyle = useMemo<CSSProperties | undefined>(
+    () =>
+      selectionOutlineRect
+        ? {
+            height: selectionOutlineRect.height,
+            left: selectionOutlineRect.left,
+            top: selectionOutlineRect.top,
+            width: selectionOutlineRect.width,
+          }
+        : undefined,
+    [selectionOutlineRect],
+  );
 
   const updateSelectionOutlineRect = useCallback((rect: TableSelectionOutlineRect | null) => {
     setSelectionOutlineRect((current) => {
@@ -181,34 +162,14 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
       editor.registerLocale(locale);
     }
     editor.registerPlugin(TablePlugin, {
-      decoratorCol: (node, lexicalEditor) => {
-        return (
-          <TableColController
-            blockMenuService={editor.requireService(IBlockMenuService)}
-            editor={lexicalEditor}
-            key={node.getColumnCount()}
-            menuService={editor.requireService(ITableControllerMenuService)}
-            node={node}
-            onColumnMetricsChange={() => {
-              requestAnimationFrame(() => {
-                refreshSelectionOutlineRect(lexicalEditor);
-              });
-            }}
-            onInsertPreviewChange={setSelectionOutlinePreviewSide}
-          />
-        );
-      },
-      decoratorRow: (node, lexicalEditor) => {
-        return (
-          <TableRowController
-            blockMenuService={editor.requireService(IBlockMenuService)}
-            editor={lexicalEditor}
-            menuService={editor.requireService(ITableControllerMenuService)}
-            node={node}
-            onInsertPreviewChange={setSelectionOutlinePreviewSide}
-          />
-        );
-      },
+      decorator: (node, lexicalEditor) => (
+        <TableGrips
+          blockMenuService={editor.requireService(IBlockMenuService)}
+          editor={lexicalEditor}
+          menuService={editor.requireService(ITableControllerMenuService)}
+          node={node}
+        />
+      ),
       theme: cx(styles, className),
     });
   }, []);
@@ -244,7 +205,6 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
       unregisterRootListener();
       unregisterUpdateListener();
       updateSelectionOutlineRect(null);
-      setSelectionOutlinePreviewSide(null);
       setLexicalEditor(null);
     };
   }, []);
@@ -265,8 +225,6 @@ export const ReactTablePlugin: FC<ReactTablePluginProps> = ({
               style={selectionOutlineStyle}
             />
           )}
-          <TableActionMenuPlugin editor={lexicalEditor} />
-          <TableHoverActionsPlugin editor={lexicalEditor} />
         </PortalAnchor>
       </>
     )

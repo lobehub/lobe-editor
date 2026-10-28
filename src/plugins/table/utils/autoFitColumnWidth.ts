@@ -2,7 +2,7 @@ import type { TableNode } from '@lexical/table';
 import { $computeTableMapSkipCellCheck } from '@lexical/table';
 import type { LexicalEditor } from 'lexical';
 
-import { createDefaultTableColWidths } from '.';
+import { $resolveTableColWidths } from '.';
 
 const AUTO_FIT_MIN_COLUMN_WIDTH = 75;
 const MEASURE_CONTAINER_CLASS = 'lobe-editor-table-auto-fit-measure';
@@ -99,9 +99,7 @@ export const getAutoFitTableColumnWidths = (
 
   try {
     const [tableMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
-    const nextColWidths = [
-      ...(tableNode.getColWidths() || createDefaultTableColWidths(columnCount)),
-    ];
+    const nextColWidths = $resolveTableColWidths(editor, tableNode);
 
     for (const columnIndex of targetColumnIndexes) {
       const measuredCellKeys = new Set<string>();

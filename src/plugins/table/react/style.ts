@@ -10,8 +10,9 @@ export const styles = createStaticStyles(
     .lobe-editor-table-scroll-wrapper {
       position: relative;
       overflow: auto visible;
-      margin-inline: calc(var(--lobe-block-anchor-padding, 54px) * -1);
-      padding-block-start: 14px;
+      margin-inline: calc(
+        min(var(--lobe-table-bleed, 14px), var(--lobe-block-anchor-padding, 14px)) * -1
+      );
     }
 
     .lobe-editor-table-scroll-indicator {
@@ -19,7 +20,7 @@ export const styles = createStaticStyles(
 
       position: absolute;
       z-index: 3;
-      inset-block: 14px 0;
+      inset-block: 0;
 
       inline-size: 24px;
 
@@ -72,13 +73,6 @@ export const styles = createStaticStyles(
       height: 0;
     }
 
-    > .toolbar-col,
-    > .toolbar-row,
-    > .lobe-editor-table-scroll-wrapper > .toolbar-col,
-    > .lobe-editor-table-scroll-wrapper > .toolbar-row {
-      inset-inline-start: var(--lobe-block-anchor-padding, 54px);
-    }
-
     .table-controller,
     .table-controller-col,
     .table-controller-row {
@@ -97,10 +91,12 @@ export const styles = createStaticStyles(
     .editor_table {
       table-layout: fixed;
       border-spacing: 0;
-      border-collapse: collapse;
+      border-collapse: separate;
 
       width: fit-content;
-      margin-inline: var(--lobe-block-anchor-padding, 54px);
+      margin: 0;
+      border: 1px solid ${cssVar.colorBorderSecondary};
+      border-radius: 8px;
 
       text-align: start;
       text-indent: initial;
@@ -108,10 +104,35 @@ export const styles = createStaticStyles(
       word-break: auto-phrase;
       overflow-wrap: break-word;
 
-      > tr:first-of-type {
-        .editor_table_cell_header {
-          font-weight: bold;
-        }
+      &[data-lobe-table-fluid] {
+        width: 100%;
+      }
+
+      tr:first-of-type > .editor_table_cell_header {
+        font-size: 0.8125em;
+        font-weight: 500;
+        color: ${cssVar.colorTextSecondary};
+        background-color: ${cssVar.colorFillTertiary};
+      }
+
+      tr:last-of-type > .editor_table_cell {
+        border-block-end: 0;
+      }
+
+      tr:first-of-type > .editor_table_cell:first-child {
+        border-start-start-radius: 7px;
+      }
+
+      tr:first-of-type > .editor_table_cell:last-child {
+        border-start-end-radius: 7px;
+      }
+
+      tr:last-of-type > .editor_table_cell:first-child {
+        border-end-start-radius: 7px;
+      }
+
+      tr:last-of-type > .editor_table_cell:last-child {
+        border-end-end-radius: 7px;
       }
     }
 
@@ -129,9 +150,10 @@ export const styles = createStaticStyles(
       overflow: auto;
 
       width: 75px;
-      padding-block: 6px;
-      padding-inline: 8px;
-      border: 1px solid ${cssVar.colorFillSecondary};
+      padding-block: 10px;
+      padding-inline: 14px;
+      border: 0;
+      border-block-end: 1px solid ${cssVar.colorBorderSecondary};
 
       text-align: start;
       vertical-align: top;

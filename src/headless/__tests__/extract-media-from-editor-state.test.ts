@@ -179,6 +179,13 @@ describe('extractMediaFromEditorState', () => {
     expect(lists.fileList.map((f) => f.fileType)).toEqual(['pdf', 'unknown', 'gz']);
   });
 
+  it('prefers the serialized ext over the name', () => {
+    const lists = extractMediaFromEditorState(
+      make([file({ ext: 'docx', fileUrl: 'a', name: 'Proposal' })]),
+    );
+    expect(lists.fileList[0].fileType).toBe('docx');
+  });
+
   it('defaults missing size to 0 and missing name to "unknown"', () => {
     const lists = extractMediaFromEditorState(
       make([file({ fileUrl: 'u', name: undefined, size: undefined })]),

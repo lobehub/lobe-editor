@@ -35,7 +35,9 @@
         "textStyle": ""
       },
       {
+        "accent": "#3f6b4f",
         "altText": "Block image resize persistence case",
+        "caption": "Valley at dawn",
         "height": 240,
         "maxWidth": 320,
         "src": "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=640",

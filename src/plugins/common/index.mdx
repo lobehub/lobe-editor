@@ -28,6 +28,31 @@ Component for rendering rich text editor content with full formatting support.
 
 Simplified component for plain text editing without rich formatting.
 
+## Heading Anchors and Folding
+
+Every heading gets a DOM `id` slug derived from its text, unique within the document (`intro`, `intro-1`, ...). The same slugs are produced by `LexicalRenderer`, so links work in both the editor and read-only output. Slugs are view-only and never written to JSON, Markdown or LiteXML.
+
+Hovering a heading in the editor shows two actions after its text:
+
+- **Copy link**: copies `getHeadingLink(slug)` (default: the current URL with `#slug`).
+- **Fold**: hides the content until the next heading of the same or higher level. Fold state lives in the editor view only; it is never serialized and does not change any export. Moving the selection into folded content unfolds it.
+
+```tsx
+<Editor
+  enableHeadingFold={false}
+  getHeadingLink={(slug) => `https://example.com/docs/page#${slug}`}
+/>
+```
+
+Fold state can also be driven through the `IHeadingService`:
+
+```typescript
+import { IHeadingService } from '@lobehub/editor';
+
+const headings = editor.requireService(IHeadingService);
+headings?.toggleFolded(headingNodeKey);
+```
+
 ## Core Architecture
 
 ### Plugin System
@@ -73,9 +98,12 @@ Simplified component for plain text editing without rich formatting.
 
 ### ReactPlainText
 
-| Property | Description     | Type                      | Default |
-| -------- | --------------- | ------------------------- | ------- |
-| theme    | Text theme      | `PlainTextTheme`          | -       |
-| variant  | Display variant | `PlainTextVariant`        | -       |
-| value    | Text content    | `string`                  | -       |
-| onChange | Change handler  | `(value: string) => void` | -       |
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| enableHeadingAnchor | Heading `id` slugs and the hover "copy link" action | `boolean` | `true` (`false` for `variant="chat"`) |
+| enableHeadingFold | Hover toggle that folds the section under a heading | `boolean` | `true` (`false` for `variant="chat"`) |
+| getHeadingLink | Build the link copied by the heading "copy link" action | `(slug: string) => string` | current URL with `#slug` |
+| theme | Text theme | `PlainTextTheme` | - |
+| variant | Display variant | `PlainTextVariant` | - |
+| value | Text content | `string` | - |
+| onChange | Change handler | `(value: string) => void` | - |

@@ -4,7 +4,6 @@ import {
   $createTableNodeWithDimensions,
   $createTableSelection,
   $findTableNode,
-  $insertTableColumnAtSelection,
   $insertTableRowAtSelection,
   $isSimpleTable,
   $isTableNode,
@@ -25,9 +24,18 @@ import {
   createCommand,
 } from 'lexical';
 
-import { createDefaultTableColWidths, syncTableWidthDOM } from '../utils';
+import {
+  $insertTableColumnAtSelectionWithAlign,
+  $moveTableColumnAligns,
+} from '../node/column-align';
+import { $resolveTableColWidths, syncTableWidthDOM } from '../utils';
 import { getAutoFitTableColumnWidths } from '../utils/autoFitColumnWidth';
-import { getDistributedTableColumnWidths } from '../utils/distributeColumnWidth';
+import {
+  canTableFillContainer,
+  getDistributedTableColumnWidths,
+} from '../utils/distributeColumnWidth';
+
+export * from './align';
 
 export const INSERT_TABLE_COMMAND = createCommand<{
   columns: string;
@@ -228,7 +236,6 @@ export function registerTableCommand(editor: LexicalEditor) {
         const columnCount = Number(columns);
 
         const tableNode = $createTableNodeWithDimensions(rowCount, columnCount, includeHeaders);
-        tableNode.setColWidths(createDefaultTableColWidths(columnCount));
 
         if ($isElementNode(anchorNode) && anchorNode.isEmpty()) {
           anchorNode.replace(tableNode);
@@ -265,7 +272,7 @@ export function registerTableCommand(editor: LexicalEditor) {
         const tableSelection = $createTableSelection();
         tableSelection.set(table, firstCell.getKey(), lastCell.getKey());
         $setSelection(tableSelection);
-        $insertTableColumnAtSelection(insertAfter);
+        $insertTableColumnAtSelectionWithAlign(insertAfter);
         return true;
       },
       COMMAND_PRIORITY_EDITOR,
@@ -307,7 +314,7 @@ export function registerTableCommand(editor: LexicalEditor) {
         }
 
         const columnCount = tableNode.getColumnCount();
-        const colWidths = tableNode.getColWidths() || createDefaultTableColWidths(columnCount);
+        const colWidths = $resolveTableColWidths(editor, tableNode);
         const selectedWidth = colWidths[columnIndex];
         if (selectedWidth === undefined) {
           return false;
@@ -355,8 +362,10 @@ export function registerTableCommand(editor: LexicalEditor) {
           return false;
         }
 
-        const nextColWidths = getDistributedTableColumnWidths(editor, tableNode);
-        if (!nextColWidths) {
+        const nextColWidths = canTableFillContainer(editor, tableNode)
+          ? undefined
+          : getDistributedTableColumnWidths(editor, tableNode);
+        if (nextColWidths === null) {
           return false;
         }
 
@@ -401,6 +410,7 @@ export function registerTableCommand(editor: LexicalEditor) {
           nextWidths.splice(target, 0, ...movedWidths);
           tableNode.setColWidths(nextWidths);
         }
+        $moveTableColumnAligns(tableNode, from, to, target);
 
         $selectTableColumns(tableNode, target, target + count - 1);
         return true;

@@ -1,7 +1,6 @@
 import type {
   DOMExportOutput,
   EditorConfig,
-  LexicalEditor,
   LexicalUpdateJSON,
   NodeKey,
   SerializedLexicalNode,
@@ -9,9 +8,16 @@ import type {
 } from 'lexical';
 import { DecoratorNode } from 'lexical';
 
-export interface ImagePayload {
+import { normalizeImageCaption, sanitizeImageAccent, sanitizeImageThumbhash } from '../utils/meta';
+
+export interface ImageMeta {
+  accent?: string;
+  caption?: string;
+  thumbhash?: string;
+}
+
+export interface ImagePayload extends ImageMeta {
   altText: string;
-  caption?: LexicalEditor;
   height?: number;
   key?: NodeKey;
   maxWidth?: number;
@@ -22,11 +28,14 @@ export interface ImagePayload {
 
 export type SerializedImageNode = Spread<
   {
+    accent?: string;
     altText: string;
+    caption?: string;
     height?: number;
     maxWidth: number;
     src: string;
     status?: 'uploaded' | 'loading' | 'error';
+    thumbhash?: string;
     width?: number;
   },
   SerializedLexicalNode
@@ -38,6 +47,9 @@ export class BaseImageNode extends DecoratorNode<any> {
   __width: 'inherit' | number;
   __height: 'inherit' | number;
   __maxWidth: number;
+  __caption: string;
+  __thumbhash: string | undefined;
+  __accent: string | undefined;
 
   static clone(node: BaseImageNode): BaseImageNode {
     return new BaseImageNode(
@@ -47,13 +59,18 @@ export class BaseImageNode extends DecoratorNode<any> {
       node.__width,
       node.__height,
       node.__key,
+      node.getMeta(),
     );
   }
 
   static importJSON(serializedNode: SerializedImageNode): BaseImageNode {
-    const { altText, height, width, maxWidth, src } = serializedNode;
+    const { altText, height, width, maxWidth, src, caption, thumbhash, accent } = serializedNode;
 
-    return new BaseImageNode(src, altText, maxWidth, width, height);
+    return new BaseImageNode(src, altText, maxWidth, width, height, undefined, {
+      accent,
+      caption,
+      thumbhash,
+    });
   }
 
   static getType(): string {
@@ -81,6 +98,7 @@ export class BaseImageNode extends DecoratorNode<any> {
     width?: 'inherit' | number,
     height?: 'inherit' | number,
     key?: NodeKey,
+    meta?: ImageMeta,
   ) {
     super(key);
     this.__src = src;
@@ -88,10 +106,13 @@ export class BaseImageNode extends DecoratorNode<any> {
     this.__maxWidth = maxWidth;
     this.__width = width || 'inherit';
     this.__height = height || 'inherit';
+    this.__caption = normalizeImageCaption(meta?.caption);
+    this.__thumbhash = sanitizeImageThumbhash(meta?.thumbhash);
+    this.__accent = sanitizeImageAccent(meta?.accent);
   }
 
   exportJSON(): SerializedImageNode {
-    return {
+    const json: SerializedImageNode = {
       ...super.exportJSON(),
       altText: this.getAltText(),
       height: this.__height === 'inherit' ? 0 : this.__height,
@@ -99,6 +120,41 @@ export class BaseImageNode extends DecoratorNode<any> {
       src: this.getSrc(),
       width: this.__width === 'inherit' ? 0 : this.__width,
     };
+    if (this.__caption) json.caption = this.__caption;
+    if (this.__thumbhash) json.thumbhash = this.__thumbhash;
+    if (this.__accent) json.accent = this.__accent;
+    return json;
+  }
+
+  get caption(): string {
+    return this.__caption;
+  }
+
+  get thumbhash(): string | undefined {
+    return this.__thumbhash;
+  }
+
+  get accent(): string | undefined {
+    return this.__accent;
+  }
+
+  getMeta(): ImageMeta {
+    return { accent: this.__accent, caption: this.__caption, thumbhash: this.__thumbhash };
+  }
+
+  setCaption(caption: string): void {
+    const writable = this.getWritable();
+    writable.__caption = caption;
+  }
+
+  setThumbhash(thumbhash: string | undefined): void {
+    const writable = this.getWritable();
+    writable.__thumbhash = sanitizeImageThumbhash(thumbhash);
+  }
+
+  setAccent(accent: string | undefined): void {
+    const writable = this.getWritable();
+    writable.__accent = sanitizeImageAccent(accent);
   }
 
   setWidthAndHeight(width: 'inherit' | number, height: 'inherit' | number): void {

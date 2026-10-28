@@ -1,4 +1,4 @@
-import { createStaticStyles, cx } from '@lobehub/ui';
+import { cx } from '@lobehub/ui';
 
 import { styles as commonStyles } from '@/plugins/common/react/style';
 import { styles as imageStyles } from '@/plugins/image/react/style';
@@ -6,18 +6,6 @@ import { styles as listStyles } from '@/plugins/list/react/style';
 import { styles as mathStyles } from '@/plugins/math/react/style';
 import { styles as mentionStyles } from '@/plugins/mention/react/style';
 import { styles as tableStyles } from '@/plugins/table/react/style';
-
-const tableHeaderFix = createStaticStyles(
-  ({ css, cssVar }) => css`
-    .editor_table > tbody > tr:first-of-type {
-      background: ${cssVar.colorFillQuaternary};
-
-      .editor_table_cell_header {
-        font-weight: bold;
-      }
-    }
-  `,
-);
 
 export function getRendererClassName(className?: string) {
   return cx(commonStyles.root, commonStyles.variant, className);
@@ -29,7 +17,7 @@ export function getListClassName(listType: string) {
 }
 
 export function getTableWrapperClassName() {
-  return cx('editor_table_scrollable_wrapper', tableStyles, tableHeaderFix);
+  return cx('editor_table_scrollable_wrapper', tableStyles);
 }
 
 export function getMathInlineClassName() {
@@ -59,5 +47,6 @@ export function getCSSVariables(variant?: 'default' | 'chat') {
     '--common-header-multiple': String(isChat ? 0.25 : 0.6),
     '--common-line-height': String(isChat ? 1.4 : 1.6),
     '--common-margin-multiple': String(isChat ? 1 : 2),
+    '--lobe-table-bleed': isChat ? '0px' : '14px',
   };
 }

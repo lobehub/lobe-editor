@@ -93,6 +93,9 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
         if (node.getListType() === 'number' && node.getStart() !== 1) {
           attributes.start = node.getStart().toString();
         }
+        if (node.getListType() === 'check') {
+          attributes.type = 'check';
+        }
         return ctx.createXmlNode(tagName, attributes);
       }
       return false;
@@ -107,6 +110,10 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
           child.diffType === 'listItemRemove'
         ) {
           return { lines: [] };
+        }
+        const parent = node.getParent();
+        if ($isListNode(parent) && parent.getListType() === 'check') {
+          return ctx.createXmlNode('li', { checked: node.getChecked() ? 'true' : 'false' });
         }
         return ctx.createXmlNode('li');
       }
@@ -128,19 +135,22 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
       });
     });
     litexmlService.registerXMLReader('ul', (xmlNode, children) => {
+      const isCheck = xmlNode.getAttribute('type') === 'check';
       return INodeHelper.createElementNode('list', {
         children,
         direction: 'ltr',
         format: '',
         indent: 0,
-        listType: 'bullet',
+        listType: isCheck ? 'check' : 'bullet',
         start: 1,
         tag: 'ul',
         version: 1,
       });
     });
     litexmlService.registerXMLReader('li', (xmlNode, children) => {
+      const checked = xmlNode.getAttribute('checked');
       return INodeHelper.createElementNode('listitem', {
+        checked: checked === null ? undefined : checked === 'true',
         children,
         direction: 'ltr',
         format: '',

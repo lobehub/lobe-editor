@@ -1,10 +1,13 @@
 import type { CommandPayloadType, SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import Editor, { moment } from '@/editor-kernel';
+import { AlertPlugin } from '@/plugins/alert/plugin';
+import { ChartPlugin } from '@/plugins/chart/plugin';
 import { CodePlugin } from '@/plugins/code/plugin';
 import { CodemirrorPlugin } from '@/plugins/codemirror-block/plugin';
 import { CommonPlugin } from '@/plugins/common/plugin';
 import { FilePlugin } from '@/plugins/file/plugin';
+import { FootnotePlugin } from '@/plugins/footnote/plugin';
 import { HRPlugin } from '@/plugins/hr/plugin';
 import { ImagePlugin } from '@/plugins/image/plugin';
 import { INodePlugin } from '@/plugins/inode/plugin';
@@ -231,6 +234,9 @@ export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   ListPlugin,
   TablePlugin,
   HeadlessCollapsiblePlugin,
+  ChartPlugin,
+  AlertPlugin,
+  FootnotePlugin,
   LitexmlPlugin,
 ];
 

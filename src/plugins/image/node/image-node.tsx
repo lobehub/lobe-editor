@@ -21,15 +21,22 @@ export class ImageNode extends BaseImageNode {
   private __extra: Record<string, unknown> | null = null;
 
   constructor(opt: {
+    accent?: string;
     altText: string;
+    caption?: string;
     height?: 'inherit' | number;
     key?: NodeKey;
     maxWidth: number;
     src: string;
     status?: 'uploaded' | 'loading' | 'error';
+    thumbhash?: string;
     width?: 'inherit' | number;
   }) {
-    super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key);
+    super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key, {
+      accent: opt.accent,
+      caption: opt.caption,
+      thumbhash: opt.thumbhash,
+    });
     this.__status = opt.status ?? 'uploaded';
   }
 
@@ -96,6 +103,7 @@ export class ImageNode extends BaseImageNode {
 
   static clone(node: ImageNode): ImageNode {
     return new ImageNode({
+      ...node.getMeta(),
       altText: node.__altText,
       height: node.__height,
       key: node.__key,
@@ -107,14 +115,18 @@ export class ImageNode extends BaseImageNode {
   }
 
   static importJSON(serializedNode: SerializedImageNode): ImageNode {
-    const { altText, height, width, maxWidth, src, status } = serializedNode;
+    const { accent, altText, caption, height, width, maxWidth, src, status, thumbhash } =
+      serializedNode;
 
     return $createImageNode({
+      accent,
       altText,
+      caption,
       height,
       maxWidth,
       src,
       status,
+      thumbhash,
       width,
     }).updateFromJSON(serializedNode);
   }
@@ -141,16 +153,30 @@ export class ImageNode extends BaseImageNode {
 }
 
 export function $createImageNode({
+  accent,
   altText,
+  caption,
   height,
   maxWidth = 500,
   src,
   width,
   key,
   status,
+  thumbhash,
 }: ImagePayload): ImageNode {
   return $applyNodeReplacement(
-    new ImageNode({ altText, height, key, maxWidth, src, status, width }),
+    new ImageNode({
+      accent,
+      altText,
+      caption,
+      height,
+      key,
+      maxWidth,
+      src,
+      status,
+      thumbhash,
+      width,
+    }),
   );
 }
 

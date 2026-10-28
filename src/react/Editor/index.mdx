@@ -64,7 +64,10 @@ Force all pasted content to be inserted as plain text, stripping any rich text f
 | debounceWait | Debounce wait time in milliseconds for `onChange` and `onTextChange` | `number` | `100` |
 | editable | Whether the content can be edited | `boolean` | - |
 | editor | Editor instance to use | `IEditor` | - |
+| enableHeadingAnchor | Give headings a unique DOM `id` slug and show a hover "copy link" action | `boolean` | `true` (`false` for `variant="chat"`) |
+| enableHeadingFold | Show a hover toggle that folds the content under a heading (view state only) | `boolean` | `true` (`false` for `variant="chat"`) |
 | enablePasteMarkdown | Enable automatic markdown conversion for pasted content | `boolean` | `true` |
+| getHeadingLink | Build the link copied by the heading "copy link" action | `(slug: string) => string` | current URL with `#slug` |
 | getPopupContainer | Custom popup container for slash menu portal rendering and scroll tracking | `() => HTMLElement \| null` | - |
 | lineEmptyPlaceholder | Placeholder shown on empty lines | `string` | - |
 | markdownOption | Enable/disable markdown shortcuts granularly | `boolean \| MarkdownFormatOptions` | `true` |

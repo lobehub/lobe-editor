@@ -1,10 +1,11 @@
 import type { TableNode } from '@lexical/table';
 import type { LexicalEditor } from 'lexical';
+import type { ReactNode } from 'react';
 
 import { genServiceId } from '@/editor-kernel';
 import type { IServiceID } from '@/types';
 
-export type TableControllerMenuAxis = 'column' | 'row';
+export type TableControllerMenuAxis = 'column' | 'row' | 'table';
 
 export interface ITableControllerMenuRenderContext {
   axis: TableControllerMenuAxis;
@@ -21,6 +22,7 @@ interface ITableControllerBaseMenuItem {
 
 export interface ITableControllerMenuActionItem extends ITableControllerBaseMenuItem {
   danger?: boolean;
+  icon?: ReactNode;
   label: string | ((context: ITableControllerMenuRenderContext) => string);
   onClick: (context: ITableControllerMenuRenderContext) => void;
   preview?: 'delete' | 'insert-after' | 'insert-before';
@@ -31,8 +33,29 @@ export interface ITableControllerMenuSeparatorItem extends ITableControllerBaseM
   type: 'separator';
 }
 
+export interface ITableControllerMenuLabelItem extends ITableControllerBaseMenuItem {
+  label: string;
+  type: 'label';
+}
+
+export interface ITableControllerMenuSegmentedOption {
+  active?: (context: ITableControllerMenuRenderContext) => boolean;
+  icon?: ReactNode;
+  key: string;
+  label: string;
+  onClick: (context: ITableControllerMenuRenderContext) => void;
+}
+
+export interface ITableControllerMenuSegmentedItem extends ITableControllerBaseMenuItem {
+  options: ITableControllerMenuSegmentedOption[];
+  type: 'segmented';
+}
+
 export type ITableControllerMenuItem =
-  ITableControllerMenuActionItem | ITableControllerMenuSeparatorItem;
+  | ITableControllerMenuActionItem
+  | ITableControllerMenuLabelItem
+  | ITableControllerMenuSegmentedItem
+  | ITableControllerMenuSeparatorItem;
 
 export interface ITableControllerMenuService {
   getItems(context: ITableControllerMenuRenderContext): ITableControllerMenuItem[];
