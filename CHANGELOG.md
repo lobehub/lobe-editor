@@ -2,6 +2,42 @@
 
 # Changelog
 
+## [Version&nbsp;7.0.0](https://github.com/lobehub/lobe-editor/compare/v6.0.1...v7.0.0)
+<sup>Released on **2026-10-28**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Page document nodes, chart visual form and table editing polish [force major].
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Page document nodes, chart visual form and table editing polish [force major] ([5caae98](https://github.com/lobehub/lobe-editor/commit/5caae98))
+
+</details>
+
+
+#### 💥 BREAKING CHANGES
+
+* **misc**: TablePluginOptions decoratorCol/decoratorRow are replaced by a single decorator option; the old table controller, action menu and hover-action components are removed. New tables no longer carry default colWidths and render fluid; the table scroll wrapper bleeds by --lobe-table-bleed (14px) instead of the block anchor padding.
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;6.0.1](https://github.com/lobehub/lobe-editor/compare/v6.0.0...v6.0.1)
 <sup>Released on **2026-10-26**</sup>
 
