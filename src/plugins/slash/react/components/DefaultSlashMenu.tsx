@@ -68,12 +68,6 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
       0 0 15px 0 #00000008,
       0 2px 30px 0 #00000014,
       0 0 0 1px ${cssVar.colorBorder} inset;
-
-    [role='menuitem'] {
-      min-height: 40px;
-      padding-block: 8px;
-      padding-inline: 12px;
-    }
   `,
   popupCaret: css`
     width: max-content;
