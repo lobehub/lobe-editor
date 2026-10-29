@@ -8,8 +8,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     margin-inline: 0;
     padding-block: 8px;
     padding-inline: 16px;
-    border-inline-start: 3px solid var(--alert-color);
-    border-radius: 4px;
+    border-radius: ${cssVar.borderRadius};
 
     background: color-mix(in srgb, var(--alert-color) 6%, transparent);
 
