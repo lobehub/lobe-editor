@@ -17,7 +17,7 @@ interface LazyImageProps {
   node: ImageNode | BlockImageNode;
   onError?: () => void;
 
-  onLoad?: (dimensions: { height: number; width: number }) => void;
+  onLoad?: (dimensions: { height: number; naturalWidth: number; width: number }) => void;
 }
 
 const LazyImage: FC<LazyImageProps> = ({ className, node, newWidth, onError, onLoad }) => {
@@ -100,15 +100,20 @@ const LazyImage: FC<LazyImageProps> = ({ className, node, newWidth, onError, onL
         }
         onLoad?.({
           height: img.naturalHeight,
+          naturalWidth: img.naturalWidth,
           width,
         });
       }}
       src={src}
-      style={{
-        ...imageStyle,
-        maxWidth: `calc(min(${newWidth || imageStyle.maxWidth}px, 100%))`,
-        width: newWidth || imageStyle.width,
-      }}
+      style={
+        node.displayWidth !== undefined && !newWidth
+          ? { ...imageStyle, maxWidth: '100%', width: '100%' }
+          : {
+              ...imageStyle,
+              maxWidth: `calc(min(${newWidth || imageStyle.maxWidth}px, 100%))`,
+              width: newWidth || imageStyle.width,
+            }
+      }
     />
   );
 };

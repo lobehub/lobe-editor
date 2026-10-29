@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => {
   return {
     editable: true,
     editor,
+    getMetrics: undefined as undefined | (() => { naturalWidth?: number }),
     isSelected: false,
     openPreview: vi.fn(),
     previewRef: undefined as undefined | { current: HTMLImageElement | null },
@@ -72,7 +73,16 @@ vi.mock('@/editor-kernel/react/useTranslation', () => ({
 }));
 
 vi.mock('../ImageEditPopover', () => ({
-  default: ({ children }: { children: ReactNode }) => children,
+  default: ({
+    children,
+    getMetrics,
+  }: {
+    children: ReactNode;
+    getMetrics?: () => { naturalWidth?: number };
+  }) => {
+    mocks.getMetrics = getMetrics;
+    return children;
+  },
 }));
 
 vi.mock('../LazyImage', async () => {
@@ -83,10 +93,10 @@ vi.mock('../LazyImage', async () => {
     onLoad,
   }: {
     newWidth?: null | number;
-    onLoad?: (dimensions: { height: number; width: number }) => void;
+    onLoad?: (dimensions: { height: number; naturalWidth?: number; width: number }) => void;
   }) {
     React.useEffect(() => {
-      onLoad?.({ height: 100, width: 200 });
+      onLoad?.({ height: 100, naturalWidth: 1600, width: 200 });
       // The image load event fires once for this regression path.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -136,8 +146,7 @@ describe('Image resize', () => {
       getKey: () => 'image-node',
       getType: () => 'block-image',
       maxWidth: 200,
-      setMaxWidth: vi.fn(),
-      setWidth: vi.fn(),
+      setDisplaySize: vi.fn(),
       src: 'https://example.com/image.png',
       status: 'uploaded',
       width: 200,
@@ -168,8 +177,25 @@ describe('Image resize', () => {
       rightHandle!.onResizeEnd?.(20, 0);
     });
 
-    expect(node.setWidth).toHaveBeenCalledWith(140);
-    expect(node.setMaxWidth).toHaveBeenCalledWith(140);
+    expect(node.setDisplaySize).toHaveBeenCalledWith({ mode: 'px', px: 140 });
+  });
+
+  it('reports the natural image width, not the rendered width, to the width control', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    expect(mocks.getMetrics?.().naturalWidth).toBe(1600);
   });
 
   it('opens the image preview from the hover action without selecting the node', async () => {

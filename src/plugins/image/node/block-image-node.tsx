@@ -63,6 +63,7 @@ export class BlockImageNode extends BaseImageNode {
       accent?: string;
       altText: string;
       caption?: string;
+      displayWidth?: number;
       height?: 'inherit' | number;
       key?: NodeKey;
       maxWidth: number;
@@ -75,6 +76,7 @@ export class BlockImageNode extends BaseImageNode {
     super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key, {
       accent: opt.accent,
       caption: opt.caption,
+      displayWidth: opt.displayWidth,
       thumbhash: opt.thumbhash,
     });
     this.__status = opt.status ?? 'uploaded';
@@ -127,13 +129,24 @@ export class BlockImageNode extends BaseImageNode {
   }
 
   static importJSON(serializedNode: SerializedImageNode): BlockImageNode {
-    const { accent, altText, caption, height, width, maxWidth, src, status, thumbhash } =
-      serializedNode;
+    const {
+      accent,
+      altText,
+      caption,
+      displayWidth,
+      height,
+      width,
+      maxWidth,
+      src,
+      status,
+      thumbhash,
+    } = serializedNode;
 
     return $createBlockImageNode({
       accent,
       altText,
       caption,
+      displayWidth,
       height,
       maxWidth,
       src,
@@ -178,6 +191,7 @@ export function $createBlockImageNode({
   accent,
   altText,
   caption,
+  displayWidth,
   height,
   maxWidth = 4200,
   src,
@@ -191,6 +205,7 @@ export function $createBlockImageNode({
       accent,
       altText,
       caption,
+      displayWidth,
       height,
       key,
       maxWidth,

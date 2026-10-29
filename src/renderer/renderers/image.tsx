@@ -9,15 +9,19 @@ import {
 } from 'react';
 
 import { styles as imageComponentStyles } from '@/plugins/image/react/components/style';
+import { getImageDisplaySize } from '@/plugins/image/utils/displaySize';
 import { normalizeImageCaption } from '@/plugins/image/utils/meta';
 import {
   getImagePlaceholderAspectRatio,
   getImagePlaceholderStyle,
 } from '@/plugins/image/utils/thumbhash';
+import { getMediaDisplayStyle } from '@/utils/mediaDisplaySize';
 
 import { getBlockImageClassName, getImageClassName } from '../style';
 
 function getImageStyle(node: Record<string, any>): CSSProperties {
+  const display = getImageDisplaySize(node);
+  if (display.mode === 'percent') return getMediaDisplayStyle(display);
   const { width, height, maxWidth } = node;
   const style: CSSProperties = {};
   // Keep the persisted width, but never let it exceed the container (mobile/share view).
@@ -39,6 +43,7 @@ const RenderedImage: FC<RenderedImageProps> = ({ node, title }) => {
   const placeholder = getImagePlaceholderStyle(node);
   const hasPlaceholder = !!placeholder;
   const imageStyle = getImageStyle(node);
+  const percentFrame = placeholder && getImageDisplaySize(node).mode === 'percent';
 
   useLayoutEffect(() => {
     const image = imageRef.current;
@@ -62,8 +67,10 @@ const RenderedImage: FC<RenderedImageProps> = ({ node, title }) => {
               display: 'block',
               opacity: loading ? 0 : 1,
               transition: 'opacity 0.3s ease-out',
-              width:
-                imageStyle.width ?? (loading ? `min(${node.maxWidth || 800}px, 100%)` : undefined),
+              width: percentFrame
+                ? '100%'
+                : (imageStyle.width ??
+                  (loading ? `min(${node.maxWidth || 800}px, 100%)` : undefined)),
             }
           : imageStyle
       }
@@ -77,7 +84,13 @@ const RenderedImage: FC<RenderedImageProps> = ({ node, title }) => {
         <span
           className={imageComponentStyles.placeholderFrame}
           data-image-placeholder={loading ? '' : undefined}
-          style={loading ? placeholder : undefined}
+          style={
+            percentFrame
+              ? { ...(loading ? placeholder : undefined), width: imageStyle.width }
+              : loading
+                ? placeholder
+                : undefined
+          }
         >
           {image}
         </span>

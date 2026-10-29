@@ -8,11 +8,15 @@ import type {
 } from 'lexical';
 import { DecoratorNode } from 'lexical';
 
+import type { MediaDisplaySize } from '@/utils/mediaDisplaySize';
+import { sanitizeMediaDisplayWidth } from '@/utils/mediaDisplaySize';
+
 import { normalizeImageCaption, sanitizeImageAccent, sanitizeImageThumbhash } from '../utils/meta';
 
 export interface ImageMeta {
   accent?: string;
   caption?: string;
+  displayWidth?: number;
   thumbhash?: string;
 }
 
@@ -31,6 +35,7 @@ export type SerializedImageNode = Spread<
     accent?: string;
     altText: string;
     caption?: string;
+    displayWidth?: number;
     height?: number;
     maxWidth: number;
     src: string;
@@ -50,6 +55,7 @@ export class BaseImageNode extends DecoratorNode<any> {
   __caption: string;
   __thumbhash: string | undefined;
   __accent: string | undefined;
+  __displayWidth: number | undefined;
 
   static clone(node: BaseImageNode): BaseImageNode {
     return new BaseImageNode(
@@ -64,11 +70,13 @@ export class BaseImageNode extends DecoratorNode<any> {
   }
 
   static importJSON(serializedNode: SerializedImageNode): BaseImageNode {
-    const { altText, height, width, maxWidth, src, caption, thumbhash, accent } = serializedNode;
+    const { altText, height, width, maxWidth, src, caption, thumbhash, accent, displayWidth } =
+      serializedNode;
 
     return new BaseImageNode(src, altText, maxWidth, width, height, undefined, {
       accent,
       caption,
+      displayWidth,
       thumbhash,
     });
   }
@@ -109,6 +117,7 @@ export class BaseImageNode extends DecoratorNode<any> {
     this.__caption = normalizeImageCaption(meta?.caption);
     this.__thumbhash = sanitizeImageThumbhash(meta?.thumbhash);
     this.__accent = sanitizeImageAccent(meta?.accent);
+    this.__displayWidth = sanitizeMediaDisplayWidth(meta?.displayWidth);
   }
 
   exportJSON(): SerializedImageNode {
@@ -123,6 +132,7 @@ export class BaseImageNode extends DecoratorNode<any> {
     if (this.__caption) json.caption = this.__caption;
     if (this.__thumbhash) json.thumbhash = this.__thumbhash;
     if (this.__accent) json.accent = this.__accent;
+    if (this.__displayWidth !== undefined) json.displayWidth = this.__displayWidth;
     return json;
   }
 
@@ -138,8 +148,39 @@ export class BaseImageNode extends DecoratorNode<any> {
     return this.__accent;
   }
 
+  get displayWidth(): number | undefined {
+    return this.__displayWidth;
+  }
+
   getMeta(): ImageMeta {
-    return { accent: this.__accent, caption: this.__caption, thumbhash: this.__thumbhash };
+    return {
+      accent: this.__accent,
+      caption: this.__caption,
+      displayWidth: this.__displayWidth,
+      thumbhash: this.__thumbhash,
+    };
+  }
+
+  setDisplaySize(size: MediaDisplaySize, naturalWidth?: number): void {
+    const writable = this.getWritable();
+    switch (size.mode) {
+      case 'percent': {
+        writable.__displayWidth = sanitizeMediaDisplayWidth(size.value);
+        writable.__width = 'inherit';
+        break;
+      }
+      case 'px': {
+        writable.__displayWidth = undefined;
+        writable.__width = size.px;
+        writable.__maxWidth = size.px;
+        break;
+      }
+      default: {
+        writable.__displayWidth = undefined;
+        writable.__width = 'inherit';
+        if (naturalWidth) writable.__maxWidth = naturalWidth;
+      }
+    }
   }
 
   setCaption(caption: string): void {

@@ -25,6 +25,7 @@ export class ImageNode extends BaseImageNode {
       accent?: string;
       altText: string;
       caption?: string;
+      displayWidth?: number;
       height?: 'inherit' | number;
       key?: NodeKey;
       maxWidth: number;
@@ -37,6 +38,7 @@ export class ImageNode extends BaseImageNode {
     super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key, {
       accent: opt.accent,
       caption: opt.caption,
+      displayWidth: opt.displayWidth,
       thumbhash: opt.thumbhash,
     });
     this.__status = opt.status ?? 'uploaded';
@@ -117,13 +119,24 @@ export class ImageNode extends BaseImageNode {
   }
 
   static importJSON(serializedNode: SerializedImageNode): ImageNode {
-    const { accent, altText, caption, height, width, maxWidth, src, status, thumbhash } =
-      serializedNode;
+    const {
+      accent,
+      altText,
+      caption,
+      displayWidth,
+      height,
+      width,
+      maxWidth,
+      src,
+      status,
+      thumbhash,
+    } = serializedNode;
 
     return $createImageNode({
       accent,
       altText,
       caption,
+      displayWidth,
       height,
       maxWidth,
       src,
@@ -158,6 +171,7 @@ export function $createImageNode({
   accent,
   altText,
   caption,
+  displayWidth,
   height,
   maxWidth = 500,
   src,
@@ -171,6 +185,7 @@ export function $createImageNode({
       accent,
       altText,
       caption,
+      displayWidth,
       height,
       key,
       maxWidth,

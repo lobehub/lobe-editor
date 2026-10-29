@@ -153,6 +153,10 @@ function convertMdastToLexical(
             append(readHtml(child, [], index));
             return;
           }
+          if (/\/\s*>$/.test(child.value.trim())) {
+            append(readHtml(child, [], index) ?? INodeHelper.createTextNode(child.value));
+            return;
+          }
           if (child.value.startsWith('</')) {
             const top = htmlStack.at(-1);
             if (!top || top.tag !== tag) {

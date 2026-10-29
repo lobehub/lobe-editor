@@ -32,15 +32,20 @@ function writeImageMetaAttributes(
   if (node.accent) {
     attributes.accent = node.accent;
   }
+  if (node.displayWidth !== undefined) {
+    attributes['display-width'] = String(node.displayWidth);
+  }
 }
 
 function readImageAttributes(xmlNode: Element) {
   const maxWidth = xmlNode.getAttribute('max-width');
   const width = xmlNode.getAttribute('width');
+  const displayWidth = xmlNode.getAttribute('display-width');
   return {
     accent: xmlNode.getAttribute('accent') || undefined,
     altText: xmlNode.getAttribute('alt') || '',
     caption: xmlNode.getAttribute('caption') || '',
+    displayWidth: displayWidth ? parseInt(displayWidth, 10) : undefined,
     maxWidth: maxWidth ? parseInt(maxWidth, 10) : undefined,
     src: xmlNode.getAttribute('src') || '',
     thumbhash: xmlNode.getAttribute('thumbhash') || undefined,

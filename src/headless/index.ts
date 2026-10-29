@@ -26,6 +26,7 @@ import { MarkdownPlugin } from '@/plugins/markdown/plugin';
 import { MathPlugin } from '@/plugins/math/plugin';
 import { MentionPlugin } from '@/plugins/mention/plugin';
 import { TablePlugin } from '@/plugins/table/plugin';
+import { VideoPlugin } from '@/plugins/video/plugin';
 import type { IDocumentOptions, IEditor, IPlugin } from '@/types';
 
 import { HeadlessCollapsiblePlugin } from './collapsible-plugin';
@@ -228,6 +229,7 @@ export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   CodemirrorPlugin,
   ImagePlugin,
   FilePlugin,
+  VideoPlugin,
   MathPlugin,
   MentionPlugin,
   HRPlugin,

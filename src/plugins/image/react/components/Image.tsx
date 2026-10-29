@@ -1,16 +1,18 @@
 import { ActionIcon, cx, Icon, useImagePreview } from '@lobehub/ui';
 import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
 import { LoaderCircleIcon, ZoomInIcon } from 'lucide-react';
-import React, { memo, Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useEditable } from '@/editor-kernel/react/useEditable';
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
+import { mediaDisplaySizeAfterResize } from '@/utils/mediaDisplaySize';
 
 import type { BlockImageNode } from '../../node/block-image-node';
 import { $isBlockImageNode } from '../../node/block-image-node';
 import type { ImageNode } from '../../node/image-node';
+import { getImageDisplaySize } from '../../utils/displaySize';
 import BrokenImage from './BrokenImage';
 import ImageCaption from './ImageCaption';
 import ImageEditPopover from './ImageEditPopover';
@@ -43,6 +45,7 @@ const Image = memo<ImageProps>(
     const [newWidth, setNewWidth] = useState<number | null>(null);
     const imageRef = useRef<HTMLDivElement>(null);
     const originalSizeRef = useRef({ height: 0, width: 0 });
+    const naturalWidthRef = useRef(0);
     const editorRef = useRef<any>(null);
     const startWidthRef = useRef<number>(0);
     const lastLoadedSrcRef = useRef<string | null>(null);
@@ -53,6 +56,19 @@ const Image = memo<ImageProps>(
     const isBlock = useMemo(() => {
       return $isBlockImageNode(node);
     }, [node]);
+    const display = getImageDisplaySize(node);
+
+    useEffect(() => {
+      setNewWidth(null);
+    }, [node.displayWidth, node.width]);
+
+    const getMetrics = useCallback(
+      () => ({
+        containerWidth: imageRef.current?.parentElement?.clientWidth || undefined,
+        naturalWidth: naturalWidthRef.current || originalSizeRef.current.width || undefined,
+      }),
+      [],
+    );
 
     useLexicalEditor((editor) => {
       editorRef.current = editor;
@@ -107,8 +123,7 @@ const Image = memo<ImageProps>(
       setNewWidth(orig.width);
       editor.update(() => {
         try {
-          node.setWidth(orig.width);
-          node.setMaxWidth(orig.width);
+          node.setDisplaySize({ mode: 'px', px: orig.width });
         } catch {
           // ignore errors silently
         }
@@ -174,7 +189,8 @@ const Image = memo<ImageProps>(
                   lastLoadedSrcRef.current = node.src;
                   originalSizeRef.current.width = loadedSize.width;
                   originalSizeRef.current.height = loadedSize.height;
-                  setSize(loadedSize);
+                  naturalWidthRef.current = loadedSize.naturalWidth;
+                  setSize({ height: loadedSize.height, width: loadedSize.width });
                 }}
               />
             </Suspense>
@@ -198,10 +214,14 @@ const Image = memo<ImageProps>(
 
         const editor = editorRef.current;
         if (!editor) return;
+        const nextSize = mediaDisplaySizeAfterResize(
+          getImageDisplaySize(node).mode,
+          finalWidth,
+          parentWidth,
+        );
         editor.update(() => {
           try {
-            node.setWidth(finalWidth);
-            node.setMaxWidth(finalWidth);
+            node.setDisplaySize(nextSize);
           } catch {
             // ignore errors silently
           }
@@ -212,7 +232,12 @@ const Image = memo<ImageProps>(
 
     return (
       <>
-        <ImageEditPopover handleUpload={handleUpload} node={node} onPickFile={onPickFile}>
+        <ImageEditPopover
+          getMetrics={getMetrics}
+          handleUpload={handleUpload}
+          node={node}
+          onPickFile={onPickFile}
+        >
           <div
             className={cx(styles.imageContainer, !editable && styles.readonly, {
               loading: node.status === 'loading',
@@ -225,7 +250,12 @@ const Image = memo<ImageProps>(
             onMouseLeave={handleMouseLeave}
             ref={imageRef}
             style={{
-              width: size.width || 'auto',
+              width:
+                newWidth === null && display.mode === 'percent'
+                  ? `${display.value}%`
+                  : newWidth === null && display.mode === 'px'
+                    ? `min(${display.px}px, 100%)`
+                    : size.width || 'auto',
             }}
           >
             {children}

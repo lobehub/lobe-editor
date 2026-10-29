@@ -10,15 +10,24 @@ import {
   useState,
 } from 'react';
 
+import MediaWidthControl from '@/common/MediaWidthControl';
 import { useEditable } from '@/editor-kernel/react/useEditable';
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
+import type { MediaDisplaySize } from '@/utils/mediaDisplaySize';
 
-import type { BlockImageNode } from '../../node/block-image-node';
+import { $isBlockImageNode, type BlockImageNode } from '../../node/block-image-node';
 import type { ImageNode } from '../../node/image-node';
+import { getImageDisplaySize } from '../../utils/displaySize';
+
+interface ImageMetrics {
+  containerWidth?: number;
+  naturalWidth?: number;
+}
 
 interface ImageEditPopoverProps {
   children: ReactNode;
+  getMetrics?: () => ImageMetrics;
   handleUpload?: (file: File) => Promise<{ url: string }>;
   node: ImageNode | BlockImageNode;
   /**
@@ -29,8 +38,9 @@ interface ImageEditPopoverProps {
 }
 
 const ImageEditPopover: FC<ImageEditPopoverProps> = memo(
-  ({ children, node, handleUpload, onPickFile }) => {
+  ({ children, node, getMetrics, handleUpload, onPickFile }) => {
     const [open, setOpen] = useState(false);
+    const [metrics, setMetrics] = useState<ImageMetrics>({});
     const [url, setUrl] = useState('');
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,10 +58,22 @@ const ImageEditPopover: FC<ImageEditPopoverProps> = memo(
     const handleOpenChange = useCallback(
       (nextOpen: boolean) => {
         if (nextOpen && node.status !== 'uploaded') return;
-        if (nextOpen) setUrl(node.src);
+        if (nextOpen) {
+          setUrl(node.src);
+          setMetrics(getMetrics?.() ?? {});
+        }
         setOpen(nextOpen);
       },
-      [node],
+      [node, getMetrics],
+    );
+
+    const handleSizeChange = useCallback(
+      (size: MediaDisplaySize) => {
+        editorRef.current?.update(() => {
+          node.setDisplaySize(size, metrics.naturalWidth);
+        });
+      },
+      [node, metrics.naturalWidth],
     );
 
     const handleClose = useCallback(() => {
@@ -172,6 +194,14 @@ const ImageEditPopover: FC<ImageEditPopoverProps> = memo(
             {t('confirm')}
           </Button>
         </Flexbox>
+        {$isBlockImageNode(node) && (
+          <MediaWidthControl
+            containerWidth={metrics.containerWidth}
+            naturalWidth={metrics.naturalWidth}
+            onChange={handleSizeChange}
+            size={getImageDisplaySize(node)}
+          />
+        )}
       </Flexbox>
     );
 

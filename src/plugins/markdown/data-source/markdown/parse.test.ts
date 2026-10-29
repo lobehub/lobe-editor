@@ -109,6 +109,28 @@ describe('Markdown to Lexical Conversion', () => {
     expect(lexical.children[0].children[1].text).toEqual('**bold**');
   });
 
+  it('passes an explicitly self-closed custom tag to html readers', () => {
+    const seen: Array<{ children: unknown[]; value: string }> = [];
+    const lexical = parseMarkdownToLexical('<video src="a.mp4" />', {
+      html: (node, children) => {
+        seen.push({ children, value: node.value });
+        return INodeHelper.createTypeNode('video', { src: 'a.mp4' });
+      },
+    });
+
+    expect(seen).toEqual([{ children: [], value: '<video src="a.mp4" />' }]);
+    expect(JSON.stringify(lexical)).toContain('"type":"video"');
+    expect(JSON.stringify(lexical)).not.toContain('<video');
+  });
+
+  it('keeps an unhandled self-closed tag as text', () => {
+    const lexical = parseMarkdownToLexical('Hello <Foo bar="1" /> world', {
+      html: () => false,
+    });
+
+    expect(JSON.stringify(lexical)).toContain('<Foo bar=\\"1\\" />');
+  });
+
   it('should keep html comment as raw text when no html reader', () => {
     const markdown = 'This is a <!-- comment --> text.';
     const lexical = parseMarkdownToLexical(markdown, {});

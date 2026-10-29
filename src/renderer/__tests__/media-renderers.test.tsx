@@ -55,6 +55,65 @@ describe('LexicalRenderer media nodes', () => {
     expect(html).toMatch(/<figcaption[^>]*>Old caption<\/figcaption>/);
   });
 
+  it('renders a percent display width on block images', () => {
+    const html = toHTML([
+      {
+        altText: 'wide',
+        displayWidth: 75,
+        maxWidth: 800,
+        src: 'https://cdn/wide.png',
+        type: 'block-image',
+        version: 1,
+        width: 0,
+      },
+    ]);
+
+    expect(html).toMatch(/style="[^"]*width:75%/);
+    expect(html).not.toContain('max-width:min(800px');
+  });
+
+  it('puts a percent width on the placeholder frame, not the image', () => {
+    const html = toHTML([
+      {
+        altText: 'wide',
+        displayWidth: 75,
+        maxWidth: 800,
+        src: 'https://cdn/wide.png',
+        thumbhash: THUMBHASH,
+        type: 'block-image',
+        version: 1,
+      },
+    ]);
+
+    expect(html).toMatch(/<span[^>]*style="[^"]*width:75%[^"]*"[^>]*><img/);
+    expect(html).toMatch(/<img[^>]*style="[^"]*width:100%/);
+  });
+
+  it('renders a video figure with width and caption', () => {
+    const html = toHTML([
+      {
+        caption: 'Walkthrough',
+        displayWidth: 75,
+        poster: 'https://cdn/poster.jpg',
+        src: 'https://cdn/clip.mp4',
+        type: 'video',
+        version: 1,
+      },
+    ]);
+
+    expect(html).toContain('<figure');
+    expect(html).toMatch(/<video[^>]*src="https:\/\/cdn\/clip.mp4"/);
+    expect(html).toMatch(/style="[^"]*width:75%/);
+    expect(html).toMatch(/<figcaption[^>]*>Walkthrough<\/figcaption>/);
+  });
+
+  it('skips a video without a safe source', () => {
+    const html = toHTML([{ src: 'javascript:alert(1)', type: 'video', version: 1 }]);
+
+    expect(html).not.toContain('<video');
+    expect(html).not.toContain('javascript:');
+  });
+
   it('renders inline image caption as title', () => {
     const html = toHTML([
       paragraph([

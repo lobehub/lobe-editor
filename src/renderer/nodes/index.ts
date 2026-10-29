@@ -24,6 +24,7 @@ import { LinkHighlightNode } from '@/plugins/link-highlight/node/link-highlight'
 import { DiffNode } from '@/plugins/litexml/node/DiffNode';
 import { MathBlockNode, MathInlineNode } from '@/plugins/math/node';
 import { MentionNode } from '@/plugins/mention/node/MentionNode';
+import { VideoNode } from '@/plugins/video/node/VideoNode';
 
 export const rendererNodes: Array<Klass<LexicalNode>> = [
   HeadingNode,
@@ -41,6 +42,7 @@ export const rendererNodes: Array<Klass<LexicalNode>> = [
   HorizontalRuleNode,
   MentionNode,
   FileNode,
+  VideoNode,
   CodeNode,
   LinkNode,
   AutoLinkNode,

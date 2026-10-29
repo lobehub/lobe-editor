@@ -129,6 +129,13 @@ export default {
   math: {
     placeholder: 'Enter TeX formula',
   },
+  media: {
+    width: 'Width',
+    widthAuto: 'Auto',
+    widthAutoHint: 'Natural size, capped at the content width.',
+    widthPercent: 'Width, percent of content width',
+    widthPx: 'Width in pixels',
+  },
   modifier: {
     accept: 'Accept',
     acceptAll: 'Accept All',
@@ -166,5 +173,19 @@ export default {
     pin: 'Pin table of contents',
     title: 'TOC',
     unpin: 'Unpin table of contents',
+  },
+  video: {
+    add: 'Add a video',
+    embed: 'Embed link',
+    embedConfirm: 'Embed video',
+    embedPlaceholder: 'Paste a direct video URL (.mp4, .webm, .mov)',
+    error: 'This video can’t be played',
+    formats: 'MP4, WebM, MOV',
+    loop: 'Loop',
+    remove: 'Delete video',
+    replace: 'Replace',
+    settings: 'Video settings',
+    upload: 'Upload',
+    uploading: 'Uploading video…',
   },
 };

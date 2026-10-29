@@ -23,6 +23,7 @@ import {
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  INSERT_VIDEO_COMMAND,
   type LinkEmbedRule,
   ReactAlertPlugin,
   ReactAutoCompletePlugin,
@@ -42,6 +43,7 @@ import {
   ReactTablePlugin,
   ReactTocPlugin,
   ReactToolbarPlugin,
+  ReactVideoPlugin,
   ReactVirtualBlockPlugin,
   ReactYjsPlugin,
   type SchemaRule,
@@ -62,6 +64,7 @@ import {
   SigmaIcon,
   SuperscriptIcon,
   Table2Icon,
+  VideoIcon,
 } from 'lucide-react';
 import { type FC, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -552,6 +555,14 @@ const EditorDemo: FC<EditorDemoProps> = ({
         },
       },
       {
+        icon: VideoIcon,
+        key: 'video',
+        label: 'Video',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_VIDEO_COMMAND, {});
+        },
+      },
+      {
         key: 'set-text-content',
         label: 'SetTextContent',
         onSelect: (editor) => {
@@ -801,6 +812,16 @@ const EditorDemo: FC<EditorDemoProps> = ({
             needRehost: (url) => {
               devConsole.log('needRehost', url);
               return url.startsWith('blob:');
+            },
+          }),
+          Editor.withProps(ReactVideoPlugin, {
+            handleUpload: async (file) => {
+              devConsole.log('Video uploaded:', file);
+              return new Promise((resolve) => {
+                setTimeout(() => {
+                  resolve({ url: URL.createObjectURL(file) });
+                }, 1000);
+              });
             },
           }),
           Editor.withProps(ReactFilePlugin, {

@@ -13,12 +13,16 @@ import { useEditable } from '@/editor-kernel/react/useEditable';
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
-import type { BlockImageNode } from '../../node/block-image-node';
 import { styles } from './style';
+
+export interface CaptionNode {
+  caption: string;
+  setCaption: (caption: string) => void;
+}
 
 interface ImageCaptionProps {
   active: boolean;
-  node: BlockImageNode;
+  node: CaptionNode;
 }
 
 const stopPropagation = (event: SyntheticEvent) => event.stopPropagation();
