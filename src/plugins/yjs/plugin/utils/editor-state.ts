@@ -1,7 +1,11 @@
-import type { EditorState, LexicalEditor, SerializedEditorState } from 'lexical';
+import type {
+  EditorState,
+  LexicalEditor,
+  SerializedEditorState,
+  SerializedLexicalNode,
+} from 'lexical';
 import { $createParagraphNode, $getRoot, HISTORY_MERGE_TAG, SKIP_COLLAB_TAG } from 'lexical';
 
-import { migrateLegacyTableCellDiffs } from '@/plugins/common/data-source/migrate-legacy-table-cell-diffs';
 import { $normalizeNodeIds, migrateSerializedNodeIds } from '@/plugins/common/node/node-id';
 
 import type { YjsInitialEditorState } from '../types';
@@ -39,15 +43,15 @@ export function initializeEditor(
 
     const serializedState =
       typeof initialEditorState === 'string'
-        ? (JSON.parse(initialEditorState) as SerializedEditorState)
+        ? (JSON.parse(initialEditorState) as SerializedEditorState<SerializedLexicalNode>)
         : initialEditorState.toJSON();
     migrateSerializedNodeIds((serializedState as { root?: unknown }).root);
-    (serializedState as { root?: unknown }).root = migrateLegacyTableCellDiffs(
-      (serializedState as { root?: unknown }).root,
+    const parsedState = editor.parseEditorState(
+      serializedState as SerializedEditorState<SerializedLexicalNode>,
+      () => {
+        $normalizeNodeIds($getRoot());
+      },
     );
-    const parsedState = editor.parseEditorState(serializedState as SerializedEditorState, () => {
-      $normalizeNodeIds($getRoot());
-    });
     editor.setEditorState(parsedState, updateOptions);
     return;
   }

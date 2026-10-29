@@ -56,7 +56,9 @@
   "module": "./es/index.js",
   "types": "./es/index.d.ts",
   "files": [
-    "es"
+    "es",
+    "patches",
+    "scripts/postinstall-lexical-patch.cjs"
   ],
   "scripts": {
     "build": "tsdown",
@@ -69,6 +71,7 @@
     "docs:build": "lobedocs build",
     "docs:build-analyze": "ANALYZE=1 lobedocs build",
     "docs:dev": "lobedocs dev",
+    "postinstall": "node ./scripts/postinstall-lexical-patch.cjs",
     "lint": "eslint \"{src,tests}/**/*.{js,jsx,ts,tsx}\" --fix",
     "lint:circular": "dpdm src/**/*.{ts,tsx}  --warning false  --tree false  --exit-code circular:1  -T true",
     "lint:md": "remark . --quiet --output",
@@ -112,18 +115,18 @@
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
     "@floating-ui/react": "^0.27.20",
-    "@lexical/clipboard": "0.53.0",
-    "@lexical/code-core": "0.53.0",
-    "@lexical/dragon": "0.53.0",
-    "@lexical/headless": "0.53.0",
-    "@lexical/history": "0.53.0",
-    "@lexical/link": "0.53.0",
-    "@lexical/list": "0.53.0",
-    "@lexical/rich-text": "0.53.0",
-    "@lexical/selection": "0.53.0",
-    "@lexical/table": "0.53.0",
-    "@lexical/utils": "0.53.0",
-    "@lexical/yjs": "0.53.0",
+    "@lexical/clipboard": "0.42.0",
+    "@lexical/code-core": "0.42.0",
+    "@lexical/dragon": "0.42.0",
+    "@lexical/headless": "0.42.0",
+    "@lexical/history": "0.42.0",
+    "@lexical/link": "0.42.0",
+    "@lexical/list": "0.42.0",
+    "@lexical/rich-text": "0.42.0",
+    "@lexical/selection": "0.42.0",
+    "@lexical/table": "0.42.0",
+    "@lexical/utils": "0.42.0",
+    "@lexical/yjs": "0.42.0",
     "@lobehub/charts": "^6.0.1",
     "@pierre/highlights": "^0.2.0",
     "@xmldom/xmldom": "^0.9.10",
@@ -133,7 +136,7 @@
     "eventemitter3": "^5.0.1",
     "fuse.js": "^7.5.0",
     "katex": "^0.18.1",
-    "lexical": "0.53.0",
+    "lexical": "0.42.0",
     "lucide-react": "^1.26.0",
     "mermaid": "^11.16.0",
     "polished": "^4.3.1",
@@ -153,7 +156,6 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@emotion/is-prop-valid": "^1.4.0",
-    "@lexical/html": "0.53.0",
     "@lobehub/docs-kit": "^6.0.0",
     "@lobehub/fluent-emoji": "^5.0.0-beta.1",
     "@lobehub/icons": "^6.0.0-beta.1",
@@ -207,6 +209,9 @@
   "pnpm": {
     "overrides": {
       "chalk": "^4.1.2"
+    },
+    "patchedDependencies": {
+      "@lexical/yjs@0.42.0": "patches/@lexical__yjs@0.42.0.patch"
     }
   }
 }

@@ -2,7 +2,6 @@ import { type Binding, type Provider, type UserState } from '@lexical/yjs';
 import { $getRoot, SKIP_COLLAB_TAG } from 'lexical';
 import type { Doc } from 'yjs';
 
-import { migrateLegacyTableCellDiffs } from '@/plugins/common/data-source/migrate-legacy-table-cell-diffs';
 import {
   $normalizeNodeIds,
   editorStateHasCompleteNodeIds,
@@ -142,7 +141,6 @@ export class YjsService {
     const previousEditorState = binding.editor.getEditorState();
     const snapshot = structuredClone(editorData);
     migrateSerializedNodeIds(snapshot.root);
-    snapshot.root = migrateLegacyTableCellDiffs(snapshot.root);
     inheritMissingSerializedNodeIds(
       (previousEditorState.toJSON() as { root?: unknown }).root,
       snapshot.root,

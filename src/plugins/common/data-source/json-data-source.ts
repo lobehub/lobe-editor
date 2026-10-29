@@ -22,17 +22,16 @@ import { $normalizeNodeIds, migrateSerializedNodeIds } from '@/plugins/common/no
 
 import { cursorNodeSerialized } from '../node/cursor';
 import { exportNodeToJSON } from '../utils';
-import { migrateLegacyTableCellDiffs } from './migrate-legacy-table-cell-diffs';
 
 export default class JSONDataSource extends DataSource {
   read(editor: LexicalEditor, data: any, options: Record<string, unknown> = {}) {
-    let inputData: SerializedEditorState;
+    let inputData: SerializedEditorState<SerializedLexicalNode>;
     if (typeof data === 'string') {
-      inputData = JSON.parse(data) as SerializedEditorState;
+      inputData = JSON.parse(data) as SerializedEditorState<SerializedLexicalNode>;
     } else {
-      inputData = data as SerializedEditorState;
+      inputData = data as SerializedEditorState<SerializedLexicalNode>;
     }
-    const dataObj = structuredClone(inputData) as SerializedEditorState & {
+    const dataObj = structuredClone(inputData) as SerializedEditorState<SerializedLexicalNode> & {
       keepId?: boolean;
     };
     const keepIds = options.keepId ?? dataObj.keepId ?? false;
@@ -59,7 +58,6 @@ export default class JSONDataSource extends DataSource {
       };
       stripNodeIds(dataObj.root as unknown as Record<string, any>);
     } else migrateSerializedNodeIds(dataObj.root);
-    dataObj.root = migrateLegacyTableCellDiffs(dataObj.root) as SerializedEditorState['root'];
     const process = (node: SerializedElementNode) => {
       for (let i = 0; i < node.children.length; i++) {
         const child = node.children[i];
@@ -114,7 +112,9 @@ export default class JSONDataSource extends DataSource {
           const lastNode = selectedNodes[lastIndex];
           const [anchorOffset, focusOffset] = $getCharacterOffsets(selection);
 
-          const lastElement: Array<SerializedElementNode & { $key: string }> = [];
+          const lastElement: Array<
+            SerializedElementNode<SerializedLexicalNode> & { $key: string }
+          > = [];
 
           const rootNodes: Array<SerializedLexicalNode & { $key: string }> = [];
           for (let i = 0; i < selectedNodes.length; i++) {

@@ -59,10 +59,6 @@ class TestDecoratorNode extends DecoratorNode<null> {
   updateDOM(): false {
     return false;
   }
-
-  isInline(): false {
-    return false;
-  }
 }
 
 function $createTestDecoratorNode(): TestDecoratorNode {

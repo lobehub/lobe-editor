@@ -1,4 +1,4 @@
-import type { TableDOMCell } from '@lexical/table';
+import type { TableCellNode, TableDOMCell } from '@lexical/table';
 import {
   $computeTableMapSkipCellCheck,
   $getTableNodeFromLexicalNodeOrThrow,
@@ -179,7 +179,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
 
           let height = tableRow.getHeight();
           if (height === undefined) {
-            const rowCells = tableRow.getChildren().filter($isTableCellNode);
+            const rowCells = tableRow.getChildren<TableCellNode>();
             height = Math.min(
               ...rowCells.map((cell) => getCellNodeHeight(cell, editor) ?? Infinity),
             );
@@ -223,7 +223,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
 
           let height = tableRow.getHeight();
           if (height === undefined) {
-            const rowCells = tableRow.getChildren().filter($isTableCellNode);
+            const rowCells = tableRow.getChildren<TableCellNode>();
             height = Math.min(
               ...rowCells.map((cell) => getCellNodeHeight(cell, editor) ?? Infinity),
             );

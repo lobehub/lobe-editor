@@ -27,8 +27,9 @@ import { CustomTokenizer, registerCodeCommand } from '../command';
 import { getCodeLanguageByInput } from '../utils/language';
 import { registerCodeHighlighting, toCodeTheme } from './CodeHighlighter';
 
+const origin = CodeNode.importDOM;
+
 const LANGUAGE_DATA_ATTRIBUTE = 'data-language';
-const THEME_DATA_ATTRIBUTE = 'data-theme';
 const MAX_LENGTH = 8000;
 
 function $convertPreElement(domNode: HTMLElement): DOMConversionOutput {
@@ -36,28 +37,19 @@ function $convertPreElement(domNode: HTMLElement): DOMConversionOutput {
   if (domNode.innerHTML.length > MAX_LENGTH) {
     return { node: null };
   }
-  return { node: $createCodeNode(language, domNode.getAttribute(THEME_DATA_ATTRIBUTE)) };
+  return { node: $createCodeNode(language) };
 }
 
-// Lexical 0.53 derives CodeNode.importDOM from its $config record. Extend that
-// record so the size guard and legacy language attribute remain in place while
-// retaining CodeNode's built-in conversions for code, div, and GitHub tables.
-const getCodeNodeConfig = CodeNode.prototype.$config;
-CodeNode.prototype.$config = function () {
-  const config = getCodeNodeConfig.call(this);
-  const codeConfig = config.code;
-  if (!codeConfig) return config;
-
-  return this.config('code', {
-    ...codeConfig,
-    importDOM: {
-      ...codeConfig.importDOM,
-      pre: () => ({
-        conversion: $convertPreElement,
-        priority: 0,
-      }),
-    },
-  });
+CodeNode.importDOM = () => {
+  const node = origin();
+  if (node) {
+    node.pre = () => ({
+      conversion: $convertPreElement,
+      priority: 0,
+    });
+  }
+  // Custom logic for handling imported DOM
+  return node;
 };
 
 export interface CodeblockPluginOptions {

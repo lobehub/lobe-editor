@@ -1,6 +1,5 @@
 import type { HistoryState, HistoryStateEntry } from '@lexical/history';
 import type {
-  AnyLexicalCommand,
   CommandListener,
   CommandListenerPriority,
   CommandPayloadType,
@@ -17,8 +16,8 @@ import type { HotkeyOptions, HotkeysEvent } from '@/utils/hotkey/registerHotkey'
 
 import type { ILocaleKeys } from './locale';
 
-export type Commands = Map<AnyLexicalCommand, Array<Set<CommandListener<any>>>>;
-export type CommandsClean = Map<AnyLexicalCommand, () => void>;
+export type Commands = Map<LexicalCommand<unknown>, Array<Set<CommandListener<unknown>>>>;
+export type CommandsClean = Map<LexicalCommand<unknown>, () => void>;
 
 export type IDecoratorFunc = (_node: LexicalNode, _editor: LexicalEditor) => any;
 export type INodeRegistrationTransform = (
@@ -114,7 +113,7 @@ export interface IEditor {
    * @param type
    * @param payload
    */
-  dispatchCommand<TCommand extends AnyLexicalCommand>(
+  dispatchCommand<TCommand extends LexicalCommand<unknown>>(
     type: TCommand,
     payload: CommandPayloadType<TCommand>,
   ): boolean;

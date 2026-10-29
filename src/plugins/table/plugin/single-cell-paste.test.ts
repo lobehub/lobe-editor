@@ -2,8 +2,6 @@ import { $getClipboardDataFromSelection, type LexicalClipboardData } from '@lexi
 import {
   $createTableNodeWithDimensions,
   $createTableSelection,
-  $isTableCellNode,
-  $isTableRowNode,
   TableCellNode,
   TableNode,
   TableRowNode,
@@ -60,10 +58,8 @@ describe('single-cell table paste', () => {
     editor.update(
       () => {
         const table = $createTableNodeWithDimensions(1, 2, false);
-        const row = table.getFirstChildOrThrow();
-        if (!$isTableRowNode(row)) throw new Error('Expected a table row');
-        const firstCell = row.getFirstChildOrThrow();
-        if (!$isTableCellNode(firstCell)) throw new Error('Expected a table cell');
+        const row = table.getFirstChildOrThrow<TableRowNode>();
+        const firstCell = row.getFirstChildOrThrow<TableCellNode>();
         const cellContent = firstCell.getFirstChildOrThrow();
         if (!$isElementNode(cellContent)) throw new Error('Expected cell content to be an element');
 

@@ -89,7 +89,7 @@ describe('HeadlessEditor', () => {
         type: 'root',
         version: 1,
       },
-    } as unknown as SerializedEditorState;
+    } as unknown as SerializedEditorState<SerializedLexicalNode>;
 
     editor.hydrateEditorData(editorData, { keepId: true });
 
@@ -173,7 +173,7 @@ describe('HeadlessEditor', () => {
         type: 'root',
         version: 1,
       },
-    } as unknown as SerializedEditorState;
+    } as unknown as SerializedEditorState<SerializedLexicalNode>;
 
     editor.hydrateEditorData(editorData, { keepId: true });
 
@@ -385,7 +385,7 @@ describe('HeadlessEditor', () => {
         type: 'root',
         version: 1,
       },
-    } as unknown as SerializedEditorState;
+    } as unknown as SerializedEditorState<SerializedLexicalNode>;
 
     editor.hydrateEditorData(legacyEditorData, { keepId: true });
 
@@ -434,7 +434,7 @@ describe('HeadlessEditor', () => {
         type: 'root',
         version: 1,
       },
-    } as unknown as SerializedEditorState;
+    } as unknown as SerializedEditorState<SerializedLexicalNode>;
 
     expect(() => editor.hydrateEditorData(legacyEditorData, { keepId: true })).not.toThrow();
 
@@ -495,7 +495,7 @@ describe('HeadlessEditor', () => {
     });
 
     const snapshot = editor.export({ litexml: true });
-    const editorData = snapshot.editorData as SerializedEditorState;
+    const editorData = snapshot.editorData as SerializedEditorState<SerializedLexicalNode>;
 
     expect(snapshot.markdown).toBe('# Title\n\n*Changed body*\n');
     expect(snapshot.litexml).toContain('italic="true"');

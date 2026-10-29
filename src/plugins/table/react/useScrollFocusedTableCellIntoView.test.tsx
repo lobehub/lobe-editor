@@ -1,7 +1,5 @@
 import {
   $createTableNodeWithDimensions,
-  $isTableCellNode,
-  $isTableRowNode,
   TableCellNode,
   TableNode,
   TableRowNode,
@@ -70,12 +68,9 @@ describe('useScrollFocusedTableCellIntoView', () => {
       editor.update(
         () => {
           const table = $createTableNodeWithDimensions(1, 2, false);
-          const row = table.getFirstChildOrThrow();
-          if (!$isTableRowNode(row)) throw new Error('Expected a table row');
-          const firstCell = row.getFirstChildOrThrow();
-          if (!$isTableCellNode(firstCell)) throw new Error('Expected a table cell');
-          const secondCell = row.getLastChildOrThrow();
-          if (!$isTableCellNode(secondCell)) throw new Error('Expected a table cell');
+          const row = table.getFirstChildOrThrow<TableRowNode>();
+          const firstCell = row.getFirstChildOrThrow<TableCellNode>();
+          const secondCell = row.getLastChildOrThrow<TableCellNode>();
           firstCellKey = firstCell.getKey();
           secondCellKey = secondCell.getKey();
           $getRoot().append(table);
@@ -90,27 +85,17 @@ describe('useScrollFocusedTableCellIntoView', () => {
     expect(scrollIntoView).toHaveBeenLastCalledWith({ block: 'nearest', inline: 'nearest' });
 
     act(() => {
-      editor.update(
-        () => {
-          const secondCell = $getNodeByKey(secondCellKey);
-          if (!$isTableCellNode(secondCell)) throw new Error('Expected a table cell');
-          secondCell.selectStart();
-        },
-        { discrete: true },
-      );
+      editor.update(() => $getNodeByKey<TableCellNode>(secondCellKey)!.selectStart(), {
+        discrete: true,
+      });
     });
     flushFrame();
     expect(scrollIntoView).toHaveBeenCalledTimes(2);
 
     act(() => {
-      editor.update(
-        () => {
-          const secondCell = $getNodeByKey(secondCellKey);
-          if (!$isTableCellNode(secondCell)) throw new Error('Expected a table cell');
-          secondCell.selectEnd();
-        },
-        { discrete: true },
-      );
+      editor.update(() => $getNodeByKey<TableCellNode>(secondCellKey)!.selectEnd(), {
+        discrete: true,
+      });
     });
     expect(frames).toHaveLength(0);
     expect(scrollIntoView).toHaveBeenCalledTimes(2);

@@ -82,7 +82,6 @@ export const registerCollaborationBinding = ({
       new Map([['root', true]]),
       new Set(),
       new Set(),
-      new Set(),
     );
   }
 
@@ -144,14 +143,13 @@ export const registerCollaborationBinding = ({
   };
 
   const unregisterUpdateListener = lexicalEditor.registerUpdateListener(
-    ({ dirtyElements, dirtyLeaves, editorState, normalizedNodes, prevEditorState, tags }) => {
+    ({ dirtyElements, editorState, normalizedNodes, prevEditorState, tags }) => {
       syncLexicalUpdateToYjsV2__EXPERIMENTAL(
         binding,
         provider,
         prevEditorState,
         editorState,
         dirtyElements,
-        dirtyLeaves,
         normalizedNodes,
         tags,
       );

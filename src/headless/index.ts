@@ -1,4 +1,4 @@
-import type { CommandPayloadType, SerializedEditorState } from 'lexical';
+import type { CommandPayloadType, SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import Editor, { moment } from '@/editor-kernel';
 import { AlertPlugin } from '@/plugins/alert/plugin';
@@ -49,7 +49,7 @@ export interface HeadlessEditorExportOptions {
 }
 
 export interface HeadlessEditorExport {
-  editorData: SerializedEditorState;
+  editorData: SerializedEditorState<SerializedLexicalNode>;
   litexml?: string;
   markdown: string;
 }
@@ -156,15 +156,17 @@ const normalizeLegacyEditorDataNode = (node: unknown): unknown => {
 };
 
 const normalizeLegacyEditorData = (
-  editorData: SerializedEditorState | string,
-): SerializedEditorState | string => {
+  editorData: SerializedEditorState<SerializedLexicalNode> | string,
+): SerializedEditorState<SerializedLexicalNode> | string => {
   const data =
-    typeof editorData === 'string' ? (JSON.parse(editorData) as SerializedEditorState) : editorData;
+    typeof editorData === 'string'
+      ? (JSON.parse(editorData) as SerializedEditorState<SerializedLexicalNode>)
+      : editorData;
 
   return {
     ...data,
     root: normalizeLegacyEditorDataNode(data.root),
-  } as SerializedEditorState;
+  } as SerializedEditorState<SerializedLexicalNode>;
 };
 
 const extractSerializedCodeText = (children: unknown[]): string =>
@@ -210,12 +212,12 @@ const preserveSerializedCodeText = (node: unknown): unknown => {
 };
 
 const preserveSerializedCodeTextInEditorData = (
-  editorData: SerializedEditorState,
-): SerializedEditorState =>
+  editorData: SerializedEditorState<SerializedLexicalNode>,
+): SerializedEditorState<SerializedLexicalNode> =>
   ({
     ...editorData,
     root: preserveSerializedCodeText(editorData.root),
-  }) as SerializedEditorState;
+  }) as SerializedEditorState<SerializedLexicalNode>;
 
 export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   [CommonPlugin, { enableHotkey: false }],
@@ -262,7 +264,10 @@ export class HeadlessEditor {
     return this;
   }
 
-  hydrateEditorData(editorData: SerializedEditorState | string, options?: IDocumentOptions): this {
+  hydrateEditorData(
+    editorData: SerializedEditorState<SerializedLexicalNode> | string,
+    options?: IDocumentOptions,
+  ): this {
     this.kernel.setDocument('json', normalizeLegacyEditorData(editorData), options);
     return this;
   }
@@ -316,7 +321,7 @@ export class HeadlessEditor {
   export(options: HeadlessEditorExportOptions = {}): HeadlessEditorExport {
     const snapshot: HeadlessEditorExport = {
       editorData: preserveSerializedCodeTextInEditorData(
-        this.kernel.getDocument('json') as unknown as SerializedEditorState,
+        this.kernel.getDocument('json') as unknown as SerializedEditorState<SerializedLexicalNode>,
       ),
       markdown: this.kernel.getDocument('markdown') as unknown as string,
     };

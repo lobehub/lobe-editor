@@ -5,7 +5,6 @@ import { $createTableSelection, $isTableNode, $isTableSelection } from '@lexical
 import { get, merge, template, templateSettings } from 'es-toolkit/compat';
 import EventEmitter from 'eventemitter3';
 import type {
-  AnyLexicalCommand,
   CommandListener,
   CommandListenerPriority,
   CommandPayloadType,
@@ -314,7 +313,6 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.pluginsInstances.forEach((plugin) => {
       plugin.onInit?.(editor);
     });
-    this.flushInitializationUpdates(editor);
     this.logger.info(`✅ Editor ready with ${this.pluginsInstances.length} plugins`);
     this.emit('initialized', editor);
     return this.editor;
@@ -363,7 +361,6 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.pluginsInstances.forEach((plugin) => {
       plugin.onInit?.(editor);
     });
-    this.flushInitializationUpdates(editor);
     this.logger.info(`✅ Editor ready with ${this.pluginsInstances.length} plugins`);
     this.emit('initialized', editor);
 
@@ -402,7 +399,6 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.pluginsInstances.forEach((plugin) => {
       plugin.onInit?.(editor);
     });
-    this.flushInitializationUpdates(editor);
     this.logger.info(`✅ Headless editor ready with ${this.pluginsInstances.length} plugins`);
     this.emit('initialized', editor);
 
@@ -418,12 +414,6 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     if (!this.editor) {
       this.logger.error('❌ Editor not initialized');
       throw new Error(`Editor is not initialized.`);
-    }
-    // A previously registered transform can leave an empty pending update
-    // after initialization. Commit it before replacing the document, unless
-    // setDocument is called from inside the active update itself.
-    if (!this.editor._updating) {
-      this.editor.read('force-commit', () => {});
     }
     // Clear history if not keeping history
     if (!options?.keepHistory) {
@@ -851,13 +841,6 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     }
   }
 
-  private flushInitializationUpdates(editor: LexicalEditor): void {
-    // Node transforms registered by plugins can queue an empty-root update.
-    // A subsequent setEditorState replaces that pending state, so commit it
-    // before returning the initialized editor and before callers load content.
-    editor.read('force-commit', () => {});
-  }
-
   private applyRootClassNames(dom: HTMLElement): void {
     if (this.rootClassNames.size === 0) {
       return;
@@ -958,7 +941,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     return service as T;
   }
 
-  dispatchCommand<TCommand extends AnyLexicalCommand>(
+  dispatchCommand<TCommand extends LexicalCommand<unknown>>(
     type: TCommand,
     payload: CommandPayloadType<TCommand>,
   ): boolean {
@@ -1020,7 +1003,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
   }
 
   private _commands: Commands = new Map();
-  private _commandsClean: Map<AnyLexicalCommand, () => void> = new Map();
+  private _commandsClean: Map<LexicalCommand<unknown>, () => void> = new Map();
 
   registerHotkey(
     hotkeyId: HotkeyId,
