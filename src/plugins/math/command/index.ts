@@ -9,8 +9,7 @@ import {
   createCommand,
 } from 'lexical';
 
-import type { MathInlineNode } from '../node/index';
-import { $createMathInlineNode } from '../node/index';
+import { $createMathInlineNode, $isMathNode } from '../node/index';
 
 export const INSERT_MATH_COMMAND = createCommand<{
   code: string;
@@ -48,8 +47,8 @@ export function registerMathCommand(editor: LexicalEditor) {
       (payload) => {
         const { code, key } = payload;
         editor.update(() => {
-          const mathCode = $getNodeByKey<MathInlineNode>(key);
-          if (mathCode) {
+          const mathCode = $getNodeByKey(key);
+          if (mathCode && $isMathNode(mathCode)) {
             mathCode.updateCode(code);
             mathCode.selectNext();
           }
@@ -63,8 +62,8 @@ export function registerMathCommand(editor: LexicalEditor) {
       (payload) => {
         const { key, prev } = payload;
         editor.update(() => {
-          const mathNode = $getNodeByKey<MathInlineNode>(key);
-          if (mathNode) {
+          const mathNode = $getNodeByKey(key);
+          if (mathNode && $isMathNode(mathNode)) {
             if (prev) {
               mathNode.selectPrevious();
             } else {

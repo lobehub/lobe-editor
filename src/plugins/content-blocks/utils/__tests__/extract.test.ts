@@ -187,6 +187,33 @@ describe('extractContentBlocks', () => {
     });
   });
 
+  it('splits inline files from surrounding text and keeps placeholders for pending files', () => {
+    seed(
+      kernel,
+      paragraphRoot([
+        paragraph([
+          textNode('before'),
+          fileNode({ fileUrl: 'https://cdn/one.pdf', name: 'one.pdf', status: 'uploaded' }),
+          textNode('between'),
+          fileNode({ fileUrl: 'https://cdn/two.csv', name: 'two.csv', status: 'uploaded' }),
+          fileNode({ name: 'pending.txt', status: 'pending' }),
+          textNode('after'),
+        ]),
+      ]),
+    );
+
+    const blocks = getBlocks(kernel);
+    expect(blocks.map((block) => block.type)).toEqual(['text', 'file', 'text', 'file', 'text']);
+    expect(blocks[0]).toEqual({ text: 'before', type: 'text' });
+    expect(blocks[1]).toEqual({ name: 'one.pdf', type: 'file', url: 'https://cdn/one.pdf' });
+    expect(blocks[2]).toEqual({ text: 'between', type: 'text' });
+    expect(blocks[3]).toEqual({ name: 'two.csv', type: 'file', url: 'https://cdn/two.csv' });
+    expect(blocks[4]?.type).toBe('text');
+    expect((blocks[4] as { text: string }).text).toMatch(
+      /^\[file uploading: pending\.txt\] *\n\nafter$/,
+    );
+  });
+
   it('drops non-uploaded image and adds a loading placeholder', () => {
     seed(
       kernel,

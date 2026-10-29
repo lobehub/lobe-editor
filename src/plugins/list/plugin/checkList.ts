@@ -128,7 +128,8 @@ function findCheckListItemSibling(node: ListItemNode, backward: boolean): ListIt
   // Going up in a tree to get non-null sibling
   while (!sibling && $isListItemNode(parent)) {
     // Get li -> parent ul/ol -> parent li
-    parent = parent.getParentOrThrow().getParent();
+    const parentListItem = parent.getParentOrThrow().getParent();
+    parent = $isListItemNode(parentListItem) ? parentListItem : null;
 
     if (parent) {
       sibling = backward ? parent.getPreviousSibling() : parent.getNextSibling();
