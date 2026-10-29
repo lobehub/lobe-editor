@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;7.0.3](https://github.com/lobehub/lobe-editor/compare/v7.0.2...v7.0.3)
+<sup>Released on **2026-10-29**</sup>
+
+
+#### 💄 Styles
+
+- **alert**: Use borderRadius token and drop accent border.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **alert**: Use borderRadius token and drop accent border ([5ee8465](https://github.com/lobehub/lobe-editor/commit/5ee8465))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;7.0.2](https://github.com/lobehub/lobe-editor/compare/v7.0.1...v7.0.2)
 <sup>Released on **2026-10-28**</sup>
 
