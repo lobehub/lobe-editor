@@ -50,6 +50,10 @@
       "types": "./es/renderer.d.ts",
       "import": "./es/renderer.js"
     },
+    "./yjs": {
+      "types": "./es/yjs.d.ts",
+      "import": "./es/yjs.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./es/index.js",
