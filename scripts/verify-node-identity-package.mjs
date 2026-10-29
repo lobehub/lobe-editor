@@ -24,6 +24,7 @@ const entryPaths = {
   headless: join(packageRoot, 'es/headless.js'),
   nodeId: join(packageRoot, 'es/plugins/common/node/node-id.js'),
   serviceToken: join(packageRoot, 'es/plugins/common/service/i-node-identity-service.js'),
+  yjs: join(packageRoot, 'es/yjs.js'),
 };
 
 for (const [name, file] of Object.entries(entryPaths)) {
@@ -70,6 +71,10 @@ if (!childMode) {
     nodeId = await import(urls.nodeId);
     headless = await import(urls.headless);
   }
+
+  const yjs = await import(urls.yjs);
+  assert.equal(typeof yjs.YjsPlugin, 'function', 'The yjs entry must load under Node ESM.');
+  assert.ok(yjs.IYjsService);
 
   const { $getNodeById, $getNodeId, $setNodeId } = nodeId;
   const { INodeIdentityService } = serviceToken;

@@ -40,6 +40,7 @@ export default defineConfig([
       index: 'src/index.ts',
       react: 'src/react/index.ts',
       renderer: 'src/renderer/index.ts',
+      yjs: 'src/yjs/index.ts',
     },
     platform: 'browser',
     unbundle: true,
