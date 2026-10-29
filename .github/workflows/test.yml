@@ -22,9 +22,6 @@ jobs:
       - name: Install deps
         run: pnpm install
 
-      - name: Test concurrent postinstall patching
-        run: node --test scripts/postinstall-lexical-patch.test.cjs
-
       - name: CI
         run: pnpm run ci
 

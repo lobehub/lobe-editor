@@ -75,7 +75,8 @@ export const LinkHighlightPlugin: IEditorPluginConstructor<LinkHighlightPluginOp
       this.register(
         editor.registerCommand(
           PASTE_COMMAND,
-          (payload: ClipboardEvent) => {
+          (payload) => {
+            if (!('clipboardData' in payload)) return false;
             const { clipboardData } = payload;
             if (
               clipboardData &&

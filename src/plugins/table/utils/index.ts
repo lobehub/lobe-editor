@@ -1,11 +1,12 @@
-import type { TableDOMCell, TableSelection } from '@lexical/table';
+import type { TableDOMCell, TableObserver, TableSelection } from '@lexical/table';
 import { $isTableCellNode, $isTableSelection, type TableNode } from '@lexical/table';
-import type { TableDOMTable } from '@lexical/table/LexicalTableObserver';
 import { addClassNamesToElement, removeClassNamesFromElement } from '@lexical/utils';
 import type { BaseSelection, LexicalEditor, LexicalNode, NodeKey, RangeSelection } from 'lexical';
 import { $getNearestNodeFromDOMNode } from 'lexical';
 
 import { assert } from '@/editor-kernel/utils';
+
+type TableDOMTable = ReturnType<TableObserver['getTable']>;
 
 export interface TableSelectionIndexes {
   selectedColumns: number[];

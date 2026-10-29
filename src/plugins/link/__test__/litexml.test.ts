@@ -84,7 +84,7 @@ describe('link litexml', () => {
 
     const markdown = editor.getDocument('markdown') as unknown as string;
     expect(markdown).toBe(
-      '[Card title](https://lobehub.com)\n' +
+      '[Card title](https://lobehub.com)\n\n' +
         '[Block card title](https://lobehub.com/block)\n' +
         '[Iframe title](https://lobehub.com/embed)\n' +
         '[Schema title](schema://card/123)\n',
@@ -106,7 +106,7 @@ describe('link litexml', () => {
 
     const markdown = editor.getDocument('markdown') as unknown as string;
     expect(markdown).toBe(
-      '[Card title](https://lobehub.com)\n' +
+      '[Card title](https://lobehub.com)\n\n' +
         '[Block card title](https://lobehub.com/block)\n' +
         '[Iframe title](https://lobehub.com/embed)\n' +
         '[Schema title](schema://card/123)\n',

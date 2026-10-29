@@ -133,20 +133,24 @@ describe('YjsService external snapshots', () => {
     editor.setRootElement(document.createElement('div'));
     const nestedList = (text: string, id: string) => {
       let content = `<span>${text}</span>`;
-      for (let level = 0; level < 12; level++) content = `<ul><li>${content}</li></ul>`;
+      for (let level = 0; level < 12; level++) {
+        content = `<ul><li>Level ${level}</li><li>${content}</li></ul>`;
+      }
       return content.replace('<ul>', `<ul id="${id}">`);
     };
     editor.setDocument(
       'litexml',
-      `<root>${nestedList('A &quot;quoted&quot; \\ value', 'nested-a')}${nestedList('B &quot;quoted&quot; \\ value', 'nested-b')}</root>`,
+      `<root>${nestedList('A &quot;quoted&quot; \\ value', 'nested-a')}<p>Between lists</p>${nestedList('B &quot;quoted&quot; \\ value', 'nested-b')}</root>`,
     );
     const snapshot = structuredClone(editor.getDocument('json')) as any;
     const listDepth = (node: any): number =>
       (node.type === 'list' ? 1 : 0) +
       (Array.isArray(node.children) ? Math.max(0, ...node.children.map(listDepth)) : 0);
-    expect(snapshot.root.children).toHaveLength(2);
-    expect(listDepth(snapshot.root.children[0])).toBeGreaterThanOrEqual(10);
-    for (const [index, list] of snapshot.root.children.entries()) {
+    expect(snapshot.root.children).toHaveLength(3);
+    const sourceLists = snapshot.root.children.filter((node: any) => node.type === 'list');
+    expect(sourceLists).toHaveLength(2);
+    expect(listDepth(sourceLists[0])).toBeGreaterThanOrEqual(10);
+    for (const [index, list] of sourceLists.entries()) {
       list.id = 'duplicate-nested-list';
       list.$ = {
         ...list.$,
@@ -175,7 +179,10 @@ describe('YjsService external snapshots', () => {
       service.applyExternalEditorData(snapshot),
       service.applyExternalEditorData(snapshot),
     ]).toEqual([true, false, false]);
-    const lists = (editor.getDocument('json') as any).root.children;
+    const lists = (editor.getDocument('json') as any).root.children.filter(
+      (node: any) => node.type === 'list',
+    );
+    expect(lists).toHaveLength(2);
     const ids = lists.map((list: any) => list.$.properties.nodeId);
     expect(ids[0]).toBe('duplicate-nested-list');
     expect(ids[1]).toMatch(/^[0-9a-z]{10}$/);
@@ -184,12 +191,18 @@ describe('YjsService external snapshots', () => {
       nested: { id: 'child-1' },
     });
     const reorderedMetadata = structuredClone(snapshot);
-    reorderedMetadata.root.children[1].$.properties.payload = {
+    const reorderedListsFromSnapshot = reorderedMetadata.root.children.filter(
+      (node: any) => node.type === 'list',
+    );
+    reorderedListsFromSnapshot[1].$.properties.payload = {
       nested: { id: 'child-1' },
       id: 'application-1',
     };
     service.applyExternalEditorData(reorderedMetadata);
-    expect((editor.getDocument('json') as any).root.children[1].$.properties.nodeId).toBe(ids[1]);
+    const reorderedLists = (editor.getDocument('json') as any).root.children.filter(
+      (node: any) => node.type === 'list',
+    );
+    expect(reorderedLists[1].$.properties.nodeId).toBe(ids[1]);
     expect(snapshot).toEqual(originalInput);
     editor.destroy();
   });
