@@ -95,7 +95,9 @@ export default class MarkdownDataSource extends DataSource {
           const lastNode = selectedNodes[lastIndex];
           const [anchorOffset, focusOffset] = $getCharacterOffsets(selection);
 
-          const lastElement: Array<SerializedElementNode & { $key: string }> = [];
+          const lastElement: Array<
+            SerializedElementNode<SerializedLexicalNode> & { $key: string }
+          > = [];
           const rootNodes: Array<SerializedLexicalNode & { $key: string }> = [];
 
           for (let i = 0; i < selectedNodes.length; i++) {

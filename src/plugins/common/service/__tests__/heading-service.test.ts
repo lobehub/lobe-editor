@@ -1,15 +1,10 @@
-import {
-  $createHeadingNode,
-  $isHeadingNode,
-  HeadingNode,
-  registerRichText,
-} from '@lexical/rich-text';
+import { $createHeadingNode, HeadingNode, registerRichText } from '@lexical/rich-text';
 import {
   $createParagraphNode,
   $createTextNode,
   $getRoot,
-  $isElementNode,
   createEditor,
+  type ElementNode,
   type LexicalEditor,
   type NodeKey,
 } from 'lexical';
@@ -96,8 +91,7 @@ describe('HeadingService', () => {
 
     editor.update(
       () => {
-        const heading = $getRoot().getFirstChildOrThrow();
-        if (!$isHeadingNode(heading)) throw new Error('Expected a heading');
+        const heading = $getRoot().getFirstChildOrThrow<HeadingNode>();
         heading.getFirstChildOrThrow().remove();
         heading.append($createTextNode('Overview'));
       },
@@ -170,14 +164,9 @@ describe('HeadingService', () => {
     service.setFolded(keys[0], true);
     expect(hiddenIndexes()).toEqual([1]);
 
-    editor.update(
-      () => {
-        const lastNode = $getRoot().getLastChildOrThrow();
-        if (!$isElementNode(lastNode)) throw new Error('Expected an element node');
-        lastNode.selectEnd();
-      },
-      { discrete: true },
-    );
+    editor.update(() => $getRoot().getLastChildOrThrow<ElementNode>().selectEnd(), {
+      discrete: true,
+    });
 
     expect(service.isFolded(keys[0])).toBe(false);
     expect(hiddenIndexes()).toEqual([]);

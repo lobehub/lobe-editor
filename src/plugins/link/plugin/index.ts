@@ -111,8 +111,7 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
     this.register(
       editor.registerCommand(
         PASTE_COMMAND,
-        (payload) => {
-          if (!('clipboardData' in payload)) return false;
+        (payload: ClipboardEvent) => {
           const { clipboardData } = payload;
           if (
             clipboardData &&

@@ -13,6 +13,7 @@ import {
   createCommand,
 } from 'lexical';
 
+import type { LinkNode } from '../node/LinkNode';
 import { $createLinkNode, $isLinkNode, TOGGLE_LINK_COMMAND } from '../node/LinkNode';
 
 export const INSERT_LINK_COMMAND = createCommand<{ title?: string; url?: string }>(
@@ -49,8 +50,8 @@ export function registerLinkCommand(editor: LexicalEditor) {
         const { key, text } = payload;
 
         editor.update(() => {
-          const linkNode = $getNodeByKey(key);
-          if ($isLinkNode(linkNode)) {
+          const linkNode = $getNodeByKey<LinkNode>(key);
+          if (linkNode) {
             const newLinkNode = $createLinkNode(linkNode.getURL(), { title: text });
             const textNode = $createTextNode(text);
             newLinkNode.append(textNode);

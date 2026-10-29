@@ -55,8 +55,7 @@ type FileLikeNode = LexicalNode & {
 
 const isAtomicNode = (node: LexicalNode): boolean => ATOMIC_TYPES.has(node.getType());
 
-const isInlineAtomicNode = (node: LexicalNode): boolean =>
-  node.getType() === 'image' || node.getType() === 'file';
+const isInlineAtomicNode = (node: LexicalNode): boolean => node.getType() === 'image';
 
 const isImageType = (type: string) => type === 'image' || type === 'block-image';
 
