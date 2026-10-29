@@ -1,5 +1,5 @@
 import type { EditorConfig } from 'lexical';
-import { $getRoot, $isElementNode, type LexicalNode } from 'lexical';
+import { $getRoot, $isElementNode, RootNode, type LexicalEditor, type LexicalNode } from 'lexical';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Editor from '@/editor-kernel';
@@ -11,6 +11,39 @@ import { getKernelFromEditorConfig } from '../utils';
 
 const getKernelFor = (editor: ReturnType<typeof Editor.createEditor>) =>
   getKernelFromEditorConfig({ theme: editor.getTheme() } as EditorConfig);
+
+const createDeepListDocument = () => {
+  const nestedList = (text: string, id: string) => {
+    let content = `<span>${text}</span>`;
+    for (let level = 0; level < 12; level++) {
+      content = `<ul><li>Level ${level}</li><li>${content}</li></ul>`;
+    }
+    return content.replace('<ul>', `<ul id="${id}">`);
+  };
+
+  return `<root>${nestedList('A &quot;quoted&quot; \\ value', 'nested-a')}${nestedList('B &quot;quoted&quot; \\ value', 'nested-b')}</root>`;
+};
+
+const expectDeepListTreeAndDOM = (editor: LexicalEditor, rootElement: HTMLElement) => {
+  editor.getEditorState().read(
+    () => {
+      const root = $getRoot();
+      const visit = (node: LexicalNode) => {
+        if (!$isElementNode(node)) return;
+        const children = node.getChildren();
+        expect(children).toHaveLength(node.getChildrenSize());
+        children.forEach(visit);
+      };
+
+      visit(root);
+      expect(root.getTextContent()).toContain('A "quoted" \\ value');
+      expect(root.getTextContent()).toContain('B "quoted" \\ value');
+    },
+    { editor },
+  );
+  expect(rootElement.textContent).toContain('A "quoted" \\ value');
+  expect(rootElement.textContent).toContain('B "quoted" \\ value');
+};
 
 describe('editor root lifecycle', () => {
   const kernels: Array<ReturnType<typeof Editor.createEditor>> = [];
@@ -113,38 +146,27 @@ describe('editor root lifecycle', () => {
   it('loads adjacent deep lists immediately after DOM initialization with a consistent tree', () => {
     const kernel = Editor.createEditor().registerPlugins([CommonPlugin, LitexmlPlugin, ListPlugin]);
     kernels.push(kernel);
-    kernel.setRootElement(document.createElement('div'));
+    const rootElement = document.createElement('div');
+    kernel.setRootElement(rootElement);
+    kernel.setDocument('litexml', createDeepListDocument());
+    const lexicalEditor = kernel.getLexicalEditor()!;
+    expectDeepListTreeAndDOM(lexicalEditor, rootElement);
+  });
 
-    const nestedList = (text: string, id: string) => {
-      let content = `<span>${text}</span>`;
-      for (let level = 0; level < 12; level++) {
-        content = `<ul><li>Level ${level}</li><li>${content}</li></ul>`;
-      }
-      return content.replace('<ul>', `<ul id="${id}">`);
-    };
-    kernel.setDocument(
-      'litexml',
-      `<root>${nestedList('A &quot;quoted&quot; \\ value', 'nested-a')}${nestedList('B &quot;quoted&quot; \\ value', 'nested-b')}</root>`,
-    );
+  it('commits a later empty root update before replacing the document', () => {
+    const kernel = Editor.createEditor().registerPlugins([CommonPlugin, LitexmlPlugin, ListPlugin]);
+    kernels.push(kernel);
+    const rootElement = document.createElement('div');
+    kernel.setRootElement(rootElement);
 
     const lexicalEditor = kernel.getLexicalEditor()!;
-    lexicalEditor.getEditorState().read(
-      () => {
-        const root = $getRoot();
-        const visit = (node: LexicalNode) => {
-          if (!$isElementNode(node)) return;
-          const children = node.getChildren();
-          expect(children).toHaveLength(node.getChildrenSize());
-          children.forEach(visit);
-        };
+    const unregisterNoopRootTransform = lexicalEditor.registerNodeTransform(RootNode, () => {});
+    try {
+      kernel.setDocument('litexml', createDeepListDocument());
+    } finally {
+      unregisterNoopRootTransform();
+    }
 
-        visit(root);
-        expect(root.getTextContent()).toContain('A "quoted" \\ value');
-        expect(root.getTextContent()).toContain('B "quoted" \\ value');
-      },
-      { editor: lexicalEditor },
-    );
-    expect(kernel.getRootElement()?.textContent).toContain('A "quoted" \\ value');
-    expect(kernel.getRootElement()?.textContent).toContain('B "quoted" \\ value');
+    expectDeepListTreeAndDOM(lexicalEditor, rootElement);
   });
 });

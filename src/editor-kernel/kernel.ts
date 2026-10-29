@@ -419,6 +419,12 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       this.logger.error('❌ Editor not initialized');
       throw new Error(`Editor is not initialized.`);
     }
+    // A previously registered transform can leave an empty pending update
+    // after initialization. Commit it before replacing the document, unless
+    // setDocument is called from inside the active update itself.
+    if (!this.editor._updating) {
+      this.editor.read('force-commit', () => {});
+    }
     // Clear history if not keeping history
     if (!options?.keepHistory) {
       this.historyState.redoStack = [];

@@ -1,11 +1,12 @@
 import { $isCodeNode, CodeNode } from '@lexical/code-core';
+import { $generateNodesFromDOM } from '@lexical/html';
 import { createEditor } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import '../plugin';
 
 describe('CodeNode HTML import compatibility', () => {
-  it('keeps built-in import rules and guards large pre elements', () => {
+  it('imports multiline pre/code language and theme while rejecting oversized pre blocks', () => {
     const editor = createEditor({ nodes: [CodeNode] });
 
     const conversions = CodeNode.importDOM?.();
@@ -16,25 +17,34 @@ describe('CodeNode HTML import compatibility', () => {
     expect(conversions).toHaveProperty('td');
     expect(conversions).toHaveProperty('tr');
 
-    const pre = document.createElement('pre');
-    pre.setAttribute('data-language', 'typescript');
-    pre.setAttribute('data-theme', 'github-dark');
-
-    const oversizedPre = document.createElement('pre');
-    oversizedPre.textContent = 'x'.repeat(8001);
-
     editor.update(() => {
-      const conversion = conversions?.pre?.(pre);
-      expect(conversion?.priority).toBe(0);
-      const importedNode = conversion?.conversion(pre)?.node;
-      expect(Array.isArray(importedNode)).toBe(false);
-      if (Array.isArray(importedNode) || !$isCodeNode(importedNode)) {
-        throw new Error('Expected a CodeNode from <pre>.');
-      }
-      expect(importedNode.getLanguage()).toBe('typescript');
-      expect(importedNode.getTheme()).toBe('github-dark');
+      const preDocument = new DOMParser().parseFromString(
+        '<pre data-language="typescript" data-theme="github-dark">const one = 1;\nconst two = 2;</pre>',
+        'text/html',
+      );
+      const preCodeNodes = $generateNodesFromDOM(editor, preDocument).filter($isCodeNode);
+      expect(preCodeNodes).toHaveLength(1);
+      expect(preCodeNodes[0].getLanguage()).toBe('typescript');
+      expect(preCodeNodes[0].getTheme()).toBe('github-dark');
+      expect(preCodeNodes[0].getTextContent()).toContain('const one = 1;');
+      expect(preCodeNodes[0].getTextContent()).toContain('const two = 2;');
+      expect(preCodeNodes[0].getTextContent()).toContain('\n');
 
-      expect(conversions?.pre?.(oversizedPre)?.conversion(oversizedPre)?.node).toBeNull();
+      const multilineCodeDocument = new DOMParser().parseFromString(
+        '<code data-language="typescript" data-theme="github-dark">const three = 3;\nconst four = 4;</code>',
+        'text/html',
+      );
+      const multilineCodeNodes = $generateNodesFromDOM(editor, multilineCodeDocument).filter(
+        $isCodeNode,
+      );
+      expect(multilineCodeNodes).toHaveLength(1);
+      expect(multilineCodeNodes[0].getTextContent()).toContain('const four = 4;');
+
+      const oversizedPreDocument = new DOMParser().parseFromString(
+        `<pre data-language="typescript">${'x'.repeat(8001)}</pre>`,
+        'text/html',
+      );
+      expect($generateNodesFromDOM(editor, oversizedPreDocument).some($isCodeNode)).toBe(false);
     });
   });
 });
