@@ -67,6 +67,8 @@ export class BlockImageNode extends BaseImageNode {
       height?: 'inherit' | number;
       key?: NodeKey;
       maxWidth: number;
+      naturalHeight?: number;
+      naturalWidth?: number;
       src: string;
       status?: 'uploaded' | 'loading' | 'error';
       thumbhash?: string;
@@ -77,6 +79,8 @@ export class BlockImageNode extends BaseImageNode {
       accent: opt.accent,
       caption: opt.caption,
       displayWidth: opt.displayWidth,
+      naturalHeight: opt.naturalHeight,
+      naturalWidth: opt.naturalWidth,
       thumbhash: opt.thumbhash,
     });
     this.__status = opt.status ?? 'uploaded';
@@ -137,6 +141,8 @@ export class BlockImageNode extends BaseImageNode {
       height,
       width,
       maxWidth,
+      naturalHeight,
+      naturalWidth,
       src,
       status,
       thumbhash,
@@ -149,6 +155,8 @@ export class BlockImageNode extends BaseImageNode {
       displayWidth,
       height,
       maxWidth,
+      naturalHeight,
+      naturalWidth,
       src,
       status,
       thumbhash,
@@ -194,6 +202,8 @@ export function $createBlockImageNode({
   displayWidth,
   height,
   maxWidth = 4200,
+  naturalHeight,
+  naturalWidth,
   src,
   width,
   key,
@@ -209,6 +219,8 @@ export function $createBlockImageNode({
       height,
       key,
       maxWidth,
+      naturalHeight,
+      naturalWidth,
       src,
       status,
       thumbhash,

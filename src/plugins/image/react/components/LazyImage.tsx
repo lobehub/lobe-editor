@@ -17,7 +17,12 @@ interface LazyImageProps {
   node: ImageNode | BlockImageNode;
   onError?: () => void;
 
-  onLoad?: (dimensions: { height: number; naturalWidth: number; width: number }) => void;
+  onLoad?: (dimensions: {
+    height: number;
+    naturalHeight: number;
+    naturalWidth: number;
+    width: number;
+  }) => void;
 }
 
 const LazyImage: FC<LazyImageProps> = ({ className, node, newWidth, onError, onLoad }) => {
@@ -100,6 +105,7 @@ const LazyImage: FC<LazyImageProps> = ({ className, node, newWidth, onError, onL
         }
         onLoad?.({
           height: img.naturalHeight,
+          naturalHeight: img.naturalHeight,
           naturalWidth: img.naturalWidth,
           width,
         });

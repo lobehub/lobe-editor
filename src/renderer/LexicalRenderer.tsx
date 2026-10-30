@@ -1,3 +1,5 @@
+'use client';
+
 import { createHeadlessEditor } from '@lexical/headless';
 import { MotionComponent, MotionProvider } from '@lobehub/ui';
 import { $getRoot } from 'lexical';

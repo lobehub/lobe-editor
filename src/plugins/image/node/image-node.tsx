@@ -29,6 +29,8 @@ export class ImageNode extends BaseImageNode {
       height?: 'inherit' | number;
       key?: NodeKey;
       maxWidth: number;
+      naturalHeight?: number;
+      naturalWidth?: number;
       src: string;
       status?: 'uploaded' | 'loading' | 'error';
       thumbhash?: string;
@@ -39,6 +41,8 @@ export class ImageNode extends BaseImageNode {
       accent: opt.accent,
       caption: opt.caption,
       displayWidth: opt.displayWidth,
+      naturalHeight: opt.naturalHeight,
+      naturalWidth: opt.naturalWidth,
       thumbhash: opt.thumbhash,
     });
     this.__status = opt.status ?? 'uploaded';
@@ -127,6 +131,8 @@ export class ImageNode extends BaseImageNode {
       height,
       width,
       maxWidth,
+      naturalHeight,
+      naturalWidth,
       src,
       status,
       thumbhash,
@@ -139,6 +145,8 @@ export class ImageNode extends BaseImageNode {
       displayWidth,
       height,
       maxWidth,
+      naturalHeight,
+      naturalWidth,
       src,
       status,
       thumbhash,
@@ -174,6 +182,8 @@ export function $createImageNode({
   displayWidth,
   height,
   maxWidth = 500,
+  naturalHeight,
+  naturalWidth,
   src,
   width,
   key,
@@ -189,6 +199,8 @@ export function $createImageNode({
       height,
       key,
       maxWidth,
+      naturalHeight,
+      naturalWidth,
       src,
       status,
       thumbhash,

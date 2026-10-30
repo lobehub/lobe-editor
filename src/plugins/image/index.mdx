@@ -66,6 +66,10 @@ Block images share the media width control with the video plugin. Click a block 
 
 `thumbhash` (base64 [ThumbHash](https://evanw.github.io/thumbhash/)) and `accent` (a CSS color) are optional. While the image loads, the decoded thumbhash is shown (or the accent color when there is no thumbhash), then the image fades in.
 
+### Natural size
+
+`naturalWidth` and `naturalHeight` are the intrinsic pixel size of the image. An editable editor writes them the first time an image loads (merged into the previous history entry, so it is not an undo step). `LexicalRenderer` uses them to reserve the image's box in server-rendered HTML, so the page does not shift when the image loads or fails. Without them it falls back to `width` + `height`, then to the thumbhash's approximate ratio. An image with none of these cannot reserve its height.
+
 ### Serialization
 
 ```typescript
@@ -78,15 +82,17 @@ interface SerializedImageNode {
   status?: 'uploaded' | 'loading' | 'error';
   caption?: string;
   displayWidth?: number;
+  naturalWidth?: number;
+  naturalHeight?: number;
   thumbhash?: string;
   accent?: string;
 }
 ```
 
-Empty `caption`, `thumbhash` and `accent` are omitted from JSON and LiteXML.
+Empty `caption`, `thumbhash` and `accent` are omitted from JSON and LiteXML, as is a natural size that is not a pair of positive numbers.
 
 ```xml
-<img block="true" src="https://cdn/a.png" alt="A" caption="Valley at dawn" thumbhash="1QcSHQRnh493V4dIh4eXh1h4kJUI" accent="#3f6b4f" display-width="75"></img>
+<img block="true" src="https://cdn/a.png" alt="A" caption="Valley at dawn" thumbhash="1QcSHQRnh493V4dIh4eXh1h4kJUI" accent="#3f6b4f" display-width="75" natural-width="1600" natural-height="900"></img>
 ```
 
 In Markdown the caption is the image title: `![alt](src "caption")`.
@@ -184,6 +190,8 @@ interface ImagePayload {
   height?: number;
   maxWidth?: number;
   caption?: string;
+  naturalWidth?: number;
+  naturalHeight?: number;
   thumbhash?: string;
   accent?: string;
   status?: 'uploaded' | 'loading' | 'error';
@@ -220,6 +228,11 @@ setThumbhash(thumbhash: string | undefined): void
 
 accent: string | undefined
 setAccent(accent: string | undefined): void
+
+// Intrinsic size, used to reserve layout before the image loads
+naturalWidth: number | undefined
+naturalHeight: number | undefined
+setNaturalSize(width: number, height: number): void
 ```
 
 ## Internationalization

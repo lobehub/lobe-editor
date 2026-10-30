@@ -1,5 +1,5 @@
 import { ActionIcon, cx, Icon, useImagePreview } from '@lobehub/ui';
-import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
+import { COMMAND_PRIORITY_LOW, HISTORY_MERGE_TAG, SELECTION_CHANGE_COMMAND } from 'lexical';
 import { LoaderCircleIcon, ZoomInIcon } from 'lucide-react';
 import React, { memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -85,6 +85,25 @@ const Image = memo<ImageProps>(
         unregister();
       };
     }, []);
+
+    const recordNaturalSize = useCallback(
+      (width: number, height: number) => {
+        const editor = editorRef.current;
+        if (!editable || !editor || !width || !height) return;
+        if (node.naturalWidth === width && node.naturalHeight === height) return;
+        editor.update(
+          () => {
+            try {
+              node.setNaturalSize(width, height);
+            } catch {
+              // ignore errors silently
+            }
+          },
+          { tag: HISTORY_MERGE_TAG },
+        );
+      },
+      [editable, node],
+    );
 
     const handleResize = useCallback((deltaX: number) => {
       if (!originalSizeRef.current.width || !originalSizeRef.current.height) return;
@@ -191,6 +210,7 @@ const Image = memo<ImageProps>(
                   originalSizeRef.current.height = loadedSize.height;
                   naturalWidthRef.current = loadedSize.naturalWidth;
                   setSize({ height: loadedSize.height, width: loadedSize.width });
+                  recordNaturalSize(loadedSize.naturalWidth, loadedSize.naturalHeight);
                 }}
               />
             </Suspense>
@@ -200,7 +220,7 @@ const Image = memo<ImageProps>(
           return null;
         }
       }
-    }, [node.status, className, node, newWidth]);
+    }, [node.status, className, node, newWidth, recordNaturalSize]);
 
     const handleResizeEnd = useCallback(
       (deltaX: number) => {

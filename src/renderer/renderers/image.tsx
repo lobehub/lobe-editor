@@ -1,3 +1,5 @@
+'use client';
+
 import { useImagePreview } from '@lobehub/ui';
 import {
   type CSSProperties,
@@ -9,15 +11,21 @@ import {
 } from 'react';
 
 import { styles as imageComponentStyles } from '@/plugins/image/react/components/style';
+import { imageBroken } from '@/plugins/image/react/style';
 import { getImageDisplaySize } from '@/plugins/image/utils/displaySize';
-import { normalizeImageCaption } from '@/plugins/image/utils/meta';
-import {
-  getImagePlaceholderAspectRatio,
-  getImagePlaceholderStyle,
-} from '@/plugins/image/utils/thumbhash';
-import { getMediaDisplayStyle } from '@/utils/mediaDisplaySize';
+import { normalizeImageCaption, sanitizeImageNaturalSize } from '@/plugins/image/utils/meta';
+import { decodeThumbhash, getImagePlaceholderStyle } from '@/plugins/image/utils/thumbhash';
+import { getMediaDisplayStyle, type MediaDisplaySize } from '@/utils/mediaDisplaySize';
 
 import { getBlockImageClassName, getImageClassName } from '../style';
+
+type LoadState = 'loading' | 'loaded' | 'error';
+
+const BROKEN_BACKGROUND: CSSProperties = {
+  backgroundImage: `url("${imageBroken}")`,
+  backgroundPosition: 'center',
+  backgroundSize: 'cover',
+};
 
 function getImageStyle(node: Record<string, any>): CSSProperties {
   const display = getImageDisplaySize(node);
@@ -31,6 +39,30 @@ function getImageStyle(node: Record<string, any>): CSSProperties {
   return style;
 }
 
+function getReservedAspectRatio(node: Record<string, any>): string | number | undefined {
+  const size =
+    sanitizeImageNaturalSize(node.naturalWidth, node.naturalHeight) ??
+    sanitizeImageNaturalSize(node.width, node.height);
+  if (size) return `${size.naturalWidth} / ${size.naturalHeight}`;
+  return decodeThumbhash(node.thumbhash)?.aspectRatio;
+}
+
+function getFrameWidth(
+  node: Record<string, any>,
+  display: MediaDisplaySize,
+  state: LoadState,
+): string | undefined {
+  if (display.mode === 'percent') return `${display.value}%`;
+  if (display.mode === 'px') return `min(${display.px}px, 100%)`;
+  const natural = sanitizeImageNaturalSize(node.naturalWidth, node.naturalHeight);
+  if (natural) {
+    const width =
+      node.maxWidth > 0 ? Math.min(node.maxWidth, natural.naturalWidth) : natural.naturalWidth;
+    return `min(${width}px, 100%)`;
+  }
+  return state === 'loaded' ? undefined : `min(${node.maxWidth || 800}px, 100%)`;
+}
+
 interface RenderedImageProps {
   node: Record<string, any>;
   title?: string;
@@ -39,64 +71,75 @@ interface RenderedImageProps {
 const RenderedImage: FC<RenderedImageProps> = ({ node, title }) => {
   const imageRef = useRef<HTMLImageElement>(null);
   const { open, outlet } = useImagePreview(imageRef);
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState<LoadState>('loading');
   const placeholder = getImagePlaceholderStyle(node);
-  const hasPlaceholder = !!placeholder;
-  const imageStyle = getImageStyle(node);
-  const percentFrame = placeholder && getImageDisplaySize(node).mode === 'percent';
+  const aspectRatio = getReservedAspectRatio(node);
+  const framed = !!placeholder || aspectRatio !== undefined;
 
   useLayoutEffect(() => {
     const image = imageRef.current;
-    setLoading(hasPlaceholder && !!image && !image.complete);
-  }, [node.src, hasPlaceholder]);
+    if (!image?.complete) {
+      setState('loading');
+      return;
+    }
+    setState(image.naturalWidth > 0 ? 'loaded' : 'error');
+  }, [node.src]);
 
-  const image = (
-    <img
-      alt={node.altText || ''}
-      className={imageComponentStyles.readonly}
-      onClick={open}
-      onError={() => setLoading(false)}
-      onLoad={() => setLoading(false)}
-      ref={imageRef}
-      src={node.src}
-      style={
-        placeholder
-          ? {
-              ...imageStyle,
-              aspectRatio: loading ? getImagePlaceholderAspectRatio(node) : undefined,
-              display: 'block',
-              opacity: loading ? 0 : 1,
-              transition: 'opacity 0.3s ease-out',
-              width: percentFrame
-                ? '100%'
-                : (imageStyle.width ??
-                  (loading ? `min(${node.maxWidth || 800}px, 100%)` : undefined)),
-            }
-          : imageStyle
-      }
-      title={title}
-    />
-  );
+  const handleLoad = () => setState('loaded');
+  const handleError = () => setState('error');
+
+  if (!framed) {
+    return (
+      <>
+        <img
+          alt={node.altText || ''}
+          className={imageComponentStyles.readonly}
+          onClick={open}
+          ref={imageRef}
+          src={node.src}
+          style={getImageStyle(node)}
+          title={title}
+        />
+        {outlet}
+      </>
+    );
+  }
+
+  const frameWidth = getFrameWidth(node, getImageDisplaySize(node), state);
 
   return (
     <>
-      {placeholder ? (
-        <span
-          className={imageComponentStyles.placeholderFrame}
-          data-image-placeholder={loading ? '' : undefined}
-          style={
-            percentFrame
-              ? { ...(loading ? placeholder : undefined), width: imageStyle.width }
-              : loading
-                ? placeholder
-                : undefined
-          }
-        >
-          {image}
-        </span>
-      ) : (
-        image
-      )}
+      <span
+        className={imageComponentStyles.placeholderFrame}
+        data-image-placeholder={placeholder && state === 'loading' ? '' : undefined}
+        data-image-state={state}
+        style={{
+          ...(state === 'loaded' ? undefined : placeholder),
+          ...(state === 'error' ? BROKEN_BACKGROUND : undefined),
+          width: frameWidth,
+          aspectRatio: state === 'loaded' ? undefined : aspectRatio,
+        }}
+      >
+        <img
+          alt={node.altText || ''}
+          className={imageComponentStyles.readonly}
+          onClick={open}
+          onError={handleError}
+          onLoad={handleLoad}
+          ref={imageRef}
+          src={node.src}
+          style={{
+            display: state === 'error' ? 'none' : 'block',
+            maxWidth: frameWidth ? '100%' : `min(${node.maxWidth || 800}px, 100%)`,
+            width: frameWidth ? '100%' : undefined,
+            ...(placeholder && {
+              opacity: state === 'loaded' ? 1 : 0,
+              transition: 'opacity 0.3s ease-out',
+            }),
+          }}
+          title={title}
+        />
+      </span>
       {outlet}
     </>
   );

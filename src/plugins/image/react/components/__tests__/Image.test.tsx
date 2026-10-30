@@ -93,10 +93,17 @@ vi.mock('../LazyImage', async () => {
     onLoad,
   }: {
     newWidth?: null | number;
-    onLoad?: (dimensions: { height: number; naturalWidth?: number; width: number }) => void;
+    onLoad?: (dimensions: {
+      height: number;
+      naturalHeight?: number;
+      naturalWidth?: number;
+      width: number;
+    }) => void;
   }) {
     React.useEffect(() => {
-      onLoad?.({ height: 100, naturalWidth: 1600, width: 200 });
+      void Promise.resolve().then(() =>
+        onLoad?.({ height: 100, naturalHeight: 800, naturalWidth: 1600, width: 200 }),
+      );
       // The image load event fires once for this regression path.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -278,5 +285,68 @@ describe('Image resize', () => {
       root.render(<Image node={{ ...node, getType: () => 'block-image' } as any} />);
     });
     expect(host.querySelector('[data-testid="caption"]')).not.toBeNull();
+  });
+
+  it('records the natural size of a loaded image without a history entry', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      setNaturalSize: vi.fn(),
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    expect(node.setNaturalSize).toHaveBeenCalledWith(1600, 800);
+    expect(mocks.editor.update).toHaveBeenCalledWith(expect.any(Function), {
+      tag: 'history-merge',
+    });
+  });
+
+  it('does not rewrite a natural size that is already stored', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      naturalHeight: 800,
+      naturalWidth: 1600,
+      setNaturalSize: vi.fn(),
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    expect(node.setNaturalSize).not.toHaveBeenCalled();
+  });
+
+  it('does not write the natural size in read-only mode', async () => {
+    mocks.editable = false;
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      setNaturalSize: vi.fn(),
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    expect(node.setNaturalSize).not.toHaveBeenCalled();
   });
 });

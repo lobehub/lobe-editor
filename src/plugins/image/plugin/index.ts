@@ -35,18 +35,26 @@ function writeImageMetaAttributes(
   if (node.displayWidth !== undefined) {
     attributes['display-width'] = String(node.displayWidth);
   }
+  if (node.naturalWidth !== undefined && node.naturalHeight !== undefined) {
+    attributes['natural-width'] = String(node.naturalWidth);
+    attributes['natural-height'] = String(node.naturalHeight);
+  }
 }
 
 function readImageAttributes(xmlNode: Element) {
   const maxWidth = xmlNode.getAttribute('max-width');
   const width = xmlNode.getAttribute('width');
   const displayWidth = xmlNode.getAttribute('display-width');
+  const naturalWidth = xmlNode.getAttribute('natural-width');
+  const naturalHeight = xmlNode.getAttribute('natural-height');
   return {
     accent: xmlNode.getAttribute('accent') || undefined,
     altText: xmlNode.getAttribute('alt') || '',
     caption: xmlNode.getAttribute('caption') || '',
     displayWidth: displayWidth ? parseInt(displayWidth, 10) : undefined,
     maxWidth: maxWidth ? parseInt(maxWidth, 10) : undefined,
+    naturalHeight: naturalHeight ? parseInt(naturalHeight, 10) : undefined,
+    naturalWidth: naturalWidth ? parseInt(naturalWidth, 10) : undefined,
     src: xmlNode.getAttribute('src') || '',
     thumbhash: xmlNode.getAttribute('thumbhash') || undefined,
     width: width ? parseInt(width, 10) : undefined,

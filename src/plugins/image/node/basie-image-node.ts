@@ -11,12 +11,19 @@ import { DecoratorNode } from 'lexical';
 import type { MediaDisplaySize } from '@/utils/mediaDisplaySize';
 import { sanitizeMediaDisplayWidth } from '@/utils/mediaDisplaySize';
 
-import { normalizeImageCaption, sanitizeImageAccent, sanitizeImageThumbhash } from '../utils/meta';
+import {
+  normalizeImageCaption,
+  sanitizeImageAccent,
+  sanitizeImageNaturalSize,
+  sanitizeImageThumbhash,
+} from '../utils/meta';
 
 export interface ImageMeta {
   accent?: string;
   caption?: string;
   displayWidth?: number;
+  naturalHeight?: number;
+  naturalWidth?: number;
   thumbhash?: string;
 }
 
@@ -38,6 +45,8 @@ export type SerializedImageNode = Spread<
     displayWidth?: number;
     height?: number;
     maxWidth: number;
+    naturalHeight?: number;
+    naturalWidth?: number;
     src: string;
     status?: 'uploaded' | 'loading' | 'error';
     thumbhash?: string;
@@ -56,6 +65,8 @@ export class BaseImageNode extends DecoratorNode<any> {
   __thumbhash: string | undefined;
   __accent: string | undefined;
   __displayWidth: number | undefined;
+  __naturalWidth: number | undefined;
+  __naturalHeight: number | undefined;
 
   static clone(node: BaseImageNode): BaseImageNode {
     return new BaseImageNode(
@@ -70,13 +81,26 @@ export class BaseImageNode extends DecoratorNode<any> {
   }
 
   static importJSON(serializedNode: SerializedImageNode): BaseImageNode {
-    const { altText, height, width, maxWidth, src, caption, thumbhash, accent, displayWidth } =
-      serializedNode;
+    const {
+      altText,
+      height,
+      width,
+      maxWidth,
+      src,
+      caption,
+      thumbhash,
+      accent,
+      displayWidth,
+      naturalHeight,
+      naturalWidth,
+    } = serializedNode;
 
     return new BaseImageNode(src, altText, maxWidth, width, height, undefined, {
       accent,
       caption,
       displayWidth,
+      naturalHeight,
+      naturalWidth,
       thumbhash,
     });
   }
@@ -118,6 +142,9 @@ export class BaseImageNode extends DecoratorNode<any> {
     this.__thumbhash = sanitizeImageThumbhash(meta?.thumbhash);
     this.__accent = sanitizeImageAccent(meta?.accent);
     this.__displayWidth = sanitizeMediaDisplayWidth(meta?.displayWidth);
+    const natural = sanitizeImageNaturalSize(meta?.naturalWidth, meta?.naturalHeight);
+    this.__naturalWidth = natural?.naturalWidth;
+    this.__naturalHeight = natural?.naturalHeight;
   }
 
   exportJSON(): SerializedImageNode {
@@ -133,6 +160,10 @@ export class BaseImageNode extends DecoratorNode<any> {
     if (this.__thumbhash) json.thumbhash = this.__thumbhash;
     if (this.__accent) json.accent = this.__accent;
     if (this.__displayWidth !== undefined) json.displayWidth = this.__displayWidth;
+    if (this.__naturalWidth !== undefined && this.__naturalHeight !== undefined) {
+      json.naturalWidth = this.__naturalWidth;
+      json.naturalHeight = this.__naturalHeight;
+    }
     return json;
   }
 
@@ -152,13 +183,31 @@ export class BaseImageNode extends DecoratorNode<any> {
     return this.__displayWidth;
   }
 
+  get naturalWidth(): number | undefined {
+    return this.__naturalWidth;
+  }
+
+  get naturalHeight(): number | undefined {
+    return this.__naturalHeight;
+  }
+
   getMeta(): ImageMeta {
     return {
       accent: this.__accent,
       caption: this.__caption,
       displayWidth: this.__displayWidth,
+      naturalHeight: this.__naturalHeight,
+      naturalWidth: this.__naturalWidth,
       thumbhash: this.__thumbhash,
     };
+  }
+
+  setNaturalSize(width: number, height: number): void {
+    const natural = sanitizeImageNaturalSize(width, height);
+    if (!natural) return;
+    const writable = this.getWritable();
+    writable.__naturalWidth = natural.naturalWidth;
+    writable.__naturalHeight = natural.naturalHeight;
   }
 
   setDisplaySize(size: MediaDisplaySize, naturalWidth?: number): void {
