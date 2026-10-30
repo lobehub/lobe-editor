@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;7.1.1](https://github.com/lobehub/lobe-editor/compare/v7.1.0...v7.1.1)
+<sup>Released on **2026-10-30**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **image**: Reserve image layout from natural size to stop layout shift.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **image**: Reserve image layout from natural size to stop layout shift ([8f9d139](https://github.com/lobehub/lobe-editor/commit/8f9d139))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;7.1.0](https://github.com/lobehub/lobe-editor/compare/v7.0.4...v7.1.0)
 <sup>Released on **2026-10-29**</sup>
 
