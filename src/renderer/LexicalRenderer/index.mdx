@@ -5,6 +5,7 @@ category: Renderer
 ---
 
 import DemoCompare from './demos/compare.tsx?demo';
+import DemoImageLayout from './demos/imageLayout.tsx?demo';
 import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
@@ -20,6 +21,18 @@ import DemoIndex from './demos/index.tsx?demo';
 Side-by-side comparison between `<Editor editable={false}>` and `<LexicalRenderer>` using the same JSON data.
 
 <Demo editable={false} of={DemoCompare} />
+
+## Image Layout Stability
+
+Block images reserve their box before they load, including in server-rendered HTML, so the text below does not move when the image arrives or fails. The ratio comes from the first of:
+
+1. `naturalWidth` / `naturalHeight`, written by an editable `Editor` the first time an image loads
+2. a legacy `width` + `height` pair
+3. the approximate ratio of `thumbhash`
+
+An image with none of these cannot reserve its height. A failed image keeps its box and shows a broken-image placeholder.
+
+<Demo editable={false} of={DemoImageLayout} />
 
 ## Features
 
