@@ -1,6 +1,6 @@
 import { mergeRegister } from '@lexical/utils';
-import type { LexicalEditor } from 'lexical';
-import { $getNodeByKey, $isElementNode, COMMAND_PRIORITY_EDITOR } from 'lexical';
+import type { LexicalEditor, LexicalNode } from 'lexical';
+import { $getNodeByKey, $isElementNode, $setSelection, COMMAND_PRIORITY_EDITOR } from 'lexical';
 
 import { $isDiffContentNode } from '../node/DiffContentNode';
 import { DiffNode } from '../node/DiffNode';
@@ -76,6 +76,15 @@ function doTableCellAction(editor: LexicalEditor, node: TableCellDiffNode, actio
   group.forEach((cell) => cell.remove());
 }
 
+// The parent of a top-level diff is the root, and selecting its end scrolls the
+// page to the bottom; keep the caret on the content that replaced the diff.
+function $selectEndOfLast(nodes: LexicalNode[]) {
+  const last = nodes.at(-1);
+  if (!last?.isAttached()) return;
+  if ($isElementNode(last)) last.selectEnd();
+  else last.selectNext();
+}
+
 function doAction(editor: LexicalEditor, node: DiffNode | TableRowDiffNode, action: DiffAction) {
   if ($isTableRowDiffNode(node)) {
     doTableRowAction(editor, node, action);
@@ -92,10 +101,10 @@ function doAction(editor: LexicalEditor, node: DiffNode | TableRowDiffNode, acti
     const children = node.getChildren();
     const selectedChild = action === DiffAction.Accept ? children[1] : children[0];
     if ($isDiffContentNode(selectedChild)) {
-      const parent = node.getParentOrThrow();
-      selectedChild.getChildren().forEach((child) => node.insertBefore(child));
+      const kept = selectedChild.getChildren();
+      kept.forEach((child) => node.insertBefore(child));
       node.remove();
-      if ($isElementNode(parent)) parent.selectEnd();
+      $selectEndOfLast(kept);
     } else if (selectedChild) {
       node.replace(selectedChild, false).selectEnd();
     }
@@ -111,10 +120,9 @@ function doAction(editor: LexicalEditor, node: DiffNode | TableRowDiffNode, acti
   if (node.diffType === 'add') {
     if (action === DiffAction.Accept) {
       const children = node.getChildren();
-      const parent = node.getParentOrThrow();
       children.forEach((child) => node.insertBefore(child));
       node.remove();
-      if ($isElementNode(parent)) parent.selectEnd();
+      $selectEndOfLast(children);
     } else if (action === DiffAction.Reject) {
       node.remove();
     }
@@ -228,6 +236,9 @@ export function registerLiteXMLDiffCommand(editor: LexicalEditor) {
             }
             doAction(editor, node, action);
           });
+          // Each resolved diff moves the caret to itself; after resolving them all the
+          // caret would sit on the last one and scroll the page there, so drop it.
+          $setSelection(null);
         });
 
         return false;
