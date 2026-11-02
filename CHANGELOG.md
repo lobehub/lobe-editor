@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;7.1.2](https://github.com/lobehub/lobe-editor/compare/v7.1.1...v7.1.2)
+<sup>Released on **2026-11-02**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **litexml**: Keep the caret near a resolved diff instead of the document end.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **litexml**: Keep the caret near a resolved diff instead of the document end, closes [#240](https://github.com/lobehub/lobe-editor/issues/240) ([b98ba17](https://github.com/lobehub/lobe-editor/commit/b98ba17))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;7.1.1](https://github.com/lobehub/lobe-editor/compare/v7.1.0...v7.1.1)
 <sup>Released on **2026-10-30**</sup>
 
