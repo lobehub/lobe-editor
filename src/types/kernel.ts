@@ -11,6 +11,7 @@ import type {
 } from 'lexical';
 
 import type DataSource from '@/editor-kernel/data-source';
+import type { IWriteOptions } from '@/editor-kernel/data-source';
 import type { HotkeyId } from '@/types/hotkey';
 import type { HotkeyOptions, HotkeysEvent } from '@/utils/hotkey/registerHotkey';
 
@@ -124,7 +125,7 @@ export interface IEditor {
   /**
    * Get editor content of specified type
    */
-  getDocument(type: string): DataSource | undefined;
+  getDocument(type: string, options?: IWriteOptions): DataSource | undefined;
   /**
    * Lexical history state (undo stack metadata)
    */

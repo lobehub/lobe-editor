@@ -238,7 +238,8 @@ export default class MarkdownDataSource extends DataSource {
       const rootCtx = new MarkdownWriterContext(this.markdownService);
 
       rootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
-      return this.formatMarkdown(rootCtx.toString());
+      const markdown = rootCtx.toString();
+      return options?.format === false ? markdown : this.formatMarkdown(markdown);
     });
   }
 }
