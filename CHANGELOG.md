@@ -2,6 +2,37 @@
 
 # Changelog
 
+## [Version&nbsp;7.2.0](https://github.com/lobehub/lobe-editor/compare/v7.1.2...v7.2.0)
+<sup>Released on **2026-11-03**</sup>
+
+
+#### ✨ Features
+
+- **markdown**: Export markdown without the remark format pass.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **markdown**: Export markdown without the remark format pass, closes [#241](https://github.com/lobehub/lobe-editor/issues/241) ([7a433aa](https://github.com/lobehub/lobe-editor/commit/7a433aa))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;7.1.2](https://github.com/lobehub/lobe-editor/compare/v7.1.1...v7.1.2)
 <sup>Released on **2026-11-02**</sup>
 
