@@ -49,6 +49,7 @@ import type { HotkeyOptions, HotkeysEvent } from '@/utils/hotkey/registerHotkey'
 import { getHotkeyById, registerHotkey } from '@/utils/hotkey/registerHotkey';
 
 import type DataSource from './data-source';
+import type { IWriteOptions } from './data-source';
 import { registerEvent } from './event';
 import { KernelPlugin } from './plugin';
 import {
@@ -573,7 +574,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
     this.editor?.blur();
   }
 
-  getDocument(type: string): DataSource | undefined {
+  getDocument(type: string, options?: IWriteOptions): DataSource | undefined {
     const datasource = this.dataTypeMap.get(type);
     if (!datasource) {
       this.logger.error(`❌ DataSource for type "${type}" not found`);
@@ -583,7 +584,7 @@ export class Kernel extends EventEmitter implements IEditorKernel {
       this.logger.error('❌ Editor not initialized');
       throw new Error(`Editor is not initialized.`);
     }
-    const result = datasource.write(this.editor);
+    const result = datasource.write(this.editor, options);
     return result;
   }
 

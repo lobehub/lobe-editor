@@ -424,9 +424,12 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         ctx.appendLine('**');
       }
 
+      const closesDelimiter = isBold || isItalic || isStrikethrough || isSuperscript || isSubscript;
+
       if (tailSpace) {
         ctx.appendLine(tailSpace);
-      } else if (lastChar && isPunctuationChar(lastChar)) {
+      } else if (closesDelimiter && lastChar && isPunctuationChar(lastChar)) {
+        // A closing `**` / `_` right after punctuation only stays right-flanking when whitespace follows.
         ctx.appendLine(' ');
       }
     });
