@@ -126,6 +126,20 @@ export const scrollIntoViewIfNeeded = (target: HTMLElement) => {
 // excludes the character through the trigger-specific part of the matcher.
 export const PUNCTUATION = '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\[\\]\\\\!%\'"~=<>_:;';
 
+// CJK text puts no space between words, so a mention `@` may directly follow a
+// CJK character or CJK / fullwidth punctuation. Chinese and Japanese IMEs may
+// also commit a fullwidth `＠`, which counts as the same trigger.
+const FULLWIDTH_AT = '\uFF20';
+const CJK_LEAD = '\u3000-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF';
+
+const isMentionTrigger = (trigger: string) => trigger === '@';
+
+/** Index of the last trigger character in `text`, counting `＠` for the `@` trigger. */
+export const lastIndexOfTrigger = (text: string, trigger: string) =>
+  isMentionTrigger(trigger)
+    ? Math.max(text.lastIndexOf('@'), text.lastIndexOf(FULLWIDTH_AT))
+    : text.lastIndexOf(trigger);
+
 export function getBasicTypeaheadTriggerMatch(
   trigger: string,
   {
@@ -143,13 +157,16 @@ export function getBasicTypeaheadTriggerMatch(
   return (text: string) => {
     // When whitespace is not allowed, we need to ensure the regex stops at whitespace
     const validCharsSuffix = allowWhitespace ? '' : '\\s';
-    const validChars = '[^' + trigger + punctuation + validCharsSuffix + ']';
+    const triggerChars = isMentionTrigger(trigger) ? trigger + FULLWIDTH_AT : trigger;
+    const lead = isMentionTrigger(trigger) ? '(^|\\s|\\(|[' + CJK_LEAD + '])' : '(^|\\s|\\()';
+    const validChars = '[^' + triggerChars + punctuation + validCharsSuffix + ']';
 
     // Create regex that matches from trigger to either end of string OR whitespace (when not allowed)
     const regexPattern = allowWhitespace
-      ? '(^|\\s|\\()(' +
+      ? lead +
+        '(' +
         '[' +
-        trigger +
+        triggerChars +
         ']' +
         '((?:' +
         validChars +
@@ -157,7 +174,7 @@ export function getBasicTypeaheadTriggerMatch(
         maxLength +
         '})' +
         ')$'
-      : '(^|\\s|\\()(' + '[' + trigger + ']' + '((?:' + validChars + ')*?)' + ')(?=\\s|$)';
+      : lead + '(' + '[' + triggerChars + ']' + '((?:' + validChars + ')*?)' + ')(?=\\s|$)';
 
     const TypeaheadTriggerRegex = new RegExp(regexPattern);
     const match = TypeaheadTriggerRegex.exec(text);
