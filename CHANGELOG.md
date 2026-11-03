@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;7.2.1](https://github.com/lobehub/lobe-editor/compare/v7.2.0...v7.2.1)
+<sup>Released on **2026-11-03**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **slash**: 中文文本后和输入法开启时也能用 @ 打开提及菜单.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **slash**: 中文文本后和输入法开启时也能用 @ 打开提及菜单, closes [#242](https://github.com/lobehub/lobe-editor/issues/242) ([5e9f6c9](https://github.com/lobehub/lobe-editor/commit/5e9f6c9))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;7.2.0](https://github.com/lobehub/lobe-editor/compare/v7.1.2...v7.2.0)
 <sup>Released on **2026-11-03**</sup>
 
