@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;7.2.2](https://github.com/lobehub/lobe-editor/compare/v7.2.1...v7.2.2)
+<sup>Released on **2026-11-13**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **litexml**: Float diff toolbar above the block so it no longer covers content.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **litexml**: Float diff toolbar above the block so it no longer covers content ([039ecfa](https://github.com/lobehub/lobe-editor/commit/039ecfa))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;7.2.1](https://github.com/lobehub/lobe-editor/compare/v7.2.0...v7.2.1)
 <sup>Released on **2026-11-03**</sup>
 
