@@ -1,3 +1,5 @@
+/// <reference types="vitest/jsdom" />
+
 import type { LexicalEditor } from 'lexical';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -52,6 +54,9 @@ vi.mock('./selection', () => ({
 
 describe('ArtifactView', () => {
   beforeEach(() => {
+    // Node 26 exposes its own global localStorage getter. Rebind it to Vitest's
+    // JSDOM storage so window.localStorage always uses the test origin's store.
+    vi.stubGlobal('localStorage', jsdom.window.localStorage);
     selectionMock.selected = false;
     selectionMock.clear.mockReset();
     selectionMock.set.mockReset();
@@ -60,10 +65,11 @@ describe('ArtifactView', () => {
     codeMirrorMock.loadCodeMirror.mockReset();
     codeMirrorMock.loadCodeMirror.mockImplementation(() => new Promise(() => {}));
     lexicalSelectionMock.setSelection.mockReset();
-    localStorage.clear();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     document.body.replaceChildren();
   });
 
@@ -160,7 +166,7 @@ describe('ArtifactView', () => {
     expect(surface.querySelector('.artifact-code')).not.toBeNull();
     expect(surface.querySelector('.artifact-preview')).not.toBeNull();
     expect(surface.querySelector('.artifact-preview-hidden')).not.toBeNull();
-    expect(localStorage.getItem('lobe-artifact-view-mode:artifact-persistent-key')).toBe(
+    expect(window.localStorage.getItem('lobe-artifact-view-mode:artifact-persistent-key')).toBe(
       'code-only',
     );
 
@@ -170,7 +176,7 @@ describe('ArtifactView', () => {
     expect(surface.querySelector('.artifact-preview')).not.toBeNull();
     expect(surface.querySelector('.artifact-frame')).toBe(iframe);
     expect(focus).toHaveBeenCalledOnce();
-    expect(localStorage.getItem('lobe-artifact-view-mode:artifact-persistent-key')).toBe(
+    expect(window.localStorage.getItem('lobe-artifact-view-mode:artifact-persistent-key')).toBe(
       'preview-only',
     );
 
@@ -186,7 +192,9 @@ describe('ArtifactView', () => {
     await selectMode('Split view');
     expect(restoredSurface?.dataset.artifactViewMode).toBe('split');
     expect(restoredSurface?.querySelector('.artifact-code')).not.toBeNull();
-    expect(localStorage.getItem('lobe-artifact-view-mode:artifact-persistent-key')).toBe('split');
+    expect(window.localStorage.getItem('lobe-artifact-view-mode:artifact-persistent-key')).toBe(
+      'split',
+    );
     await selectMode('Code only');
     expect(restoredSurface?.dataset.artifactViewMode).toBe('code-only');
     await act(async () => secondRoot.unmount());
@@ -332,7 +340,7 @@ describe('ArtifactView', () => {
   });
 
   it('normalizes the legacy preview storage value to preview-only', async () => {
-    localStorage.setItem('lobe-artifact-view-mode:artifact-legacy-key', 'preview');
+    window.localStorage.setItem('lobe-artifact-view-mode:artifact-legacy-key', 'preview');
     const editor = {
       isEditable: () => true,
       registerCommand: () => vi.fn(),

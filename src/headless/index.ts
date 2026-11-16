@@ -48,6 +48,7 @@ export {
 } from '@/plugins/block/command';
 export type {
   BlockRewriteAdapter,
+  BlockRewriteAdapterService,
   BlockRewriteApplyMetadata,
   BlockRewriteCapabilities,
   BlockRewriteContext,
@@ -59,7 +60,10 @@ export type {
   BlockRewriteValidationResult,
   ResolvedRewriteAdapterTarget,
 } from '@/plugins/block/service/rewrite-adapter';
-export { resolveRewriteAdapterTarget } from '@/plugins/block/service/rewrite-adapter';
+export {
+  IBlockRewriteAdapterService,
+  resolveRewriteAdapterTarget,
+} from '@/plugins/block/service/rewrite-adapter';
 export type {
   EditorDiagnosticsCommand,
   EditorDiagnosticsCommandEntry,
