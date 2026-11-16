@@ -12,7 +12,7 @@ import {
   ReactVirtualBlockPlugin,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { LexicalRenderer, loadLanguage } from '@lobehub/editor/renderer';
+import { LexicalRenderer } from '@lobehub/editor/renderer';
 import type { SerializedEditorState } from 'lexical';
 import { useEffect, useState } from 'react';
 
@@ -27,12 +27,6 @@ const samples: Record<SampleKey, SerializedEditorState> = {
   mermaid: mermaid as unknown as SerializedEditorState,
   paper: paperParagraph as unknown as SerializedEditorState,
 };
-
-// Preload languages used in the fixture
-const preloadLanguages = async () => {
-  await loadLanguage('typescript');
-};
-void preloadLanguages();
 
 type Variant = 'default' | 'chat';
 type View = 'side' | 'editor' | 'renderer';

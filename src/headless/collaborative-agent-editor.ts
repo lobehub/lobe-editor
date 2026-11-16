@@ -364,6 +364,10 @@ export interface CollaborativeAgentEditorConnectOptions {
     maxRewriteSessions?: number;
   };
   providerOptions?: NodeWebSocketYjsProviderOptions;
+  /** Trusted-host provider injection for Yjs rooms such as Page GatewayMux. */
+  yjs?: {
+    providerFactory: CollaborativeAgentYjsProviderFactory;
+  };
   loro?: {
     doc?: LoroHeadlessFactoryOptions['doc'];
     factory?: LoroHeadlessFactory;
@@ -386,11 +390,37 @@ interface CollaborativeAgentEditorInternalOptions extends CollaborativeAgentEdit
 
 export interface CollaborativeAgentProvider extends Provider {
   clearAgentAwareness?: () => void;
+  destroy?: () => void | Promise<void>;
   getStateVector?: () => string;
   setAgentAwareness?: (input: AgentAwarenessInput | AgentAwarenessState) => void;
   waitForPendingUpdates?: (timeoutMs?: number) => Promise<void>;
   waitForSync?: () => Promise<void>;
 }
+
+/** Injected Yjs providers must expose real sync and update-ACK barriers. */
+export interface CollaborativeAgentYjsProvider extends CollaborativeAgentProvider {
+  waitForPendingUpdates: (timeoutMs?: number) => Promise<void>;
+  waitForSync: () => Promise<void>;
+}
+
+/** Read-only inputs passed to the trusted host's Yjs room provider factory. */
+export interface CollaborativeAgentYjsProviderContext {
+  readonly descriptor: CollaborationDescriptor;
+  readonly doc: Doc;
+  readonly documentId: string;
+  readonly requestId: string;
+  readonly roomId: string;
+  readonly ticket: string;
+}
+
+/**
+ * The factory must return a provider with real sync and update-ACK barriers.
+ * If construction throws before returning a provider, it must release any
+ * provider resources it allocated; the facade still destroys its owned Doc.
+ */
+export type CollaborativeAgentYjsProviderFactory = (
+  context: CollaborativeAgentYjsProviderContext,
+) => CollaborativeAgentYjsProvider;
 
 export interface CollaborativeAgentEditorProjection {
   editorData: SerializedEditorState<SerializedLexicalNode>;
@@ -419,6 +449,65 @@ export { hashRewriteText, normalizeRewriteText };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isCollaborativeAgentProvider = (value: unknown): value is CollaborativeAgentProvider => {
+  if (!isRecord(value) || !isRecord(value.awareness)) return false;
+  return (
+    typeof value.connect === 'function' &&
+    typeof value.disconnect === 'function' &&
+    typeof value.awareness.getStates === 'function'
+  );
+};
+
+const isCollaborativeAgentYjsProvider = (value: unknown): value is CollaborativeAgentYjsProvider =>
+  isCollaborativeAgentProvider(value) &&
+  typeof value.on === 'function' &&
+  typeof value.off === 'function' &&
+  typeof value.awareness.getLocalState === 'function' &&
+  typeof value.awareness.on === 'function' &&
+  typeof value.awareness.off === 'function' &&
+  typeof value.awareness.setLocalState === 'function' &&
+  typeof value.awareness.setLocalStateField === 'function' &&
+  typeof value.waitForSync === 'function' &&
+  typeof value.waitForPendingUpdates === 'function';
+
+const cleanupUnvalidatedProvider = (value: unknown): Promise<void> | undefined => {
+  if (!isRecord(value)) return;
+  let cleanup: Promise<void> | undefined;
+  for (const methodName of ['disconnect', 'destroy'] as const) {
+    const method = value[methodName];
+    if (typeof method !== 'function') continue;
+    const invoke = () => {
+      try {
+        return method.call(value);
+      } catch {
+        // Creation failed already; continue releasing the facade-owned Y.Doc.
+        return undefined;
+      }
+    };
+    if (cleanup) {
+      cleanup = cleanup
+        .then(() => invoke())
+        .then(
+          () => undefined,
+          () => undefined,
+        );
+      continue;
+    }
+    const result = invoke();
+    if (
+      result &&
+      (typeof result === 'object' || typeof result === 'function') &&
+      'then' in result
+    ) {
+      cleanup = Promise.resolve(result as PromiseLike<unknown>).then(
+        () => undefined,
+        () => undefined,
+      );
+    }
+  }
+  return cleanup;
+};
 
 const isFullAgentAwarenessState = (
   state: AgentAwarenessInput | AgentAwarenessState,
@@ -612,6 +701,14 @@ const validateConnectOptions = (options: CollaborativeAgentEditorConnectOptions)
       throw new Error('CollaborativeAgentEditor Loro descriptor requires the loro options block.');
     }
   }
+
+  if (
+    (!options.descriptor || options.descriptor.engine === 'yjs') &&
+    options.yjs !== undefined &&
+    (!isRecord(options.yjs) || typeof options.yjs.providerFactory !== 'function')
+  ) {
+    throw new Error('CollaborativeAgentEditor Yjs options require a providerFactory function.');
+  }
 };
 
 const ACTIVE_STREAM_AWARENESS_STATUSES = new Set<AgentAwarenessStatus>([
@@ -720,11 +817,15 @@ export class CollaborativeAgentEditor {
    */
   static create(options: CollaborativeAgentEditorConnectOptions): CollaborativeAgentEditor {
     validateConnectOptions(options);
-    const descriptor = options.descriptor ?? {
-      bindingSchema: 'lexical-yjs-v1' as const,
-      engine: 'yjs' as const,
-      epoch: 0,
-    };
+    const descriptor = Object.freeze(
+      parseCollaborationDescriptor(
+        options.descriptor ?? {
+          bindingSchema: 'lexical-yjs-v1',
+          engine: 'yjs',
+          epoch: 0,
+        },
+      ),
+    );
     if (descriptor.engine === 'loro') {
       const factory = options.loro?.factory;
       if (!factory) {
@@ -749,14 +850,38 @@ export class CollaborativeAgentEditor {
       });
     }
     const yjsDoc = new Doc();
+    let providerCandidate: unknown;
     try {
-      const provider = new NodeWebSocketYjsProvider(options.roomId, yjsDoc, {
-        ...options.providerOptions,
+      const providerContext: CollaborativeAgentYjsProviderContext = Object.freeze({
         descriptor,
+        doc: yjsDoc,
         documentId: options.documentId,
         requestId: options.requestId,
+        roomId: options.roomId,
         ticket: options.ticket,
       });
+      let provider: CollaborativeAgentProvider;
+      if (options.yjs) {
+        providerCandidate = options.yjs.providerFactory(providerContext);
+        if (!isCollaborativeAgentYjsProvider(providerCandidate)) {
+          throw new Error(
+            'CollaborativeAgentEditor injected Yjs provider is invalid: it must implement sync and pending-update acknowledgements.',
+          );
+        }
+        provider = providerCandidate;
+      } else {
+        providerCandidate = new NodeWebSocketYjsProvider(options.roomId, yjsDoc, {
+          ...options.providerOptions,
+          descriptor,
+          documentId: options.documentId,
+          requestId: options.requestId,
+          ticket: options.ticket,
+        });
+        if (!isCollaborativeAgentProvider(providerCandidate)) {
+          throw new Error('CollaborativeAgentEditor Yjs provider is invalid.');
+        }
+        provider = providerCandidate;
+      }
       return new CollaborativeAgentEditor({
         ...options,
         descriptor,
@@ -765,7 +890,9 @@ export class CollaborativeAgentEditor {
         yjsDoc,
       });
     } catch (error) {
-      yjsDoc.destroy();
+      const cleanup = cleanupUnvalidatedProvider(providerCandidate);
+      if (cleanup) void cleanup.then(() => yjsDoc.destroy());
+      else yjsDoc.destroy();
       throw error;
     }
   }
@@ -847,12 +974,7 @@ export class CollaborativeAgentEditor {
 
     if (
       options.descriptor?.engine !== 'loro' &&
-      (!options.provider ||
-        typeof options.provider.connect !== 'function' ||
-        typeof options.provider.disconnect !== 'function' ||
-        !options.provider.awareness ||
-        typeof options.provider.awareness.getStates !== 'function' ||
-        !options.yjsDoc)
+      (!isCollaborativeAgentProvider(options.provider) || !options.yjsDoc)
     ) {
       throw new Error('CollaborativeAgentEditor provider is invalid.');
     }
@@ -945,7 +1067,15 @@ export class CollaborativeAgentEditor {
       this.connected = true;
       this.transportUnavailable = false;
       const syncPromise = this.waitForSync();
-      await this.collaborationService.transport.connect();
+      try {
+        await this.collaborationService.transport.connect();
+      } catch (error) {
+        // connect() may fail before the separately-created sync waiter is
+        // awaited. Consume its teardown rejection while preserving the
+        // provider's connection error.
+        void syncPromise.catch(() => undefined);
+        throw error;
+      }
       await syncPromise;
       await moment();
       this.assertConnectionAfterSync();
@@ -2819,18 +2949,22 @@ export class CollaborativeAgentEditor {
     try {
       await this.collaborationService.transport.disconnect();
     } finally {
-      this.loroPresencePayload = null;
-      // A disconnected facade cannot serve a replay, so release both the
-      // compact tombstones and any recovered result buffers on teardown.
-      this.rewriteSessions.clear();
-      this.recoveredRewriteSessions.clear();
       try {
-        this.kernel.destroy();
+        await this.provider?.destroy?.();
       } finally {
-        internalStates.delete(this);
-        if (this.ownsDoc) {
-          this.yjsDoc?.destroy();
-          this.loroCanonical?.doc.free();
+        this.loroPresencePayload = null;
+        // A disconnected facade cannot serve a replay, so release both the
+        // compact tombstones and any recovered result buffers on teardown.
+        this.rewriteSessions.clear();
+        this.recoveredRewriteSessions.clear();
+        try {
+          this.kernel.destroy();
+        } finally {
+          internalStates.delete(this);
+          if (this.ownsDoc) {
+            this.yjsDoc?.destroy();
+            this.loroCanonical?.doc.free();
+          }
         }
       }
     }

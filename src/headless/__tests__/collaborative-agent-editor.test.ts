@@ -18,7 +18,7 @@ import {
   type LexicalEditor,
   type LexicalNode,
 } from 'lexical';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applyUpdate,
   createRelativePositionFromTypeIndex,
@@ -26,9 +26,14 @@ import {
   encodeStateAsUpdate,
   type RelativePosition,
 } from 'yjs';
+import { LoroDoc } from 'loro-crdt';
 
 import { moment } from '@/editor-kernel';
-import { HeadlessEditor } from '../index';
+import {
+  CollaborativeAgentEditor as PublicCollaborativeAgentEditor,
+  HeadlessEditor,
+} from '../index';
+import type { CollaborativeAgentYjsProvider, CollaborativeAgentYjsProviderContext } from '../index';
 import {
   __exportCollaborativeAgentEditorProjectionForPersistence,
   __createCollaborativeAgentEditorForTesting,
@@ -53,6 +58,8 @@ import { IAISessionService } from '@/plugins/ai-session/service';
 import { captureCollaborativeRewriteSelection } from '@/plugins/yjs';
 import { syncCurrentEditorStateToYjs } from '@/plugins/yjs/plugin/utils/sync';
 import type { IEditor } from '@/types';
+import { createLoroBindingDescriptor } from '@/plugins/loro';
+import { createLoroHeadlessFactory } from '../loro';
 
 class NoopAwareness implements ProviderAwareness {
   private localState: UserState | null = null;
@@ -320,12 +327,14 @@ const getRelativeRange = (
 
 describe('CollaborativeAgentEditor', () => {
   const docs: Doc[] = [];
+  const loroDocs: LoroDoc[] = [];
   const rooms: MockRoom[] = [];
   const sessions: CollaborativeAgentEditor[] = [];
 
   afterEach(async () => {
     while (sessions.length > 0) await sessions.pop()!.disconnect();
     while (docs.length > 0) docs.pop()!.destroy();
+    while (loroDocs.length > 0) loroDocs.pop()!.free();
     while (rooms.length > 0) rooms.pop()!.destroy();
   });
 
@@ -358,6 +367,219 @@ describe('CollaborativeAgentEditor', () => {
     // A facade created before connect must not start a provider/network side
     // effect until the worker explicitly invokes the instance lifecycle.
     await session.disconnect();
+  });
+
+  it('accepts a typed provider from the public headless Yjs factory and waits for a real ACK', async () => {
+    const room = new MockRoom(seedSharedDocument(), { delayAcks: true });
+    rooms.push(room);
+    let context: CollaborativeAgentYjsProviderContext | undefined;
+    let provider: MockProvider | undefined;
+    let ownedDocDestroyed = false;
+    const session = PublicCollaborativeAgentEditor.create({
+      documentId: 'factory-document',
+      requestId: 'factory-request',
+      roomId: 'factory-room',
+      ticket: 'factory-ticket',
+      yjs: {
+        providerFactory: (value) => {
+          context = value;
+          value.doc.on('destroy', () => {
+            ownedDocDestroyed = true;
+          });
+          provider = new MockProvider(room, value.doc);
+          return provider as CollaborativeAgentYjsProvider;
+        },
+      },
+    });
+    sessions.push(session);
+
+    expect(context).toMatchObject({
+      documentId: 'factory-document',
+      requestId: 'factory-request',
+      roomId: 'factory-room',
+      ticket: 'factory-ticket',
+      descriptor: { bindingSchema: 'lexical-yjs-v1', engine: 'yjs', epoch: 0 },
+    });
+    expect(Object.isFrozen(context)).toBe(true);
+    expect(session).not.toHaveProperty('getDoc');
+    await session.connect();
+
+    const observedProvider = provider;
+    if (!observedProvider || !context) throw new Error('The public Yjs factory was not invoked.');
+    context.doc.getText('factory-ack-test').insert(0, 'local update');
+    let acknowledged = false;
+    const pendingAck = session.waitForUpdateAck(1_000).then(() => {
+      acknowledged = true;
+    });
+    await Promise.resolve();
+    expect(acknowledged).toBe(false);
+    room.flushAcks();
+    await pendingAck;
+    expect(acknowledged).toBe(true);
+
+    await session.disconnect();
+    expect(ownedDocDestroyed).toBe(true);
+  });
+
+  it('keeps the default Yjs path and never invokes the Yjs factory for a Loro descriptor', async () => {
+    const defaultSession = PublicCollaborativeAgentEditor.create({
+      documentId: 'default-document',
+      requestId: 'default-request',
+      roomId: 'default-room',
+      ticket: 'default-ticket',
+    });
+    sessions.push(defaultSession);
+    await defaultSession.disconnect();
+
+    const descriptor = createLoroBindingDescriptor();
+    const loroDoc = new LoroDoc();
+    loroDocs.push(loroDoc);
+    const yjsProviderFactory = vi.fn(() => {
+      throw new Error('Yjs provider factory must not run for Loro.');
+    });
+    const loroSession = PublicCollaborativeAgentEditor.create({
+      descriptor,
+      documentId: 'loro-factory-document',
+      loro: { doc: loroDoc, factory: createLoroHeadlessFactory() },
+      requestId: 'loro-factory-request',
+      roomId: 'loro-factory-room',
+      ticket: 'loro-factory-ticket',
+      yjs: { providerFactory: yjsProviderFactory },
+    });
+    sessions.push(loroSession);
+    await loroSession.disconnect();
+
+    expect(yjsProviderFactory).not.toHaveBeenCalled();
+  });
+
+  it('cleans the facade-owned Y.Doc when the Yjs factory throws or returns an invalid provider', () => {
+    let thrownFactoryDocDestroyed = false;
+    expect(() =>
+      PublicCollaborativeAgentEditor.create({
+        documentId: 'throwing-factory-document',
+        requestId: 'throwing-factory-request',
+        roomId: 'throwing-factory-room',
+        ticket: 'throwing-factory-ticket',
+        yjs: {
+          providerFactory: ({ doc }) => {
+            doc.on('destroy', () => {
+              thrownFactoryDocDestroyed = true;
+            });
+            throw new Error('factory creation failed');
+          },
+        },
+      }),
+    ).toThrow('factory creation failed');
+    expect(thrownFactoryDocDestroyed).toBe(true);
+
+    let invalidProviderDocDestroyed = false;
+    const invalidProvider = {
+      awareness: {
+        getLocalState: vi.fn(() => null),
+        getStates: vi.fn(() => new Map()),
+        off: vi.fn(),
+        on: vi.fn(),
+        setLocalState: vi.fn(),
+        setLocalStateField: vi.fn(),
+      },
+      connect: vi.fn(),
+      destroy: vi.fn(),
+      disconnect: vi.fn(),
+      off: vi.fn(),
+      on: vi.fn(),
+      waitForSync: vi.fn(async () => undefined),
+    };
+    expect(() =>
+      PublicCollaborativeAgentEditor.create({
+        documentId: 'invalid-factory-document',
+        requestId: 'invalid-factory-request',
+        roomId: 'invalid-factory-room',
+        ticket: 'invalid-factory-ticket',
+        yjs: {
+          providerFactory: ({ doc }) => {
+            doc.on('destroy', () => {
+              invalidProviderDocDestroyed = true;
+            });
+            return invalidProvider as unknown as CollaborativeAgentYjsProvider;
+          },
+        },
+      }),
+    ).toThrow('pending-update acknowledgements');
+    expect(invalidProvider.disconnect).toHaveBeenCalledOnce();
+    expect(invalidProvider.destroy).toHaveBeenCalledOnce();
+    expect(invalidProviderDocDestroyed).toBe(true);
+  });
+
+  it('tears down a custom provider and its owned Y.Doc when connection fails', async () => {
+    class FailingConnectProvider extends MockProvider {
+      destroyCalls = 0;
+      disconnectCalls = 0;
+
+      connect(): void {
+        throw new Error('custom provider connection failed');
+      }
+
+      disconnect(): void {
+        this.disconnectCalls += 1;
+        super.disconnect();
+      }
+
+      destroy(): void {
+        this.destroyCalls += 1;
+      }
+    }
+
+    let provider: FailingConnectProvider | undefined;
+    let ownedDocDestroyed = false;
+    await expect(
+      PublicCollaborativeAgentEditor.connect({
+        documentId: 'failed-connect-document',
+        requestId: 'failed-connect-request',
+        roomId: 'failed-connect-room',
+        ticket: 'failed-connect-ticket',
+        yjs: {
+          providerFactory: (context) => {
+            context.doc.on('destroy', () => {
+              ownedDocDestroyed = true;
+            });
+            provider = new FailingConnectProvider(null, context.doc);
+            return provider;
+          },
+        },
+      }),
+    ).rejects.toThrow('custom provider connection failed');
+
+    expect(provider?.disconnectCalls).toBeGreaterThan(0);
+    expect(provider?.destroyCalls).toBe(1);
+    expect(ownedDocDestroyed).toBe(true);
+  });
+
+  it('releases the owned Y.Doc when custom provider destruction throws', async () => {
+    class FailingDestroyProvider extends MockProvider {
+      destroy(): void {
+        throw new Error('custom provider destruction failed');
+      }
+    }
+
+    let ownedDocDestroyed = false;
+    const session = PublicCollaborativeAgentEditor.create({
+      documentId: 'failed-destroy-document',
+      requestId: 'failed-destroy-request',
+      roomId: 'failed-destroy-room',
+      ticket: 'failed-destroy-ticket',
+      yjs: {
+        providerFactory: (context) => {
+          context.doc.on('destroy', () => {
+            ownedDocDestroyed = true;
+          });
+          return new FailingDestroyProvider(null, context.doc);
+        },
+      },
+    });
+    sessions.push(session);
+
+    await expect(session.disconnect()).rejects.toThrow('custom provider destruction failed');
+    expect(ownedDocDestroyed).toBe(true);
   });
 
   it('rejects invalid construction options and does not leave waitForSync pending on disconnect', async () => {

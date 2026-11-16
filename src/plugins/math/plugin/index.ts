@@ -77,7 +77,7 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
     litexmlService.registerXMLWriter(MathInlineNode.getType(), (node, ctx) => {
       if (node instanceof MathInlineNode) {
         const attributes: { [key: string]: string } = {
-          code: node.getTextContent(),
+          code: node.code,
         };
         return ctx.createXmlNode('math', attributes);
       }
@@ -87,7 +87,7 @@ export const MathPlugin: IEditorPluginConstructor<MathPluginOptions> = class
     litexmlService.registerXMLWriter(MathBlockNode.getType(), (node, ctx) => {
       if (node instanceof MathBlockNode) {
         const attributes: { [key: string]: string } = {
-          code: node.getTextContent(),
+          code: node.code,
         };
         return ctx.createXmlNode('mathBlock', attributes);
       }

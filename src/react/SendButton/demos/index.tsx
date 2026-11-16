@@ -1,6 +1,5 @@
 import { SendButton, type SendButtonProps } from '@lobehub/editor/react';
-import { Flexbox, Grid } from '@lobehub/ui';
-import { createStaticStyles } from 'antd-style';
+import { Flexbox, Grid, createStaticStyles } from '@lobehub/ui';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   container: css`

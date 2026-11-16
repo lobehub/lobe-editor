@@ -1,4 +1,4 @@
-import { ActionIcon, Divider } from '@lobehub/ui/base-ui';
+import { ActionIcon, Divider } from '@lobehub/ui';
 import { type FC, isValidElement } from 'react';
 
 import { styles } from '../style';

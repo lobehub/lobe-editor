@@ -32,7 +32,7 @@ Source of truth: `packages/docs-kit/src/config.ts` (`DocsConfig`). Loaded once p
 | `navItems`                 | `{ href, label, external? }[]` sidebar links after Home (skills.md, llms.txt, Changelog are always appended)                  |
 | `actions`                  | `{ href, label, external? }[]` text links in the top bar                                                                      |
 | `socialLinks`              | `{ href, icon?, label }[]`; `icon: 'github'` becomes the top-bar GitHub button                                                |
-| `prefersColor`             | `'auto'` (default, shows switcher)                                                                                            | `'light'` | `'dark'` (forced, no switcher) |
+| `prefersColor`             | `'auto'` (default, shows switcher) \| `'light'` \| `'dark'` (forced, no switcher)                                             |
 | `giscus`                   | `{ repo, repoId, category, categoryId }` comments at page end                                                                 |
 | `analytics.plausible`      | `{ domain, source }`                                                                                                          |
 | `metadata.openGraph.image` | Default OG image URL                                                                                                          |

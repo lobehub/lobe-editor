@@ -12,7 +12,7 @@ import { $applyNodeReplacement } from 'lexical';
 
 import { getKernelFromEditor } from '@/editor-kernel/utils';
 
-import type { SerializedFileNode } from './FileNode';
+import type { FileNodeMeta, SerializedFileNode } from './FileNode';
 import { FileNode } from './FileNode';
 
 export type SerializedBlockFileNode = SerializedFileNode;
@@ -31,6 +31,7 @@ export class BlockFileNode extends FileNode {
       node.__status,
       node.__message,
       node.__key,
+      { ext: node.ext, mimeType: node.mimeType },
     );
   }
 
@@ -41,6 +42,8 @@ export class BlockFileNode extends FileNode {
       serializedNode.size,
       serializedNode.status,
       serializedNode.message,
+      undefined,
+      { ext: serializedNode.ext, mimeType: serializedNode.mimeType },
     ).updateFromJSON(serializedNode);
   }
 
@@ -74,8 +77,8 @@ export class BlockFileNode extends FileNode {
     return element;
   }
 
-  override updateDOM(_previousNode: BlockFileNode, dom: HTMLElement): false {
-    applyBlockFileDOMAttributes(dom, this);
+  override updateDOM(_previousNode?: BlockFileNode, dom?: HTMLElement): false {
+    if (dom) applyBlockFileDOMAttributes(dom, this);
     return false;
   }
 
@@ -99,8 +102,9 @@ export function $createBlockFileNode(
   status?: 'pending' | 'uploaded' | 'error',
   message?: string,
   key?: NodeKey,
+  meta?: FileNodeMeta,
 ): BlockFileNode {
-  return $applyNodeReplacement(new BlockFileNode(name, fileUrl, size, status, message, key));
+  return $applyNodeReplacement(new BlockFileNode(name, fileUrl, size, status, message, key, meta));
 }
 
 function $convertBlockFileElement(element: HTMLElement): DOMConversionOutput {
@@ -114,6 +118,11 @@ function $convertBlockFileElement(element: HTMLElement): DOMConversionOutput {
       parsedSize,
       status,
       element.dataset.fileMessage || undefined,
+      undefined,
+      {
+        ext: element.dataset.fileExt,
+        mimeType: element.dataset.fileMimeType,
+      },
     ),
   };
 }
@@ -126,6 +135,10 @@ const applyBlockFileDOMAttributes = (element: HTMLElement, node: BlockFileNode):
   if (node.size !== undefined) element.dataset.fileSize = String(node.size);
   else delete element.dataset.fileSize;
   element.dataset.fileStatus = node.status;
+  if (node.ext) element.dataset.fileExt = node.ext;
+  else delete element.dataset.fileExt;
+  if (node.mimeType) element.dataset.fileMimeType = node.mimeType;
+  else delete element.dataset.fileMimeType;
   if (node.message) element.dataset.fileMessage = node.message;
   else delete element.dataset.fileMessage;
 };

@@ -22,16 +22,12 @@ const getScrollContainerWidth = (tableElement: HTMLTableElement) => {
   return container.clientWidth || container.getBoundingClientRect().width;
 };
 
-const getHorizontalBorderWidth = (tableElement: HTMLTableElement) => {
-  const firstRow = tableElement.rows[0];
-  if (!firstRow) {
-    return 0;
-  }
-
-  const cells = Array.from(firstRow.cells);
-  if (cells.length === 0) {
-    return 0;
-  }
+export const getHorizontalBorderWidth = (tableElement: HTMLTableElement) => {
+  const tableStyle = getComputedStyle(tableElement);
+  const frameWidth =
+    (Number.parseFloat(tableStyle.borderInlineStartWidth) || 0) +
+    (Number.parseFloat(tableStyle.borderInlineEndWidth) || 0);
+  const cells = Array.from(tableElement.rows[0]?.cells ?? []);
 
   return cells.reduce((total, cell, index) => {
     const style = getComputedStyle(cell);
@@ -40,7 +36,7 @@ const getHorizontalBorderWidth = (tableElement: HTMLTableElement) => {
     const borderInlineEndWidth = Number.parseFloat(style.borderInlineEndWidth) || 0;
 
     return total + borderInlineStartWidth + borderInlineEndWidth;
-  }, 0);
+  }, frameWidth);
 };
 
 export const getDistributedTableColumnWidths = (editor: LexicalEditor, tableNode: TableNode) => {
@@ -64,4 +60,16 @@ export const getDistributedTableColumnWidths = (editor: LexicalEditor, tableNode
   colWidths[columnCount - 1] = targetTableWidth - columnWidth * (columnCount - 1);
 
   return colWidths;
+};
+
+export const canTableFillContainer = (editor: LexicalEditor, tableNode: TableNode) => {
+  const tableElement = getTableElement(editor, tableNode.getKey());
+  if (!tableElement) {
+    return false;
+  }
+
+  return (
+    getScrollContainerWidth(tableElement) - getHorizontalBorderWidth(tableElement) >=
+    DISTRIBUTE_MIN_COLUMN_WIDTH * tableNode.getColumnCount()
+  );
 };

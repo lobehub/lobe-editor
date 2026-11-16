@@ -27,6 +27,16 @@ export interface ReactPlainTextProps {
   children: ReactElement<ReactEditorContentProps>;
   className?: string;
   editable?: boolean;
+  /**
+   * Give headings a unique DOM `id` slug and show a hover "copy link" action
+   * @default true (false when `variant` is `'chat'`)
+   */
+  enableHeadingAnchor?: boolean;
+  /**
+   * Show a hover toggle that folds the content under a heading (view state only, never serialized)
+   * @default true (false when `variant` is `'chat'`)
+   */
+  enableHeadingFold?: boolean;
   enableHotkey?: boolean;
   /**
    * Enable automatic markdown conversion for pasted content
@@ -37,6 +47,11 @@ export interface ReactPlainTextProps {
    * Enable/disable markdown shortcuts
    * @default true - all formats enabled
    */
+  /**
+   * Build the link copied by the heading "copy link" action
+   * @default current URL with `#slug`
+   */
+  getHeadingLink?: (slug: string) => string;
   markdownOption?: CommonPluginOptions['markdownOption'];
   onBlur?: (props: { editor: IEditor; event: FocusEvent<HTMLDivElement> }) => void;
   onChange?: (editor: IEditor) => void;

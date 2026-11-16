@@ -6,7 +6,6 @@ export type {
   LexicalDiffRow,
   LexicalDiffRowKind,
 } from './diff/types';
-export { loadLanguage } from './engine/shiki';
 export type { LexicalDiffProps } from './LexicalDiff';
 export { LexicalDiff } from './LexicalDiff';
 export { LexicalRenderer } from './LexicalRenderer';

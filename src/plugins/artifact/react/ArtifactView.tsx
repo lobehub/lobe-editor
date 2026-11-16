@@ -1,7 +1,6 @@
 'use client';
 
-import { Segmented } from '@lobehub/ui/base-ui';
-import { cx } from 'antd-style';
+import { cx, Segmented } from '@lobehub/ui';
 import { debounce } from 'es-toolkit/compat';
 import type { LexicalEditor } from 'lexical';
 import { $getNodeByKey, $setSelection, COMMAND_PRIORITY_HIGH } from 'lexical';
@@ -186,7 +185,6 @@ const ArtifactView: FC<ArtifactViewProps> = ({
     storageKeyRef.current = storageKey;
     const stored = readStoredArtifactViewMode(storageKey);
     // Local storage is an external source, so hydrate the local view state when the node identity changes.
-    // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
     if (stored) setViewMode(stored);
   }, [editor, node]);
 

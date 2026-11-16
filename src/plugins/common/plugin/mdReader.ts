@@ -71,6 +71,9 @@ export function registerMDReader(markdownService: IMarkdownShortCutService) {
   });
 
   markdownService.registerMarkdownReader('html', (node, children) => {
+    if (/^<p(?:\s[^>]*)?>$/i.test(node.value)) {
+      return INodeHelper.createParagraph({ children });
+    }
     if (['<ins>', '<u>'].includes(node.value.toLocaleLowerCase())) {
       return children.map((child) => {
         if (INodeHelper.isTextNode(child)) {

@@ -58,8 +58,11 @@ export const HeadlessCollapsiblePlugin: IEditorPluginConstructor<HeadlessCollaps
           : extractSummaryTitle(node.value) || 'Details';
 
       return INodeHelper.createElementNode(CollapsibleNode.getType(), {
-        children: ensureTitleChildren(contentChildren, title),
-        collapsed: !/\sopen(?:\s|>|$)/i.test(node.value),
+        children: [
+          INodeHelper.createParagraph({ children: [INodeHelper.createTextNode(title)] }),
+          ...contentChildren,
+        ],
+        collapsed: !/\sopen(?:\s|=|>|$)/i.test(node.value.replaceAll(/"[^"]*"|'[^']*'/g, '')),
         title,
       });
     });

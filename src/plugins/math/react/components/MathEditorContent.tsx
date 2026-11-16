@@ -1,5 +1,4 @@
-import { Flexbox, Hotkey } from '@lobehub/ui';
-import { Button, Text, TextArea } from '@lobehub/ui/base-ui';
+import { Button, Flexbox, Hotkey, Text, TextArea } from '@lobehub/ui';
 import { renderToString } from 'katex';
 import { isModifierMatch } from 'lexical';
 import { type KeyboardEvent, memo, useCallback, useEffect, useRef, useState } from 'react';

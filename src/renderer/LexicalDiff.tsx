@@ -1,4 +1,4 @@
-import { cx } from 'antd-style';
+import { cx } from '@lobehub/ui';
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import type { CSSProperties, ReactNode } from 'react';
 import { useMemo } from 'react';

@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionIcon, DropdownMenu } from '@lobehub/ui/base-ui';
+import { ActionIcon, DropdownMenu } from '@lobehub/ui';
 import { type FC } from 'react';
 
 import type { FloatActionsItem, FloatActionsProps } from '../type';

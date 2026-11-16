@@ -6,7 +6,7 @@ import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { $getNodeId, $normalizeNodeIds } from '@/plugins/common/node/node-id';
-import { INodeService } from '@/plugins/inode/service';
+import { INodeService } from '@/plugins/inode';
 import type { IServiceID } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
@@ -23,6 +23,9 @@ const setSerializedNodeIdentity = (
 
   const state = isRecord(node.$) ? node.$ : {};
   const properties = isRecord(state.properties) ? state.properties : {};
+  // Keep the XML-facing identity alongside its canonical NodeState form.
+  // Some custom readers consume the serialized `id` before Lexical import.
+  node.id = id;
   node.$ = {
     ...state,
     properties: {
@@ -451,6 +454,9 @@ export default class LitexmlDataSource extends DataSource {
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
-      .replaceAll("'", '&apos;');
+      .replaceAll("'", '&apos;')
+      .replaceAll('\t', '&#9;')
+      .replaceAll('\n', '&#10;')
+      .replaceAll('\r', '&#13;');
   }
 }

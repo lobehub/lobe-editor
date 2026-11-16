@@ -1,9 +1,57 @@
-import { createStaticStyles } from 'antd-style';
+import { createStaticStyles } from '@lobehub/ui';
 
 export const styles = createStaticStyles(({ css, cssVar }) => ({
   brokenImage: css`
     width: 200px;
     height: auto;
+  `,
+
+  caption: css`
+    display: block;
+
+    margin-block-start: 0.5em;
+
+    font-size: 0.875em;
+    line-height: 1.5;
+    color: ${cssVar.colorTextSecondary};
+    text-align: center;
+    word-break: break-word;
+  `,
+
+  captionInput: css`
+    display: block;
+
+    width: 100%;
+    margin-block-start: 0.5em;
+    padding: 0;
+    border: none;
+
+    font-family: inherit;
+    font-size: 0.875em;
+    line-height: 1.5;
+    color: ${cssVar.colorTextSecondary};
+    text-align: center;
+
+    background: transparent;
+    outline: none;
+
+    &::placeholder {
+      color: ${cssVar.colorTextQuaternary};
+    }
+  `,
+
+  fadeIn: css`
+    animation: image-fade-in 0.3s ease-out;
+
+    @keyframes image-fade-in {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
   `,
 
   imageContainer: css`
@@ -68,6 +116,30 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
 
   lazyImage: css`
     cursor: default;
+  `,
+
+  placeholder: css`
+    display: block;
+    max-width: 100%;
+    border-radius: ${cssVar.borderRadiusSM};
+  `,
+
+  placeholderFrame: css`
+    overflow: hidden;
+    display: inline-block;
+
+    max-width: 100%;
+    border-radius: ${cssVar.borderRadiusSM};
+
+    vertical-align: middle;
+  `,
+
+  readonly: css`
+    cursor: zoom-in;
+
+    img {
+      cursor: zoom-in;
+    }
   `,
 
   loadingIcon: css`

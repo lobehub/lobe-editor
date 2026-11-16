@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
 import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import type { ReactNode } from 'react';
+import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Image from '../Image';
@@ -17,7 +17,9 @@ const mocks = vi.hoisted(() => {
   };
 
   return {
+    editable: true,
     editor,
+    getMetrics: undefined as undefined | (() => { naturalWidth?: number }),
     isSelected: false,
     openPreview: vi.fn(),
     previewRef: undefined as undefined | { current: HTMLImageElement | null },
@@ -26,7 +28,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@lobehub/ui/base-ui', async (importOriginal) => ({
+vi.mock('@lobehub/ui', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   ActionIcon: ({
     'aria-label': ariaLabel,
@@ -35,10 +37,6 @@ vi.mock('@lobehub/ui/base-ui', async (importOriginal) => ({
     'aria-label'?: string;
     'onClick'?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   }) => <button aria-label={ariaLabel} type="button" onClick={onClick} />,
-}));
-
-vi.mock('@lobehub/ui', async (importOriginal) => ({
-  ...(await importOriginal<object>()),
   useImagePreview: (ref: { current: HTMLImageElement | null }) => {
     mocks.previewRef = ref;
     return { open: mocks.openPreview, outlet: null };
@@ -57,6 +55,16 @@ vi.mock('@/editor-kernel/react/useLexicalEditor', async () => {
   };
 });
 
+vi.mock('@/editor-kernel/react/useEditable', () => ({
+  useEditable: () => ({ editable: mocks.editable }),
+}));
+
+vi.mock('../ImageCaption', () => ({
+  default: ({ active }: { active: boolean }) => (
+    <span data-active={String(active)} data-testid="caption" />
+  ),
+}));
+
 vi.mock('@/editor-kernel/react/useLexicalNodeSelection', () => ({
   useLexicalNodeSelection: () => [mocks.isSelected, mocks.setSelected, vi.fn(), false],
 }));
@@ -66,7 +74,16 @@ vi.mock('@/editor-kernel/react/useTranslation', () => ({
 }));
 
 vi.mock('../ImageEditPopover', () => ({
-  default: ({ children }: { children: ReactNode }) => children,
+  default: ({
+    children,
+    getMetrics,
+  }: {
+    children: ReactNode;
+    getMetrics?: () => { naturalWidth?: number };
+  }) => {
+    mocks.getMetrics = getMetrics;
+    return children;
+  },
 }));
 
 vi.mock('../LazyImage', async () => {
@@ -77,10 +94,17 @@ vi.mock('../LazyImage', async () => {
     onLoad,
   }: {
     newWidth?: null | number;
-    onLoad?: (dimensions: { height: number; width: number }) => void;
+    onLoad?: (dimensions: {
+      height: number;
+      naturalHeight?: number;
+      naturalWidth?: number;
+      width: number;
+    }) => void;
   }) {
     React.useEffect(() => {
-      onLoad?.({ height: 100, width: 200 });
+      void Promise.resolve().then(() =>
+        onLoad?.({ height: 100, naturalHeight: 800, naturalWidth: 1600, width: 200 }),
+      );
       // The image load event fires once for this regression path.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -112,6 +136,7 @@ describe('Image resize', () => {
     document.body.append(host);
     root = createRoot(host);
     mocks.isSelected = false;
+    mocks.editable = true;
     mocks.resizeHandleProps.length = 0;
     vi.clearAllMocks();
   });
@@ -129,8 +154,7 @@ describe('Image resize', () => {
       getKey: () => 'image-node',
       getType: () => 'block-image',
       maxWidth: 200,
-      setMaxWidth: vi.fn(),
-      setWidth: vi.fn(),
+      setDisplaySize: vi.fn(),
       src: 'https://example.com/image.png',
       status: 'uploaded',
       width: 200,
@@ -161,8 +185,25 @@ describe('Image resize', () => {
       rightHandle!.onResizeEnd?.(20, 0);
     });
 
-    expect(node.setWidth).toHaveBeenCalledWith(140);
-    expect(node.setMaxWidth).toHaveBeenCalledWith(140);
+    expect(node.setDisplaySize).toHaveBeenCalledWith({ mode: 'px', px: 140 });
+  });
+
+  it('reports the natural image width, not the rendered width, to the width control', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    expect(mocks.getMetrics?.().naturalWidth).toBe(1600);
   });
 
   it('opens the image preview from the hover action without selecting the node', async () => {
@@ -199,7 +240,8 @@ describe('Image resize', () => {
     expect(mocks.setSelected).not.toHaveBeenCalled();
   });
 
-  it('focuses the Lexical editor when the image is selected for keyboard commands', async () => {
+  it('opens the lightbox on click in read-only mode instead of selecting', async () => {
+    mocks.editable = false;
     const node = {
       altText: 'test image',
       getKey: () => 'image-node',
@@ -214,11 +256,34 @@ describe('Image resize', () => {
       root.render(<Image node={node as any} />);
     });
 
-    const imageContainer = host.querySelector<HTMLDivElement>('[class]');
-    if (!imageContainer) throw new Error('Image container missing');
+    const image = host.querySelector<HTMLImageElement>('[data-testid="image"]');
+    await act(async () => {
+      image!.parentElement!.click();
+    });
+
+    expect(mocks.openPreview).toHaveBeenCalledTimes(1);
+    expect(mocks.setSelected).not.toHaveBeenCalled();
+    expect(mocks.resizeHandleProps).toHaveLength(0);
+  });
+
+  it('focuses the editor after selecting an image for keyboard commands', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
 
     await act(async () => {
-      imageContainer.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      root.render(<Image node={node as any} />);
+    });
+
+    const image = host.querySelector<HTMLImageElement>('[data-testid="image"]');
+    await act(async () => {
+      image!.parentElement!.click();
     });
 
     expect(mocks.setSelected).toHaveBeenCalledWith(true);
@@ -226,5 +291,90 @@ describe('Image resize', () => {
     expect(mocks.setSelected.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.editor.focus.mock.invocationCallOrder[0]!,
     );
+  });
+
+  it('renders the caption slot only for block images', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'image',
+      maxWidth: 200,
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+    expect(host.querySelector('[data-testid="caption"]')).toBeNull();
+
+    await act(async () => {
+      root.render(<Image node={{ ...node, getType: () => 'block-image' } as any} />);
+    });
+    expect(host.querySelector('[data-testid="caption"]')).not.toBeNull();
+  });
+
+  it('records the natural size of a loaded image without a history entry', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      setNaturalSize: vi.fn(),
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    expect(node.setNaturalSize).toHaveBeenCalledWith(1600, 800);
+    expect(mocks.editor.update).toHaveBeenCalledWith(expect.any(Function), {
+      tag: 'history-merge',
+    });
+  });
+
+  it('does not rewrite a natural size that is already stored', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      naturalHeight: 800,
+      naturalWidth: 1600,
+      setNaturalSize: vi.fn(),
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    expect(node.setNaturalSize).not.toHaveBeenCalled();
+  });
+
+  it('does not write the natural size in read-only mode', async () => {
+    mocks.editable = false;
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      setNaturalSize: vi.fn(),
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    expect(node.setNaturalSize).not.toHaveBeenCalled();
   });
 });

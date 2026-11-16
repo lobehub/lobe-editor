@@ -28,7 +28,7 @@ import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
 import { $createBlockFileNode } from '@/plugins/file/node/BlockFileNode';
 import { $createFileNode } from '@/plugins/file/node/FileNode';
 import { $createHorizontalRuleNode } from '@/plugins/hr/node/HorizontalRuleNode';
-import { $createBlockImageNode } from '@/plugins/image/node/block-image-node';
+import { $createBlockImageNode, $isBlockImageNode } from '@/plugins/image/node/block-image-node';
 import { $createImageNode } from '@/plugins/image/node/image-node';
 import { $createLinkBlockCardNode } from '@/plugins/link/node/LinkBlockCardNode';
 import { $createLinkCardNode } from '@/plugins/link/node/LinkCardNode';
@@ -57,6 +57,26 @@ const topLevelTypes = (editor: ReturnType<typeof createHeadlessEditor>): string[
     .getLexicalEditor()!
     .getEditorState()
     .read(() => $getLogicalChildren($getRoot()).map((node) => node.getType()));
+
+const readBlockImageMeta = (editor: ReturnType<typeof createHeadlessEditor>) =>
+  editor.kernel
+    .getLexicalEditor()!
+    .getEditorState()
+    .read(() => {
+      const image = $getLogicalChildren($getRoot()).find($isBlockImageNode);
+      if (!image) return null;
+      return {
+        accent: image.accent,
+        altText: image.altText,
+        caption: image.caption,
+        displayWidth: image.displayWidth,
+        naturalHeight: image.naturalHeight,
+        naturalWidth: image.naturalWidth,
+        thumbhash: image.thumbhash,
+      };
+    });
+
+const imageThumbhash = '1QcSHQRnh493V4dIh4eXh1h4kJUI';
 
 describe('Loro binding with the real headless plugin registry', () => {
   it('matches the capability matrix against the real default headless node registry', () => {
@@ -226,9 +246,15 @@ describe('Loro binding with the real headless plugin registry', () => {
     lexical.update(() => {
       $getRoot().append(
         $createBlockImageNode({
+          accent: '#336699',
           altText: 'diagram',
+          caption: 'System diagram',
+          displayWidth: 60,
           maxWidth: 1200,
+          naturalHeight: 900,
+          naturalWidth: 1600,
           src: 'https://img.test/a.png',
+          thumbhash: imageThumbhash,
         }),
         $createBlockFileNode('report.pdf', 'https://files.test/report.pdf', 42, 'uploaded'),
         $createMathBlockNode('x^2 + y^2'),
@@ -269,17 +295,33 @@ describe('Loro binding with the real headless plugin registry', () => {
       .getEditorState()
       .read(() => $getLogicalChildren($getRoot()).map((node) => node.getType()));
     expect(rightTypes).toEqual(expect.arrayContaining(expectedTypes));
+    expect(readBlockImageMeta(right)).toEqual({
+      accent: '#336699',
+      altText: 'diagram',
+      caption: 'System diagram',
+      displayWidth: 60,
+      naturalHeight: 900,
+      naturalWidth: 1600,
+      thumbhash: imageThumbhash,
+    });
 
     const version = leftDoc.doc.version();
     lexical.update(() => {
       const nodes = $getLogicalChildren($getRoot());
-      const image = nodes.find((node) => node.getType() === 'block-image') as any;
+      const image = nodes.find($isBlockImageNode);
+      if (!image) throw new Error('Block image missing before peer update');
       const file = nodes.find((node) => node.getType() === 'block-file') as any;
       const math = nodes.find((node) => node.getType() === 'mathBlock') as any;
       const card = nodes.find((node) => node.getType() === 'link-block-card') as any;
       const iframe = nodes.find((node) => node.getType() === 'link-iframe') as any;
       const collapsible = nodes.find((node) => node.getType() === 'collapsible') as any;
-      image.setSrc('https://img.test/b.png');
+      image.setUploaded('https://img.test/b.png');
+      image.setAltText('updated diagram');
+      image.setCaption('Updated system diagram');
+      image.setAccent('#663399');
+      image.setThumbhash('2QcSHQRnh493V4dIh4eXh1h4kJUI');
+      image.setDisplaySize({ mode: 'percent', value: 75 });
+      image.setNaturalSize(2048, 1024);
       file.setUploaded('https://files.test/next.pdf');
       math.updateCode('x^3');
       card.setTitle('Updated card');
@@ -308,6 +350,38 @@ describe('Loro binding with the real headless plugin registry', () => {
       image: 'https://img.test/b.png',
       math: 'x^3',
     });
+    expect(readBlockImageMeta(right)).toEqual({
+      accent: '#663399',
+      altText: 'updated diagram',
+      caption: 'Updated system diagram',
+      displayWidth: 75,
+      naturalHeight: 1024,
+      naturalWidth: 2048,
+      thumbhash: '2QcSHQRnh493V4dIh4eXh1h4kJUI',
+    });
+
+    const updatedVersion = leftDoc.doc.version();
+    lexical.update(() => {
+      const image = $getLogicalChildren($getRoot()).find($isBlockImageNode);
+      if (!image) throw new Error('Block image missing before metadata clear');
+      image.setCaption('');
+      image.setAccent(undefined);
+      image.setThumbhash(undefined);
+      image.setDisplaySize({ mode: 'auto' });
+      image.setNaturalSize(undefined, undefined);
+    });
+    await settle();
+    rightBinding.applyUpdate(leftDoc.exportUpdate(updatedVersion));
+    await settle();
+    expect(readBlockImageMeta(right)).toEqual({
+      accent: undefined,
+      altText: 'updated diagram',
+      caption: '',
+      displayWidth: undefined,
+      naturalHeight: undefined,
+      naturalWidth: undefined,
+      thumbhash: undefined,
+    });
 
     const reload = createHeadlessEditor();
     const reloadDoc = new LoroCanonicalDocument(
@@ -318,6 +392,15 @@ describe('Loro binding with the real headless plugin registry', () => {
     expect(reloadDoc.getNodes().map((node) => reloadDoc.readNode(node).type)).toEqual(
       expect.arrayContaining(expectedTypes),
     );
+    expect(readBlockImageMeta(reload)).toEqual({
+      accent: undefined,
+      altText: 'updated diagram',
+      caption: '',
+      displayWidth: undefined,
+      naturalHeight: undefined,
+      naturalWidth: undefined,
+      thumbhash: undefined,
+    });
 
     leftBinding.dispose();
     rightBinding.dispose();

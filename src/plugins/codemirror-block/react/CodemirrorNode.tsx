@@ -1,9 +1,7 @@
 'use client';
 
 import { mergeRegister } from '@lexical/utils';
-import { Block } from '@lobehub/ui';
-import { ActionIcon } from '@lobehub/ui/base-ui';
-import { cx } from 'antd-style';
+import { ActionIcon, Block, cx } from '@lobehub/ui';
 import { debounce } from 'es-toolkit/compat';
 import type { LexicalEditor } from 'lexical';
 import {
@@ -247,7 +245,6 @@ const ReactCodemirrorNode: FC<ReactCodemirrorNodeProps> = ({ node, className, ed
     if (!changedInEditor) return;
 
     // The collaborative node is the external source of truth for this selector.
-    // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
     setSelectedLang(nextLanguage);
     instanceRef.current?.setOption('mode', nextLanguage);
   }, [node]);

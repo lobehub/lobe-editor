@@ -1,4 +1,4 @@
-import { createStaticStyles } from 'antd-style';
+import { createStaticStyles } from '@lobehub/ui';
 
 export const styles = createStaticStyles(({ css, cssVar }) => ({
   file: css`
@@ -28,5 +28,38 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
       color: #000;
       background: ${cssVar.yellow};
     }
+  `,
+  fileAction: css`
+    cursor: pointer;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0.15em;
+    border-radius: 0.25em;
+
+    color: ${cssVar.colorTextTertiary};
+    text-decoration: none;
+
+    &:hover {
+      color: ${cssVar.colorText};
+      background: ${cssVar.colorFillTertiary};
+    }
+  `,
+  fileContent: css`
+    display: inline-flex;
+    gap: 0.2em;
+    align-items: center;
+    vertical-align: middle;
+  `,
+  fileActions: css`
+    display: inline-flex;
+    gap: 0.1em;
+    align-items: center;
+    margin-inline-start: 0.2em;
+  `,
+  fileName: css`
+    word-break: break-word;
   `,
 }));

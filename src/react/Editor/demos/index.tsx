@@ -1,38 +1,51 @@
-import { Button, Text, TextArea } from '@lobehub/ui/base-ui';
+import {
+  Alert,
+  Avatar,
+  Button,
+  Segmented,
+  Tag,
+  Text,
+  Flexbox,
+  createStaticStyles,
+} from '@lobehub/ui';
 import {
   type IEditor,
-  AnnotationToolbarAction,
-  type AnnotationBubbleContext,
-  type AnnotationComposerContext,
   INSERT_ARTIFACT_COMMAND,
+  INSERT_CHART_COMMAND,
+  INSERT_ALERT_COMMAND,
   INSERT_CODEINLINE_COMMAND,
   INSERT_CODEMIRROR_COMMAND,
   INSERT_COLLAPSIBLE_COMMAND,
   INSERT_FILE_COMMAND,
+  INSERT_FOOTNOTE_COMMAND,
   INSERT_HEADING_COMMAND,
   INSERT_HORIZONTAL_RULE_COMMAND,
   INSERT_LINK_COMMAND,
   INSERT_MATH_COMMAND,
   INSERT_MENTION_COMMAND,
   INSERT_TABLE_COMMAND,
+  INSERT_VIDEO_COMMAND,
   type LinkEmbedRule,
-  ReactAutoCompletePlugin,
+  ReactAlertPlugin,
   ReactArtifactPlugin,
+  ReactAutoCompletePlugin,
   ReactBlockPlugin,
+  ReactChartPlugin,
   ReactCodePlugin,
   ReactCodemirrorPlugin,
   ReactCollapsiblePlugin,
   ReactFilePlugin,
+  ReactFootnotePlugin,
   ReactHRPlugin,
   ReactImagePlugin,
   ReactLinkPlugin,
   ReactListPlugin,
   ReactLiteXmlPlugin,
   ReactMathPlugin,
-  ReactNodePropertiesPlugin,
   ReactTablePlugin,
   ReactTocPlugin,
   ReactToolbarPlugin,
+  ReactVideoPlugin,
   ReactVirtualBlockPlugin,
   ReactYjsPlugin,
   type SchemaRule,
@@ -41,20 +54,20 @@ import {
   scrollIntoView,
 } from '@lobehub/editor';
 import { Editor, useEditor } from '@lobehub/editor/react';
-import { Avatar, type CollapseProps, Segmented } from '@lobehub/ui';
-import { Alert, Space, Tag } from 'antd';
-import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit';
 import {
+  ChartColumnIcon,
   Heading1Icon,
   Heading2Icon,
   Heading3Icon,
+  InfoIcon,
   ListCollapseIcon,
-  MessageSquareQuote,
   MinusIcon,
   PanelsTopLeftIcon,
   SigmaIcon,
+  SuperscriptIcon,
   Table2Icon,
+  VideoIcon,
 } from 'lucide-react';
 import { type FC, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -69,7 +82,7 @@ import {
 import { devConsole } from '@/utils/debug';
 
 import { createBroadcastChannelYjsProvider } from './BroadcastChannelYjsProvider';
-import Container from './Container';
+import Container, { type ContainerLayoutProps } from './Container';
 import Toolbar from './Toolbar';
 import { openFileSelector } from './actions';
 import localContent from './data.json';
@@ -238,53 +251,6 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     font-size: 12px;
     color: ${cssVar.colorTextSecondary};
   `,
-  annotationBubble: css`
-    display: grid;
-    gap: 8px;
-
-    min-width: 240px;
-    max-width: min(360px, calc(100vw - 32px));
-    padding: 12px;
-    border: 1px solid ${cssVar.colorBorderSecondary};
-    border-radius: 10px;
-
-    background: ${cssVar.colorBgElevated};
-    box-shadow: ${cssVar.boxShadowSecondary};
-  `,
-  annotationComposer: css`
-    display: grid;
-    gap: 10px;
-
-    width: min(360px, calc(100vw - 32px));
-    padding: 12px;
-    border: 1px solid ${cssVar.colorBorderSecondary};
-    border-radius: 10px;
-
-    background: ${cssVar.colorBgElevated};
-    box-shadow: ${cssVar.boxShadowSecondary};
-  `,
-  annotationAction: css`
-    cursor: pointer;
-
-    display: inline-flex;
-    gap: 6px;
-    align-items: center;
-
-    height: 36px;
-    padding-inline: 10px;
-    border: 0;
-    border-radius: 8px;
-
-    font-size: 13px;
-    color: ${cssVar.colorTextSecondary};
-
-    background: transparent;
-
-    &:hover {
-      color: ${cssVar.colorText};
-      background: ${cssVar.colorFillSecondary};
-    }
-  `,
   schemaLink: css`
     display: inline-grid;
     gap: 4px;
@@ -330,7 +296,7 @@ function getInitialYjsDemoMode(): 'broadcast' | 'websocket' {
     : 'broadcast';
 }
 
-type EditorDemoProps = Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'> & {
+type EditorDemoProps = ContainerLayoutProps & {
   content: unknown;
   onEditorReady?: (editor: IEditor) => void;
   providerFactory: YjsProviderFactory;
@@ -344,59 +310,6 @@ function getDocumentSafely<T>(editor: IEditor, type: string, fallback: T): T {
     return fallback;
   }
 }
-
-const AnnotationComposer: FC<AnnotationComposerContext> = ({ close, quotedText, submit }) => {
-  const [text, setText] = useState('');
-
-  return (
-    <div className={styles.annotationComposer}>
-      <Text type={'secondary'}>评论选中文本：{quotedText || '（无选中文本）'}</Text>
-      <TextArea
-        autoFocus
-        placeholder={'写下你的评论'}
-        rows={3}
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-      />
-      <Space direction={'horizontal'} size={8}>
-        <Button size={'small'} onClick={close}>
-          取消
-        </Button>
-        <Button
-          disabled={!text.trim()}
-          size={'small'}
-          type={'primary'}
-          onClick={() => submit({ kind: 'comment', payload: { text: text.trim() } })}
-        >
-          提交
-        </Button>
-      </Space>
-    </div>
-  );
-};
-
-const renderAnnotationBubble = ({ close, records }: AnnotationBubbleContext) => (
-  <div className={styles.annotationBubble}>
-    {records.map((record) => (
-      <div key={record.id}>
-        <Text strong>{record.kind === 'comment' ? '评论' : record.kind}</Text>
-        <div>{getAnnotationText(record.payload)}</div>
-      </div>
-    ))}
-    <Button size={'small'} type={'text'} onClick={close}>
-      关闭
-    </Button>
-  </div>
-);
-
-const getAnnotationText = (payload: AnnotationBubbleContext['records'][number]['payload']) => {
-  if (typeof payload === 'string') return payload;
-  if (payload && typeof payload === 'object' && !Array.isArray(payload) && 'text' in payload) {
-    const text = payload.text;
-    if (typeof text === 'string') return text;
-  }
-  return JSON.stringify(payload);
-};
 
 const amapIcon =
   'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22%3E%3Crect width=%2248%22 height=%2248%22 rx=%2210%22 fill=%22%23f6fbff%22/%3E%3Cpath d=%22M8 24 40 8 27 40l-5-13-14-3Z%22 fill=%22%231677ff%22/%3E%3Cpath d=%22m22 27 18-19-13 32-5-13Z%22 fill=%22%2300b96b%22 opacity=%22.82%22/%3E%3Cpath d=%22M8 24 40 8 19 29l3-2-14-3Z%22 fill=%22%2369c0ff%22/%3E%3C/svg%3E';
@@ -590,6 +503,14 @@ const EditorDemo: FC<EditorDemoProps> = ({
         },
       },
       {
+        icon: ChartColumnIcon,
+        key: 'chart',
+        label: 'Chart',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_CHART_COMMAND, undefined);
+        },
+      },
+      {
         icon: PanelsTopLeftIcon,
         key: 'artifact',
         label: 'Artifact',
@@ -628,6 +549,28 @@ const EditorDemo: FC<EditorDemoProps> = ({
         },
       },
       {
+        icon: InfoIcon,
+        key: 'callout',
+        label: 'Alert',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_ALERT_COMMAND, { alertType: 'note' });
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
+      {
+        icon: SuperscriptIcon,
+        key: 'footnote',
+        label: 'Footnote',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_FOOTNOTE_COMMAND, undefined);
+          queueMicrotask(() => {
+            editor.focus();
+          });
+        },
+      },
+      {
         key: 'file',
         label: 'File',
         onSelect: (editor) => {
@@ -636,6 +579,14 @@ const EditorDemo: FC<EditorDemoProps> = ({
               editor.dispatchCommand(INSERT_FILE_COMMAND, { file });
             }
           });
+        },
+      },
+      {
+        icon: VideoIcon,
+        key: 'video',
+        label: 'Video',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_VIDEO_COMMAND, {});
         },
       },
       {
@@ -734,6 +685,7 @@ const EditorDemo: FC<EditorDemoProps> = ({
           ReactArtifactPlugin,
           ReactBlockPlugin,
           ReactListPlugin,
+          ReactChartPlugin,
           Editor.withProps(ReactLinkPlugin, {
             allowedProtocols: ['schema:', 'alipay:'],
             labels: {
@@ -814,6 +766,8 @@ const EditorDemo: FC<EditorDemoProps> = ({
           ReactVirtualBlockPlugin,
           ReactCodemirrorPlugin,
           ReactCollapsiblePlugin,
+          ReactAlertPlugin,
+          ReactFootnotePlugin,
           ReactHRPlugin,
           ReactTablePlugin,
           ReactMathPlugin,
@@ -825,23 +779,8 @@ const EditorDemo: FC<EditorDemoProps> = ({
             providerFactory,
             username: tabUser.name,
           }),
-          Editor.withProps(ReactNodePropertiesPlugin, {
-            renderAnnotationBubble,
-            renderComposer: (context) => <AnnotationComposer {...context} />,
-          }),
           Editor.withProps(ReactToolbarPlugin, {
-            children: (
-              <Toolbar
-                annotationAction={
-                  <AnnotationToolbarAction className={styles.annotationAction} kind={'comment'}>
-                    <MessageSquareQuote size={16} />
-                    <span>评论</span>
-                  </AnnotationToolbarAction>
-                }
-                editor={editor}
-                floating
-              />
-            ),
+            children: <Toolbar editor={editor} floating />,
           }),
           Editor.withProps(ReactAutoCompletePlugin, {
             delay: 1000,
@@ -903,6 +842,16 @@ const EditorDemo: FC<EditorDemoProps> = ({
               return url.startsWith('blob:');
             },
           }),
+          Editor.withProps(ReactVideoPlugin, {
+            handleUpload: async (file) => {
+              devConsole.log('Video uploaded:', file);
+              return new Promise((resolve) => {
+                setTimeout(() => {
+                  resolve({ url: URL.createObjectURL(file) });
+                }, 1000);
+              });
+            },
+          }),
           Editor.withProps(ReactFilePlugin, {
             handleUpload: async (file) => {
               devConsole.log('Files uploaded:', file);
@@ -930,7 +879,7 @@ const EditorDemo: FC<EditorDemoProps> = ({
   );
 };
 
-const WebSocketJsonDemo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+const WebSocketJsonDemo: FC<ContainerLayoutProps> = (props) => {
   const [content, setContent] = useState<unknown>(null);
   const [connectionStatus, setConnectionStatus] =
     useState<WebSocketYjsProviderStatus>('disconnected');
@@ -993,12 +942,12 @@ const WebSocketJsonDemo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKe
 
   if (loadError) {
     return (
-      <Alert message={`WebSocket demo server is not ready: ${loadError}`} showIcon type="warning" />
+      <Alert showIcon title={`WebSocket demo server is not ready: ${loadError}`} type="warning" />
     );
   }
 
   if (!content) {
-    return <Alert message="Loading document JSON from demo server..." showIcon type="info" />;
+    return <Alert showIcon title="Loading document JSON from demo server..." type="info" />;
   }
 
   return (
@@ -1009,7 +958,7 @@ const WebSocketJsonDemo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKe
       }}
       providerFactory={providerFactory}
       renderControls={(editor) => (
-        <Space size={8}>
+        <Flexbox horizontal align={'center'} gap={8}>
           <Tag color={connectionStatusColors[connectionStatus]}>{connectionStatus}</Tag>
           <Text code fontSize={12} type="secondary">
             {saveStatus}
@@ -1031,14 +980,14 @@ const WebSocketJsonDemo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKe
           >
             Save JSON
           </Button>
-        </Space>
+        </Flexbox>
       )}
       {...props}
     />
   );
 };
 
-const Demo: FC<Pick<CollapseProps, 'collapsible' | 'defaultActiveKey'>> = (props) => {
+const Demo: FC<ContainerLayoutProps> = (props) => {
   const [mode, setMode] = useState<'broadcast' | 'websocket'>(getInitialYjsDemoMode);
 
   return (

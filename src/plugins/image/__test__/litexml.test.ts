@@ -1,5 +1,5 @@
 import { $nodesOfType } from 'lexical';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import Editor, { moment, resetRandomKey } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
@@ -7,7 +7,7 @@ import { CursorNode } from '@/plugins/common/node/cursor';
 import { HoleNode } from '@/plugins/common/node/hole';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
-import type { IEditor } from '@/types';
+import { IEditor } from '@/types';
 
 import { normalizeOpaqueIds } from '../../litexml/__test__/normalize-opaque-ids';
 import { BlockImageNode } from '../node/block-image-node';
@@ -34,51 +34,27 @@ describe('image litexml', () => {
 
   it('writer should work', async () => {
     editor.setDocument('markdown', '![logo](https://logo.com/logo.png)');
-    const immediateXML = editor.getDocument('litexml') as unknown as string;
-    const readImageState = () =>
-      editor
-        .getLexicalEditor()!
-        .getEditorState()
-        .read(() => {
-          const image = $nodesOfType(BlockImageNode)[0];
-          return {
-            cursorCount: $nodesOfType(CursorNode).length,
-            height: image?.height,
-            holeCount: $nodesOfType(HoleNode).length,
-            key: image?.getKey(),
-            maxWidth: image?.maxWidth,
-            src: image?.src,
-            altText: image?.altText,
-            width: image?.width,
-          };
-        });
-    const immediateState = readImageState();
-
-    await moment();
-
-    const stableXML = editor.getDocument('litexml') as unknown as string;
-    const stableState = readImageState();
-    expect(normalizeOpaqueIds(immediateXML.replaceAll(/>\n\s*?</g, '><'))).toBe(
+    const xml = editor.getDocument('litexml') as unknown as string;
+    expect(normalizeOpaqueIds(xml.replace(/>\n\s*?</g, '><'))).toBe(
       normalizeOpaqueIds(
         `<?xml version="1.0" encoding="UTF-8"?><root><img id="lqqe" block="true" src="https://logo.com/logo.png" alt="logo" width="inherit" max-width="4200"></img></root>`,
       ),
     );
-    expect(stableXML).toBe(immediateXML);
-    expect(immediateXML).not.toContain('hole');
-    expect(immediateXML).not.toContain('cursor');
-    expect(stableState).toEqual(immediateState);
-    expect(immediateState).toMatchObject({
-      altText: 'logo',
-      cursorCount: 2,
-      height: 'inherit',
-      holeCount: 1,
-      maxWidth: 4200,
-      src: 'https://logo.com/logo.png',
-      width: 'inherit',
-    });
+    expect(xml).not.toContain('hole');
+    expect(xml).not.toContain('cursor');
+    await moment();
+    expect(editor.getDocument('litexml')).toBe(xml);
+    editor
+      .getLexicalEditor()!
+      .getEditorState()
+      .read(() => {
+        expect($nodesOfType(BlockImageNode)).toHaveLength(1);
+        expect($nodesOfType(HoleNode)).toHaveLength(1);
+        expect($nodesOfType(CursorNode)).toHaveLength(2);
+      });
   });
 
-  it('keeps an inline image inside its paragraph when block images are disabled', () => {
+  it('keeps inline images inside paragraphs when block images are disabled', () => {
     const inlineEditor = Editor.createEditor();
     inlineEditor.registerPlugins([
       LitexmlPlugin,

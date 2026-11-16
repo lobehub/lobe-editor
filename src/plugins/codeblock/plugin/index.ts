@@ -25,11 +25,11 @@ import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
-import { CustomShikiTokenizer, registerCodeCommand } from '../command';
+import { CustomTokenizer, registerCodeCommand } from '../command';
 import { registerCodeblockHoleEntry } from '../command/hole-entry';
 import { codeBlockRewriteAdapter } from '../rewrite-adapter';
 import { getCodeLanguageByInput } from '../utils/language';
-import { registerCodeHighlighting, toCodeTheme } from './CodeHighlighterShiki';
+import { registerCodeHighlighting, toCodeTheme } from './CodeHighlighter';
 
 const origin = CodeNode.importDOM;
 
@@ -57,8 +57,8 @@ CodeNode.importDOM = () => {
 };
 
 export interface CodeblockPluginOptions {
-  /** Shiki theme name to use for syntax highlighting */
-  shikiTheme?:
+  /** Syntax highlighting theme id, or one per color scheme */
+  codeTheme?:
     | string
     | {
         dark: string;
@@ -70,7 +70,7 @@ export interface CodeblockPluginOptions {
   };
 }
 
-function toMarkdownTheme(theme: CodeblockPluginOptions['shikiTheme']) {
+function toMarkdownTheme(theme: CodeblockPluginOptions['codeTheme']) {
   if (!theme) {
     return '';
   }
@@ -101,8 +101,8 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
       code: config.theme?.code || 'editor-code',
     });
 
-    if (this.config?.shikiTheme) {
-      CustomShikiTokenizer.defaultTheme = this.config?.shikiTheme;
+    if (this.config?.codeTheme) {
+      CustomTokenizer.defaultTheme = this.config?.codeTheme;
     }
     this.register(registerBlockRewriteAdapter(kernel, codeBlockRewriteAdapter));
   }
@@ -113,8 +113,8 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
     this.register(registerCodeblockHoleEntry(editor));
 
     if (!isHeadlessEditor(editor)) {
-      if (this.config?.shikiTheme) {
-        this.register(registerCodeHighlighting(editor, CustomShikiTokenizer));
+      if (this.config?.codeTheme) {
+        this.register(registerCodeHighlighting(editor, CustomTokenizer));
       } else {
         this.register(registerCodeHighlighting(editor));
       }
@@ -249,7 +249,7 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
         indent: 0,
         language: xmlElment.getAttribute('lang'),
         textStyle: '--shiki-dark:var(--color-info);--shiki-light:var(--color-info)',
-        theme: `${toMarkdownTheme(this.config?.shikiTheme)} needUpdate`,
+        theme: `${toMarkdownTheme(this.config?.codeTheme)} needUpdate`,
         version: 1,
       });
     });
@@ -268,7 +268,7 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
       replace: (parentNode, _, match) => {
         const code = $createCodeNode(
           getCodeLanguageByInput(match[2]),
-          toCodeTheme(CustomShikiTokenizer),
+          toCodeTheme(CustomTokenizer),
         );
 
         parentNode.replace(code);
@@ -326,7 +326,7 @@ export const CodeblockPlugin: IEditorPluginConstructor<CodeblockPluginOptions> =
         indent: 0,
         language,
         textStyle: '--shiki-dark:var(--color-info);--shiki-light:var(--color-info)',
-        theme: `${toMarkdownTheme(this.config?.shikiTheme)} needUpdate`,
+        theme: `${toMarkdownTheme(this.config?.codeTheme)} needUpdate`,
         version: 1,
       });
     });

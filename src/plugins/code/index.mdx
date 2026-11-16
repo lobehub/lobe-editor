@@ -43,9 +43,10 @@ The plugin introduces a custom `CodeNode` that extends `CardLikeElementNode`:
 
 React component wrapper for the code plugin functionality.
 
-| Property  | Description           | Type     | Default |
-| --------- | --------------------- | -------- | ------- |
-| className | Custom CSS class name | `string` | -       |
+| Property     | Description                                  | Type      | Default |
+| ------------ | -------------------------------------------- | --------- | ------- |
+| className    | Extra class name for inline code             | `string`  | -       |
+| enableHotkey | Enable the inline code shortcut (`Mod+E`)    | `boolean` | `true`  |
 
 ## Commands
 
@@ -70,9 +71,10 @@ editor.dispatchCommand(INSERT_CODEINLINE_COMMAND, undefined);
 
 ### CodePluginOptions
 
-| Property | Description                 | Type     | Default         |
-| -------- | --------------------------- | -------- | --------------- |
-| theme    | CSS class for code elements | `string` | `'editor-code'` |
+| Property     | Description                       | Type      | Default         |
+| ------------ | --------------------------------- | --------- | --------------- |
+| enableHotkey | Enable the inline code shortcut   | `boolean` | `true`          |
+| theme        | Class name for inline code        | `string`  | `'editor-code'` |
 
 ## Node API
 

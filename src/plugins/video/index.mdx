@@ -1,0 +1,141 @@
+---
+title: Video
+description: Video plugin adds a block video node played with the lobe-ui Video player, with upload or link embedding, a shared Auto / % / px width control, captions, and Markdown, HTML and LiteXML round-trip.
+category: Plugins
+---
+
+import DemoIndex from './demos/index.tsx?demo';
+
+## Introduction
+
+The Video plugin adds a `video` block node. Insert it from the slash menu (`INSERT_VIDEO_COMMAND`), by dropping or pasting a `video/*` file, or by pasting HTML that contains a `<video>`. Playback uses the `Video` component from `@lobehub/ui`. Width uses the same control as block images.
+
+## Basic Usage
+
+<Demo editable={false} of={DemoIndex} />
+
+```tsx
+import { ReactVideoPlugin } from '@lobehub/editor';
+import { Editor } from '@lobehub/editor/react';
+
+<Editor
+  plugins={[Editor.withProps(ReactVideoPlugin, { handleUpload: async (file) => upload(file) })]}
+/>;
+```
+
+## States
+
+- **Empty**: `src` is empty. Shows Upload (when `handleUpload` is set) and Embed link.
+- **Uploading**: `status: 'loading'` while `handleUpload` runs.
+- **Error**: `status: 'error'` after a failed upload, with Replace and Embed link.
+- **Ready**: the player. Hover or select it to open the settings popover (source URL, width, loop, replace, delete) from the gear button. Selected videos show a caption field below.
+
+## Width
+
+| Mode | Field          | Behaviour                                                        |
+| ---- | -------------- | ---------------------------------------------------------------- |
+| Auto | —              | Natural size, capped at the content width                        |
+| %    | `displayWidth` | 10–100 percent of the content width; snaps to 25 / 50 / 75 / 100 |
+| px   | `fixedWidth`   | Fixed pixel width, capped at the content width                   |
+
+`displayWidth` wins over `fixedWidth`; setting one clears the other.
+
+## Slash Menu
+
+Add an item to `slashOption.items`:
+
+```tsx
+import { INSERT_VIDEO_COMMAND } from '@lobehub/editor';
+import { VideoIcon } from 'lucide-react';
+
+const videoItem = {
+  icon: VideoIcon,
+  key: 'video',
+  label: 'Video',
+  onSelect: (editor) => editor.dispatchCommand(INSERT_VIDEO_COMMAND, {}),
+};
+```
+
+## Commands
+
+### INSERT_VIDEO_COMMAND
+
+```typescript
+editor.dispatchCommand(INSERT_VIDEO_COMMAND, {}); // empty placeholder
+editor.dispatchCommand(INSERT_VIDEO_COMMAND, { src: 'https://cdn/a.mp4' });
+editor.dispatchCommand(INSERT_VIDEO_COMMAND, { file }); // uploads with handleUpload
+```
+
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| file | `video/*` file to upload; ignored (returns `false`) for other types | `File` | - |
+| src | Video URL to insert | `string` | - |
+| poster | Poster image URL | `string` | - |
+| range | DOM range to insert at | `Range \| null` | - |
+
+## Serialization
+
+### Markdown
+
+Written as an HTML tag. Percent widths use `style`, px widths use `width`; the caption is `title`:
+
+```html
+<video
+  src="https://cdn/a.mp4"
+  poster="https://cdn/p.jpg"
+  title="Caption"
+  style="width: 75%"
+  controls
+  loop
+></video>
+```
+
+The reader also accepts `<video src="…" />` and `<video><source src="…" type="video/mp4"></video>` (the first `<source>` wins when `src` is missing). `autoplay` and unknown attributes are dropped, `javascript:` sources are rejected, and a plain link to an `.mp4` stays a link.
+
+### HTML
+
+Pasted `<video>` elements and `<figure><video></video><figcaption></figcaption></figure>` become video nodes. Export writes the same `<figure>` shape.
+
+### LiteXML
+
+```xml
+<video src="https://cdn/a.mp4" poster="https://cdn/p.jpg" caption="Caption" width="1280" height="720" display-width="75" loop="true"></video>
+```
+
+### JSON
+
+```typescript
+interface SerializedVideoNode {
+  type: 'video';
+  src: string;
+  poster?: string;
+  caption?: string;
+  width?: number;
+  height?: number;
+  displayWidth?: number;
+  fixedWidth?: number;
+  loop?: boolean;
+  status?: 'uploaded' | 'loading' | 'error';
+}
+```
+
+## APIs
+
+### ReactVideoPlugin
+
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| handleUpload | Upload a picked, dropped or pasted video | `(file: File) => Promise<{ url }>` | - |
+| onPickFile | Custom file picker (e.g. Electron) | `() => Promise<File \| null>` | - |
+| className | Class name for the video figure | `string` | - |
+| theme | Theme class names | `{ video?: string }` | - |
+
+### VideoPluginOptions
+
+| Property | Description | Type | Default |
+| --- | --- | --- | --- |
+| decorator | Render the decorator for a video node | `(node, editor) => any` | - |
+| handleUpload | Upload handler; also registers `video/*` with the upload service | `(file: File) => Promise<{ url }>` | - |
+| theme | CSS theme configuration | `{ video?: string }` | - |
+
+`VideoPlugin` is part of `DEFAULT_HEADLESS_EDITOR_PLUGINS`, and `LexicalRenderer` renders saved videos read-only.

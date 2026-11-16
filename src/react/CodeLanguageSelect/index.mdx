@@ -1,6 +1,6 @@
 ---
 title: CodeLanguageSelect
-description: CodeLanguageSelect is a specialized select component for choosing programming languages. It provides a comprehensive list of programming languages with icons, built on top of the Shiki syntax highlighting library and LobeHub UI components.
+description: CodeLanguageSelect is a specialized select component for choosing programming languages. It lists every language the code block can highlight, each with a file type icon.
 category: Data Entry
 ---
 
@@ -8,7 +8,7 @@ import DemoIndex from './demos/index.tsx?demo';
 
 ## Introduction
 
-CodeLanguageSelect is a specialized select component that provides an extensive list of programming languages for code editing interfaces. It leverages the Shiki library's bundled language information to offer a comprehensive selection of programming languages, each displayed with appropriate file type icons for better visual recognition.
+CodeLanguageSelect is a specialized select component that provides an extensive list of programming languages for code editing interfaces. Its options come from `codeLanguages`, the languages the code block highlights, each displayed with a file type icon.
 
 ## Basic Usage
 
@@ -28,4 +28,4 @@ This component extends the `SelectProps` from `@lobehub/ui` and automatically pr
 | placeholder | Placeholder text        | `SelectProps['placeholder']` | -       |
 | disabled    | Disable the select      | `boolean`                    | `false` |
 
-Note: This component automatically includes all programming languages supported by Shiki, plus a "Plaintext" option. Each language option displays with its corresponding file type icon for better visual identification.
+Note: This component includes every entry of `codeLanguages`, plus a "Plaintext" option. Each language option displays with its corresponding file type icon for better visual identification.

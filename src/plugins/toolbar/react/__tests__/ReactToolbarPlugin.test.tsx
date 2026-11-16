@@ -72,13 +72,10 @@ vi.mock('@lobehub/ui', async () => {
       ),
     ),
     LOBE_THEME_APP_ID: 'lobe-theme-app',
+    cx: (...classNames: Array<string | undefined>) => classNames.filter(Boolean).join(' '),
+    useThemeMode: () => ({ isDarkMode: false }),
   };
 });
-
-vi.mock('antd-style', () => ({
-  cx: (...classNames: Array<string | undefined>) => classNames.filter(Boolean).join(' '),
-  useThemeMode: () => ({ isDarkMode: false }),
-}));
 
 vi.mock('@/editor-kernel/react', async () => {
   const React = await vi.importActual<typeof import('react')>('react');

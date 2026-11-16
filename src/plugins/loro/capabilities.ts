@@ -116,6 +116,15 @@ const dimension = (value: unknown): number | undefined =>
 const stringAttr = (data: LoroNodeData, key: string, fallback = ''): string =>
   typeof data.attrs[key] === 'string' ? (data.attrs[key] as string) : fallback;
 
+const readImageMeta = (attrs: Record<string, unknown>) => ({
+  accent: typeof attrs.accent === 'string' ? attrs.accent : undefined,
+  caption: typeof attrs.caption === 'string' ? attrs.caption : undefined,
+  displayWidth: typeof attrs.displayWidth === 'number' ? attrs.displayWidth : undefined,
+  naturalHeight: typeof attrs.naturalHeight === 'number' ? attrs.naturalHeight : undefined,
+  naturalWidth: typeof attrs.naturalWidth === 'number' ? attrs.naturalWidth : undefined,
+  thumbhash: typeof attrs.thumbhash === 'string' ? attrs.thumbhash : undefined,
+});
+
 const applyListAttrs = (node: LexicalNode, attrs: Record<string, unknown>): void => {
   const list = node as ListNode;
   if (typeof attrs.listType === 'string') {
@@ -132,18 +141,52 @@ const applyListItemAttrs = (node: LexicalNode, attrs: Record<string, unknown>): 
   }
 };
 
-const applyBlockImageAttrs = (node: LexicalNode, attrs: Record<string, unknown>): void => {
-  const image = node as BlockImageNode;
-  if (typeof attrs.src === 'string') image.setSrc(attrs.src);
-  if (typeof attrs.altText === 'string') image.setAltText(attrs.altText);
-  if (typeof attrs.maxWidth === 'number') image.setMaxWidth(attrs.maxWidth);
-  if ('width' in attrs) {
-    image.setWidth(typeof attrs.width === 'number' && attrs.width !== 0 ? attrs.width : 'inherit');
+const applyImageMetaAttrs = (
+  image: BlockImageNode | ImageNode,
+  attrs: Record<string, unknown>,
+  previousAttrs: Record<string, unknown> = {},
+): void => {
+  const hasAttr = (key: string) => key in attrs || key in previousAttrs;
+  if (hasAttr('displayWidth')) {
+    image.setDisplaySize(
+      typeof attrs.displayWidth === 'number'
+        ? { mode: 'percent', value: attrs.displayWidth }
+        : { mode: 'auto' },
+    );
   }
-  if ('height' in attrs) {
-    image.setHeight(
+  if (hasAttr('caption')) image.setCaption(typeof attrs.caption === 'string' ? attrs.caption : '');
+  if (hasAttr('thumbhash')) {
+    image.setThumbhash(typeof attrs.thumbhash === 'string' ? attrs.thumbhash : undefined);
+  }
+  if (hasAttr('accent')) {
+    image.setAccent(typeof attrs.accent === 'string' ? attrs.accent : undefined);
+  }
+  if (hasAttr('naturalWidth') || hasAttr('naturalHeight')) {
+    image.setNaturalSize(
+      typeof attrs.naturalWidth === 'number' ? attrs.naturalWidth : undefined,
+      typeof attrs.naturalHeight === 'number' ? attrs.naturalHeight : undefined,
+    );
+  }
+};
+
+const applyBlockImageAttrs = (
+  node: LexicalNode,
+  attrs: Record<string, unknown>,
+  previousAttrs: Record<string, unknown> = {},
+): void => {
+  const image = node as BlockImageNode;
+  const hasAttr = (key: string) => key in attrs || key in previousAttrs;
+  if (typeof attrs.src === 'string') image.setUploaded(attrs.src);
+  if (typeof attrs.altText === 'string') image.setAltText(attrs.altText);
+  applyImageMetaAttrs(image, attrs, previousAttrs);
+  if (hasAttr('width') || hasAttr('height')) {
+    image.setWidthAndHeight(
+      typeof attrs.width === 'number' && attrs.width !== 0 ? attrs.width : 'inherit',
       typeof attrs.height === 'number' && attrs.height !== 0 ? attrs.height : 'inherit',
     );
+  }
+  if (hasAttr('maxWidth')) {
+    image.setMaxWidth(typeof attrs.maxWidth === 'number' ? attrs.maxWidth : 0);
   }
   if (attrs.status === 'uploaded' || attrs.status === 'loading' || attrs.status === 'error') {
     image.setStatus(attrs.status);
@@ -226,15 +269,24 @@ const applyLinkCardAttrs = (node: LexicalNode, attrs: Record<string, unknown>): 
   }
 };
 
-const applyImageAttrs = (node: LexicalNode, attrs: Record<string, unknown>): void => {
+const applyImageAttrs = (
+  node: LexicalNode,
+  attrs: Record<string, unknown>,
+  previousAttrs: Record<string, unknown> = {},
+): void => {
   const image = node as ImageNode;
+  const hasAttr = (key: string) => key in attrs || key in previousAttrs;
   if (typeof attrs.src === 'string') image.setUploaded(attrs.src);
-  if (typeof attrs.maxWidth === 'number') image.setMaxWidth(attrs.maxWidth);
-  if (typeof attrs.width === 'number' || typeof attrs.height === 'number') {
+  if (typeof attrs.altText === 'string') image.setAltText(attrs.altText);
+  applyImageMetaAttrs(image, attrs, previousAttrs);
+  if (hasAttr('width') || hasAttr('height')) {
     image.setWidthAndHeight(
       typeof attrs.width === 'number' && attrs.width !== 0 ? attrs.width : 'inherit',
       typeof attrs.height === 'number' && attrs.height !== 0 ? attrs.height : 'inherit',
     );
+  }
+  if (hasAttr('maxWidth')) {
+    image.setMaxWidth(typeof attrs.maxWidth === 'number' ? attrs.maxWidth : 0);
   }
   if (attrs.status === 'uploaded' || attrs.status === 'loading' || attrs.status === 'error') {
     image.setStatus(attrs.status);
@@ -376,6 +428,7 @@ export const createDefaultLoroCapabilities = (): LoroNodeCapability[] => [
   {
     create: (data) =>
       $createBlockImageNode({
+        ...readImageMeta(data.attrs),
         altText: stringAttr(data, 'altText'),
         height: dimension(data.attrs.height),
         maxWidth: typeof data.attrs.maxWidth === 'number' ? data.attrs.maxWidth : 4200,
@@ -527,6 +580,7 @@ export const createDefaultLoroCapabilities = (): LoroNodeCapability[] => [
   {
     create: (data) =>
       $createImageNode({
+        ...readImageMeta(data.attrs),
         altText: stringAttr(data, 'altText'),
         height: typeof data.attrs.height === 'number' ? data.attrs.height : undefined,
         maxWidth: typeof data.attrs.maxWidth === 'number' ? data.attrs.maxWidth : 4200,

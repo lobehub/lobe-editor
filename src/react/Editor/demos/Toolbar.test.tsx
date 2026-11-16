@@ -75,6 +75,19 @@ vi.mock('@lobehub/editor/react', async () => {
 
 vi.mock('@lobehub/ui', () => ({
   Block: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  createStaticStyles: (
+    factory: (tokens: {
+      css: (strings: TemplateStringsArray, ...values: unknown[]) => string;
+      cssVar: Record<string, string>;
+    }) => Record<string, string>,
+  ) => {
+    const styles = factory({
+      css: () => '',
+      cssVar: new Proxy({} as Record<string, string>, { get: () => '' }),
+    });
+    return Object.fromEntries(Object.keys(styles).map((key) => [key, `mock-${key}`]));
+  },
+  cx: (...values: Array<string | undefined>) => values.filter(Boolean).join(' '),
 }));
 
 vi.mock('antd-style', () => ({

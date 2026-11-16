@@ -297,6 +297,38 @@ describe('LexicalRenderer', () => {
     expect(html).toContain('alt="test image"');
   });
 
+  it('clamps image max width so it never overflows the container', () => {
+    const html = toHTML(
+      makeEditorState([
+        {
+          altText: 'wide chart',
+          maxWidth: 4200,
+          src: 'https://example.com/wide.png',
+          type: 'image',
+          version: 1,
+        },
+      ]),
+    );
+
+    expect(html).toContain('max-width:min(4200px, 100%)');
+  });
+
+  it('clamps block image max width so it never overflows the container', () => {
+    const html = toHTML(
+      makeEditorState([
+        {
+          altText: 'wide chart',
+          maxWidth: 4200,
+          src: 'https://example.com/wide.png',
+          type: 'block-image',
+          version: 1,
+        },
+      ]),
+    );
+
+    expect(html).toContain('max-width:min(4200px, 100%)');
+  });
+
   it('renders mention with class', () => {
     const value = makeEditorState([{ label: 'Alice', type: 'mention', version: 1 }]);
 

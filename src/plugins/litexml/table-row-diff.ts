@@ -4,9 +4,11 @@ import {
   $isTableNode,
   type TableRowNode,
 } from '@lexical/table';
-import type { ElementNode, LexicalEditor } from 'lexical';
+import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
 import { $nodesOfType } from 'lexical';
 
+import { $copyNodeProperties } from '@/plugins/common/node/node-id';
+import { $setNodeProperties } from '@/plugins/properties/state';
 import { $prepareCopiedNode, $preserveNodeIdentity } from '@/plugins/properties/utils';
 
 import {
@@ -25,6 +27,19 @@ import { $cloneNode } from './utils';
 export interface TableRowDiffPair {
   add: TableRowDiffNode;
   remove: TableRowDiffNode;
+}
+
+/** Copy durable row metadata without leaking one-shot review command markers. */
+function copyPersistentTableRowProperties(source: LexicalNode, target: LexicalNode): void {
+  $copyNodeProperties(source, target);
+  $setNodeProperties(target, (previous) => {
+    const next = { ...previous };
+    delete next.rewriteRequestId;
+    delete next.rewriteCommandId;
+    delete next.rewriteAttempt;
+    delete next.rewriteIdentityMap;
+    return next;
+  });
 }
 
 export function $areTableRowStructuresCompatible(
@@ -66,6 +81,7 @@ export function $createTableRowDiffFromRow(
     source.getChildren().forEach($prepareCopiedNode);
   }
   const diffRow = $createTableRowDiffNode(diffType, changeId, row.getHeight());
+  $copyNodeProperties(row, diffRow);
   captureTableDiffLogicalIdentity(row, diffRow);
   normalizeTableDiffWrapperIdentity(diffRow);
   diffRow.append(...source.getChildren());
@@ -77,6 +93,7 @@ export function $createPlainTableRowFromDiff(
   row: TableRowDiffNode,
 ): TableRowNode {
   const plainRow = $createTableRowNode(row.getHeight());
+  copyPersistentTableRowProperties(row, plainRow);
   restoreTableDiffLogicalIdentity(row, plainRow);
   if (row.getDiffType() === 'add') copyTableDiffReviewMetadata(row, plainRow);
   const pair = $getTableRowDiffPair(row);

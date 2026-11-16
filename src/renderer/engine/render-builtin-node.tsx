@@ -1,5 +1,7 @@
 import { createElement, type CSSProperties, type ReactNode } from 'react';
 
+import { claimHeadingSlug } from '@/utils/heading-slug';
+
 import { getListClassName, getTableWrapperClassName } from '../style';
 import { parseCSSText } from './utils';
 
@@ -45,19 +47,6 @@ function formatLinkHighlightUrl(url: string): string {
   return url;
 }
 
-function textToSlug(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replaceAll(/[^\s\w\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF-]/g, '')
-    .replaceAll(/[\s_]+/g, '-')
-    .replaceAll(/^-+|-+$/g, '');
-}
-
-// `.editor_table` sets `table-layout: fixed`, so a table without column widths
-// collapses to its minimum width instead of filling the container.
-const FLUID_TABLE_STYLE: CSSProperties = { width: '100%' };
-
 function toTableColWidths(value: unknown): number[] | null {
   if (!Array.isArray(value) || value.length === 0) {
     return null;
@@ -77,7 +66,7 @@ const DIFF_LIST_ITEM_ROOT_STYLE: CSSProperties = {
 };
 
 const DIFF_DELETED_STYLE: CSSProperties = {
-  color: 'var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.45))',
+  color: 'var(--lobe-color-text-quaternary, rgba(0, 0, 0, 0.45))',
   textDecoration: 'line-through',
 };
 
@@ -96,10 +85,10 @@ function renderDiffNode(
 
   const borderColor =
     diffType === 'add' || diffType === 'listItemAdd'
-      ? 'var(--ant-color-success, #52c41a)'
+      ? 'var(--lobe-color-success, #52c41a)'
       : diffType === 'remove' || diffType === 'listItemRemove'
-        ? 'var(--ant-color-error, #ff4d4f)'
-        : 'var(--ant-color-warning, #faad14)';
+        ? 'var(--lobe-color-error, #ff4d4f)'
+        : 'var(--lobe-color-warning, #faad14)';
 
   const contentStyle: CSSProperties =
     diffType === 'unchanged'
@@ -181,18 +170,7 @@ export function renderBuiltinNode(
     }
     case 'heading': {
       const tag = node.tag as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-      const text = textContent || '';
-      const baseSlug = textToSlug(text);
-      let slug = baseSlug;
-      if (baseSlug) {
-        const count = headingSlugs.get(baseSlug);
-        if (count !== undefined) {
-          slug = `${baseSlug}-${count}`;
-          headingSlugs.set(baseSlug, count + 1);
-        } else {
-          headingSlugs.set(baseSlug, 1);
-        }
-      }
+      const slug = claimHeadingSlug(textContent || '', headingSlugs);
       return createElement(tag, { id: slug || undefined, key }, children);
     }
     case 'quote': {
@@ -258,16 +236,18 @@ export function renderBuiltinNode(
 
       return (
         <div className={getTableWrapperClassName()} key={key}>
-          <table className="editor_table" style={colWidths ? undefined : FLUID_TABLE_STYLE}>
-            {colWidths && (
-              <colgroup>
-                {colWidths.map((width, index) => (
-                  <col key={index} style={{ width }} />
-                ))}
-              </colgroup>
-            )}
-            <tbody>{children}</tbody>
-          </table>
+          <div className="lobe-editor-table-scroll-wrapper">
+            <table className="editor_table" data-lobe-table-fluid={colWidths ? undefined : 'true'}>
+              {colWidths && (
+                <colgroup>
+                  {colWidths.map((width, index) => (
+                    <col key={index} style={{ width }} />
+                  ))}
+                </colgroup>
+              )}
+              <tbody>{children}</tbody>
+            </table>
+          </div>
         </div>
       );
     }
@@ -282,6 +262,8 @@ export function renderBuiltinNode(
       if (node.width) cellStyle.width = `${node.width}px`;
       if (node.backgroundColor) cellStyle.backgroundColor = node.backgroundColor as string;
       if (node.verticalAlign) cellStyle.verticalAlign = node.verticalAlign as string;
+      const textAlign = node.format || node.colAlign;
+      if (textAlign) cellStyle.textAlign = textAlign as string;
       return (
         <CellTag
           className={cls}

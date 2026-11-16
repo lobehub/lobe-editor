@@ -4,10 +4,11 @@ import { $getNodeByKey, HISTORIC_TAG, PASTE_TAG, SKIP_SCROLL_INTO_VIEW_TAG } fro
 import { useEffect, useRef } from 'react';
 
 import { syncTableWidthDOM } from '../utils';
-import { getDistributedTableColumnWidths } from '../utils/distributeColumnWidth';
+import { getHorizontalBorderWidth } from '../utils/distributeColumnWidth';
 
 const MAX_AUTO_FIT_ATTEMPTS = 3;
 const MIN_COLUMN_WIDTH = 75;
+const LEXICAL_EXPORTED_CELL_WIDTH = 75;
 
 const isPositiveNumber = (width: number | null | undefined): width is number => {
   return typeof width === 'number' && Number.isFinite(width) && width > 0;
@@ -23,36 +24,12 @@ const hasValidColumnWidths = (
   );
 };
 
-const parseWidth = (value: string | null | undefined) => {
-  if (!value) return null;
-
-  const match = value.trim().match(/^(\d+(?:\.\d+)?)px?$|^(\d+(?:\.\d+)?)$/);
-  if (!match) return null;
-
-  const width = Number.parseFloat(match[1] || match[2]);
-  return Number.isFinite(width) && width > 0 ? width : null;
-};
-
 const getTableElement = (editor: LexicalEditor, tableKey: NodeKey) => {
   const tableElement = editor.getElementByKey(tableKey);
 
   return tableElement instanceof HTMLTableElement
     ? tableElement
     : tableElement?.querySelector<HTMLTableElement>('table.editor_table, table') || null;
-};
-
-const getHorizontalBorderWidth = (tableElement: HTMLTableElement) => {
-  const firstRow = tableElement.rows[0];
-  if (!firstRow) return 0;
-
-  return Array.from(firstRow.cells).reduce((total, cell, index) => {
-    const style = getComputedStyle(cell);
-    const borderInlineStartWidth =
-      index === 0 ? Number.parseFloat(style.borderInlineStartWidth) || 0 : 0;
-    const borderInlineEndWidth = Number.parseFloat(style.borderInlineEndWidth) || 0;
-
-    return total + borderInlineStartWidth + borderInlineEndWidth;
-  }, 0);
 };
 
 const getTargetTableWidth = (tableElement: HTMLTableElement, columnCount: number) => {
@@ -134,51 +111,6 @@ const fitColumnWidths = (
   return nextWidths;
 };
 
-const getDOMColumnWidths = (tableElement: HTMLTableElement, columnCount: number) => {
-  const colWidths = Array.from(tableElement.querySelectorAll(':scope > colgroup > col'))
-    .slice(0, columnCount)
-    .map(
-      (col) =>
-        parseWidth((col as HTMLTableColElement).style.width) ??
-        parseWidth(col.getAttribute('width')),
-    );
-
-  if (colWidths.length === columnCount && colWidths.every(isPositiveNumber)) {
-    return colWidths;
-  }
-
-  const firstRow = tableElement.rows[0];
-  if (!firstRow) {
-    return null;
-  }
-
-  const widths: Array<number | null> = Array.from({ length: columnCount }, () => null);
-  let columnIndex = 0;
-
-  for (const cell of Array.from(firstRow.cells)) {
-    while (columnIndex < columnCount && widths[columnIndex] !== null) {
-      columnIndex += 1;
-    }
-
-    if (columnIndex >= columnCount) break;
-
-    const colSpan = Math.max(1, cell.colSpan || 1);
-    const cellWidth =
-      parseWidth(cell.style.width) ??
-      parseWidth(cell.getAttribute('width')) ??
-      cell.getBoundingClientRect().width;
-    const width = Number.isFinite(cellWidth) && cellWidth > 0 ? cellWidth / colSpan : null;
-
-    for (let index = 0; index < colSpan && columnIndex + index < columnCount; index += 1) {
-      widths[columnIndex + index] = width;
-    }
-
-    columnIndex += colSpan;
-  }
-
-  return widths.every(isPositiveNumber) ? widths : null;
-};
-
 const getCellColumnWidths = (tableNode: TableNode, columnCount: number) => {
   const [tableMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
   const firstRow = tableMap[0];
@@ -206,29 +138,29 @@ const getCellColumnWidths = (tableNode: TableNode, columnCount: number) => {
   return widths.every(isPositiveNumber) ? widths : null;
 };
 
-const getSourceColumnWidths = (
-  editor: LexicalEditor,
-  tableNode: TableNode,
-  tableElement: HTMLTableElement,
-  columnCount: number,
-) => {
+const getSourceColumnWidths = (tableNode: TableNode, columnCount: number) => {
   const colWidths = tableNode.getColWidths();
   if (hasValidColumnWidths(colWidths, columnCount)) {
     return [...colWidths];
   }
 
-  return (
-    getCellColumnWidths(tableNode, columnCount) ?? getDOMColumnWidths(tableElement, columnCount)
-  );
+  const cellWidths = getCellColumnWidths(tableNode, columnCount);
+  // Lexical's exportDOM writes this width on every cell, so a table copied out of the editor carries no real widths.
+  if (!cellWidths || cellWidths.every((width) => width === LEXICAL_EXPORTED_CELL_WIDTH)) {
+    return null;
+  }
+
+  return cellWidths;
 };
 
-const getFittedTableColumnWidths = (
-  editor: LexicalEditor,
-  tableNode: TableNode,
-  isPastedTable: boolean,
-) => {
+const getFittedTableColumnWidths = (editor: LexicalEditor, tableNode: TableNode) => {
   const columnCount = tableNode.getColumnCount();
   if (columnCount === 0) {
+    return null;
+  }
+
+  const sourceWidths = getSourceColumnWidths(tableNode, columnCount);
+  if (!sourceWidths) {
     return null;
   }
 
@@ -242,12 +174,7 @@ const getFittedTableColumnWidths = (
     return null;
   }
 
-  const sourceWidths = getSourceColumnWidths(editor, tableNode, tableElement, columnCount);
-  if (sourceWidths) {
-    return fitColumnWidths(sourceWidths, targetWidth);
-  }
-
-  return isPastedTable ? getDistributedTableColumnWidths(editor, tableNode) : null;
+  return fitColumnWidths(sourceWidths, targetWidth);
 };
 
 export const useAutoFitPastedTable = (editor: LexicalEditor | null) => {
@@ -281,19 +208,13 @@ export const useAutoFitPastedTable = (editor: LexicalEditor | null) => {
               return;
             }
 
-            const columnCount = tableNode.getColumnCount();
-            const isPastedTable = pasteTableKeysRef.current.has(tableKey);
-
-            if (
-              columnCount === 0 ||
-              (!isPastedTable && hasValidColumnWidths(tableNode.getColWidths(), columnCount))
-            ) {
+            if (!pasteTableKeysRef.current.has(tableKey) || tableNode.getColumnCount() === 0) {
               pendingTableKeysRef.current.delete(tableKey);
               pasteTableKeysRef.current.delete(tableKey);
               return;
             }
 
-            nextColWidths = getFittedTableColumnWidths(editor, tableNode, isPastedTable);
+            nextColWidths = getFittedTableColumnWidths(editor, tableNode);
             if (!nextColWidths) {
               return;
             }

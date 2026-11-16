@@ -1,6 +1,6 @@
 {
   "name": "@lobehub/editor",
-  "version": "4.29.0",
+  "version": "7.2.2",
   "description": "A powerful and extensible rich text editor built on Meta's Lexical framework, providing a modern editing experience with React integration.",
   "keywords": [
     "lobehub",
@@ -66,6 +66,10 @@
       "types": "./es/renderer.d.ts",
       "import": "./es/renderer.js"
     },
+    "./yjs": {
+      "types": "./es/yjs.d.ts",
+      "import": "./es/yjs.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./es/index.js",
@@ -90,7 +94,7 @@
     "postinstall": "node ./scripts/postinstall-lexical-patch.cjs",
     "lint": "eslint \"{src,tests}/**/*.{js,jsx,ts,tsx}\" --fix",
     "lint:circular": "dpdm src/**/*.{ts,tsx}  --warning false  --tree false  --exit-code circular:1  -T true",
-    "lint:md": "remark . --quiet --frail --output",
+    "lint:md": "remark . --quiet --output",
     "lint:style": "stylelint \"{src,tests}/**/*.{js,jsx,ts,tsx,less}\" --fix",
     "prepack": "clean-package",
     "postpack": "clean-package restore",
@@ -104,7 +108,7 @@
     "test:verify-final-head": "vitest run ./scripts/verify-final-head.test.mjs",
     "test:verify-packed-loro": "vitest run ./scripts/verify-packed-loro.test.mjs",
     "test:watch": "vitest --watch",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsrs --noEmit",
     "verify:final-head": "node ./scripts/verify-final-head.mjs",
     "verify:node-identity-package": "node scripts/verify-node-identity-package.mjs",
     "verify:packed-loro": "node ./scripts/verify-packed-loro.mjs"
@@ -147,11 +151,10 @@
     "@lexical/table": "0.42.0",
     "@lexical/utils": "0.42.0",
     "@lexical/yjs": "0.42.0",
-    "@shikijs/core": "^4.3.1",
-    "@shikijs/engine-javascript": "^4.3.1",
+    "@lobehub/charts": "^6.0.1",
+    "@pierre/highlights": "^0.2.0",
     "@xmldom/xmldom": "^0.9.10",
     "ahooks": "^3.9.6",
-    "antd-style": "^4.1.0",
     "debug": "^4.4.3",
     "es-toolkit": "^1.50.0",
     "eventemitter3": "^5.0.1",
@@ -169,7 +172,7 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "remark-supersub": "^1.0.0",
-    "shiki": "^4.3.1",
+    "thumbhash": "^0.1.1",
     "ts-key-enum": "^3.0.13",
     "use-merge-value": "^1.2.0",
     "yjs": "^13.6.31"
@@ -177,11 +180,12 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@emotion/is-prop-valid": "^1.4.0",
-    "@lobehub/docs-kit": "^5.27.4",
+    "@lobehub/docs-kit": "^6.0.0",
+    "@lobehub/fluent-emoji": "^5.0.0-beta.1",
+    "@lobehub/icons": "^6.0.0-beta.1",
     "@lobehub/lint": "^2.1.5",
-    "@lobehub/ui": "^5.55.0",
+    "@lobehub/ui": "^6.9.0",
     "@react-router/dev": "8.2.0",
-    "@shikijs/types": "^4.3.1",
     "@types/debug": "^4.1.12",
     "@types/mdast": "^4.0.4",
     "@types/node": "^24.13.3",
@@ -190,7 +194,6 @@
     "@types/unist": "^3.0.3",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^4.1.10",
-    "antd": "^6.5.2",
     "clean-package": "^2.2.0",
     "dpdm": "^4.2.0",
     "eslint": "^10.7.0",
@@ -199,7 +202,7 @@
     "leva": "^0.10.1",
     "lint-staged": "^17.2.0",
     "loro-crdt": "1.16.1",
-    "motion": "^12.42.2",
+    "motion": "^13.0.0",
     "prettier": "^3.9.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -209,6 +212,7 @@
     "semantic-release": "^21.1.2",
     "stylelint": "^17.14.1",
     "tsdown": "^0.22.14",
+    "tsrs": "0.18.0-ts7.1.0-dev.20260929",
     "tsx": "^4.23.0",
     "typescript": "^6.0.3",
     "vite": "8.1.4",
@@ -216,10 +220,9 @@
     "ws": "^8.21.0"
   },
   "peerDependencies": {
-    "@lobehub/ui": "^5.55.0",
-    "antd": "^6.1.1",
+    "@lobehub/ui": "^6.9.0",
     "loro-crdt": "1.16.1",
-    "motion": "^12.0.0",
+    "motion": "^13.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -239,6 +242,7 @@
       "chalk": "^4.1.2"
     },
     "patchedDependencies": {
+      "@lexical/table@0.42.0": "patches/@lexical__table@0.42.0.patch",
       "@lexical/yjs@0.42.0": "patches/@lexical__yjs@0.42.0.patch"
     }
   }

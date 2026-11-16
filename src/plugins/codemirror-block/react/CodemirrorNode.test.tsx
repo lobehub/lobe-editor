@@ -51,6 +51,20 @@ vi.mock('@lobehub/ui', () => ({
     createElement('button', props, children),
   Block: ({ children, variant: _variant, ...props }: { children?: ReactNode; variant?: unknown }) =>
     createElement('div', props, children),
+  createStaticStyles: (
+    factory: (tokens: {
+      css: (strings: TemplateStringsArray, ...values: unknown[]) => string;
+      cssVar: Record<string, string>;
+    }) => Record<string, string>,
+  ) => {
+    const styles = factory({
+      css: () => '',
+      cssVar: new Proxy({} as Record<string, string>, { get: () => '' }),
+    });
+    return Object.fromEntries(Object.keys(styles).map((key) => [key, `mock-${key}`]));
+  },
+  keyframes: () => 'mock-keyframes',
+  cx: (...values: Array<string | undefined>) => values.filter(Boolean).join(' '),
 }));
 
 vi.mock('lexical', async (importOriginal) => {

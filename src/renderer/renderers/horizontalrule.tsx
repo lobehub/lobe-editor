@@ -1,4 +1,4 @@
-import { createStaticStyles } from 'antd-style';
+import { createStaticStyles } from '@lobehub/ui';
 import { createElement, type ReactNode } from 'react';
 
 const useStyles = createStaticStyles(

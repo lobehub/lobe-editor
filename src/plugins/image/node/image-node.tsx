@@ -22,16 +22,29 @@ export class ImageNode extends BaseImageNode {
 
   constructor(
     opt: {
+      accent?: string;
       altText: string;
+      caption?: string;
+      displayWidth?: number;
       height?: 'inherit' | number;
       key?: NodeKey;
       maxWidth: number;
+      naturalHeight?: number;
+      naturalWidth?: number;
       src: string;
       status?: 'uploaded' | 'loading' | 'error';
+      thumbhash?: string;
       width?: 'inherit' | number;
-    } = { altText: '', maxWidth: 4200, src: '' },
+    } = { altText: '', maxWidth: 0, src: '' },
   ) {
-    super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key);
+    super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key, {
+      accent: opt.accent,
+      caption: opt.caption,
+      displayWidth: opt.displayWidth,
+      naturalHeight: opt.naturalHeight,
+      naturalWidth: opt.naturalWidth,
+      thumbhash: opt.thumbhash,
+    });
     this.__status = opt.status ?? 'uploaded';
   }
 
@@ -98,6 +111,7 @@ export class ImageNode extends BaseImageNode {
 
   static clone(node: ImageNode): ImageNode {
     return new ImageNode({
+      ...node.getMeta(),
       altText: node.__altText,
       height: node.__height,
       key: node.__key,
@@ -109,14 +123,33 @@ export class ImageNode extends BaseImageNode {
   }
 
   static importJSON(serializedNode: SerializedImageNode): ImageNode {
-    const { altText, height, width, maxWidth, src, status } = serializedNode;
-
-    return $createImageNode({
+    const {
+      accent,
       altText,
+      caption,
+      displayWidth,
       height,
+      width,
       maxWidth,
+      naturalHeight,
+      naturalWidth,
       src,
       status,
+      thumbhash,
+    } = serializedNode;
+
+    return $createImageNode({
+      accent,
+      altText,
+      caption,
+      displayWidth,
+      height,
+      maxWidth,
+      naturalHeight,
+      naturalWidth,
+      src,
+      status,
+      thumbhash,
       width,
     }).updateFromJSON(serializedNode);
   }
@@ -143,16 +176,36 @@ export class ImageNode extends BaseImageNode {
 }
 
 export function $createImageNode({
+  accent,
   altText,
+  caption,
+  displayWidth,
   height,
   maxWidth = 500,
+  naturalHeight,
+  naturalWidth,
   src,
   width,
   key,
   status,
+  thumbhash,
 }: ImagePayload): ImageNode {
   return $applyNodeReplacement(
-    new ImageNode({ altText, height, key, maxWidth, src, status, width }),
+    new ImageNode({
+      accent,
+      altText,
+      caption,
+      displayWidth,
+      height,
+      key,
+      maxWidth,
+      naturalHeight,
+      naturalWidth,
+      src,
+      status,
+      thumbhash,
+      width,
+    }),
   );
 }
 

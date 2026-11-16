@@ -14,7 +14,6 @@ export const useAnchor = () => {
     const root = editor.getRootElement();
     const anchor = root ? root.parentElement : null;
     if (anchor) return anchor;
-    // Fallback to .ant-app if exists, otherwise document.body
     const app = document.querySelector(`#${LOBE_THEME_APP_ID}`) as HTMLElement;
     return app || document.body;
   }, [editor]);

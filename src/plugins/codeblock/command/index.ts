@@ -3,23 +3,23 @@ import { $findMatchingParent } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_EDITOR } from 'lexical';
 
-import { ShikiTokenizer } from '../plugin/CodeHighlighterShiki';
+import { HighlightsTokenizer } from '../plugin/CodeHighlighter';
 import { UPDATE_CODEBLOCK_LANG } from './symbols';
 
 export { UPDATE_CODEBLOCK_LANG } from './symbols';
 
-export const CustomShikiTokenizer = {
-  $tokenize: ShikiTokenizer.$tokenize,
-  $tokenizeSerialized: ShikiTokenizer.$tokenizeSerialized,
-  defaultLanguage: ShikiTokenizer.defaultLanguage,
-  defaultTheme: ShikiTokenizer.defaultTheme,
+export const CustomTokenizer = {
+  $tokenize: HighlightsTokenizer.$tokenize,
+  $tokenizeSerialized: HighlightsTokenizer.$tokenizeSerialized,
+  defaultLanguage: HighlightsTokenizer.defaultLanguage,
+  defaultTheme: HighlightsTokenizer.defaultTheme,
 };
 
 export function registerCodeCommand(editor: LexicalEditor) {
   const unregisterLangCommand = editor.registerCommand(
     UPDATE_CODEBLOCK_LANG,
     (payload) => {
-      CustomShikiTokenizer.defaultLanguage = payload.lang;
+      CustomTokenizer.defaultLanguage = payload.lang;
       const codeNode = editor.getEditorState().read(() => {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {

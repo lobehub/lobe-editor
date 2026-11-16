@@ -1,7 +1,6 @@
 'use client';
 
-import { Flexbox } from '@lobehub/ui';
-import { cx, useThemeMode } from 'antd-style';
+import { cx, Flexbox, useThemeMode } from '@lobehub/ui';
 import { Resizable } from 're-resizable';
 import { type FC, useCallback } from 'react';
 import useMergeState from 'use-merge-value';

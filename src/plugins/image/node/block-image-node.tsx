@@ -60,16 +60,29 @@ export class BlockImageNode extends BaseImageNode {
 
   constructor(
     opt: {
+      accent?: string;
       altText: string;
+      caption?: string;
+      displayWidth?: number;
       height?: 'inherit' | number;
       key?: NodeKey;
       maxWidth: number;
+      naturalHeight?: number;
+      naturalWidth?: number;
       src: string;
       status?: 'uploaded' | 'loading' | 'error';
+      thumbhash?: string;
       width?: 'inherit' | number;
-    } = { altText: '', maxWidth: 4200, src: '' },
+    } = { altText: '', maxWidth: 0, src: '' },
   ) {
-    super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key);
+    super(opt.src, opt.altText, opt.maxWidth, opt.width, opt.height, opt.key, {
+      accent: opt.accent,
+      caption: opt.caption,
+      displayWidth: opt.displayWidth,
+      naturalHeight: opt.naturalHeight,
+      naturalWidth: opt.naturalWidth,
+      thumbhash: opt.thumbhash,
+    });
     this.__status = opt.status ?? 'uploaded';
   }
 
@@ -82,22 +95,7 @@ export class BlockImageNode extends BaseImageNode {
     writable.__maxWidth = maxWidth;
   }
 
-  public setSrc(src: string): void {
-    const writable = this.getWritable();
-    writable.__src = src;
-  }
-
-  public setAltText(altText: string): void {
-    const writable = this.getWritable();
-    writable.__altText = altText;
-  }
-
-  public setHeight(height: 'inherit' | number): void {
-    const writable = this.getWritable();
-    writable.__height = height;
-  }
-
-  public setWidth(width: 'inherit' | number): void {
+  public setWidth(width: number): void {
     const writable = this.getWritable();
     writable.__width = width;
   }
@@ -123,6 +121,7 @@ export class BlockImageNode extends BaseImageNode {
 
   static clone(node: BlockImageNode): BlockImageNode {
     return new BlockImageNode({
+      ...node.getMeta(),
       altText: node.__altText,
       height: node.__height,
       key: node.__key,
@@ -134,14 +133,33 @@ export class BlockImageNode extends BaseImageNode {
   }
 
   static importJSON(serializedNode: SerializedImageNode): BlockImageNode {
-    const { altText, height, width, maxWidth, src, status } = serializedNode;
-
-    return $createBlockImageNode({
+    const {
+      accent,
       altText,
+      caption,
+      displayWidth,
       height,
+      width,
       maxWidth,
+      naturalHeight,
+      naturalWidth,
       src,
       status,
+      thumbhash,
+    } = serializedNode;
+
+    return $createBlockImageNode({
+      accent,
+      altText,
+      caption,
+      displayWidth,
+      height,
+      maxWidth,
+      naturalHeight,
+      naturalWidth,
+      src,
+      status,
+      thumbhash,
       width,
     }).updateFromJSON(serializedNode);
   }
@@ -168,8 +186,7 @@ export class BlockImageNode extends BaseImageNode {
 
   override createDOM(config: EditorConfig): HTMLElement {
     const span = document.createElement('div');
-    // Hole uses this generic presentation hint to anchor its boundary cursors
-    // to an intrinsic block-image box while keeping the Hole host full-width.
+    // Keep Hole boundaries and annotation bounds aligned to the intrinsic image box.
     span.dataset.holeContentLayout = 'intrinsic';
     const theme = config.theme;
     const className = theme.blockImage;
@@ -181,16 +198,36 @@ export class BlockImageNode extends BaseImageNode {
 }
 
 export function $createBlockImageNode({
+  accent,
   altText,
+  caption,
+  displayWidth,
   height,
   maxWidth = 4200,
+  naturalHeight,
+  naturalWidth,
   src,
   width,
   key,
   status,
+  thumbhash,
 }: ImagePayload): BlockImageNode {
   return $applyNodeReplacement(
-    new BlockImageNode({ altText, height, key, maxWidth, src, status, width }),
+    new BlockImageNode({
+      accent,
+      altText,
+      caption,
+      displayWidth,
+      height,
+      key,
+      maxWidth,
+      naturalHeight,
+      naturalWidth,
+      src,
+      status,
+      thumbhash,
+      width,
+    }),
   );
 }
 

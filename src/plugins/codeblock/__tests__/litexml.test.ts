@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import Editor from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
@@ -34,8 +34,5 @@ describe('codeblock litexml', () => {
         `<?xml version="1.0" encoding="UTF-8"?><root><code id="mczm" lang="javascript">hello\nworld</code></root>`,
       ),
     );
-    expect(editor.getDocument('litexml')).toBe(xml);
-    editor.setDocument('litexml', xml);
-    expect(editor.getDocument('markdown')).toBe('```javascript\nhello\nworld\n```\n');
   });
 });

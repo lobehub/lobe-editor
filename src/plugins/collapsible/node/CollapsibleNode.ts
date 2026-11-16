@@ -12,7 +12,13 @@ import type {
   SerializedElementNode,
   Spread,
 } from 'lexical';
-import { $applyNodeReplacement, $createParagraphNode, $createTextNode, ElementNode } from 'lexical';
+import {
+  $applyNodeReplacement,
+  $createParagraphNode,
+  $createTextNode,
+  $isTextNode,
+  ElementNode,
+} from 'lexical';
 
 export type SerializedCollapsibleNode = Spread<
   {
@@ -43,6 +49,13 @@ export class CollapsibleNode extends ElementNode {
         conversion: $convertDetailsElement,
         priority: 1,
       }),
+      summary: (element) =>
+        element.parentElement?.tagName === 'DETAILS'
+          ? {
+              conversion: () => ({ node: $createParagraphNode() }),
+              priority: 1,
+            }
+          : null,
     };
   }
 
@@ -122,7 +135,14 @@ export class CollapsibleNode extends ElementNode {
     const summary = document.createElement('summary');
     summary.textContent = this.getTitle();
     element.append(summary);
-    return { element };
+    return {
+      element,
+      after: (element) => {
+        // The first editor child is already represented by <summary>.
+        element?.childNodes[1]?.remove();
+        return element;
+      },
+    };
   }
 
   exportJSON(): SerializedCollapsibleNode {
@@ -191,9 +211,25 @@ function $convertDetailsElement(domNode: Node): DOMConversionOutput {
     return { node: null };
   }
 
-  const title = domNode.querySelector('summary')?.textContent?.trim() || 'Details';
+  const summary = Array.from(domNode.children).find((child) => child.tagName === 'SUMMARY');
+  const title = summary?.textContent?.trim() || 'Details';
   return {
     node: $createCollapsibleNode(title, !domNode.open),
+    after: (children) => {
+      const blocks: LexicalNode[] = summary ? [] : [$createTitleParagraph(title)];
+      let paragraph: ElementNode | undefined;
+      for (const child of children) {
+        if (child.isInline()) {
+          if (!paragraph && $isTextNode(child) && !child.getTextContent().trim()) continue;
+          if (!paragraph) blocks.push((paragraph = $createParagraphNode()));
+          paragraph.append(child);
+        } else {
+          paragraph = undefined;
+          blocks.push(child);
+        }
+      }
+      return blocks;
+    },
   };
 }
 

@@ -82,39 +82,11 @@ function clampTableScrollLeft(scrollWrapper: HTMLElement, maxScrollLeft: number)
   return clampedScrollLeft;
 }
 
-function updateTableScrollIndicators(scrollWrapper: HTMLElement): void {
-  const maxScrollLeft = getTableMaxScrollLeft(scrollWrapper);
-  const scrollLeft = clampTableScrollLeft(scrollWrapper, maxScrollLeft);
-  const hasOverflow = maxScrollLeft > 1;
-  const showStart = hasOverflow && scrollLeft > 1;
-  const showEnd = hasOverflow && scrollLeft < maxScrollLeft - 1;
-  const startIndicator = scrollWrapper.querySelector<HTMLElement>(
-    ':scope > .lobe-editor-table-scroll-indicator-start',
-  );
-  const endIndicator = scrollWrapper.querySelector<HTMLElement>(
-    ':scope > .lobe-editor-table-scroll-indicator-end',
-  );
-
-  startIndicator?.classList.toggle('lobe-editor-table-scroll-indicator-visible', showStart);
-  endIndicator?.classList.toggle('lobe-editor-table-scroll-indicator-visible', showEnd);
-
-  if (startIndicator) {
-    startIndicator.style.transform = `translateX(${scrollLeft}px)`;
-  }
-
-  if (endIndicator) {
-    endIndicator.style.transform = `translateX(${Math.max(
-      scrollLeft + scrollWrapper.clientWidth - SCROLL_INDICATOR_WIDTH,
-      0,
-    )}px)`;
-  }
-}
-
 function getTableControllerHost(element: HTMLElement): HTMLElement {
   if (!(element instanceof HTMLTableElement)) return element;
 
   return (
-    element.closest<HTMLElement>('.editor_table_scrollable_wrapper') ??
+    element.closest<HTMLElement>('.lobe-editor-table-scroll-wrapper') ??
     element.parentElement ??
     element
   );
@@ -135,6 +107,14 @@ function syncTableHoleBlockInsets(element: HTMLElement): void {
   const rowToolbar =
     controllerHost.querySelector<HTMLElement>(':scope > .toolbar-row') ??
     scrollWrapper?.querySelector<HTMLElement>(':scope > .toolbar-row');
+  const columnToolbar =
+    controllerHost.querySelector<HTMLElement>(':scope > .toolbar-col') ??
+    scrollWrapper?.querySelector<HTMLElement>(':scope > .toolbar-col');
+
+  if (columnToolbar) {
+    if (hole) columnToolbar.setAttribute(TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE, 'true');
+    else columnToolbar.removeAttribute(TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE);
+  }
 
   if (rowToolbar && scrollWrapper) {
     // The row host is created as a stable direct child of the TableNode DOM.
@@ -184,6 +164,34 @@ function syncTableHoleBlockInsets(element: HTMLElement): void {
   );
 }
 
+function updateTableScrollIndicators(scrollWrapper: HTMLElement): void {
+  const maxScrollLeft = getTableMaxScrollLeft(scrollWrapper);
+  const scrollLeft = clampTableScrollLeft(scrollWrapper, maxScrollLeft);
+  const hasOverflow = maxScrollLeft > 1;
+  const showStart = hasOverflow && scrollLeft > 1;
+  const showEnd = hasOverflow && scrollLeft < maxScrollLeft - 1;
+  const startIndicator = scrollWrapper.querySelector<HTMLElement>(
+    ':scope > .lobe-editor-table-scroll-indicator-start',
+  );
+  const endIndicator = scrollWrapper.querySelector<HTMLElement>(
+    ':scope > .lobe-editor-table-scroll-indicator-end',
+  );
+
+  startIndicator?.classList.toggle('lobe-editor-table-scroll-indicator-visible', showStart);
+  endIndicator?.classList.toggle('lobe-editor-table-scroll-indicator-visible', showEnd);
+
+  if (startIndicator) {
+    startIndicator.style.transform = `translateX(${scrollLeft}px)`;
+  }
+
+  if (endIndicator) {
+    endIndicator.style.transform = `translateX(${Math.max(
+      scrollLeft + scrollWrapper.clientWidth - SCROLL_INDICATOR_WIDTH,
+      0,
+    )}px)`;
+  }
+}
+
 function ensureTableScrollIndicators(
   scrollWrapper: HTMLElement,
   onGeometryChange?: () => void,
@@ -224,6 +232,21 @@ function ensureTableScrollIndicators(
   requestAnimationFrame(update);
 }
 
+function syncTableFluidMarker(element: HTMLElement, node: TableNode): void {
+  const table = element instanceof HTMLTableElement ? element : element.querySelector('table');
+  if (!table) {
+    return;
+  }
+
+  if (node.getColWidths()?.length) {
+    delete table.dataset.lobeTableFluid;
+    return;
+  }
+
+  table.dataset.lobeTableFluid = 'true';
+  table.style.removeProperty('width');
+}
+
 function ensureTableControllerDOM(element: HTMLElement): void {
   const table = element instanceof HTMLTableElement ? element : element.querySelector('table');
 
@@ -244,47 +267,34 @@ function ensureTableControllerDOM(element: HTMLElement): void {
     return;
   }
 
-  const controllerHost = getTableControllerHost(element);
-  const syncHoleGeometry = () => syncTableHoleBlockInsets(controllerHost);
+  const hostParent = element instanceof HTMLTableElement ? scrollWrapper : element;
 
-  const legacyToolbar = controllerHost.querySelector(':scope > .toolbar');
+  const legacyToolbar = element.querySelector(':scope > .toolbar');
   if (legacyToolbar instanceof HTMLElement) {
     // Old structure only had a single `.toolbar`, which is the lexical decorator host.
     legacyToolbar.className = 'toolbar-col';
     markTableControllerHost(legacyToolbar, true);
-    scrollWrapper.append(legacyToolbar);
+    hostParent.append(legacyToolbar);
   }
 
-  const ensureToolbar = (
-    parent: HTMLElement,
-    className: string,
-    withDecorator = false,
-    before?: ChildNode,
-  ) => {
-    const existingToolbar = parent.querySelector(`:scope > .${className}`);
+  const ensureToolbar = (className: string) => {
+    const existingToolbar = hostParent.querySelector(`:scope > .${className}`);
     if (existingToolbar instanceof HTMLElement) {
-      markTableControllerHost(existingToolbar, withDecorator);
+      markTableControllerHost(existingToolbar, true);
       return;
     }
 
-    if (!existingToolbar) {
-      const toolbar = document.createElement('div');
-      toolbar.className = className;
-      markTableControllerHost(toolbar, withDecorator);
-      if (before && before.parentElement === parent) parent.insertBefore(toolbar, before);
-      else parent.append(toolbar);
-    }
+    const toolbar = document.createElement('div');
+    toolbar.className = className;
+    markTableControllerHost(toolbar, true);
+    hostParent.append(toolbar);
   };
 
-  // Split controller rendering into different hosts:
-  // - toolbar-col: lexical decorator mount point
-  // - toolbar-row: secondary portal host for row/corner controls
   const legacyDecoratedToolbar = scrollWrapper.querySelector(
     ':scope > .toolbar[data-lexical-decorator]',
   );
   if (legacyDecoratedToolbar instanceof HTMLElement) {
     legacyDecoratedToolbar.className = 'toolbar-col';
-    markTableControllerHost(legacyDecoratedToolbar, true);
   }
 
   const legacyPlainToolbar = scrollWrapper.querySelector(
@@ -292,33 +302,23 @@ function ensureTableControllerDOM(element: HTMLElement): void {
   );
   if (legacyPlainToolbar instanceof HTMLElement) {
     legacyPlainToolbar.className = 'toolbar-row';
-    markTableControllerHost(legacyPlainToolbar, true);
-    // A freshly-created TableNode is still detached, so an old inner host can
-    // be moved into the stable outer slot without involving Lexical's
-    // observer. Once mounted, keep the legacy host where it is; reparenting it
-    // during updateDOM would recreate the same observed child-list race that
-    // this slot is designed to avoid.
-    if (!controllerHost.isConnected && controllerHost !== scrollWrapper) {
-      controllerHost.insertBefore(legacyPlainToolbar, scrollWrapper);
+  }
+
+  if (hostParent !== scrollWrapper) {
+    for (const host of scrollWrapper.querySelectorAll<HTMLElement>(
+      ':scope > .toolbar-col, :scope > .toolbar-row',
+    )) {
+      if (!hostParent.querySelector(`:scope > .${host.className}`)) {
+        hostParent.append(host);
+      }
     }
   }
 
-  const legacyOuterRowToolbar = controllerHost.querySelector(':scope > .toolbar-row');
-  if (legacyOuterRowToolbar instanceof HTMLElement) {
-    markTableControllerHost(legacyOuterRowToolbar, true);
-  }
-
-  // Keep the row portal outside the native data scrollport for every table.
-  // This host is created while the TableNode DOM is still being built, so its
-  // insertion cannot be reverted by Lexical's mutation observer. Later Hole
-  // geometry/scroll callbacks only update attributes and transforms.
-  const hasInnerRowToolbar =
-    scrollWrapper.querySelector<HTMLElement>(':scope > .toolbar-row') !== null;
-  if (!hasInnerRowToolbar || controllerHost.querySelector(':scope > .toolbar-row')) {
-    ensureToolbar(controllerHost, 'toolbar-row', true, scrollWrapper);
-  }
-  ensureToolbar(scrollWrapper, 'toolbar-col', true);
-  ensureTableScrollIndicators(scrollWrapper, syncHoleGeometry);
+  ensureToolbar('toolbar-col');
+  ensureToolbar('toolbar-row');
+  const controllerHost = hostParent;
+  ensureTableScrollIndicators(scrollWrapper, () => syncTableHoleBlockInsets(controllerHost));
+  syncTableHoleBlockInsets(controllerHost);
 }
 
 function reconcileTableDecorator(
@@ -364,6 +364,7 @@ export function patchTableNode() {
       const table = OriginalCreateDOM.call(this, config, editor);
       markTableHoleContentLayout(table);
       ensureTableControllerDOM(table);
+      syncTableFluidMarker(table, this);
       const kernel = getKernelFromEditor(editor);
       const decorator = kernel?.getDecorator(TableNode.getType()) || null;
       reconcileTableDecorator(editor, this, decorator);
@@ -379,6 +380,7 @@ export function patchTableNode() {
       const table = OriginalUpdateDOM.call(this, _prevNode, _dom, _config);
       markTableHoleContentLayout(_dom);
       ensureTableControllerDOM(_dom);
+      syncTableFluidMarker(_dom, this);
       const kernel = getKernelFromEditorConfig(_config);
       const editor = kernel?.getLexicalEditor();
       if (editor) {

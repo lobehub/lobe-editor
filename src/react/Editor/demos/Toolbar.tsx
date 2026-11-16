@@ -12,8 +12,7 @@ import {
   FloatActions,
   useEditorState,
 } from '@lobehub/editor/react';
-import { Block } from '@lobehub/ui';
-import { createStaticStyles, cx } from 'antd-style';
+import { Block, createStaticStyles, cx } from '@lobehub/ui';
 import {
   BoldIcon,
   CodeXmlIcon,
@@ -38,6 +37,8 @@ import { openFileSelector } from './actions';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   annotationAction: css`
+    cursor: pointer;
+
     display: inline-flex;
     gap: 6px;
     align-items: center;
@@ -51,7 +52,6 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     color: ${cssVar.colorTextSecondary};
 
     background: transparent;
-    cursor: pointer;
 
     &:hover {
       color: ${cssVar.colorText};

@@ -41,11 +41,11 @@ The plugin introduces a custom `MentionNode` that extends Lexical's `DecoratorNo
 
 React component wrapper for the mention plugin functionality.
 
-| Property  | Description               | Type                               | Default |
-| --------- | ------------------------- | ---------------------------------- | ------- |
-| items     | Available mention items   | `MentionItem[]`                    | `[]`    |
-| onSelect  | Mention selection handler | `(item: MentionItem) => void`      | -       |
-| decorator | Custom mention renderer   | `(node: MentionNode) => ReactNode` | -       |
+| Property       | Description                                  | Type                             | Default |
+| -------------- | -------------------------------------------- | -------------------------------- | ------- |
+| className      | Class name for rendered mentions             | `string`                         | -       |
+| markdownWriter | Custom Markdown output for a mention         | `(mention: MentionNode) => string` | -       |
+| theme          | Class names for mention nodes                | `{ mention?: string }`           | -       |
 
 ## Commands
 
@@ -69,11 +69,12 @@ editor.dispatchCommand(INSERT_MENTION_COMMAND, {
 
 ### MentionPluginOptions
 
-| Property | Description | Type | Default |
-| --- | --- | --- | --- |
-| decorator | Custom mention renderer function | `(node: MentionNode, editor) => any` | - |
-| markdownWriter | Custom markdown serialization | `(node: MentionNode) => string` | - |
-| theme | CSS theme configuration | `{ mention?: string }` | - |
+| Property       | Description                                    | Type                                                                        | Default |
+| -------------- | ---------------------------------------------- | --------------------------------------------------------------------------- | ------- |
+| decorator      | Renders a mention node                         | `(node: MentionNode, editor: LexicalEditor) => any`                         | -       |
+| markdownReader | Custom parsing of mention HTML from Markdown   | `(node: Html, children: INode[]) => SerializedMentionNode \| null \| false` | -       |
+| markdownWriter | Custom Markdown output for a mention           | `(mention: MentionNode) => string`                                          | -       |
+| theme          | Class names for mention nodes                  | `{ mention?: string }`                                                      | -       |
 
 ## Usage Examples
 

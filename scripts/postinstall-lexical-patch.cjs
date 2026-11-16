@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-/* eslint-disable @typescript-eslint/no-require-imports */
 
-const crypto = require('node:crypto');
+const nodeCrypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -28,10 +27,31 @@ const PATCH_CONFIGS = [
     rootOverride: process.env.LOBE_EDITOR_LEXICAL_YJS_ROOT,
     supportedVersion: '0.42.0',
   },
+  {
+    displayName: 'Lexical Table',
+    fileHashes: {
+      'LexicalTable.dev.js': {
+        patched: '0b6236b00c6b5b4812842d27f044759fae59e5c738ac1d1341e0b7c1e5d0c726',
+      },
+      'LexicalTable.dev.mjs': {
+        patched: 'd5f18603837a8f6d0843d550c07ae12f10676229664e191354160cf08986bbc3',
+      },
+      'LexicalTable.prod.js': {
+        patched: '52dcb8b3e4f8aa46d33d326f51c251b0020d260fa6c3681b26b016b08da940af',
+      },
+      'LexicalTable.prod.mjs': {
+        patched: '6b540b64044521f9cdd847f8116dbce0963b16e039149e300a220f32950e7ab1',
+      },
+    },
+    packageName: '@lexical/table',
+    patchFile: path.join(PACKAGE_ROOT, 'patches', '@lexical__table@0.42.0.patch'),
+    rootOverride: process.env.LOBE_EDITOR_LEXICAL_TABLE_ROOT,
+    supportedVersion: '0.42.0',
+  },
 ];
 
 function sha256(content) {
-  return crypto.createHash('sha256').update(content).digest('hex');
+  return nodeCrypto.createHash('sha256').update(content).digest('hex');
 }
 
 function normalizeLineEndings(text) {
@@ -230,7 +250,7 @@ function patchPackage({ displayName, fileHashes, packageName, patchFile, ...conf
 
     // Peer-dependent editor instances can patch the same dependency concurrently.
     // Publish a complete file so other patchers never read a partial write.
-    const temporaryPath = `${targetPath}.${crypto.randomUUID()}.tmp`;
+    const temporaryPath = `${targetPath}.${nodeCrypto.randomUUID()}.tmp`;
     try {
       fs.writeFileSync(
         temporaryPath,

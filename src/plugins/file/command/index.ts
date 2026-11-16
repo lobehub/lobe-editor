@@ -41,7 +41,18 @@ export function registerFileCommand(
         const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
         const currentSelection = $getSelection();
         if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
-        const fileNode = block ? $createBlockFileNode(file.name) : $createFileNode(file.name);
+        const meta = { mimeType: file.type };
+        const fileNode = block
+          ? $createBlockFileNode(
+              file.name,
+              undefined,
+              file.size,
+              'pending',
+              undefined,
+              undefined,
+              meta,
+            )
+          : $createFileNode(file.name, undefined, file.size, 'pending', undefined, meta);
         const fileKey = fileNode.getKey();
         $insertNodes([fileNode]); // Insert a zero-width space to ensure the image is not the last child
         if (fileNode.isInline() && $isRootOrShadowRoot(fileNode.getParentOrThrow())) {

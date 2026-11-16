@@ -116,7 +116,10 @@ class YjsTransportPort implements CollaborationTransportPort {
     const provider = this.provider() as Provider & {
       waitForPendingUpdates?: (timeoutMs?: number) => Promise<void>;
     };
-    return provider.waitForPendingUpdates?.(timeoutMs) ?? Promise.resolve();
+    if (typeof provider.waitForPendingUpdates !== 'function') {
+      return Promise.reject(new Error('Yjs provider does not support update acknowledgements.'));
+    }
+    return provider.waitForPendingUpdates(timeoutMs);
   }
 
   setPresence(value: unknown): void {

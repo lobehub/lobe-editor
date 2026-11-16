@@ -24,6 +24,7 @@ const entryPaths = {
   headless: join(packageRoot, 'es/headless.js'),
   nodeId: join(packageRoot, 'es/plugins/common/node/node-id.js'),
   serviceToken: join(packageRoot, 'es/plugins/common/service/i-node-identity-service.js'),
+  yjs: join(packageRoot, 'es/yjs.js'),
 };
 
 for (const [name, file] of Object.entries(entryPaths)) {
@@ -73,11 +74,14 @@ if (!childMode) {
 
   const { $getNodeById, $getNodeId, $setNodeId } = nodeId;
   const { INodeIdentityService } = serviceToken;
+  const yjs = await import(urls.yjs);
   assert.equal(typeof headless.createHeadlessEditor, 'function');
   assert.equal(typeof $getNodeById, 'function');
   assert.equal(typeof $getNodeId, 'function');
   assert.equal(typeof $setNodeId, 'function');
   assert.ok(INodeIdentityService);
+  assert.equal(typeof yjs.YjsPlugin, 'function', 'The yjs entry must load under Node ESM.');
+  assert.ok(yjs.IYjsService);
   assert.equal(
     headless.$getNodeById,
     $getNodeById,

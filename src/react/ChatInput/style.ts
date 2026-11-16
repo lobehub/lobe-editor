@@ -1,4 +1,4 @@
-import { createStaticStyles } from 'antd-style';
+import { createStaticStyles } from '@lobehub/ui';
 
 export const styles = createStaticStyles(({ css, cssVar }) => ({
   bodyEditor: css`
@@ -34,6 +34,8 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
   `,
 
   editor: css`
+    --lobe-table-bleed: 0px;
+
     cursor: text;
 
     overflow: hidden auto;

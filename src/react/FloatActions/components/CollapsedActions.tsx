@@ -1,7 +1,6 @@
 'use client';
 
-import { Flexbox, Popover, useMotionComponent } from '@lobehub/ui';
-import { ActionIcon } from '@lobehub/ui/base-ui';
+import { ActionIcon, Flexbox, Popover, useMotionComponent } from '@lobehub/ui';
 import { CircleChevronLeftIcon, CircleChevronRightIcon, CircleChevronUpIcon } from 'lucide-react';
 import { type FC } from 'react';
 

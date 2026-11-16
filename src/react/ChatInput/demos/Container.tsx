@@ -1,6 +1,5 @@
-import { Flexbox } from '@lobehub/ui';
+import { Flexbox, createStaticStyles, cx } from '@lobehub/ui';
 import { ChatActionsBar, ChatList, type ChatMessage } from '@lobehub/ui/chat';
-import { createStaticStyles, cx } from 'antd-style';
 import { type FC, type PropsWithChildren, useEffect, useRef } from 'react';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({

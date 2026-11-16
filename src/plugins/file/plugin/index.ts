@@ -13,12 +13,13 @@ import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { createEditorAsyncScope } from '@/plugins/common/service/editor-async-scope';
 import { IHoleService } from '@/plugins/common/service/i-hole-service';
-import { ILitexmlService, type IWriterContext } from '@/plugins/litexml/service/litexml-service';
+import { ILitexmlService } from '@/plugins/litexml';
+import type { IWriterContext } from '@/plugins/litexml/service/litexml-service';
 import {
   IMarkdownShortCutService,
   type IMarkdownWriterContext,
 } from '@/plugins/markdown/service/shortcut';
-import { IUploadService } from '@/plugins/upload/service/i-upload-service';
+import { IUploadService } from '@/plugins/upload';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
 
@@ -91,9 +92,18 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
               }
               const currentSelection = $getSelection();
               if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
+              const meta = { mimeType: file.type };
               const fileNode = this.config?.defaultBlockFile
-                ? $createBlockFileNode(file.name)
-                : $createFileNode(file.name);
+                ? $createBlockFileNode(
+                    file.name,
+                    undefined,
+                    file.size,
+                    'pending',
+                    undefined,
+                    undefined,
+                    meta,
+                  )
+                : $createFileNode(file.name, undefined, file.size, 'pending', undefined, meta);
               const fileKey = fileNode.getKey();
               $insertNodes([fileNode]); // Insert a zero-width space to ensure the image is not the last child
               if (fileNode.isInline() && $isRootOrShadowRoot(fileNode.getParentOrThrow())) {
@@ -146,6 +156,8 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
         name: node.name,
         size: node.size?.toString() || '0',
         status: node.status,
+        ...(node.mimeType ? { mimeType: node.mimeType } : {}),
+        ...(node.ext ? { ext: node.ext } : {}),
       });
     litexmlService.registerXMLWriter(FileNode.getType(), (node, ctx) => {
       if ($isFileNode(node)) return writeFile(node, ctx);
@@ -164,8 +176,11 @@ export const FilePlugin: IEditorPluginConstructor<FilePluginOptions> = class
       const type =
         xmlElement.getAttribute('block') === 'true' ? BlockFileNode.getType() : FileNode.getType();
       return INodeHelper.createTypeNode(type, {
+        ext: xmlElement.getAttribute('ext') || undefined,
         fileUrl,
         message: xmlElement.getAttribute('message') || '',
+        mimeType:
+          xmlElement.getAttribute('mimeType') || xmlElement.getAttribute('mime-type') || undefined,
         name,
         size: parseInt(xmlElement.getAttribute('size') || '0', 10),
         status,

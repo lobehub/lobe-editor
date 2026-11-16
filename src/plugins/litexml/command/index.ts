@@ -437,6 +437,7 @@ const getRewriteMetadata = (payload: unknown): LiteXMLRewriteMetadata | undefine
 function applyRewriteMetadata(
   node: LexicalNode,
   metadata: LiteXMLRewriteMetadata | undefined,
+  options: { preserveProvenance?: boolean } = {},
 ): void {
   if (!metadata) return;
   const rewriteProperties = {
@@ -458,7 +459,7 @@ function applyRewriteMetadata(
   $setNodeProperties(node, (previous) => ({
     ...previous,
     ...rewriteProperties,
-    ...(provenance ? { provenance } : {}),
+    ...(provenance && !options.preserveProvenance ? { provenance } : {}),
   }));
 }
 
@@ -537,7 +538,7 @@ function handleReplaceForApplyDelay(
     const changeId = createOpaqueChangeId();
     const removeRow = $createTableRowDiffFromRow(editor, oldNode, 'remove', changeId);
     const addRow = $createTableRowDiffFromRow(editor, newNode, 'add', changeId);
-    applyRewriteMetadata(removeRow, metadata);
+    applyRewriteMetadata(removeRow, metadata, { preserveProvenance: true });
     applyRewriteMetadata(addRow, metadata);
     markGeneratedNodes(addRow.getChildren(), metadata);
     oldNode.replace(removeRow, false);

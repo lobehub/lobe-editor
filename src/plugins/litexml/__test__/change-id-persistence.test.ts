@@ -14,10 +14,11 @@ import {
   createCollaborativeAgentCommandGateway,
   IRewriteCommandResultService,
   LITEXML_MODIFY_COMMAND,
+  LITEXML_MODIFY_WITH_RESULTS_COMMAND,
 } from '@/plugins/litexml/command';
 import { TableCellDiffNode } from '@/plugins/litexml/node/TableCellDiffNode';
 import { TableRowDiffNode } from '@/plugins/litexml/node/TableRowDiffNode';
-import { $getNodeProperties } from '@/plugins/properties/state';
+import { $getNodeProperties, $setNodeProperties } from '@/plugins/properties/state';
 import { $getNodeId } from '@/plugins/properties/utils';
 import { syncCurrentEditorStateToYjs } from '@/plugins/yjs/plugin/utils/sync';
 
@@ -228,12 +229,11 @@ describe('LiteXML changeId persistence', () => {
     editors.push(editor);
     editor.hydrateLiteXML(TABLE_XML);
     await moment();
-
+    const lexical = editor.kernel.getLexicalEditor()!;
     const original = getTableRowIds(editor);
     expect(original.rowId).toBeTruthy();
     expect(original.cellIds).toEqual(['cell-id', 'cell-two']);
 
-    const lexical = editor.kernel.getLexicalEditor()!;
     const gateway = createCollaborativeAgentCommandGateway(
       lexical,
       editor.kernel.requireService(IRewriteCommandResultService)!,
@@ -371,6 +371,56 @@ describe('LiteXML changeId persistence', () => {
         expect(restoredRow).toBeDefined();
         expect($getNodeProperties(restoredRow!).provenance).toBeUndefined();
       });
+  });
+
+  it('preserves existing human provenance when a table row rewrite is rejected', async () => {
+    const editor = new HeadlessEditor();
+    editors.push(editor);
+    editor.hydrateLiteXML(TABLE_XML);
+    await moment();
+
+    const originalProvenance = {
+      createdAt: '2026-01-01T00:00:00.000Z',
+      generationId: 'original-human-row',
+      source: 'human',
+    } as const;
+    const lexical = editor.kernel.getLexicalEditor()!;
+    lexical.update(() => {
+      const originalRow = $nodesOfType(TableRowNode)[0];
+      if (!originalRow) throw new Error('Missing original table row.');
+      $setNodeProperties(originalRow, (previous) => ({
+        ...previous,
+        provenance: originalProvenance,
+      }));
+    });
+    await moment();
+
+    let results: Array<{ reason?: string; status: string }> = [];
+    const commandPayload = {
+      onResults: (operationResults: Array<{ reason?: string; status: string }>) => {
+        results = operationResults;
+      },
+      operations: [
+        {
+          action: 'modify' as const,
+          litexml: '<tr id="row-id"><td>After</td><td>Keep</td></tr>',
+        },
+      ],
+      requestId: 'request-human-table-row',
+    };
+    expect(lexical.dispatchCommand(LITEXML_MODIFY_WITH_RESULTS_COMMAND, commandPayload)).toBe(true);
+    expect(results, JSON.stringify(results)).toMatchObject([{ status: 'applied' }]);
+    await moment();
+
+    lexical.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Reject });
+    await moment();
+    lexical.getEditorState().read(() => {
+      const restoredRow = $nodesOfType(TableRowNode).find(
+        (candidate) => $getNodeId(candidate) === 'row-id',
+      );
+      expect(restoredRow).toBeDefined();
+      expect($getNodeProperties(restoredRow!).provenance).toEqual(originalProvenance);
+    });
   });
 
   it('uses a durable table identity for cell grouping across JSON and Yjs reloads', async () => {

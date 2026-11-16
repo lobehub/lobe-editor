@@ -1,6 +1,4 @@
-import { Block } from '@lobehub/ui';
-import { ActionIcon } from '@lobehub/ui/base-ui';
-import { useThemeMode } from 'antd-style';
+import { ActionIcon, Block, useThemeMode } from '@lobehub/ui';
 import type { LexicalEditor } from 'lexical';
 import { $getNearestNodeFromDOMNode } from 'lexical';
 import { Check, X } from 'lucide-react';

@@ -1,15 +1,12 @@
 ---
-
 name: using-docs-kit
 description: >
-Set up and author a documentation site with @lobehub/docs-kit (the `lobedocs` CLI, React Router
-
-- Vite static docs used by ui.lobehub.com). Covers consumer repo layout, docs.config.ts,
+  Set up and author a documentation site with @lobehub/docs-kit (the `lobedocs` CLI, React Router
+  + Vite static docs used by ui.lobehub.com). Covers consumer repo layout, docs.config.ts,
   package scripts, component doc pages (index.mdx frontmatter, `?demo` imports, <Demo>, <Api>),
   guide pages, home page, changelog, and the build-time validations that reject bad docs.
   Trigger on docs-kit, lobedocs, defineDocsConfig, docs.config.ts, migrate from dumi, write
   component docs, add a demo, <Demo>, <Api>, index.mdx, 文档站, 写文档, 组件文档, 迁移 dumi.
-
 ---
 
 # Using @lobehub/docs-kit
@@ -114,8 +111,8 @@ category: General
 order: -1
 ---
 
-import Variants from './demos/Variant.tsx?demo';
 import Basic from './demos/index.tsx?demo';
+import Variants from './demos/Variant.tsx?demo';
 
 ## Introduction
 
@@ -135,7 +132,7 @@ Explain the dimension first, then show it.
 
 <Api name="Button" />
 
-Additionally, Button supports all props of antd's Button except `icon`.
+Additionally, Button forwards the native `<button>` attributes.
 ```
 
 ### Frontmatter
@@ -146,14 +143,14 @@ Additionally, Button supports all props of antd's Button except `icon`.
 | `description` | yes             | Subtitle, meta/OG description, search, llms.txt. One or two plain sentences, no markdown                                      |
 | `category`    | yes (component) | Sidebar group inside the section. Reuse existing names; `General` sorts first                                                 |
 | `order`       | no              | Number, lower first within category; unset sorts last, then by title                                                          |
-| `status`      | no              | `stable`                                                                                                                      | `beta` | `experimental` | `deprecated` |
+| `status`      | no              | `stable` \| `beta` \| `experimental` \| `deprecated`                                                                          |
 | `since`       | no              | Version string                                                                                                                |
 | `route`       | no              | Override the URL; component pages must stay under `/components/`                                                              |
 
 Anything else (`group`, `nav`, `apiHeader`, dumi's `hero`) is ignored — remove it.
 
 URL is derived from the folder: `src/Button/index.mdx` → `/components/button`,
-`src/base-ui/Select/index.mdx` → `/components/base-ui/select` (each segment kebab-cased).
+`src/chat/ChatItem/index.mdx` → `/components/chat/chat-item` (each segment kebab-cased).
 
 ### Headings
 

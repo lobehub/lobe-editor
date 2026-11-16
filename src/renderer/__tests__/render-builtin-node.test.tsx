@@ -32,6 +32,22 @@ describe('renderBuiltinNode', () => {
     expect(html).toContain('id="title"');
   });
 
+  it('keeps heading slugs unique across a document', () => {
+    const slugs = new Map<string, number>();
+    const ids = ['Foo', 'Foo', 'Foo 1'].map((text) => {
+      const html = renderToStaticMarkup(
+        <div>{renderBuiltinNode({ tag: 'h2', type: 'heading' }, 'k', [text], slugs, text)}</div>,
+      );
+      return html.match(/id="([^"]+)"/)?.[1];
+    });
+    expect(ids).toEqual(['foo', 'foo-1', 'foo-1-1']);
+  });
+
+  it('renders table cell column alignment', () => {
+    const html = toHTML({ colAlign: 'right', type: 'tablecell' }, ['1']);
+    expect(html).toContain('text-align:right');
+  });
+
   it('renders quote with editor_quote class', () => {
     const html = toHTML({ type: 'quote' }, ['quoted']);
     expect(html).toContain('class="editor_quote"');
@@ -86,18 +102,20 @@ describe('renderBuiltinNode', () => {
     expect(html).toContain('<colgroup>');
     expect(html).toContain('<col style="width:375px"/>');
     expect(html).toContain('<col style="width:200px"/>');
+    expect(html).not.toContain('data-lobe-table-fluid');
   });
 
-  it('renders table without colWidths as full width', () => {
+  it('marks a table without colWidths as fluid', () => {
     const html = toHTML({ type: 'table' }, ['row']);
     expect(html).not.toContain('<colgroup>');
-    expect(html).toContain('width:100%');
+    expect(html).toContain('data-lobe-table-fluid="true"');
+    expect(html).not.toContain('width:100%');
   });
 
   it('ignores unusable colWidths', () => {
     const html = toHTML({ colWidths: [0, Number.NaN], type: 'table' }, ['row']);
     expect(html).not.toContain('<colgroup>');
-    expect(html).toContain('width:100%');
+    expect(html).toContain('data-lobe-table-fluid="true"');
   });
 
   it('renders tablecell as th with class', () => {

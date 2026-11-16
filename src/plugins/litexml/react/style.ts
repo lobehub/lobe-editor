@@ -1,20 +1,23 @@
-import { createStaticStyles } from 'antd-style';
+import { createStaticStyles } from '@lobehub/ui';
 
 export const styles = createStaticStyles(
   ({ css, cssVar }) => css`
     position: relative;
 
     > .toolbar {
+      pointer-events: none;
+
       position: absolute;
       z-index: 10;
-      inset-block-start: 0;
-      inset-inline-start: 8px;
+      inset-block-end: 100%;
+      inset-inline-end: 0;
 
       opacity: 0;
     }
 
     &:hover {
       > .toolbar {
+        pointer-events: auto;
         opacity: 1;
       }
     }

@@ -101,7 +101,6 @@ const LinkToolbar = memo<LinkToolbarProps>(({ editor, enable, linkService }) => 
     cleanPosition(divRef.current);
     // The same reset is shared by pointer handlers and the enable/editable
     // synchronization effect, so it belongs in this single cancellation path.
-    // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
     setToolbarNodeKey(null);
   }, []);
 

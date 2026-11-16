@@ -14,6 +14,34 @@ const createClipboardDataMock = (payload: Record<string, string>) =>
   }) as DataTransfer;
 
 describe('Markdown paste auto conversion', () => {
+  it.each([
+    '<details><summary>More</summary>Body</details>',
+    '<details>\n<summary>More</summary>\n\nBody\n</details>',
+  ])('auto converts details source: %s', (text) => {
+    const plugin = new MarkdownPlugin(createKernelMock()) as any;
+    expect(plugin.getMarkdownDetectionResult(text).shouldAutoConvert).toBe(true);
+  });
+
+  it('prefers rich HTML details over markdown-looking clipboard text', () => {
+    const plugin = new MarkdownPlugin(createKernelMock()) as any;
+    expect(
+      plugin.hasRichHTML(
+        createClipboardDataMock({
+          'text/html': '<details><summary>More</summary><p>Body</p></details>',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps fenced details examples as code', () => {
+    const plugin = new MarkdownPlugin(createKernelMock()) as any;
+    expect(
+      plugin.getMarkdownDetectionResult(
+        '```html\n<details><summary>More</summary>Body</details>\n```',
+      ).matchedPatterns,
+    ).not.toContain('details');
+  });
+
   it('should auto convert multi-paragraph markdown with strong structural signals', () => {
     const plugin = new MarkdownPlugin(createKernelMock()) as any;
 

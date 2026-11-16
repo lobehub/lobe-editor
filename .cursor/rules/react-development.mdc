@@ -5,392 +5,193 @@ globs: *.tsx,*.jsx,src/react/**/*,src/plugins/*/react/**/*
 
 # React Component Guidelines
 
-## Component Architecture
+React code lives in two places:
 
-LobeHub Editor uses React components in two main contexts:
+1. [src/react/](mdc:src/react/): high-level components exported from `@lobehub/editor/react`
+   (`ChatInput`, `ChatInputActionBar`, `ChatInputActions`, `CodeLanguageSelect`, `Editor`,
+   `EditorProvider`, `FloatActions`, `SendButton`) and hooks (`useEditor`, `useEditorState`).
+2. `src/plugins/<name>/react/`: React plugins (`React<Name>Plugin`) exported from
+   `@lobehub/editor`.
 
-1. **High-level components** in [src/react/](mdc:src/react/) - Main user-facing components
-2. **Plugin components** in [src/plugins/\*/react/](mdc:src/plugins/) - Plugin-specific React implementations
+## Component Folder
 
-### Main Components
+Mirror [src/react/SendButton/](mdc:src/react/SendButton/):
 
-Primary components in [src/react/](mdc:src/react/):
+```text
+src/react/<Component>/
+├── <Component>.tsx   # FC + default export + displayName
+├── type.ts           # Props interface with JSDoc
+├── style.ts          # createStaticStyles
+├── index.ts          # export { default } from './<Component>'; export * from './type';
+├── components/       # Optional private sub-components
+├── demos/index.tsx   # Docs demo
+├── index.mdx         # Docs page
+└── __tests__/        # When there is logic
+```
 
-- [Editor](mdc:src/react/Editor/) - Core editor with plugin system
-- [ChatInput](mdc:src/react/ChatInput/) - Chat interface container
-- [ChatInputActions](mdc:src/react/ChatInputActions/) - Action management
-- [ChatInputActionBar](mdc:src/react/ChatInputActionBar/) - Action layout
-- [SendButton](mdc:src/react/SendButton/) - Send functionality
-- [CodeLanguageSelect](mdc:src/react/CodeLanguageSelect/) - Language selection
+Then export it from [src/react/index.ts](mdc:src/react/index.ts):
+`export { default as <Component>, type <Component>Props } from './<Component>';`.
 
-## Component Development Pattern
+## Component Pattern
 
-### Standard Component Definition
+```tsx
+'use client';
+
+import { cx } from '@lobehub/ui';
+import { type FC, useCallback } from 'react';
+
+import { styles } from './style';
+import type { MyButtonProps } from './type';
+
+const MyButton: FC<MyButtonProps> = ({ className, style, disabled, onClick, children }) => {
+  const handleClick = useCallback(() => {
+    if (!disabled) onClick?.();
+  }, [disabled, onClick]);
+
+  return (
+    <button className={cx(styles.root, className)} onClick={handleClick} style={style} type="button">
+      {children}
+    </button>
+  );
+};
+
+MyButton.displayName = 'MyButton';
+
+export default MyButton;
+```
 
 ```typescript
-import { memo, useCallback, useState, ReactNode, CSSProperties } from 'react';
-import { LexicalEditor } from 'lexical';
-import { createDebugLogger } from '@/utils/debug';
+// type.ts
+import type { CSSProperties, ReactNode } from 'react';
 
-export interface ComponentNameProps {
-  /** Required prop with JSDoc description */
-  requiredProp: string;
-  /** Optional prop with default value */
-  optionalProp?: boolean;
-  /** Event handler callback */
-  onEvent?: (data: EventData) => void;
-  /** Children for composition */
+export interface MyButtonProps {
   children?: ReactNode;
-  /** Style customization */
   className?: string;
+  /**
+   * Disable the button
+   * @default false
+   */
+  disabled?: boolean;
+  onClick?: () => void;
   style?: CSSProperties;
 }
-
-export const ComponentName = memo<ComponentNameProps>(({
-  requiredProp,
-  optionalProp = false,
-  onEvent,
-  children,
-  className,
-  style,
-  ...rest
-}) => {
-  // Hooks and state
-  const [state, setState] = useState(initialValue);
-  const { styles, cx } = useStyles();
-  const logger = createDebugLogger('react', 'component-name');
-  
-  // Event handlers with useCallback
-  const handleEvent = useCallback((data: EventData) => {
-    logger.debug('Event triggered:', data);
-    onEvent?.(data);
-  }, [onEvent, logger]);
-  
-  // Render
-  return (
-    <div 
-      className={cx(styles.container, className)}
-      style={style}
-      {...rest}
-    >
-      {children}
-    </div>
-  );
-});
-
-ComponentName.displayName = 'ComponentName';
 ```
 
-### Plugin Component Pattern
+- Use `memo` only with a `// Keep memo: <reason>` comment (see `src/react/Editor/Editor.tsx`,
+  `src/react/ChatInputActions/ChatInputActions.tsx`).
+- Use `useMemo` / `useCallback` where they avoid real work or keep props stable, not by default.
+
+## Styling
 
 ```typescript
-export interface ReactPluginNameProps {
-  /** Editor instance for command dispatch */
-  editor?: LexicalEditor;
-  /** Plugin configuration */
-  config?: PluginConfig;
-  /** Plugin state management */
-  state?: PluginState;
-  /** Plugin event callbacks */
-  onPluginEvent?: (event: PluginEvent) => void;
-}
+// style.ts
+import { createStaticStyles } from '@lobehub/ui';
 
-export const ReactPluginName = memo<ReactPluginNameProps>(({
-  editor,
-  config,
-  state,
-  onPluginEvent,
-}) => {
-  const logger = createDebugLogger('plugin', 'plugin-name');
-  
-  // Command dispatch to editor
-  const handleCommand = useCallback((command: Command, payload: any) => {
-    logger.debug('Dispatching command:', command, payload);
-    editor?.dispatchCommand(command, payload);
-  }, [editor, logger]);
-  
-  // Plugin-specific event handling
-  const handlePluginEvent = useCallback((event: PluginEvent) => {
-    logger.debug('Plugin event:', event);
-    onPluginEvent?.(event);
-  }, [onPluginEvent, logger]);
-  
-  return (
-    <div className="plugin-container">
-      {/* Plugin UI implementation */}
-    </div>
-  );
-});
-
-ReactPluginName.displayName = 'ReactPluginName';
-```
-
-## Editor Integration Patterns
-
-### Main Editor Usage
-
-```typescript
-import { Editor, useEditor } from '@lobehub/editor/react';
-import { 
-  ReactSlashPlugin, 
-  ReactMentionPlugin,
-  ReactCodeblockPlugin 
-} from '@lobehub/editor';
-
-function MyEditorComponent() {
-  const editor = useEditor();
-  
-  const handleChange = useCallback((editor: IEditor) => {
-    const content = editor.getDocument('markdown');
-    // Handle content changes
-  }, []);
-  
-  return (
-    <Editor
-      editorRef={editor}
-      placeholder="Start typing..."
-      plugins={[
-        ReactSlashPlugin,
-        ReactMentionPlugin,
-        ReactCodeblockPlugin,
-      ]}
-      slashOption={{
-        items: slashCommands,
-      }}
-      mentionOption={{
-        items: mentionItems,
-      }}
-      onChange={handleChange}
-    />
-  );
-}
-```
-
-### Chat Interface Pattern
-
-```typescript
-import { ChatInput, ChatInputActionBar, ChatInputActions, SendButton } from '@lobehub/editor/react';
-
-function ChatInterface() {
-  const handleSend = useCallback(() => {
-    // Handle send action
-  }, []);
-  
-  return (
-    <ChatInput
-      header={<ChatHeader />}
-      footer={
-        <ChatInputActionBar
-          left={<ChatInputActions items={leftActions} />}
-          right={<SendButton onSend={handleSend} />}
-        />
-      }
-    >
-      <Editor {...editorProps} />
-    </ChatInput>
-  );
-}
-```
-
-## Styling Standards
-
-### Style Hooks with antd-style
-
-```typescript
-import { createStyles } from 'antd-style';
-
-const useStyles = createStyles(({ css, token, isDarkMode }) => ({
-  container: css`
-    padding: ${token.padding}px;
-    border-radius: ${token.borderRadius}px;
-    background: ${isDarkMode ? token.colorBgElevated : token.colorBgContainer};
-    border: 1px solid ${token.colorBorder};
-    
-    &:hover {
-      border-color: ${token.colorPrimary};
-    }
-  `,
-  
-  active: css`
-    background: ${token.colorPrimary};
-    color: ${token.colorTextLightSolid};
-  `,
-  
-  disabled: css`
-    opacity: 0.6;
-    cursor: not-allowed;
+export const styles = createStaticStyles(({ css, cssVar }) => ({
+  root: css`
+    border-radius: ${cssVar.borderRadiusLG};
+    color: ${cssVar.colorText};
   `,
 }));
-
-// Usage in component
-const { styles, cx } = useStyles();
 ```
 
-## Event Handling
+- Styles are computed once at module load: use `cssVar` tokens (CSS variables) and CSS custom
+  properties for runtime values (e.g. `var(--send-button-size, 32px)` in `SendButton`).
+- Merge class names with `cx` from `@lobehub/ui`.
+- The package no longer depends on `antd` / `antd-style`; do not add `createStyles` hooks.
 
-### Command Integration
+## React Plugin Pattern
 
-```typescript
-import { INSERT_HEADING_COMMAND, INSERT_LIST_COMMAND } from '@lobehub/editor';
+```tsx
+'use client';
 
-const EditorToolbar = memo(({ editor }: { editor: LexicalEditor }) => {
-  const logger = createDebugLogger('react', 'toolbar');
-  
-  const handleAction = useCallback((action: ActionType) => {
-    logger.debug('Toolbar action:', action);
-    
-    switch (action.type) {
-      case 'heading':
-        editor.dispatchCommand(INSERT_HEADING_COMMAND, { tag: 'h1' });
-        break;
-      case 'list':
-        editor.dispatchCommand(INSERT_LIST_COMMAND, { listType: 'bullet' });
-        break;
-    }
-  }, [editor, logger]);
-  
-  return <ActionButton onAction={handleAction} />;
-});
+import { type FC, useLayoutEffect } from 'react';
+
+import { useLexicalComposerContext } from '@/editor-kernel/react/react-context';
+import { MarkdownPlugin } from '@/plugins/markdown/plugin';
+
+import { ListPlugin } from '../plugin';
+import type { ReactListPluginProps } from './type';
+
+const ReactListPlugin: FC<ReactListPluginProps> = ({ enableHotkey = true }) => {
+  const [editor] = useLexicalComposerContext();
+
+  useLayoutEffect(() => {
+    editor.registerPlugin(MarkdownPlugin);
+    editor.registerPlugin(ListPlugin, { enableHotkey });
+  }, []);
+
+  return null;
+};
+
+ReactListPlugin.displayName = 'ReactListPlugin';
+
+export default ReactListPlugin;
 ```
 
-### State Management
+- `editor` here is the kernel (`IEditor`), obtained from context; React plugins do not take an
+  `editor` prop.
+- Render node UI through the kernel plugin's `decorator` option, not by returning JSX from the
+  plugin component (plugins with floating UI, e.g. `slash` or `toolbar`, are the exception).
+- Translations: `useTranslation()` from `@/editor-kernel/react/useTranslation`.
 
-```typescript
-const StatefulComponent = memo(() => {
-  // Local component state
-  const [isOpen, setIsOpen] = useState(false);
-  
-  // Editor state integration
-  const editorState = useEditorState();
-  
-  // Derived state with memoization
-  const canSave = useMemo(() => {
-    return editorState.hasContent && !editorState.isLoading;
-  }, [editorState.hasContent, editorState.isLoading]);
-  
+## Using the Editor
+
+```tsx
+import { ReactCodeblockPlugin, ReactListPlugin, ReactMentionPlugin } from '@lobehub/editor';
+import { Editor, useEditor } from '@lobehub/editor/react';
+
+const MyEditor = () => {
+  const editor = useEditor();
+
   return (
-    <Button 
-      disabled={!canSave}
-      onClick={() => setIsOpen(true)}
-    >
-      Save
-    </Button>
-  );
-});
-```
-
-## Performance Optimization
-
-### Memoization Best Practices
-
-```typescript
-const OptimizedComponent = memo<Props>(({ items, onSelect, config }) => {
-  // Memoize expensive calculations
-  const processedItems = useMemo(() => {
-    return items.map(item => processItem(item, config));
-  }, [items, config]);
-  
-  // Memoize event handlers
-  const handleSelect = useCallback((item: Item) => {
-    onSelect?.(item);
-  }, [onSelect]);
-  
-  // Memoize derived values
-  const filteredItems = useMemo(() => {
-    return processedItems.filter(item => item.isVisible);
-  }, [processedItems]);
-  
-  return (
-    <ItemList 
-      items={filteredItems}
-      onSelect={handleSelect}
+    <Editor
+      editor={editor}
+      mentionOption={{ items: mentionItems }}
+      onTextChange={(editor) => {
+        const markdown = editor.getDocument('markdown');
+      }}
+      placeholder="Start typing..."
+      plugins={[
+        ReactListPlugin,
+        ReactCodeblockPlugin,
+        Editor.withProps(ReactMentionPlugin, { className: 'my-mention' }),
+      ]}
+      slashOption={{ items: slashItems }}
     />
   );
-});
+};
 ```
 
-### Virtual Lists for Large Data
+- Pass plugin options with `Editor.withProps(ReactXPlugin, props)`.
+- `onChange` / `onTextChange` are debounced by `debounceWait`; `onTextChange` ignores
+  selection-only changes.
+- `useEditorState(editor)` exposes toolbar state and actions (bold, lists, blocks, ...).
 
-```typescript
-import { FixedSizeList as List } from 'react-window';
+### Chat Input
 
-const VirtualizedList = memo<{ items: Item[] }>(({ items }) => {
-  const Row = useCallback(({ index, style }: ListChildComponentProps) => (
-    <div style={style}>
-      <ItemRenderer item={items[index]} />
-    </div>
-  ), [items]);
-  
-  return (
-    <List
-      height={400}
-      itemCount={items.length}
-      itemSize={50}
-      itemData={items}
-    >
-      {Row}
-    </List>
-  );
-});
+```tsx
+import { ChatInput, ChatInputActionBar, ChatInputActions, Editor, SendButton } from '@lobehub/editor/react';
+
+<ChatInput
+  footer={
+    <ChatInputActionBar
+      left={<ChatInputActions items={actions} />}
+      right={<SendButton onSend={handleSend} />}
+    />
+  }
+>
+  <Editor editor={editor} plugins={plugins} />
+</ChatInput>;
 ```
 
-## Demo Component Patterns
+## Demos
 
-### Development-Only Debugging
+Demos in `demos/` import from `@lobehub/editor` / `@lobehub/editor/react` and have one
+`export default` each. Use `devConsole` from `@/utils/debug` only in demos for ad-hoc output.
 
-For demo components in `demos/` directories:
+## Testing
 
-```typescript
-import { devConsole } from '@/utils/debug';
-
-const DemoComponent = memo(() => {
-  const handleDemoAction = useCallback((data: any) => {
-    // Use devConsole for demo-specific logging
-    devConsole.log('Demo action triggered:', data);
-    
-    // Demo logic
-  }, []);
-  
-  return <DemoUI onAction={handleDemoAction} />;
-});
-```
-
-## Component Testing
-
-```typescript
-import { render, screen, fireEvent } from '@testing-library/react';
-import { ComponentName } from './ComponentName';
-
-describe('ComponentName', () => {
-  it('should render with required props', () => {
-    render(<ComponentName requiredProp="test" />);
-    expect(screen.getByText('test')).toBeInTheDocument();
-  });
-  
-  it('should handle events correctly', () => {
-    const handleEvent = jest.fn();
-    render(<ComponentName onEvent={handleEvent} />);
-    
-    fireEvent.click(screen.getByRole('button'));
-    expect(handleEvent).toHaveBeenCalledWith(expectedData);
-  });
-  
-  it('should apply custom styles', () => {
-    render(<ComponentName className="custom-class" />);
-    expect(screen.getByRole('button')).toHaveClass('custom-class');
-  });
-});
-```
-
-## Best Practices
-
-1. **Always use memo** - Wrap components with `memo` for performance
-2. **Proper prop types** - Define comprehensive TypeScript interfaces
-3. **Event handler memoization** - Use `useCallback` for event handlers
-4. **Expensive calculation memoization** - Use `useMemo` for heavy computations
-5. **Debug logging** - Use appropriate debug loggers for different contexts
-6. **Display names** - Always set `displayName` for debugging
-7. **Style isolation** - Use antd-style's `createStyles` for component styling
-8. **Accessibility** - Include proper ARIA attributes and keyboard navigation
-9. **Error boundaries** - Implement error boundaries for critical components
-10. **Testing** - Write comprehensive tests for component behavior
+Vitest + jsdom. Render with `createRoot` and `act` (see
+`src/react/SendButton/__tests__/SendButton.test.tsx`); wrap components that use motion in
+`MotionProvider` from `@lobehub/ui`. There is no Testing Library or Jest dependency.

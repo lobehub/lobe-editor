@@ -49,6 +49,11 @@ const serializeImageContext = (image: BlockRewriteImageContext): string =>
 const isDimension = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= MAX_IMAGE_DIMENSION;
 
+const resolveImageDimension = (value: unknown, current: number | string): number | 'inherit' => {
+  if (value === undefined) return typeof current === 'number' ? current : 'inherit';
+  return typeof value === 'number' ? value : 'inherit';
+};
+
 const isImageSource = (value: unknown): value is string => {
   if (typeof value !== 'string') return false;
   const source = value.trim();
@@ -170,10 +175,12 @@ const applyBlockImageRewrite = (node: LexicalNode, output: unknown): void => {
 
   if (typeof patch.src === 'string') image.setUploaded(patch.src.trim());
   if (typeof patch.altText === 'string') image.setAltText(patch.altText);
-  if (patch.width !== undefined)
-    image.setWidth(patch.width === null ? 'inherit' : (patch.width as number));
-  if (patch.height !== undefined)
-    image.setHeight(patch.height === null ? 'inherit' : (patch.height as number));
+  if (patch.width !== undefined || patch.height !== undefined) {
+    image.setWidthAndHeight(
+      resolveImageDimension(patch.width, image.width),
+      resolveImageDimension(patch.height, image.height),
+    );
+  }
   if (typeof patch.maxWidth === 'number') image.setMaxWidth(patch.maxWidth);
 };
 

@@ -1,10 +1,9 @@
 'use client';
 
-import { Flexbox, MaterialFileTypeIcon } from '@lobehub/ui';
-import { Select, Text } from '@lobehub/ui/base-ui';
-import { cx } from 'antd-style';
+import { cx, Flexbox, MaterialFileTypeIcon, Select, Text } from '@lobehub/ui';
 import { type FC, useMemo } from 'react';
-import { bundledLanguagesInfo } from 'shiki';
+
+import { codeLanguages } from '@/plugins/codeblock/utils/languages';
 
 import { styles } from './style';
 import type { CodeLanguageSelectProps } from './type';
@@ -30,7 +29,7 @@ const CodeLanguageSelect: FC<CodeLanguageSelectProps> = ({ className, ...rest })
         title: 'plaintext text txt',
         value: 'plaintext',
       },
-      ...bundledLanguagesInfo.map((item) => ({
+      ...codeLanguages.map((item) => ({
         label: (
           <Flexbox align={'center'} gap={4} horizontal>
             <MaterialFileTypeIcon

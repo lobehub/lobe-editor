@@ -18,16 +18,23 @@ SendButton is a powerful button component designed specifically for message send
 
 ### SendButton
 
-| Property   | Description                          | Type                             | Default     |
-| ---------- | ------------------------------------ | -------------------------------- | ----------- |
-| generating | Show generating state with stop icon | `boolean`                        | `false`     |
-| shape      | Button shape style                   | `'default' \| 'round'`           | `'default'` |
-| size       | Button size                          | `number`                         | `32`        |
-| menu       | Dropdown menu configuration          | `DropdownButtonProps['menu']`    | -           |
-| loading    | Show loading state                   | `boolean`                        | `false`     |
-| type       | Button type                          | `DropdownButtonProps['type']`    | `'primary'` |
-| className  | Custom CSS class                     | `string`                         | -           |
-| style      | Custom inline styles                 | `CSSProperties`                  | -           |
-| onClick    | Click event handler                  | `DropdownButtonProps['onClick']` | -           |
+| Property   | Description                                                   | Type                                | Default      |
+| ---------- | ------------------------------------------------------------- | ----------------------------------- | ------------ |
+| className  | Custom CSS class                                              | `string`                            | -            |
+| disabled   | Disable the button                                            | `boolean`                           | -            |
+| generating | Show generating state with stop icon                          | `boolean`                           | -            |
+| loading    | Show loading state                                            | `boolean`                           | -            |
+| menu       | Dropdown menu items; renders a split button when set          | `{ items: DropdownItem[] }`         | -            |
+| onClick    | Click handler, called after `onSend` when sending             | `(e: MouseEvent<HTMLElement>) => void` | -            |
+| onSend     | Called when the send button is clicked                        | `(e: MouseEvent<HTMLElement>) => void` | -            |
+| onStop     | Called when the stop button is clicked while `generating`     | `(e: MouseEvent<HTMLElement>) => void` | -            |
+| placement  | Placement of the dropdown menu                                | `DropdownMenuProps['placement']`    | `'topRight'` |
+| ref        | Ref to the button element                                     | `Ref<HTMLButtonElement>`            | -            |
+| shape      | Button shape style                                            | `'default' \| 'round'`              | -            |
+| size       | Button size in pixels                                         | `number`                            | `32`         |
+| style      | Custom inline styles                                          | `CSSProperties`                     | -            |
+| title      | Native title / tooltip text                                   | `string`                            | -            |
+| trigger    | Trigger of the dropdown menu                                  | `DropdownMenuProps['trigger']`      | -            |
+| type       | Button type                                                   | `ButtonProps['type']`               | `'primary'`  |
 
 Note: This component extends Ant Design's DropdownButton component and inherits all its properties except `children`, `icon`, and `size`.

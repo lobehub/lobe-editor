@@ -34,9 +34,11 @@ import {
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { $clearNodeId, $normalizeNodeIds } from '@/plugins/common/node/node-id';
+import { HeadingService } from '@/plugins/common/service/heading-service';
+import { IHeadingService } from '@/plugins/common/service/i-heading-service';
 import { INodeIdentityService } from '@/plugins/common/service/i-node-identity-service';
 import { NodeIdentityService } from '@/plugins/common/service/node-identity-service';
-import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { isPunctuationChar } from '@/plugins/markdown/utils';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -70,6 +72,8 @@ import { registerBlockBackspace, registerLastElement, registerRichKeydown } from
 patchBreakLine();
 
 export interface CommonPluginOptions extends PasteHandlerConfig {
+  /** Give every heading a unique DOM `id` slug derived from its text. */
+  enableHeadingAnchor?: boolean;
   enableHotkey?: boolean;
   /**
    * Enable/disable markdown shortcuts
@@ -119,6 +123,8 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
   static pluginName = 'CommonPlugin';
 
+  public headingService = new HeadingService();
+
   public identityService = new NodeIdentityService();
 
   private formats = {
@@ -142,6 +148,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
     kernel.registerServiceHotReload(IEditorDiagnosticsService, this.diagnosticsService);
 
     kernel.registerService(INodeIdentityService, this.identityService);
+    kernel.registerService(IHeadingService, this.headingService);
 
     // Parse markdown options and update formats
     const markdownOption = config.markdownOption ?? true;
@@ -442,6 +449,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       ctx.appendLine(markdownText);
       const nextTextStartsWithSpace =
         $isTextNode(nextSibling) && /^\s/.test(nextSibling.getTextContent());
+      const closesDelimiter = isBold || isItalic || isStrikethrough || isSuperscript || isSubscript;
 
       if (isSubscript && !continuesToNext) {
         ctx.appendLine('~');
@@ -464,7 +472,12 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
       if (tailSpace) {
         ctx.appendLine(tailSpace);
-      } else if (lastChar && isPunctuationChar(lastChar) && !nextTextStartsWithSpace) {
+      } else if (
+        closesDelimiter &&
+        lastChar &&
+        isPunctuationChar(lastChar) &&
+        !nextTextStartsWithSpace
+      ) {
         ctx.appendLine(' ');
       }
     });
@@ -487,6 +500,11 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
 
   onInit(editor: LexicalEditor): void {
     this.register(this.identityService.bindEditor(editor));
+    this.register(
+      this.headingService.bindEditor(editor, {
+        anchors: this.config.enableHeadingAnchor !== false,
+      }),
+    );
     this.register(editor.registerNodeTransform(RootNode, $normalizeNodeIds));
     this.register(
       editor.registerCommand(

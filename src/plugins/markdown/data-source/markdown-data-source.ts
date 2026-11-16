@@ -21,13 +21,17 @@ import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { $normalizeNodeIds } from '@/plugins/common/node/node-id';
-import { INodeService } from '@/plugins/inode/service';
+import { INodeService } from '@/plugins/inode';
 import type { IServiceID } from '@/types';
 
 import type { MarkdownShortCutService } from '../service/shortcut';
 import { logger } from '../utils/logger';
 import { parseMarkdownToLexical } from './markdown/parse';
 import { MarkdownWriterContext } from './markdown-writer-context';
+
+// remark-stringify escapes `[` in phrasing text, which turns GitHub alert markers (`> [!NOTE]`) into plain quotes.
+const ESCAPED_GITHUB_ALERT_MARKER =
+  /^((?:[\t ]*>[\t ]?)+)\\\[!(note|tip|important|warning|caution)]/gim;
 
 export default class MarkdownDataSource extends DataSource {
   private formatMarkdown(markdown: string): string {
@@ -43,7 +47,7 @@ export default class MarkdownDataSource extends DataSource {
           tightDefinitions: true,
         })
         .processSync(markdown);
-      return String(result);
+      return String(result).replaceAll(ESCAPED_GITHUB_ALERT_MARKER, '$1[!$2]');
     } catch (error) {
       logger.error('Failed to format markdown:', error);
       return markdown;
@@ -75,9 +79,8 @@ export default class MarkdownDataSource extends DataSource {
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {
     const writeMarkdown = (value: string): string => {
-      const formatted = this.formatMarkdown(value);
-      if (options?.includeNodeIds === true) return formatted;
-      return stripMarkdownNodeIdMarkers(formatted);
+      const output = options?.format === false ? value : this.formatMarkdown(value);
+      return options?.includeNodeIds === true ? output : stripMarkdownNodeIdMarkers(output);
     };
 
     if (options?.selection) {

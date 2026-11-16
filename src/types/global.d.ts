@@ -1,7 +1,5 @@
-import 'antd-style';
 import 'lexical/LexicalEditor';
 
-import type { LobeCustomStylish, LobeCustomToken } from '@lobehub/ui';
 import type { Data, Literal } from 'mdast';
 
 /**
@@ -47,12 +45,6 @@ export interface Subscript extends Literal {
    * Node type of subscript (flow).
    */
   type: 'subscript';
-}
-
-declare module 'antd-style' {
-  export interface CustomToken extends LobeCustomToken {}
-
-  export interface CustomStylish extends LobeCustomStylish {}
 }
 
 declare module '*.png' {

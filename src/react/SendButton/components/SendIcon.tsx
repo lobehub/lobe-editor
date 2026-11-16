@@ -1,6 +1,6 @@
 'use client';
 
-import { createStaticStyles, cx } from 'antd-style';
+import { createStaticStyles, cx } from '@lobehub/ui';
 import { type CSSProperties, type FC } from 'react';
 
 const styles = createStaticStyles(({ css }) => ({

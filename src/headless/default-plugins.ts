@@ -1,11 +1,14 @@
 import { AISessionPlugin } from '@/plugins/ai-session/plugin';
+import { AlertPlugin } from '@/plugins/alert/plugin';
 import { ArtifactPlugin } from '@/plugins/artifact/plugin';
 import { BlockRewritePlugin } from '@/plugins/block/plugin/rewrite';
+import { ChartPlugin } from '@/plugins/chart/plugin';
 import { CodePlugin } from '@/plugins/code/plugin';
 import { HeadlessCodeblockPlugin } from '@/plugins/codeblock/plugin/headless';
 import { CodemirrorPlugin } from '@/plugins/codemirror-block/plugin';
 import { CommonPlugin } from '@/plugins/common/plugin';
 import { FilePlugin } from '@/plugins/file/plugin';
+import { FootnotePlugin } from '@/plugins/footnote/plugin';
 import { HRPlugin } from '@/plugins/hr/plugin';
 import { ImagePlugin } from '@/plugins/image/plugin';
 import { INodePlugin } from '@/plugins/inode/plugin';
@@ -17,6 +20,7 @@ import { MathPlugin } from '@/plugins/math/plugin';
 import { MentionPlugin } from '@/plugins/mention/plugin';
 import { PropertiesPlugin } from '@/plugins/properties/plugin';
 import { TablePlugin } from '@/plugins/table/plugin';
+import { VideoPlugin } from '@/plugins/video/plugin';
 import type { IPlugin } from '@/types';
 
 import { HeadlessCollapsiblePlugin } from './collapsible-plugin';
@@ -36,12 +40,16 @@ export const DEFAULT_HEADLESS_EDITOR_PLUGINS: ReadonlyArray<IPlugin> = [
   CodemirrorPlugin,
   ImagePlugin,
   FilePlugin,
+  VideoPlugin,
   MathPlugin,
   MentionPlugin,
   HRPlugin,
   ListPlugin,
   TablePlugin,
   HeadlessCollapsiblePlugin,
+  ChartPlugin,
+  AlertPlugin,
+  FootnotePlugin,
   LitexmlPlugin,
   ArtifactPlugin,
   PropertiesPlugin,

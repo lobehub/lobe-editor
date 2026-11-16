@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionIcon } from '@lobehub/ui/base-ui';
+import { ActionIcon } from '@lobehub/ui';
 import { Check, CopyIcon } from 'lucide-react';
 import { type FC, useState } from 'react';
 

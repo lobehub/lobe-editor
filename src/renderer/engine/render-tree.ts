@@ -1,6 +1,9 @@
+import { $isTableCellNode } from '@lexical/table';
 import type { ElementNode, LexicalNode } from 'lexical';
 import { $isElementNode, $isTextNode } from 'lexical';
 import type { ReactNode } from 'react';
+
+import { $getTableCellColumnAlign } from '@/plugins/table/node/column-align';
 
 import type {
   HeadlessRenderableNode,
@@ -36,7 +39,11 @@ export function renderNode(
     return renderTextNode(serialized, key);
   }
 
-  const serialized = node.exportJSON();
+  const serialized: Record<string, any> = node.exportJSON();
+  if ($isTableCellNode(node)) {
+    const colAlign = $getTableCellColumnAlign(node);
+    if (colAlign) serialized.colAlign = colAlign;
+  }
 
   let children: ReactNode[] | null = null;
   if ($isElementNode(node)) {

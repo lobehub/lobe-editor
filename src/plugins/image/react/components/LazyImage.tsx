@@ -1,4 +1,4 @@
-import { cx } from 'antd-style';
+import { cx } from '@lobehub/ui';
 import { type FC, useEffect, useState } from 'react';
 
 import type { BlockImageNode } from '../../node/block-image-node';
@@ -17,7 +17,12 @@ interface LazyImageProps {
   node: ImageNode | BlockImageNode;
   onError?: () => void;
 
-  onLoad?: (dimensions: { height: number; width: number }) => void;
+  onLoad?: (dimensions: {
+    height: number;
+    naturalHeight: number;
+    naturalWidth: number;
+    width: number;
+  }) => void;
 }
 
 const LazyImage: FC<LazyImageProps> = ({ className, node, newWidth, onError, onLoad }) => {
@@ -82,7 +87,11 @@ const LazyImage: FC<LazyImageProps> = ({ className, node, newWidth, onError, onL
   return (
     <img
       alt={altText}
-      className={cx(styles.lazyImage, className || undefined)}
+      className={cx(
+        styles.lazyImage,
+        (node.thumbhash || node.accent) && styles.fadeIn,
+        className || undefined,
+      )}
       draggable="false"
       onError={onError}
       onLoad={(e) => {
@@ -96,15 +105,21 @@ const LazyImage: FC<LazyImageProps> = ({ className, node, newWidth, onError, onL
         }
         onLoad?.({
           height: img.naturalHeight,
+          naturalHeight: img.naturalHeight,
+          naturalWidth: img.naturalWidth,
           width,
         });
       }}
       src={src}
-      style={{
-        ...imageStyle,
-        maxWidth: `calc(min(${newWidth || imageStyle.maxWidth}px, 100%))`,
-        width: newWidth || imageStyle.width,
-      }}
+      style={
+        node.displayWidth !== undefined && !newWidth
+          ? { ...imageStyle, maxWidth: '100%', width: '100%' }
+          : {
+              ...imageStyle,
+              maxWidth: `calc(min(${newWidth || imageStyle.maxWidth}px, 100%))`,
+              width: newWidth || imageStyle.width,
+            }
+      }
     />
   );
 };

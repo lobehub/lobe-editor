@@ -13,7 +13,6 @@ import { CommonPlugin } from '@/plugins/common';
 
 import { TablePlugin } from '../plugin';
 import { styles as tableStyles } from '../react/style';
-import { styles as tableControllerStyles } from '../react/TableController/style';
 import { styles as commonStyles } from '../../common/react/style';
 
 const settle = async (): Promise<void> => {
@@ -112,17 +111,17 @@ describe('Table Hole visual geometry', () => {
       () => new DOMRect(-scrollWrapper.scrollLeft, 130, tableWidth, 200),
     );
     notifyResize?.();
-    // The geometry callback runs outside Lexical's commit. Flush the native
-    // MutationObserver as well: moving an unmanaged controller onto the
-    // managed TableNode host currently makes Lexical remove it here.
+    // The geometry callback also reconciles scroll indicators and Hole insets.
     await settle();
     expect(scrollWrapper.hasAttribute('data-hole-table-viewport')).toBe(true);
     expect(getComputedStyle(scrollWrapper).marginInline).toBe('0px');
     expect(getComputedStyle(table).marginInline).toBe('0px');
-    const columnToolbar = scrollWrapper.querySelector<HTMLElement>(':scope > .toolbar-col');
+    const columnToolbar = tableHost.querySelector<HTMLElement>(':scope > .toolbar-col');
     if (!columnToolbar) throw new Error('Table column toolbar missing');
-    expect(columnToolbar.parentElement).toBe(scrollWrapper);
+    expect(columnToolbar.parentElement).toBe(tableHost);
+    expect(columnToolbar.hasAttribute('data-hole-table-overlay')).toBe(true);
     expect(getComputedStyle(columnToolbar).insetInlineStart).toBe('0px');
+    expect(getComputedStyle(columnToolbar).zIndex).toBe('4');
     const rowToolbar = tableHost.querySelector<HTMLElement>(':scope > .toolbar-row');
     if (!rowToolbar) throw new Error('Table row toolbar missing');
     expect(rowToolbar.parentElement).toBe(tableHost);
@@ -133,34 +132,13 @@ describe('Table Hole visual geometry', () => {
     const beforeHit = hole.querySelector<HTMLElement>('[data-hole-cursor-hit="before"]');
     if (!beforeHit) throw new Error('Table Hole before hit area missing');
     expect(getComputedStyle(firstCell).borderInlineStartWidth).not.toBe('0px');
-    const nestedTable = document.createElement('table');
-    nestedTable.className = 'editor_table';
-    const nestedRow = document.createElement('tr');
-    const nestedCell = document.createElement('td');
-    nestedCell.className = 'editor_table_cell';
-    nestedRow.append(nestedCell);
-    nestedTable.append(nestedRow);
-    firstCell.append(nestedTable);
-    const controller = document.createElement('div');
-    controller.className = 'table-controller-row';
-    const controllerLeft = document.createElement('div');
-    controllerLeft.className = 'left';
-    const row = document.createElement('div');
-    row.className = tableControllerStyles.row;
-    controllerLeft.append(row);
-    controller.append(controllerLeft);
-    rowToolbar.append(controller);
     expect(getComputedStyle(rowToolbar).zIndex).toBe('4');
     expect(getComputedStyle(rowToolbar).pointerEvents).toBe('none');
-    expect(getComputedStyle(controllerLeft).pointerEvents).toBe('all');
-    expect(getComputedStyle(row).borderInlineEndWidth).toBe('1px');
     expect(getComputedStyle(beforeHit).zIndex).toBe('2');
-    expect(getComputedStyle(firstCell).borderInlineStartWidth).toBe('0px');
-    expect(getComputedStyle(nestedCell).borderInlineStartWidth).not.toBe('0px');
-    nestedTable.remove();
     scrollWrapper.scrollLeft = 12;
     scrollWrapper.dispatchEvent(new Event('scroll'));
-    expect(columnToolbar.parentElement).toBe(scrollWrapper);
+    expect(columnToolbar.parentElement).toBe(tableHost);
+    expect(columnToolbar.hasAttribute('data-hole-table-overlay')).toBe(true);
     expect(rowToolbar.parentElement).toBe(tableHost);
     expect(rowToolbar.style.transform).toBe('');
     expect(hole.style.getPropertyValue('--lobe-hole-layout-block-start')).toBe('30px');
@@ -177,7 +155,7 @@ describe('Table Hole visual geometry', () => {
     await settle();
     expect(tableHost.querySelectorAll(':scope > .toolbar-row')).toHaveLength(1);
     expect(scrollWrapper.querySelectorAll(':scope > .toolbar-row')).toHaveLength(0);
-    expect(columnToolbar.parentElement).toBe(scrollWrapper);
+    expect(columnToolbar.parentElement).toBe(tableHost);
     expect(rowToolbar.parentElement).toBe(tableHost);
     expect(rowToolbar.style.transform).toBe('');
 
@@ -197,7 +175,6 @@ describe('Table Hole visual geometry', () => {
         ?.style.transform,
     ).toBe('translateX(296px)');
 
-    controller.remove();
     expect(getComputedStyle(firstCell).borderInlineStartWidth).not.toBe('0px');
   });
 
@@ -225,7 +202,7 @@ describe('Table Hole visual geometry', () => {
     expect(getComputedStyle(after).position).toBe('absolute');
   });
 
-  it('keeps legacy table row controls outside the horizontal scroller', async () => {
+  it('keeps the table grip host outside the horizontal scroller', async () => {
     editor = Editor.createEditor().registerPlugins([[TablePlugin, { theme: tableStyles }]]);
     const root = document.createElement('div');
     root.contentEditable = 'true';

@@ -8,9 +8,9 @@ import {
   type IEditorAsyncScope,
 } from '@/plugins/common/service/editor-async-scope';
 import { IHoleService } from '@/plugins/common/service/i-hole-service';
-import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
-import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload/service/i-upload-service';
+import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
 import { INSERT_IMAGE_COMMAND, registerBlockImageCommand, registerImageCommand } from '../command';
@@ -18,6 +18,54 @@ import { $isBlockImageNode, BlockImageNode } from '../node/block-image-node';
 import { $isImageNode, ImageNode } from '../node/image-node';
 import { blockImageRewriteAdapter } from '../rewrite-adapter';
 import { settleImageNode } from '../utils';
+
+function toMarkdownImage(node: ImageNode | BlockImageNode) {
+  if (!node.caption) return `![${node.altText}](${node.src})`;
+  const title = node.caption.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+  return `![${node.altText}](${node.src} "${title}")`;
+}
+
+function writeImageMetaAttributes(
+  node: ImageNode | BlockImageNode,
+  attributes: { [key: string]: string },
+) {
+  if (node.caption) {
+    attributes.caption = node.caption;
+  }
+  if (node.thumbhash) {
+    attributes.thumbhash = node.thumbhash;
+  }
+  if (node.accent) {
+    attributes.accent = node.accent;
+  }
+  if (node.displayWidth !== undefined) {
+    attributes['display-width'] = String(node.displayWidth);
+  }
+  if (node.naturalWidth !== undefined && node.naturalHeight !== undefined) {
+    attributes['natural-width'] = String(node.naturalWidth);
+    attributes['natural-height'] = String(node.naturalHeight);
+  }
+}
+
+function readImageAttributes(xmlNode: Element) {
+  const maxWidth = xmlNode.getAttribute('max-width');
+  const width = xmlNode.getAttribute('width');
+  const displayWidth = xmlNode.getAttribute('display-width');
+  const naturalWidth = xmlNode.getAttribute('natural-width');
+  const naturalHeight = xmlNode.getAttribute('natural-height');
+  return {
+    accent: xmlNode.getAttribute('accent') || undefined,
+    altText: xmlNode.getAttribute('alt') || '',
+    caption: xmlNode.getAttribute('caption') || '',
+    displayWidth: displayWidth ? parseInt(displayWidth, 10) : undefined,
+    maxWidth: maxWidth ? parseInt(maxWidth, 10) : undefined,
+    naturalHeight: naturalHeight ? parseInt(naturalHeight, 10) : undefined,
+    naturalWidth: naturalWidth ? parseInt(naturalWidth, 10) : undefined,
+    src: xmlNode.getAttribute('src') || '',
+    thumbhash: xmlNode.getAttribute('thumbhash') || undefined,
+    width: width ? parseInt(width, 10) : undefined,
+  };
+}
 
 export interface ImagePluginOptions {
   defaultBlockImage?: boolean;
@@ -161,6 +209,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
         if (node.altText) {
           attributes.alt = node.altText;
         }
+        writeImageMetaAttributes(node, attributes);
         return ctx.createXmlNode('img', attributes);
       }
       return false;
@@ -180,46 +229,18 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
         if (node.maxWidth) {
           attributes['max-width'] = String(node.maxWidth);
         }
+        writeImageMetaAttributes(node, attributes);
         return ctx.createXmlNode('img', attributes);
       }
       return false;
     });
     litexmlService.registerXMLReader('img', (xmlNode) => {
-      if (this.config?.defaultBlockImage !== false) {
-        return INodeHelper.createElementNode(BlockImageNode.getType(), {
-          altText: xmlNode.getAttribute('alt') || '',
-          maxWidth: xmlNode.getAttribute('max-width')
-            ? parseInt(xmlNode.getAttribute('max-width') as string, 10)
-            : undefined,
-          src: xmlNode.getAttribute('src') || '',
-          width: xmlNode.getAttribute('width')
-            ? parseInt(xmlNode.getAttribute('width') as string, 10)
-            : undefined,
-        });
-      }
-      if (xmlNode.getAttribute('block') === 'true') {
-        return INodeHelper.createElementNode(BlockImageNode.getType(), {
-          altText: xmlNode.getAttribute('alt') || '',
-          maxWidth: xmlNode.getAttribute('max-width')
-            ? parseInt(xmlNode.getAttribute('max-width') as string, 10)
-            : undefined,
-          src: xmlNode.getAttribute('src') || '',
-          width: xmlNode.getAttribute('width')
-            ? parseInt(xmlNode.getAttribute('width') as string, 10)
-            : undefined,
-        });
-      } else {
-        return INodeHelper.createElementNode(ImageNode.getType(), {
-          altText: xmlNode.getAttribute('alt') || '',
-          maxWidth: xmlNode.getAttribute('max-width')
-            ? parseInt(xmlNode.getAttribute('max-width') as string, 10)
-            : undefined,
-          src: xmlNode.getAttribute('src') || '',
-          width: xmlNode.getAttribute('width')
-            ? parseInt(xmlNode.getAttribute('width') as string, 10)
-            : undefined,
-        });
-      }
+      const isBlock =
+        this.config?.defaultBlockImage !== false || xmlNode.getAttribute('block') === 'true';
+      return INodeHelper.createElementNode(
+        isBlock ? BlockImageNode.getType() : ImageNode.getType(),
+        readImageAttributes(xmlNode),
+      );
     });
   }
 
@@ -231,12 +252,12 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
     }
     markdownService.registerMarkdownWriter(ImageNode.getType(), (ctx, node) => {
       if ($isImageNode(node)) {
-        ctx.appendLine(`![${node.altText}](${node.src})`);
+        ctx.appendLine(toMarkdownImage(node));
       }
     });
     markdownService.registerMarkdownWriter(BlockImageNode.getType(), (ctx, node) => {
       if ($isBlockImageNode(node)) {
-        ctx.appendLine(`![${node.altText}](${node.src})\n\n`);
+        ctx.appendLine(`${toMarkdownImage(node)}\n\n`);
       }
     });
 
@@ -247,7 +268,7 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
         defaultBlockImage ? BlockImageNode.getType() : ImageNode.getType(),
         {
           altText,
-          showCaption: false,
+          caption: node.title || '',
           src,
           version: 1,
         },

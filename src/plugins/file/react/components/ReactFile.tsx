@@ -1,4 +1,4 @@
-import { Center, MaterialFileTypeIcon } from '@lobehub/ui';
+import { Center } from '@lobehub/ui';
 import type { LexicalEditor } from 'lexical';
 import { CLICK_COMMAND, COMMAND_PRIORITY_LOW } from 'lexical';
 import { type FC, useCallback, useEffect, useRef } from 'react';
@@ -8,24 +8,29 @@ import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
 import type { BlockFileNode } from '../../node/BlockFileNode';
 import type { FileNode } from '../../node/FileNode';
+import type { FileActionPayload } from '../type';
+import FileBody from './FileBody';
 
 interface ReactFileProps {
   className?: string;
   editor: LexicalEditor;
   node: FileNode | BlockFileNode;
+  onDownload?: (file: FileActionPayload) => void;
+  onPreview?: (file: FileActionPayload) => void;
 }
 
-const ReactFile: FC<ReactFileProps> = ({ className, editor, node }) => {
+const ReactFile: FC<ReactFileProps> = ({ className, editor, node, onDownload, onPreview }) => {
   const spanRef = useRef<HTMLSpanElement>(null);
   const t = useTranslation();
   const [, setSelected, clearSelection] = useLexicalNodeSelection(node.getKey());
 
   const onClick = useCallback(
     (payload: MouseEvent) => {
-      if (payload.target === spanRef.current) {
+      const target = payload.target as Node | null;
+      if (target && spanRef.current?.contains(target)) {
         clearSelection();
         setSelected(true);
-        return true; // Indicate that the click was handled
+        return true;
       }
       return false;
     },
@@ -33,7 +38,6 @@ const ReactFile: FC<ReactFileProps> = ({ className, editor, node }) => {
   );
 
   useEffect(() => {
-    // Perform any necessary side effects here
     return editor.registerCommand<MouseEvent>(CLICK_COMMAND, onClick, COMMAND_PRIORITY_LOW);
   }, [editor, node, onClick]);
 
@@ -51,8 +55,17 @@ const ReactFile: FC<ReactFileProps> = ({ className, editor, node }) => {
 
   return (
     <Center className={className} gap={'.2em'} horizontal ref={spanRef}>
-      <MaterialFileTypeIcon filename={node.name} size={18} type={'file'} variant={'raw'} />
-      {node.name}
+      <FileBody
+        downloadLabel={t('file.download')}
+        ext={node.ext}
+        fileUrl={node.fileUrl}
+        mimeType={node.mimeType}
+        name={node.name}
+        onDownload={onDownload}
+        onPreview={onPreview}
+        previewLabel={t('file.preview')}
+        size={node.size}
+      />
     </Center>
   );
 };

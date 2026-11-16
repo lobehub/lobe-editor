@@ -4,7 +4,6 @@ import {
   $createTableNodeWithDimensions,
   $createTableSelection,
   $findTableNode,
-  $insertTableColumnAtSelection,
   $insertTableRowAtSelection,
   $isSimpleTable,
   $isTableNode,
@@ -30,12 +29,17 @@ import { getKernelFromEditor } from '@/editor-kernel/utils';
 import { IHoleService } from '@/plugins/common/service/i-hole-service';
 
 import {
-  $getValidTableSelectionShape,
-  createDefaultTableColWidths,
-  syncTableWidthDOM,
-} from '../utils';
+  $insertTableColumnAtSelectionWithAlign,
+  $moveTableColumnAligns,
+} from '../node/column-align';
+import { $getValidTableSelectionShape, $resolveTableColWidths, syncTableWidthDOM } from '../utils';
 import { getAutoFitTableColumnWidths } from '../utils/autoFitColumnWidth';
-import { getDistributedTableColumnWidths } from '../utils/distributeColumnWidth';
+import {
+  canTableFillContainer,
+  getDistributedTableColumnWidths,
+} from '../utils/distributeColumnWidth';
+
+export * from './align';
 
 export const INSERT_TABLE_COMMAND = createCommand<{
   columns: string;
@@ -136,26 +140,6 @@ const getMoveRange = (selectedIndexes: number[], targetIndex: number, insertAfte
   };
 };
 
-/**
- * Controller commands select cells without going through the native table
- * pointer handlers. Initialize the public TableObserver state before the
- * selection commit so its first selection change paints exactly the selected
- * cells. Headless editors have no DOM observer and safely skip this step.
- */
-const $syncTableSelectionToDOM = (
-  editor: LexicalEditor,
-  tableNode: TableNode,
-  selection: TableSelection,
-): boolean => {
-  const tableDOM = editor.getElementByKey(tableNode.getKey());
-  if (!tableDOM || typeof HTMLTableElement === 'undefined') return false;
-
-  const tableElement = tableNode.getDOMSlot(tableDOM).element;
-  const observer = getTableObserverFromTableElement(tableElement);
-  observer?.$updateTableTableSelection(selection);
-  return Boolean(observer);
-};
-
 const $selectTableRows = (tableNode: TableNode, from: number, to: number) => {
   const [tableMap] = $computeTableMapSkipCellCheck(tableNode, null, null);
   const firstRow = tableMap[from];
@@ -186,6 +170,19 @@ const $selectTableColumns = (tableNode: TableNode, from: number, to: number) => 
   tableSelection.set(tableNode.getKey(), firstCell.getKey(), lastCell.getKey());
   $setSelection(tableSelection);
   return true;
+};
+
+/** Initialize Lexical's DOM observer before committing the first controller selection. */
+const $syncTableSelectionToDOM = (
+  editor: LexicalEditor,
+  tableNode: TableNode,
+  selection: TableSelection,
+): void => {
+  const tableDOM = editor.getElementByKey(tableNode.getKey());
+  if (!tableDOM || typeof HTMLTableElement === 'undefined') return;
+
+  const tableElement = tableNode.getDOMSlot(tableDOM).element;
+  getTableObserverFromTableElement(tableElement)?.$updateTableTableSelection(selection);
 };
 
 const getRangeFromSelection = (
@@ -246,8 +243,7 @@ export function registerTableCommand(editor: LexicalEditor) {
           return false;
         }
 
-        // Reject nested insertion before Hole boundary preparation can create
-        // a paragraph and mutate the table selection's surrounding structure.
+        // Prevent nested tables by checking if we're already inside a table
         if ($findTableNode(originalAnchorNode)) {
           return false;
         }
@@ -255,20 +251,15 @@ export function registerTableCommand(editor: LexicalEditor) {
         const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
         holeService?.prepareBoundaryInsertion(selection);
         selection = $getSelection() || selection;
-        if (!$isRangeSelection(selection)) {
-          return false;
-        }
+        if (!$isRangeSelection(selection)) return false;
 
         const anchorNode = $getNodeByKey(selection.anchor.key);
-        if (!anchorNode) {
-          return false;
-        }
+        if (!anchorNode) return false;
 
         const rowCount = Number(rows);
         const columnCount = Number(columns);
 
         const tableNode = $createTableNodeWithDimensions(rowCount, columnCount, includeHeaders);
-        tableNode.setColWidths(createDefaultTableColWidths(columnCount));
 
         if ($isElementNode(anchorNode) && anchorNode.isEmpty()) {
           anchorNode.replace(tableNode);
@@ -305,7 +296,7 @@ export function registerTableCommand(editor: LexicalEditor) {
         const tableSelection = $createTableSelection();
         tableSelection.set(table, firstCell.getKey(), lastCell.getKey());
         $setSelection(tableSelection);
-        $insertTableColumnAtSelection(insertAfter);
+        $insertTableColumnAtSelectionWithAlign(insertAfter);
         return true;
       },
       COMMAND_PRIORITY_EDITOR,
@@ -347,7 +338,7 @@ export function registerTableCommand(editor: LexicalEditor) {
         }
 
         const columnCount = tableNode.getColumnCount();
-        const colWidths = tableNode.getColWidths() || createDefaultTableColWidths(columnCount);
+        const colWidths = $resolveTableColWidths(editor, tableNode);
         const selectedWidth = colWidths[columnIndex];
         if (selectedWidth === undefined) {
           return false;
@@ -395,8 +386,10 @@ export function registerTableCommand(editor: LexicalEditor) {
           return false;
         }
 
-        const nextColWidths = getDistributedTableColumnWidths(editor, tableNode);
-        if (!nextColWidths) {
+        const nextColWidths = canTableFillContainer(editor, tableNode)
+          ? undefined
+          : getDistributedTableColumnWidths(editor, tableNode);
+        if (nextColWidths === null) {
           return false;
         }
 
@@ -441,6 +434,7 @@ export function registerTableCommand(editor: LexicalEditor) {
           nextWidths.splice(target, 0, ...movedWidths);
           tableNode.setColWidths(nextWidths);
         }
+        $moveTableColumnAligns(tableNode, from, to, target);
 
         $selectTableColumns(tableNode, target, target + count - 1);
         return true;

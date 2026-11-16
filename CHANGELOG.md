@@ -2,6 +2,580 @@
 
 # Changelog
 
+### [Version&nbsp;7.2.2](https://github.com/lobehub/lobe-editor/compare/v7.2.1...v7.2.2)
+<sup>Released on **2026-11-13**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **litexml**: Float diff toolbar above the block so it no longer covers content.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **litexml**: Float diff toolbar above the block so it no longer covers content ([039ecfa](https://github.com/lobehub/lobe-editor/commit/039ecfa))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;7.2.1](https://github.com/lobehub/lobe-editor/compare/v7.2.0...v7.2.1)
+<sup>Released on **2026-11-03**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **slash**: 中文文本后和输入法开启时也能用 @ 打开提及菜单.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **slash**: 中文文本后和输入法开启时也能用 @ 打开提及菜单, closes [#242](https://github.com/lobehub/lobe-editor/issues/242) ([5e9f6c9](https://github.com/lobehub/lobe-editor/commit/5e9f6c9))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;7.2.0](https://github.com/lobehub/lobe-editor/compare/v7.1.2...v7.2.0)
+<sup>Released on **2026-11-03**</sup>
+
+
+#### ✨ Features
+
+- **markdown**: Export markdown without the remark format pass.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **markdown**: Export markdown without the remark format pass, closes [#241](https://github.com/lobehub/lobe-editor/issues/241) ([7a433aa](https://github.com/lobehub/lobe-editor/commit/7a433aa))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;7.1.2](https://github.com/lobehub/lobe-editor/compare/v7.1.1...v7.1.2)
+<sup>Released on **2026-11-02**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **litexml**: Keep the caret near a resolved diff instead of the document end.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **litexml**: Keep the caret near a resolved diff instead of the document end, closes [#240](https://github.com/lobehub/lobe-editor/issues/240) ([b98ba17](https://github.com/lobehub/lobe-editor/commit/b98ba17))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;7.1.1](https://github.com/lobehub/lobe-editor/compare/v7.1.0...v7.1.1)
+<sup>Released on **2026-10-30**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **image**: Reserve image layout from natural size to stop layout shift.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **image**: Reserve image layout from natural size to stop layout shift ([8f9d139](https://github.com/lobehub/lobe-editor/commit/8f9d139))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;7.1.0](https://github.com/lobehub/lobe-editor/compare/v7.0.4...v7.1.0)
+<sup>Released on **2026-10-29**</sup>
+
+
+#### ✨ Features
+
+- **video**: Add video node and shared media width control.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **video**: Add video node and shared media width control ([4fc6dbe](https://github.com/lobehub/lobe-editor/commit/4fc6dbe))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;7.0.4](https://github.com/lobehub/lobe-editor/compare/v7.0.3...v7.0.4)
+<sup>Released on **2026-10-29**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **yjs**: Export a Node-safe ./yjs entry for servers.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **yjs**: Export a Node-safe ./yjs entry for servers, closes [#239](https://github.com/lobehub/lobe-editor/issues/239) ([de70d59](https://github.com/lobehub/lobe-editor/commit/de70d59))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;7.0.3](https://github.com/lobehub/lobe-editor/compare/v7.0.2...v7.0.3)
+<sup>Released on **2026-10-29**</sup>
+
+
+#### 💄 Styles
+
+- **alert**: Use borderRadius token and drop accent border.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **alert**: Use borderRadius token and drop accent border ([5ee8465](https://github.com/lobehub/lobe-editor/commit/5ee8465))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;7.0.2](https://github.com/lobehub/lobe-editor/compare/v7.0.1...v7.0.2)
+<sup>Released on **2026-10-28**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **image**: Allow image nodes to be constructed without arguments.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **image**: Allow image nodes to be constructed without arguments ([e055c46](https://github.com/lobehub/lobe-editor/commit/e055c46))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;7.0.1](https://github.com/lobehub/lobe-editor/compare/v7.0.0...v7.0.1)
+<sup>Released on **2026-10-28**</sup>
+
+
+#### 💄 Styles
+
+- **slash**: Use default menu item height.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Styles
+
+* **slash**: Use default menu item height ([15ae50e](https://github.com/lobehub/lobe-editor/commit/15ae50e))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;7.0.0](https://github.com/lobehub/lobe-editor/compare/v6.0.1...v7.0.0)
+<sup>Released on **2026-10-28**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Page document nodes, chart visual form and table editing polish [force major].
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Page document nodes, chart visual form and table editing polish [force major] ([5caae98](https://github.com/lobehub/lobe-editor/commit/5caae98))
+
+</details>
+
+
+#### 💥 BREAKING CHANGES
+
+* **misc**: TablePluginOptions decoratorCol/decoratorRow are replaced by a single decorator option; the old table controller, action menu and hover-action components are removed. New tables no longer carry default colWidths and render fluid; the table scroll wrapper bleeds by --lobe-table-bleed (14px) instead of the block anchor padding.
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;6.0.1](https://github.com/lobehub/lobe-editor/compare/v6.0.0...v6.0.1)
+<sup>Released on **2026-10-26**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **collapsible**: Parse and paste details blocks correctly.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **collapsible**: Parse and paste details blocks correctly, closes [#235](https://github.com/lobehub/lobe-editor/issues/235) ([a2a9f04](https://github.com/lobehub/lobe-editor/commit/a2a9f04))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;6.0.0](https://github.com/lobehub/lobe-editor/compare/v5.0.2...v6.0.0)
+<sup>Released on **2026-10-23**</sup>
+
+
+#### ✨ Features
+
+- **codeblock**: Highlight code with Pierre highlights [force major].
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **codeblock**: Highlight code with Pierre highlights [force major], closes [#234](https://github.com/lobehub/lobe-editor/issues/234) ([a1b4125](https://github.com/lobehub/lobe-editor/commit/a1b4125))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;5.0.2](https://github.com/lobehub/lobe-editor/compare/v5.0.1...v5.0.2)
+<sup>Released on **2026-10-18**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Clamp rendered image max width to the container.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Clamp rendered image max width to the container, closes [#232](https://github.com/lobehub/lobe-editor/issues/232) ([fbd76b7](https://github.com/lobehub/lobe-editor/commit/fbd76b7))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;5.0.1](https://github.com/lobehub/lobe-editor/compare/v5.0.0...v5.0.1)
+<sup>Released on **2026-10-16**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Let lobe-ui own the SendButton disabled look.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Let lobe-ui own the SendButton disabled look, closes [#231](https://github.com/lobehub/lobe-editor/issues/231) ([f69904d](https://github.com/lobehub/lobe-editor/commit/f69904d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version&nbsp;5.0.0](https://github.com/lobehub/lobe-editor/compare/v4.29.2...v5.0.0)
+<sup>Released on **2026-10-15**</sup>
+
+
+#### ✨ Features
+
+- **misc**: Adopt lobe-ui 6 and drop antd [force major].
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **misc**: Adopt lobe-ui 6 and drop antd [force major], closes [#228](https://github.com/lobehub/lobe-editor/issues/228) ([e73756d](https://github.com/lobehub/lobe-editor/commit/e73756d))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;4.29.2](https://github.com/lobehub/lobe-editor/compare/v4.29.1...v4.29.2)
+<sup>Released on **2026-10-07**</sup>
+
+
+#### ♻ Code Refactoring
+
+- **misc**: Drop remaining antd component usage.
+
+
+#### 🐛 Bug Fixes
+
+- **litexml**: Decouple document IDs and stabilize review edits.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### Code refactoring
+
+* **misc**: Drop remaining antd component usage, closes [#227](https://github.com/lobehub/lobe-editor/issues/227) ([768ad03](https://github.com/lobehub/lobe-editor/commit/768ad03))
+
+
+
+#### What's fixed
+
+* **litexml**: Decouple document IDs and stabilize review edits, closes [#224](https://github.com/lobehub/lobe-editor/issues/224) ([1437ee1](https://github.com/lobehub/lobe-editor/commit/1437ee1))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version&nbsp;4.29.1](https://github.com/lobehub/lobe-editor/compare/v4.29.0...v4.29.1)
+<sup>Released on **2026-10-05**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **misc**: Preserve math code in LiteXML round trips.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **misc**: Preserve math code in LiteXML round trips, closes [#225](https://github.com/lobehub/lobe-editor/issues/225) ([caf68a1](https://github.com/lobehub/lobe-editor/commit/caf68a1))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;4.29.0](https://github.com/lobehub/lobe-editor/compare/v4.28.0...v4.29.0)
 <sup>Released on **2026-10-03**</sup>
 

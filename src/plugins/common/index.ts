@@ -55,6 +55,11 @@ export {
   IEditorDiagnosticsService,
 } from './service/i-editor-diagnostics-service';
 export {
+  HEADING_FOLDED_ATTRIBUTE,
+  HEADING_HIDDEN_ATTRIBUTE,
+  IHeadingService,
+} from './service/i-heading-service';
+export {
   type HoleBoundaryChange,
   type HoleBoundaryPosition,
   type HoleBoundarySide,

@@ -38,6 +38,7 @@ const inferFileType = (name: string): string => {
 type AnyNode = SerializedLexicalNode & {
   altText?: unknown;
   children?: unknown;
+  ext?: unknown;
   fileUrl?: unknown;
   name?: unknown;
   size?: unknown;
@@ -67,7 +68,7 @@ export const extractMediaFromEditorState = (
       if (node.status === 'uploaded' && typeof node.fileUrl === 'string' && node.fileUrl) {
         const name = typeof node.name === 'string' ? node.name : 'unknown';
         fileList.push({
-          fileType: inferFileType(name),
+          fileType: typeof node.ext === 'string' && node.ext ? node.ext : inferFileType(name),
           id: generateId(),
           name,
           size: typeof node.size === 'number' ? node.size : 0,

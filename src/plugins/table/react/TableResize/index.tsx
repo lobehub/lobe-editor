@@ -11,7 +11,7 @@ import {
   TableNode,
 } from '@lexical/table';
 import { calculateZoomLevel, mergeRegister } from '@lexical/utils';
-import { cssVar, cx } from 'antd-style';
+import { cssVar, cx, LOBE_THEME_APP_ID } from '@lobehub/ui';
 import type EventEmitter from 'eventemitter3';
 import type { LexicalEditor, NodeKey } from 'lexical';
 import {
@@ -32,7 +32,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
-import { createDefaultTableColWidths, syncTableWidthDOM } from '../../utils';
+import { $resolveTableColWidths, syncTableWidthDOM } from '../../utils';
 import type { TableResizeMode } from '../type';
 import { MIN_COLUMN_WIDTH, MIN_ROW_HEIGHT, styles } from './style';
 import { getCellColumnIndex, getCellNodeHeight } from './utils';
@@ -67,10 +67,6 @@ type ResizeStartState = PointerPosition &
 
 const isHeightChanging = (direction: PointerDraggingDirection) => {
   return direction === 'bottom';
-};
-
-const getTableColWidths = (tableNode: TableNode) => {
-  return tableNode.getColWidths() || createDefaultTableColWidths(tableNode.getColumnCount());
 };
 
 const $getTableNodeByKey = (tableKey: NodeKey) => {
@@ -152,7 +148,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
               throw new Error('TableCellResizer: Table column not found.');
             }
 
-            const colWidths = getTableColWidths(tableNode);
+            const colWidths = $resolveTableColWidths(editor, tableNode);
             const width = colWidths[columnIndex] ?? MIN_COLUMN_WIDTH;
             resizeState = {
               ...startPos,
@@ -257,7 +253,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
           if (!tableNode) {
             return;
           }
-          const colWidths = getTableColWidths(tableNode);
+          const colWidths = $resolveTableColWidths(editor, tableNode);
           const width = colWidths[columnIndex];
           if (width === undefined) {
             return;
@@ -535,6 +531,7 @@ export const TableCellResize = memo<TableResizeProps>(({ editor, eventEmitter, r
         <>
           <div
             className={cx(styles, 'TableCellResizer__resizer', 'TableCellResizer__ui')}
+            data-direction="right"
             onPointerDown={toggleResize('right')}
             style={resizerStyles.right || undefined}
           />
@@ -555,8 +552,8 @@ export default memo<TableResizeProps>(({ editor, eventEmitter, resizeMode }) => 
     return null;
   }
 
-  // Mount to .ant-app if exists, otherwise document.body
-  const container = (document.querySelector('.ant-app') as HTMLElement) || document.body;
+  const container =
+    (document.querySelector(`#${LOBE_THEME_APP_ID}`) as HTMLElement) || document.body;
 
   return createPortal(
     <TableCellResize editor={editor} eventEmitter={eventEmitter} resizeMode={resizeMode} />,

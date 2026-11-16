@@ -1,19 +1,22 @@
-import { Icon, useImagePreview } from '@lobehub/ui';
-import { ActionIcon } from '@lobehub/ui/base-ui';
-import { cx } from 'antd-style';
-import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from 'lexical';
+import { ActionIcon, cx, Icon, useImagePreview } from '@lobehub/ui';
+import { COMMAND_PRIORITY_LOW, HISTORY_MERGE_TAG, SELECTION_CHANGE_COMMAND } from 'lexical';
 import { LoaderCircleIcon, ZoomInIcon } from 'lucide-react';
-import React, { memo, Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { useEditable } from '@/editor-kernel/react/useEditable';
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
+import { mediaDisplaySizeAfterResize } from '@/utils/mediaDisplaySize';
 
 import type { BlockImageNode } from '../../node/block-image-node';
 import { $isBlockImageNode } from '../../node/block-image-node';
 import type { ImageNode } from '../../node/image-node';
+import { getImageDisplaySize } from '../../utils/displaySize';
 import BrokenImage from './BrokenImage';
+import ImageCaption from './ImageCaption';
 import ImageEditPopover from './ImageEditPopover';
+import ImagePlaceholder from './ImagePlaceholder';
 import LazyImage from './LazyImage';
 import { ResizeHandle } from './ResizeHandle';
 import { styles } from './style';
@@ -42,15 +45,30 @@ const Image = memo<ImageProps>(
     const [newWidth, setNewWidth] = useState<number | null>(null);
     const imageRef = useRef<HTMLDivElement>(null);
     const originalSizeRef = useRef({ height: 0, width: 0 });
+    const naturalWidthRef = useRef(0);
     const editorRef = useRef<any>(null);
     const startWidthRef = useRef<number>(0);
     const lastLoadedSrcRef = useRef<string | null>(null);
     const previewImageRef = useRef<HTMLImageElement | null>(null);
     const { open: openPreview, outlet: previewOutlet } = useImagePreview(previewImageRef);
     const t = useTranslation();
+    const { editable } = useEditable();
     const isBlock = useMemo(() => {
       return $isBlockImageNode(node);
     }, [node]);
+    const display = getImageDisplaySize(node);
+
+    useEffect(() => {
+      setNewWidth(null);
+    }, [node.displayWidth, node.width]);
+
+    const getMetrics = useCallback(
+      () => ({
+        containerWidth: imageRef.current?.parentElement?.clientWidth || undefined,
+        naturalWidth: naturalWidthRef.current || originalSizeRef.current.width || undefined,
+      }),
+      [],
+    );
 
     useLexicalEditor((editor) => {
       editorRef.current = editor;
@@ -68,48 +86,50 @@ const Image = memo<ImageProps>(
       };
     }, []);
 
-    // Resize by dragging - only control width; height is calculated by aspect ratio
+    const recordNaturalSize = useCallback(
+      (width: number, height: number) => {
+        const editor = editorRef.current;
+        if (!editable || !editor || !width || !height) return;
+        if (node.naturalWidth === width && node.naturalHeight === height) return;
+        editor.update(
+          () => {
+            try {
+              node.setNaturalSize(width, height);
+            } catch {
+              // ignore errors silently
+            }
+          },
+          { tag: HISTORY_MERGE_TAG },
+        );
+      },
+      [editable, node],
+    );
+
     const handleResize = useCallback((deltaX: number) => {
       if (!originalSizeRef.current.width || !originalSizeRef.current.height) return;
       if (!imageRef.current) return;
 
       const aspectRatio = originalSizeRef.current.width / originalSizeRef.current.height;
 
-      // Get parent container width to limit max width
       const parentWidth = imageRef.current.parentElement?.clientWidth || window.innerWidth;
       const maxWidth = parentWidth;
 
-      // Use the width captured at mousedown time
       const newWidth = getResizedImageWidth(startWidthRef.current, deltaX, maxWidth);
 
-      // Calculate new height based on the original aspect ratio
       const newHeight = newWidth / aspectRatio;
 
       setSize({ height: newHeight, width: newWidth });
 
       setNewWidth(newWidth);
 
-      // Update the scale
       const newScale = newWidth / originalSizeRef.current.width;
       setScale(newScale);
     }, []);
 
-    // Store the initial width when resize starts
     const handleResizeStart = useCallback((initialWidth: number) => {
       startWidthRef.current = initialWidth;
     }, []);
 
-    // Click to select
-    const handleClick = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSelected(true);
-        editorRef.current?.focus();
-      },
-      [setSelected],
-    );
-
-    // Double-click to reset to original size and aspect ratio
     const handleDoubleClick = useCallback((e: React.MouseEvent) => {
       const editor = editorRef.current;
       if (!editor) return;
@@ -122,20 +142,17 @@ const Image = memo<ImageProps>(
       setNewWidth(orig.width);
       editor.update(() => {
         try {
-          node.setWidth(orig.width);
-          node.setMaxWidth(orig.width);
+          node.setDisplaySize({ mode: 'px', px: orig.width });
         } catch {
           // ignore errors silently
         }
       });
     }, []);
 
-    // Mouse enter handler
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
     }, []);
 
-    // Mouse leave handler
     const handleMouseLeave = useCallback(() => {
       setIsHovered(false);
     }, []);
@@ -148,6 +165,19 @@ const Image = memo<ImageProps>(
         openPreview();
       },
       [openPreview],
+    );
+
+    const handleClick = useCallback(
+      (e: React.MouseEvent) => {
+        if (!editable) {
+          if (node.status === 'uploaded') handlePreview(e);
+          return;
+        }
+        e.stopPropagation();
+        setSelected(true);
+        editorRef.current?.focus();
+      },
+      [editable, handlePreview, node.status, setSelected],
     );
 
     const children = useMemo(() => {
@@ -165,7 +195,9 @@ const Image = memo<ImageProps>(
               src={lastLoadedSrcRef.current}
               style={{ width: '100%' }}
             />
-          ) : null;
+          ) : (
+            <ImagePlaceholder newWidth={newWidth} node={node} />
+          );
 
           return (
             <Suspense fallback={fallback}>
@@ -177,7 +209,9 @@ const Image = memo<ImageProps>(
                   lastLoadedSrcRef.current = node.src;
                   originalSizeRef.current.width = loadedSize.width;
                   originalSizeRef.current.height = loadedSize.height;
-                  setSize(loadedSize);
+                  naturalWidthRef.current = loadedSize.naturalWidth;
+                  setSize({ height: loadedSize.height, width: loadedSize.width });
+                  recordNaturalSize(loadedSize.naturalWidth, loadedSize.naturalHeight);
                 }}
               />
             </Suspense>
@@ -187,28 +221,28 @@ const Image = memo<ImageProps>(
           return null;
         }
       }
-    }, [node.status, className, node, newWidth]);
+    }, [node.status, className, node, newWidth, recordNaturalSize]);
 
-    // On resize end, persist to node (set maxWidth)
     const handleResizeEnd = useCallback(
       (deltaX: number) => {
         if (!originalSizeRef.current.width || !originalSizeRef.current.height) return;
         if (!imageRef.current) return;
 
-        // Get parent container width to limit max width
         const parentWidth = imageRef.current.parentElement?.clientWidth || window.innerWidth;
         const maxWidth = parentWidth;
 
-        // Use the width captured at mousedown time
         const finalWidth = getResizedImageWidth(startWidthRef.current, deltaX, maxWidth);
 
-        // persist to node via editor.update
         const editor = editorRef.current;
         if (!editor) return;
+        const nextSize = mediaDisplaySizeAfterResize(
+          getImageDisplaySize(node).mode,
+          finalWidth,
+          parentWidth,
+        );
         editor.update(() => {
           try {
-            node.setWidth(finalWidth);
-            node.setMaxWidth(finalWidth);
+            node.setDisplaySize(nextSize);
           } catch {
             // ignore errors silently
           }
@@ -218,73 +252,84 @@ const Image = memo<ImageProps>(
     );
 
     return (
-      <ImageEditPopover handleUpload={handleUpload} node={node} onPickFile={onPickFile}>
-        <div
-          className={cx(styles.imageContainer, {
-            loading: node.status === 'loading',
-            selected: isSelected,
-          })}
-          draggable={false}
-          onClick={handleClick}
-          onDoubleClick={handleDoubleClick}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          ref={imageRef}
-          style={{
-            width: size.width || 'auto',
-          }}
+      <>
+        <ImageEditPopover
+          getMetrics={getMetrics}
+          handleUpload={handleUpload}
+          node={node}
+          onPickFile={onPickFile}
         >
-          {children}
+          <div
+            className={cx(styles.imageContainer, !editable && styles.readonly, {
+              loading: node.status === 'loading',
+              selected: isSelected,
+            })}
+            draggable={false}
+            onClick={handleClick}
+            onDoubleClick={handleDoubleClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            ref={imageRef}
+            style={{
+              width:
+                newWidth === null && display.mode === 'percent'
+                  ? `${display.value}%`
+                  : newWidth === null && display.mode === 'px'
+                    ? `min(${display.px}px, 100%)`
+                    : size.width || 'auto',
+            }}
+          >
+            {children}
 
-          {node.status === 'loading' && (
-            <div className={styles.loadingIcon}>
-              <Icon icon={LoaderCircleIcon} size={24} spin />
-            </div>
-          )}
+            {node.status === 'loading' && (
+              <div className={styles.loadingIcon}>
+                <Icon icon={LoaderCircleIcon} size={24} spin />
+              </div>
+            )}
 
-          {(isHovered || isSelected) && node.status === 'uploaded' && (
-            <ActionIcon
-              aria-label={t('image.preview')}
-              glass
-              className={styles.previewAction}
-              icon={ZoomInIcon}
-              onClick={handlePreview}
-              size="small"
-              title={t('image.preview')}
-              variant="filled"
-            />
-          )}
-
-          {previewOutlet}
-
-          {/* Scale info display */}
-          {showScaleInfo && isSelected && scale !== 1 && (
-            <div className={styles.scaleInfo}>{Math.round(scale * 100)}%</div>
-          )}
-
-          {/* Resize handles - only left and right */}
-          {isHovered && node.status === 'uploaded' && (
-            <>
-              <ResizeHandle
-                imageRef={imageRef}
-                isBlock={isBlock}
-                onResize={handleResize}
-                onResizeEnd={handleResizeEnd}
-                onResizeStart={handleResizeStart}
-                position="left"
+            {(isHovered || isSelected) && node.status === 'uploaded' && (
+              <ActionIcon
+                aria-label={t('image.preview')}
+                glass
+                className={styles.previewAction}
+                icon={ZoomInIcon}
+                onClick={handlePreview}
+                size="small"
+                title={t('image.preview')}
+                variant="filled"
               />
-              <ResizeHandle
-                imageRef={imageRef}
-                isBlock={isBlock}
-                onResize={handleResize}
-                onResizeEnd={handleResizeEnd}
-                onResizeStart={handleResizeStart}
-                position="right"
-              />
-            </>
-          )}
-        </div>
-      </ImageEditPopover>
+            )}
+
+            {previewOutlet}
+
+            {showScaleInfo && isSelected && scale !== 1 && (
+              <div className={styles.scaleInfo}>{Math.round(scale * 100)}%</div>
+            )}
+
+            {editable && isHovered && node.status === 'uploaded' && (
+              <>
+                <ResizeHandle
+                  imageRef={imageRef}
+                  isBlock={isBlock}
+                  onResize={handleResize}
+                  onResizeEnd={handleResizeEnd}
+                  onResizeStart={handleResizeStart}
+                  position="left"
+                />
+                <ResizeHandle
+                  imageRef={imageRef}
+                  isBlock={isBlock}
+                  onResize={handleResize}
+                  onResizeEnd={handleResizeEnd}
+                  onResizeStart={handleResizeStart}
+                  position="right"
+                />
+              </>
+            )}
+          </div>
+        </ImageEditPopover>
+        {$isBlockImageNode(node) && <ImageCaption active={isSelected} node={node} />}
+      </>
     );
   },
 );

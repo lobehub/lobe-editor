@@ -1,0 +1,123 @@
+---
+title: Chart
+description: Chart plugin adds a block that stores a bar, line, area or pie chart as a JSON spec, round-trips it through LiteXML and Markdown, and renders it in the editor and in LexicalRenderer.
+category: Plugins
+---
+
+import DemoIndex from './demos/index.tsx?demo';
+import DemoRenderer from './demos/renderer.tsx?demo';
+
+## Introduction
+
+The Chart plugin adds a `chart` decorator node that holds one chart spec: plain, JSON-serializable data rather than an image. It is designed for long-form documents written by AI agents: the agent writes the spec through LiteXML, and the chart renders in the editor and read-only through `LexicalRenderer`. Charts are drawn with [`@lobehub/charts`](https://github.com/lobehub/lobe-charts), which is loaded on demand, so documents without charts never download it.
+
+In the editor, hover a chart and click **Edit chart** to change its type, series, data and labels in a form; every change applies immediately and is one undo step. The code button next to it switches to the JSON source. Applying invalid JSON shows the reason and keeps the previous chart. Press `Cmd/Ctrl + Enter` to apply and `Esc` to cancel.
+
+## Basic Usage
+
+<Demo editable={false} of={DemoIndex} />
+
+```tsx
+import { ReactChartPlugin } from '@lobehub/editor';
+import { Editor } from '@lobehub/editor/react';
+
+<Editor plugins={[ReactChartPlugin]} />;
+```
+
+## Read-only Rendering
+
+`LexicalRenderer` renders chart nodes with the same component, including the error card for invalid specs.
+
+<Demo editable={false} of={DemoRenderer} />
+
+## Chart Spec
+
+```json
+{
+  "version": 1,
+  "type": "bar",
+  "title": "Quarterly revenue",
+  "x": "quarter",
+  "series": [{ "key": "cloud", "label": "Cloud" }],
+  "format": { "compact": true, "unit": "$" },
+  "data": [
+    { "quarter": "Q1", "cloud": 1200000 },
+    { "quarter": "Q2", "cloud": 1450000 }
+  ]
+}
+```
+
+| Field     | Description                                                                                                 | Type                                       |
+| --------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| version   | Spec version, must be `1` (defaults to `1` when omitted)                                                    | `1`                                        |
+| type      | Chart type                                                                                                  | `'bar' \| 'line' \| 'area' \| 'pie'`       |
+| x         | Field in each row used as the category axis (the slice name for `pie`)                                      | `string`                                   |
+| series    | Numeric fields to plot; `pie` uses the first one. A plain string is shorthand for `{ "key": "..." }`        | `{ key: string; label?: string }[]`        |
+| data      | Rows; series fields must be numbers, other fields strings or numbers                                        | `Record<string, string \| number>[]`       |
+| title     | Heading shown above the chart                                                                               | `string`                                   |
+| subtitle  | Secondary line under the title                                                                              | `string`                                   |
+| note      | Footnote shown under the chart                                                                              | `string`                                   |
+| source    | Data source shown under the chart                                                                           | `string`                                   |
+| xLabel    | Category axis label                                                                                         | `string`                                   |
+| stacked   | Stack series (`bar` and `area`)                                                                             | `boolean`                                  |
+| donut     | Draw a donut instead of a pie (`pie` only)                                                                  | `boolean`                                  |
+| highlight | Series key drawn in the primary color while the others are muted                                            | `string`                                   |
+| format    | Value formatting for axes, tooltips and references                                                          | `{ unit?, compact?, decimals?, signed? }`  |
+| y         | Value axis bounds                                                                                           | `{ min?: number; max?: number }`           |
+| refs      | Reference values, listed under the chart (`@lobehub/charts` 6.x has no reference-line API for these charts) | `{ y: number; label?: string }[]`          |
+
+`format.unit` is placed by kind: `%`, `‰` and `°` are attached after the number, currency symbols (`$`, `€`, `£`, `¥`, `₹`, `₩`) go before it, and any other unit follows after a space. `compact` uses compact notation (`1.2M`), `decimals` fixes the fraction digits and `signed` adds a `+` to positive values.
+
+Unknown fields are dropped. A spec that fails validation is kept as raw text: it round-trips unchanged and renders as an error card with the reason.
+
+## LiteXML
+
+```xml
+<chart><![CDATA[{"version":1,"type":"line","x":"week","series":["users"],"data":[{"week":"W1","users":12}]}]]></chart>
+```
+
+The writer always wraps the JSON in CDATA (escaping `]]>`); the reader also accepts JSON written as plain text.
+
+## Markdown
+
+A fenced code block with the language `chart` holding the JSON is read as a chart, and charts are written back the same way. Other fenced code blocks are left to the code block plugins.
+
+````md
+```chart
+{ "version": 1, "type": "pie", "x": "channel", "series": ["share"], "data": [{ "channel": "Search", "share": 46 }] }
+```
+````
+
+## Commands and Utilities
+
+```typescript
+import { INSERT_CHART_COMMAND, UPDATE_CHART_COMMAND, parseChartSpec } from '@lobehub/editor';
+
+editor.dispatchCommand(INSERT_CHART_COMMAND, { spec: { version: 1, type: 'bar' /* ... */ } });
+editor.dispatchCommand(UPDATE_CHART_COMMAND, { key: nodeKey, spec: jsonString });
+
+const result = parseChartSpec(jsonString);
+if (!result.ok) console.warn(result.error);
+```
+
+- `INSERT_CHART_COMMAND` inserts a chart at the selection. `spec` may be an object or a JSON string; without a payload it inserts `DEFAULT_CHART_SPEC`.
+- `UPDATE_CHART_COMMAND` replaces the spec of the chart with the given node key; it returns `false` and leaves the node unchanged when the spec is invalid.
+- `parseChartSpec(input)` validates an object or JSON string and returns `{ ok: true, spec }` or `{ ok: false, error }`. It never throws.
+
+## APIs
+
+### ReactChartPlugin
+
+| Property  | Description                                                     | Type     | Default |
+| --------- | --------------------------------------------------------------- | -------- | ------- |
+| className | Class name applied to each chart block and its `chart` theme    | `string` | -       |
+| height    | Height of the plotted chart area in pixels                      | `number` | `280`   |
+
+### ChartPluginOptions
+
+Options of the kernel plugin `ChartPlugin` (used by `ReactChartPlugin` internally and included in the headless editor).
+
+| Property  | Description                               | Type                                                  | Default |
+| --------- | ----------------------------------------- | ----------------------------------------------------- | ------- |
+| decorator | Renders the chart block for a node        | `(node: ChartNode, editor: LexicalEditor) => unknown` | -       |
+| theme     | Class name registered as the `chart` theme | `string`                                              | -       |

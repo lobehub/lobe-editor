@@ -1,4 +1,4 @@
-import type { DropdownMenuItemType } from '@lobehub/ui';
+import type { MenuItemType } from '@lobehub/ui';
 import Fuse, { type IFuseOptions } from 'fuse.js';
 import type { ReactNode } from 'react';
 
@@ -12,7 +12,7 @@ export type ISlashDividerOption = {
   type: 'divider';
 };
 
-export interface ISlashMenuOption extends DropdownMenuItemType {
+export interface ISlashMenuOption extends MenuItemType {
   description?: ReactNode;
   layout?: 'compact' | 'tile' | 'wide';
   metadata?: Record<string, any>;

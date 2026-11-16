@@ -53,11 +53,12 @@ The plugin introduces two custom node types:
 
 React component wrapper providing complete math functionality.
 
-| Property | Description | Type | Default |
-| --- | --- | --- | --- |
-| className | Custom CSS class name | `string` | - |
-| renderComp | Custom math renderer component | `ReactNode` | - |
-| theme | Theme configuration object | `{ mathBlock?: string, mathInline?: string }` | - |
+| Property         | Description                                                          | Type                                                    | Default |
+| ---------------- | -------------------------------------------------------------------- | ------------------------------------------------------- | ------- |
+| className        | Class name for inline math nodes                                     | `string`                                                | -       |
+| enableInlineMath | Enable `$...$` shortcuts and Markdown inline-math parsing            | `boolean`                                               | `true`  |
+| renderComp       | Custom wrapper for the math editor popup; receives it as `children`  | `FC<{ children: ReactNode; open?: boolean }>`           | -       |
+| theme            | Class names for math nodes                                           | `{ mathBlock?: string; mathInline?: string }`           | -       |
 
 ## Commands
 
@@ -121,10 +122,11 @@ editor.dispatchCommand(SELECT_MATH_SIDE_COMMAND, {
 
 ### MathPluginOptions
 
-| Property | Description | Type | Required |
-| --- | --- | --- | --- |
-| decorator | Math rendering function | `(node: MathNode, editor: LexicalEditor) => any` | Yes |
-| theme | CSS theme configuration | `{ mathBlock?: string, mathInline?: string }` | No |
+| Property         | Description                                               | Type                                                                    | Default |
+| ---------------- | --------------------------------------------------------- | ----------------------------------------------------------------------- | ------- |
+| decorator        | Renders a math node                                       | `(node: MathInlineNode \| MathBlockNode, editor: LexicalEditor) => unknown` | -       |
+| enableInlineMath | Enable `$...$` shortcuts and Markdown inline-math parsing | `boolean`                                                               | `true`  |
+| theme            | Class names for math nodes                                | `{ mathBlock?: string; mathInline?: string }`                           | -       |
 
 ## Node API
 

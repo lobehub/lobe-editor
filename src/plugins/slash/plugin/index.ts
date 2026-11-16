@@ -15,7 +15,7 @@ import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/t
 import { IBlockMenuService } from '../../block/service';
 import type { ISlashOption, SlashOptions } from '../service/i-slash-service';
 import { ISlashService, SlashService } from '../service/i-slash-service';
-import { getQueryTextForSearch, tryToPositionRange } from '../utils/utils';
+import { getQueryTextForSearch, lastIndexOfTrigger, tryToPositionRange } from '../utils/utils';
 
 const SLASH_ADD_LOCK_KEY = '__slash_add_below';
 
@@ -161,6 +161,23 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
       this.register(unregisterAddBlockButton);
     }
 
+    const rearmOpen = () => {
+      this.suppressOpen = false;
+      this.manualOpen = false;
+    };
+
+    // Re-enable opening on any text the user inserts, not only on keydown: an
+    // IME (e.g. on macOS) may commit text, including the trigger, without a
+    // keydown Lexical forwards. Capture phase runs before Lexical's own handlers.
+    this.register(
+      editor.registerRootListener((rootElement, prevRootElement) => {
+        prevRootElement?.removeEventListener('beforeinput', rearmOpen, true);
+        prevRootElement?.removeEventListener('compositionend', rearmOpen, true);
+        rootElement?.addEventListener('beforeinput', rearmOpen, true);
+        rootElement?.addEventListener('compositionend', rearmOpen, true);
+      }),
+    );
+
     // Reset suppression on typing-related key presses
     this.register(
       editor.registerCommand<KeyboardEvent>(
@@ -168,10 +185,16 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
         (event) => {
           if (event.isComposing) return false;
           const key = event.key;
-          // Any character input or deletion should re-enable opening
-          if (key.length === 1 || key === 'Backspace' || key === 'Delete') {
-            this.suppressOpen = false;
-            this.manualOpen = false;
+          // Any character input or deletion should re-enable opening. With an
+          // IME on, keystrokes arrive as "Process" / keyCode 229.
+          if (
+            key.length === 1 ||
+            key === 'Process' ||
+            event.keyCode === 229 ||
+            key === 'Backspace' ||
+            key === 'Delete'
+          ) {
+            rearmOpen();
           }
           return false;
         },
@@ -235,7 +258,7 @@ export const SlashPlugin: IEditorPluginConstructor<SlashPluginOptions> = class
             triggerText = resolution.trigger;
             this.currentSlashTriggerIndex = resolution.leadOffset;
           }
-          const lastIndex = text.lastIndexOf(triggerText);
+          const lastIndex = lastIndexOfTrigger(text, triggerText);
           if (lastIndex < this.currentSlashTriggerIndex) {
             this.triggerClose();
             return;
