@@ -11,6 +11,7 @@ import type { ResizeHandleProps } from '../ResizeHandle';
 
 const mocks = vi.hoisted(() => {
   const editor = {
+    focus: vi.fn(),
     registerCommand: vi.fn(() => vi.fn()),
     update: vi.fn((callback: () => void) => callback()),
   };
@@ -263,6 +264,33 @@ describe('Image resize', () => {
     expect(mocks.openPreview).toHaveBeenCalledTimes(1);
     expect(mocks.setSelected).not.toHaveBeenCalled();
     expect(mocks.resizeHandleProps).toHaveLength(0);
+  });
+
+  it('focuses the editor after selecting an image for keyboard commands', async () => {
+    const node = {
+      altText: 'test image',
+      getKey: () => 'image-node',
+      getType: () => 'block-image',
+      maxWidth: 200,
+      src: 'https://example.com/image.png',
+      status: 'uploaded',
+      width: 200,
+    };
+
+    await act(async () => {
+      root.render(<Image node={node as any} />);
+    });
+
+    const image = host.querySelector<HTMLImageElement>('[data-testid="image"]');
+    await act(async () => {
+      image!.parentElement!.click();
+    });
+
+    expect(mocks.setSelected).toHaveBeenCalledWith(true);
+    expect(mocks.editor.focus).toHaveBeenCalledOnce();
+    expect(mocks.setSelected.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.editor.focus.mock.invocationCallOrder[0]!,
+    );
   });
 
   it('renders the caption slot only for block images', async () => {

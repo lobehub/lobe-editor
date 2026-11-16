@@ -9,6 +9,8 @@ export type NodeIdentityProjection =
 
 export interface NodeIdentityPolicy {
   canShareId(left: LexicalNode, right: LexicalNode): boolean;
+  /** Optional logical alias for active wrappers that must not persist nodeId. */
+  getIdentityId?: (node: LexicalNode) => string | undefined;
   /** Classify one node for active lookup; hidden nodes still receive IDs in normalization. */
   project(node: LexicalNode): NodeIdentityProjection;
   isIdentityNode(node: LexicalNode): boolean;
@@ -16,8 +18,12 @@ export interface NodeIdentityPolicy {
 
 const defaultPolicy: NodeIdentityPolicy = {
   canShareId: () => false,
-  isIdentityNode: (node) => !$isRootNode(node),
-  project: (node) => ($isRootNode(node) ? 'container' : 'content'),
+  isIdentityNode: (node) =>
+    !$isRootNode(node) && node.getType() !== 'hole' && node.getType() !== 'cursor',
+  project: (node) =>
+    $isRootNode(node) || node.getType() === 'hole' || node.getType() === 'cursor'
+      ? 'container'
+      : 'content',
 };
 
 const editorPolicies = new WeakMap<LexicalEditor, Array<{ policy: NodeIdentityPolicy }>>();

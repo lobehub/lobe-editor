@@ -10,6 +10,7 @@ import {
 } from '@lobehub/ui';
 import {
   type IEditor,
+  INSERT_ARTIFACT_COMMAND,
   INSERT_CHART_COMMAND,
   INSERT_ALERT_COMMAND,
   INSERT_CODEINLINE_COMMAND,
@@ -26,6 +27,7 @@ import {
   INSERT_VIDEO_COMMAND,
   type LinkEmbedRule,
   ReactAlertPlugin,
+  ReactArtifactPlugin,
   ReactAutoCompletePlugin,
   ReactBlockPlugin,
   ReactChartPlugin,
@@ -61,6 +63,7 @@ import {
   InfoIcon,
   ListCollapseIcon,
   MinusIcon,
+  PanelsTopLeftIcon,
   SigmaIcon,
   SuperscriptIcon,
   Table2Icon,
@@ -508,6 +511,30 @@ const EditorDemo: FC<EditorDemoProps> = ({
         },
       },
       {
+        icon: PanelsTopLeftIcon,
+        key: 'artifact',
+        label: 'Artifact',
+        onSelect: (editor) => {
+          editor.dispatchCommand(INSERT_ARTIFACT_COMMAND, {
+            html: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body { font-family: system-ui; padding: 32px; }
+      .card { padding: 24px; border: 1px solid #ddd; border-radius: 16px; }
+    </style>
+  </head>
+  <body>
+    <div class="card"><h1>Hello Artifact</h1><p>Edit the HTML on the left.</p></div>
+  </body>
+</html>`,
+            title: 'HTML Artifact',
+          });
+        },
+      },
+      {
         type: 'divider',
       },
       {
@@ -655,6 +682,7 @@ const EditorDemo: FC<EditorDemoProps> = ({
         placeholder={'Type something...'}
         plugins={[
           ReactLiteXmlPlugin,
+          ReactArtifactPlugin,
           ReactBlockPlugin,
           ReactListPlugin,
           ReactChartPlugin,

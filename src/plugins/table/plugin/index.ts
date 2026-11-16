@@ -10,12 +10,14 @@ import {
   TableRowNode,
 } from '@lexical/table';
 import type { LexicalEditor } from 'lexical';
-import { $setSelection } from 'lexical';
+import { $getNodeByKey, $isTextNode, $setSelection, COMMAND_PRIORITY_HIGH } from 'lexical';
 import type { ReactNode } from 'react';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
 import { IBlockMenuService } from '@/plugins/block/service';
+import { ENTER_HOLE_CONTENT_COMMAND, getHoleContentEntrySide } from '@/plugins/common/command';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IDecorator, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
@@ -34,6 +36,7 @@ import {
 import { registerTableControllerMenu } from './controller-menu';
 import { isRemovedTableRowDiff, tableCellProcessor } from './helpers';
 import { registerSingleCellTablePaste } from './single-cell-paste';
+import { registerTableSelectionHistoryRepair } from './table-selection-history';
 
 export interface TablePluginOptions {
   decorator?: (node: TableNode, editor: LexicalEditor) => ReactNode;
@@ -43,6 +46,33 @@ export interface TablePluginOptions {
 function isHeadlessEditor(editor: LexicalEditor): boolean {
   return editor._headless === true;
 }
+
+/** Let the table choose the active first/last cell for a Hole boundary entry. */
+const registerTableHoleEntry = (editor: LexicalEditor): (() => void) =>
+  editor.registerCommand(
+    ENTER_HOLE_CONTENT_COMMAND,
+    (payload) => {
+      const side = getHoleContentEntrySide(payload);
+      if (!side) return false;
+
+      const target = $getNodeByKey(payload.key);
+      if (!$isTableNode(target)) return false;
+
+      const [tableMap] = $computeTableMapSkipCellCheck(target, null, null);
+      const firstRow = tableMap.find((row) => row.length > 0);
+      const lastRow = [...tableMap].reverse().find((row) => row.length > 0);
+      const cell = side === 'before' ? firstRow?.[0]?.cell : lastRow?.at(-1)?.cell;
+      if (!cell) return false;
+
+      const descendant = side === 'before' ? cell.getFirstDescendant() : cell.getLastDescendant();
+      if ($isTextNode(descendant)) {
+        return Boolean(side === 'before' ? descendant.selectStart() : descendant.selectEnd());
+      }
+
+      return Boolean(side === 'before' ? cell.selectStart() : cell.selectEnd());
+    },
+    COMMAND_PRIORITY_HIGH,
+  );
 
 export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   extends KernelPlugin
@@ -82,6 +112,11 @@ export const TablePlugin: IEditorPluginConstructor<TablePluginOptions> = class
   }
 
   onInit(editor: LexicalEditor): void {
+    const holeService = this.kernel.requireService(IHoleService);
+    if (holeService) this.register(holeService.registerTarget(TableNode));
+    this.register(registerTableHoleEntry(editor));
+    this.register(registerTableSelectionHistoryRepair(editor));
+
     this.register(registerTableCellUnmergeTransform(editor));
     this.register(registerSingleCellTablePaste(editor));
     this.register(registerTableAlignCommand(editor));

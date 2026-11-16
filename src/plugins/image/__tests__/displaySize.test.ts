@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import Editor from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import type { IEditor } from '@/types';
@@ -26,9 +27,7 @@ function firstBlockImage(editor: IEditor): BlockImageNode {
     .getLexicalEditor()!
     .getEditorState()
     .read(() => {
-      found = $getRoot()
-        .getChildren()
-        .find((node) => $isBlockImageNode(node)) as BlockImageNode | undefined;
+      found = $getLogicalChildren($getRoot()).find($isBlockImageNode) as BlockImageNode | undefined;
     });
   if (!found) throw new Error('no block image');
   return found;

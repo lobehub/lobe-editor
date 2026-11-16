@@ -27,6 +27,8 @@ describe('codeblock litexml', () => {
   it('writer should work', () => {
     editor.setDocument('markdown', '```js\nhello\nworld\n```');
     const xml = editor.getDocument('litexml') as unknown as string;
+    const id = /<code id="([^"]+)"/.exec(xml)?.[1];
+    expect(id).toBeTruthy();
     expect(normalizeOpaqueIds(xml.replace(/>\n\s*?</g, '><'))).toBe(
       normalizeOpaqueIds(
         `<?xml version="1.0" encoding="UTF-8"?><root><code id="mczm" lang="javascript">hello\nworld</code></root>`,

@@ -1,5 +1,6 @@
 import { $isTableSelection } from '@lexical/table';
 import type {
+  EditorState,
   LexicalEditor,
   SerializedEditorState,
   SerializedElementNode,
@@ -18,10 +19,22 @@ import {
 
 import { DataSource } from '@/editor-kernel';
 import type { IWriteOptions } from '@/editor-kernel/data-source';
+import { getKernelFromEditor } from '@/editor-kernel/utils';
 import { $normalizeNodeIds, migrateSerializedNodeIds } from '@/plugins/common/node/node-id';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
+import {
+  notifyJSONDataSourceRead,
+  notifyJSONDataSourceWrite,
+} from '@/plugins/properties/service/json-metadata';
+import { IPropertiesService } from '@/plugins/properties/service/properties';
+import { $ensureNodeIdsInTree } from '@/plugins/properties/utils';
 
 import { cursorNodeSerialized } from '../node/cursor';
+import { projectRuntimeHolesForJSON, type SerializedRecord } from '../node/hole-serialization';
 import { exportNodeToJSON } from '../utils';
+
+/** Kept for callers that historically imported the projection from JSONDataSource. */
+export { projectRuntimeHolesForJSON } from '../node/hole-serialization';
 
 export default class JSONDataSource extends DataSource {
   read(editor: LexicalEditor, data: any, options: Record<string, unknown> = {}) {
@@ -88,7 +101,19 @@ export default class JSONDataSource extends DataSource {
       }
     };
     process(dataObj.root);
+    notifyJSONDataSourceRead(editor, dataObj.root as unknown as Record<string, unknown>);
+    const normalizeIncoming = () => {
+      const kernel = getKernelFromEditor(editor);
+      kernel?.requireService(IHoleService)?.normalizeIncoming();
+      const provider = kernel?.requireService(IPropertiesService)?.getCollaborationProvider();
+      if (keepIds && (!provider || provider.getReadiness() === 'ready')) {
+        $ensureNodeIdsInTree($getRoot(), {
+          stableIdentity: provider ? (node) => provider.getNodeIdentity(node) : undefined,
+        });
+      }
+    };
     const editorState = editor.parseEditorState({ root: dataObj.root }, () => {
+      normalizeIncoming();
       $normalizeNodeIds($getRoot());
     });
     editor.setEditorState(editorState);
@@ -208,13 +233,38 @@ export default class JSONDataSource extends DataSource {
             }
           }
 
-          return rootNodes;
+          // Selection exports are public API too. Keep the runtime Hole
+          // transparent here just as in full-document writes; otherwise
+          // getSelectionDocument('json') leaks boundary Cursor nodes.
+          return rootNodes.flatMap((node) =>
+            projectRuntimeHolesForJSON(node as unknown as SerializedRecord),
+          );
         } else if ($isTableSelection(selection)) {
           // todo
         }
-        return selection.getNodes().map((node) => exportNodeToJSON(node));
+        return selection
+          .getNodes()
+          .flatMap((node) =>
+            projectRuntimeHolesForJSON(exportNodeToJSON(node) as unknown as SerializedRecord),
+          );
       });
     }
-    return editor.read(() => ({ root: exportNodeToJSON($getRoot()) }));
+    // `LexicalEditor.read()` flushes a pending update before entering the
+    // read-only scope. JSON export is called from update listeners and may be
+    // re-entrant with a pending projection update; flushing there can mutate
+    // the update tags/listener queue while Lexical is dispatching it. Read the
+    // pending state directly when one exists so callers still observe the
+    // latest state without forcing a commit.
+    const pendingEditorState = (
+      editor as LexicalEditor & {
+        _pendingEditorState?: EditorState | null;
+      }
+    )._pendingEditorState;
+    return (pendingEditorState ?? editor.getEditorState()).read(() => {
+      const runtimeRoot = exportNodeToJSON($getRoot()) as unknown as SerializedRecord;
+      const [root] = projectRuntimeHolesForJSON(runtimeRoot);
+      notifyJSONDataSourceWrite(editor, root as unknown as Record<string, unknown>);
+      return { root };
+    });
   }
 }

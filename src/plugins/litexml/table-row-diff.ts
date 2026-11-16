@@ -4,21 +4,42 @@ import {
   $isTableNode,
   type TableRowNode,
 } from '@lexical/table';
-import type { ElementNode, LexicalEditor } from 'lexical';
+import type { ElementNode, LexicalEditor, LexicalNode } from 'lexical';
 import { $nodesOfType } from 'lexical';
 
 import { $copyNodeProperties } from '@/plugins/common/node/node-id';
+import { $setNodeProperties } from '@/plugins/properties/state';
+import { $prepareCopiedNode, $preserveNodeIdentity } from '@/plugins/properties/utils';
 
 import {
   $createTableRowDiffNode,
   TableRowDiffNode,
   type TableRowDiffType,
 } from './node/TableRowDiffNode';
+import {
+  captureTableDiffLogicalIdentity,
+  copyTableDiffReviewMetadata,
+  normalizeTableDiffWrapperIdentity,
+  restoreTableDiffLogicalIdentity,
+} from './table-diff-identity';
 import { $cloneNode } from './utils';
 
 export interface TableRowDiffPair {
   add: TableRowDiffNode;
   remove: TableRowDiffNode;
+}
+
+/** Copy durable row metadata without leaking one-shot review command markers. */
+function copyPersistentTableRowProperties(source: LexicalNode, target: LexicalNode): void {
+  $copyNodeProperties(source, target);
+  $setNodeProperties(target, (previous) => {
+    const next = { ...previous };
+    delete next.rewriteRequestId;
+    delete next.rewriteCommandId;
+    delete next.rewriteAttempt;
+    delete next.rewriteIdentityMap;
+    return next;
+  });
 }
 
 export function $areTableRowStructuresCompatible(
@@ -53,8 +74,16 @@ export function $createTableRowDiffFromRow(
   changeId?: string,
 ): TableRowDiffNode {
   const source = $cloneNode(row, editor) as TableRowNode;
+  // The add side is a review-only copy. Its cells must not temporarily share
+  // the before row's durable identities; those identities are restored from
+  // the paired remove row only when the proposed row is accepted.
+  if (diffType === 'add') {
+    source.getChildren().forEach($prepareCopiedNode);
+  }
   const diffRow = $createTableRowDiffNode(diffType, changeId, row.getHeight());
   $copyNodeProperties(row, diffRow);
+  captureTableDiffLogicalIdentity(row, diffRow);
+  normalizeTableDiffWrapperIdentity(diffRow);
   diffRow.append(...source.getChildren());
   return diffRow;
 }
@@ -64,8 +93,21 @@ export function $createPlainTableRowFromDiff(
   row: TableRowDiffNode,
 ): TableRowNode {
   const plainRow = $createTableRowNode(row.getHeight());
-  $copyNodeProperties(row, plainRow);
-  plainRow.append(...row.getChildren().map((child) => $cloneNode(child, editor)));
+  copyPersistentTableRowProperties(row, plainRow);
+  restoreTableDiffLogicalIdentity(row, plainRow);
+  if (row.getDiffType() === 'add') copyTableDiffReviewMetadata(row, plainRow);
+  const pair = $getTableRowDiffPair(row);
+  const sourceCells = pair?.add === row ? pair.remove.getChildren() : [];
+  plainRow.append(
+    ...row.getChildren().map((child, index) => {
+      const clone = $cloneNode(child, editor);
+      const sourceCell = sourceCells[index];
+      if ($isTableCellNode(sourceCell) && $isTableCellNode(clone)) {
+        $preserveNodeIdentity(sourceCell, clone);
+      }
+      return clone;
+    }),
+  );
   return plainRow;
 }
 

@@ -1,9 +1,17 @@
+/**
+ * Serialized LiteXML diff validation helpers.
+ *
+ * The validator deliberately works on a cloned JSON tree.  A command can
+ * therefore project its result and reject a newly-created illegal nested diff
+ * before touching the live Lexical/Yjs tree.
+ */
 import { getLiteXmlIdentityProjection } from './node/identity-policy';
 
 export interface SerializedDiffTreeNode {
   children?: SerializedDiffTreeNode[];
   diffType?: string;
-  id?: string;
+  id?: string | number;
+  $?: { properties?: { nodeId?: unknown } };
   side?: string;
   type?: string;
   [key: string]: unknown;
@@ -21,7 +29,6 @@ export type LiteXmlProjectionOperation =
   | { action: 'insert'; afterId: string; litexml: string };
 
 type XmlReader = (xml: string) => { root?: { children?: SerializedDiffTreeNode[] } };
-
 const ACTIONABLE_DIFF_TYPES = new Set([
   'add',
   'remove',
@@ -36,14 +43,15 @@ const isActionableDiff = (node: SerializedDiffTreeNode | undefined): boolean =>
 
 const isElementNode = (node: SerializedDiffTreeNode): boolean => Array.isArray(node.children);
 
-const getNodeId = (node: SerializedDiffTreeNode): string | undefined => {
-  if (typeof node.id === 'string' && node.id.length > 0) return node.id;
-  const properties = (node.$ as { properties?: { nodeId?: unknown } } | undefined)?.properties;
-  return typeof properties?.nodeId === 'string' ? properties.nodeId : undefined;
-};
-
 const cloneNode = <T>(node: T): T => structuredClone(node);
 
+const getSerializedNodeId = (node: SerializedDiffTreeNode): string | number | undefined => {
+  const nodeId = node.$?.properties?.nodeId;
+  if (typeof nodeId === 'string' && nodeId.length > 0) return nodeId;
+  return node.id;
+};
+
+/** Return whether a tree contains an actionable diff below the supplied node. */
 export function hasActionableDiffDescendant(node: SerializedDiffTreeNode): boolean {
   return (node.children || []).some(
     (child) => isActionableDiff(child) || hasActionableDiffDescendant(child),
@@ -51,8 +59,12 @@ export function hasActionableDiffDescendant(node: SerializedDiffTreeNode): boole
 }
 
 /**
- * Validate the serialized public tree. Paths use serialized node ids, not
- * Lexical's private node map, so this remains stable across JSON reloads.
+ * Find illegal actionable-diff nesting in a serialized tree.
+ *
+ * A `DiffContentNode` is an expected child of a diff and is not itself an
+ * actionable diff.  Table-specific diff wrappers are kept out of an
+ * actionable diff as well. Existing violations are reported too; callers
+ * should compare before/after counts with `findNewIllegalDiffPaths`.
  */
 export function collectIllegalNestedDiffPaths(root: SerializedDiffTreeNode): string[] {
   const violations: string[] = [];
@@ -61,7 +73,7 @@ export function collectIllegalNestedDiffPaths(root: SerializedDiffTreeNode): str
     node: SerializedDiffTreeNode,
     ancestors: SerializedDiffTreeNode[],
     path: string,
-  ) => {
+  ): void => {
     const actionableAncestor = [...ancestors].reverse().find(isActionableDiff);
     const rowDiffAncestor = [...ancestors]
       .reverse()
@@ -90,15 +102,17 @@ export function collectIllegalNestedDiffPaths(root: SerializedDiffTreeNode): str
     }
 
     if (!isElementNode(node)) return;
-    node.children?.forEach((child) => {
-      visit(child, [...ancestors, node], `${path}/${getNodeId(child) || child.type || 'node'}`);
+    node.children?.forEach((child, index) => {
+      const childId = getSerializedNodeId(child) ?? child.type ?? `node-${index}`;
+      visit(child, [...ancestors, node], `${path}/${String(childId)}`);
     });
   };
 
-  visit(root, [], getNodeId(root) || root.type || 'root');
+  visit(root, [], String(getSerializedNodeId(root) ?? root.type ?? 'root'));
   return violations;
 }
 
+/** Return only violations introduced by a projected tree. */
 export function findNewIllegalDiffPaths(
   previous: SerializedDiffDocument,
   projected: SerializedDiffDocument,
@@ -128,7 +142,7 @@ interface NodeLocation {
 
 function findActiveNodeLocation(
   root: SerializedDiffTreeNode,
-  id: string,
+  id: string | number,
   ancestors: SerializedDiffTreeNode[] = [],
 ): NodeLocation | null {
   const projection = getLiteXmlIdentityProjection({
@@ -139,7 +153,7 @@ function findActiveNodeLocation(
   });
   if (projection === 'hidden') return null;
 
-  if (projection === 'content' && getNodeId(root) === id) {
+  if (projection === 'content' && String(getSerializedNodeId(root) ?? '') === String(id)) {
     const parent = ancestors.at(-1) || null;
     return {
       ancestors,
@@ -199,8 +213,8 @@ function createDiffContent(
 }
 
 function projectModifyTarget(root: SerializedDiffTreeNode, incoming: SerializedDiffTreeNode): void {
-  const incomingId = getNodeId(incoming);
-  if (!incomingId) return;
+  const incomingId = getSerializedNodeId(incoming);
+  if (incomingId === undefined || incomingId === null || incomingId === '') return;
   const location = findActiveNodeLocation(root, incomingId);
   if (!location) return;
 
@@ -275,7 +289,7 @@ function projectModifyTarget(root: SerializedDiffTreeNode, incoming: SerializedD
   replaceNode(location, [createDiff('modify', [cloneNode(target), next])]);
 }
 
-function projectRemoveTarget(root: SerializedDiffTreeNode, id: string): void {
+function projectRemoveTarget(root: SerializedDiffTreeNode, id: string | number): void {
   const location = findActiveNodeLocation(root, id);
   if (!location) return;
   if (location.ancestors.some(isActionableDiff)) {

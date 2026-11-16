@@ -60,6 +60,16 @@ const collectNodeIds = (node: any): string[] => {
   ];
 };
 
+const findSerializedNode = (node: any, predicate: (candidate: any) => boolean): any | undefined => {
+  if (!node || typeof node !== 'object') return undefined;
+  if (predicate(node)) return node;
+  for (const child of node.children ?? []) {
+    const found = findSerializedNode(child, predicate);
+    if (found) return found;
+  }
+  return undefined;
+};
+
 const removeSerializedNodeIds = (node: any): void => {
   if (!node || typeof node !== 'object') return;
   delete node.id;
@@ -205,6 +215,19 @@ describe('YjsService external snapshots', () => {
     });
     await moment();
     const snapshot = editor.getDocument('json') as unknown as Record<string, any>;
+    // New reviews keep the active after side on the public ID and give the
+    // hidden before side a private ID. Also cover compatibility with older
+    // collaborative snapshots that persisted a legal shared-ID review pair.
+    const beforeContent = findSerializedNode(
+      snapshot.root,
+      (node) => node.type === 'diff-content' && node.side === 'before',
+    );
+    const beforeParagraph = beforeContent?.children?.find((node: any) => node.type === 'paragraph');
+    expect(beforeParagraph?.$.properties.nodeId).not.toBe('review-paragraph');
+    beforeParagraph.$ = {
+      ...beforeParagraph.$,
+      properties: { ...beforeParagraph.$?.properties, nodeId: 'review-paragraph' },
+    };
     expect(collectNodeIds(snapshot.root).filter((id) => id === 'review-paragraph')).toHaveLength(2);
 
     const doc = new Doc();
@@ -463,7 +486,7 @@ describe('YjsService external snapshots', () => {
     editorB.destroy();
   });
 
-  it('applies one AI snapshot across two clients without growing paragraphs or table cells', () => {
+  it('applies one AI snapshot across two clients without growing paragraphs or table cells', async () => {
     const editorA = createEditor();
     const editorB = createEditor();
     const docA = new Doc();
@@ -501,40 +524,63 @@ describe('YjsService external snapshots', () => {
       provider: providerB,
     });
 
-    editorA.setDocument(
-      'markdown',
-      'Stable paragraph\n\n| A | B | C |\n| --- | --- | --- |\n| 1 | 2 | 3 |\n| 4 | 5 | 6 |',
-    );
-    const initialSnapshot = editorA.getDocument('json') as unknown as Record<string, unknown>;
-    const initialShape = getShape(editorA);
+    try {
+      editorA.setDocument(
+        'markdown',
+        'Stable paragraph\n\n| A | B | C |\n| --- | --- | --- |\n| 1 | 2 | 3 |\n| 4 | 5 | 6 |',
+      );
+      await moment();
+      const initialSnapshot = editorA.getDocument('json') as unknown as Record<string, unknown>;
+      const initialShape = getShape(editorA);
 
-    expect(serviceA.applyExternalEditorData(initialSnapshot)).toBe(true);
-    expect(ownerTransactions).toHaveLength(1);
-    applyUpdate(docB, encodeStateAsUpdate(docA));
-    expect(remoteTransactions).toHaveLength(1);
-    expect(serviceB.applyExternalEditorData(initialSnapshot)).toBe(false);
-    expect(getShape(editorB)).toEqual(initialShape);
+      expect(serviceA.applyExternalEditorData(initialSnapshot)).toBe(true);
+      await moment();
+      expect(ownerTransactions).toHaveLength(1);
+      applyUpdate(docB, encodeStateAsUpdate(docA));
+      await moment();
+      expect(remoteTransactions).toHaveLength(1);
+      expect(serviceB.applyExternalEditorData(initialSnapshot)).toBe(false);
+      await moment();
+      expect(getShape(editorB)).toEqual(initialShape);
 
-    const aiSnapshot = structuredClone(initialSnapshot) as any;
-    aiSnapshot.root.children[0].children[0].text = 'Stable paragraph edited once';
+      const aiSnapshot = structuredClone(initialSnapshot) as any;
+      aiSnapshot.root.children[0].children[0].text = 'Stable paragraph edited once';
 
-    ownerTransactions.length = 0;
-    expect(serviceA.applyExternalEditorData(aiSnapshot)).toBe(true);
-    expect(ownerTransactions).toHaveLength(1);
-    remoteTransactions.length = 0;
-    applyUpdate(docB, encodeStateAsUpdate(docA));
-    expect(remoteTransactions).toHaveLength(1);
-    // A client may receive the Yjs update and the server result in either
-    // order. The first call replaces its stale local binding exactly once;
-    // repeating the same result is an idempotent no-op.
-    expect(serviceB.applyExternalEditorData(aiSnapshot)).toBe(true);
-    expect(clientBTransactions).toHaveLength(1);
-    expect(serviceB.applyExternalEditorData(aiSnapshot)).toBe(false);
-    expect(clientBTransactions).toHaveLength(1);
+      ownerTransactions.length = 0;
+      expect(serviceA.applyExternalEditorData(aiSnapshot)).toBe(true);
+      await moment();
+      expect(ownerTransactions).toHaveLength(1);
+      remoteTransactions.length = 0;
+      applyUpdate(docB, encodeStateAsUpdate(docA));
+      await moment();
+      expect(remoteTransactions).toHaveLength(1);
+      // A client may receive the Yjs update and the server result in either
+      // order. The first call replaces its stale local binding exactly once;
+      // repeating the same result is an idempotent no-op.
+      expect(serviceB.applyExternalEditorData(aiSnapshot)).toBe(true);
+      await moment();
+      expect(clientBTransactions).toHaveLength(1);
+      expect(serviceB.applyExternalEditorData(aiSnapshot)).toBe(false);
+      await moment();
+      expect(clientBTransactions).toHaveLength(1);
 
-    expect(getShape(editorA)).toEqual(initialShape);
-    expect(getShape(editorB)).toEqual(initialShape);
-    expect(editorA.getDocument('text')).toContain('edited once');
-    expect(editorB.getDocument('text')).toContain('edited once');
+      // Keep both DOM-backed editors alive through the table observer flush;
+      // the compatibility patch must tolerate the old TableNode being gone.
+      await moment();
+      expect(getShape(editorA)).toEqual(initialShape);
+      expect(getShape(editorB)).toEqual(initialShape);
+      expect(editorA.getDocument('text')).toContain('edited once');
+      expect(editorB.getDocument('text')).toContain('edited once');
+    } finally {
+      serviceA.setState(null);
+      serviceB.setState(null);
+      bindingA.root.destroy(bindingA);
+      bindingB.root.destroy(bindingB);
+      docA.destroy();
+      docB.destroy();
+      editorA.destroy();
+      editorB.destroy();
+      await moment();
+    }
   });
 });

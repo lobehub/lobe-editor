@@ -24,7 +24,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
       user-select: none;
     }
 
-    &.selected {
+    &.selected:not([data-hole-selection-target='true']) {
       color: #000;
       background: ${cssVar.yellow};
     }

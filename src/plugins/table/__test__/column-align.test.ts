@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor, { resetRandomKey } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import { LexicalRenderer } from '@/renderer';
@@ -49,7 +50,7 @@ const readAligns = (editor: IEditor) =>
     .getLexicalEditor()!
     .getEditorState()
     .read(() => {
-      const table = $getRoot().getChildren().find($isTableNode);
+      const table = $getLogicalChildren($getRoot()).find($isTableNode);
       return table ? $getTableColumnAligns(table) : undefined;
     });
 
@@ -76,7 +77,7 @@ describe('table column alignment', () => {
     const lexical = editor.getLexicalEditor()!;
     lexical.update(
       () => {
-        $getRoot().getChildren().find($isTableNode)!.setColWidths([100, 100, 100, 100]);
+        $getLogicalChildren($getRoot()).find($isTableNode)!.setColWidths([100, 100, 100, 100]);
       },
       { discrete: true },
     );
@@ -128,7 +129,7 @@ describe('table column alignment', () => {
     const lexical = editor.getLexicalEditor()!;
     const tableKey = lexical
       .getEditorState()
-      .read(() => $getRoot().getChildren().find($isTableNode)!.getKey());
+      .read(() => $getLogicalChildren($getRoot()).find($isTableNode)!.getKey());
 
     const dispatch = () =>
       lexical.update(

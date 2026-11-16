@@ -6,6 +6,7 @@ import { type FC, useCallback, useEffect, useRef } from 'react';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
 import { useTranslation } from '@/editor-kernel/react/useTranslation';
 
+import type { BlockFileNode } from '../../node/BlockFileNode';
 import type { FileNode } from '../../node/FileNode';
 import type { FileActionPayload } from '../type';
 import FileBody from './FileBody';
@@ -13,7 +14,7 @@ import FileBody from './FileBody';
 interface ReactFileProps {
   className?: string;
   editor: LexicalEditor;
-  node: FileNode;
+  node: FileNode | BlockFileNode;
   onDownload?: (file: FileActionPayload) => void;
   onPreview?: (file: FileActionPayload) => void;
 }

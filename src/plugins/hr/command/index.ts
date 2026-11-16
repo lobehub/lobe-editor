@@ -1,5 +1,8 @@
 import type { LexicalEditor } from 'lexical';
-import { $insertNodes, COMMAND_PRIORITY_EDITOR, createCommand } from 'lexical';
+import { $getSelection, $insertNodes, COMMAND_PRIORITY_EDITOR, createCommand } from 'lexical';
+
+import { getKernelFromEditor } from '@/editor-kernel/utils';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
 
 import { $createHorizontalRuleNode } from '../node/HorizontalRuleNode';
 
@@ -12,6 +15,9 @@ export function registerHorizontalRuleCommand(editor: LexicalEditor) {
     INSERT_HORIZONTAL_RULE_COMMAND,
     () => {
       editor.update(() => {
+        const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
+        const currentSelection = $getSelection();
+        if (currentSelection) holeService?.prepareBoundaryInsertion(currentSelection);
         const hrNode = $createHorizontalRuleNode();
         $insertNodes([hrNode]);
       });

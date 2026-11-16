@@ -1,9 +1,12 @@
 import {
   $createParagraphNode,
+  $createRangeSelection,
   $createTextNode,
   $getRoot,
+  $getSelection,
   $isElementNode,
   $isTextNode,
+  $setSelection,
   HISTORY_PUSH_TAG,
   REDO_COMMAND,
   UNDO_COMMAND,
@@ -513,32 +516,40 @@ describe('public node identity contract', () => {
     await moment();
 
     const lexicalEditor = editor.getLexicalEditor()!;
-    lexicalEditor.update(() => {
-      const before = findLexicalNode(
-        $getRoot(),
-        (node) => node.getType() === 'paragraph' && node.getTextContent() === 'Before',
-      );
-      const after = findLexicalNode(
-        $getRoot(),
-        (node) => node.getType() === 'paragraph' && node.getTextContent() === 'After',
-      );
-      if (!before || !after) throw new Error('Expected both sides of the review diff.');
+    lexicalEditor.update(
+      () => {
+        const before = findLexicalNode(
+          $getRoot(),
+          (node) => node.getType() === 'paragraph' && node.getTextContent() === 'Before',
+        );
+        const after = findLexicalNode(
+          $getRoot(),
+          (node) => node.getType() === 'paragraph' && node.getTextContent() === 'After',
+        );
+        if (!before || !after) throw new Error('Expected both sides of the review diff.');
 
-      const third = $createParagraphNode();
-      third.append($createTextNode('Third collider'));
-      $setNodeId(third, 'review-paragraph');
-      $getRoot().append(third);
+        // Recreate a persisted legacy review pair: current local reviews keep a
+        // private ID on the hidden before side, so this fixture must explicitly
+        // restore the legal shared-ID representation it is meant to exercise.
+        $setNodeId(before, 'review-paragraph');
 
-      const stableKeys = new Map([
-        [third.getKey(), '00000000000000000000'],
-        [before.getKey(), '00000000000000000001'],
-        [after.getKey(), '00000000000000000002'],
-      ]);
-      $normalizeNodeIds($getRoot(), {
-        stableDuplicateRepair: true,
-        stableOwnershipKey: (node) => stableKeys.get(node.getKey()),
-      });
-    });
+        const third = $createParagraphNode();
+        third.append($createTextNode('Third collider'));
+        $setNodeId(third, 'review-paragraph');
+        $getRoot().append(third);
+
+        const stableKeys = new Map([
+          [third.getKey(), '00000000000000000000'],
+          [before.getKey(), '00000000000000000001'],
+          [after.getKey(), '00000000000000000002'],
+        ]);
+        $normalizeNodeIds($getRoot(), {
+          stableDuplicateRepair: true,
+          stableOwnershipKey: (node) => stableKeys.get(node.getKey()),
+        });
+      },
+      { discrete: true },
+    );
 
     const ids = lexicalEditor.getEditorState().read(
       () => {
@@ -602,6 +613,62 @@ describe('public node identity contract', () => {
     expect(lookup(editor, 'paragraph-one')).toBeNull();
     expect(lookup(editor, 'text-one')).toBeNull();
     expect(service?.getNodeById('text-one')).toBeNull();
+  });
+
+  it('keeps a cross-block range anchored outside a delayed rewrite target', async () => {
+    const editor = createEditor([LitexmlPlugin, CommonPlugin]);
+    editor.setDocument(
+      'litexml',
+      '<root><p id="before"><span id="before-text">Leading text</span></p><p id="target">Original</p><p id="after"><span id="after-text">Trailing text</span></p></root>',
+    );
+    await moment();
+
+    const lexicalEditor = editor.getLexicalEditor()!;
+    let anchorKey = '';
+    let focusKey = '';
+    let anchorOffset = 0;
+    let focusOffset = 0;
+    lexicalEditor.update(() => {
+      const anchorNode = $getNodeById('before-text');
+      const focusNode = $getNodeById('after-text');
+      if (!$isTextNode(anchorNode) || !$isTextNode(focusNode)) {
+        throw new Error('Expected text nodes around the rewrite target.');
+      }
+
+      anchorKey = anchorNode.getKey();
+      focusKey = focusNode.getKey();
+      anchorOffset = 1;
+      focusOffset = focusNode.getTextContentSize() - 1;
+      const selection = $createRangeSelection();
+      selection.anchor.set(anchorKey, anchorOffset, 'text');
+      selection.focus.set(focusKey, focusOffset, 'text');
+      $setSelection(selection);
+    });
+    await moment();
+
+    editor.dispatchCommand(LITEXML_APPLY_COMMAND, {
+      delay: true,
+      litexml: '<p id="target">Rewritten</p>',
+    });
+    await moment();
+
+    expect(lookup(editor, 'target')?.textContent).toBe('Rewritten');
+    let actualEndpoints: [string, number, string, number] | null = null;
+    lexicalEditor.getEditorState().read(
+      () => {
+        const endpoints = $getSelection()?.getStartEndPoints();
+        if (endpoints) {
+          actualEndpoints = [
+            endpoints[0].key,
+            endpoints[0].offset,
+            endpoints[1].key,
+            endpoints[1].offset,
+          ];
+        }
+      },
+      { editor: lexicalEditor },
+    );
+    expect(actualEndpoints).toEqual([anchorKey, anchorOffset, focusKey, focusOffset]);
   });
 
   it('does not address legacy IDs on root or review wrappers in live and serialized views', async () => {
@@ -680,6 +747,10 @@ describe('public node identity contract', () => {
     editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Accept });
     await moment();
     expect(lookup(editor, 'paragraph-one')?.textContent).toBe('Accepted');
+    const lexicalEditor = editor.getLexicalEditor()!;
+    lexicalEditor.getEditorState().read(() => {
+      expect(findLexicalNode($getRoot(), (node) => node.getType() === 'diff')).toBeNull();
+    });
 
     editor.dispatchCommand(LITEXML_APPLY_COMMAND, {
       delay: true,
@@ -687,11 +758,13 @@ describe('public node identity contract', () => {
     });
     await moment();
     expect(lookup(editor, 'paragraph-one')?.textContent).toBe('Rejected');
+    lexicalEditor.getEditorState().read(() => {
+      expect(findLexicalNode($getRoot(), (node) => node.getType() === 'diff')).not.toBeNull();
+    });
     editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, { action: DiffAction.Reject });
     await moment();
     expect(lookup(editor, 'paragraph-one')?.textContent).toBe('Accepted');
 
-    const lexicalEditor = editor.getLexicalEditor()!;
     lexicalEditor.update(
       () => {
         const paragraph = $getNodeById('paragraph-one');

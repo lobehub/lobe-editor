@@ -11,6 +11,9 @@ import type { IDecorator, IDecoratorFunc } from '@/types';
 const OriginalCreateDOM = TableNode.prototype.createDOM;
 const OriginalUpdateDOM = TableNode.prototype.updateDOM;
 const SCROLL_INDICATOR_WIDTH = 24;
+const TABLE_HOLE_CONTENT_LAYOUT = 'intrinsic-start';
+const TABLE_HOLE_VIEWPORT_ATTRIBUTE = 'data-hole-table-viewport';
+const TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE = 'data-hole-table-overlay';
 
 type TablePortalDecorator = {
   queryDOM: (_element: HTMLElement) => HTMLElement;
@@ -30,9 +33,140 @@ function markTableControllerHost(element: HTMLElement, withDecorator = false): v
   }
 }
 
-function updateTableScrollIndicators(scrollWrapper: HTMLElement): void {
-  const maxScrollLeft = scrollWrapper.scrollWidth - scrollWrapper.clientWidth;
+/**
+ * Keep a table Hole anchored to the table's visible start edge. The table
+ * scroll wrapper intentionally bleeds into the editor gutters; the generic
+ * Hole layout uses this hint to keep its boundary cursors beside the table
+ * instead of stretching them across the whole editor row.
+ */
+function markTableHoleContentLayout(element: HTMLElement): void {
+  element.dataset.holeContentLayout = TABLE_HOLE_CONTENT_LAYOUT;
+}
+
+function getTableMaxScrollLeft(
+  scrollWrapper: HTMLElement,
+  table?: HTMLTableElement | null,
+): number {
+  const tableElement =
+    table ??
+    scrollWrapper.querySelector<HTMLTableElement>(':scope > table.editor_table, :scope > table');
+  if (!tableElement) {
+    return Math.max(0, scrollWrapper.scrollWidth - scrollWrapper.clientWidth);
+  }
+
+  const tableRect = tableElement.getBoundingClientRect();
+  const wrapperRect = scrollWrapper.getBoundingClientRect();
+  if (tableRect.width === 0 && tableElement.offsetWidth === 0) {
+    return Math.max(0, scrollWrapper.scrollWidth - scrollWrapper.clientWidth);
+  }
+
+  const marginRight = Number.parseFloat(getComputedStyle(tableElement).marginRight) || 0;
+  // The table rect moves with the native scroll position. Add scrollLeft back
+  // so the right edge is measured in the scrollport's content coordinates;
+  // absolutely positioned scroll indicators cannot affect this value.
+  const tableContentRight =
+    tableRect.right - wrapperRect.left + scrollWrapper.scrollLeft + marginRight;
+
+  return Math.max(0, tableContentRight - scrollWrapper.clientWidth);
+}
+
+function clampTableScrollLeft(scrollWrapper: HTMLElement, maxScrollLeft: number): number {
   const scrollLeft = scrollWrapper.scrollLeft;
+  if (scrollWrapper.clientWidth === 0 && scrollWrapper.scrollWidth === 0) return scrollLeft;
+
+  const clampedScrollLeft = Math.min(Math.max(scrollLeft, 0), maxScrollLeft);
+  if (clampedScrollLeft !== scrollLeft) {
+    scrollWrapper.scrollLeft = clampedScrollLeft;
+  }
+
+  return clampedScrollLeft;
+}
+
+function getTableControllerHost(element: HTMLElement): HTMLElement {
+  if (!(element instanceof HTMLTableElement)) return element;
+
+  return (
+    element.closest<HTMLElement>('.lobe-editor-table-scroll-wrapper') ??
+    element.parentElement ??
+    element
+  );
+}
+
+function syncTableHoleBlockInsets(element: HTMLElement): void {
+  const controllerHost = getTableControllerHost(element);
+  const hole = controllerHost.closest<HTMLElement>('[data-hole="true"]');
+  const table =
+    element instanceof HTMLTableElement
+      ? element
+      : controllerHost.querySelector<HTMLTableElement>(':scope table');
+  const scrollWrapper = table?.closest<HTMLElement>('.lobe-editor-table-scroll-wrapper');
+  const scrollLeft = scrollWrapper
+    ? clampTableScrollLeft(scrollWrapper, getTableMaxScrollLeft(scrollWrapper, table))
+    : 0;
+
+  const rowToolbar =
+    controllerHost.querySelector<HTMLElement>(':scope > .toolbar-row') ??
+    scrollWrapper?.querySelector<HTMLElement>(':scope > .toolbar-row');
+  const columnToolbar =
+    controllerHost.querySelector<HTMLElement>(':scope > .toolbar-col') ??
+    scrollWrapper?.querySelector<HTMLElement>(':scope > .toolbar-col');
+
+  if (columnToolbar) {
+    if (hole) columnToolbar.setAttribute(TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE, 'true');
+    else columnToolbar.removeAttribute(TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE);
+  }
+
+  if (rowToolbar && scrollWrapper) {
+    // The row host is created as a stable direct child of the TableNode DOM.
+    // Lexical observes the outer host as a managed node; reparenting this
+    // unmanaged portal host from an async geometry callback makes Lexical
+    // remove it as an unknown child. Geometry updates may only touch styles.
+    if (rowToolbar.parentElement === controllerHost) {
+      if (hole) {
+        // The Hole row overlay is anchored to the visible viewport edge. It is
+        // already outside the native data scrollport, so applying scrollLeft
+        // here would detach the controls from that visible edge.
+        rowToolbar.setAttribute(TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE, 'true');
+        rowToolbar.style.removeProperty('transform');
+      } else {
+        rowToolbar.removeAttribute(TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE);
+        rowToolbar.style.transform = `translateX(${-scrollLeft}px)`;
+      }
+    } else {
+      // A legacy host may still be inside the scroll wrapper. Leave its
+      // ownership untouched until the next DOM creation rather than moving it
+      // from an observed managed parent during an async callback.
+      rowToolbar.removeAttribute(TABLE_HOLE_ROW_OVERLAY_ATTRIBUTE);
+      rowToolbar.style.removeProperty('transform');
+    }
+  }
+
+  // The legacy table viewport intentionally bleeds into the block anchor
+  // padding. A table mounted in a Hole has a different contract: its data
+  // clip must end at the Hole content slot so the exterior boundary caret
+  // cannot be painted over by the last cell. Keep this marker on the table's
+  // own viewport instead of changing the generic Hole overflow.
+  scrollWrapper?.toggleAttribute(TABLE_HOLE_VIEWPORT_ATTRIBUTE, Boolean(hole));
+
+  if (!hole || !table) return;
+
+  // Publish target-owned geometry through generic Hole variables. This keeps
+  // CommonPlugin independent of table margins, padding, and custom themes.
+  const holeRect = hole.getBoundingClientRect();
+  const tableRect = table.getBoundingClientRect();
+  hole.style.setProperty(
+    '--lobe-hole-layout-block-start',
+    `${Math.max(tableRect.top - holeRect.top, 0)}px`,
+  );
+  hole.style.setProperty(
+    '--lobe-hole-layout-block-end',
+    `${Math.max(holeRect.bottom - tableRect.bottom, 0)}px`,
+  );
+}
+
+function updateTableScrollIndicators(scrollWrapper: HTMLElement): void {
+  const maxScrollLeft = getTableMaxScrollLeft(scrollWrapper);
+  const scrollLeft = clampTableScrollLeft(scrollWrapper, maxScrollLeft);
   const hasOverflow = maxScrollLeft > 1;
   const showStart = hasOverflow && scrollLeft > 1;
   const showEnd = hasOverflow && scrollLeft < maxScrollLeft - 1;
@@ -58,7 +192,10 @@ function updateTableScrollIndicators(scrollWrapper: HTMLElement): void {
   }
 }
 
-function ensureTableScrollIndicators(scrollWrapper: HTMLElement): void {
+function ensureTableScrollIndicators(
+  scrollWrapper: HTMLElement,
+  onGeometryChange?: () => void,
+): void {
   const ensureIndicator = (className: string) => {
     const existingIndicator = scrollWrapper.querySelector(`:scope > .${className}`);
     if (existingIndicator instanceof HTMLElement) {
@@ -75,21 +212,24 @@ function ensureTableScrollIndicators(scrollWrapper: HTMLElement): void {
   ensureIndicator('lobe-editor-table-scroll-indicator-start');
   ensureIndicator('lobe-editor-table-scroll-indicator-end');
 
-  if (scrollWrapper.dataset.scrollIndicatorsReady === 'true') {
+  const update = () => {
     updateTableScrollIndicators(scrollWrapper);
+    onGeometryChange?.();
+  };
+
+  if (scrollWrapper.dataset.scrollIndicatorsReady === 'true') {
+    update();
     return;
   }
 
   scrollWrapper.dataset.scrollIndicatorsReady = 'true';
-  scrollWrapper.addEventListener('scroll', () => updateTableScrollIndicators(scrollWrapper), {
-    passive: true,
-  });
+  scrollWrapper.addEventListener('scroll', update, { passive: true });
 
-  const resizeObserver = new ResizeObserver(() => updateTableScrollIndicators(scrollWrapper));
+  const resizeObserver = new ResizeObserver(update);
   resizeObserver.observe(scrollWrapper);
   resizeObserver.observe(scrollWrapper.querySelector('table') ?? scrollWrapper);
 
-  requestAnimationFrame(() => updateTableScrollIndicators(scrollWrapper));
+  requestAnimationFrame(update);
 }
 
 function syncTableFluidMarker(element: HTMLElement, node: TableNode): void {
@@ -176,7 +316,9 @@ function ensureTableControllerDOM(element: HTMLElement): void {
 
   ensureToolbar('toolbar-col');
   ensureToolbar('toolbar-row');
-  ensureTableScrollIndicators(scrollWrapper);
+  const controllerHost = hostParent;
+  ensureTableScrollIndicators(scrollWrapper, () => syncTableHoleBlockInsets(controllerHost));
+  syncTableHoleBlockInsets(controllerHost);
 }
 
 function reconcileTableDecorator(
@@ -220,6 +362,7 @@ export function patchTableNode() {
     enumerable: false,
     value: function (config: EditorConfig, editor: LexicalEditor) {
       const table = OriginalCreateDOM.call(this, config, editor);
+      markTableHoleContentLayout(table);
       ensureTableControllerDOM(table);
       syncTableFluidMarker(table, this);
       const kernel = getKernelFromEditor(editor);
@@ -235,6 +378,7 @@ export function patchTableNode() {
     enumerable: false,
     value: function (_prevNode: TableNode, _dom: HTMLElement, _config: EditorConfig) {
       const table = OriginalUpdateDOM.call(this, _prevNode, _dom, _config);
+      markTableHoleContentLayout(_dom);
       ensureTableControllerDOM(_dom);
       syncTableFluidMarker(_dom, this);
       const kernel = getKernelFromEditorConfig(_config);

@@ -4,6 +4,7 @@ import type {
   NodeIdentityPolicy,
   NodeIdentityProjection,
 } from '@/plugins/common/node/node-identity-policy';
+import { $getNodeProperties } from '@/plugins/properties/state';
 
 const afterRepresentation = Object.freeze({ childIndex: 1 });
 
@@ -14,7 +15,14 @@ export function getLiteXmlIdentityProjection(node: {
   firstChildType?: string;
   type?: string;
 }): NodeIdentityProjection {
-  if (node.type === 'root' || node.type === 'diff-content') return 'container';
+  if (
+    node.type === 'root' ||
+    node.type === 'diff-content' ||
+    node.type === 'hole' ||
+    node.type === 'cursor'
+  ) {
+    return 'container';
+  }
   if (node.type === 'diff') {
     if (node.diffType === 'remove' || node.diffType === 'listItemRemove') return 'hidden';
     if (node.diffType === 'modify' || node.diffType === 'listItemModify') {
@@ -40,7 +48,15 @@ export function getLiteXmlIdentityProjection(node: {
 
 /** Review containers and the document root are physical structure, not addressable content. */
 export function isLiteXmlIdentityNode(type?: string): boolean {
-  return type !== 'root' && type !== 'diff' && type !== 'diff-content';
+  return (
+    type !== 'root' &&
+    type !== 'diff' &&
+    type !== 'diff-content' &&
+    type !== 'table-cell-diff' &&
+    type !== 'table-row-diff' &&
+    type !== 'hole' &&
+    type !== 'cursor'
+  );
 }
 
 function getDiffType(node: LexicalNode | null): string | undefined {
@@ -54,7 +70,9 @@ function getDiffType(node: LexicalNode | null): string | undefined {
 
 function getLiveProjection(node: LexicalNode): ReturnType<typeof getLiteXmlIdentityProjection> {
   const type = node.getType();
-  if (type === 'root' || type === 'diff-content') return 'container';
+  if (type === 'root' || type === 'diff-content' || type === 'hole' || type === 'cursor') {
+    return 'container';
+  }
   if (
     type !== 'diff' &&
     type !== 'table-cell-diff' &&
@@ -124,6 +142,13 @@ function getReviewSide(node: LexicalNode): ReviewSide | null {
 }
 
 export const liteXmlIdentityPolicy: NodeIdentityPolicy = {
+  getIdentityId(node) {
+    if (node.getType() !== 'table-cell-diff' && node.getType() !== 'table-row-diff') {
+      return undefined;
+    }
+    const logicalNodeId = $getNodeProperties(node).logicalNodeId;
+    return typeof logicalNodeId === 'string' ? logicalNodeId : undefined;
+  },
   canShareId(left, right) {
     const leftSide = getReviewSide(left);
     const rightSide = getReviewSide(right);

@@ -78,6 +78,11 @@ export default class MarkdownDataSource extends DataSource {
   }
 
   write(editor: LexicalEditor, options?: IWriteOptions): any {
+    const writeMarkdown = (value: string): string => {
+      const output = options?.format === false ? value : this.formatMarkdown(value);
+      return options?.includeNodeIds === true ? output : stripMarkdownNodeIdMarkers(output);
+    };
+
     if (options?.selection) {
       return editor.getEditorState().read(() => {
         const selection = $getSelection();
@@ -203,11 +208,13 @@ export default class MarkdownDataSource extends DataSource {
           const editorState = editor.parseEditorState({ root: rootNode });
 
           const lexicalRootNode = editorState._nodeMap.get('root') as ElementNode;
-          const rootCtx = new MarkdownWriterContext(this.markdownService);
+          const rootCtx = new MarkdownWriterContext(this.markdownService, {
+            includeNodeIds: options?.includeNodeIds,
+          });
 
           return editorState.read(() => {
             lexicalRootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
-            return this.formatMarkdown(rootCtx.toString());
+            return writeMarkdown(rootCtx.toString());
           });
         } else if ($isTableSelection(selection)) {
           // todo
@@ -225,21 +232,28 @@ export default class MarkdownDataSource extends DataSource {
         const editorState = editor.parseEditorState({ root: rootNode });
 
         const lexicalRootNode = editorState._nodeMap.get('root') as ElementNode;
-        const rootCtx = new MarkdownWriterContext(this.markdownService);
+        const rootCtx = new MarkdownWriterContext(this.markdownService, {
+          includeNodeIds: options?.includeNodeIds,
+        });
 
         return editorState.read(() => {
           lexicalRootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
-          return rootCtx.toString();
+          return writeMarkdown(rootCtx.toString());
         });
       });
     }
     return editor.getEditorState().read(() => {
       const rootNode = $getRoot();
-      const rootCtx = new MarkdownWriterContext(this.markdownService);
+      const rootCtx = new MarkdownWriterContext(this.markdownService, {
+        includeNodeIds: options?.includeNodeIds,
+      });
 
       rootNode.getChildren().forEach((child) => rootCtx.processChild(rootCtx, child));
-      const markdown = rootCtx.toString();
-      return options?.format === false ? markdown : this.formatMarkdown(markdown);
+      return writeMarkdown(rootCtx.toString());
     });
   }
 }
+
+/** Remove private identity comments from normal presentation Markdown. */
+export const stripMarkdownNodeIdMarkers = (markdown: string): string =>
+  markdown.replaceAll(/^[ \t]*<!--\s*lobe-node-ids?:[^\n]*-->[ \t]*(?:\r?\n[ \t]*)*/gim, '');

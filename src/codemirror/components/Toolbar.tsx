@@ -10,6 +10,7 @@ import { LanguageSelect } from './LanguageSelect';
 import { MoreOptions } from './MoreOptions';
 
 export const Toolbar: FC<ToolbarProps> = ({
+  disabled,
   selectedLang,
   onLanguageChange,
   onCopy,
@@ -36,6 +37,7 @@ export const Toolbar: FC<ToolbarProps> = ({
       padding={4}
     >
       <LanguageSelect
+        disabled={disabled}
         labels={labels}
         onLanguageChange={onLanguageChange}
         options={languageOptions}
@@ -44,6 +46,7 @@ export const Toolbar: FC<ToolbarProps> = ({
       <Flexbox gap={4} horizontal onClick={(e) => e.stopPropagation()}>
         {extra}
         <MoreOptions
+          disabled={disabled}
           labels={labels}
           onShowLineNumbersChange={onShowLineNumbersChange}
           onTabSizeChange={onTabSizeChange}

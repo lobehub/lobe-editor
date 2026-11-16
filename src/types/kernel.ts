@@ -416,6 +416,11 @@ export interface IEditorPlugin<IConfig> {
    */
   destroy(): void;
   /**
+   * Update live resources when a React-facing plugin receives new runtime
+   * configuration after the Lexical editor has already been created.
+   */
+  onConfigChange?(config: IConfig): void;
+  /**
    * After editor document content is written by setDocument
    */
   onDocumentChange?(type: string, content: any, options?: IDocumentOptions): void;

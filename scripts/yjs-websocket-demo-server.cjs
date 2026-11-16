@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 
 const http = require('node:http');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const { WebSocket, WebSocketServer } = require('ws');
-const { Doc, applyUpdate, encodeStateAsUpdate } = require('yjs');
+const { Doc, applyUpdate, encodeStateAsUpdate, encodeStateVector } = require('yjs');
 
 const PORT = Number(process.env.YJS_DEMO_PORT || 12_345);
 const DEFAULT_DOCUMENT_ID = 'editor-demo';
@@ -19,6 +20,19 @@ const ROOM_HEAP_PRESSURE_MIN_BYTES = Number(
   process.env.YJS_DEMO_ROOM_HEAP_PRESSURE_MIN_BYTES || 256 * 1024 * 1024,
 );
 const ROOM_HEAP_PRESSURE_RATIO = Number(process.env.YJS_DEMO_ROOM_HEAP_PRESSURE_RATIO || 0.8);
+const LOBE_YJS_PROTOCOL = 'lobe-yjs-v1';
+const LOBE_YJS_PROTOCOL_VERSION = 1;
+const ENABLE_V1_PROTOCOL = process.env.YJS_DEMO_ENABLE_V1 !== '0';
+const ALLOW_LEGACY_PROTOCOL = process.env.YJS_DEMO_ALLOW_LEGACY !== '0';
+const REQUIRE_V1_AUTH = process.env.YJS_DEMO_REQUIRE_AUTH === '1';
+const AUTH_TICKETS = new Set(
+  String(process.env.YJS_DEMO_AUTH_TICKETS || '')
+    .split(',')
+    .map((ticket) => ticket.trim())
+    .filter(Boolean),
+);
+const MAX_PROCESSED_MESSAGE_IDS = Number(process.env.YJS_DEMO_MAX_PROCESSED_MESSAGE_IDS || 10_000);
+let nextServerClientId = 1;
 
 const documents = new Map();
 const documentMetadata = new Map();
@@ -57,6 +71,142 @@ function encodeUpdate(update) {
 
 function decodeUpdate(update) {
   return new Uint8Array(Buffer.from(update, 'base64'));
+}
+
+function createProtocolMessage(type, fields = {}) {
+  return {
+    protocol: LOBE_YJS_PROTOCOL,
+    type,
+    version: LOBE_YJS_PROTOCOL_VERSION,
+    ...fields,
+  };
+}
+
+function isRecord(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isSafeInteger(value) {
+  return Number.isSafeInteger(value);
+}
+
+function isSerializedPosition(value) {
+  if (!isRecord(value)) return false;
+
+  const isPositionPart = (part) =>
+    isRecord(part) && isSafeInteger(part.client) && isSafeInteger(part.clock);
+
+  return (
+    (value.assoc === undefined || typeof value.assoc === 'number') &&
+    (value.item === undefined || isPositionPart(value.item)) &&
+    (value.tname === undefined || value.tname === null || typeof value.tname === 'string') &&
+    (value.type === undefined || isPositionPart(value.type))
+  );
+}
+
+function isSerializedAwarenessState(value) {
+  return (
+    isRecord(value) &&
+    (value.anchorPos === null || isSerializedPosition(value.anchorPos)) &&
+    (value.focusPos === null || isSerializedPosition(value.focusPos)) &&
+    (value.clientId === undefined || isSafeInteger(value.clientId)) &&
+    typeof value.color === 'string' &&
+    typeof value.focusing === 'boolean' &&
+    typeof value.name === 'string' &&
+    isRecord(value.awarenessData)
+  );
+}
+
+function isV1Message(message) {
+  return (
+    isRecord(message) &&
+    message.protocol === LOBE_YJS_PROTOCOL &&
+    message.version === LOBE_YJS_PROTOCOL_VERSION &&
+    typeof message.type === 'string'
+  );
+}
+
+function validateV1Message(message) {
+  if (!isV1Message(message)) return false;
+
+  switch (message.type) {
+    case 'auth':
+      return (
+        isSafeInteger(message.clientId) &&
+        (message.clientKind === 'agent' || message.clientKind === 'browser') &&
+        typeof message.nonce === 'string' &&
+        (message.ticket === undefined ||
+          message.ticket === null ||
+          typeof message.ticket === 'string') &&
+        (message.documentId === undefined || typeof message.documentId === 'string') &&
+        (message.requestId === undefined || typeof message.requestId === 'string')
+      );
+    case 'awareness':
+      return (
+        isSafeInteger(message.sequence) &&
+        (message.state === null || isSerializedAwarenessState(message.state))
+      );
+    case 'sync-request':
+      return typeof message.stateVector === 'string';
+    case 'update':
+      return typeof message.messageId === 'string' && typeof message.update === 'string';
+    default:
+      return false;
+  }
+}
+
+function sendV1Error(socket, code, message, fatal = true) {
+  if (socket.readyState !== WebSocket.OPEN) return;
+
+  socket.send(
+    JSON.stringify(
+      createProtocolMessage('error', {
+        code,
+        fatal,
+        message,
+      }),
+    ),
+  );
+}
+
+function getV1ClientId() {
+  const clientId = nextServerClientId;
+  nextServerClientId += 1;
+  return clientId;
+}
+
+function validateV1Auth(message, roomId) {
+  if (REQUIRE_V1_AUTH && (!message.ticket || !AUTH_TICKETS.has(message.ticket))) {
+    return {
+      error: 'Invalid or expired collaboration ticket.',
+    };
+  }
+
+  if (message.documentId !== undefined && message.documentId !== roomId) {
+    return {
+      error: 'Authenticated document does not match collaboration room.',
+    };
+  }
+
+  if (AUTH_TICKETS.size > 0 && message.ticket && !AUTH_TICKETS.has(message.ticket)) {
+    return {
+      error: 'Invalid collaboration ticket.',
+    };
+  }
+
+  return {
+    clientId: getV1ClientId(),
+  };
+}
+
+function rememberProcessedMessageId(room, messageId) {
+  room.processedMessageIds.add(messageId);
+
+  while (room.processedMessageIds.size > MAX_PROCESSED_MESSAGE_IDS) {
+    const oldest = room.processedMessageIds.values().next().value;
+    if (oldest === undefined) return;
+    room.processedMessageIds.delete(oldest);
+  }
 }
 
 function sendJson(response, statusCode, data) {
@@ -169,6 +319,7 @@ function getRoom(id) {
     const now = Date.now();
     room = {
       awareness: new Map(),
+      awarenessSequences: new Map(),
       bootstrapOwner: null,
       bootstrapOwnerClientId: null,
       clients: new Set(),
@@ -178,6 +329,7 @@ function getRoom(id) {
       id,
       lastActiveAt: now,
       lastEmptyAt: now,
+      processedMessageIds: new Set(),
     };
     rooms.set(id, room);
     logRoomEvent('room.created', room);
@@ -223,6 +375,7 @@ function evictRoom(room, reason) {
   logRoomEvent('room.evicted', room, { reason });
   room.doc.destroy();
   room.awareness.clear();
+  room.awarenessSequences.clear();
   room.deferredSyncClients.clear();
   rooms.delete(room.id);
 }
@@ -253,11 +406,16 @@ function cleanupIdleRooms() {
   }
 }
 
-function broadcast(room, sender, message) {
+function broadcast(room, sender, message, protocolMode) {
   const payload = JSON.stringify(message);
 
   for (const client of room.clients) {
-    if (client === sender || client.readyState !== WebSocket.OPEN) {
+    if (
+      client === sender ||
+      client.readyState !== WebSocket.OPEN ||
+      (protocolMode &&
+        (client.protocolMode !== protocolMode || (protocolMode === 'v1' && !client.authenticated)))
+    ) {
       continue;
     }
 
@@ -279,16 +437,36 @@ function sendRoomSync(room, socket, clientId, stateVector) {
     stateBytes: initialUpdate.byteLength,
     stateVectorBytes: stateVector?.byteLength || 0,
   });
+  const awareness = Array.from(room.awareness, ([awarenessClientId, state]) => ({
+    clientId: awarenessClientId,
+    sequence: room.awarenessSequences?.get(awarenessClientId) || 0,
+    state,
+  }));
+
+  if (socket.protocolMode === 'v1') {
+    socket.send(
+      JSON.stringify(
+        createProtocolMessage('sync', {
+          awareness,
+          serverStateVector: encodeUpdate(encodeStateVector(room.doc)),
+          update: encodeUpdate(initialUpdate),
+        }),
+      ),
+    );
+    return;
+  }
+
   socket.send(
     JSON.stringify({
-      awareness: Array.from(room.awareness, ([awarenessClientId, state]) => ({
-        clientId: awarenessClientId,
-        state,
-      })),
+      awareness,
       type: 'sync',
       update: encodeUpdate(initialUpdate),
     }),
   );
+}
+
+function isBootstrapEligible(socket) {
+  return socket.authenticated && socket.clientKind === 'browser';
 }
 
 function assignBootstrapOwner(room, socket, clientId) {
@@ -336,7 +514,7 @@ function releaseBootstrapClient(room, socket) {
   room.bootstrapOwnerClientId = null;
 
   const nextOwner = Array.from(room.deferredSyncClients).find(
-    ([candidate]) => candidate.readyState === WebSocket.OPEN,
+    ([candidate]) => candidate.readyState === WebSocket.OPEN && isBootstrapEligible(candidate),
   );
 
   if (!nextOwner) {
@@ -462,14 +640,19 @@ function handleSocketConnection(socket, request) {
   const id = decodeURIComponent(roomMatch[1]);
   const clientIdParam = url.searchParams.get('clientId');
   const requestedClientId = Number(clientIdParam);
-  const clientId =
+  let clientId =
     clientIdParam !== null && Number.isSafeInteger(requestedClientId) && requestedClientId >= 0
       ? requestedClientId
       : Date.now();
   const room = getRoom(id);
 
   socket.isAlive = true;
+  socket.authenticated = false;
   socket.hasSentInitialSync = false;
+  socket.lastAwarenessSequence = -1;
+  socket.clientKind = null;
+  socket.protocolMode = 'unknown';
+  socket.helloNonce = crypto.randomUUID();
   socket.syncRequestStateVector = undefined;
   socket.on('pong', () => {
     socket.isAlive = true;
@@ -479,6 +662,17 @@ function handleSocketConnection(socket, request) {
   room.lastActiveAt = Date.now();
   room.lastEmptyAt = null;
   logRoomEvent('client.connected', room, { clientId });
+
+  if (ENABLE_V1_PROTOCOL && socket.readyState === WebSocket.OPEN) {
+    socket.send(
+      JSON.stringify(
+        createProtocolMessage('hello', {
+          nonce: socket.helloNonce,
+          roomId: id,
+        }),
+      ),
+    );
+  }
 
   socket.on('message', (rawMessage) => {
     let message;
@@ -494,6 +688,198 @@ function handleSocketConnection(socket, request) {
       socket.close(1003, 'Invalid JSON message.');
       return;
     }
+
+    if (isV1Message(message)) {
+      if (!ENABLE_V1_PROTOCOL || !validateV1Message(message)) {
+        sendV1Error(socket, 'invalid_message', 'Invalid lobe-yjs-v1 message.');
+        socket.close(1003, 'Invalid lobe-yjs-v1 message.');
+        return;
+      }
+
+      if (message.type === 'auth') {
+        if (socket.protocolMode === 'v1' || socket.authenticated) {
+          sendV1Error(
+            socket,
+            'already_authenticated',
+            'The collaboration client is already authenticated.',
+          );
+          socket.close(1008, 'Already authenticated.');
+          return;
+        }
+
+        if (Object.hasOwn(message, 'sender') || message.nonce !== socket.helloNonce) {
+          sendV1Error(socket, 'invalid_auth', 'The collaboration auth nonce is invalid.');
+          socket.close(1008, 'Invalid collaboration auth.');
+          return;
+        }
+
+        const authResult = validateV1Auth(message, id);
+        if (authResult.error) {
+          sendV1Error(socket, 'unauthorized', authResult.error);
+          socket.close(1008, authResult.error);
+          return;
+        }
+
+        clientId = authResult.clientId;
+        socket.clientId = clientId;
+        socket.clientKind = message.clientKind;
+        socket.protocolMode = 'v1';
+        socket.authenticated = true;
+        socket.lastAwarenessSequence = -1;
+        room.lastActiveAt = Date.now();
+        socket.send(
+          JSON.stringify(
+            createProtocolMessage('auth-ok', {
+              clientId,
+              roomId: id,
+            }),
+          ),
+        );
+        logRoomEvent('client.authenticated', room, {
+          clientId,
+          clientKind: message.clientKind,
+          requestId: message.requestId || null,
+        });
+        return;
+      }
+
+      if (socket.protocolMode !== 'v1' || !socket.authenticated) {
+        sendV1Error(socket, 'unauthorized', 'Authenticate before using the collaboration room.');
+        socket.close(1008, 'Authentication required.');
+        return;
+      }
+
+      if (Object.hasOwn(message, 'sender')) {
+        sendV1Error(socket, 'sender_forbidden', 'Clients must not provide a sender identity.');
+        socket.close(1008, 'Sender identity is server assigned.');
+        return;
+      }
+
+      if (message.type === 'sync-request') {
+        try {
+          socket.syncRequestStateVector = decodeUpdate(message.stateVector);
+          room.lastActiveAt = Date.now();
+
+          if (room.hasReceivedUpdate) {
+            sendRoomSync(room, socket, clientId, socket.syncRequestStateVector);
+          } else if (!isBootstrapEligible(socket)) {
+            room.deferredSyncClients.set(socket, clientId);
+            logRoomEvent('sync.deferred', room, {
+              clientId,
+              reason: 'agent-awaiting-browser-bootstrap',
+            });
+          } else if (!room.bootstrapOwner) {
+            room.deferredSyncClients.delete(socket);
+            assignBootstrapOwner(room, socket, clientId);
+          } else if (room.bootstrapOwner === socket) {
+            sendRoomSync(room, socket, clientId, socket.syncRequestStateVector);
+          } else {
+            room.deferredSyncClients.set(socket, clientId);
+            logRoomEvent('sync.deferred', room, {
+              bootstrapClientId: room.bootstrapOwnerClientId,
+              clientId,
+            });
+          }
+        } catch {
+          logRoomEvent('sync.rejected', room, { clientId, reason: 'invalid state vector' });
+          sendV1Error(socket, 'invalid_state_vector', 'Invalid Yjs state vector.');
+          socket.close(1003, 'Invalid Yjs state vector.');
+        }
+        return;
+      }
+
+      if (message.type === 'update') {
+        if (room.processedMessageIds.has(message.messageId)) {
+          socket.send(
+            JSON.stringify(
+              createProtocolMessage('update-ack', {
+                messageId: message.messageId,
+              }),
+            ),
+          );
+          return;
+        }
+
+        let update;
+        try {
+          update = decodeUpdate(message.update);
+          applyUpdate(room.doc, update, socket);
+        } catch {
+          logRoomEvent('update.rejected', room, { clientId, reason: 'invalid update' });
+          sendV1Error(socket, 'invalid_update', 'Invalid Yjs update.');
+          socket.close(1003, 'Invalid Yjs update.');
+          return;
+        }
+
+        rememberProcessedMessageId(room, message.messageId);
+        room.lastActiveAt = Date.now();
+        completeRoomBootstrap(room, clientId);
+        const outboundMessage = createProtocolMessage('update', {
+          messageId: message.messageId,
+          sender: clientId,
+          update: message.update,
+        });
+        logRoomEvent('update.applied', room, {
+          clientId,
+          messageId: message.messageId,
+          stateBytes: encodeStateAsUpdate(room.doc).byteLength,
+          updateBytes: update.byteLength,
+        });
+        broadcast(room, socket, outboundMessage, 'v1');
+        socket.send(
+          JSON.stringify(
+            createProtocolMessage('update-ack', {
+              messageId: message.messageId,
+            }),
+          ),
+        );
+        return;
+      }
+
+      if (message.type === 'awareness') {
+        if (message.sequence <= socket.lastAwarenessSequence) return;
+
+        socket.lastAwarenessSequence = message.sequence;
+        if (message.state) {
+          room.awareness.set(clientId, message.state);
+        } else {
+          room.awareness.delete(clientId);
+        }
+        room.awarenessSequences.set(clientId, message.sequence);
+        room.lastActiveAt = Date.now();
+        const outboundMessage = createProtocolMessage('awareness', {
+          sender: clientId,
+          sequence: message.sequence,
+          state: message.state,
+        });
+        logRoomEvent('awareness.updated', room, {
+          clientId,
+          focusing: Boolean(message.state?.focusing),
+          hasSelection: Boolean(message.state?.anchorPos && message.state?.focusPos),
+          name: typeof message.state?.name === 'string' ? message.state.name : null,
+        });
+        broadcast(room, socket, outboundMessage, 'v1');
+        return;
+      }
+
+      sendV1Error(socket, 'unsupported_message', 'Unsupported collaboration message.');
+      return;
+    }
+
+    if (socket.protocolMode === 'v1') {
+      sendV1Error(socket, 'protocol_mismatch', 'Use lobe-yjs-v1 for this connection.');
+      socket.close(1008, 'Protocol mismatch.');
+      return;
+    }
+
+    if (!ALLOW_LEGACY_PROTOCOL) {
+      socket.close(1008, 'Legacy collaboration protocol is disabled.');
+      return;
+    }
+
+    socket.protocolMode = 'legacy';
+    socket.authenticated = true;
+    socket.clientKind = 'browser';
 
     if (message.type === 'sync-request') {
       try {
@@ -538,7 +924,7 @@ function handleSocketConnection(socket, request) {
         stateBytes: encodeStateAsUpdate(room.doc).byteLength,
         updateBytes: update.byteLength,
       });
-      broadcast(room, socket, { ...message, sender: clientId });
+      broadcast(room, socket, { ...message, sender: clientId }, 'legacy');
       return;
     }
 
@@ -548,6 +934,7 @@ function handleSocketConnection(socket, request) {
       } else {
         room.awareness.delete(clientId);
       }
+      room.awarenessSequences.set(clientId, 0);
 
       logRoomEvent('awareness.updated', room, {
         clientId,
@@ -556,7 +943,7 @@ function handleSocketConnection(socket, request) {
         hasSelection: Boolean(message.state?.anchorPos && message.state?.focusPos),
         name: typeof message.state?.name === 'string' ? message.state.name : null,
       });
-      broadcast(room, socket, { ...message, sender: clientId });
+      broadcast(room, socket, { ...message, sender: clientId }, 'legacy');
     }
   });
 
@@ -564,11 +951,30 @@ function handleSocketConnection(socket, request) {
     releaseBootstrapClient(room, socket);
     room.clients.delete(socket);
     room.awareness.delete(clientId);
-    broadcast(room, socket, {
-      sender: clientId,
-      state: null,
-      type: 'awareness',
-    });
+    room.awarenessSequences.delete(clientId);
+    if (socket.protocolMode === 'v1' && socket.authenticated) {
+      broadcast(
+        room,
+        socket,
+        createProtocolMessage('awareness', {
+          sender: clientId,
+          sequence: socket.lastAwarenessSequence + 1,
+          state: null,
+        }),
+        'v1',
+      );
+    } else if (socket.protocolMode === 'legacy') {
+      broadcast(
+        room,
+        socket,
+        {
+          sender: clientId,
+          state: null,
+          type: 'awareness',
+        },
+        'legacy',
+      );
+    }
 
     if (room.clients.size === 0) {
       room.awareness.clear();

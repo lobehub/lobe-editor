@@ -9,6 +9,7 @@ import { $getRoot, $isElementNode } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import type { IElementNode } from '@/editor-kernel/inode/i-element-node';
+import { $isHoleNode } from '@/plugins/common/node/hole';
 import { MarkdownWriterContext } from '@/plugins/markdown/data-source/markdown-writer-context';
 import type {
   IMarkdownShortCutService,
@@ -241,6 +242,11 @@ export const extractContentBlocks = (
     };
 
     const visitTopLevel = (node: LexicalNode) => {
+      if ($isHoleNode(node)) {
+        node.getContentChildren().forEach(visitTopLevel);
+        return;
+      }
+
       if (isAtomicNode(node)) {
         // Root-level atomic — always emit as its own block, even if the node
         // class declares isInline() (chat editors place inline images inside

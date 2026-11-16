@@ -1,4 +1,4 @@
-import type { InsertTableCommandPayloadHeaders, TableNode } from '@lexical/table';
+import type { InsertTableCommandPayloadHeaders, TableNode, TableSelection } from '@lexical/table';
 import {
   $computeTableMapSkipCellCheck,
   $createTableNodeWithDimensions,
@@ -9,6 +9,7 @@ import {
   $isTableNode,
   $isTableRowNode,
   $isTableSelection,
+  getTableObserverFromTableElement,
 } from '@lexical/table';
 import { $insertNodeToNearestRoot, mergeRegister } from '@lexical/utils';
 import type { ElementNode, LexicalEditor } from 'lexical';
@@ -24,11 +25,14 @@ import {
   createCommand,
 } from 'lexical';
 
+import { getKernelFromEditor } from '@/editor-kernel/utils';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
+
 import {
   $insertTableColumnAtSelectionWithAlign,
   $moveTableColumnAligns,
 } from '../node/column-align';
-import { $resolveTableColWidths, syncTableWidthDOM } from '../utils';
+import { $getValidTableSelectionShape, $resolveTableColWidths, syncTableWidthDOM } from '../utils';
 import { getAutoFitTableColumnWidths } from '../utils/autoFitColumnWidth';
 import {
   canTableFillContainer,
@@ -168,6 +172,19 @@ const $selectTableColumns = (tableNode: TableNode, from: number, to: number) => 
   return true;
 };
 
+/** Initialize Lexical's DOM observer before committing the first controller selection. */
+const $syncTableSelectionToDOM = (
+  editor: LexicalEditor,
+  tableNode: TableNode,
+  selection: TableSelection,
+): void => {
+  const tableDOM = editor.getElementByKey(tableNode.getKey());
+  if (!tableDOM || typeof HTMLTableElement === 'undefined') return;
+
+  const tableElement = tableNode.getDOMSlot(tableDOM).element;
+  getTableObserverFromTableElement(tableElement)?.$updateTableTableSelection(selection);
+};
+
 const getRangeFromSelection = (
   selection: ReturnType<typeof $getSelection>,
   table: string,
@@ -183,14 +200,13 @@ const getRangeFromSelection = (
     };
   }
 
-  if (!$isTableSelection(selection) || selection.tableKey !== table) {
+  const shape = $getValidTableSelectionShape(selection, table);
+  if (!shape) {
     return {
       from: 0,
       to: targetIndex,
     };
   }
-
-  const shape = selection.getShape();
   const hasSelectedWholeAxis =
     direction === 'row'
       ? shape.fromX === 0 && shape.toX === crossAxisLength - 1
@@ -217,20 +233,28 @@ export function registerTableCommand(editor: LexicalEditor) {
     editor.registerCommand(
       INSERT_TABLE_COMMAND,
       ({ rows, columns, includeHeaders }) => {
-        const selection = $getSelection() || $getPreviousSelection();
+        let selection = $getSelection() || $getPreviousSelection();
         if (!selection || !$isRangeSelection(selection)) {
           return false;
         }
 
-        const anchorNode = $getNodeByKey(selection.anchor.key);
-        if (!anchorNode) {
+        const originalAnchorNode = $getNodeByKey(selection.anchor.key);
+        if (!originalAnchorNode) {
           return false;
         }
 
         // Prevent nested tables by checking if we're already inside a table
-        if ($findTableNode(anchorNode)) {
+        if ($findTableNode(originalAnchorNode)) {
           return false;
         }
+
+        const holeService = getKernelFromEditor(editor)?.requireService(IHoleService);
+        holeService?.prepareBoundaryInsertion(selection);
+        selection = $getSelection() || selection;
+        if (!$isRangeSelection(selection)) return false;
+
+        const anchorNode = $getNodeByKey(selection.anchor.key);
+        if (!anchorNode) return false;
 
         const rowCount = Number(rows);
         const columnCount = Number(columns);
@@ -475,6 +499,7 @@ export function registerTableCommand(editor: LexicalEditor) {
           if (!firstCell || !lastCell) return false;
 
           tableSelection.set(table, firstCell.getKey(), lastCell.getKey());
+          $syncTableSelectionToDOM(editor, tableNode, tableSelection);
           $setSelection(tableSelection);
           return true;
         }
@@ -495,6 +520,7 @@ export function registerTableCommand(editor: LexicalEditor) {
           if (!firstCell || !lastCell) return false;
 
           tableSelection.set(table, firstCell.getKey(), lastCell.getKey());
+          $syncTableSelectionToDOM(editor, tableNode, tableSelection);
           $setSelection(tableSelection);
           return true;
         }
@@ -506,6 +532,7 @@ export function registerTableCommand(editor: LexicalEditor) {
         if (!firstCell || !lastCell) return false;
 
         tableSelection.set(table, firstCell.getKey(), lastCell.getKey());
+        $syncTableSelectionToDOM(editor, tableNode, tableSelection);
         $setSelection(tableSelection);
 
         return true;

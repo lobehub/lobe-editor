@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import type { IEditor } from '@/types';
 
@@ -45,7 +46,7 @@ describe('useAutoFitPastedTable', () => {
   const readColWidths = () =>
     lexical
       .getEditorState()
-      .read(() => $getRoot().getChildren().find($isTableNode)?.getColWidths());
+      .read(() => $getLogicalChildren($getRoot()).find($isTableNode)?.getColWidths());
 
   const pasteTable = (cellWidth: number) => {
     lexical.update(

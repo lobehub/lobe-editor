@@ -2,62 +2,74 @@ import {
   $getEditor,
   $getRoot,
   $getState,
+  $hasUpdateTag,
   $isElementNode,
   $isRootNode,
   $setState,
-  createState,
+  COLLABORATION_TAG,
   type EditorState,
+  HISTORIC_TAG,
   type LexicalEditor,
   type LexicalNode,
+  SKIP_COLLAB_TAG,
 } from 'lexical';
 
-import { $getNodeIdentityPolicy, type NodeIdentityPolicy } from './node-identity-policy';
+import { cloneNodeProperties, propertiesState } from '@/plugins/properties/state';
 
-type NodeProperties = Record<string, unknown> & { nodeId?: string };
+import { createNodeId } from './create-node-id';
+import { $getNodeIdentityPolicy, type NodeIdentityPolicy } from './node-identity-policy';
 
 /** `root` is the document insertion anchor, never a content-node identity. */
 export function isValidContentNodeId(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0 && value.trim() !== 'root';
 }
 
-const cloneProperties = (value: Record<string, unknown>): Record<string, unknown> => {
-  if (typeof structuredClone === 'function') {
-    try {
-      return structuredClone(value);
-    } catch {
-      // Metadata is expected to be JSON-like; retain compatibility with older runtimes.
-    }
-  }
-  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
-};
-
-const parseProperties = (value: unknown): NodeProperties => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-  const properties = cloneProperties(value as Record<string, unknown>);
-  const nodeId = properties.nodeId;
-  if (isValidContentNodeId(nodeId)) {
-    properties.nodeId = nodeId.trim();
-  } else {
-    delete properties.nodeId;
-  }
-  return properties;
-};
-
-const isEqual = (left: NodeProperties, right: NodeProperties): boolean =>
-  JSON.stringify(left) === JSON.stringify(right);
 const compareStrings = (left: string, right: string): number =>
   left < right ? -1 : left > right ? 1 : 0;
 
-/** Shared NodeState shape used by PR203: the durable ID lives at $.properties.nodeId. */
-export const nodePropertiesState = createState('properties', {
-  isEqual,
-  unparse: cloneProperties,
-  parse: parseProperties,
-});
+/** Alias the existing Properties NodeState; one `properties` config owns all metadata. */
+export const nodePropertiesState = propertiesState;
+
+export interface NodeIdentityNormalizationContext {
+  defer?: boolean;
+  stableDuplicateRepair?: boolean;
+  stableOwnershipKey?: (node: LexicalNode) => string | undefined;
+}
+
+type NodeIdentityNormalizationResolver = () => NodeIdentityNormalizationContext | null;
+const identityNormalizationResolvers = new WeakMap<
+  LexicalEditor,
+  Array<{ resolver: NodeIdentityNormalizationResolver }>
+>();
+
+/** Let collaboration integrations gate the shared normalizer until their IDs are stable. */
+export function registerNodeIdentityNormalizationContext(
+  editor: LexicalEditor,
+  resolver: NodeIdentityNormalizationResolver,
+): () => void {
+  const entry = { resolver };
+  const resolvers = identityNormalizationResolvers.get(editor) || [];
+  resolvers.push(entry);
+  identityNormalizationResolvers.set(editor, resolvers);
+
+  return () => {
+    const current = identityNormalizationResolvers.get(editor);
+    if (!current) return;
+    const index = current.indexOf(entry);
+    if (index >= 0) current.splice(index, 1);
+    if (current.length === 0) identityNormalizationResolvers.delete(editor);
+  };
+}
 
 export function $getNodeId(node: LexicalNode): string | undefined {
   const nodeId = $getState(node, nodePropertiesState).nodeId;
   return isValidContentNodeId(nodeId) ? nodeId : undefined;
+}
+
+/** Resolve the logical ID represented by this active node, including review aliases. */
+export function $getActiveNodeId(node: LexicalNode): string | undefined {
+  const projected = $getNodeIdentityPolicy().getIdentityId?.(node);
+  return isValidContentNodeId(projected) ? projected : $getNodeId(node);
 }
 
 export function $setNodeId(node: LexicalNode, nodeId: string): void {
@@ -78,7 +90,11 @@ export function $clearNodeId(node: LexicalNode): void {
 }
 
 export function $copyNodeProperties(source: LexicalNode, target: LexicalNode): void {
-  $setState(target, nodePropertiesState, parseProperties($getState(source, nodePropertiesState)));
+  $setState(
+    target,
+    nodePropertiesState,
+    cloneNodeProperties($getState(source, nodePropertiesState)),
+  );
 }
 
 /** Migrate explicit IDs from the legacy serialized `id` field into NodeState. */
@@ -221,31 +237,6 @@ export function inheritMissingSerializedNodeIds(source: unknown, target: unknown
   }
 }
 
-function createNodeId(): string {
-  const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz';
-  const cryptoObject = globalThis.crypto as Crypto | undefined;
-  const id: string[] = [];
-
-  if (typeof cryptoObject?.getRandomValues === 'function') {
-    while (id.length < 10) {
-      const bytes = cryptoObject.getRandomValues(new Uint8Array(16));
-      for (const byte of bytes) {
-        // 252 is the largest multiple of 36 below 256. Rejecting the tail
-        // keeps every base-36 character equally likely.
-        if (byte >= 252) continue;
-        id.push(alphabet[byte % 36]);
-        if (id.length === 10) break;
-      }
-    }
-    return id.join('');
-  }
-
-  for (let index = 0; index < 10; index++) {
-    id.push(alphabet[Math.floor(Math.random() * alphabet.length)]);
-  }
-  return id.join('');
-}
-
 /** Serialize a subtree without identities so sibling order cannot stand in for identity. */
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
@@ -320,7 +311,7 @@ function recordActiveOwners(
   const projection = policy.project(node);
   if (projection === 'hidden') return;
   if (projection === 'content') {
-    const nodeId = $getNodeId(node);
+    const nodeId = policy.getIdentityId?.(node) ?? $getNodeId(node);
     if (nodeId && !owners.has(nodeId)) owners.set(nodeId, node.getKey());
   }
   if ($isElementNode(node)) {
@@ -344,6 +335,31 @@ export function $normalizeNodeIds(
 ): void {
   if (!$isRootNode(root)) return;
   const editor = $getEditor();
+  const context = identityNormalizationResolvers.get(editor)?.at(-1)?.resolver();
+  if (context?.defer) return;
+  options = {
+    ...context,
+    ...options,
+    stableDuplicateRepair: options.stableDuplicateRepair ?? context?.stableDuplicateRepair,
+    stableOwnershipKey: options.stableOwnershipKey ?? context?.stableOwnershipKey,
+  };
+  const previousNodeKeys = new Set<string>();
+  editor.getEditorState().read(
+    () => {
+      const collect = (node: LexicalNode) => {
+        previousNodeKeys.add(node.getKey());
+        if ($isElementNode(node)) node.getChildren().forEach(collect);
+      };
+      collect($getRoot());
+    },
+    { editor },
+  );
+  const isCollaborativeUpdate =
+    $hasUpdateTag(COLLABORATION_TAG) ||
+    $hasUpdateTag(HISTORIC_TAG) ||
+    $hasUpdateTag(SKIP_COLLAB_TAG);
+  const isNewLocalNode = (node: LexicalNode): boolean =>
+    !isCollaborativeUpdate && !previousNodeKeys.has(node.getKey());
   const policy = $getNodeIdentityPolicy();
   const previousOwners = new Map<string, string>();
   const previousFingerprints = new Map<string, Set<string>>();
@@ -360,7 +376,13 @@ export function $normalizeNodeIds(
 
   const nodes: LexicalNode[] = [];
   const visit = (node: LexicalNode) => {
-    if (policy.isIdentityNode(node)) nodes.push(node);
+    if (policy.isIdentityNode(node)) {
+      nodes.push(node);
+    } else if ($getNodeId(node)) {
+      // Runtime/review wrappers such as Hole, Cursor and diff containers are
+      // transparent structure, never durable identity owners.
+      $clearNodeId(node);
+    }
     if ($isElementNode(node)) node.getChildren().forEach(visit);
   };
   root.getChildren().forEach(visit);
@@ -475,6 +497,22 @@ export function $normalizeNodeIds(
     if (group.length < 2) continue;
 
     if (options.stableOwnershipKey) {
+      const previousOwners = group.filter((node) => previousNodeKeys.has(node.getKey()));
+      const newLocalNodes = group.filter(isNewLocalNode);
+      if (previousOwners.length === 1 && newLocalNodes.length > 0) {
+        // Splits and local copies can inherit the source NodeState before a
+        // Yjs/Loro shared item exists. Keep the prior owner and allocate the
+        // new local node in this transaction so undo and transport see it as
+        // part of the edit.
+        const reviewCounterpart = newLocalNodes.find((node) =>
+          policy.canShareId(previousOwners[0], node),
+        );
+        const localDuplicates = newLocalNodes.filter((node) => node !== reviewCounterpart);
+        if (localDuplicates.length > 0) {
+          localDuplicates.forEach((node) => assignFreshId(node));
+          continue;
+        }
+      }
       const identities = group.map((node) => [node, options.stableOwnershipKey!(node)] as const);
       // Defer an incomplete group until all shared types are mapped. Choosing
       // from local order or runtime keys here would make clients disagree.
@@ -587,8 +625,15 @@ export function $normalizeNodeIds(
   for (const node of missingIds) {
     if (options.stableOwnershipKey && options.stableDuplicateRepair) {
       const identity = options.stableOwnershipKey(node);
-      if (!identity) continue;
-      assignFreshId(node, '', identity);
+      if (identity && !isNewLocalNode(node)) {
+        assignFreshId(node, '', identity);
+      } else if (isNewLocalNode(node)) {
+        // A newly created local node may not have a shared CRDT item yet.
+        // Give it an ID in the same Lexical transaction so the provider can
+        // publish that value with the edit; remote/hydration updates wait for
+        // their stable shared identity instead of choosing a client-local one.
+        assignFreshId(node);
+      }
     } else {
       assignFreshId(node);
     }
@@ -616,6 +661,40 @@ export function editorStateHasCompleteNodeIds(
     { editor },
   );
   return nodeCount > 0 && complete;
+}
+
+/** Check completeness and illegal duplicates using the same review-aware policy as normalization. */
+export function editorStateNeedsNodeIdNormalization(
+  editorState: EditorState,
+  editor: LexicalEditor,
+): boolean {
+  let needsNormalization = false;
+  editorState.read(
+    () => {
+      const policy = $getNodeIdentityPolicy();
+      const groups = new Map<string, LexicalNode[]>();
+      const visit = (node: LexicalNode) => {
+        if (policy.isIdentityNode(node)) {
+          const nodeId = $getNodeId(node);
+          if (!nodeId) {
+            needsNormalization = true;
+          } else {
+            const group = groups.get(nodeId) || [];
+            group.push(node);
+            groups.set(nodeId, group);
+          }
+        }
+        if ($isElementNode(node)) node.getChildren().forEach(visit);
+      };
+      visit($getRoot());
+      needsNormalization ||= [...groups.values()].some(
+        (group) =>
+          group.length > 1 && !(group.length === 2 && policy.canShareId(group[0], group[1])),
+      );
+    },
+    { editor },
+  );
+  return needsNormalization;
 }
 
 /** Ensure newly imported nodes can be addressed before the enclosing update commits. */
@@ -656,11 +735,11 @@ export function $getNodeById(nodeId: string, root?: LexicalNode): LexicalNode | 
 
   const visit = (node: LexicalNode): LexicalNode | null => {
     if (!$isElementNode(node)) {
-      return $getNodeId(node) === nodeId && policy.project(node) === 'content' ? node : null;
+      return $getActiveNodeId(node) === nodeId && policy.project(node) === 'content' ? node : null;
     }
     const projection = policy.project(node);
     if (projection === 'hidden') return null;
-    if (projection === 'content' && $getNodeId(node) === nodeId) return node;
+    if (projection === 'content' && $getActiveNodeId(node) === nodeId) return node;
     if (typeof projection === 'object') {
       const selected = node.getChildAtIndex(projection.childIndex);
       return selected ? visit(selected) : null;
@@ -686,7 +765,7 @@ export function $getActiveNodeIdKeys(): Map<string, string> {
     const projection = policy.project(node);
     if (projection === 'hidden') return;
     if (projection === 'content') {
-      const id = $getNodeId(node);
+      const id = $getActiveNodeId(node);
       if (id && !keys.has(id)) keys.set(id, node.getKey());
     }
     if ($isElementNode(node)) {

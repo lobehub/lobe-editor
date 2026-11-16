@@ -15,6 +15,9 @@ export default defineConfig([
     clean: true,
     entry: {
       'headless': 'src/headless/index.ts',
+      'loro': 'src/plugins/loro/index.ts',
+      'loro/headless': 'src/headless/loro.ts',
+      'loro/react': 'src/plugins/loro/react/index.ts',
       // Share persistent NodeState configuration, the editor-scoped policy
       // registry, and the service token across bundled headless and unbundled
       // UI entries. Lexical treats duplicate StateConfig keys as an error.
@@ -31,11 +34,13 @@ export default defineConfig([
     },
     outExtensions: () => ({ dts: '.d.ts', js: '.js' }),
     platform: 'node',
+    unbundle: true,
   },
   {
     ...commonConfig,
     clean: false,
     entry: {
+      collaboration: 'src/common/collaboration/index.ts',
       codemirror: 'src/codemirror/index.ts',
       index: 'src/index.ts',
       react: 'src/react/index.ts',

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor, { resetRandomKey } from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import type { IEditor } from '@/types';
@@ -32,7 +33,7 @@ const readColWidths = (editor: IEditor) =>
   editor
     .getLexicalEditor()!
     .getEditorState()
-    .read(() => $getRoot().getChildren().find($isTableNode)?.getColWidths());
+    .read(() => $getLogicalChildren($getRoot()).find($isTableNode)?.getColWidths());
 
 describe('tables without saved widths', () => {
   let editor: IEditor;
@@ -58,7 +59,7 @@ describe('tables without saved widths', () => {
     );
 
     const state = lexical.getEditorState();
-    expect(state.read(() => $getRoot().getChildren().some($isTableNode))).toBe(true);
+    expect(state.read(() => $getLogicalChildren($getRoot()).some($isTableNode))).toBe(true);
     expect(readColWidths(editor)).toBeUndefined();
   });
 
@@ -96,15 +97,16 @@ describe('width commands on fluid tables', () => {
   const tableKey = () =>
     lexical()
       .getEditorState()
-      .read(() => $getRoot().getChildren().find($isTableNode)!.getKey());
+      .read(() => $getLogicalChildren($getRoot()).find($isTableNode)!.getKey());
 
   const dispatch = (run: (key: string) => void) =>
     lexical().update(() => run(tableKey()), { discrete: true });
 
   const setWidths = (widths: number[] | undefined) =>
-    lexical().update(() => $getRoot().getChildren().find($isTableNode)!.setColWidths(widths), {
-      discrete: true,
-    });
+    lexical().update(
+      () => $getLogicalChildren($getRoot()).find($isTableNode)!.setColWidths(widths),
+      { discrete: true },
+    );
 
   beforeEach(() => {
     resetRandomKey();

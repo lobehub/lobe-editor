@@ -175,6 +175,7 @@ const Image = memo<ImageProps>(
         }
         e.stopPropagation();
         setSelected(true);
+        editorRef.current?.focus();
       },
       [editable, handlePreview, node.status, setSelected],
     );

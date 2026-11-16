@@ -1,6 +1,6 @@
 import { $getNodeByKey, type EditorState, type LexicalEditor } from 'lexical';
 
-import { $getActiveNodeIdKeys, $getNodeId } from '@/plugins/common/node/node-id';
+import { $getActiveNodeId, $getActiveNodeIdKeys } from '@/plugins/common/node/node-id';
 import {
   getNodeIdentityPolicyRevision,
   subscribeNodeIdentityPolicy,
@@ -67,7 +67,7 @@ export class NodeIdentityService implements INodeIdentityService {
     return editorState.read(
       () => {
         const node = $getNodeByKey(key);
-        const id = node && $getNodeId(node);
+        const id = node && $getActiveNodeId(node);
         return node && id === nodeId
           ? Object.freeze({ id, textContent: node.getTextContent(), type: node.getType() })
           : null;

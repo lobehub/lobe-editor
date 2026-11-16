@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Editor from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import type { IEditor } from '@/types';
 
@@ -45,7 +46,9 @@ describe('TableGrips', () => {
   let root: Root;
 
   const tableNode = () =>
-    lexical.getEditorState().read(() => $getRoot().getChildren().find($isTableNode)!) as TableNode;
+    lexical
+      .getEditorState()
+      .read(() => $getLogicalChildren($getRoot()).find($isTableNode)!) as TableNode;
 
   const cell = (row: number, column: number) =>
     editorRoot.querySelectorAll('tr')[row].querySelectorAll('td, th')[column] as HTMLElement;

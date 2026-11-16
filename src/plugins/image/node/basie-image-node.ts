@@ -202,12 +202,11 @@ export class BaseImageNode extends DecoratorNode<any> {
     };
   }
 
-  setNaturalSize(width: number, height: number): void {
+  setNaturalSize(width?: number, height?: number): void {
     const natural = sanitizeImageNaturalSize(width, height);
-    if (!natural) return;
     const writable = this.getWritable();
-    writable.__naturalWidth = natural.naturalWidth;
-    writable.__naturalHeight = natural.naturalHeight;
+    writable.__naturalWidth = natural?.naturalWidth;
+    writable.__naturalHeight = natural?.naturalHeight;
   }
 
   setDisplaySize(size: MediaDisplaySize, naturalWidth?: number): void {
@@ -279,5 +278,9 @@ export class BaseImageNode extends DecoratorNode<any> {
 
   getAltText(): string {
     return this.__altText;
+  }
+
+  setAltText(altText: string): void {
+    this.getWritable().__altText = altText;
   }
 }

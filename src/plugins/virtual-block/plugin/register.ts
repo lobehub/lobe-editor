@@ -28,6 +28,15 @@ import { createDebugLogger } from '@/utils/debug';
 
 const logger = createDebugLogger('plugin', 'virtual-block');
 
+function $isHolePayload(node: LexicalNode): boolean {
+  let current: LexicalNode | null = node;
+  while (current) {
+    if (current.getType() === 'hole') return true;
+    current = current.getParent();
+  }
+  return false;
+}
+
 export function toRootElement(node: LexicalNode): ElementNode {
   let currentNode: LexicalNode | null = node;
   let parent = currentNode.getParent();
@@ -245,18 +254,13 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
     editor.registerCommand(
       SELECT_BEFORE_CODEMIRROR_COMMAND,
       (payload) => {
-        editor.update(() => {
-          const node = $getNodeByKey(payload.key);
-          if (!node) {
-            return;
-          }
-          const p = $createParagraphNode();
-          needRemoveOnFocusNode = p;
-          node.insertBefore(p);
-          p.selectEnd();
-          editor.focus();
-          return true;
-        });
+        const node = $getNodeByKey(payload.key);
+        if (!node || $isHolePayload(node)) return false;
+        const p = $createParagraphNode();
+        needRemoveOnFocusNode = p;
+        node.insertBefore(p);
+        p.selectEnd();
+        editor.focus();
         return true;
       },
       COMMAND_PRIORITY_NORMAL,
@@ -264,18 +268,13 @@ export function registerRichKeydown(editor: LexicalEditor, kernel: IEditor) {
     editor.registerCommand(
       SELECT_AFTER_CODEMIRROR_COMMAND,
       (payload) => {
-        editor.update(() => {
-          const node = $getNodeByKey(payload.key);
-          if (!node) {
-            return;
-          }
-          const p = $createParagraphNode();
-          needRemoveOnFocusNode = p;
-          node.insertAfter(p);
-          p.selectEnd();
-          editor.focus();
-          return true;
-        });
+        const node = $getNodeByKey(payload.key);
+        if (!node || $isHolePayload(node)) return false;
+        const p = $createParagraphNode();
+        needRemoveOnFocusNode = p;
+        node.insertAfter(p);
+        p.selectEnd();
+        editor.focus();
         return true;
       },
       COMMAND_PRIORITY_NORMAL,

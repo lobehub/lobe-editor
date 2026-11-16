@@ -3,7 +3,9 @@ import { $createTextNode, COMMAND_PRIORITY_NORMAL, PASTE_COMMAND } from 'lexical
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { ILitexmlService } from '@/plugins/litexml';
+import { registerBlockRewriteAdapter } from '@/plugins/block/service/rewrite-adapter';
+import { IHoleService } from '@/plugins/common/service/i-hole-service';
+import { ILitexmlService } from '@/plugins/litexml/service/litexml-service';
 import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
@@ -15,6 +17,7 @@ import type { LinkAttributes } from '../node/LinkNode';
 import { $createLinkNode, $isLinkNode, AutoLinkNode, LinkNode } from '../node/LinkNode';
 import { $isSchemaNode, SchemaNode } from '../node/SchemaNode';
 import { normalizeSchemaLinkNode } from '../normalization';
+import { linkBlockCardRewriteAdapter } from '../rewrite-adapter';
 import type {
   LinkEmbedRule,
   LinkLabels,
@@ -97,9 +100,27 @@ export const LinkPlugin: IEditorPluginConstructor<LinkPluginOptions> = class
     if (config?.linkRegex) {
       this.linkRegex = config.linkRegex;
     }
+    this.register(registerBlockRewriteAdapter(kernel, linkBlockCardRewriteAdapter));
   }
 
   onInit(editor: LexicalEditor): void {
+    const holeService = this.kernel.requireService(IHoleService);
+    if (holeService) {
+      // Only the block preview variants participate in the shared Hole
+      // boundary. LinkNode, SchemaNode, and the inline LinkCardNode remain
+      // ordinary inline content even though they all share the link plugin.
+      this.register(
+        holeService.registerTarget(LinkBlockCardNode, {
+          serializeTextContent: (node) =>
+            $isLinkBlockCardNode(node) ? node.getTitle() : undefined,
+        }),
+      );
+      this.register(
+        holeService.registerTarget(LinkIframeNode, {
+          serializeTextContent: (node) => ($isLinkIframeNode(node) ? node.getTitle() : undefined),
+        }),
+      );
+    }
     this.register(registerLinkCommand(editor));
     this.register(
       registerLinkCommands(editor, this.kernel, {

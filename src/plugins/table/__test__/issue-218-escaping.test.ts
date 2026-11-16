@@ -1,10 +1,11 @@
 import { $isTableNode } from '@lexical/table';
-import { $getRoot, $isElementNode } from 'lexical';
+import { $getRoot } from 'lexical';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import Editor from '@/editor-kernel';
 import { CodePlugin } from '@/plugins/code';
 import { CommonPlugin } from '@/plugins/common';
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
 import { LitexmlPlugin } from '@/plugins/litexml';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import type { IEditor } from '@/types';
@@ -29,18 +30,23 @@ describe('table Markdown escaping for issue #218', () => {
       .getLexicalEditor()!
       .getEditorState()
       .read(() => {
-        const table = $getRoot().getFirstChild();
+        const table = $getLogicalChildren($getRoot()).find($isTableNode);
         if (!$isTableNode(table)) {
           return { cellText: '', columns: [] };
         }
 
-        const rows = table.getChildren();
+        const rows = $getLogicalChildren(table);
         const bodyRow = rows[1];
+        const bodyCells = bodyRow ? $getLogicalChildren(bodyRow) : [];
+        const bodyCell = bodyCells[1];
         return {
-          cellText: $isElementNode(bodyRow)
-            ? (bodyRow.getChildren()[1]?.getTextContent().replaceAll('\uFEFF', '') ?? '')
+          cellText: bodyCell
+            ? $getLogicalChildren(bodyCell)
+                .map((node) => node.getTextContent())
+                .join('')
+                .replaceAll('\uFEFF', '')
             : '',
-          columns: rows.map((row) => ($isElementNode(row) ? row.getChildrenSize() : 0)),
+          columns: rows.map((row) => $getLogicalChildren(row).length),
         };
       });
 

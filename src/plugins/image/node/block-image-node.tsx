@@ -186,6 +186,8 @@ export class BlockImageNode extends BaseImageNode {
 
   override createDOM(config: EditorConfig): HTMLElement {
     const span = document.createElement('div');
+    // Keep Hole boundaries and annotation bounds aligned to the intrinsic image box.
+    span.dataset.holeContentLayout = 'intrinsic';
     const theme = config.theme;
     const className = theme.blockImage;
     if (className !== undefined) {

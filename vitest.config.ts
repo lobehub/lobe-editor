@@ -38,7 +38,7 @@ export default defineConfig({
       statements: 80,
     },
     environment: 'jsdom',
-    exclude: [...configDefaults.exclude, 'scripts/**'],
+    exclude: [...configDefaults.exclude, 'scripts/postinstall-lexical-patch.test.cjs'],
     globals: true,
     server: {
       deps: {

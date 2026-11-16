@@ -72,17 +72,16 @@ if (!childMode) {
     headless = await import(urls.headless);
   }
 
-  const yjs = await import(urls.yjs);
-  assert.equal(typeof yjs.YjsPlugin, 'function', 'The yjs entry must load under Node ESM.');
-  assert.ok(yjs.IYjsService);
-
   const { $getNodeById, $getNodeId, $setNodeId } = nodeId;
   const { INodeIdentityService } = serviceToken;
+  const yjs = await import(urls.yjs);
   assert.equal(typeof headless.createHeadlessEditor, 'function');
   assert.equal(typeof $getNodeById, 'function');
   assert.equal(typeof $getNodeId, 'function');
   assert.equal(typeof $setNodeId, 'function');
   assert.ok(INodeIdentityService);
+  assert.equal(typeof yjs.YjsPlugin, 'function', 'The yjs entry must load under Node ESM.');
+  assert.ok(yjs.IYjsService);
   assert.equal(
     headless.$getNodeById,
     $getNodeById,

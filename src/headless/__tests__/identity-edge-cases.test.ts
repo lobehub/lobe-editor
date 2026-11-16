@@ -67,6 +67,13 @@ function serviceNode(editor: TestEditor, id: string) {
   return service.getNodeById(id);
 }
 
+function firstParagraphId(editor: TestEditor): string | undefined {
+  const root = editor.export().editorData.root as unknown as NodeData;
+  const paragraph = allNodes(root).find((node) => node.type === 'paragraph');
+  const id = paragraph?.$?.properties?.nodeId;
+  return typeof id === 'string' ? id : undefined;
+}
+
 const MIXED_DOCUMENT =
   '<root>' +
   '<p id="intro"><span id="intro-text">Original intro</span></p>' +
@@ -88,6 +95,35 @@ async function createMixedEditor(): Promise<TestEditor> {
 }
 
 describe('headless public identity edge cases', () => {
+  it('preserves IDs with keepId and allocates fresh IDs for repeated copy imports', async () => {
+    const source = createEditor();
+    source.hydrateMarkdown('Copy this paragraph');
+    await source.applyLiteXML([]);
+
+    const input = structuredClone(source.export().editorData);
+    const paragraph = allNodes(input.root as unknown as NodeData).find(
+      (node) => node.type === 'paragraph',
+    );
+    if (!paragraph) throw new Error('Expected a source paragraph.');
+    setSerializedId(paragraph, 'copy-source-id');
+
+    const copy = createEditor();
+    copy.hydrateEditorData(input as never, { keepId: false });
+    await copy.applyLiteXML([]);
+    const firstCopyId = firstParagraphId(copy);
+    copy.hydrateEditorData(input as never, { keepId: false });
+    await copy.applyLiteXML([]);
+    const secondCopyId = firstParagraphId(copy);
+    expect(firstCopyId).toMatch(/^[0-9a-z]{10}$/);
+    expect(secondCopyId).toMatch(/^[0-9a-z]{10}$/);
+    expect(secondCopyId).not.toBe(firstCopyId);
+
+    const restored = createEditor();
+    restored.hydrateEditorData(input as never, { keepId: true });
+    await restored.applyLiteXML([]);
+    expect(firstParagraphId(restored)).toBe('copy-source-id');
+  });
+
   it('repairs reserved and duplicate root content IDs in keepId JSON without mutating input', () => {
     const source = createEditor();
     source.hydrateMarkdown('Reserved one\n\nReserved two\n\nOpaque three');

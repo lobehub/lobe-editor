@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import Editor from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import type { IEditor } from '@/types';
 
@@ -56,7 +57,7 @@ describe('table controller menu items', () => {
     table = kernel
       .getLexicalEditor()!
       .getEditorState()
-      .read(() => $getRoot().getChildren().find($isTableNode)!) as TableNode;
+      .read(() => $getLogicalChildren($getRoot()).find($isTableNode)!) as TableNode;
   });
 
   it('builds the grouped column menu', () => {

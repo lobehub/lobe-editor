@@ -24,6 +24,7 @@ export interface CopyButtonProps {
 
 export interface LanguageSelectProps {
   className?: string;
+  disabled?: boolean;
   labels?: Pick<CodeMirrorLabels, 'selectLanguage'>;
   onLanguageChange: (value: string) => void;
   options?: CodeMirrorMode[];
@@ -31,6 +32,7 @@ export interface LanguageSelectProps {
 }
 
 export interface MoreOptionsProps {
+  disabled?: boolean;
   labels?: Pick<CodeMirrorLabels, 'showLineNumbers' | 'tabSize' | 'useTabs'>;
   onShowLineNumbersChange: (checked: boolean) => void;
   onTabSizeChange: (value: number | null) => void;
@@ -41,6 +43,7 @@ export interface MoreOptionsProps {
 }
 
 export interface ToolbarProps {
+  disabled?: boolean;
   expand?: boolean;
   extra?: ReactNode;
   labels?: CodeMirrorLabels;

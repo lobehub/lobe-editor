@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import Editor from '@/editor-kernel';
 import { CommonPlugin } from '@/plugins/common';
+import { $getLogicalChildren } from '@/plugins/common/node/logical-children';
 import { MarkdownPlugin } from '@/plugins/markdown';
 import type { IEditor } from '@/types';
 
@@ -59,9 +60,10 @@ describe('table controller hosts', () => {
     }
 
     const lexical = editor.getLexicalEditor()!;
-    lexical.update(() => $getRoot().getChildren().find($isTableNode)!.setColWidths([100, 100]), {
-      discrete: true,
-    });
+    lexical.update(
+      () => $getLogicalChildren($getRoot()).find($isTableNode)!.setColWidths([100, 100]),
+      { discrete: true },
+    );
 
     expect(hostParents()).toEqual([tableRoot(), tableRoot()]);
   });

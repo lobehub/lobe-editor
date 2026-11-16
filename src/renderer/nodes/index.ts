@@ -4,6 +4,7 @@ import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
 import type { Klass, LexicalNode } from 'lexical';
 
 import { AlertNode } from '@/plugins/alert/node/AlertNode';
+import { ArtifactNode } from '@/plugins/artifact/node/ArtifactNode';
 import {
   PlaceholderBlockNode,
   PlaceholderNode,
@@ -12,6 +13,7 @@ import { ChartNode } from '@/plugins/chart/node/ChartNode';
 import { CodeNode } from '@/plugins/code/node/code';
 import { CodeMirrorNode } from '@/plugins/codemirror-block/node/CodeMirrorNode';
 import { CursorNode } from '@/plugins/common/node/cursor';
+import { HoleNode } from '@/plugins/common/node/hole';
 import { FileNode } from '@/plugins/file/node/FileNode';
 import { FootnoteDefinitionNode } from '@/plugins/footnote/node/FootnoteDefinitionNode';
 import { FootnoteNode } from '@/plugins/footnote/node/FootnoteNode';
@@ -53,6 +55,8 @@ export const rendererNodes: Array<Klass<LexicalNode>> = [
   PlaceholderBlockNode,
   ChartNode,
   AlertNode,
+  ArtifactNode,
+  HoleNode,
   FootnoteNode,
   FootnoteSectionNode,
   FootnoteDefinitionNode,

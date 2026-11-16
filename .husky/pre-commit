@@ -1,8 +1,11 @@
 #!/usr/bin/env sh
 
+set -eu
+
+npx --no-install lint-staged
+npm run lint:circular
+
 # Skip type-check in CI environment
-if [ "$CI" != "true" ]; then
+if [ "${CI:-}" != "true" ]; then
   npm run type-check
 fi
-npm run lint:circular
-npx --no-install lint-staged

@@ -88,7 +88,7 @@ function createLegacyEditorData(keepId: boolean): LegacyEditorData {
           children: [
             textNode('state text', 43, {
               nodeId: 'state-text-id',
-              provenance: 'must survive',
+              metadata: { source: 'legacy-fixture', value: 'must survive' },
             }),
           ],
           direction: 'ltr',
@@ -225,7 +225,10 @@ describe('CommonPlugin node identities', () => {
     const stateText = findSerializedText(root, 'state text');
 
     expect(serializedNodeId(stateText)).toBe('state-text-id');
-    expect(stateText.$?.properties?.provenance).toBe('must survive');
+    expect(stateText.$?.properties?.metadata).toEqual({
+      source: 'legacy-fixture',
+      value: 'must survive',
+    });
     expect(editor.getDocument('litexml')).toContain('id="state-text-id"');
     expect(input).toEqual(inputBefore);
   });
@@ -236,14 +239,17 @@ describe('CommonPlugin node identities', () => {
     const original = lexicalTextIdentity(editor, 'Snapshot target');
     const lexicalEditor = editor.getLexicalEditor()!;
 
-    lexicalEditor.update(() => {
-      const text = $getNodeByKey(original.key);
-      if (!$isTextNode(text)) throw new Error('Expected the identity-bearing text node.');
-      $setState(text, nodePropertiesState, (properties) => ({
-        ...properties,
-        metadata: { nested: { value: 'live metadata' } },
-      }));
-    });
+    lexicalEditor.update(
+      () => {
+        const text = $getNodeByKey(original.key);
+        if (!$isTextNode(text)) throw new Error('Expected the identity-bearing text node.');
+        $setState(text, nodePropertiesState, (properties) => ({
+          ...properties,
+          metadata: { nested: { value: 'live metadata' } },
+        }));
+      },
+      { discrete: true },
+    );
 
     const exported = editor.getDocument('json') as unknown as { root: SerializedRecord };
     const exportedText = findSerializedText(exported.root, 'Snapshot target');
@@ -334,7 +340,10 @@ describe('CommonPlugin node identities', () => {
     expect(ids.length).toBeGreaterThan(0);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids.every((nodeId) => !legacyIds.has(nodeId))).toBe(true);
-    expect(stateText.$?.properties?.provenance).toBe('must survive');
+    expect(stateText.$?.properties?.metadata).toEqual({
+      source: 'legacy-fixture',
+      value: 'must survive',
+    });
     expect(input).toEqual(inputBefore);
   });
 
@@ -344,16 +353,19 @@ describe('CommonPlugin node identities', () => {
     const original = lexicalTextIdentity(editor, 'abcd');
     const lexicalEditor = editor.getLexicalEditor()!;
 
-    lexicalEditor.update(() => {
-      const originalNode = $getNodeByKey(original.key);
-      if (!$isTextNode(originalNode)) throw new Error('Expected the original text node.');
-      const [, splitNode] = originalNode.splitText(2);
-      splitNode.setFormat('bold');
+    lexicalEditor.update(
+      () => {
+        const originalNode = $getNodeByKey(original.key);
+        if (!$isTextNode(originalNode)) throw new Error('Expected the original text node.');
+        const [, splitNode] = originalNode.splitText(2);
+        splitNode.setFormat('bold');
 
-      const paragraph = $createParagraphNode();
-      paragraph.append($createTextNode('fresh text'));
-      $getRoot().append(paragraph);
-    });
+        const paragraph = $createParagraphNode();
+        paragraph.append($createTextNode('fresh text'));
+        $getRoot().append(paragraph);
+      },
+      { discrete: true },
+    );
 
     // Export immediately after the update to prove the RootNode transform has run.
     const root = serializedRoot(editor);

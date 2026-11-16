@@ -213,6 +213,7 @@ const ImageEditPopover: FC<ImageEditPopoverProps> = memo(
         onOpenChange={handleOpenChange}
         open={open}
         placement="bottom"
+        popupProps={{ initialFocus: false }}
         styles={{
           content: {
             padding: 12,
