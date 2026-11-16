@@ -8,12 +8,14 @@ const packageRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const builtHeadlessEntry = fileURLToPath(new URL('../../../es/headless.js', import.meta.url));
 
 describe('headless package entry', () => {
+  // Cold Vitest transforms can be slow while the full suite starts in parallel;
+  // this smoke test checks Node compatibility, not import latency.
   it('loads in a Node process without initializing the React runtime', async () => {
     const entry = await import('@lobehub/editor/headless');
 
     expect(entry.createHeadlessEditor).toBeTypeOf('function');
     expect(entry.CollaborativeAgentEditor).toBeTypeOf('function');
-  });
+  }, 15_000);
 
   it.runIf(existsSync(builtHeadlessEntry))(
     'loads the built package entry without React or UI dependencies',
