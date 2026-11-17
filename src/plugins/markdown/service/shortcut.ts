@@ -1,4 +1,5 @@
 import type { BaseSelection, ElementNode, LexicalEditor, LexicalNode, TextNode } from 'lexical';
+import { $isRootOrShadowRoot } from 'lexical';
 
 import { genServiceId } from '@/editor-kernel';
 import type { IRootNode } from '@/editor-kernel/inode';
@@ -190,6 +191,29 @@ export class MarkdownShortCutService implements IMarkdownShortCutService {
     for (const transformer of transformers) {
       this.registerMarkdownShortCut(transformer);
     }
+  }
+
+  /**
+   * Read-only precheck for {@link runTransformers} without a trigger. When it returns false,
+   * runTransformers would also return false without changing anything, so callers can skip
+   * opening an update (and cloning the editor state) for an ordinary keystroke.
+   */
+  mayRunTransformers(parentNode: ElementNode, anchorNode: TextNode, anchorOffset: number): boolean {
+    const lastChar = anchorNode.getTextContent()[anchorOffset - 1];
+    if (lastChar === undefined) return false;
+    // Same lookups runTextMatchTransformers / $runTextFormatTransformers bail out on.
+    if (
+      this.textMatchTransformersByTrigger[lastChar] ||
+      this.textFormatTransformersByTrigger[lastChar]
+    ) {
+      return true;
+    }
+    return (
+      lastChar === ' ' &&
+      this.elementTransformers.length > 0 &&
+      parentNode.getFirstChild() === anchorNode &&
+      $isRootOrShadowRoot(parentNode.getParent())
+    );
   }
 
   testTransformers(

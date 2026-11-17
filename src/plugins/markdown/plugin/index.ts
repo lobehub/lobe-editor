@@ -188,6 +188,16 @@ export const MarkdownPlugin: IEditorPluginConstructor<MarkdownPluginOptions> = c
           return;
         }
 
+        // Decide in a read first: opening an update clones the whole editor state, which is
+        // wasted on the common keystroke that cannot complete a markdown shortcut.
+        const mayTransform = editorState.read(() => {
+          if (!canContainTransformableMarkdown(anchorNode)) return false;
+          const parentNode = anchorNode.getParent();
+          if (parentNode === null || $isCodeNode(parentNode)) return false;
+          return this.service.mayRunTransformers(parentNode, anchorNode, anchorOffset);
+        });
+        if (!mayTransform) return;
+
         editor.update(() => {
           if (!canContainTransformableMarkdown(anchorNode)) {
             return;
