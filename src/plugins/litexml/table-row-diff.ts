@@ -11,9 +11,11 @@ import { $copyNodeProperties } from '@/plugins/common/node/node-id';
 
 import {
   $createTableRowDiffNode,
+  $isTableRowDiffNode,
   TableRowDiffNode,
   type TableRowDiffType,
 } from './node/TableRowDiffNode';
+import { isWholeDocumentChange, someDirtyNode } from './update-scope';
 import { $cloneNode } from './utils';
 
 export interface TableRowDiffPair {
@@ -123,12 +125,21 @@ export function registerTableRowDiffNormalization(editor: LexicalEditor): () => 
   let destroyed = false;
   let scheduled = false;
 
-  const unregister = editor.registerUpdateListener(() => {
-    if (scheduled || destroyed) return;
+  // A row pair can only break when one of its rows, or something inside one, changed; check the
+  // whole document only on load/undo, when the dirty sets do not say what changed.
+  let pendingCheck = true;
+  const unregister = editor.registerUpdateListener((update) => {
+    if (destroyed) return;
+    pendingCheck ||=
+      isWholeDocumentChange(update) ||
+      someDirtyNode(update.editorState, update, $isTableRowDiffNode) ||
+      someDirtyNode(update.prevEditorState, update, $isTableRowDiffNode);
+    if (!pendingCheck || scheduled) return;
     scheduled = true;
     queueMicrotask(() => {
       scheduled = false;
       if (destroyed) return;
+      pendingCheck = false;
 
       const shouldNormalize = editor.getEditorState().read(() => {
         const rows = $nodesOfType(TableRowDiffNode);
