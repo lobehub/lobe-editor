@@ -49,6 +49,7 @@ import TextDataSource from '../data-source/text-data-source';
 import { CursorNode, registerCursorNode } from '../node/cursor';
 import { patchBreakLine, registerBreakLineClick } from '../node/ElementDOMSlot';
 import { $isCursorInQuote, $isCursorInTable, createBlockNode, sampleReader } from '../utils';
+import { registerHistoryMemoryLimit } from './history-memory';
 import { registerMDReader } from './mdReader';
 import {
   handleFilePaste,
@@ -532,6 +533,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       registerRichText(editor),
       registerProgressiveSelectAll(editor),
       registerHistory(editor, this.kernel.getHistoryState(), 300),
+      registerHistoryMemoryLimit(editor, this.kernel.getHistoryState()),
       registerBlockBackspace(editor),
       registerRichKeydown(editor, this.kernel, {
         enableHotkey: this.config?.enableHotkey,
