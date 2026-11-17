@@ -25,7 +25,6 @@ import {
   INSERT_PARAGRAPH_COMMAND,
   ParagraphNode,
   PASTE_COMMAND,
-  RootNode,
   SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,
   TEXT_TYPE_TO_FORMAT,
   TextNode,
@@ -33,7 +32,8 @@ import {
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
-import { $clearNodeId, $normalizeNodeIds } from '@/plugins/common/node/node-id';
+import { $clearNodeId } from '@/plugins/common/node/node-id';
+import { registerNodeIdNormalization } from '@/plugins/common/node/node-id-normalization';
 import { HeadingService } from '@/plugins/common/service/heading-service';
 import { IHeadingService } from '@/plugins/common/service/i-heading-service';
 import { INodeIdentityService } from '@/plugins/common/service/i-node-identity-service';
@@ -452,7 +452,7 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
         anchors: this.config.enableHeadingAnchor !== false,
       }),
     );
-    this.register(editor.registerNodeTransform(RootNode, $normalizeNodeIds));
+    this.register(registerNodeIdNormalization(editor));
     this.register(
       editor.registerCommand(
         SELECTION_INSERT_CLIPBOARD_NODES_COMMAND,

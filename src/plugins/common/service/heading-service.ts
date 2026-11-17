@@ -5,11 +5,11 @@ import {
   $getSelection,
   $isElementNode,
   $isRangeSelection,
-  type EditorState,
   type LexicalEditor,
   type LexicalNode,
 } from 'lexical';
 
+import { hasHeadingChange } from '@/plugins/common/utils/heading-change';
 import { claimHeadingSlug } from '@/utils/heading-slug';
 
 import {
@@ -23,28 +23,6 @@ export interface HeadingServiceBindOptions {
 }
 
 const getHeadingLevel = (node: HeadingNode) => Number(node.getTag().slice(1));
-
-function $hasHeadingAncestor(node: LexicalNode | null) {
-  for (let current = node; current; current = current.getParent()) {
-    if ($isHeadingNode(current)) return true;
-  }
-  return false;
-}
-
-function hasHeadingChange(
-  editorState: EditorState,
-  prevEditorState: EditorState,
-  dirtyElements: Map<string, boolean>,
-  dirtyLeaves: Set<string>,
-) {
-  if (dirtyElements.get('root') === true) return true;
-  if (dirtyElements.has('root') && dirtyElements.size === 1 && dirtyLeaves.size === 0) return true;
-
-  const dirtyKeys = [...dirtyElements.keys(), ...dirtyLeaves];
-  if (dirtyKeys.length === 0) return false;
-  const findHeading = () => dirtyKeys.some((key) => $hasHeadingAncestor($getNodeByKey(key)));
-  return editorState.read(findHeading) || prevEditorState.read(findHeading);
-}
 
 function syncAttribute(previous: Set<HTMLElement>, next: Set<HTMLElement>, attribute: string) {
   for (const element of previous) {
