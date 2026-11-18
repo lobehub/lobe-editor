@@ -213,6 +213,10 @@ const ImageEditPopover: FC<ImageEditPopoverProps> = memo(
         onOpenChange={handleOpenChange}
         open={open}
         placement="bottom"
+        // Keep keyboard focus in the editor when the image is clicked, so the
+        // selected image still reacts to Enter / Backspace / Delete. The URL
+        // input is focused only when the user clicks into it.
+        popupProps={{ finalFocus: false, initialFocus: false }}
         styles={{
           content: {
             padding: 12,

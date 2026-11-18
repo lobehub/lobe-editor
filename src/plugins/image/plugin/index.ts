@@ -9,7 +9,7 @@ import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import { IUploadService, UPLOAD_PRIORITY_HIGH } from '@/plugins/upload';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 
-import { INSERT_IMAGE_COMMAND, registerImageCommand } from '../command';
+import { INSERT_IMAGE_COMMAND, registerImageCommand, registerImageEnterDelete } from '../command';
 import { $isBlockImageNode, BlockImageNode } from '../node/block-image-node';
 import { $isImageNode, ImageNode } from '../node/image-node';
 
@@ -103,6 +103,8 @@ export const ImagePlugin: IEditorPluginConstructor<ImagePluginOptions> = class
         ),
       );
     }
+
+    this.register(registerImageEnterDelete(editor));
 
     this.registerMarkdown();
     this.registerLiteXml();
