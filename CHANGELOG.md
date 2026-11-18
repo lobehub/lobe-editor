@@ -2,6 +2,38 @@
 
 # Changelog
 
+## [Version&nbsp;7.3.0](https://github.com/lobehub/lobe-editor/compare/v7.2.2...v7.3.0)
+<sup>Released on **2026-11-18**</sup>
+
+
+#### ✨ Features
+
+- **image**: Add delete / copy menu to images and delete a selected image with Enter, delete / copy menu on images, Enter deletes a selected image.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's improved
+
+* **image**: Add delete / copy menu to images and delete a selected image with Enter ([b63a89c](https://github.com/lobehub/lobe-editor/commit/b63a89c))
+* **image**: Delete / copy menu on images, Enter deletes a selected image, closes [#244](https://github.com/lobehub/lobe-editor/issues/244) ([cf73450](https://github.com/lobehub/lobe-editor/commit/cf73450))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version&nbsp;7.2.2](https://github.com/lobehub/lobe-editor/compare/v7.2.1...v7.2.2)
 <sup>Released on **2026-11-13**</sup>
 
