@@ -54,6 +54,10 @@ vi.mock('@/editor-kernel/react/useLexicalEditor', async () => {
   };
 });
 
+vi.mock('@/editor-kernel/react/react-context', () => ({
+  useLexicalComposerContext: () => [{ getLexicalEditor: () => mocks.editor }],
+}));
+
 vi.mock('@/editor-kernel/react/useEditable', () => ({
   useEditable: () => ({ editable: mocks.editable }),
 }));
@@ -238,6 +242,73 @@ describe('Image resize', () => {
     expect(mocks.previewRef?.current).toBe(image);
     expect(mocks.setSelected).not.toHaveBeenCalled();
   });
+
+  it.each([
+    { editable: true, expected: true, status: 'uploaded' },
+    { editable: true, expected: true, status: 'error' },
+    { editable: true, expected: false, status: 'loading' },
+    { editable: false, expected: false, status: 'uploaded' },
+  ])(
+    'shows the more-actions menu on hover (editable=$editable, status=$status) → $expected',
+    async ({ editable, expected, status }) => {
+      mocks.editable = editable;
+      const node = {
+        altText: 'test image',
+        getKey: () => 'image-node',
+        getType: () => 'block-image',
+        maxWidth: 200,
+        src: 'https://example.com/image.png',
+        status,
+        width: 200,
+      };
+
+      await act(async () => {
+        root.render(<Image node={node as any} />);
+      });
+
+      expect(host.querySelector('[aria-label="image.more"]')).toBeNull();
+
+      const container =
+        host.querySelector<HTMLElement>('[data-testid="image"]')?.parentElement ??
+        (host.firstElementChild as HTMLElement);
+      await act(async () => {
+        container.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      });
+
+      expect(Boolean(host.querySelector('[aria-label="image.more"]'))).toBe(expected);
+    },
+  );
+
+  it.each([
+    { editable: true, prevented: true },
+    { editable: false, prevented: false },
+  ])(
+    'keeps editor focus on mousedown (editable=$editable) so keys reach the editor',
+    async ({ editable, prevented }) => {
+      mocks.editable = editable;
+      const node = {
+        altText: 'test image',
+        getKey: () => 'image-node',
+        getType: () => 'block-image',
+        maxWidth: 200,
+        src: 'https://example.com/image.png',
+        status: 'uploaded',
+        width: 200,
+      };
+
+      await act(async () => {
+        root.render(<Image node={node as any} />);
+      });
+
+      const container = host.querySelector<HTMLElement>('[data-testid="image"]')!.parentElement!;
+      const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+      await act(async () => {
+        container.dispatchEvent(event);
+      });
+
+      expect(event.defaultPrevented).toBe(prevented);
+    },
+  );
 
   it('opens the lightbox on click in read-only mode instead of selecting', async () => {
     mocks.editable = false;

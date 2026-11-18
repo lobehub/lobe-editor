@@ -99,6 +99,9 @@ export default {
   image: {
     broken: 'Broken image',
     captionPlaceholder: 'Add a caption',
+    copy: 'Copy',
+    delete: 'Delete',
+    more: 'More actions',
     preview: 'Preview image',
     replace: 'Replace',
   },

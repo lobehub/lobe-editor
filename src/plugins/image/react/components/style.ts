@@ -38,6 +38,10 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     &::placeholder {
       color: ${cssVar.colorTextQuaternary};
     }
+
+    &:focus-visible {
+      box-shadow: inset 0 -1px 0 ${cssVar.colorBorder};
+    }
   `,
 
   fadeIn: css`
@@ -156,30 +160,40 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     color: ${cssVar.colorTextSecondary};
   `,
 
-  previewAction: css`
+  actions: css`
     position: absolute;
     z-index: 10000;
     inset-block-start: 8px;
     inset-inline-end: 8px;
 
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  `,
+
+  overlayAction: css`
+    /* Overlays sit on arbitrary photos, so they stay dark in both themes. */
     && {
-      border: 1px solid rgb(255 255 255 / 24%);
+      border: 1px solid color-mix(in srgb, ${cssVar.colorTextLightSolid} 24%, transparent);
 
-      color: rgb(255 255 255 / 96%);
+      color: ${cssVar.colorTextLightSolid};
 
-      background: rgb(0 0 0 / 58%);
+      background: ${cssVar.colorBgMask};
       backdrop-filter: saturate(120%) blur(12px);
-      box-shadow: 0 2px 8px rgb(0 0 0 / 36%);
+      box-shadow: ${cssVar.boxShadowSecondary};
     }
 
     &&:hover {
-      color: rgb(255 255 255);
-      background: rgb(0 0 0 / 72%);
+      color: ${cssVar.colorTextLightSolid};
+      background:
+        linear-gradient(${cssVar.colorBgMask}, ${cssVar.colorBgMask}), ${cssVar.colorBgMask};
     }
 
     &&:active {
-      color: rgb(255 255 255);
-      background: rgb(0 0 0 / 80%);
+      color: ${cssVar.colorTextLightSolid};
+      background:
+        linear-gradient(${cssVar.colorBgMask}, ${cssVar.colorBgMask}),
+        linear-gradient(${cssVar.colorBgMask}, ${cssVar.colorBgMask}), ${cssVar.colorBgMask};
     }
   `,
 
@@ -205,10 +219,10 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
 
       width: 6px;
       height: min(80px, 80%);
-      border: 1px solid color-mix(in srgb, rgb(255 255 255) 75%, transparent);
+      border: 1px solid color-mix(in srgb, ${cssVar.colorTextLightSolid} 75%, transparent);
       border-radius: 3px;
 
-      background-color: color-mix(in srgb, rgb(0 0 0) 50%, transparent);
+      background-color: ${cssVar.colorBgMask};
     }
   `,
 
@@ -233,8 +247,8 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     border-radius: ${cssVar.borderRadiusSM};
 
     font-size: 12px;
-    color: white;
+    color: ${cssVar.colorTextLightSolid};
 
-    background-color: color-mix(in srgb, rgb(0 0 0) 50%, transparent);
+    background-color: ${cssVar.colorBgMask};
   `,
 }));

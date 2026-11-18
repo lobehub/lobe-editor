@@ -1,12 +1,11 @@
-import { ActionIcon, cx, Icon, useImagePreview } from '@lobehub/ui';
+import { cx, Icon, useImagePreview } from '@lobehub/ui';
 import { COMMAND_PRIORITY_LOW, HISTORY_MERGE_TAG, SELECTION_CHANGE_COMMAND } from 'lexical';
-import { LoaderCircleIcon, ZoomInIcon } from 'lucide-react';
+import { LoaderCircleIcon } from 'lucide-react';
 import React, { memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useEditable } from '@/editor-kernel/react/useEditable';
 import { useLexicalEditor } from '@/editor-kernel/react/useLexicalEditor';
 import { useLexicalNodeSelection } from '@/editor-kernel/react/useLexicalNodeSelection';
-import { useTranslation } from '@/editor-kernel/react/useTranslation';
 import { mediaDisplaySizeAfterResize } from '@/utils/mediaDisplaySize';
 
 import type { BlockImageNode } from '../../node/block-image-node';
@@ -14,6 +13,7 @@ import { $isBlockImageNode } from '../../node/block-image-node';
 import type { ImageNode } from '../../node/image-node';
 import { getImageDisplaySize } from '../../utils/displaySize';
 import BrokenImage from './BrokenImage';
+import ImageActions from './ImageActions';
 import ImageCaption from './ImageCaption';
 import ImageEditPopover from './ImageEditPopover';
 import ImagePlaceholder from './ImagePlaceholder';
@@ -40,6 +40,7 @@ const Image = memo<ImageProps>(
   ({ node, className, showScaleInfo = false, handleUpload, onPickFile }) => {
     const [isSelected, setSelected] = useLexicalNodeSelection(node.getKey());
     const [isHovered, setIsHovered] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
     const [scale, setScale] = useState(1);
     const [size, setSize] = useState({ height: 0, width: 0 });
     const [newWidth, setNewWidth] = useState<number | null>(null);
@@ -51,7 +52,6 @@ const Image = memo<ImageProps>(
     const lastLoadedSrcRef = useRef<string | null>(null);
     const previewImageRef = useRef<HTMLImageElement | null>(null);
     const { open: openPreview, outlet: previewOutlet } = useImagePreview(previewImageRef);
-    const t = useTranslation();
     const { editable } = useEditable();
     const isBlock = useMemo(() => {
       return $isBlockImageNode(node);
@@ -174,9 +174,23 @@ const Image = memo<ImageProps>(
           return;
         }
         e.stopPropagation();
+        // Make sure keyboard input goes to the editor (Enter / Backspace /
+        // Delete act on the selected image), also when it was not focused yet.
+        const root = editorRef.current?.getRootElement?.();
+        if (root && root.ownerDocument.activeElement !== root) root.focus({ preventScroll: true });
         setSelected(true);
       },
       [editable, handlePreview, node.status, setSelected],
+    );
+
+    // The container doubles as the edit popover trigger (a focusable
+    // role="button"). Without this, clicking it moves focus off the editor
+    // root and Lexical ignores keys coming from inside the decorator.
+    const handleMouseDown = useCallback(
+      (e: React.MouseEvent) => {
+        if (editable) e.preventDefault();
+      },
+      [editable],
     );
 
     const children = useMemo(() => {
@@ -266,6 +280,7 @@ const Image = memo<ImageProps>(
             draggable={false}
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
+            onMouseDown={handleMouseDown}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             ref={imageRef}
@@ -286,18 +301,15 @@ const Image = memo<ImageProps>(
               </div>
             )}
 
-            {(isHovered || isSelected) && node.status === 'uploaded' && (
-              <ActionIcon
-                aria-label={t('image.preview')}
-                glass
-                className={styles.previewAction}
-                icon={ZoomInIcon}
-                onClick={handlePreview}
-                size="small"
-                title={t('image.preview')}
-                variant="filled"
-              />
-            )}
+            <ImageActions
+              node={node}
+              onMenuOpenChange={setMenuOpen}
+              onPreview={handlePreview}
+              showMenu={
+                editable && node.status !== 'loading' && (isHovered || isSelected || menuOpen)
+              }
+              showPreview={(isHovered || isSelected || menuOpen) && node.status === 'uploaded'}
+            />
 
             {previewOutlet}
 

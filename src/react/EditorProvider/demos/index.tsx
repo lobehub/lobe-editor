@@ -13,6 +13,9 @@ const customLocale = {
   image: {
     broken: '图片损坏',
     captionPlaceholder: '添加图片说明',
+    copy: '复制',
+    delete: '删除',
+    more: '更多操作',
     preview: '预览图片',
     replace: '替换',
   },

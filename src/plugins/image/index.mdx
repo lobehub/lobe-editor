@@ -45,6 +45,8 @@ The plugin implements custom image nodes:
 - **Placeholders**: `thumbhash` or `accent` color shown while the image loads, then a fade-in
 - **Lightbox**: Clicking an image in read-only mode (`editable={false}` or `LexicalRenderer`) opens a zoomable preview
 - **Loading States**: Support for image loading and error states
+- **Actions menu**: In an editable editor, hovering or selecting an image shows a "..." button next to the preview button, with **Delete** and **Copy** (copies the image node to the clipboard; pasting it back recreates the same image without re-uploading)
+- **Keyboard**: With an image selected, **Enter**, **Backspace** or **Delete** removes it. Clicking an image keeps keyboard focus in the editor; the URL field of the edit popover takes focus only when clicked
 
 ### Caption
 
