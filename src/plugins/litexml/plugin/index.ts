@@ -19,6 +19,7 @@ import { $isTableRowDiffNode, TableRowDiffNode } from '../node/TableRowDiffNode'
 import { ILitexmlService, LitexmlService } from '../service/litexml-service';
 import { registerLegacyTableCellDiffNormalization } from '../table-cell-diff';
 import { registerTableRowDiffNormalization } from '../table-row-diff';
+import { isWholeDocumentChange, someDirtyNode } from '../update-scope';
 
 /**
  * LitexmlPluginOptions - Configuration options for the Litexml plugin
@@ -102,17 +103,24 @@ export const LitexmlPlugin: IEditorPluginConstructor<LitexmlPluginOptions> = cla
     );
 
     // 补充逻辑：初始化加载/重置 State 时，NodeTransform 不会触发。需要用 UpdateListener 扫一遍存量节点。
+    // 其余更新只可能让本次改动到的 DiffNode 变成待规范化状态，只看 dirty 节点，避免每次更新全文扫描。
+    const needsRemove = (node: LexicalNode): node is DiffNode =>
+      node instanceof DiffNode && node.diffType === 'modify' && node.getChildrenSize() === 1;
+    let scanAll = true;
     this.register(
-      editor.registerUpdateListener(({ editorState, prevEditorState, tags }) => {
+      editor.registerUpdateListener((update) => {
+        const { editorState, prevEditorState, tags } = update;
         if (editorState === prevEditorState) return;
-        if (tags.has(HISTORIC_TAG)) return;
+        if (tags.has(HISTORIC_TAG)) {
+          scanAll = true;
+          return;
+        }
 
-        let shouldNormalize = false;
-        editorState.read(() => {
-          shouldNormalize = $nodesOfType(DiffNode).some(
-            (node) => node.diffType === 'modify' && node.getChildrenSize() === 1,
-          );
-        });
+        const fullScan = scanAll || isWholeDocumentChange(update);
+        scanAll = false;
+        const shouldNormalize = fullScan
+          ? editorState.read(() => $nodesOfType(DiffNode).some(needsRemove))
+          : someDirtyNode(editorState, update, needsRemove);
 
         if (!shouldNormalize) return;
 

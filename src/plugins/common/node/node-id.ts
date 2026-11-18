@@ -221,7 +221,7 @@ export function inheritMissingSerializedNodeIds(source: unknown, target: unknown
   }
 }
 
-function createNodeId(): string {
+export function createNodeId(): string {
   const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz';
   const cryptoObject = globalThis.crypto as Crypto | undefined;
   const id: string[] = [];

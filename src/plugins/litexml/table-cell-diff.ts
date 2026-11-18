@@ -17,6 +17,7 @@ import {
   TableCellDiffNode,
   type TableCellDiffType,
 } from './node/TableCellDiffNode';
+import { isWholeDocumentChange, someDirtyNode } from './update-scope';
 import { $cloneNode } from './utils';
 
 export type AnyTableCell = TableCellNode | TableCellDiffNode;
@@ -235,12 +236,24 @@ export function registerLegacyTableCellDiffNormalization(editor: LexicalEditor):
   let destroyed = false;
   let scheduled = false;
 
-  const unregister = editor.registerUpdateListener(() => {
-    if (scheduled || destroyed) return;
+  // Legacy cell diffs and short width lists only appear through a DiffNode or a table the update
+  // touched (a change inside a table marks the table dirty too), or through load/undo.
+  let pendingCheck = true;
+  const unregister = editor.registerUpdateListener((update) => {
+    if (destroyed) return;
+    pendingCheck ||=
+      isWholeDocumentChange(update) ||
+      someDirtyNode(
+        update.editorState,
+        update,
+        (node) => $isTableNode(node) || node instanceof DiffNode,
+      );
+    if (!pendingCheck || scheduled) return;
     scheduled = true;
     queueMicrotask(() => {
       scheduled = false;
       if (destroyed) return;
+      pendingCheck = false;
 
       const shouldNormalize = editor
         .getEditorState()
