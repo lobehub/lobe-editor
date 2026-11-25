@@ -2,6 +2,37 @@
 
 # Changelog
 
+### [Version&nbsp;7.3.1](https://github.com/lobehub/lobe-editor/compare/v7.3.0...v7.3.1)
+<sup>Released on **2026-11-25**</sup>
+
+
+#### 🐛 Bug Fixes
+
+- **auto-complete**: Isolate IME placeholder content.
+
+
+<br/>
+
+
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+
+
+#### What's fixed
+
+* **auto-complete**: Isolate IME placeholder content, closes [#245](https://github.com/lobehub/lobe-editor/issues/245) ([bc8fbda](https://github.com/lobehub/lobe-editor/commit/bc8fbda))
+
+</details>
+
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version&nbsp;7.3.0](https://github.com/lobehub/lobe-editor/compare/v7.2.2...v7.3.0)
 <sup>Released on **2026-11-18**</sup>
 
