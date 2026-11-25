@@ -14,6 +14,7 @@ import {
 } from 'lexical';
 
 import { KernelPlugin } from '@/editor-kernel/plugin';
+import { ILitexmlService } from '@/plugins/litexml';
 import { IMarkdownShortCutService } from '@/plugins/markdown';
 import type { IEditor, IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { createDebugLogger } from '@/utils/debug';
@@ -99,6 +100,21 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
         this.clearPlaceholderNodes(editor, { restoreSelection: false });
       }
     };
+
+    const handleCompositionStart = () => {
+      this.clearTimer();
+      if (this.currentSuggestion) {
+        this.rejectSuggestion('other');
+      }
+      this.clearPlaceholderNodes(editor, { restoreSelection: false });
+    };
+
+    this.markdownService.registerMarkdownWriter(PlaceholderNode.getType(), () => true);
+    this.markdownService.registerMarkdownWriter(PlaceholderBlockNode.getType(), () => true);
+
+    const litexmlService = this.kernel.requireService(ILitexmlService);
+    litexmlService?.registerXMLWriter(PlaceholderNode.getType(), () => ({ lines: [] }));
+    litexmlService?.registerXMLWriter(PlaceholderBlockNode.getType(), () => ({ lines: [] }));
 
     this.register(
       editor.registerUpdateListener(({ editorState }) => {
@@ -225,7 +241,9 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
     this.register(
       editor.registerRootListener((rootElement, prevRootElement) => {
         prevRootElement?.removeEventListener('blur', handleBlur);
+        prevRootElement?.removeEventListener('compositionstart', handleCompositionStart);
         rootElement?.addEventListener('blur', handleBlur);
+        rootElement?.addEventListener('compositionstart', handleCompositionStart);
       }),
     );
   }
