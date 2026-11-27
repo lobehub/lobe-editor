@@ -1,5 +1,6 @@
 import { registerDragonSupport } from '@lexical/dragon';
 import { registerHistory } from '@lexical/history';
+import { $isListNode } from '@lexical/list';
 import type { HeadingTagType } from '@lexical/rich-text';
 import {
   $createHeadingNode,
@@ -17,6 +18,7 @@ import {
   $createParagraphNode,
   $getSelection,
   $isElementNode,
+  $isParagraphNode,
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
@@ -301,8 +303,19 @@ export const CommonPlugin: IEditorPluginConstructor<CommonPluginOptions> = class
       markdownService.registerMarkdownShortCuts(textFormatShortcuts as any);
     }
 
-    markdownService.registerMarkdownWriter('paragraph', (ctx) => {
+    markdownService.registerMarkdownWriter('paragraph', (ctx, node) => {
       ctx.wrap('', breakMark);
+      let next = node.getNextSibling();
+      while ($isParagraphNode(next) && next.isEmpty()) {
+        next = next.getNextSibling();
+      }
+      if ($isListNode(next) && next.getListType() === 'number') {
+        // Markdown treats consecutive ordered markers as one list, even across blank lines.
+        ctx.addProcessor(
+          (before, content, after) =>
+            before + content.replace(/^( {0,3}\d{1,9})([.)])(?=[ \t\n]|$)/, '$1\\$2') + after,
+        );
+      }
     });
 
     // Register quote writer only if quote format is enabled
