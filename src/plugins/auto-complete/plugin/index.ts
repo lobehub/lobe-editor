@@ -87,6 +87,25 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
   }
 
   onInit(editor: LexicalEditor): void {
+    this.register(
+      editor.registerCommand(
+        KEY_ESCAPE_COMMAND,
+        (event) => {
+          if (editor.isComposing()) {
+            // An unhandled Escape from the chat input would blur the editor during composition.
+            return true;
+          }
+          if (!this.currentSuggestion) return false;
+
+          event?.preventDefault();
+          this.rejectSuggestion('esc');
+          this.clearPlaceholderNodes(editor);
+          return true;
+        },
+        COMMAND_PRIORITY_CRITICAL,
+      ),
+    );
+
     this.markdownService = this.kernel.requireService(IMarkdownShortCutService);
 
     if (!this.markdownService) {
@@ -200,22 +219,6 @@ export const AutoCompletePlugin: IEditorPluginConstructor<AutoCompletePluginOpti
             this.rejectSuggestion('cursor-move');
             this.clearPlaceholderNodes(editor, { restoreSelection: false });
             return false;
-          }
-          return false;
-        },
-        COMMAND_PRIORITY_CRITICAL,
-      ),
-    );
-
-    this.register(
-      editor.registerCommand(
-        KEY_ESCAPE_COMMAND,
-        (event) => {
-          if (this.currentSuggestion) {
-            event?.preventDefault();
-            this.rejectSuggestion('esc');
-            this.clearPlaceholderNodes(editor);
-            return true;
           }
           return false;
         },

@@ -8,7 +8,7 @@ import {
 } from '@lexical/list';
 import { $getNearestNodeOfType } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
-import { $isRootNode } from 'lexical';
+import { $isParagraphNode, $isRootNode } from 'lexical';
 
 import { INodeHelper } from '@/editor-kernel/inode/helper';
 import { KernelPlugin } from '@/editor-kernel/plugin';
@@ -17,11 +17,10 @@ import { IMarkdownShortCutService } from '@/plugins/markdown/service/shortcut';
 import type { IEditorKernel, IEditorPlugin, IEditorPluginConstructor } from '@/types';
 import { cx } from '@/utils/cx';
 
-import { listReplace } from '../utils';
+import { listReplace, ORDERED_LIST_REGEX } from '../utils';
 import { registerCheckList } from './checkList';
 import { registerListCommands } from './registry';
 
-const ORDERED_LIST_REGEX = /^(\s*)(\d+)\.\s/;
 const UNORDERED_LIST_REGEX = /^(\s*)[*+-]\s/;
 const CHECK_LIST_REGEX = /^(\s*)(?:-\s)?\s?(\[(\s|x)?])\s/i;
 
@@ -187,8 +186,19 @@ export const ListPlugin: IEditorPluginConstructor<ListPluginOptions> = class
     markdownService.registerMarkdownWriter(ListNode.getType(), (ctx, node) => {
       if ($isListNode(node)) {
         const parent = node.getParent();
-        const needsLeadingNewline = $isListItemNode(parent) && node.getPreviousSibling() !== null;
-        ctx.wrap(needsLeadingNewline ? '\n' : '', '\n');
+        const previousSibling = node.getPreviousSibling();
+        let prefix = $isListItemNode(parent) && previousSibling ? '\n' : '';
+        if ($isRootNode(parent) && node.getListType() === 'number') {
+          let previous = previousSibling;
+          while ($isParagraphNode(previous) && previous.isEmpty()) {
+            previous = previous.getPreviousSibling();
+          }
+          if ($isListNode(previous) && previous.getListType() === 'number') {
+            // A blank line alone does not separate ordered lists in Markdown.
+            prefix = '\n<!-- -->\n\n';
+          }
+        }
+        ctx.wrap(prefix, '\n');
       }
     });
 

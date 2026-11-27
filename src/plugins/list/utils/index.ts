@@ -1,10 +1,12 @@
-import type { ListType } from '@lexical/list';
-import { $createListItemNode, $createListNode, $isListNode } from '@lexical/list';
+import type { ListNode, ListType } from '@lexical/list';
+import { $createListItemNode, $createListNode, $isListItemNode, $isListNode } from '@lexical/list';
 import { $filter, $getNearestBlockElementAncestorOrThrow } from '@lexical/utils';
-import type { RangeSelection } from 'lexical';
+import type { ElementNode, ParagraphNode, RangeSelection, TextNode } from 'lexical';
 import {
   $createRangeSelection,
   $isBlockElementNode,
+  $isParagraphNode,
+  $isTextNode,
   $normalizeSelection__EXPERIMENTAL,
 } from 'lexical';
 
@@ -13,6 +15,7 @@ import type { ElementTransformer } from '@/plugins/markdown/service/transformers
 // Amount of spaces that define indentation level
 // TODO: should be an option
 const LIST_INDENT_SIZE = 4;
+export const ORDERED_LIST_REGEX = /^(\s*)(\d+)\.\s/;
 
 function getIndent(whitespaces: string): number {
   const tabs = whitespaces.match(/\t/g);
@@ -29,6 +32,42 @@ function getIndent(whitespaces: string): number {
   }
 
   return indent;
+}
+
+function $prependNumberedParagraphs(list: ListNode, current: ElementNode): void {
+  const paragraphs: { markerLength: number; paragraph: ParagraphNode; text: TextNode }[] = [];
+  let start = list.getStart();
+  let previous = current.getPreviousSibling();
+
+  while ($isParagraphNode(previous)) {
+    const text = previous.getFirstChild();
+    if (!$isTextNode(text) || text.hasFormat('code')) break;
+
+    const marker = text.getTextContent().match(ORDERED_LIST_REGEX);
+    if (!marker || marker[1] || Number(marker[2]) !== start - 1) break;
+
+    paragraphs.push({ markerLength: marker[0].length, paragraph: previous, text });
+    start--;
+    previous = previous.getPreviousSibling();
+  }
+
+  // Lexical merges adjacent ordered lists, which could renumber a separate list.
+  if (paragraphs.length === 0 || ($isListNode(previous) && previous.getListType() === 'number')) {
+    return;
+  }
+
+  const items = paragraphs.reverse().map(({ markerLength, paragraph, text }) => {
+    if (text.getTextContentSize() === markerLength) {
+      text.remove();
+    } else {
+      text.spliceText(0, markerLength, '');
+    }
+    const item = $createListItemNode().append(...paragraph.getChildren());
+    paragraph.remove();
+    return item;
+  });
+
+  list.setStart(start).splice(0, 0, items);
 }
 
 export const listReplace = (listType: ListType): ElementTransformer['replace'] => {
@@ -51,6 +90,9 @@ export const listReplace = (listType: ListType): ElementTransformer['replace'] =
     } else {
       const list = $createListNode(listType, listType === 'number' ? Number(match[2]) : undefined);
       list.append(listItem);
+      if (!isImport && listType === 'number' && !match[1]) {
+        $prependNumberedParagraphs(list, parentNode);
+      }
       parentNode.replace(list);
     }
     listItem.append(...children);
@@ -83,6 +125,9 @@ export function $indentOverTab(selection: RangeSelection): boolean {
   const first = focus.isBefore(anchor) ? focus : anchor;
   const firstNode = first.getNode();
   const firstBlock = $getNearestBlockElementAncestorOrThrow(firstNode);
+  if ($isListItemNode(firstBlock)) {
+    return true;
+  }
   if (firstBlock.canIndent()) {
     const firstBlockKey = firstBlock.getKey();
     let selectionAtStart = $createRangeSelection();
